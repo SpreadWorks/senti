@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -25,7 +26,7 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 
-describe("draft coverage review advisory routing", () => {
+describe("draft review advisory routing", () => {
   it("parses ADVISORY as a non-blocking draft review result routed to coverage triage", () => {
     const coverageReviewName = "draft-review-coverage";
     const coverageArtifactPath = `specs/demo/${coverageReviewName}.json`;
@@ -77,6 +78,63 @@ describe("draft coverage review advisory routing", () => {
         opts: { taskId: null },
       },
     ]);
+  });
+
+  it("promotes a draft-questions advisory artifact using its canonical phase", async () => {
+    const root = createTmpDir("run-draft-review-canonical-phase-");
+    const specPath = "specs/demo/spec.json";
+    const specDir = path.join(root, "specs", "demo");
+    try {
+      fs.mkdirSync(specDir, { recursive: true });
+      fs.writeFileSync(path.join(root, specPath), "{}\n");
+      execFileSync("git", ["init", "-q", "-b", "main"], { cwd: root });
+      execFileSync("git", ["config", "user.email", "tests@example.invalid"], { cwd: root });
+      execFileSync("git", ["config", "user.name", "Senti tests"], { cwd: root });
+      execFileSync("git", ["add", "."], { cwd: root });
+      execFileSync("git", ["commit", "-q", "-m", "baseline"], { cwd: root });
+      const flowState = moveFlowToStep(makeFlowState({ spec: specPath }), "draft-questions-review");
+      const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+      flowManager.create(flowState);
+      const command = new RunReviewCommand({
+        runCommand() {
+          fs.writeFileSync(path.join(specDir, "draft-review-questions.json"), `${JSON.stringify({
+            version: 1,
+            phase: "draft-questions",
+            sourceDraft: "draft.json",
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            verdict: "ADVISORY",
+            summary: "One advisory finding.",
+            blockingFindings: [],
+            advisoryFindings: [{ title: "Clarify the acceptance condition" }],
+            repairTargets: [],
+          }, null, 2)}\n`);
+          return {
+            ok: true,
+            status: 0,
+            stdout: "Draft review ADVISORY. 1 finding(s) recorded; proceeding.",
+            stderr: "[draft-questions-review] Results saved to specs/demo/draft-review-questions.json\n[draft-questions-review] verdict=ADVISORY findings=1 retryPhase=draft-questions",
+            signal: null,
+            killed: false,
+          };
+        },
+      });
+
+      const result = await command.execute({
+        root,
+        phase: "draft",
+        config: { agent: {} },
+        flowState: flowManager.load(),
+        flowManager,
+      });
+
+      assert.equal(result.result, "ok", JSON.stringify(result));
+      assert.equal(result.next, "draft-questions-triage");
+      assert.equal(result.artifacts.retryPhase, "draft-questions");
+      assert.equal(flowManager.load().reviewConvergence.records[0].phase, "draft-questions");
+      assert.equal(fs.readdirSync(path.join(specDir, "review-evidence")).length, 1);
+    } finally {
+      removeTmpDir(root);
+    }
   });
 });
 

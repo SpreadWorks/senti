@@ -355,11 +355,13 @@ describe("draft repair target checkpoint replay", () => {
         draftPath: "draft.json",
         proposals: [checkpoint.toProposal()],
         stage: {
+          retryPhase: "draft-questions",
           reviewPhase: "draft-questions-review",
           findingClassification: "repair_target",
         },
       });
       assert.equal(producedArtifact.verdict, checkpoint.disposition);
+      assert.equal(producedArtifact.phase, "draft-questions");
       assert.deepEqual(producedArtifact.blockingFindings, []);
       assert.deepEqual(producedArtifact.advisoryFindings, []);
       assert.equal(producedArtifact.repairTargets.length, 1);
@@ -439,6 +441,39 @@ describe("draft repair target checkpoint replay", () => {
       removeTmpDir(tmp);
     }
   });
+});
+
+describe("draft review artifact phases", () => {
+  const proposal = {
+    title: "Clarify the acceptance condition",
+    file: null,
+    body: "The draft needs one explicit acceptance condition.",
+  };
+
+  for (const { retryPhase, reviewPhase } of [
+    { retryPhase: "draft-questions", reviewPhase: "draft-questions-review" },
+    { retryPhase: "draft-coverage", reviewPhase: "draft-coverage-review" },
+  ]) {
+    it(`persists ${retryPhase} rather than ${reviewPhase}`, () => {
+      const stage = { retryPhase, reviewPhase, findingClassification: "advisory" };
+      const pass = buildDraftReviewArtifact({
+        raw: "NO_PROPOSALS",
+        draftPath: "draft.json",
+        proposals: [],
+        stage,
+      });
+      const advisory = buildDraftReviewArtifact({
+        raw: "A review finding was recorded.",
+        draftPath: "draft.json",
+        proposals: [proposal],
+        stage,
+      });
+
+      assert.equal(pass.phase, retryPhase);
+      assert.equal(advisory.phase, retryPhase);
+      assert.equal(advisory.verdict, "ADVISORY");
+    });
+  }
 });
 
 describe("flow run routes review action", () => {

@@ -3736,7 +3736,7 @@ function addDraftReviewFindingToBucket(buckets, finding) {
 function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
   if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
     return new DraftReviewArtifact({
-      phase: stage.reviewPhase,
+      phase: stage.retryPhase,
       sourceDraft: draftPath,
     });
   }
@@ -3750,7 +3750,7 @@ function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
     addDraftReviewFindingToBucket(buckets, finding);
   }
   return new DraftReviewArtifact({
-    phase: stage.reviewPhase,
+    phase: stage.retryPhase,
     sourceDraft: draftPath,
     ...buckets,
   });
