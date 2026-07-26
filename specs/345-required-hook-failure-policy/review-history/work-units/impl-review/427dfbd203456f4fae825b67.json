@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/finalize-cleanup-transaction-v2.test.js"
+    ],
+    "inputHash": "bc80057ba97d2f6a8a00ff128e856fd79a44bb7545c6126660f2ba2738917047",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "tests/unit/flow/finalize-cleanup-transaction-v2.test.js"
+  ],
+  "inputHash": "bc80057ba97d2f6a8a00ff128e856fd79a44bb7545c6126660f2ba2738917047",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:01:06.545Z",
+  "finishedAt": "2026-07-26T03:01:06.545Z",
+  "rawResponse": "### 1. Extract repeated plugin hook registration setup\n**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** The test now duplicates plugin runtime setup across main/worktree paths: config writing, hook source writing, state hook metadata, and matching `failurePolicy` values. This makes future changes to hook metadata easy to miss in one place.  \n**Suggestion:** Add a small local helper in this test file, such as `installFinalizeHookPlugin({ root, worktreePath, pluginId, hook, failurePolicy, source })`, that writes both configs/hooks and returns the `flowCommandHooks` entry.\n\n### 2. Avoid string duplication for failure policy literals\n**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** The same `failurePolicy` value is repeated in both hook class definitions and serialized fixture state. If they diverge, the test may stop asserting the intended behavior.  \n**Suggestion:** Define a local constant per test, for example `const failurePolicy = \"advisory\";`, and interpolate/use it in both the hook source and `fixture.state.plugins` entry.\n\n### 3. Rename `stopped` to describe the result\n**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** `stopped` describes an expected state rather than the value returned by `runFinalize`, which slightly obscures the assertion flow.  \n**Suggestion:** Rename it to `result` or `finalizeResult` and keep the failure expectation in the assertions.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract repeated plugin hook registration setup",
+        "body": "**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** The test now duplicates plugin runtime setup across main/worktree paths: config writing, hook source writing, state hook metadata, and matching `failurePolicy` values. This makes future changes to hook metadata easy to miss in one place.  \n**Suggestion:** Add a small local helper in this test file, such as `installFinalizeHookPlugin({ root, worktreePath, pluginId, hook, failurePolicy, source })`, that writes both configs/hooks and returns the `flowCommandHooks` entry.",
+        "file": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Avoid string duplication for failure policy literals",
+        "body": "**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** The same `failurePolicy` value is repeated in both hook class definitions and serialized fixture state. If they diverge, the test may stop asserting the intended behavior.  \n**Suggestion:** Define a local constant per test, for example `const failurePolicy = \"advisory\";`, and interpolate/use it in both the hook source and `fixture.state.plugins` entry.",
+        "file": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Rename `stopped` to describe the result",
+        "body": "**File:** `tests/unit/flow/finalize-cleanup-transaction-v2.test.js`  \n**Requirement:** R8  \n**Issue:** `stopped` describes an expected state rather than the value returned by `runFinalize`, which slightly obscures the assertion flow.  \n**Suggestion:** Rename it to `result` or `finalizeResult` and keep the failure expectation in the assertions.",
+        "file": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

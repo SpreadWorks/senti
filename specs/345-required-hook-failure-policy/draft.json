@@ -1,0 +1,99 @@
+{
+  "devType": "bugfix",
+  "goal": "must: flow command hook の失敗ポリシーを明示し、required hook の失敗を caller まで fail-closed で伝播させる。",
+  "analysis": {
+    "problem": "現行の runFlowCommandHooks() は hook の throw と ok:false を PLUGIN_HOOK_FAILED warning に変換して常に成功を返すため、required integration failure でも command が成功扱いになり、caller ごとの後段解釈に依存している。",
+    "proposedApproach": "各 flow command hook と保存済み snapshot に failure policy を持たせ、runner が policy を含む型付き outcome を返す。required の business failure は caller を失敗させ、advisory のみ warning、issue-log、follow-up を伴って主 command の継続を許可する。",
+    "validation": "登録・snapshot validation、required/advisory と成功・throw・ok:false・malformed result・artifact/context write failure の全組合せ、required failure 時に flow state・publication・plugin artifact・commit/cleanup state が変更されない command-level test を実行して検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "runFlowCommandHooks() は現在、hook の business failure を PLUGIN_HOOK_FAILED warning と issue-log candidate に正規化し、ok: true を返す。",
+      "run-finalize-cleanup は generic lifecycle warning を PLUGIN_LIFECYCLE_FAILED として再解釈する special case を持つ。",
+      "HookClass の command、hook、priority と snapshot metadata には既に registration と runtime validation がある。",
+      "must: runtime integrity failure（import、register(api)、FlowCommandHook 継承、snapshot metadata mismatch）は policy に関係なく hard failure とする。",
+      "must: 既存の public behavior inventory は、flow command hook registration、plugins.flowCommandHooks snapshot、prepare/finalize-cleanup lifecycle command、warning・issue-log・follow-up、plugin artifact write、flow state、publication、commit/cleanup side effect である。",
+      "must: retained behavior ownership は registration/snapshot validation を registry、business failure classification を runner outcome、command stop/continuation を lifecycle wrapper、finalize cleanup transaction を finalize-cleanup caller が担う。"
+    ],
+    "decisionPoints": [
+      "must: failure policy の許可値、保存位置、登録時と snapshot 読込時の reject 条件を定義する。",
+      "must: runner outcome が required business failure と advisory business failure を caller に区別して渡す契約を定義する。",
+      "must: hook 実行前後の command が required failure で success envelope や部分的 durable side effect を残さない境界を定義する。",
+      "should: finalize-cleanup は PLUGIN_HOOK_FAILED warning を走査せず、runner outcome の required failure を受けた時点で teardown transaction を開始せず failure envelope を返す。",
+      "must: migration parity は required/advisory success で hook data/follow-up を保持し、advisory business failure で warning・issue-log・follow-up を保持して継続し、required business failure で各 durable surface が未変更であることを behavior-level tests で確認する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加しない。Node.js 組み込みモジュールだけを使う。",
+      "must: 意味のある outcome や snapshot 値は専用クラスで invariant と振る舞いを表現し、object literal の discriminated union を増やさない。",
+      "must: src/ の変更は特定プロジェクトや環境に依存しない。",
+      "must: legacy shell hooks、plugin command framework 全体、workflow 固有 artifact schema、board API は変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: failure policy metadata と型付き execution outcome の具体的なクラス境界を定義する。",
+      "must: run-prepare-spec と run-finalize-cleanup が呼ぶ runFlowCommandWithPluginLifecycle の required failure が、main command と teardown の durable side effect より前に停止する境界をテスト可能な単位に分解する。",
+      "must: existing fixture と test helper が作る plugins.flowCommandHooks snapshot に failure policy を含める更新範囲を特定する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: flow command hook の discovery、registration、snapshot、execution、caller-side failure handling を対象にする。",
+      "must: required/advisory と success・throw・ok:false・malformed result・artifact/context write failure の lifecycle matrix を unit tests と spec-local tests で固定する。",
+      "should: finalize-cleanup は PLUGIN_HOOK_FAILED warning の後段走査を削除し、runner outcome が required failure を示す場合は teardown 前に failure envelope を返す。",
+      "must: migration parity verification は registration/snapshot validation、lifecycle command の success/failure envelope、warning・issue-log・follow-up、plugin artifact write、flow state、publication、commit/cleanup state ごとに retained behavior または明示的な置換を behavior-level tests で確認する。"
+    ],
+    "out": [
+      "must: src/lib/hooks.js の legacy shell hook contract は変更しない。",
+      "must: plugin command framework、workflow-specific artifact schema、board API を再設計しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: flow command hook を実行する prepare、finalize-cleanup、および共通 lifecycle wrapper の失敗結果が変わる。",
+    "must: 保存済み flow state の plugins.flowCommandHooks snapshot に failure policy が追加され、missing / unknown metadata は reject される。",
+    "should: advisory hook の warning、issue-log、follow-up は保持したまま main command を継続する。",
+    "must: legacy shell hooks と通常の plugin command dispatch の外部契約には影響を与えない。",
+    "must: retained public surfaces は hook registration、snapshot、prepare/finalize-cleanup lifecycle command、warning・issue-log・follow-up、plugin artifact、flow state、publication、commit/cleanup state であり、各 surface の behavior-level verification を追加する。",
+    "must: existing PLUGIN_HOOK_FAILED warning scanning は finalize-cleanup から削除し、required failure stop の新しい owner を runner outcome と lifecycle wrapper に置き換える。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: required hook の business failure は、hook 実装が throw、ok:false envelope、malformed result、artifact/context write failure のいずれでも caller failure として扱い、success envelope に変換しない、というゴールでよいか。",
+      "answer": "must: よい。Issue #469 の Requirements と Acceptance Criteria は、列挙した全 business failure を required hook の typed caller failure とし、ok: true、warning-only、follow-up-only への変換を禁止している。",
+      "evidence": "Issue #469 Requirements の business failures 節、および Acceptance Criteria の required failures に関する項目。src/lib/plugin-registry.js の runFlowCommandHooks() は現在 throw と ok:false を warning 化して ok: true を返す。",
+      "why": "required policy の fail-closed 契約を、失敗の発生方法によらず一貫して適用するため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "must: import failure、register(api) mismatch、FlowCommandHook 継承違反、snapshot metadata mismatch などの runtime integrity failure は advisory policy でも hard failure のままにする、という境界でよいか。",
+      "answer": "must: よい。Issue #469 は runtime integrity failure を policy に関係なく hard failure と明示している。",
+      "evidence": "Issue #469 Requirements の runtime integrity failures 節。src/lib/plugin-registry.js の validateHookClass()、loadHookClass()、assertSnapshotMetadata() が registration と snapshot integrity を検証している。",
+      "why": "advisory policy は hook の business outcome の継続可否だけを制御し、実行対象の信頼性検証を緩和しないため。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "must: required hook failure を使う command は flow state、publication、plugin artifact、commit/cleanup state に部分更新を残さないことを command-level tests で確認し、advisory hook のみ warning、issue-log、follow-up を残して継続する、という影響範囲でよいか。",
+      "answer": "must: よい。Issue #469 の Acceptance Criteria は required failure 後に flow state、publication、plugin artifact、commit/cleanup state の partial update がない command-level tests を要求し、advisory だけが warning、issue-log、follow-up とともに継続できるとしている。",
+      "evidence": "Issue #469 Scope と Acceptance Criteria。src/flow/lib/run-finalize-cleanup.js は teardown 前後の transaction と durable state を扱い、現行では plugin lifecycle warning を caller 側で再解釈している。",
+      "why": "failure policy を runner に集約しても、caller の durable side effect の原子性を検証しなければ fail-closed 契約が守られないため。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T23:08:18+09:00",
+    "notes": "Preflight auto-mode confirmation and Issue #469 provide the resolved product decisions."
+  }
+}

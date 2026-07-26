@@ -166,6 +166,15 @@ describe("parseImplRequirementEvaluation (legacy single-reason contract)", () =>
     assert.equal(result.length, 1);
   });
 
+  it("parses the first JSON object when a provider appends another payload", () => {
+    const response = `${JSON.stringify({
+      evaluations: [{ guardrail_id: "R1", result: "pass", reason: "implemented" }],
+    })}\n${JSON.stringify({ note: "duplicate provider payload" })}`;
+    const result = parseImplRequirementEvaluation(response, ["R1"]);
+    assert.equal(result.length, 1);
+    assert.equal(result[0].reason, "implemented");
+  });
+
   it("throws on malformed JSON", () => {
     assert.throws(() => parseImplRequirementEvaluation("{evaluations: not-json", known), EvaluationSchemaError);
   });

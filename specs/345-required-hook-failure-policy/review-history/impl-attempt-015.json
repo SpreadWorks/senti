@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T01:21:51.262Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "prepare-required-post-persists-flow-state",
+      "title": "Required prepare hook failure leaves prepared flow state behind",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "requirementId": "R2",
+      "issue": "`writeFlowState()` now runs `writePrepareFiles()`, creates `flow.json`, publishes the repair baseline, and creates the active flow inside the plugin lifecycle `main`. If a required `prepare.post` hook fails, `runFlowCommandWithPluginLifecycle()` returns `ok:false`, but the catch path only returns an envelope and does not roll back those already-written prepare artifacts or active flow state.",
+      "suggestion": "Make required `prepare.post` failure transactional in `writeFlowState()`: either run required post hooks before committing the flow state, or explicitly remove the newly written spec files/flow state, undo active-flow registration, and revert repair-baseline publication before returning `PLUGIN_HOOK_REQUIRED_FAILED`. Add a regression test for a required `prepare.post` failure that asserts no active flow/state/spec artifacts remain.",
+      "disposition": "must-fix",
+      "rationale": "R2 covers required hook failure handling for `run-prepare-spec.js`. A required hook failure is a blocking policy decision; leaving the flow prepared after reporting failure contradicts fail-stop semantics and can corrupt subsequent flow runs.",
+      "findingId": "f4ab1a319d4c6b68e71878c713e3108cfc58961248e41a8ab06aa1a727c91eb2",
+      "fingerprint": "f4ab1a319d4c6b68e71878c713e3108cfc58961248e41a8ab06aa1a727c91eb2",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "ede922b04d8560606441f778f488b66169d35ac2c528f16ff06e3fae68f8e215",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "3df729109f02b9bb8dc7bedbc2ec9aa78d0e8a96920148037560ff35d2ea8c75"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 15,
+  "findings": [
+    {
+      "id": "f4ab1a319d4c6b68e71878c713e3108cfc58961248e41a8ab06aa1a727c91eb2",
+      "findingId": "f4ab1a319d4c6b68e71878c713e3108cfc58961248e41a8ab06aa1a727c91eb2",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 15,
+      "severity": "blocking",
+      "title": "Required prepare hook failure leaves prepared flow state behind",
+      "body": "`writeFlowState()` now runs `writePrepareFiles()`, creates `flow.json`, publishes the repair baseline, and creates the active flow inside the plugin lifecycle `main`. If a required `prepare.post` hook fails, `runFlowCommandWithPluginLifecycle()` returns `ok:false`, but the catch path only returns an envelope and does not roll back those already-written prepare artifacts or active flow state.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "f4ab1a319d4c6b68e71878c713e3108cfc58961248e41a8ab06aa1a727c91eb2",
+      "disposition": "must-fix",
+      "rationale": "R2 covers required hook failure handling for `run-prepare-spec.js`. A required hook failure is a blocking policy decision; leaving the flow prepared after reporting failure contradicts fail-stop semantics and can corrupt subsequent flow runs.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

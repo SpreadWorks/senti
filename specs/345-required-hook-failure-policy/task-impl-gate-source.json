@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T15:06:47.183Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and again in `runTeardownTransactionOwned`: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "featureBranch === baseBranch pre-hook block"
+          },
+          "observed": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and again in `runTeardownTransactionOwned`: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "fingerprint": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "disposition": "must-fix",
+      "rationale": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and again in `runTeardownTransactionOwned`: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T15:06:47.183Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and in the spec-only finalize path: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runTeardownTransactionOwned pre-hook block"
+          },
+          "observed": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and in the spec-only finalize path: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "fingerprint": "701b5878c4057c15f62f78772f42c1e0447aa2d54210004e3c6882010b5d4708",
+      "disposition": "must-fix",
+      "rationale": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and in the spec-only finalize path: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T15:06:47.183Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "locator": "featureBranch === baseBranch pre-hook block"
+      },
+      "observed": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and again in `runTeardownTransactionOwned`: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "fingerprint": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "disposition": "must-fix",
+      "rationale": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and again in `runTeardownTransactionOwned`: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T15:06:47.183Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "locator": "runTeardownTransactionOwned pre-hook block"
+      },
+      "observed": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and in the spec-only finalize path: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "fingerprint": "db6cd6914aad24ba90b81a2188f7b4c3cc0bb0fe84e281f3dd6f17f3e1b95c12",
+      "disposition": "must-fix",
+      "rationale": "The diff introduces the same production control-flow shape for finalize-cleanup pre-hook execution here and in the spec-only finalize path: build/run `runFlowCommandHooks` for `hook: \"pre\"`, catch with `finalizePluginLifecycleFailure`, then remove artifacts and return `finalizeRequiredPluginHookFailure` when `!pluginPre.ok`. A local helper could remove the duplicate behavior without changing ownership.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-25T15:06:47.183Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "f11405f01831676c001ddd2a",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-9d103b7d94a24bee",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/345-required-hook-failure-policy/draft-coverage-repair.json",
+      "specs/345-required-hook-failure-policy/draft-review-questions.json",
+      "specs/345-required-hook-failure-policy/issue.md",
+      "specs/345-required-hook-failure-policy/review-evidence/934b751b8f9ce7ea66c7fb16f1c312e83bba7cba5e96769836f080017cad6c5d.json",
+      "specs/345-required-hook-failure-policy/review-evidence/e5fc68de544462f53c0df2b0b06501655006fd2edd26dc2b61403c935c937191.json",
+      "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.md",
+      "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.md",
+      "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.md",
+      "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.json",
+      "specs/345-required-hook-failure-policy/review-history/test-attempt-003.md",
+      "specs/345-required-hook-failure-policy/review-history/test-attempt-006.md",
+      "specs/345-required-hook-failure-policy/spec-review.json",
+      "specs/345-required-hook-failure-policy/tasks/T-3.md",
+      "src/flow/lib/run-prepare-spec.js"
+    ],
+    "inputHash": "9d103b7d94a24bee9cc1045e5cc9ebdad09d8cb95c77a1b24d906302d049af78",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "f11405f01831676c001ddd2a"
+  },
+  "targetFiles": [
+    "specs/345-required-hook-failure-policy/draft-coverage-repair.json",
+    "specs/345-required-hook-failure-policy/draft-review-questions.json",
+    "specs/345-required-hook-failure-policy/issue.md",
+    "specs/345-required-hook-failure-policy/review-evidence/934b751b8f9ce7ea66c7fb16f1c312e83bba7cba5e96769836f080017cad6c5d.json",
+    "specs/345-required-hook-failure-policy/review-evidence/e5fc68de544462f53c0df2b0b06501655006fd2edd26dc2b61403c935c937191.json",
+    "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.md",
+    "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.md",
+    "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.md",
+    "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.json",
+    "specs/345-required-hook-failure-policy/review-history/test-attempt-003.md",
+    "specs/345-required-hook-failure-policy/review-history/test-attempt-006.md",
+    "specs/345-required-hook-failure-policy/spec-review.json",
+    "specs/345-required-hook-failure-policy/tasks/T-3.md",
+    "src/flow/lib/run-prepare-spec.js"
+  ],
+  "inputHash": "9d103b7d94a24bee9cc1045e5cc9ebdad09d8cb95c77a1b24d906302d049af78",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T15:17:22.207Z",
+  "finishedAt": "2026-07-25T15:17:22.207Z",
+  "rawResponse": "### 1. Normalize review finding schemas across artifacts\n**File:** `specs/345-required-hook-failure-policy/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** Multiple review artifacts store the same finding data in parallel shapes such as `blockingFindings`, `advisoryFindings`, and `findings`, while using inconsistent names like `issue` vs `body`, `failureMode` vs `category`, and `kind` vs `severity`. This creates cross-file consumer complexity and drift risk.\n**Suggestion:** Define one canonical finding schema and have grouped views reference canonical `findingId`s or be derived at render/read time.\n\n### 2. Consolidate duplicate JSON and Markdown review history\n**File:** `specs/345-required-hook-failure-policy/review-history/impl-attempt-002.md`\n**Requirement:** R8\n**Issue:** Review attempts are repeatedly committed in both JSON and Markdown with the same substantive data. This pattern appears across impl and test attempt artifacts, creating two cross-file sources of truth for verdicts, findings, requirements, dispositions, and rationale.\n**Suggestion:** Treat JSON as canonical and generate Markdown on demand, or keep Markdown as a compact summary that points to the canonical structured artifact.\n\n### 3. Apply one formatting convention to generated evidence files\n**File:** `specs/345-required-hook-failure-policy/review-evidence/def3a5a0e158ad9dca2d9d95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json`\n**Requirement:** R8\n**Issue:** Several review evidence JSON files are minified while review-history JSON files are pretty-printed. The inconsistent formatting makes cross-file review harder and causes noisy diffs for generated artifacts with similar schemas.\n**Suggestion:** Emit all generated JSON artifacts through a shared serializer with stable indentation and key ordering.\n\n### 4. Standardize empty generated artifact handling\n**File:** `specs/345-required-hook-failure-policy/draft-coverage-triage.json`\n**Requirement:** R3\n**Issue:** Empty triage, repair, PASS evidence, and no-finding Markdown artifacts are emitted across multiple phases using repeated boilerplate. This creates duplicate low-value files and inconsistent empty-state conventions.\n**Suggestion:** Use one shared empty-state policy: suppress empty artifacts, consolidate them into a run summary, or emit a compact canonical empty record through the same serializer.\n\n### 5. Add bounded retention for generated histories and evidence\n**File:** `specs/345-required-hook-failure-policy/flow.json`\n**Requirement:** R8\n**Issue:** `flow.json`, `review-history/*`, raw logs, and evidence histories all retain repeated historical data without a visible shared cap. Across files, repeated retries can grow generated artifacts and directories without bound.\n**Suggestion:** Define a single retention policy, such as latest N attempts per phase plus summarized older evidence, and enforce it in the artifact generator.\n\n### 6. Unify finding identity semantics\n**File:** `specs/345-required-hook-failure-policy/draft-gate-source.json`\n**Requirement:** R2\n**Issue:** Across gate source, review evidence, and review history artifacts, identifiers such as `id`, `findingId`, and `fingerprint` are sometimes duplicated with identical values and sometimes reused across distinct locations. This makes it unclear whether a finding is location-specific or shared.\n**Suggestion:** Establish one identity model: a canonical `findingId`, optional location IDs for repeated occurrences, and a documented separate `fingerprint` only if it has different semantics.\n\n### 7. Share lifecycle result aggregation naming and helpers\n**File:** `src/lib/plugin-registry.js`\n**Requirement:** R2\n**Issue:** Lifecycle aggregation appears in both plugin registry and finalize cleanup code, with overlapping concepts named differently, such as composing lifecycle results versus merging hook runner results. This cross-file inconsistency obscures the required/advisory failure policy behavior.\n**Suggestion:** Introduce one shared helper and vocabulary, for example `mergeHookLifecycleResults`, and use consistent names for pre/post hook outcomes across prepare, finalize, and plugin registry paths.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize review finding schemas across artifacts",
+        "body": "**File:** `specs/345-required-hook-failure-policy/review-history/impl-attempt-001.json`\n**Requirement:** R8\n**Issue:** Multiple review artifacts store the same finding data in parallel shapes such as `blockingFindings`, `advisoryFindings`, and `findings`, while using inconsistent names like `issue` vs `body`, `failureMode` vs `category`, and `kind` vs `severity`. This creates cross-file consumer complexity and drift risk.\n**Suggestion:** Define one canonical finding schema and have grouped views reference canonical `findingId`s or be derived at render/read time.",
+        "file": "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "2. Consolidate duplicate JSON and Markdown review history",
+        "body": "**File:** `specs/345-required-hook-failure-policy/review-history/impl-attempt-002.md`\n**Requirement:** R8\n**Issue:** Review attempts are repeatedly committed in both JSON and Markdown with the same substantive data. This pattern appears across impl and test attempt artifacts, creating two cross-file sources of truth for verdicts, findings, requirements, dispositions, and rationale.\n**Suggestion:** Treat JSON as canonical and generate Markdown on demand, or keep Markdown as a compact summary that points to the canonical structured artifact.",
+        "file": "specs/345-required-hook-failure-policy/review-history/impl-attempt-002.md",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Apply one formatting convention to generated evidence files",
+        "body": "**File:** `specs/345-required-hook-failure-policy/review-evidence/def3a5a0e158ad9dca2d9d95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json`\n**Requirement:** R8\n**Issue:** Several review evidence JSON files are minified while review-history JSON files are pretty-printed. The inconsistent formatting makes cross-file review harder and causes noisy diffs for generated artifacts with similar schemas.\n**Suggestion:** Emit all generated JSON artifacts through a shared serializer with stable indentation and key ordering.",
+        "file": "specs/345-required-hook-failure-policy/review-evidence/def3a5a0e158ad9dca2d9d95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Standardize empty generated artifact handling",
+        "body": "**File:** `specs/345-required-hook-failure-policy/draft-coverage-triage.json`\n**Requirement:** R3\n**Issue:** Empty triage, repair, PASS evidence, and no-finding Markdown artifacts are emitted across multiple phases using repeated boilerplate. This creates duplicate low-value files and inconsistent empty-state conventions.\n**Suggestion:** Use one shared empty-state policy: suppress empty artifacts, consolidate them into a run summary, or emit a compact canonical empty record through the same serializer.",
+        "file": "specs/345-required-hook-failure-policy/draft-coverage-triage.json",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Add bounded retention for generated histories and evidence",
+        "body": "**File:** `specs/345-required-hook-failure-policy/flow.json`\n**Requirement:** R8\n**Issue:** `flow.json`, `review-history/*`, raw logs, and evidence histories all retain repeated historical data without a visible shared cap. Across files, repeated retries can grow generated artifacts and directories without bound.\n**Suggestion:** Define a single retention policy, such as latest N attempts per phase plus summarized older evidence, and enforce it in the artifact generator.",
+        "file": "specs/345-required-hook-failure-policy/flow.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "6. Unify finding identity semantics",
+        "body": "**File:** `specs/345-required-hook-failure-policy/draft-gate-source.json`\n**Requirement:** R2\n**Issue:** Across gate source, review evidence, and review history artifacts, identifiers such as `id`, `findingId`, and `fingerprint` are sometimes duplicated with identical values and sometimes reused across distinct locations. This makes it unclear whether a finding is location-specific or shared.\n**Suggestion:** Establish one identity model: a canonical `findingId`, optional location IDs for repeated occurrences, and a documented separate `fingerprint` only if it has different semantics.",
+        "file": "specs/345-required-hook-failure-policy/draft-gate-source.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "7. Share lifecycle result aggregation naming and helpers",
+        "body": "**File:** `src/lib/plugin-registry.js`\n**Requirement:** R2\n**Issue:** Lifecycle aggregation appears in both plugin registry and finalize cleanup code, with overlapping concepts named differently, such as composing lifecycle results versus merging hook runner results. This cross-file inconsistency obscures the required/advisory failure policy behavior.\n**Suggestion:** Introduce one shared helper and vocabulary, for example `mergeHookLifecycleResults`, and use consistent names for pre/post hook outcomes across prepare, finalize, and plugin registry paths.",
+        "file": "src/lib/plugin-registry.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

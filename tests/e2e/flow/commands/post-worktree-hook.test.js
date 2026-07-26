@@ -116,6 +116,7 @@ export default function register(api) {
   return class PrepareHook extends api.FlowCommandHook {
     static command = "prepare";
     static hook = "post";
+    static failurePolicy = "required";
     async run(context) {
       await context.artifacts.writeJson("prepare-seen.json", {
         issue: context.flow.issue,

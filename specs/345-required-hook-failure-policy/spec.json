@@ -1,0 +1,266 @@
+{
+  "goal": "Define explicit required/advisory failure policies for flow command hooks so required business failures stop their caller before prepare writes flow/spec/draft/artifact files or finalize-cleanup creates transactions, commits, removes worktrees, deletes branches, writes completion pointers, or clears active state; advisory failures retain warnings, issue-log entries, and follow-ups without stopping the main command.",
+  "scope": {
+    "in": [
+      "Flow command hook discovery, registration, persisted snapshots, runtime execution outcomes, and lifecycle caller failure handling.",
+      "The `prepare` and `finalize-cleanup` lifecycle paths that call `runFlowCommandWithPluginLifecycle`.",
+      "Unit, command-level, and spec-local tests for required/advisory failure behavior and byte/Git-state preservation of the enumerated prepare and finalize-cleanup surfaces."
+    ],
+    "out": [
+      "Legacy shell hooks in `src/lib/hooks.js`.",
+      "A general redesign of plugin commands, workflow artifact schemas, or the board API.",
+      "External dependencies, compatibility shims, publication, or release work."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules only and follow existing flow-envelope, plugin registry, lifecycle, and test patterns.",
+    "Represent the hook failure policy, snapshot value, and execution outcome with dedicated classes that enforce their invariants; do not introduce object-literal discriminated unions for these values.",
+    "Keep runtime integrity failures—module import failure, invalid `register(api)`, invalid `FlowCommandHook` inheritance, and snapshot metadata mismatch—as hard failures regardless of policy.",
+    "Do not alter legacy shell-hook behavior or add project- or environment-specific values under `src/`."
+  ],
+  "design_principles": [
+    "Make the runner, rather than individual callers, the single authority for classifying hook business failures.",
+    "Separate advisory business-failure reporting from required failure propagation without weakening integrity validation.",
+    "Perform required failure checks before prepare writes its spec/draft/flow-state files or plugin artifact directory, and before finalize-cleanup creates a teardown transaction, commits completion, removes a worktree, deletes a branch, writes the completion pointer, or clears active flow state.",
+    "Preserve retained successful and advisory lifecycle behavior through behavior-level tests."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/lib/plugin-registry.js` validates hook classes and snapshots, discovers hook plans, executes hooks, and composes the pre/main/post lifecycle result. It becomes the owner of policy validation and typed hook execution outcomes."
+      },
+      {
+        "text": "`src/flow/lib/run-prepare-spec.js` and `src/flow/lib/run-finalize-cleanup.js` consume lifecycle outcomes. They must stop on required failure before prepare writes flow/spec/draft/artifact paths or finalize-cleanup creates transactions, commits, removes worktrees, deletes branches, writes completion pointers, or clears active state; they continue only advisory failures with reported data."
+      },
+      {
+        "text": "Existing plugin-registry fixtures, lifecycle command tests, and spec-local tests provide the failure matrix plus byte comparisons for prepare files and Git/state comparisons for finalize-cleanup."
+      },
+      {
+        "text": "plugin-registry owns failure-policy validation and typed lifecycle outcomes.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "The lifecycle wrapper consumes typed hook outcomes and owns required/advisory control flow.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Prepare and finalize-cleanup consume structured hook outcomes before any durable lifecycle work; finalize pre-hook failures remove hook artifacts and leave teardown authority untouched.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Hook discovery validates each class, including a required policy, and records that policy in the flow command hook snapshot with plugin ID, module, command, hook, class name, and priority."
+      },
+      {
+        "text": "At runtime, snapshot loading validates the same policy and integrity metadata before a hook runs. The runner returns typed outcomes that distinguish success, advisory business failure, required business failure, and integrity failure."
+      },
+      {
+        "text": "The lifecycle wrapper stops before `main()` when a required pre-hook fails and does not return a success envelope. Advisory failures are accumulated as warnings, issue-log candidates, and follow-ups while the lifecycle continues."
+      },
+      {
+        "text": "Prepare and finalize-cleanup consume the structured outcome directly. Finalize-cleanup no longer scans `PLUGIN_HOOK_FAILED` warnings to decide whether to fail; a required outcome prevents teardown transaction work."
+      },
+      {
+        "text": "Discovery snapshots required/advisory policy and runtime rejects invalid snapshot policy before hook execution.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Required pre outcomes return before main; required post outcomes fail the caller while retaining main data; advisory outcomes retain reporting.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Finalize-cleanup executes required pre-hooks before metadata synchronization and transaction creation, then uses the typed post-hook outcome instead of warning-code reinterpretation.",
+        "added_by_task": "T-3"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] checked the existing runner; result=match: `runFlowCommandHooks` currently catches hook throw and `ok:false`, adds `PLUGIN_HOOK_FAILED`, and returns `ok: true`, so policy ownership must move into this shared runner.",
+        "evidence": "`src/lib/plugin-registry.js` defines `runFlowCommandHooks()` and catches every hook execution error before returning `{ ok: true, warnings, issueLogEntries, hookData, followUps }`."
+      },
+      {
+        "text": "[VERIFY] checked snapshot integrity; result=match: class name, command, hook, and priority are validated both at discovery and runtime, so policy must join this same registration/snapshot contract.",
+        "evidence": "`validateHookClass()`, `discoverFlowCommandHooks()`, `assertSnapshotMetadata()`, and `loadHookClass()` in `src/lib/plugin-registry.js` own the existing hook-plan validation path."
+      },
+      {
+        "text": "[CORRECTION] checked finalize-cleanup failure ownership; replace its generic warning scan with the lifecycle runner's structured required failure outcome before teardown begins.",
+        "evidence": "`src/flow/lib/run-finalize-cleanup.js` calls `runFlowCommandWithPluginLifecycle()` and then searches `pluginLifecycle.warnings` for `PLUGIN_HOOK_FAILED` to manufacture `PLUGIN_LIFECYCLE_FAILED`."
+      },
+      {
+        "text": "Migration parity mapping: discovery and snapshot policy validation remain owned by plugin-registry. Successful hook data/follow-ups and advisory warning/issue-log/follow-up reporting remain owned by the typed runner outcome and lifecycle wrapper. Plugin artifact read/write remains owned by artifact helpers invoked by hooks.",
+        "evidence": "Issue #469 requires required/advisory policy and preserved advisory reporting. Behavior-level tests verify registration/snapshot behavior, successful hook data/follow-ups, advisory reporting, and artifact behavior through their mapped owners."
+      },
+      {
+        "text": "Migration parity mapping: prepare/finalize-cleanup stop decisions move to structured required outcomes consumed by their lifecycle callers. The finalize-cleanup `PLUGIN_HOOK_FAILED` warning scan is intentionally removed and has no replacement warning-inference owner. Import, registration, inheritance, and snapshot integrity failures remain owned by loader validation.",
+        "evidence": "Issue #469 requires hard integrity failures and command-level proof that required failure leaves the enumerated prepare and finalize-cleanup paths unchanged. Tests verify each required stop path and integrity failure through its mapped owner."
+      },
+      {
+        "text": "Required business failures stop the lifecycle in the shared runner; integrity failures remain thrown validation errors.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Business failure policy is enforced once in the shared lifecycle wrapper rather than inferred by callers from warnings.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Required pre-hook failure is handled at each lifecycle boundary before durable prepare or finalize-cleanup effects; finalize does not infer severity from PLUGIN_HOOK_FAILED warnings.",
+        "added_by_task": "T-3"
+      }
+    ]
+  },
+  "background": "Flow command hooks currently have no explicit failure policy. The shared runner normalizes hook throws and failed envelopes into warnings and always reports success, while finalize-cleanup later treats one generic warning code as fatal. That splits fail-open and fail-closed behavior between an implicit runner default and command-specific warning interpretation. Required integration failures can therefore leave a command successful or allow partial lifecycle effects. This spec makes the policy part of the registered and persisted hook contract, gives callers a typed execution result, and puts stop/continue behavior at one boundary.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Every discovered flow command hook and every persisted `plugins.flowCommandHooks` snapshot entry shall contain one failure policy with the exact value `required` or `advisory`. Registration and snapshot loading shall reject a missing or unknown policy before hook execution.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "The hook runner shall return a typed execution outcome that classifies hook success, advisory business failure, required business failure, and runtime integrity failure. Callers shall consume this outcome instead of inferring severity by scanning generic warning codes.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "For a `required` hook, a thrown `run()` error, an `ok:false` envelope, a malformed or non-envelope result, or an artifact write failure shall produce a typed caller failure and shall not be converted into `ok:true`, warning-only, or follow-up-only success.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "For an `advisory` hook, the same business-failure categories may preserve warning, issue-log, and follow-up information while allowing the lifecycle main command to continue. A successful advisory or required hook shall preserve its hook data and follow-ups.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Import failure, invalid `register(api)`, invalid `FlowCommandHook` inheritance, missing snapshot module, and snapshot metadata mismatch shall remain hard failures regardless of the hook policy and shall not be normalized as advisory business failures.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "A required pre-hook failure shall stop the applicable lifecycle command before it returns a success envelope: prepare shall not create or modify its spec source, draft, flow state, issue-log, or plugin artifact files; finalize-cleanup shall not create a teardown transaction, create a finalize commit, remove its worktree, delete its feature branch, write `.senti/last-finalized-spec`, or clear active flow state.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "`run-prepare-spec` and `run-finalize-cleanup` shall use the structured runner outcome. Finalize-cleanup shall remove its `PLUGIN_HOOK_FAILED` warning reinterpretation path and shall not start teardown work after a required lifecycle failure.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Tests shall cover the required/advisory matrix for success, throw, `ok:false`, malformed result, and artifact write failure; registration/snapshot policy rejection; integrity hard failures; retained advisory behavior; and command-level atomicity for prepare and finalize-cleanup.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: Hook registration and snapshot tests reject omitted and unknown policies, and accepted snapshots record exactly `required` or `advisory` with the existing hook metadata.",
+    "AC2: Unit tests show `required` hooks return typed caller failure for throw, `ok:false`, malformed result, and artifact write failure; none returns `ok:true` or warning-only continuation.",
+    "AC3: Unit tests show advisory failures retain warning, issue-log, and follow-up information while successful main execution continues; successful hooks retain hook data and follow-ups for both policies.",
+    "AC4: Tests show import, registration, inheritance, missing-module, and snapshot-metadata failures stop execution for both policies without advisory normalization.",
+    "AC5: Prepare command tests compare byte-for-byte pre/post snapshots of the target flow state, issue-log, spec/draft files, and plugin artifact directory; a required failure creates no new file and changes no existing byte in those surfaces.",
+    "AC6: Finalize-cleanup command tests show a required hook failure occurs before teardown transaction, commit, worktree removal, branch deletion, completion pointer, and active-flow cleanup effects; advisory behavior follows its retained reporting path.",
+    "AC7: Finalize-cleanup tests prove it no longer scans `PLUGIN_HOOK_FAILED` warnings to choose fatal behavior and instead uses the structured lifecycle outcome.",
+    "AC8: Spec-local tests under `specs/345-required-hook-failure-policy/tests/` contain `// spec: R<N>` headers covering R1-R8; affected shared regression suites are included in the final project regression, and `npm test` passes at final-regression."
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "Keep the runner fail-open and let each caller reinterpret `PLUGIN_HOOK_FAILED` warnings.",
+      "reason": "Rejected because severity remains implicit, callers can disagree, and required failures can be reported as success."
+    },
+    {
+      "option": "Make every hook failure fatal without a policy field.",
+      "reason": "Rejected because advisory integrations must retain their warning, issue-log, and follow-up behavior while allowing the main command to continue."
+    },
+    {
+      "option": "Treat integrity failures as advisory when the policy is advisory.",
+      "reason": "Rejected because a broken module, registration contract, inheritance contract, or snapshot cannot be trusted as a business-level advisory result."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "FlowCommandHook",
+    "failure policy",
+    "required hook",
+    "advisory hook",
+    "plugin registry",
+    "hook snapshot",
+    "runFlowCommandHooks",
+    "runFlowCommandWithPluginLifecycle",
+    "finalize cleanup",
+    "PLUGIN_HOOK_FAILED",
+    "atomic lifecycle"
+  ],
+  "implementationTargets": [
+    "src/lib/plugin-registry.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/flow/lib/run-finalize-cleanup.js",
+    "tests/unit/lib/plugin-registry.test.js",
+    "tests/unit/flow/run-prepare-spec.test.js",
+    "tests/unit/flow/run-finalize-cleanup.test.js",
+    "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Define hook failure policy contract",
+      "goal": "Add a validated required/advisory policy to flow command hook registration and persisted snapshots. Define typed hook execution outcomes that distinguish policy-governed business failures from integrity failures.",
+      "acceptance": [
+        "R1 registration and snapshot validation rejects missing and unknown policy values.",
+        "R2 runner returns a typed outcome consumed without warning-code severity inference.",
+        "R5 integrity failures remain hard failures for both policies."
+      ],
+      "implementation_notes": "Extend the existing hook class and snapshot validation path in plugin-registry. Use dedicated classes for policy and execution outcomes, with invariant checks in constructors.",
+      "test_strategy": "Extend plugin-registry tests for policy validation, snapshot validation, and integrity failure categories.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Propagate lifecycle hook outcomes",
+      "goal": "Make the shared pre/main/post lifecycle wrapper stop required failures and continue advisory failures with their reporting data.",
+      "acceptance": [
+        "R3 required business failures are typed caller failures for every required failure category.",
+        "R4 advisory business failures preserve reporting and allow main execution.",
+        "R6 required pre-lifecycle failure stops before the enumerated prepare files and finalize-cleanup transaction, Git, worktree, branch, pointer, and active-flow operations."
+      ],
+      "implementation_notes": "Keep retained successful hook data and follow-ups. Make the wrapper's control flow inspect typed outcomes before calling the main command and before composing a success result.",
+      "test_strategy": "Add table-driven runner tests for both policies across success, throw, failed envelope, malformed result, and artifact write failure.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Apply policy to lifecycle callers",
+      "goal": "Replace caller-specific warning severity inference with structured outcomes in prepare and finalize-cleanup, and prove required failures are atomic at command level.",
+      "acceptance": [
+        "R7 prepare and finalize-cleanup consume structured outcomes and finalize-cleanup removes its warning scan.",
+        "R6 required failure command tests preserve the enumerated flow-state, issue-log, spec/draft, plugin artifact, transaction, Git ref, worktree, completion-pointer, and active-flow surfaces.",
+        "R8 shared and spec-local tests cover lifecycle matrix and atomicity."
+      ],
+      "implementation_notes": "Preserve the existing finalize-cleanup transaction authority. A required failure must return before transaction creation, commit, cleanup, and active-flow completion operations.",
+      "test_strategy": "For prepare, capture bytes for flow state, issue-log, spec/draft, and plugin artifact paths before invoking a required failure, then assert identical bytes and no new files. For finalize-cleanup, capture the base HEAD, feature ref, worktree registration/path, teardown transaction path, completion pointer, and active-flow state; after required failure assert identical HEAD/ref/state, existing worktree/branch, and absent new transaction or pointer. Add spec-local R1-R8 coverage.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-25T14:20:46.617Z",
+    "notes": "Auto-approved from the accepted preflight scope after spec gate PASS."
+  }
+}

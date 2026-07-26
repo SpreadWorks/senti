@@ -46,7 +46,7 @@ import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
 import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
-import { runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
+import { runFlowCommandHooks } from "../../lib/plugin-registry.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import {
@@ -3201,6 +3201,109 @@ export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePat
   };
 }
 
+function finalizeCleanupPrePluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
+  const inCleanupWorktree = Boolean(state?.worktree && worktreePath && mainRepoPath);
+  if (!inCleanupWorktree) {
+    return finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId });
+  }
+
+  const artifactPath = path.join(path.dirname(state.spec), "plugin-artifacts");
+  return {
+    root: worktreePath,
+    flow: { ...state, pluginArtifactRoot: artifactPath },
+    artifactPath,
+    discardArtifactsOnSuccess: true,
+  };
+}
+
+function removeFinalizePluginArtifacts(pluginContext, state) {
+  const artifactRoot = pluginContext.flow.pluginArtifactRoot
+    || path.join(path.dirname(state.spec), "plugin-artifacts");
+  fs.rmSync(path.resolve(pluginContext.root, artifactRoot), { recursive: true, force: true });
+}
+
+function finalizePluginLifecycleFailure(error) {
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "PLUGIN_LIFECYCLE_FAILED",
+    `Plugin finalize-cleanup lifecycle failed: ${error.message}`,
+    { causeCode: error.code || null, pluginLifecycle: error.outcome || null },
+  );
+}
+
+function finalizeRequiredPluginHookFailure(pluginLifecycle) {
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "PLUGIN_HOOK_REQUIRED_FAILED",
+    `Plugin finalize-cleanup lifecycle failed: ${pluginLifecycle.outcome?.failure?.message || "required plugin hook failed"}`,
+    { pluginLifecycle },
+  );
+}
+
+function composeFinalizePluginLifecycle(pre, post) {
+  return {
+    ok: post.ok,
+    outcome: post.outcome.kind === "business-failure" ? post.outcome : pre.outcome,
+    data: {
+      pluginHooks: [...pre.hookData, ...post.hookData],
+      followUps: [...pre.followUps, ...post.followUps],
+    },
+    warnings: [...pre.warnings, ...post.warnings],
+    issueLogEntries: [...pre.issueLogEntries, ...post.issueLogEntries],
+  };
+}
+
+function attachFinalizePluginLifecycle(env, pluginLifecycle) {
+  env.data = {
+    ...(env.data || {}),
+    pluginHooks: pluginLifecycle.data.pluginHooks,
+    followUps: pluginLifecycle.data.followUps,
+    pluginLifecycle,
+  };
+  for (const warning of pluginLifecycle.warnings) {
+    env.addWarning(warning.code || "PLUGIN_HOOK_WARNING", warning.message || JSON.stringify(warning));
+  }
+  return env;
+}
+
+async function runFinalizePreHooks(pluginContext, state) {
+  // Flow command hooks receive a scoped artifact API. Their transactional
+  // boundary is the spec's plugin-artifacts tree; arbitrary direct filesystem
+  // writes are outside the plugin hook contract and cannot be recovered
+  // without creating the teardown transaction that a required pre-hook must
+  // prevent.
+  let pluginPre;
+  try {
+    pluginPre = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
+      command: "finalize-cleanup",
+      hook: "pre",
+      flow: pluginContext.flow,
+      result: {},
+    });
+  } catch (err) {
+    return { ok: false, env: finalizePluginLifecycleFailure(err) };
+  }
+  if (!pluginPre.ok) {
+    removeFinalizePluginArtifacts(pluginContext, state);
+    return { ok: false, env: finalizeRequiredPluginHookFailure(pluginPre) };
+  }
+  if (pluginContext.discardArtifactsOnSuccess) removeFinalizePluginArtifacts(pluginContext, state);
+  return { ok: true, pluginPre };
+}
+
+async function runFinalizePostHooks(pluginContext, state, pluginPre, result) {
+  try {
+    const pluginPost = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
+      command: "finalize-cleanup", hook: "post", flow: pluginContext.flow, result,
+    });
+    return { ok: true, pluginLifecycle: composeFinalizePluginLifecycle(pluginPre, pluginPost) };
+  } catch (err) {
+    return { ok: false, env: finalizePluginLifecycleFailure(err) };
+  }
+}
+
 /**
  * R1/R3/R6: parse `git log --reverse <baseline>..<featureBranch>` output into
  * { sha, subject } pairs and apply the 50-commit cap.
@@ -4391,6 +4494,16 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     }
 
     if (featureBranch !== baseBranch) {
+      const pluginContext = finalizeCleanupPrePluginLifecycleContext({
+        root,
+        state,
+        worktreePath,
+        mainRepoPath,
+        specId,
+      });
+      const preResult = await runFinalizePreHooks(pluginContext, state);
+      if (!preResult.ok) return preResult.env;
+      ctx = { ...ctx, finalizePluginContext: pluginContext, finalizePluginPre: preResult.pluginPre };
       const resumed = await runPersistedTeardownIfPresent(ctx, {
         worktreePath,
         mainRepoPath,
@@ -4409,7 +4522,25 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     // Spec-only mode: feature branch === base branch. There is no merge to
     // bake into a commit — just clear active flow state and emit the report.
     if (featureBranch === baseBranch) {
-      return runSpecOnlyCompletion(ctx, { reportRoot, specId });
+      const pluginContext = finalizeCleanupPrePluginLifecycleContext({
+        root,
+        state,
+        mainRepoPath: ctx.mainRoot || root,
+        specId,
+      });
+      const preResult = await runFinalizePreHooks(pluginContext, state);
+      if (!preResult.ok) return preResult.env;
+      const { pluginPre } = preResult;
+      const postResult = await runFinalizePostHooks(pluginContext, state, pluginPre, Envelope.ok(
+        "run",
+        "finalize-cleanup",
+        { status: "done", message: "spec-only mode" },
+      ));
+      if (!postResult.ok) return postResult.env;
+      const { pluginLifecycle } = postResult;
+      if (!pluginLifecycle.ok) return finalizeRequiredPluginHookFailure(pluginLifecycle);
+      const result = await runSpecOnlyCompletion(ctx, { reportRoot, specId });
+      return attachFinalizePluginLifecycle(result, pluginLifecycle);
     }
 
     // ── Stage (B) — route routing ───────────────────────────────────────────
@@ -5291,7 +5422,19 @@ async function runTeardownTransactionOwned(
   const { featureBranch, worktree, baseBranch } = state;
   let pluginLifecycle = { warnings: [], issueLogEntries: [], data: {} };
   let retainedCleanupMetadata = null;
-  const pluginContext = finalizeCleanupPluginLifecycleContext({
+  const pluginContext = ctx.finalizePluginContext || finalizeCleanupPrePluginLifecycleContext({
+    root: ctx.root,
+    state,
+    worktreePath,
+    mainRepoPath,
+    specId,
+  });
+  const preResult = ctx.finalizePluginPre
+    ? { ok: true, pluginPre: ctx.finalizePluginPre }
+    : await runFinalizePreHooks(pluginContext, state);
+  if (!preResult.ok) return preResult.env;
+  const { pluginPre } = preResult;
+  const postPluginContext = finalizeCleanupPluginLifecycleContext({
     root: ctx.root,
     state,
     worktreePath,
@@ -5445,33 +5588,15 @@ async function runTeardownTransactionOwned(
       }
     }
 
-    try {
-      pluginLifecycle = await runFlowCommandWithPluginLifecycle(pluginContext.root, state.plugins?.flowCommandHooks || [], {
-        command: "finalize-cleanup",
-        flow: pluginContext.flow,
-        main: async () => ({
-          ok: true,
-          data: {
-            specPath: state.spec,
-            issueLogPath: `specs/${specId}/issue-log.json`,
-            artifactPath: pluginContext.artifactPath,
-          },
-        }),
-      });
-    } catch (err) {
-      return failBeforeCommit(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "PLUGIN_LIFECYCLE_FAILED",
-        `Plugin finalize-cleanup lifecycle failed: ${err.message}`,
-        { causeCode: err.code || null },
-      ), err);
-    }
-    const pluginHookFailure = (pluginLifecycle.warnings || [])
-      .find((warning) => warning.code === "PLUGIN_HOOK_FAILED");
-    if (pluginHookFailure) {
-      const error = Object.assign(new Error(pluginHookFailure.message), {
-        code: "PLUGIN_LIFECYCLE_FAILED",
+    const postResult = await runFinalizePostHooks(postPluginContext, state, pluginPre, {
+      ok: true,
+      data: { specPath: state.spec, issueLogPath: `specs/${specId}/issue-log.json`, artifactPath: postPluginContext.artifactPath },
+    });
+    if (!postResult.ok) return failBeforeCommit(postResult.env, new Error(postResult.env.errors[0].messages[0]));
+    pluginLifecycle = postResult.pluginLifecycle;
+    if (!pluginLifecycle.ok) {
+      const error = Object.assign(new Error(pluginLifecycle.outcome?.failure?.message || "required plugin hook failed"), {
+        code: "PLUGIN_HOOK_REQUIRED_FAILED",
       });
       return failBeforeCommit(Envelope.fail(
         "run",
@@ -5479,8 +5604,9 @@ async function runTeardownTransactionOwned(
         error.code,
         `Plugin finalize-cleanup lifecycle failed: ${error.message}`,
         {
-          pluginId: pluginHookFailure.pluginId || null,
-          hook: pluginHookFailure.hook || null,
+          pluginId: pluginLifecycle.outcome?.failure?.pluginId || null,
+          hook: pluginLifecycle.outcome?.failure?.hook || null,
+          pluginLifecycle,
         },
       ), error);
     }

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:54:00.101Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-spec-only-skips-required-hooks",
+      "title": "Spec-only finalize skips required lifecycle hooks",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R6",
+      "issue": "`executeOwned()` returns through `runSpecOnlyCompletion()` when `featureBranch === baseBranch` before the new `runFlowCommandHooks(... hook: \"pre\")` check in `runTeardownTransactionOwned()` can run. A required `finalize-cleanup` pre-hook failure in spec-only mode is therefore ignored while the command can write `.senti/last-finalized-spec` and clear active flow state.",
+      "suggestion": "Run the required `finalize-cleanup` pre-hook gate before the spec-only branch can call `runSpecOnlyCompletion()`, or make `runSpecOnlyCompletion()` consume the same structured pre-hook outcome before pointer and active-flow mutations.",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and requires required pre-hook failure to stop finalize-cleanup before completion pointer and active-flow cleanup effects. The current ordering leaves a finalize-cleanup mode that performs those durable effects without evaluating required hook failure.",
+      "findingId": "9ec746e6ae6541c11a7c7dbcf393cc5babdfe5d28f5eebd3d11ba3f7acf5ddae",
+      "fingerprint": "9ec746e6ae6541c11a7c7dbcf393cc5babdfe5d28f5eebd3d11ba3f7acf5ddae",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "282b73fe76889e95876f9207f4d5842bed58d52a6c2ef129784f23ba2071c6a1",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "3ff5e2564ea95ac575ecf9dba0693318fda7bf74be41731b4adc2a6607be134a"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "9ec746e6ae6541c11a7c7dbcf393cc5babdfe5d28f5eebd3d11ba3f7acf5ddae",
+      "findingId": "9ec746e6ae6541c11a7c7dbcf393cc5babdfe5d28f5eebd3d11ba3f7acf5ddae",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Spec-only finalize skips required lifecycle hooks",
+      "body": "`executeOwned()` returns through `runSpecOnlyCompletion()` when `featureBranch === baseBranch` before the new `runFlowCommandHooks(... hook: \"pre\")` check in `runTeardownTransactionOwned()` can run. A required `finalize-cleanup` pre-hook failure in spec-only mode is therefore ignored while the command can write `.senti/last-finalized-spec` and clear active flow state.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "9ec746e6ae6541c11a7c7dbcf393cc5babdfe5d28f5eebd3d11ba3f7acf5ddae",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and requires required pre-hook failure to stop finalize-cleanup before completion pointer and active-flow cleanup effects. The current ordering leaves a finalize-cleanup mode that performs those durable effects without evaluating required hook failure.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

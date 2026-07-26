@@ -503,9 +503,33 @@ export function excludeGateLifecycleArtifactsFromGateDiff(diff, specPath) {
     .join("");
 }
 
+export function excludeGeneratedSpecArtifactsFromGateDiff(diff, specPath) {
+  if (typeof diff !== "string") throw new Error("diff must be a string");
+  return diff
+    .split(/(?=^diff --git )/m)
+    .filter((segment) => {
+      const header = segment.match(/^diff --git a\/.+? b\/(.+)\r?$/m);
+      return !header || shouldIncludeGateDiffFile(header[1], specPath);
+    })
+    .join("");
+}
+
+function shouldIncludeGateDiffFile(relPath, specPath) {
+  if (!isGeneratedSpecArtifactForGate(relPath, specPath)) return true;
+  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
+  const localPath = relPath.slice(specDir.length + 1);
+  return localPath === "test-execute-result.json"
+    || localPath === "test-result-review.json"
+    || localPath === "tests/.raw/test-execution.log";
+}
+
+function excludeGeneratedSpecArtifactsFromPerFileDiffs(perFileDiffs, specPath) {
+  return new Map([...perFileDiffs].filter(([file]) => shouldIncludeGateDiffFile(file, specPath)));
+}
+
 function buildGateEvaluationDiff({ committed, uncommitted, untracked, specPath }) {
   return excludeGateLifecycleArtifactsFromGateDiff(
-    committed + uncommitted + untracked,
+    excludeGeneratedSpecArtifactsFromGateDiff(committed + uncommitted + untracked, specPath),
     specPath,
   );
 }
@@ -1498,19 +1522,38 @@ const ALLOWED_RESULT_VALUES = Object.freeze(["pass", "fail", "skip"]);
 
 /**
  * Strip common wrappers (code fences, leading/trailing noise) and extract
- * a candidate JSON string. Does NOT attempt to guess — if no JSON-like object
- * is detectable, returns the original text so JSON.parse can surface a clear error.
+ * the first complete JSON object. If no complete object is detectable, return
+ * the original text so JSON.parse can surface a clear error.
  */
 function extractJsonCandidate(raw) {
   let text = String(raw).trim();
   // Strip ``` or ```json fences
   const fenceMatch = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   if (fenceMatch) text = fenceMatch[1].trim();
-  // Trim to first { ... last }
+  // Trim to the first balanced object. Providers can append a second JSON
+  // payload or prose after a valid response; using the final brace would join
+  // those distinct values into invalid JSON.
   const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    text = text.slice(firstBrace, lastBrace + 1);
+  if (firstBrace < 0) return text;
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let index = firstBrace; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') {
+      quoted = true;
+    } else if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return text.slice(firstBrace, index + 1);
+    }
   }
   return text;
 }
@@ -2407,7 +2450,16 @@ export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId 
     const rawTaskId = raw.taskId == null ? null : String(raw.taskId).trim();
     if (rawTaskId !== expectedTaskId) continue;
     if (!cycle.matchesArtifact(raw)) continue;
-    const artifact = new ReviewFindingGateArtifact(raw, { source: candidate.source });
+    let artifact;
+    try {
+      artifact = new ReviewFindingGateArtifact(raw, { source: candidate.source });
+    } catch (error) {
+      // Historical advisory-only reports do not create repair obligations.
+      // They may have been persisted before stable finding identities were
+      // introduced, so let the current validated review remain authoritative.
+      if (!candidate.latest && raw.blockingFindings?.length === 0) continue;
+      throw error;
+    }
     if (candidate.latest) latestArtifact = raw;
     reviewedArtifacts.push({ artifact, raw });
   }
@@ -4520,6 +4572,7 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- A finding cannot require a field, outcome, rejection rule, or behavior absent from the rendered authoritative context.",
     "- Return FAIL when authoritative context requires changed behavior, an integration, or an exact field and mapped implementation evidence omits or contradicts it.",
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
+    "- Deferred full-project regression evidence is valid at this integration gate: final-regression, not this gate, owns the default full project test command. Do not fail solely because that deferred evidence does not yet contain a passing full regression result.",
     "- Treat [TEST:<id>] and [TEST-REVIEW] entries as validated execution evidence. When [REGRESSION] records full-regression-deferred, full-project execution belongs exclusively to final-regression and its absence is not a FAIL at this gate.",
     "- Preserve typed retry behavior: semantic findings may defer to flow-findings, while structural, tooling, no-progress, failed-test, or missing-repair failures must remain blocking. An explicit structural assertion of ESCALATE_RETRY_EXHAUSTED with no flow-findings artifact is required behavior, not a weakened semantic deferral assertion.",
     ...(sameSpecContractContext ? [
@@ -5554,7 +5607,10 @@ export class RunGateCommand extends FlowCommand {
 
     let perReqDiffs = null;
     if (Object.keys(fileMap).length > 0) {
-      const perFileDiffs = collectPerFileDiffsForGate(committed, uncommitted, untracked);
+      const perFileDiffs = excludeGeneratedSpecArtifactsFromPerFileDiffs(
+        collectPerFileDiffsForGate(committed, uncommitted, untracked),
+        state.spec,
+      );
       perReqDiffs = buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, diff);
     }
     const requirementContexts = new Map(requirements.map((requirement) => [

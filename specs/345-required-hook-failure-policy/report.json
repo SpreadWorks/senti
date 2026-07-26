@@ -1,0 +1,2628 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-gate-source.json                         |  236 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/345-required-hook-failure-policy/draft.json  |   99 +\n .../345-required-hook-failure-policy/file-map.json |   43 +\n .../flow-findings.json                             |   35 +\n specs/345-required-hook-failure-policy/flow.json   | 4613 +++++++++++++++\n .../impl-gate-result.json                          |  506 ++\n .../impl-review.json                               | 1012 ++++\n .../impl-triage.json                               |  644 ++\n .../issue-log.json                                 | 1079 ++++\n specs/345-required-hook-failure-policy/issue.md    |  136 +\n .../plugin-artifacts/workflow/prepare.json         |   10 +\n .../repair-fingerprint.json                        |  140 +\n ...d04af93688221f2df0815c62211f70310d41b3b834.json |    1 +\n ...b5303a4e9704fe6a708712a6442939f64b888892ca.json |    1 +\n ...4b2320f302572c9e5ad76114e5cdf60c09d0049b77.json |    1 +\n ...3d4a15e3cfd13a04a8085ea6af7cfe0151b337cf0b.json |    1 +\n ...35dd38cc5e76de494b284a4353af4b286282a7fbec.json |    1 +\n ...9887dcebb6cc5e4c3af42c5efbb6c056cb4bc3e6f1.json |    1 +\n ...7f771be3a78528634b5458ccea5b359425768b5859.json |    1 +\n ...aac41be0da4a6078499a25854daf86fe039404d380.json |    1 +\n ...bd3ec8543b0fb7982c6f03c6155c4a20ebdd07e1aa.json |    1 +\n ...09639a8473b6b4f35c2e02a83596d67105d3e98a64.json |    1 +\n ...3860d3f248d211ee6543c975724732834ab196d87c.json |    1 +\n ...16f1c312e83bba7cba5e96769836f080017cad6c5d.json |    1 +\n ...14c39827de4e9d5b656f731b5777daf7fc5b7bcdad.json |    1 +\n ...750ebb58ceb474df680e778361618f06b5adcc2e1e.json |    1 +\n ...3fd5435ef1dd30cccbc447b991b3fc4a67850fdfe8.json |    1 +\n ...faf4b4b1c8488274c3da96024ce7a2456a1237cefd.json |    1 +\n ...95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json |    1 +\n ...b0b06501655006fd2edd26dc2b61403c935c937191.json |    1 +\n ...3f807c124efe16415a55e5923f31099fb7356abca6.json |    1 +\n ...36f49d152e36b2189ebe4cbbba9b0aaec630c45091.json |    1 +\n .../review-history/draft-coverage-attempt-001.json |   14 +\n .../draft-questions-attempt-001.json               |   14 +\n .../review-history/impl-attempt-001.json           |   98 +\n .../review-history/impl-attempt-001.md             |   35 +\n .../review-history/impl-attempt-002.json           |   68 +\n .../review-history/impl-attempt-002.md             |   25 +\n .../review-history/impl-attempt-003.json           |   36 +\n .../review-history/impl-attempt-003.md             |   16 +\n .../review-history/impl-attempt-004.json           |   97 +\n .../review-history/impl-attempt-004.md             |   34 +\n .../review-history/impl-attempt-005.json           |   98 +\n .../review-history/impl-attempt-005.md             |   35 +\n .../review-history/impl-attempt-006.json           |   68 +\n .../review-history/impl-attempt-006.md             |   25 +\n .../review-history/impl-attempt-007.json           |   98 +\n .../review-history/impl-attempt-007.md             |   35 +\n .../review-history/impl-attempt-008.json           |   68 +\n .../review-history/impl-attempt-008.md             |   25 +\n .../review-history/impl-attempt-009.json           |   36 +\n .../review-history/impl-attempt-009.md             |   16 +\n .../review-history/impl-attempt-010.json           | 2136 +++++++\n .../review-history/impl-attempt-010.md             | 1135 ++++\n .../review-history/spec-attempt-001.json           |   16 +\n .../review-history/spec-attempt-001.md             |   11 +\n .../review-history/spec-attempt-002.json           |   16 +\n .../review-history/spec-attempt-002.md             |   11 +\n .../review-history/test-attempt-001.json           |  198 +\n .../review-history/test-attempt-001.md             |   48 +\n .../review-history/test-attempt-002.json           |  198 +\n .../review-history/test-attempt-002.md             |   48 +\n .../review-history/test-attempt-003.json           |   86 +\n .../review-history/test-attempt-003.md             |   24 +\n .../review-history/test-attempt-004.json           |   58 +\n .../review-history/test-attempt-004.md             |   18 +\n .../review-history/test-attempt-005.json           |   58 +\n .../review-history/test-attempt-005.md             |   18 +\n .../review-history/test-attempt-006.json           |   58 +\n .../review-history/test-attempt-006.md             |   18 +\n .../review-history/test-attempt-007.json           |   58 +\n .../review-history/test-attempt-007.md             |   18 +\n .../review-history/test-attempt-008.json           |   55 +\n .../review-history/test-attempt-008.md             |   16 +\n .../impl-review/018870d7c819e46bcb116c71.json      |   65 +\n .../impl-review/0bdf3b707356690edf741e13.json      |   89 +\n .../impl-review/11401db1d0226f1231be2ae2.json      |   77 +\n .../impl-review/2802ea34b3003a0b446168d0.json      |   63 +\n .../impl-review/427dfbd203456f4fae825b67.json      |   63 +\n .../impl-review/562c706852c82bb0fcee42e9.json      |   71 +\n .../impl-review/591b4feebb7073ebc2e7b66d.json      |   69 +\n .../impl-review/59fa3a31c681356961cc7bdf.json      |   46 +\n .../impl-review/635b54e59ef6bd709a49df1c.json      |   65 +\n .../impl-review/75f4871091a34c2fc78b9a8b.json      |   65 +\n .../impl-review/8dd631de9065ac75b1dfdc57.json      |   69 +\n .../impl-review/bd3798396b2128f722503801.json      |   77 +\n .../impl-review/c43a47f76d207c075c9f3648.json      |   65 +\n .../impl-review/d7e860f04f301bf9cac6a177.json      |   71 +\n .../impl-review/d85e17476af5711ba3ad8791.json      |   83 +\n .../impl-review/f11405f01831676c001ddd2a.json      |  105 +\n specs/345-required-hook-failure-policy/review.md   | 1135 ++++\n .../scenario-validity-result.json                  |  119 +\n .../spec-gate-source.json                          |   33 +\n .../spec-review.json                               |   13 +\n .../spec-review.md                                 |   11 +\n specs/345-required-hook-failure-policy/spec.json   |  266 +\n specs/345-required-hook-failure-policy/spec.md     |  120 +\n .../task-impl-gate-source.json                     |  124 +\n .../345-required-hook-failure-policy/tasks/T-1.md  |   20 +\n .../345-required-hook-failure-policy/tasks/T-2.md  |   20 +\n .../345-required-hook-failure-policy/tasks/T-3.md  |   20 +\n .../test-coverage.json                             |  108 +\n .../test-execute-result.json                       |  166 +\n .../test-result-review.json                        |   34 +\n .../test-result-review.md                          |   12 +\n .../test-review.json                               |   37 +\n .../test-review.md                                 |   16 +\n .../tests/.raw/scenario-validity.log               | 6246 ++++++++++++++++++++\n .../tests/.raw/test-execution.log                  |  165 +\n .../tests/required-hook-failure-policy.test.js     |  584 ++\n src/flow/commands/review.js                        |   28 +-\n src/flow/lib/run-finalize-cleanup.js               |  190 +-\n src/flow/lib/run-gate.js                           |   74 +-\n src/flow/lib/run-prepare-spec.js                   |   60 +-\n src/flow/lib/set-step.js                           |    7 +-\n src/lib/plugin-registry.js                         |  100 +-\n tests/e2e/flow/commands/post-worktree-hook.test.js |    1 +\n tests/unit/flow/commands/review.test.js            |   41 +\n .../flow/finalize-cleanup-transaction-v2.test.js   |   28 +-\n tests/unit/flow/finding-gate-readiness.test.js     |   54 +\n tests/unit/flow/gate-diff-compaction.test.js       |   19 +\n tests/unit/flow/gate-evaluation-schema.test.js     |    9 +\n tests/unit/flow/gate-requirement-context.test.js   |    1 +\n tests/unit/flow/set-step-impl-repair.test.js       |   99 +-\n .../unit/flow/worktree-prepare-transaction.test.js |    1 +\n 131 files changed, 24876 insertions(+), 98 deletions(-)",
+      "commits": [
+        "Clarify deferred regression gate boundary",
+        "Make lifecycle completion idempotent",
+        "Filter generated artifacts from requirement evidence",
+        "Exclude generated artifacts from gate diffs",
+        "Recover JSON object from gate output",
+        "Ignore stale advisory review history",
+        "Document finalize hook transaction boundary",
+        "Guard spec-only finalize post hooks",
+        "Create prepare sources before pre hooks",
+        "Rollback required prepare hook failures",
+        "Apply review exclusions to fallback diffs",
+        "Cover persisted loop review identities",
+        "Preserve classified review finding identities",
+        "Update plugin hook failure policy fixture",
+        "Update impl repair transition mocks",
+        "Preserve worktree hook cleanup invariants",
+        "Share hook lifecycle results",
+        "Refresh hook policy test evidence",
+        "Run finalize hooks before teardown state",
+        "Preserve required hook caller failures",
+        "Share finalize pre-hook handling",
+        "Complete spec-only hook lifecycle",
+        "Record lifecycle caller design",
+        "Deduplicate finalize hook failures",
+        "Fail closed required flow hooks",
+        "Enforce flow hook failure policies",
+        "Cover worktree hook failure atomicity",
+        "Add required hook failure policy spec tests"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "Every discovered flow command hook and every persisted `plugins.flowCommandHooks` snapshot entry shall contain one failure policy with the exact value `required` or `advisory`. Registration and snapshot loading shall reject a missing or unknown policy before hook execution.",
+          "status": "done",
+          "note": "R1: discovery and snapshots require an explicit known failure policy"
+        },
+        {
+          "desc": "The hook runner shall return a typed execution outcome that classifies hook success, advisory business failure, required business failure, and runtime integrity failure. Callers shall consume this outcome instead of inferring severity by scanning generic warning codes.",
+          "status": "done",
+          "note": "R2: lifecycle returns a structured outcome instead of warning-code severity inference"
+        },
+        {
+          "desc": "For a `required` hook, a thrown `run()` error, an `ok:false` envelope, a malformed or non-envelope result, or an artifact write failure shall produce a typed caller failure and shall not be converted into `ok:true`, warning-only, or follow-up-only success.",
+          "status": "done",
+          "note": "R3: required pre-hook failures stop the caller for every business-failure form"
+        },
+        {
+          "desc": "For an `advisory` hook, the same business-failure categories may preserve warning, issue-log, and follow-up information while allowing the lifecycle main command to continue. A successful advisory or required hook shall preserve its hook data and follow-ups.",
+          "status": "done",
+          "note": "R4: advisory hook failures retain reporting while the main command continues"
+        },
+        {
+          "desc": "Import failure, invalid `register(api)`, invalid `FlowCommandHook` inheritance, missing snapshot module, and snapshot metadata mismatch shall remain hard failures regardless of the hook policy and shall not be normalized as advisory business failures.",
+          "status": "done",
+          "note": "R5: integrity failures and invalid snapshot policy are hard failures for either policy"
+        },
+        {
+          "desc": "A required pre-hook failure shall stop the applicable lifecycle command before it returns a success envelope: prepare shall not create or modify its spec source, draft, flow state, issue-log, or plugin artifact files; finalize-cleanup shall not create a teardown transaction, create a finalize commit, remove its worktree, delete its feature branch, write `.senti/last-finalized-spec`, or clear active flow state.",
+          "status": "done",
+          "note": "R6: required finalize-cleanup pre-hook failure leaves command state and Git state unchanged"
+        },
+        {
+          "desc": "`run-prepare-spec` and `run-finalize-cleanup` shall use the structured runner outcome. Finalize-cleanup shall remove its `PLUGIN_HOOK_FAILED` warning reinterpretation path and shall not start teardown work after a required lifecycle failure.",
+          "status": "done",
+          "note": "R7: required spec-only finalize post-hook failure leaves completion state unchanged"
+        },
+        {
+          "desc": "Tests shall cover the required/advisory matrix for success, throw, `ok:false`, malformed result, and artifact write failure; registration/snapshot policy rejection; integrity hard failures; retained advisory behavior; and command-level atomicity for prepare and finalize-cleanup.",
+          "status": "done",
+          "note": "R8: advisory matrix preserves reporting for every business-failure form"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 70,
+      "fullLogPath": "specs/345-required-hook-failure-policy/issue-log.json",
+      "importantTotal": 36,
+      "importantShown": 10,
+      "importantOmitted": 26,
+      "recentOtherTotal": 34,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 29,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement says validation will use “focused tests,” but “focused” is a vague qualifier rather than a verifiable condition.; The requirement says the lifecycle matrix will be fixed with “focused unit / spec-local tests,” but “focuse...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 680",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Static test checks and partial matrix coverage did not prove the required hook lifecycle contract.",
+          "resolution": "Expand executable policy matrix and command-level prepare/finalize failure fixtures."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Third static review found absent required post-hook and required-policy integrity assertions.",
+          "resolution": "Add required post-hook failure assertions and parameterize every integrity case over both policies."
+        },
+        {
+          "classification": "important",
+          "step": "test-review",
+          "reason": "Final static review found that the spec named a non-existent separate context write API.",
+          "resolution": "Narrow the requirement and matrix to the actual artifact write API, retaining executable write-failure coverage."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Added a dedicated integrity failure error carrying a typed integrity outcome while retaining fail-closed throws.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Wrapped snapshot policy validation in the same typed integrity error path as runtime loader failures.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Preserve follow-ups from advisory failed envelopes before classifying their business failure.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Remove plugin artifact roots written by a failed required finalize pre-hook before returning its failure.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "The added catch block constructs the same `Envelope.fail(\"run\", \"finalize-cleanup\", \"PLUGIN_LIFECYCLE_FAILED\", ...)` lifecycle failure response shape as another added catch block in the same file. This duplicates the same error-to-envelo...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "spec-gate",
+          "reason": "review finding readiness: review-history/impl-attempt-013.json finding fingerprint does not match its stable identity",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: exclude generated flow history from integration gate diff evidence",
+          "resolution": "retain source changes, requirement tests, and execution evidence while removing non-product generated flow artifacts"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: apply generated artifact filtering to per-requirement file-map evidence",
+          "resolution": "filter per-file diff entries before each requirement builds its mapped and unmapped evidence"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: align AC8 full regression timing with the final-regression flow stage",
+          "resolution": "AC8 now keeps implementation validation targeted and requires npm test at its designated final-regression stage"
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: clarify deferred full regression ownership in integration gate evaluation",
+          "resolution": "Add the stage boundary to the evaluator prompt and align AC8 with final-regression ownership"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 6,
+      "question": 0,
+      "issueLog": 41
+    },
+    "tokenMetrics": {
+      "input": 5798144,
+      "output": 167964,
+      "cacheRead": 3289728,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 175,
+      "durationMs": 5046812,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 5665
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 9409
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 47399
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 74267
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 128238
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 156341
+        },
+        {
+          "phase": "implement",
+          "durationMs": 255456
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 2006979
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 686449
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 1676609
+        }
+      ]
+    },
+    "tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/commands/review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-prepare-spec.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finding-gate-readiness.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-diff-compaction.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js",
+            "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+            "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finding-gate-readiness.test.js",
+            "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-diff-compaction.test.js",
+            "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+            "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js",
+            "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+            "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finding-gate-readiness.test.js",
+            "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-diff-compaction.test.js",
+            "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+            "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/345-required-hook-failure-policy/tests/.raw/final-regression-attempt-004.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "fc70fbd287f14e1c9ad8835b7191f37cab4b0775e2cb8660731932bb8bdf18f8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/acceptance-review.json",
+            "fingerprint": "fcae354f7cd88fda7516e69c5661bde51107df8a04144ffee2530a8de3a376d0"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-coverage-repair.json",
+            "fingerprint": "ceb84c8c4e242e14630be489f4647d0600cad889696a066409db618b029dbf9d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-coverage-triage.json",
+            "fingerprint": "c5b9ef1339acf0d699797c9fdcdb9b511ac55a92a36010e7ab0fa6deec46f66f"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-gate-source.json",
+            "fingerprint": "b7468f29fa8936c02eefa24a4cf9e678730c9a4ee8787b7b9ffbfe59e02a3de9"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-questions-repair.json",
+            "fingerprint": "a5168025e27b84e352d512e5d8a27ac7ae3c88659e9050aed29d4da5d689abc4"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-questions-triage.json",
+            "fingerprint": "5edbc3418132f4c61c2aba251ac35ee1c99e7f907310743f3ac4ee580983851a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-review-coverage.json",
+            "fingerprint": "71e357f6a1d2edbd28320ab75ee41c8ef62c010cfda0f20922c3a8fbe649a896"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft-review-questions.json",
+            "fingerprint": "58988c7cf502f7a3fdf7b0c07997d1e39df5bcbe06ba756d72290c2b5ffe73ca"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/draft.json",
+            "fingerprint": "8be55cc2547f9e0b77422f3257b700d0a4f7c3b2bfa9d0b128d8d72f77412757"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/file-map.json",
+            "fingerprint": "752638fdc77ce4901c619b203be61ca2185fcf3ec60650810792d87239ed4cac"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/flow-findings.json",
+            "fingerprint": "4a7002d9669f75df3c7a021c9a301398a8afc1aa1b07ae7b59ecca4c267aac29"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/flow-findings.json",
+            "fingerprint": "4a7002d9669f75df3c7a021c9a301398a8afc1aa1b07ae7b59ecca4c267aac29"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/impl-gate-result.json",
+            "fingerprint": "1e1bff325fd0eb2cd1913eec474b9a8ba8f8eddf6d20dcf70cc7a5ecff06d71d"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/impl-gate-result.json",
+            "fingerprint": "1e1bff325fd0eb2cd1913eec474b9a8ba8f8eddf6d20dcf70cc7a5ecff06d71d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/impl-repair.json",
+            "fingerprint": "3a0529a0d54924b556938e12d2c4023974622fb59e54d330c3346944bafc239e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/impl-review.json",
+            "fingerprint": "95a285a611f0f3bea5f21e1238a511a783e5dbfa2ae4e837a12e95242a61749a"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/impl-review.json",
+            "fingerprint": "95a285a611f0f3bea5f21e1238a511a783e5dbfa2ae4e837a12e95242a61749a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/impl-triage.json",
+            "fingerprint": "e3b72ff69eb9f487564b448cfd66a29ed16b2cdb9014e3d592cee93e0f2ac365"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/impl-triage.json",
+            "fingerprint": "e3b72ff69eb9f487564b448cfd66a29ed16b2cdb9014e3d592cee93e0f2ac365"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/issue.md",
+            "fingerprint": "28a73673b8c8da8968d57d668858e74591298462b471e9435243e7f4763ffd94"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "0eff93bdf0bff4e566c8e9829148ee1e84b44d8f494c69ce2846e2aef4c02d20"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-001.json",
+            "fingerprint": "838874a23311087ceb0eff8465336146101d8b9b7e730d33240a157ebec1989c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-002.json",
+            "fingerprint": "f84976c381305204f4d96f6084e2828212e593130767bd2650c9e7caf2f52e5a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-003.json",
+            "fingerprint": "0428dbc8a77efded97b2b86831913d394fdfbbe43ade13ab23e2448541dced19"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-004.json",
+            "fingerprint": "99530259e61beedbe1dd9b0b06b7f596a1f01fb965919a5765a0401ab447c92e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-005.json",
+            "fingerprint": "267b17129ffd64955f341dbf90c0972779f8678753f772094d6c5c099a488dfc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-006.json",
+            "fingerprint": "de3ee6403cb643e38a1a9bf7992a841a16dbe18cfcebd4af57a805d22a183d44"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-007.json",
+            "fingerprint": "a6aa1e5a3768154a67ae5eaf00317ee811f2ccb1972deb601e739ae2b159f668"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-008.json",
+            "fingerprint": "d76a64537f0e874a793ec23f5dec9bf764df43eda6ede15d50a8162740be7bdb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-009.json",
+            "fingerprint": "1f52a329c302ef3f6d4369fda0335dbf368fe411077114de7b08ced54fd2d56e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-010.json",
+            "fingerprint": "2e74f346ab6744c412c102820dc49f9cf578ab7d1344bbe0d07c0ad96f23f5f9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-011.json",
+            "fingerprint": "0edb28edd854ca0220ce7b45bde005ea78f6d1e3c3a2437e8ca3639c5d5df213"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-012.json",
+            "fingerprint": "2725ae80bd4a8a44c54593df830959d0485a4aec0e693fd47becc6bd8999258a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-013.json",
+            "fingerprint": "e1375fc3d5cad26304907b3bd6842879cafe1c525d13e3010fa7fda7b8786f41"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-014.json",
+            "fingerprint": "0b0c2f89d71b37ca5eed288d358de569698a615d51b00d3cc5863bf6b74a8b1b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-015.json",
+            "fingerprint": "5e586f09bbecf3bf62affed83cf818b8459310ab5fe84bb97f88fb3a351d1d2d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-016.json",
+            "fingerprint": "09576d659f1559f4d3ba282eeaf07e379b8ce41852c0b01bbfdccce62356897a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-017.json",
+            "fingerprint": "ae91c35a4bd2b81c71e8de9cc3b64d88e957b5f2afd141d07f77a6e9faa77e14"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-018.json",
+            "fingerprint": "c8f50b803ae3abc142f2aaa1ccba81f4b81fadda01277465181ebe5818fea592"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/repair-fingerprint.json",
+            "fingerprint": "90d4275b5b0197cb37fb055f448ace8d44fbf40bf83e411b80739d4338a51e1d"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/repair-fingerprint.json",
+            "fingerprint": "90d4275b5b0197cb37fb055f448ace8d44fbf40bf83e411b80739d4338a51e1d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/retro.json",
+            "fingerprint": "6e82c43f26f6a30c389f042f23be5bb81999bddd2a4f5a1ce66c555254c03563"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/036d163f4fe3867ff2f740d04af93688221f2df0815c62211f70310d41b3b834.json",
+            "fingerprint": "dac169342bc3cb0eb4736c1c1ebb958ffc0299606a5f41f71ed4bc4f0518e0bf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/05b644bcd0bf72d12e54626e8833689611b5b37a13a5ff3e158e40336e1d8b99.json",
+            "fingerprint": "b805504cdec5f028d4774576d4bba51a075ab293afc13af3d80df335bc7a9c32"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/1be858581d589617e4d019493f32507649f37a1a578dee829e9c498c3366342a.json",
+            "fingerprint": "b3f66972548db0100fd7803eecd8cf0ac7726526f7bf2e465fd6b874a6c84edd"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/232bec2a8e06f4c58d26a7b5303a4e9704fe6a708712a6442939f64b888892ca.json",
+            "fingerprint": "df07ef35fab9f5a112852a35fcb309ef641c681c36eebf658f5036e192ccc839"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/28e76a9a2198b8ca53ce4c872338cf7281c53b59e23d8c2e4c66d4a137560b52.json",
+            "fingerprint": "50ea6307be7107b9e2f2253d139a81cfb0d391083ce928e4f9c1f818fbc84f78"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/2b7b0eaab01e3bd101aef34b2320f302572c9e5ad76114e5cdf60c09d0049b77.json",
+            "fingerprint": "c0a18f06587544880bf89a5fa344b36dbae0a51e12a09c40b724e52d5e801685"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/362acd2254710422a623ec8e5b4509b5fcadb04691bd585c89899b4082a8595e.json",
+            "fingerprint": "475849362ef24ec137ce093a6ff89a6f70fa64d79831f68f28f67d52e2b6e5a1"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/5036634ddffd6bddca20343d4a15e3cfd13a04a8085ea6af7cfe0151b337cf0b.json",
+            "fingerprint": "97d07c65a7345e8bcc7dd5fdcb6ffa746025db3a3acbeff1a92c2dd2364c5892"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/58c22abb7a91756d6a3d2800aa6a27665adc5bd8a24fb5053d5d901101b32aa0.json",
+            "fingerprint": "ef74e1919064206d73ab7dbdc606e8b8f08096f06bae1d82bf619657853c21bb"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/5cac57cb5799a07696840b35dd38cc5e76de494b284a4353af4b286282a7fbec.json",
+            "fingerprint": "892c47aa9450f5e36dbd701931590a3c083273dbe90ceaf3b8153b4d4e7c8af5"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/61ee3429e7093093be11fc9887dcebb6cc5e4c3af42c5efbb6c056cb4bc3e6f1.json",
+            "fingerprint": "d57e9431164cc9a0616697287bb238755b5b09f3490377e05d88bfea3b088f27"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/6e0f05f362b7c7125e029465a16a2c6504c74dad81df3f8df7f5265537ea6e09.json",
+            "fingerprint": "b3de8cfb0081d8ca2f45df0956c7884fa6805f099941e6837d89b233d9efd28d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/77e8a71529de240afd51d67f771be3a78528634b5458ccea5b359425768b5859.json",
+            "fingerprint": "300c3c2ec8444d54344f78f0bcb5589467bd785947628afb200d8720f9416231"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/7f81aaa61b04829f35c09baac41be0da4a6078499a25854daf86fe039404d380.json",
+            "fingerprint": "ffb1e8b7277a3028bbd0336a930cacf59d2134fb2fa296d99f2dce94d5ca2805"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/881375ddb237f5b8b013c8bd3ec8543b0fb7982c6f03c6155c4a20ebdd07e1aa.json",
+            "fingerprint": "3dc27050d7e8ec1adaf6369b11774ed62b71127ce5d342a31357c21fdbf483e3"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/893145a50ef96eb2fc2ccb09639a8473b6b4f35c2e02a83596d67105d3e98a64.json",
+            "fingerprint": "ca5834e6e9584a42c6171d4487edd86cd73446f311e8368f611d47838d7d7c07"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/90c9f182e8440638d760cd3860d3f248d211ee6543c975724732834ab196d87c.json",
+            "fingerprint": "c0c98b46072b976953537cb7f1c648231cd025fdc4166c61470eedd4b1f7a5cc"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/934b751b8f9ce7ea66c7fb16f1c312e83bba7cba5e96769836f080017cad6c5d.json",
+            "fingerprint": "083cfb4c4c648cf16470a4c983876e23cbfda798f4314b6fe7dc27fd1c6e968f"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/aa4851fa86fa626464307114c39827de4e9d5b656f731b5777daf7fc5b7bcdad.json",
+            "fingerprint": "0430cac93bd3f7fe5551041e4a14ca36351d4c038b8b760e0edc23e0052d9416"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ae23ca386f66bb1fa90461750ebb58ceb474df680e778361618f06b5adcc2e1e.json",
+            "fingerprint": "6af11f92cb934c31cbaa855a53b427fb78b3b85e6a145f5020b6f47eeffc60e0"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ae75364bce476d5a28ba233fd5435ef1dd30cccbc447b991b3fc4a67850fdfe8.json",
+            "fingerprint": "459200ee371310b68bed819742e2404196793d523b286292babdbb27fe87773b"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/b55e44a755e72a3d9def80faf4b4b1c8488274c3da96024ce7a2456a1237cefd.json",
+            "fingerprint": "b6f7c79a1a8dcbeaddde9d7998dd03c0c453b756f60002e269212332a4168206"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/be06fd5ddb125bda6f6458a390e4734c19e3e2776bf0409213bdb6ad597c8427.json",
+            "fingerprint": "7dc7c3e90dd5745f194a9b7ae2340eba876e17e201605ca3aada34a54d2a5153"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/c37b3f5bf73b19d5839818c93cd327b9866f7809720b946d7d6b41ba7aec403e.json",
+            "fingerprint": "24c15b91ec9147c33763ebddc6cbc92185ebf1beacb66c6a1ccf3a745919e17a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/cb962a25b06d212258ddb2c2b75d008ca5d47c96d465e7504e2a0f949562041b.json",
+            "fingerprint": "f2524aa3806a10fe10763c8c3d446985234d3e63218468b533be36e3714fbd9c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/d0027eb0b0d96d3239d8856b194b0a83fbdb91ece5ca780bc82ad11ecba9e4fb.json",
+            "fingerprint": "296a43dc021fd3d5f7ffa24ec03293a19b113eb80c766928e64a1ef052d184f8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/d573380287598514b7f87cfe181253bcacd441397e3b538ab331fa2163356770.json",
+            "fingerprint": "151e6293727ddc0301c16728ceeccfeffed5159b74a74c7f7198f2f047942f1f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/dd6a4a8cf3da99943c2dcec250943ec2dbb554c38038e580eb4e756864166f3d.json",
+            "fingerprint": "e8cf8b80230d6ebefb4b0f318f4297df01c251e498201d6f30fcaa2f3b1ee66b"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/def3a5a0e158ad9dca2d9d95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json",
+            "fingerprint": "d1eacd6cf59ea2638d332082737028ffbb3168b86183c3160fd7a93791fe496c"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/e5fc68de544462f53c0df2b0b06501655006fd2edd26dc2b61403c935c937191.json",
+            "fingerprint": "1085a58dc0cac6e179bad711112f9bbc0681aff9c72aa9059a1ec501acfa19d1"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/e75df2ff70a90ae84461d13f807c124efe16415a55e5923f31099fb7356abca6.json",
+            "fingerprint": "cc938552e8d34f45b778365242b833b5f065a7ef9d429a463c4d898d4ebac3b1"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ecebc467db456197cc023436f49d152e36b2189ebe4cbbba9b0aaec630c45091.json",
+            "fingerprint": "ed3d4b93ca2566097d8b1a7f8a2d05adf98f09e87c23d04c033f487035482327"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/f88149a78489def5d39438d219ca8c07f186b1418de4f15460b53b30fbb6964f.json",
+            "fingerprint": "ba375e66c127e844997fc69eeb193af50500554a010464b94393362336ac5ec3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-evidence/fa668b0d488e46ff88a81aa061661d77e5da2fd104cdcd64fbb919120b842b42.json",
+            "fingerprint": "98bfe93c6b3b4b1c8585be688a926810c7bfd86c151f443f4cdda71a3566a67e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "3ca5c0a40d51f586f05154b64bcf61ad04dabf49df419beba7d7d95acb38966e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "67bdb9fd6c5b29b0e0090e597272895bc3ea160448f403ce894a8fecd09da93d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.json",
+            "fingerprint": "9b5df20c43795e1aa26f35796680c20fd6c73b1e42b993ce46e74d389f9afec5"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.md",
+            "fingerprint": "db77b0db774e120cac41de0f8836c84041988eb2d7fc811a8a46194d440a3512"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-002.json",
+            "fingerprint": "314011349426ae2629f28f11f7ad188b70c4c6d451e472b7d87da0b3737e8a4b"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-002.md",
+            "fingerprint": "ee013dda854bf5da2f4374c8c86dc382d11d88a46321853fec60fba8a0551842"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-003.json",
+            "fingerprint": "060bd1a2c1b625a2306c4f043147ce7b7667216fe498994079be31d714b91647"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.json",
+            "fingerprint": "9959dec619a5fcac82546739f44e07d30d820921eeb7b6acfe47efbcaad36f0d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.md",
+            "fingerprint": "35d8de30cc8be73a2ca9dda44e3e6422265c3d74dae39c0b107aaeed531fcf2a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-005.json",
+            "fingerprint": "37a8b1ed43979eb587d249f35a1ba3f2c9fa1ffa386a674de39cae1279b6ea35"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-005.md",
+            "fingerprint": "010317d482712739b586058cfc94e37210cce602f69bcf75527df1a6dd5f3115"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-006.json",
+            "fingerprint": "628978051cb0098d48d12899f7456c370931cbda0e424711370fbac3d93141b9"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-006.md",
+            "fingerprint": "80a8c8543246b08adf3f097621ca4722e97888b41ab5e31d22407877355513a9"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.json",
+            "fingerprint": "20de5ebc4c1a19a3519a961349981f7f63652cefc2c889f53d66098fec783a70"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.md",
+            "fingerprint": "edb821eb57c12879d95e16c418f50c1c193c2c6f221275eb6d21b6869a5c02a8"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-008.json",
+            "fingerprint": "6b37b994c2e496601cb8cc6f27693c4ce7932ae6e5e80da7c7f02849600099ea"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-008.md",
+            "fingerprint": "6625b8af1e61a66882dc194caa3539ec7f3acff7e194bdad2b09826ba3d39552"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-009.json",
+            "fingerprint": "dba5030ac4bb13e2c414aced8e3b30cbe0c494084680fe4eb253024dd8e45a68"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-009.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-010.json",
+            "fingerprint": "12ba67db4315a849ae320479f8cbdcd3728e86a4af05bc6f58cb32c71579357d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-010.md",
+            "fingerprint": "055ac77f4626d632f642dcd26510d19be96e722dedb43f2f607a704f57561d40"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-011.json",
+            "fingerprint": "dbc8c44d4e398ce0675dc99edd97e8307bb07aff2a8ba3d1a383816ef843ec83"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-011.md",
+            "fingerprint": "21e3f0c6bede362333006ce87f1a39f5a94dd1be35bfd5ff1c6d900b0b0548ea"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-012.json",
+            "fingerprint": "96b57ac069df7f08a68010d8d1a0cb8904fc637edd06a3e334efb0e90541537b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-012.md",
+            "fingerprint": "4662c1cce15b8d2bdc7b04f7eabdd13dc84bd0c116611e3984a2bc21f72fb76e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-013.json",
+            "fingerprint": "1f6ff802c47cd0aa693e83bc562dfbae283eddfa034e629cd6fcd52a48d993a7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-013.md",
+            "fingerprint": "3a0d4311cf8c7df39d717a9b29858d621f80bd090da56ba294f5ad3c24084330"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-014.json",
+            "fingerprint": "35e33ab18841cc59a6bdb9f3f02e0059978e4c8c3ff44773df6337454224eb08"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-014.md",
+            "fingerprint": "ee6e92186b490a3ae169b6c07c4581ca91fe187ac7dbba0263aca8fe30f64220"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-015.json",
+            "fingerprint": "f9560c3b6f4363f90f341fb81900184853f0ada1845c33c47364bf2769a30f07"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-015.md",
+            "fingerprint": "5506318c7d3077cf659258565b65b6740328c17df93867a1cd1c68258b2e18ee"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-016.json",
+            "fingerprint": "79809db65dc06c8b267b54f6775b8b9cfd19e145b490a184fff7bde7b9424be3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-016.md",
+            "fingerprint": "7d69ebe2b065bccaf866e0f471675adc0fd1db89becb9183a1c99cd50328e951"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-017.json",
+            "fingerprint": "8a04e353adc2b00e6fa3fd2414468bd35b9910c2449b50b25264282255aa0d6b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-017.md",
+            "fingerprint": "f1f26fd960a074b270fd0ccf64d8927ca75a898bf2c7b21a2de7e8fd97fa12c4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-018.json",
+            "fingerprint": "28a4cfe653dfca0b9b3c45e7a3faa17be18c4423aa99cf13b341699b5d065e9d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-018.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-019.json",
+            "fingerprint": "854b1440a648d86e10d15b5d2d3da82f8bb69c20a3518cb8953da44a4ded5376"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-019.md",
+            "fingerprint": "43089e3e8fa1c3486868911a36bcd037c5620a49fbde72af28f11db61ab78658"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-020.json",
+            "fingerprint": "0c83b3d5300ff6caedb5de0c97c36d254918c470463e1851f4a9cfc2ddf388c2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-020.md",
+            "fingerprint": "f52dbf8ed1f0e78e780a89430e8ef33e3f42cba0cec91c15bea57c7c603c446b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-021.json",
+            "fingerprint": "27d8918aea890516d3ccb37a72c25ce9830083cb281cce1570840ec402d9fb57"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-021.md",
+            "fingerprint": "6b5abcff623daa2aaab195eaac5ebcac56af4ceab196dca8270d583a6cbe9622"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-022.json",
+            "fingerprint": "8b6daa1c26aceb45d37ac91a36b54f569954803f2bdb66d42209a0047959c63a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-022.md",
+            "fingerprint": "414c2f1a495757e7be3416d41c300594c38e3b65d4b8605e4ac09db55cafe753"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-023.json",
+            "fingerprint": "cf508731c936bbc9eb6387cd146b402b7b5c92feac742abd3a7361a5292bcde8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-023.md",
+            "fingerprint": "414c2f1a495757e7be3416d41c300594c38e3b65d4b8605e4ac09db55cafe753"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-024.json",
+            "fingerprint": "eb1d60a17513b239a7999135b7f38c39628c6f42e5576c0878bd3e912bc16775"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-024.md",
+            "fingerprint": "059eca4a42cfea57ba024ac0b35b93a51d36bd41ba596f0a164ea5d42388e533"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-025.json",
+            "fingerprint": "a4b3002fb3d0378302e9b4d159fab534a6caa55fee8e7f99cdfbda04be29ffb8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-025.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-001.json",
+            "fingerprint": "1238c06d40c583dcf83390ab7b4d34979f1d8e7eebe5b7965742d5bb3d7a6b50"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.json",
+            "fingerprint": "73020639d3ce23e53ed1da343849ae58bb4d76da347a4e4a19b9eaa16d6e10df"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-001.json",
+            "fingerprint": "98dce7d68bbf7a2d28653ab829754ee4a8d042fe3b1bc0c0ad10f6755f21e6f3"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-001.md",
+            "fingerprint": "f114d23af3e91334e3606575a28f371daf3ca561242883e0769aaeb67ae9ac5a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-002.json",
+            "fingerprint": "d64151db789a32174fe38bdb8b6f8e943cfacd8827fe7ac9b66d5ea28525231a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-002.md",
+            "fingerprint": "3c4b0db9be2e6e81af05cb07e4b755c3543b22f0d04def6e3f41581a57c4206b"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-003.json",
+            "fingerprint": "775e0328878665823e151fa8880c883a1572a4c524e4899cc5020b0f87346ade"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-003.md",
+            "fingerprint": "e37ed2bfa7b65ed2a5c9affdbb3561f3011726c11e3d0feb3bed5df899e50a65"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-004.json",
+            "fingerprint": "7095842d47c8176e8e0cdaf8887963204947dba1b2a7f2b911e14ff53ff37e46"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-004.md",
+            "fingerprint": "501be54696c3b5674fbab9bc7f6d69d5979d91147aa829799d55c0f5518a58e4"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-005.json",
+            "fingerprint": "dc9d0283d1471d191d6cad68e824fdec1d0c234212cdb81102fc41792181348a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-005.md",
+            "fingerprint": "195911e3e36dddee8510f5fde9079d686703aad6aa16a53bc9b1dfde42488f6d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-006.json",
+            "fingerprint": "8e023e4d51bfa2e0d99f90bf47a90f15e786597053c1697699bbaad98de53a42"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-006.md",
+            "fingerprint": "e49b8e5fc37311cd7074aa31858e68718ef945521132754bfee4e3cab22f2055"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-007.json",
+            "fingerprint": "a8fed85b0d82b1ad427adf0f9a5059c453b116f89c9a689c76abebe55e171da0"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-007.md",
+            "fingerprint": "e49b8e5fc37311cd7074aa31858e68718ef945521132754bfee4e3cab22f2055"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-008.json",
+            "fingerprint": "4b11b71bd3a7ba6408ec6bc02cd70ae27e5d71cb948386e51d74f2286f447b01"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-008.md",
+            "fingerprint": "087e8f1d01effb583352f95dbc9a8fc94dd7e226a350e1655a3e16612332fe7c"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "2b60086776bb3ed80e17a8faa59860564338dd25eb9d857f8a5161bf302a5ff0"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "2b60086776bb3ed80e17a8faa59860564338dd25eb9d857f8a5161bf302a5ff0"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "649a3a5238f47ef0789d125291efb7c17d631a53b6bb4bdb7815c8b2148e1aca"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "649a3a5238f47ef0789d125291efb7c17d631a53b6bb4bdb7815c8b2148e1aca"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "d5e8672716206bc2cfcc5788f26ebfbf3483aab7edacafa98042e45a1259b1dc"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "019db4c484767b0d1d2035c20ef69740a68b928fddf6b177781f679e79be10d6"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "019db4c484767b0d1d2035c20ef69740a68b928fddf6b177781f679e79be10d6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/23faf149533f1c9e2839ae1d.json",
+            "fingerprint": "1b4e2262d7fee1a4d8d957a5de44f183a8ca378781a0cff71421e46021ad921f"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "0523f090ed66dd4cde70d710b26a72256eb3bba07a86a4c47de14ea6bddfde3e"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "0523f090ed66dd4cde70d710b26a72256eb3bba07a86a4c47de14ea6bddfde3e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "2e6efbced4493b38e1909661444b1e802fff99dcd9da7b80ad7bda90041ec7f3"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "2e6efbced4493b38e1909661444b1e802fff99dcd9da7b80ad7bda90041ec7f3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/481d0f4027d09df7601b4afd.json",
+            "fingerprint": "f43a9ea806a536ee61b0da8e5f4943c7ccebcf91ef35df8e886e36fc11cdd24d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "7f5251319ace820a860a015e5dcc3f0e22c4a1d5c27baef86dd54da2e1a9b63a"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "7f5251319ace820a860a015e5dcc3f0e22c4a1d5c27baef86dd54da2e1a9b63a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/56eb3d167ed4a499617c5b1c.json",
+            "fingerprint": "d032516351956cf3fe577d93a9b0f12bb41d758aa7e42b9b089d8d440c1979c5"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "2897f2385f82a2261afbe59185f3dec3b815875de4934f46b26cd8e7248110cb"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "2897f2385f82a2261afbe59185f3dec3b815875de4934f46b26cd8e7248110cb"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "fae94dbd857f231d0a882f0742567a017c62e48a639f797366e30943503a6d8e"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "fae94dbd857f231d0a882f0742567a017c62e48a639f797366e30943503a6d8e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "2ed297139e302a0ffcdfdb6e74d7f591fa0342f44f52d35e54381368f4c88450"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "2ed297139e302a0ffcdfdb6e74d7f591fa0342f44f52d35e54381368f4c88450"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "b9b2a8fafdbbe1383a7a25b686e9c5fd274cbf92ee37b43e58c83ac8eb223d08"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "b9b2a8fafdbbe1383a7a25b686e9c5fd274cbf92ee37b43e58c83ac8eb223d08"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/7c5c7cb797ccb54712ab01cc.json",
+            "fingerprint": "97046f88281fe3bafb793894901858dffd111c09d69e2ea6be68339b03a0b0aa"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8a3e850249caf1a37a3d0475bbe37ef838f639075efdf9eb0ea4d5712d935f30"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8a3e850249caf1a37a3d0475bbe37ef838f639075efdf9eb0ea4d5712d935f30"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8f0322664a693a181a6b88a7.json",
+            "fingerprint": "da257c316ef638261c12f114acbadd244e9851b07ef427707531186dd9283878"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/9b6cfcbfcbbda0815a10a68b.json",
+            "fingerprint": "167b521515ada2f0599feb8a5433adac8e38e62790e6738e735c7fc9ed2f0b13"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/b396316d0a5c8a06112975b3.json",
+            "fingerprint": "4a3b9e447a6fe4360043a25e271ad788ebf8ce0eb8ff861c67139e3fd9e29eab"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/b95e9977cfce02104ed2fee7.json",
+            "fingerprint": "8fee6ec379ad2853ba222e3f11a17659dc52cc510a9b6a43893090ada285f9f8"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "6129ab4152dfa81cfc4ab4292c3a752bbf801493df071f28099e0c8518b794da"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "6129ab4152dfa81cfc4ab4292c3a752bbf801493df071f28099e0c8518b794da"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "239a7e6db37aeba17917bc05cb5022cb0a13f488dd2af7b86dd971b774dce097"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "239a7e6db37aeba17917bc05cb5022cb0a13f488dd2af7b86dd971b774dce097"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "04b3504b0353c8709caf3ccc1937b9a2855850368e79202a7cd9dcefd199f0cb"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "04b3504b0353c8709caf3ccc1937b9a2855850368e79202a7cd9dcefd199f0cb"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "977c42fad089eca4d95ff1e4008dccb6e3576ab29bafc1a466380837fc8d6ec5"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "977c42fad089eca4d95ff1e4008dccb6e3576ab29bafc1a466380837fc8d6ec5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/e47e1edfcfcb13d42803c7f3.json",
+            "fingerprint": "6eb3c7c5cc9a8feda8af910cfb4c202aee3998b1370c4a09e0c46f07d7f8c5b4"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/f11405f01831676c001ddd2a.json",
+            "fingerprint": "51f7390e546d47544204bbd32be323dd67c90fc63454dc4af07fbadabed1c268"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/review.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/review.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/scenario-validity-result.json",
+            "fingerprint": "05d2d7cd7349b55e238a3174e3a9ecf7f44f065ae53a18eb9f68f40fa8e6d5c6"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/spec-gate-source.json",
+            "fingerprint": "3a66c7335a616805da26bff99e072bee3561682eeaa19752ee575b57371077f1"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/spec-review.json",
+            "fingerprint": "d0128f57c76ae3b83fba15d23f87118151afec2fcc3012ce9715645c32319526"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/spec.json",
+            "fingerprint": "0a2289722b77b1a85d34b7716f2fec4bef8d36538bfaf02f9a07a517318b7d9f"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/spec.json",
+            "fingerprint": "0a2289722b77b1a85d34b7716f2fec4bef8d36538bfaf02f9a07a517318b7d9f"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/spec.md",
+            "fingerprint": "c3abc9a8388fdb43e0a7f736fb2f460d741eb843e87bd1a6b5b6565b0f8829b2"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/spec.md",
+            "fingerprint": "c3abc9a8388fdb43e0a7f736fb2f460d741eb843e87bd1a6b5b6565b0f8829b2"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/task-impl-gate-source.json",
+            "fingerprint": "210d4b1e38341c54f51e03a9fb003ef7d6efa3553d883444f14eb0410acd680a"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tasks/T-1.md",
+            "fingerprint": "0a5730f1c3da2b7ca202ecff6c6f0718fad7fda34a886277c48bd64307e81a34"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+            "fingerprint": "ff342b1025b8e5d91905fada8b596abc12f0be802d334e76c78b38bfefc7fce8"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tasks/T-3.md",
+            "fingerprint": "c143d2f757e0d73cfff8b6edae40e7ff4b1d02066bc698263a8f0d0254c7adee"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-coverage.json",
+            "fingerprint": "403d8d4984d708e169e4c836181c1d72de603cfeb4e6bd8348718aaea7015332"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-execute-result.json",
+            "fingerprint": "1de3a540875dea88e69537dd43b54d60fb8033260645dfa52d632c71c4b27bcf"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/test-execute-result.json",
+            "fingerprint": "1de3a540875dea88e69537dd43b54d60fb8033260645dfa52d632c71c4b27bcf"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-result-review.json",
+            "fingerprint": "510e269e39bc4afd7cdb98f8a01dc45d9a068145d8393bf907c2e6e3f865568d"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/test-result-review.json",
+            "fingerprint": "510e269e39bc4afd7cdb98f8a01dc45d9a068145d8393bf907c2e6e3f865568d"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-result-review.md",
+            "fingerprint": "dfebcc211e4fb5c346eca21f04b2b1c2f3ddaa0316a561a11f339fd1a85f9db4"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-review.json",
+            "fingerprint": "fc850d5280b3f02b7bd9f506bc00765ef4e0ec674a39bca2648436b2e8a7ef14"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/test-review.md",
+            "fingerprint": "087e8f1d01effb583352f95dbc9a8fc94dd7e226a350e1655a3e16612332fe7c"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/scenario-validity.log",
+            "fingerprint": "71eadcdff7041788474f96028302424faa3cb6bc2e367d4a79e51123bf2a8612"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+            "fingerprint": "ab42be9da53185a1909d70f60e7685c59efe50bb9d85a020366e58cc0f30901b"
+          },
+          {
+            "status": "modified",
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+            "fingerprint": "ab42be9da53185a1909d70f60e7685c59efe50bb9d85a020366e58cc0f30901b"
+          },
+          {
+            "status": "added",
+            "path": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+            "fingerprint": "2ae0701b9ab2c5b8b6d2f3055178d384f4911259b63eb1e629f866abefce4df9"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-prepare-spec.js",
+            "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+            "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finding-gate-readiness.test.js",
+            "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-diff-compaction.test.js",
+            "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+            "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "fc70fbd287f14e1c9ad8835b7191f37cab4b0775e2cb8660731932bb8bdf18f8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/acceptance-review.json",
+            "fingerprint": "fcae354f7cd88fda7516e69c5661bde51107df8a04144ffee2530a8de3a376d0"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-coverage-repair.json",
+            "fingerprint": "ceb84c8c4e242e14630be489f4647d0600cad889696a066409db618b029dbf9d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-coverage-triage.json",
+            "fingerprint": "c5b9ef1339acf0d699797c9fdcdb9b511ac55a92a36010e7ab0fa6deec46f66f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-gate-source.json",
+            "fingerprint": "b7468f29fa8936c02eefa24a4cf9e678730c9a4ee8787b7b9ffbfe59e02a3de9"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-questions-repair.json",
+            "fingerprint": "a5168025e27b84e352d512e5d8a27ac7ae3c88659e9050aed29d4da5d689abc4"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-questions-triage.json",
+            "fingerprint": "5edbc3418132f4c61c2aba251ac35ee1c99e7f907310743f3ac4ee580983851a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-review-coverage.json",
+            "fingerprint": "71e357f6a1d2edbd28320ab75ee41c8ef62c010cfda0f20922c3a8fbe649a896"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft-review-questions.json",
+            "fingerprint": "58988c7cf502f7a3fdf7b0c07997d1e39df5bcbe06ba756d72290c2b5ffe73ca"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/draft.json",
+            "fingerprint": "8be55cc2547f9e0b77422f3257b700d0a4f7c3b2bfa9d0b128d8d72f77412757"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/file-map.json",
+            "fingerprint": "752638fdc77ce4901c619b203be61ca2185fcf3ec60650810792d87239ed4cac"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/flow-findings.json",
+            "fingerprint": "4a7002d9669f75df3c7a021c9a301398a8afc1aa1b07ae7b59ecca4c267aac29"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/flow-findings.json",
+            "fingerprint": "4a7002d9669f75df3c7a021c9a301398a8afc1aa1b07ae7b59ecca4c267aac29"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-gate-result.json",
+            "fingerprint": "1e1bff325fd0eb2cd1913eec474b9a8ba8f8eddf6d20dcf70cc7a5ecff06d71d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-gate-result.json",
+            "fingerprint": "1e1bff325fd0eb2cd1913eec474b9a8ba8f8eddf6d20dcf70cc7a5ecff06d71d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-repair.json",
+            "fingerprint": "3a0529a0d54924b556938e12d2c4023974622fb59e54d330c3346944bafc239e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-review.json",
+            "fingerprint": "95a285a611f0f3bea5f21e1238a511a783e5dbfa2ae4e837a12e95242a61749a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-review.json",
+            "fingerprint": "95a285a611f0f3bea5f21e1238a511a783e5dbfa2ae4e837a12e95242a61749a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-triage.json",
+            "fingerprint": "e3b72ff69eb9f487564b448cfd66a29ed16b2cdb9014e3d592cee93e0f2ac365"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/impl-triage.json",
+            "fingerprint": "e3b72ff69eb9f487564b448cfd66a29ed16b2cdb9014e3d592cee93e0f2ac365"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/issue.md",
+            "fingerprint": "28a73673b8c8da8968d57d668858e74591298462b471e9435243e7f4763ffd94"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "0eff93bdf0bff4e566c8e9829148ee1e84b44d8f494c69ce2846e2aef4c02d20"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-001.json",
+            "fingerprint": "838874a23311087ceb0eff8465336146101d8b9b7e730d33240a157ebec1989c"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-002.json",
+            "fingerprint": "f84976c381305204f4d96f6084e2828212e593130767bd2650c9e7caf2f52e5a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-003.json",
+            "fingerprint": "0428dbc8a77efded97b2b86831913d394fdfbbe43ade13ab23e2448541dced19"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-004.json",
+            "fingerprint": "99530259e61beedbe1dd9b0b06b7f596a1f01fb965919a5765a0401ab447c92e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-005.json",
+            "fingerprint": "267b17129ffd64955f341dbf90c0972779f8678753f772094d6c5c099a488dfc"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-006.json",
+            "fingerprint": "de3ee6403cb643e38a1a9bf7992a841a16dbe18cfcebd4af57a805d22a183d44"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-007.json",
+            "fingerprint": "a6aa1e5a3768154a67ae5eaf00317ee811f2ccb1972deb601e739ae2b159f668"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-008.json",
+            "fingerprint": "d76a64537f0e874a793ec23f5dec9bf764df43eda6ede15d50a8162740be7bdb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-009.json",
+            "fingerprint": "1f52a329c302ef3f6d4369fda0335dbf368fe411077114de7b08ced54fd2d56e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-010.json",
+            "fingerprint": "2e74f346ab6744c412c102820dc49f9cf578ab7d1344bbe0d07c0ad96f23f5f9"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-011.json",
+            "fingerprint": "0edb28edd854ca0220ce7b45bde005ea78f6d1e3c3a2437e8ca3639c5d5df213"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-012.json",
+            "fingerprint": "2725ae80bd4a8a44c54593df830959d0485a4aec0e693fd47becc6bd8999258a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-013.json",
+            "fingerprint": "e1375fc3d5cad26304907b3bd6842879cafe1c525d13e3010fa7fda7b8786f41"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-014.json",
+            "fingerprint": "0b0c2f89d71b37ca5eed288d358de569698a615d51b00d3cc5863bf6b74a8b1b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-015.json",
+            "fingerprint": "5e586f09bbecf3bf62affed83cf818b8459310ab5fe84bb97f88fb3a351d1d2d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-016.json",
+            "fingerprint": "09576d659f1559f4d3ba282eeaf07e379b8ce41852c0b01bbfdccce62356897a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-017.json",
+            "fingerprint": "ae91c35a4bd2b81c71e8de9cc3b64d88e957b5f2afd141d07f77a6e9faa77e14"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-deltas/repair-018.json",
+            "fingerprint": "c8f50b803ae3abc142f2aaa1ccba81f4b81fadda01277465181ebe5818fea592"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-fingerprint.json",
+            "fingerprint": "90d4275b5b0197cb37fb055f448ace8d44fbf40bf83e411b80739d4338a51e1d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/repair-fingerprint.json",
+            "fingerprint": "90d4275b5b0197cb37fb055f448ace8d44fbf40bf83e411b80739d4338a51e1d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/retro.json",
+            "fingerprint": "6e82c43f26f6a30c389f042f23be5bb81999bddd2a4f5a1ce66c555254c03563"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/036d163f4fe3867ff2f740d04af93688221f2df0815c62211f70310d41b3b834.json",
+            "fingerprint": "dac169342bc3cb0eb4736c1c1ebb958ffc0299606a5f41f71ed4bc4f0518e0bf"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/05b644bcd0bf72d12e54626e8833689611b5b37a13a5ff3e158e40336e1d8b99.json",
+            "fingerprint": "b805504cdec5f028d4774576d4bba51a075ab293afc13af3d80df335bc7a9c32"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/1be858581d589617e4d019493f32507649f37a1a578dee829e9c498c3366342a.json",
+            "fingerprint": "b3f66972548db0100fd7803eecd8cf0ac7726526f7bf2e465fd6b874a6c84edd"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/232bec2a8e06f4c58d26a7b5303a4e9704fe6a708712a6442939f64b888892ca.json",
+            "fingerprint": "df07ef35fab9f5a112852a35fcb309ef641c681c36eebf658f5036e192ccc839"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/28e76a9a2198b8ca53ce4c872338cf7281c53b59e23d8c2e4c66d4a137560b52.json",
+            "fingerprint": "50ea6307be7107b9e2f2253d139a81cfb0d391083ce928e4f9c1f818fbc84f78"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/2b7b0eaab01e3bd101aef34b2320f302572c9e5ad76114e5cdf60c09d0049b77.json",
+            "fingerprint": "c0a18f06587544880bf89a5fa344b36dbae0a51e12a09c40b724e52d5e801685"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/362acd2254710422a623ec8e5b4509b5fcadb04691bd585c89899b4082a8595e.json",
+            "fingerprint": "475849362ef24ec137ce093a6ff89a6f70fa64d79831f68f28f67d52e2b6e5a1"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/5036634ddffd6bddca20343d4a15e3cfd13a04a8085ea6af7cfe0151b337cf0b.json",
+            "fingerprint": "97d07c65a7345e8bcc7dd5fdcb6ffa746025db3a3acbeff1a92c2dd2364c5892"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/58c22abb7a91756d6a3d2800aa6a27665adc5bd8a24fb5053d5d901101b32aa0.json",
+            "fingerprint": "ef74e1919064206d73ab7dbdc606e8b8f08096f06bae1d82bf619657853c21bb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/5cac57cb5799a07696840b35dd38cc5e76de494b284a4353af4b286282a7fbec.json",
+            "fingerprint": "892c47aa9450f5e36dbd701931590a3c083273dbe90ceaf3b8153b4d4e7c8af5"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/61ee3429e7093093be11fc9887dcebb6cc5e4c3af42c5efbb6c056cb4bc3e6f1.json",
+            "fingerprint": "d57e9431164cc9a0616697287bb238755b5b09f3490377e05d88bfea3b088f27"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/6e0f05f362b7c7125e029465a16a2c6504c74dad81df3f8df7f5265537ea6e09.json",
+            "fingerprint": "b3de8cfb0081d8ca2f45df0956c7884fa6805f099941e6837d89b233d9efd28d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/77e8a71529de240afd51d67f771be3a78528634b5458ccea5b359425768b5859.json",
+            "fingerprint": "300c3c2ec8444d54344f78f0bcb5589467bd785947628afb200d8720f9416231"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/7f81aaa61b04829f35c09baac41be0da4a6078499a25854daf86fe039404d380.json",
+            "fingerprint": "ffb1e8b7277a3028bbd0336a930cacf59d2134fb2fa296d99f2dce94d5ca2805"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/881375ddb237f5b8b013c8bd3ec8543b0fb7982c6f03c6155c4a20ebdd07e1aa.json",
+            "fingerprint": "3dc27050d7e8ec1adaf6369b11774ed62b71127ce5d342a31357c21fdbf483e3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/893145a50ef96eb2fc2ccb09639a8473b6b4f35c2e02a83596d67105d3e98a64.json",
+            "fingerprint": "ca5834e6e9584a42c6171d4487edd86cd73446f311e8368f611d47838d7d7c07"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/90c9f182e8440638d760cd3860d3f248d211ee6543c975724732834ab196d87c.json",
+            "fingerprint": "c0c98b46072b976953537cb7f1c648231cd025fdc4166c61470eedd4b1f7a5cc"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/934b751b8f9ce7ea66c7fb16f1c312e83bba7cba5e96769836f080017cad6c5d.json",
+            "fingerprint": "083cfb4c4c648cf16470a4c983876e23cbfda798f4314b6fe7dc27fd1c6e968f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/aa4851fa86fa626464307114c39827de4e9d5b656f731b5777daf7fc5b7bcdad.json",
+            "fingerprint": "0430cac93bd3f7fe5551041e4a14ca36351d4c038b8b760e0edc23e0052d9416"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ae23ca386f66bb1fa90461750ebb58ceb474df680e778361618f06b5adcc2e1e.json",
+            "fingerprint": "6af11f92cb934c31cbaa855a53b427fb78b3b85e6a145f5020b6f47eeffc60e0"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ae75364bce476d5a28ba233fd5435ef1dd30cccbc447b991b3fc4a67850fdfe8.json",
+            "fingerprint": "459200ee371310b68bed819742e2404196793d523b286292babdbb27fe87773b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/b55e44a755e72a3d9def80faf4b4b1c8488274c3da96024ce7a2456a1237cefd.json",
+            "fingerprint": "b6f7c79a1a8dcbeaddde9d7998dd03c0c453b756f60002e269212332a4168206"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/be06fd5ddb125bda6f6458a390e4734c19e3e2776bf0409213bdb6ad597c8427.json",
+            "fingerprint": "7dc7c3e90dd5745f194a9b7ae2340eba876e17e201605ca3aada34a54d2a5153"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/c37b3f5bf73b19d5839818c93cd327b9866f7809720b946d7d6b41ba7aec403e.json",
+            "fingerprint": "24c15b91ec9147c33763ebddc6cbc92185ebf1beacb66c6a1ccf3a745919e17a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/cb962a25b06d212258ddb2c2b75d008ca5d47c96d465e7504e2a0f949562041b.json",
+            "fingerprint": "f2524aa3806a10fe10763c8c3d446985234d3e63218468b533be36e3714fbd9c"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/d0027eb0b0d96d3239d8856b194b0a83fbdb91ece5ca780bc82ad11ecba9e4fb.json",
+            "fingerprint": "296a43dc021fd3d5f7ffa24ec03293a19b113eb80c766928e64a1ef052d184f8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/d573380287598514b7f87cfe181253bcacd441397e3b538ab331fa2163356770.json",
+            "fingerprint": "151e6293727ddc0301c16728ceeccfeffed5159b74a74c7f7198f2f047942f1f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/dd6a4a8cf3da99943c2dcec250943ec2dbb554c38038e580eb4e756864166f3d.json",
+            "fingerprint": "e8cf8b80230d6ebefb4b0f318f4297df01c251e498201d6f30fcaa2f3b1ee66b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/def3a5a0e158ad9dca2d9d95a9f1cef30394d77a082c2c6eb29c08b05862cf02.json",
+            "fingerprint": "d1eacd6cf59ea2638d332082737028ffbb3168b86183c3160fd7a93791fe496c"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/e5fc68de544462f53c0df2b0b06501655006fd2edd26dc2b61403c935c937191.json",
+            "fingerprint": "1085a58dc0cac6e179bad711112f9bbc0681aff9c72aa9059a1ec501acfa19d1"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/e75df2ff70a90ae84461d13f807c124efe16415a55e5923f31099fb7356abca6.json",
+            "fingerprint": "cc938552e8d34f45b778365242b833b5f065a7ef9d429a463c4d898d4ebac3b1"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/ecebc467db456197cc023436f49d152e36b2189ebe4cbbba9b0aaec630c45091.json",
+            "fingerprint": "ed3d4b93ca2566097d8b1a7f8a2d05adf98f09e87c23d04c033f487035482327"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/f88149a78489def5d39438d219ca8c07f186b1418de4f15460b53b30fbb6964f.json",
+            "fingerprint": "ba375e66c127e844997fc69eeb193af50500554a010464b94393362336ac5ec3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-evidence/fa668b0d488e46ff88a81aa061661d77e5da2fd104cdcd64fbb919120b842b42.json",
+            "fingerprint": "98bfe93c6b3b4b1c8585be688a926810c7bfd86c151f443f4cdda71a3566a67e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "3ca5c0a40d51f586f05154b64bcf61ad04dabf49df419beba7d7d95acb38966e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "67bdb9fd6c5b29b0e0090e597272895bc3ea160448f403ce894a8fecd09da93d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.json",
+            "fingerprint": "9b5df20c43795e1aa26f35796680c20fd6c73b1e42b993ce46e74d389f9afec5"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-001.md",
+            "fingerprint": "db77b0db774e120cac41de0f8836c84041988eb2d7fc811a8a46194d440a3512"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-002.json",
+            "fingerprint": "314011349426ae2629f28f11f7ad188b70c4c6d451e472b7d87da0b3737e8a4b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-002.md",
+            "fingerprint": "ee013dda854bf5da2f4374c8c86dc382d11d88a46321853fec60fba8a0551842"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-003.json",
+            "fingerprint": "060bd1a2c1b625a2306c4f043147ce7b7667216fe498994079be31d714b91647"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.json",
+            "fingerprint": "9959dec619a5fcac82546739f44e07d30d820921eeb7b6acfe47efbcaad36f0d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-004.md",
+            "fingerprint": "35d8de30cc8be73a2ca9dda44e3e6422265c3d74dae39c0b107aaeed531fcf2a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-005.json",
+            "fingerprint": "37a8b1ed43979eb587d249f35a1ba3f2c9fa1ffa386a674de39cae1279b6ea35"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-005.md",
+            "fingerprint": "010317d482712739b586058cfc94e37210cce602f69bcf75527df1a6dd5f3115"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-006.json",
+            "fingerprint": "628978051cb0098d48d12899f7456c370931cbda0e424711370fbac3d93141b9"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-006.md",
+            "fingerprint": "80a8c8543246b08adf3f097621ca4722e97888b41ab5e31d22407877355513a9"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.json",
+            "fingerprint": "20de5ebc4c1a19a3519a961349981f7f63652cefc2c889f53d66098fec783a70"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-007.md",
+            "fingerprint": "edb821eb57c12879d95e16c418f50c1c193c2c6f221275eb6d21b6869a5c02a8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-008.json",
+            "fingerprint": "6b37b994c2e496601cb8cc6f27693c4ce7932ae6e5e80da7c7f02849600099ea"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-008.md",
+            "fingerprint": "6625b8af1e61a66882dc194caa3539ec7f3acff7e194bdad2b09826ba3d39552"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-009.json",
+            "fingerprint": "dba5030ac4bb13e2c414aced8e3b30cbe0c494084680fe4eb253024dd8e45a68"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-009.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-010.json",
+            "fingerprint": "12ba67db4315a849ae320479f8cbdcd3728e86a4af05bc6f58cb32c71579357d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-010.md",
+            "fingerprint": "055ac77f4626d632f642dcd26510d19be96e722dedb43f2f607a704f57561d40"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-011.json",
+            "fingerprint": "dbc8c44d4e398ce0675dc99edd97e8307bb07aff2a8ba3d1a383816ef843ec83"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-011.md",
+            "fingerprint": "21e3f0c6bede362333006ce87f1a39f5a94dd1be35bfd5ff1c6d900b0b0548ea"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-012.json",
+            "fingerprint": "96b57ac069df7f08a68010d8d1a0cb8904fc637edd06a3e334efb0e90541537b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-012.md",
+            "fingerprint": "4662c1cce15b8d2bdc7b04f7eabdd13dc84bd0c116611e3984a2bc21f72fb76e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-013.json",
+            "fingerprint": "1f6ff802c47cd0aa693e83bc562dfbae283eddfa034e629cd6fcd52a48d993a7"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-013.md",
+            "fingerprint": "3a0d4311cf8c7df39d717a9b29858d621f80bd090da56ba294f5ad3c24084330"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-014.json",
+            "fingerprint": "35e33ab18841cc59a6bdb9f3f02e0059978e4c8c3ff44773df6337454224eb08"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-014.md",
+            "fingerprint": "ee6e92186b490a3ae169b6c07c4581ca91fe187ac7dbba0263aca8fe30f64220"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-015.json",
+            "fingerprint": "f9560c3b6f4363f90f341fb81900184853f0ada1845c33c47364bf2769a30f07"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-015.md",
+            "fingerprint": "5506318c7d3077cf659258565b65b6740328c17df93867a1cd1c68258b2e18ee"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-016.json",
+            "fingerprint": "79809db65dc06c8b267b54f6775b8b9cfd19e145b490a184fff7bde7b9424be3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-016.md",
+            "fingerprint": "7d69ebe2b065bccaf866e0f471675adc0fd1db89becb9183a1c99cd50328e951"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-017.json",
+            "fingerprint": "8a04e353adc2b00e6fa3fd2414468bd35b9910c2449b50b25264282255aa0d6b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-017.md",
+            "fingerprint": "f1f26fd960a074b270fd0ccf64d8927ca75a898bf2c7b21a2de7e8fd97fa12c4"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-018.json",
+            "fingerprint": "28a4cfe653dfca0b9b3c45e7a3faa17be18c4423aa99cf13b341699b5d065e9d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-018.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-019.json",
+            "fingerprint": "854b1440a648d86e10d15b5d2d3da82f8bb69c20a3518cb8953da44a4ded5376"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-019.md",
+            "fingerprint": "43089e3e8fa1c3486868911a36bcd037c5620a49fbde72af28f11db61ab78658"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-020.json",
+            "fingerprint": "0c83b3d5300ff6caedb5de0c97c36d254918c470463e1851f4a9cfc2ddf388c2"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-020.md",
+            "fingerprint": "f52dbf8ed1f0e78e780a89430e8ef33e3f42cba0cec91c15bea57c7c603c446b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-021.json",
+            "fingerprint": "27d8918aea890516d3ccb37a72c25ce9830083cb281cce1570840ec402d9fb57"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-021.md",
+            "fingerprint": "6b5abcff623daa2aaab195eaac5ebcac56af4ceab196dca8270d583a6cbe9622"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-022.json",
+            "fingerprint": "8b6daa1c26aceb45d37ac91a36b54f569954803f2bdb66d42209a0047959c63a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-022.md",
+            "fingerprint": "414c2f1a495757e7be3416d41c300594c38e3b65d4b8605e4ac09db55cafe753"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-023.json",
+            "fingerprint": "cf508731c936bbc9eb6387cd146b402b7b5c92feac742abd3a7361a5292bcde8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-023.md",
+            "fingerprint": "414c2f1a495757e7be3416d41c300594c38e3b65d4b8605e4ac09db55cafe753"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-024.json",
+            "fingerprint": "eb1d60a17513b239a7999135b7f38c39628c6f42e5576c0878bd3e912bc16775"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-024.md",
+            "fingerprint": "059eca4a42cfea57ba024ac0b35b93a51d36bd41ba596f0a164ea5d42388e533"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-025.json",
+            "fingerprint": "a4b3002fb3d0378302e9b4d159fab534a6caa55fee8e7f99cdfbda04be29ffb8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/impl-attempt-025.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-001.json",
+            "fingerprint": "1238c06d40c583dcf83390ab7b4d34979f1d8e7eebe5b7965742d5bb3d7a6b50"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.json",
+            "fingerprint": "73020639d3ce23e53ed1da343849ae58bb4d76da347a4e4a19b9eaa16d6e10df"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-001.json",
+            "fingerprint": "98dce7d68bbf7a2d28653ab829754ee4a8d042fe3b1bc0c0ad10f6755f21e6f3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-001.md",
+            "fingerprint": "f114d23af3e91334e3606575a28f371daf3ca561242883e0769aaeb67ae9ac5a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-002.json",
+            "fingerprint": "d64151db789a32174fe38bdb8b6f8e943cfacd8827fe7ac9b66d5ea28525231a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-002.md",
+            "fingerprint": "3c4b0db9be2e6e81af05cb07e4b755c3543b22f0d04def6e3f41581a57c4206b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-003.json",
+            "fingerprint": "775e0328878665823e151fa8880c883a1572a4c524e4899cc5020b0f87346ade"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-003.md",
+            "fingerprint": "e37ed2bfa7b65ed2a5c9affdbb3561f3011726c11e3d0feb3bed5df899e50a65"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-004.json",
+            "fingerprint": "7095842d47c8176e8e0cdaf8887963204947dba1b2a7f2b911e14ff53ff37e46"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-004.md",
+            "fingerprint": "501be54696c3b5674fbab9bc7f6d69d5979d91147aa829799d55c0f5518a58e4"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-005.json",
+            "fingerprint": "dc9d0283d1471d191d6cad68e824fdec1d0c234212cdb81102fc41792181348a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-005.md",
+            "fingerprint": "195911e3e36dddee8510f5fde9079d686703aad6aa16a53bc9b1dfde42488f6d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-006.json",
+            "fingerprint": "8e023e4d51bfa2e0d99f90bf47a90f15e786597053c1697699bbaad98de53a42"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-006.md",
+            "fingerprint": "e49b8e5fc37311cd7074aa31858e68718ef945521132754bfee4e3cab22f2055"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-007.json",
+            "fingerprint": "a8fed85b0d82b1ad427adf0f9a5059c453b116f89c9a689c76abebe55e171da0"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-007.md",
+            "fingerprint": "e49b8e5fc37311cd7074aa31858e68718ef945521132754bfee4e3cab22f2055"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-008.json",
+            "fingerprint": "4b11b71bd3a7ba6408ec6bc02cd70ae27e5d71cb948386e51d74f2286f447b01"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/test-attempt-008.md",
+            "fingerprint": "087e8f1d01effb583352f95dbc9a8fc94dd7e226a350e1655a3e16612332fe7c"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "2b60086776bb3ed80e17a8faa59860564338dd25eb9d857f8a5161bf302a5ff0"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "2b60086776bb3ed80e17a8faa59860564338dd25eb9d857f8a5161bf302a5ff0"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "649a3a5238f47ef0789d125291efb7c17d631a53b6bb4bdb7815c8b2148e1aca"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "649a3a5238f47ef0789d125291efb7c17d631a53b6bb4bdb7815c8b2148e1aca"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/0dc516b2ddd08aaba2747b55.json",
+            "fingerprint": "d5e8672716206bc2cfcc5788f26ebfbf3483aab7edacafa98042e45a1259b1dc"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "019db4c484767b0d1d2035c20ef69740a68b928fddf6b177781f679e79be10d6"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "019db4c484767b0d1d2035c20ef69740a68b928fddf6b177781f679e79be10d6"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/23faf149533f1c9e2839ae1d.json",
+            "fingerprint": "1b4e2262d7fee1a4d8d957a5de44f183a8ca378781a0cff71421e46021ad921f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "0523f090ed66dd4cde70d710b26a72256eb3bba07a86a4c47de14ea6bddfde3e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "0523f090ed66dd4cde70d710b26a72256eb3bba07a86a4c47de14ea6bddfde3e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "2e6efbced4493b38e1909661444b1e802fff99dcd9da7b80ad7bda90041ec7f3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "2e6efbced4493b38e1909661444b1e802fff99dcd9da7b80ad7bda90041ec7f3"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/481d0f4027d09df7601b4afd.json",
+            "fingerprint": "f43a9ea806a536ee61b0da8e5f4943c7ccebcf91ef35df8e886e36fc11cdd24d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "7f5251319ace820a860a015e5dcc3f0e22c4a1d5c27baef86dd54da2e1a9b63a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "7f5251319ace820a860a015e5dcc3f0e22c4a1d5c27baef86dd54da2e1a9b63a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/56eb3d167ed4a499617c5b1c.json",
+            "fingerprint": "d032516351956cf3fe577d93a9b0f12bb41d758aa7e42b9b089d8d440c1979c5"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "2897f2385f82a2261afbe59185f3dec3b815875de4934f46b26cd8e7248110cb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "2897f2385f82a2261afbe59185f3dec3b815875de4934f46b26cd8e7248110cb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "fae94dbd857f231d0a882f0742567a017c62e48a639f797366e30943503a6d8e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "fae94dbd857f231d0a882f0742567a017c62e48a639f797366e30943503a6d8e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "2ed297139e302a0ffcdfdb6e74d7f591fa0342f44f52d35e54381368f4c88450"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "2ed297139e302a0ffcdfdb6e74d7f591fa0342f44f52d35e54381368f4c88450"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "b9b2a8fafdbbe1383a7a25b686e9c5fd274cbf92ee37b43e58c83ac8eb223d08"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "b9b2a8fafdbbe1383a7a25b686e9c5fd274cbf92ee37b43e58c83ac8eb223d08"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/7c5c7cb797ccb54712ab01cc.json",
+            "fingerprint": "97046f88281fe3bafb793894901858dffd111c09d69e2ea6be68339b03a0b0aa"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8a3e850249caf1a37a3d0475bbe37ef838f639075efdf9eb0ea4d5712d935f30"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "8a3e850249caf1a37a3d0475bbe37ef838f639075efdf9eb0ea4d5712d935f30"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/8f0322664a693a181a6b88a7.json",
+            "fingerprint": "da257c316ef638261c12f114acbadd244e9851b07ef427707531186dd9283878"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/9b6cfcbfcbbda0815a10a68b.json",
+            "fingerprint": "167b521515ada2f0599feb8a5433adac8e38e62790e6738e735c7fc9ed2f0b13"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/b396316d0a5c8a06112975b3.json",
+            "fingerprint": "4a3b9e447a6fe4360043a25e271ad788ebf8ce0eb8ff861c67139e3fd9e29eab"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/b95e9977cfce02104ed2fee7.json",
+            "fingerprint": "8fee6ec379ad2853ba222e3f11a17659dc52cc510a9b6a43893090ada285f9f8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "6129ab4152dfa81cfc4ab4292c3a752bbf801493df071f28099e0c8518b794da"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "6129ab4152dfa81cfc4ab4292c3a752bbf801493df071f28099e0c8518b794da"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "239a7e6db37aeba17917bc05cb5022cb0a13f488dd2af7b86dd971b774dce097"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "239a7e6db37aeba17917bc05cb5022cb0a13f488dd2af7b86dd971b774dce097"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "04b3504b0353c8709caf3ccc1937b9a2855850368e79202a7cd9dcefd199f0cb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "04b3504b0353c8709caf3ccc1937b9a2855850368e79202a7cd9dcefd199f0cb"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "977c42fad089eca4d95ff1e4008dccb6e3576ab29bafc1a466380837fc8d6ec5"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "977c42fad089eca4d95ff1e4008dccb6e3576ab29bafc1a466380837fc8d6ec5"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/e47e1edfcfcb13d42803c7f3.json",
+            "fingerprint": "6eb3c7c5cc9a8feda8af910cfb4c202aee3998b1370c4a09e0c46f07d7f8c5b4"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review-history/work-units/impl-review/f11405f01831676c001ddd2a.json",
+            "fingerprint": "51f7390e546d47544204bbd32be323dd67c90fc63454dc4af07fbadabed1c268"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/review.md",
+            "fingerprint": "5026930cdef63c990dfd069ca20d50b7bbfa89f9d5f7f399d7f2e5b3d0881564"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/scenario-validity-result.json",
+            "fingerprint": "05d2d7cd7349b55e238a3174e3a9ecf7f44f065ae53a18eb9f68f40fa8e6d5c6"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec-gate-source.json",
+            "fingerprint": "3a66c7335a616805da26bff99e072bee3561682eeaa19752ee575b57371077f1"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec-review.json",
+            "fingerprint": "d0128f57c76ae3b83fba15d23f87118151afec2fcc3012ce9715645c32319526"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec.json",
+            "fingerprint": "0a2289722b77b1a85d34b7716f2fec4bef8d36538bfaf02f9a07a517318b7d9f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec.json",
+            "fingerprint": "0a2289722b77b1a85d34b7716f2fec4bef8d36538bfaf02f9a07a517318b7d9f"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec.md",
+            "fingerprint": "c3abc9a8388fdb43e0a7f736fb2f460d741eb843e87bd1a6b5b6565b0f8829b2"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/spec.md",
+            "fingerprint": "c3abc9a8388fdb43e0a7f736fb2f460d741eb843e87bd1a6b5b6565b0f8829b2"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/task-impl-gate-source.json",
+            "fingerprint": "210d4b1e38341c54f51e03a9fb003ef7d6efa3553d883444f14eb0410acd680a"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tasks/T-1.md",
+            "fingerprint": "0a5730f1c3da2b7ca202ecff6c6f0718fad7fda34a886277c48bd64307e81a34"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+            "fingerprint": "ff342b1025b8e5d91905fada8b596abc12f0be802d334e76c78b38bfefc7fce8"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tasks/T-3.md",
+            "fingerprint": "c143d2f757e0d73cfff8b6edae40e7ff4b1d02066bc698263a8f0d0254c7adee"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-coverage.json",
+            "fingerprint": "403d8d4984d708e169e4c836181c1d72de603cfeb4e6bd8348718aaea7015332"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-execute-result.json",
+            "fingerprint": "1de3a540875dea88e69537dd43b54d60fb8033260645dfa52d632c71c4b27bcf"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-execute-result.json",
+            "fingerprint": "1de3a540875dea88e69537dd43b54d60fb8033260645dfa52d632c71c4b27bcf"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-result-review.json",
+            "fingerprint": "510e269e39bc4afd7cdb98f8a01dc45d9a068145d8393bf907c2e6e3f865568d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-result-review.json",
+            "fingerprint": "510e269e39bc4afd7cdb98f8a01dc45d9a068145d8393bf907c2e6e3f865568d"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-result-review.md",
+            "fingerprint": "dfebcc211e4fb5c346eca21f04b2b1c2f3ddaa0316a561a11f339fd1a85f9db4"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-review.json",
+            "fingerprint": "fc850d5280b3f02b7bd9f506bc00765ef4e0ec674a39bca2648436b2e8a7ef14"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/test-review.md",
+            "fingerprint": "087e8f1d01effb583352f95dbc9a8fc94dd7e226a350e1655a3e16612332fe7c"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/scenario-validity.log",
+            "fingerprint": "71eadcdff7041788474f96028302424faa3cb6bc2e367d4a79e51123bf2a8612"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+            "fingerprint": "ab42be9da53185a1909d70f60e7685c59efe50bb9d85a020366e58cc0f30901b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+            "fingerprint": "ab42be9da53185a1909d70f60e7685c59efe50bb9d85a020366e58cc0f30901b"
+          },
+          {
+            "path": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+            "fingerprint": "2ae0701b9ab2c5b8b6d2f3055178d384f4911259b63eb1e629f866abefce4df9"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+          },
+          {
+            "path": "src/flow/lib/run-prepare-spec.js",
+            "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+          },
+          {
+            "path": "src/flow/lib/set-step.js",
+            "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+          },
+          {
+            "path": "src/lib/plugin-registry.js",
+            "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+          },
+          {
+            "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+            "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+          },
+          {
+            "path": "tests/unit/flow/finding-gate-readiness.test.js",
+            "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+          },
+          {
+            "path": "tests/unit/flow/gate-diff-compaction.test.js",
+            "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+          },
+          {
+            "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+            "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+          },
+          {
+            "path": "tests/unit/flow/gate-requirement-context.test.js",
+            "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+          },
+          {
+            "path": "tests/unit/flow/set-step-impl-repair.test.js",
+            "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+          },
+          {
+            "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+            "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/345-required-hook-failure-policy/tests/.raw/final-regression-attempt-004.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Clarify deferred regression gate boundary\n    Make lifecycle completion idempotent\n    Filter generated artifacts from requirement evidence\n    Exclude generated artifacts from gate diffs\n    Recover JSON object from gate output\n    Ignore stale advisory review history\n    Document finalize hook transaction boundary\n    Guard spec-only finalize post hooks\n    Create prepare sources before pre hooks\n    Rollback required prepare hook failures\n    Apply review exclusions to fallback diffs\n    Cover persisted loop review identities\n    Preserve classified review finding identities\n    Update plugin hook failure policy fixture\n    Update impl repair transition mocks\n    Preserve worktree hook cleanup invariants\n    Share hook lifecycle results\n    Refresh hook policy test evidence\n    Run finalize hooks before teardown state\n    Preserve required hook caller failures\n    Share finalize pre-hook handling\n    Complete spec-only hook lifecycle\n    Record lifecycle caller design\n    Deduplicate finalize hook failures\n    Fail closed required flow hooks\n    Enforce flow hook failure policies\n    Cover worktree hook failure atomicity\n    Add required hook failure policy spec tests\n    131 files changed, 24876 insertions(+), 98 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 6\n    Q&A ......................... 0\n    issue-log ................... 41\n    agent calls ................. 175\n    input tokens ................ 5,798,144\n    output tokens ............... 167,964\n    cache-read tokens ........... 3,289,728\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 5046.8s\n      draft-questions-review .... 5.7s\n      draft-coverage-review ..... 9.4s\n      draft-gate ................ 47.4s\n      spec-review ............... 74.3s\n      spec-gate ................. 128.2s\n      test-review ............... 156.3s\n      implement ................. 255.5s\n      impl-review ............... 2007.0s\n      impl-gate ................. 686.4s\n      acceptance-review ......... 1676.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 8  passed 8  failed 0 verdict=pass\n    raw_output: specs/345-required-hook-failure-policy/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/345-required-hook-failure-policy/tests/.raw/final-regression-attempt-004.log\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (70 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/345-required-hook-failure-policy/issue-log.json\n\n    Important (10 of 36)\n    - [draft-gate] The requirement says validation will use “focused tests,” but “focused” is a vague qualifier rather than a verifiable condition.; The requirement says the lifecycle matrix will be fixed with “focused unit / spec-local tests,” but “focuse...\n    - [spec-gate] schema: spec.json failed schema validation: overview.decisions[3].text: maxLength 500, got 680\n    - [test-review] Static test checks and partial matrix coverage did not prove the required hook lifecycle contract.\n    - [test-review] Third static review found absent required post-hook and required-policy integrity assertions.\n    - [test-review] Final static review found that the spec named a non-existent separate context write API.\n    - [task-review] Added a dedicated integrity failure error carrying a typed integrity outcome while retaining fail-closed throws.\n    - [task-review] Wrapped snapshot policy validation in the same typed integrity error path as runtime loader failures.\n    - [task-review] Preserve follow-ups from advisory failed envelopes before classifying their business failure.\n    - [task-review] Remove plugin artifact roots written by a failed required finalize pre-hook before returning its failure.\n    - [spec-gate] The added catch block constructs the same `Envelope.fail(\"run\", \"finalize-cleanup\", \"PLUGIN_LIFECYCLE_FAILED\", ...)` lifecycle failure response shape as another added catch block in the same file. This duplicates the same error-to-envelo...\n    ... 26 important issue-log entries omitted\n\n    Recent Other (5 of 34)\n    - [spec-gate] review finding readiness: review-history/impl-attempt-013.json finding fingerprint does not match its stable identity\n    - [impl-gate] fix: exclude generated flow history from integration gate diff evidence\n    - [impl-gate] fix: apply generated artifact filtering to per-requirement file-map evidence\n    - [impl-gate] fix: align AC8 full regression timing with the final-regression flow stage\n    - [impl-gate] fix: clarify deferred full regression ownership in integration gate evaluation\n    ... 29 other issue-log entries omitted"
+}

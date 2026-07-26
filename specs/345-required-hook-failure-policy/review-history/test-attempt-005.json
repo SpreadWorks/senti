@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:34:34.436Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/345-required-hook-failure-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Prepare atomicity test mutates the state it later expects absent",
+      "target": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js:114",
+      "findingId": "bfde6efb7787933508722c4a808563080f350e96b619df236fb51dc2221f53ac",
+      "fingerprint": "bfde6efb7787933508722c4a808563080f350e96b619df236fb51dc2221f53ac",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that can fail or pass for the wrong reason because the test contradicts its own fixture setup instead of cleanly exercising command atomicity.",
+      "issue": "`runPrepare()` calls `flowManager.createPreparingFlow(runId, ...)` before executing `RunPrepareSpecCommand`, while the R6/R7 test later asserts that `.senti/.current-flow` does not exist after a required pre-hook failure. The test setup itself can create the active-flow state, so the assertion does not isolate production behavior of the command under test.",
+      "requiredChange": "Move preparing-flow setup into the production path being tested or adjust the fixture so the test records pre-existing state and asserts it is unchanged, rather than asserting a file created by setup is absent.",
+      "whyBlocking": "This is a static anti-pattern that can fail or pass for the wrong reason because the test contradicts its own fixture setup instead of cleanly exercising command atomicity.",
+      "origin": "R6",
+      "failureKind": "test encodes an incorrect implementation premise"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "39911b91fcc156a4bce6f9aceb9d2c81df8d9a14da059145db2cc8c6c0ec8dcf"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "bfde6efb7787933508722c4a808563080f350e96b619df236fb51dc2221f53ac",
+      "findingId": "bfde6efb7787933508722c4a808563080f350e96b619df236fb51dc2221f53ac",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Prepare atomicity test mutates the state it later expects absent",
+      "body": "`runPrepare()` calls `flowManager.createPreparingFlow(runId, ...)` before executing `RunPrepareSpecCommand`, while the R6/R7 test later asserts that `.senti/.current-flow` does not exist after a required pre-hook failure. The test setup itself can create the active-flow state, so the assertion does not isolate production behavior of the command under test.",
+      "category": "unknown",
+      "fingerprint": "bfde6efb7787933508722c4a808563080f350e96b619df236fb51dc2221f53ac",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that can fail or pass for the wrong reason because the test contradicts its own fixture setup instead of cleanly exercising command atomicity."
+    }
+  ]
+}

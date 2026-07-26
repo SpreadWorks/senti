@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "b95e9977cfce02104ed2fee7",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-02c8248b84cf9648",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/run-finalize-cleanup.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-prepare-spec.js",
+      "src/flow/lib/set-step.js",
+      "src/lib/plugin-registry.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+      "tests/unit/flow/finding-gate-readiness.test.js",
+      "tests/unit/flow/gate-diff-compaction.test.js",
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "02c8248b84cf96484d4ddb9be40aa16cc891dbd8b625d7eaf9a4aaead891fe2c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "b95e9977cfce02104ed2fee7"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/run-finalize-cleanup.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/flow/lib/set-step.js",
+    "src/lib/plugin-registry.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+    "tests/unit/flow/finding-gate-readiness.test.js",
+    "tests/unit/flow/gate-diff-compaction.test.js",
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "02c8248b84cf96484d4ddb9be40aa16cc891dbd8b625d7eaf9a4aaead891fe2c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:07:18.438Z",
+  "finishedAt": "2026-07-26T03:07:18.438Z",
+  "rawResponse": "### 1. Unify Required Hook Failure Handling\n**File:** `src/flow/lib/run-finalize-cleanup.js`\n**Requirement:** R3\n**Issue:** Required hook failure handling is being introduced in multiple places with different envelope construction, rollback, and lifecycle result composition patterns across `run-finalize-cleanup.js`, `run-prepare-spec.js`, and `plugin-registry.js`. This creates a cross-file drift risk for how required pre/post hook failures stop commands and report metadata.\n**Suggestion:** Centralize required hook failure result construction behind one shared helper or lifecycle API, then have finalize cleanup and prepare use that instead of locally assembling failure envelopes and rollback behavior.\n\n### 2. Standardize Hook Lifecycle Naming\n**File:** `src/lib/plugin-registry.js`\n**Requirement:** R6\n**Issue:** Lifecycle concepts are named inconsistently across files: `terminal` in `composePluginLifecycleResult`, `pluginPre`, `pluginLifecycle`, `finalizeCleanupPrePluginLifecycleContext`, and prepare-specific rollback names all describe related hook phases with different levels of specificity. This makes the pre/post/failure contract harder to follow across command implementations.\n**Suggestion:** Adopt a consistent vocabulary such as `preHookResult`, `postHookResult`, `failedHookResult`, and `hookLifecycleContext`, then apply it across `plugin-registry.js`, `run-finalize-cleanup.js`, and `run-prepare-spec.js`.\n\n### 3. Extract Shared Flow Command Hook Execution Pattern\n**File:** `src/flow/lib/run-prepare-spec.js`\n**Requirement:** R7\n**Issue:** `run-prepare-spec.js` and `run-finalize-cleanup.js` both now perform command-specific setup, run pre-hooks, stop on required failure, execute core work, run post-hooks, then compose command results. The same lifecycle skeleton is emerging in separate command files.\n**Suggestion:** Add a shared flow-command lifecycle runner that accepts command name, context builder, core operation, rollback callback, and result composer. Command files should provide policy-specific callbacks instead of duplicating the orchestration pattern.\n\n### 4. Consolidate Review Finding Identity Preservation\n**File:** `src/flow/commands/review.js`\n**Requirement:** R8\n**Issue:** Identity preservation for review findings appears in production code via post-construction mutation and in tests via duplicated stale `findingId`/`fingerprint` values. This suggests the identity contract is not expressed in the `ReviewFinding` construction/update interface itself.\n**Suggestion:** Move identity preservation into the finding API, for example `withDispositionAndIdentity(...)` or an options object on `withDisposition(...)`, and update tests to assert that API-level behavior rather than manually coordinating duplicated identity fields.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Unify Required Hook Failure Handling",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`\n**Requirement:** R3\n**Issue:** Required hook failure handling is being introduced in multiple places with different envelope construction, rollback, and lifecycle result composition patterns across `run-finalize-cleanup.js`, `run-prepare-spec.js`, and `plugin-registry.js`. This creates a cross-file drift risk for how required pre/post hook failures stop commands and report metadata.\n**Suggestion:** Centralize required hook failure result construction behind one shared helper or lifecycle API, then have finalize cleanup and prepare use that instead of locally assembling failure envelopes and rollback behavior.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Standardize Hook Lifecycle Naming",
+        "body": "**File:** `src/lib/plugin-registry.js`\n**Requirement:** R6\n**Issue:** Lifecycle concepts are named inconsistently across files: `terminal` in `composePluginLifecycleResult`, `pluginPre`, `pluginLifecycle`, `finalizeCleanupPrePluginLifecycleContext`, and prepare-specific rollback names all describe related hook phases with different levels of specificity. This makes the pre/post/failure contract harder to follow across command implementations.\n**Suggestion:** Adopt a consistent vocabulary such as `preHookResult`, `postHookResult`, `failedHookResult`, and `hookLifecycleContext`, then apply it across `plugin-registry.js`, `run-finalize-cleanup.js`, and `run-prepare-spec.js`.",
+        "file": "src/lib/plugin-registry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Extract Shared Flow Command Hook Execution Pattern",
+        "body": "**File:** `src/flow/lib/run-prepare-spec.js`\n**Requirement:** R7\n**Issue:** `run-prepare-spec.js` and `run-finalize-cleanup.js` both now perform command-specific setup, run pre-hooks, stop on required failure, execute core work, run post-hooks, then compose command results. The same lifecycle skeleton is emerging in separate command files.\n**Suggestion:** Add a shared flow-command lifecycle runner that accepts command name, context builder, core operation, rollback callback, and result composer. Command files should provide policy-specific callbacks instead of duplicating the orchestration pattern.",
+        "file": "src/flow/lib/run-prepare-spec.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Consolidate Review Finding Identity Preservation",
+        "body": "**File:** `src/flow/commands/review.js`\n**Requirement:** R8\n**Issue:** Identity preservation for review findings appears in production code via post-construction mutation and in tests via duplicated stale `findingId`/`fingerprint` values. This suggests the identity contract is not expressed in the `ReviewFinding` construction/update interface itself.\n**Suggestion:** Move identity preservation into the finding API, for example `withDispositionAndIdentity(...)` or an options object on `withDisposition(...)`, and update tests to assert that API-level behavior rather than manually coordinating duplicated identity fields.",
+        "file": "src/flow/commands/review.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

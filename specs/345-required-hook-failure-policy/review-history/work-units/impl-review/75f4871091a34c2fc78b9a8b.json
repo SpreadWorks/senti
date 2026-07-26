@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-finalize-cleanup.js"
+    ],
+    "inputHash": "bab8a7884002d8d07e25a1daf5d4f538ebe50c8fa1bf8f842905a5dfbeb0e8da",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-finalize-cleanup.js"
+  ],
+  "inputHash": "bab8a7884002d8d07e25a1daf5d4f538ebe50c8fa1bf8f842905a5dfbeb0e8da",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T02:22:30.301Z",
+  "finishedAt": "2026-07-26T02:22:30.301Z",
+  "rawResponse": "I’ll review the touched file only and check the added lifecycle-hook flow against the listed quality and guardrail constraints. I’m going to inspect the surrounding code so the proposals are grounded in existing patterns, not just the diff fragment.The path in the diff is relative to the repo root, while the current directory is the `.tmp` work area. I’m checking the workspace layout and then I’ll read the file from the correct root.The diff’s source file is outside the scratch `.tmp` directory. I only need read access for review, so I’m locating it under the worktree parent and will keep the scope to `src/flow/lib/run-finalize-cleanup.js`.I found the source file in the worktree root. Now I’m reading the exact surrounding sections to identify duplicate control flow and consistency issues introduced by the change.### 1. Extract Repeated Pre-Hook Setup\n**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R7  \n**Issue:** The same `finalizeCleanupPrePluginLifecycleContext` + `runFinalizePreHooks` + early return pattern appears in both lifecycle branches and again in `runTeardownTransactionOwned`. This makes required-hook stop behavior easier to accidentally diverge.  \n**Suggestion:** Add a helper such as `runFinalizeCleanupPreLifecycle(ctx, state, { worktreePath, mainRepoPath, specId })` that returns `{ ok, env, pluginContext, pluginPre }`, and reuse it in all three call sites.\n\n### 2. Reuse Required Hook Failure Envelope Helper\n**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R3  \n**Issue:** `finalizeRequiredPluginHookFailure(pluginLifecycle)` exists, but `runTeardownTransactionOwned` rebuilds a near-duplicate `Envelope.fail(...)` for required post-hook failures. The duplicated construction already differs in metadata shape and message assembly.  \n**Suggestion:** Extend `finalizeRequiredPluginHookFailure` to accept optional extra metadata, or create one shared helper for required plugin hook failures, then wrap it with `failBeforeCommit(...)` in the transaction path.\n\n### 3. Clarify Pre-Hook Context Naming\n**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R6  \n**Issue:** `finalizeCleanupPrePluginLifecycleContext` reads like a lifecycle context for all finalize cleanup plugin work, but it actually selects a pre-hook-specific artifact authority and may discard artifacts on success. That distinction is central to preventing teardown side effects after required pre-hook failure.  \n**Suggestion:** Rename it to something more explicit, for example `finalizeCleanupPreHookContext` or `finalizeCleanupPreHookArtifactContext`, and keep `finalizeCleanupPluginLifecycleContext` for the normal post/retained artifact context.\n\n### 4. Avoid Inline Compact Hook Invocation Object\n**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R4  \n**Issue:** `runFinalizePostHooks` passes `{ command: \"finalize-cleanup\", hook: \"post\", flow: pluginContext.flow, result }` on one line, while the pre-hook call uses the multi-line shape. This is a minor consistency issue, but this code now encodes the structured runner contract and should stay easy to scan.  \n**Suggestion:** Format the post-hook options object like the pre-hook object, or extract a small `finalizeHookRequest(pluginContext, hook, result)` helper used by both pre and post calls.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Repeated Pre-Hook Setup",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R7  \n**Issue:** The same `finalizeCleanupPrePluginLifecycleContext` + `runFinalizePreHooks` + early return pattern appears in both lifecycle branches and again in `runTeardownTransactionOwned`. This makes required-hook stop behavior easier to accidentally diverge.  \n**Suggestion:** Add a helper such as `runFinalizeCleanupPreLifecycle(ctx, state, { worktreePath, mainRepoPath, specId })` that returns `{ ok, env, pluginContext, pluginPre }`, and reuse it in all three call sites.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Reuse Required Hook Failure Envelope Helper",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R3  \n**Issue:** `finalizeRequiredPluginHookFailure(pluginLifecycle)` exists, but `runTeardownTransactionOwned` rebuilds a near-duplicate `Envelope.fail(...)` for required post-hook failures. The duplicated construction already differs in metadata shape and message assembly.  \n**Suggestion:** Extend `finalizeRequiredPluginHookFailure` to accept optional extra metadata, or create one shared helper for required plugin hook failures, then wrap it with `failBeforeCommit(...)` in the transaction path.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Clarify Pre-Hook Context Naming",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R6  \n**Issue:** `finalizeCleanupPrePluginLifecycleContext` reads like a lifecycle context for all finalize cleanup plugin work, but it actually selects a pre-hook-specific artifact authority and may discard artifacts on success. That distinction is central to preventing teardown side effects after required pre-hook failure.  \n**Suggestion:** Rename it to something more explicit, for example `finalizeCleanupPreHookContext` or `finalizeCleanupPreHookArtifactContext`, and keep `finalizeCleanupPluginLifecycleContext` for the normal post/retained artifact context.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Avoid Inline Compact Hook Invocation Object",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R4  \n**Issue:** `runFinalizePostHooks` passes `{ command: \"finalize-cleanup\", hook: \"post\", flow: pluginContext.flow, result }` on one line, while the pre-hook call uses the multi-line shape. This is a minor consistency issue, but this code now encodes the structured runner contract and should stay easy to scan.  \n**Suggestion:** Format the post-hook options object like the pre-hook object, or extract a small `finalizeHookRequest(pluginContext, hook, result)` helper used by both pre and post calls.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

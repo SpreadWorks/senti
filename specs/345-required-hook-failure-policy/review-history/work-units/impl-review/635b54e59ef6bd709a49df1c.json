@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "635b54e59ef6bd709a49df1c",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0002",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js"
+    ],
+    "inputHash": "a89fee930d7d9d9560c4e64baa8d30bd7fce0c755da2934e88f65d64746c3923",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "635b54e59ef6bd709a49df1c"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "inputHash": "a89fee930d7d9d9560c4e64baa8d30bd7fce0c755da2934e88f65d64746c3923",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:06:47.086Z",
+  "finishedAt": "2026-07-26T03:06:47.086Z",
+  "rawResponse": "I’ll review only `src/flow/lib/run-gate.js` against the diff and the guardrail, then return proposals in the exact required format.### 1. Centralize Gate Diff Filtering\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** Generated artifact filtering is now applied through separate paths for full diffs and per-file diffs, with similar inclusion logic split across `excludeGeneratedSpecArtifactsFromGateDiff`, `excludeGeneratedSpecArtifactsFromPerFileDiffs`, and `shouldIncludeGateDiffFile`. This increases the chance that future gate diff behavior diverges between whole-diff and per-requirement evaluation.  \n**Suggestion:** Extract a single predicate with a clearer name, such as `shouldIncludeFileInGateEvaluationDiff(file, specPath)`, and use it from both full-diff segment filtering and per-file map filtering.\n\n### 2. Rename Misleading Generated Artifact Filter\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `excludeGeneratedSpecArtifactsFromGateDiff` sounds like it removes all generated spec artifacts, but it intentionally keeps `test-execute-result.json`, `test-result-review.json`, and `tests/.raw/test-execution.log`.  \n**Suggestion:** Rename it to reflect the actual policy, for example `excludeNonGateGeneratedSpecArtifactsFromGateDiff`, and similarly rename `shouldIncludeGateDiffFile` to something policy-oriented like `isGateEvaluationDiffFile`.\n\n### 3. Add an Explicit Bound to JSON Candidate Extraction\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** `extractJsonCandidate` scans provider output until it finds a balanced object, but there is no explicit maximum input size or scan length. This violates the bounded-resource-usage guardrail for bulk text processing.  \n**Suggestion:** Define and enforce a maximum response size before scanning, or reuse an existing provider-output size limit if one exists in this file. If oversized input is intentional, document it with the required matched-spec acknowledgment rationale.\n\n### 4. Simplify Legacy Artifact Handling\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** The `try/catch` around `new ReviewFindingGateArtifact(...)` embeds legacy advisory-only behavior inline inside `evaluateReviewFindingGateReadiness`, making the main loop harder to read and coupling validation failure handling to artifact construction details.  \n**Suggestion:** Extract a small helper such as `createReviewFindingGateArtifactOrNull(candidate, raw)` that contains the historical-artifact exception and returns `null` for ignorable legacy artifacts. This keeps the loop focused on matching and obligation collection.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Gate Diff Filtering",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** Generated artifact filtering is now applied through separate paths for full diffs and per-file diffs, with similar inclusion logic split across `excludeGeneratedSpecArtifactsFromGateDiff`, `excludeGeneratedSpecArtifactsFromPerFileDiffs`, and `shouldIncludeGateDiffFile`. This increases the chance that future gate diff behavior diverges between whole-diff and per-requirement evaluation.  \n**Suggestion:** Extract a single predicate with a clearer name, such as `shouldIncludeFileInGateEvaluationDiff(file, specPath)`, and use it from both full-diff segment filtering and per-file map filtering.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Rename Misleading Generated Artifact Filter",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** `excludeGeneratedSpecArtifactsFromGateDiff` sounds like it removes all generated spec artifacts, but it intentionally keeps `test-execute-result.json`, `test-result-review.json`, and `tests/.raw/test-execution.log`.  \n**Suggestion:** Rename it to reflect the actual policy, for example `excludeNonGateGeneratedSpecArtifactsFromGateDiff`, and similarly rename `shouldIncludeGateDiffFile` to something policy-oriented like `isGateEvaluationDiffFile`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "3. Add an Explicit Bound to JSON Candidate Extraction",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R7  \n**Issue:** `extractJsonCandidate` scans provider output until it finds a balanced object, but there is no explicit maximum input size or scan length. This violates the bounded-resource-usage guardrail for bulk text processing.  \n**Suggestion:** Define and enforce a maximum response size before scanning, or reuse an existing provider-output size limit if one exists in this file. If oversized input is intentional, document it with the required matched-spec acknowledgment rationale.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Simplify Legacy Artifact Handling",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R6  \n**Issue:** The `try/catch` around `new ReviewFindingGateArtifact(...)` embeds legacy advisory-only behavior inline inside `evaluateReviewFindingGateReadiness`, making the main loop harder to read and coupling validation failure handling to artifact construction details.  \n**Suggestion:** Extract a small helper such as `createReviewFindingGateArtifactOrNull(candidate, raw)` that contains the historical-artifact exception and returns `null` for ignorable legacy artifacts. This keeps the loop focused on matching and obligation collection.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

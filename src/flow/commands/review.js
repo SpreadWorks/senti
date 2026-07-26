@@ -164,7 +164,13 @@ for (const key of Object.keys(REVIEW_PHASES)) {
  * @param {string} mergeBase - merge-base SHA resolved by resolveMergeBase
  * @returns {Promise<{diff: string, untrackedFiles: Set<string>}>} review diff and untracked paths
  */
-async function resolveReviewTarget(root, flow, mergeBase, excludeMatcher = null) {
+async function resolveReviewTarget(
+  root,
+  flow,
+  mergeBase,
+  excludeMatcher = null,
+  exclusions = REVIEW_EXCLUDE_PATHS,
+) {
   // spec 207 / T8: read scope.in from spec.json via the single validated load
   // path. Throws when spec.json is missing or invalid — active flows must
   // have a valid spec.json by invariant.
@@ -182,12 +188,12 @@ async function resolveReviewTarget(root, flow, mergeBase, excludeMatcher = null)
     for (const f of scopeFiles) {
       const abs = path.resolve(root, f);
       if (!fs.existsSync(abs)) continue;
-      diffs.push(...collectCommittedAndStagedDiff(root, mergeBase, f));
+      diffs.push(...collectCommittedAndStagedDiff(root, mergeBase, f, exclusions));
     }
     trackedDiff = diffs.join("\n");
   }
   if (!trackedDiff) {
-    trackedDiff = collectCommittedAndStagedDiff(root, mergeBase).join("\n");
+    trackedDiff = collectCommittedAndStagedDiff(root, mergeBase, undefined, exclusions).join("\n");
   }
 
   const specDir = path.posix.dirname(String(flow.spec).split(path.sep).join("/"));
@@ -1124,6 +1130,11 @@ function applyImplReviewDispositionPolicy({
       repeatCount: (priorCounts.get(fingerprint) || 0) + 1,
     });
     const typed = finding.withDisposition(disposition, requirementIds);
+    // The gate recomputes identities from the persisted review finding. Keep
+    // the classified identity authoritative after reconstructing the typed
+    // finding so loop-review provider payloads cannot reintroduce a stale ID.
+    typed.findingId = fingerprint;
+    typed.fingerprint = fingerprint;
     if (disposition instanceof MustFixDisposition || disposition.disposition === "deferred") {
       blockingFindings.push(typed);
     }
@@ -4013,8 +4024,15 @@ async function runReview(rawArgs) {
   // Resolve merge-base once and use it as the single diff starting point.
   const mergeBase = resolveMergeBase(root, flow.baseBranch);
 
-  const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: resolveReviewExcludePaths(config) });
-  const reviewTarget = await resolveReviewTarget(root, flow, mergeBase, reviewExcludeMatcher);
+  const reviewExclusions = resolveReviewExcludePaths(config);
+  const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: reviewExclusions });
+  const reviewTarget = await resolveReviewTarget(
+    root,
+    flow,
+    mergeBase,
+    reviewExcludeMatcher,
+    reviewExclusions,
+  );
   const { diff } = reviewTarget;
   if (!diff) {
     const result = await runImplReview({

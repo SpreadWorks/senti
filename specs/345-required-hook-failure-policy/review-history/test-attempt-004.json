@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:33:06.729Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/345-required-hook-failure-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Context write failure is not covered",
+      "target": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js:businessFailureCases",
+      "findingId": "3cd4765ae5b0743981c5340a04dc4e48e4716ac6412aeec6eb2173f8078d85b7",
+      "fingerprint": "3cd4765ae5b0743981c5340a04dc4e48e4716ac6412aeec6eb2173f8078d85b7",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the current coverage artifact marks R3/R4/R8 covered despite the missing context write failure scenario.",
+      "issue": "The case labeled \"context write failure\" calls `context.artifacts.writeText('../context.json', 'context')`, which exercises the artifact writer again rather than a distinct context write failure path. R8 requires coverage for artifact/context write failure, and R3/R4 require the same business-failure categories for required and advisory policies.",
+      "requiredChange": "Add or replace a matrix case that triggers the actual context write failure API/path, while keeping a separate artifact write failure case.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage, and the current coverage artifact marks R3/R4/R8 covered despite the missing context write failure scenario.",
+      "origin": "R3, R4, R8",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "0f03503f09ef035e7344af77fc98686a46d2ceda5105ea2068a771fae9da2265"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "3cd4765ae5b0743981c5340a04dc4e48e4716ac6412aeec6eb2173f8078d85b7",
+      "findingId": "3cd4765ae5b0743981c5340a04dc4e48e4716ac6412aeec6eb2173f8078d85b7",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Context write failure is not covered",
+      "body": "The case labeled \"context write failure\" calls `context.artifacts.writeText('../context.json', 'context')`, which exercises the artifact writer again rather than a distinct context write failure path. R8 requires coverage for artifact/context write failure, and R3/R4 require the same business-failure categories for required and advisory policies.",
+      "category": "unknown",
+      "fingerprint": "3cd4765ae5b0743981c5340a04dc4e48e4716ac6412aeec6eb2173f8078d85b7",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage, and the current coverage artifact marks R3/R4/R8 covered despite the missing context write failure scenario."
+    }
+  ]
+}

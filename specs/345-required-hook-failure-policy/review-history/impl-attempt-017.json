@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T02:08:25.145Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-pre-hooks-outside-rollback-transaction",
+      "title": "Required finalize pre-hook failures can leave unrolled-back changes",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R7",
+      "issue": "`RunFinalizeCleanupCommand.execute()` now runs `runFinalizePreHooks()` before `runPersistedTeardownIfPresent()` and before `runTeardownTransactionOwned()` establishes its rollback/recovery handling. If a required `finalize-cleanup.pre` hook writes outside `plugin-artifacts` and then fails, the command returns `PLUGIN_HOOK_REQUIRED_FAILED` after only removing plugin artifacts, leaving other hook side effects in the repo/worktree.",
+      "suggestion": "Run finalize pre-hooks inside the existing teardown transaction after the pre-commit snapshots/recovery journal are prepared, or wrap the early pre-hook path in equivalent rollback coverage. In `RunFinalizeCleanupCommand.execute()`, avoid returning directly from the early `runFinalizePreHooks()` path unless all hook side effects are covered by the same restoration logic used by `runTeardownTransactionOwned()`.",
+      "disposition": "must-fix",
+      "rationale": "R7 covers finalize cleanup required-hook failure behavior for `src/flow/lib/run-finalize-cleanup.js`. A required hook failure is a blocking policy condition, and leaving repository mutations behind violates the fail-stop/restore guardrail for cleanup failures.",
+      "findingId": "f0f9d073427d3937fc047adf21823d92f76841d312b2c032674c53037773f0f7",
+      "fingerprint": "f0f9d073427d3937fc047adf21823d92f76841d312b2c032674c53037773f0f7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "48dd651a8d12874f4f7d55fd458a360f9ad5de3943929a1458adb7636284211b",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c40a0e3e44f7b34c7bcf74ce4198a1607b7f03243a4fa49b3c17cd333925066b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 17,
+  "findings": [
+    {
+      "id": "f0f9d073427d3937fc047adf21823d92f76841d312b2c032674c53037773f0f7",
+      "findingId": "f0f9d073427d3937fc047adf21823d92f76841d312b2c032674c53037773f0f7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 17,
+      "severity": "blocking",
+      "title": "Required finalize pre-hook failures can leave unrolled-back changes",
+      "body": "`RunFinalizeCleanupCommand.execute()` now runs `runFinalizePreHooks()` before `runPersistedTeardownIfPresent()` and before `runTeardownTransactionOwned()` establishes its rollback/recovery handling. If a required `finalize-cleanup.pre` hook writes outside `plugin-artifacts` and then fails, the command returns `PLUGIN_HOOK_REQUIRED_FAILED` after only removing plugin artifacts, leaving other hook side effects in the repo/worktree.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "f0f9d073427d3937fc047adf21823d92f76841d312b2c032674c53037773f0f7",
+      "disposition": "must-fix",
+      "rationale": "R7 covers finalize cleanup required-hook failure behavior for `src/flow/lib/run-finalize-cleanup.js`. A required hook failure is a blocking policy condition, and leaving repository mutations behind violates the fail-stop/restore guardrail for cleanup failures.",
+      "requirementId": "R7",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/set-step-impl-repair.test.js"
+    ],
+    "inputHash": "e2ab888f49e04a830ab6b819c0de220b175ce78a0b448157d0fa1c5e5ac190f6",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/flow/set-step-impl-repair.test.js"
+  ],
+  "inputHash": "e2ab888f49e04a830ab6b819c0de220b175ce78a0b448157d0fa1c5e5ac190f6",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:06:59.455Z",
+  "finishedAt": "2026-07-26T03:06:59.455Z",
+  "rawResponse": "### 1. Extract repeated flow manager test doubles\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R1  \n**Issue:** The test file now has multiple inline `flowManager` mocks that repeat the same state mutation logic for applying transitions and intent side effects. This duplication makes future transition API changes harder to apply consistently.  \n**Suggestion:** Add a small local helper such as `createFlowManager(state, { commits, transitions } = {})` that implements the needed methods and records calls where required.\n\n### 2. Use consistent transition application naming in mocks\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R4  \n**Issue:** The file mixes `updateStepStatus` and `updateStepStatuses` mock implementations, with each applying transitions differently. That makes the tests harder to scan and obscures which production path each scenario is exercising.  \n**Suggestion:** Rename local helper parameters and recording variables consistently, for example `transition` for single-transition mocks and `transitions` for batch mocks, and centralize the mutation logic so both paths read similarly.\n\n### 3. Avoid mutating prepared artifact after construction\n**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R5  \n**Issue:** The new test passes `decision: \"reject\"` into `prepareImplTriageArtifact()` and then immediately assigns `prepared.artifact.items[0].decision = \"reject\"`. The second assignment appears redundant and makes it unclear whether the helper failed to preserve the value or the mutation is required for the scenario.  \n**Suggestion:** Remove the extra assignment if the helper already sets the decision. If the helper intentionally normalizes or omits the decision, build the artifact explicitly in the test or add a comment explaining why the post-processing is required.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract repeated flow manager test doubles",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R1  \n**Issue:** The test file now has multiple inline `flowManager` mocks that repeat the same state mutation logic for applying transitions and intent side effects. This duplication makes future transition API changes harder to apply consistently.  \n**Suggestion:** Add a small local helper such as `createFlowManager(state, { commits, transitions } = {})` that implements the needed methods and records calls where required.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Use consistent transition application naming in mocks",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R4  \n**Issue:** The file mixes `updateStepStatus` and `updateStepStatuses` mock implementations, with each applying transitions differently. That makes the tests harder to scan and obscures which production path each scenario is exercising.  \n**Suggestion:** Rename local helper parameters and recording variables consistently, for example `transition` for single-transition mocks and `transitions` for batch mocks, and centralize the mutation logic so both paths read similarly.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Avoid mutating prepared artifact after construction",
+        "body": "**File:** `tests/unit/flow/set-step-impl-repair.test.js`  \n**Requirement:** R5  \n**Issue:** The new test passes `decision: \"reject\"` into `prepareImplTriageArtifact()` and then immediately assigns `prepared.artifact.items[0].decision = \"reject\"`. The second assignment appears redundant and makes it unclear whether the helper failed to preserve the value or the mutation is required for the scenario.  \n**Suggestion:** Remove the extra assignment if the helper already sets the decision. If the helper intentionally normalizes or omits the decision, build the artifact explicitly in the test or add a comment explaining why the post-processing is required.",
+        "file": "tests/unit/flow/set-step-impl-repair.test.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

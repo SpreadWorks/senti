@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:37:48.533Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/345-required-hook-failure-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Finalize atomicity does not cover worktree teardown side effects",
+      "target": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js: R6 finalize-cleanup test",
+      "findingId": "389f121fd4ce3aca47443006527d1a51ef70b522ea8cbb5cbafa118043871535",
+      "fingerprint": "389f121fd4ce3aca47443006527d1a51ef70b522ea8cbb5cbafa118043871535",
+      "disposition": "must-fix",
+      "rationale": "An explicit acceptance requirement has no corresponding executable coverage for several destructive finalize-cleanup side effects.",
+      "issue": "R6 requires a required pre-hook failure to prevent finalize-cleanup from creating a teardown transaction, removing its worktree, and clearing active flow state. The test sets up finalize with `worktree: false` / `inWorktree: false` and only checks commit, flow file, branch, completion pointer, and hook artifacts. It cannot fail if finalize-cleanup still starts worktree teardown or clears active flow state in the real worktree path.",
+      "requiredChange": "Add spec-local finalize-cleanup coverage for a worktree-backed active flow that fails in a required pre-hook and asserts no teardown transaction is created, the worktree still exists, and active flow state remains present.",
+      "whyBlocking": "An explicit acceptance requirement has no corresponding executable coverage for several destructive finalize-cleanup side effects.",
+      "origin": "R6",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f6f79d4d26923e14054d1fe5fc7b7faccdbaf72fc21d83155be60d28ee3d7f60"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "389f121fd4ce3aca47443006527d1a51ef70b522ea8cbb5cbafa118043871535",
+      "findingId": "389f121fd4ce3aca47443006527d1a51ef70b522ea8cbb5cbafa118043871535",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Finalize atomicity does not cover worktree teardown side effects",
+      "body": "R6 requires a required pre-hook failure to prevent finalize-cleanup from creating a teardown transaction, removing its worktree, and clearing active flow state. The test sets up finalize with `worktree: false` / `inWorktree: false` and only checks commit, flow file, branch, completion pointer, and hook artifacts. It cannot fail if finalize-cleanup still starts worktree teardown or clears active flow state in the real worktree path.",
+      "category": "unknown",
+      "fingerprint": "389f121fd4ce3aca47443006527d1a51ef70b522ea8cbb5cbafa118043871535",
+      "disposition": "must-fix",
+      "rationale": "An explicit acceptance requirement has no corresponding executable coverage for several destructive finalize-cleanup side effects."
+    }
+  ]
+}

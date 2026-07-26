@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:52:00.782Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-required-hook-after-transaction",
+      "title": "Required finalize hook still runs after teardown transaction creation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R6",
+      "issue": "`runTeardownTransactionOwned()` still calls `transactionStore.loadOrCreate()` and writes a new transaction before invoking `runFlowCommandWithPluginLifecycle()` for `finalize-cleanup`. A required pre-hook failure can therefore leave a teardown transaction journal, contrary to R6's requirement that finalize-cleanup stop before creating a teardown transaction or other durable cleanup surfaces.",
+      "suggestion": "Move the required lifecycle pre-hook check to a point before `FinalizeTeardownTransactionStore.loadOrCreate()`/`transactionStore.write(transaction)`, or add a caller-level guard that executes required pre-hooks before entering the teardown transaction path.",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory acceptance requirement for T-2 and explicitly names teardown transaction creation as a durable side effect that must not occur after a required pre-lifecycle failure.",
+      "findingId": "6d0413d15fca0623b47a5f46a3f0c7ac1f962cc5356a8bb6ee9f6242ce98926c",
+      "fingerprint": "6d0413d15fca0623b47a5f46a3f0c7ac1f962cc5356a8bb6ee9f6242ce98926c",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "finalize-required-hook-after-metadata-sync",
+      "title": "Required finalize hook still runs after metadata sync",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R6",
+      "issue": "In `runTeardownTransactionOwned()`, worktree metadata sync can run before `runFlowCommandWithPluginLifecycle()` checks required `finalize-cleanup` hooks. If a required pre-hook then fails, finalize-cleanup may already have modified main-repo flow metadata, violating the required no-partial-durable-effects boundary.",
+      "suggestion": "Run the structured required pre-hook lifecycle check before `syncMetadataFromWorktreeToMain()` and any other metadata publication, or split the lifecycle so required pre-hooks are evaluated before durable finalize preparation begins.",
+      "disposition": "must-fix",
+      "rationale": "R6 requires finalize-cleanup required pre-hook failure to preserve flow-state and cleanup surfaces. Metadata sync is a durable flow-state operation, so it must be ordered after the required pre-hook gate.",
+      "findingId": "349a5f360beb2347ebe181cb77ffff2b9394b53bd5a6ac0a1d8ea7b49c81c612",
+      "fingerprint": "349a5f360beb2347ebe181cb77ffff2b9394b53bd5a6ac0a1d8ea7b49c81c612",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "24cf39c86c9e1490b9240bc7e086542791e8415777eca57752f9d5b73b5c31d6",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "bdcf29fcd188fb3eb5b43bbb79aea7420ea232d54db56d1dea3972d6f7279f57"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "6d0413d15fca0623b47a5f46a3f0c7ac1f962cc5356a8bb6ee9f6242ce98926c",
+      "findingId": "6d0413d15fca0623b47a5f46a3f0c7ac1f962cc5356a8bb6ee9f6242ce98926c",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Required finalize hook still runs after teardown transaction creation",
+      "body": "`runTeardownTransactionOwned()` still calls `transactionStore.loadOrCreate()` and writes a new transaction before invoking `runFlowCommandWithPluginLifecycle()` for `finalize-cleanup`. A required pre-hook failure can therefore leave a teardown transaction journal, contrary to R6's requirement that finalize-cleanup stop before creating a teardown transaction or other durable cleanup surfaces.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "6d0413d15fca0623b47a5f46a3f0c7ac1f962cc5356a8bb6ee9f6242ce98926c",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory acceptance requirement for T-2 and explicitly names teardown transaction creation as a durable side effect that must not occur after a required pre-lifecycle failure.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    },
+    {
+      "id": "349a5f360beb2347ebe181cb77ffff2b9394b53bd5a6ac0a1d8ea7b49c81c612",
+      "findingId": "349a5f360beb2347ebe181cb77ffff2b9394b53bd5a6ac0a1d8ea7b49c81c612",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Required finalize hook still runs after metadata sync",
+      "body": "In `runTeardownTransactionOwned()`, worktree metadata sync can run before `runFlowCommandWithPluginLifecycle()` checks required `finalize-cleanup` hooks. If a required pre-hook then fails, finalize-cleanup may already have modified main-repo flow metadata, violating the required no-partial-durable-effects boundary.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "349a5f360beb2347ebe181cb77ffff2b9394b53bd5a6ac0a1d8ea7b49c81c612",
+      "disposition": "must-fix",
+      "rationale": "R6 requires finalize-cleanup required pre-hook failure to preserve flow-state and cleanup surfaces. Metadata sync is a durable flow-state operation, so it must be ordered after the required pre-hook gate.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

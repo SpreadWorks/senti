@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   buildGuardrailTargetTextForPrompt,
   compactDiffForGuardrailPrompt,
+  excludeGeneratedSpecArtifactsFromGateDiff,
   excludeGateLifecycleArtifactsFromGateDiff,
   excludeScenarioValidityEvidenceFromTaskGateDiff,
   default as RunGateCommand,
@@ -191,6 +192,24 @@ describe("gate lifecycle evidence", () => {
     assert.doesNotMatch(filtered, /flow\.json/);
     assert.doesNotMatch(filtered, /task-impl-gate-result\.json/);
     assert.match(filtered, /test-execute-result\.json/);
+    assert.match(filtered, /tests\/review-scope\.test\.js/);
+    assert.match(filtered, /src\/flow\/lib\/run-review\.js/);
+  });
+
+  it("excludes generated spec artifacts while retaining requirement tests", () => {
+    const specDir = "specs/999-example";
+    const result = modifiedDiff(`${specDir}/test-execute-result.json`);
+    const review = modifiedDiff(`${specDir}/review.md`);
+    const specTest = modifiedDiff(`${specDir}/tests/review-scope.test.js`);
+    const implementation = modifiedDiff("src/flow/lib/run-review.js");
+
+    const filtered = excludeGeneratedSpecArtifactsFromGateDiff(
+      result + review + specTest + implementation,
+      `${specDir}/spec.json`,
+    );
+
+    assert.match(filtered, /test-execute-result\.json/);
+    assert.doesNotMatch(filtered, /review\.md/);
     assert.match(filtered, /tests\/review-scope\.test\.js/);
     assert.match(filtered, /src\/flow\/lib\/run-review\.js/);
   });

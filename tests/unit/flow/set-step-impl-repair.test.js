@@ -13,6 +13,7 @@ import {
   recoverImplRepairTransaction,
 } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import {
+  DefinitionLifecycleTransition,
   ExplicitRecoveryTransition,
   NormalStepTransition,
 } from "../../../src/flow/lib/step-transition-policy.js";
@@ -209,13 +210,11 @@ describe("set step impl-repair completion", () => {
     const flowManager = {
       load: () => state,
       loadReadOnly: () => state,
-      updateStepStatuses(nextTransitions, _options, intent) {
-        transitions.push(...nextTransitions);
+      updateStepStatus(transition, _options, intent) {
+        transitions.push(transition);
         intent.assertBeforeTransition(state);
-        for (const transition of nextTransitions) {
-          for (const change of transition.changes || []) {
-            findStepById(state.steps, change.stepId).status = change.requestedStatus;
-          }
+        for (const change of transition.changes || []) {
+          findStepById(state.steps, change.stepId).status = change.requestedStatus;
         }
         intent.applyTo(state);
       },
@@ -313,14 +312,15 @@ describe("set step impl-repair completion", () => {
     })];
     const flowManager = {
       load: () => state,
-      updateStepStatuses(nextTransitions, _options, intent) {
+      updateStepStatus(transition, _options, intent) {
         intent.assertBeforeTransition(state);
-        for (const transition of nextTransitions) {
-          for (const change of transition.changes || []) {
-            findStepById(state.steps, change.stepId).status = change.requestedStatus;
-          }
+        for (const change of transition.changes || []) {
+          findStepById(state.steps, change.stepId).status = change.requestedStatus;
         }
         intent.applyTo(state);
+      },
+      completeStepTransitionIntent(intent) {
+        intent.completeIn(state);
       },
     };
 
@@ -335,5 +335,78 @@ describe("set step impl-repair completion", () => {
     assert.deepEqual(result.missingFindingIds, [GATE_FINDING_ID]);
     const repairedLog = JSON.parse(fs.readFileSync(issueLogPath, "utf8"));
     assert.deepEqual(repairedLog.entries.at(-1).repairRef.files, ["src/repair-evidence-recovery.js"]);
+  });
+});
+
+describe("set step impl-triage completion", () => {
+  let tmp;
+
+  afterEach(() => {
+    if (tmp) removeTmpDir(tmp);
+    tmp = null;
+  });
+
+  it("skips lifecycle actions whose target is already terminal", async () => {
+    tmp = createTmpDir("set-step-impl-triage-terminal-target-");
+    writeJson(tmp, SPEC_PATH, { goal: "triage fixture" });
+    writeFile(tmp, "src/triage-target.js", "export const value = 'before';\n");
+    const fingerprint = buildRepairFingerprint({ root: tmp, specPath: SPEC_PATH });
+    const specDir = path.join(tmp, "specs/001-test");
+    writeJson(tmp, "specs/001-test/impl-review.json", {
+      repairFingerprint: fingerprint.hash,
+      blockingFindings: [],
+      nonBlockingImprovements: [{ findingId: "F-1", suggestion: "No repair needed." }],
+    });
+    const prepared = prepareImplTriageArtifact({
+      specDir,
+      sourceStep: "impl-review",
+      sourceArtifact: "impl-review.json",
+      findings: [{ findingId: "F-1", decision: "reject", suggestion: "No repair needed." }],
+      fingerprint,
+    });
+    prepared.artifact.items[0].decision = "reject";
+    writeJson(tmp, "specs/001-test/impl-triage.json", prepared.artifact);
+
+    const state = {
+      runId: "run-impl-triage-terminal-target",
+      spec: SPEC_PATH,
+      steps: [
+        { id: "impl-triage", status: "in_progress" },
+        { id: "impl-repair", status: "done" },
+        { id: "impl-gate", status: "pending" },
+      ],
+      tasks: [],
+      currentTaskId: null,
+    };
+    const commits = [];
+    const flowManager = {
+      load: () => state,
+      updateStepStatuses(transitions, options) {
+        commits.push({ transitions, options });
+        for (const transition of transitions) {
+          findStepById(state.steps, transition.stepId).status = transition.requestedStatus;
+        }
+      },
+    };
+
+    const result = await new SetStepCommand().execute({
+      root: tmp,
+      flowManager,
+      id: "impl-triage",
+      status: "done",
+    });
+
+    assert.equal(result.next, "impl-gate");
+    assert.deepEqual(commits[0].transitions.map((transition) => [
+      transition.stepId,
+      transition.requestedStatus,
+    ]), [
+      ["impl-triage", "done"],
+      ["impl-gate", "in_progress"],
+    ]);
+    assert.ok(commits[0].transitions[1] instanceof DefinitionLifecycleTransition);
+    assert.equal(findStepById(state.steps, "impl-triage").status, "done");
+    assert.equal(findStepById(state.steps, "impl-repair").status, "done");
+    assert.equal(findStepById(state.steps, "impl-gate").status, "in_progress");
   });
 });

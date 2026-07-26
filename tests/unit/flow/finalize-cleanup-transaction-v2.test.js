@@ -565,6 +565,7 @@ test("guard-targeted cleanup resumes from main after worktree removal without re
         return class FinalizeResumeHook extends api.FlowCommandHook {
           static command = "finalize-cleanup";
           static hook = "post";
+          static failurePolicy = "advisory";
           async run(context) {
             return context.envelope.ok("plugin-hook", "finalize-cleanup", {});
           }
@@ -584,6 +585,7 @@ test("guard-targeted cleanup resumes from main after worktree removal without re
         command: "finalize-cleanup",
         hook: "post",
         priority: 0,
+        failurePolicy: "advisory",
       }] },
     });
     const pointerPath = path.join(root, ".senti", "last-finalized-spec");
@@ -2270,14 +2272,17 @@ test("plugin artifact and retained metadata fault restores main and worktree tre
     const pluginId = "finalize-fault";
     const pluginRoot = path.join(root, ".senti", "plugins", pluginId);
     fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
-    fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+    const pluginConfig = `${JSON.stringify({
       plugin: { packages: [{ id: pluginId }] },
-    }, null, 2)}\n`);
-    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+    }, null, 2)}\n`;
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), pluginConfig);
+    fs.writeFileSync(path.join(fixture.worktreePath, ".senti", "config.json"), pluginConfig);
+    const hookSource = `
       export default function register(api) {
         return class FinalizeFaultHook extends api.FlowCommandHook {
           static command = "finalize-cleanup";
           static hook = "pre";
+          static failurePolicy = "advisory";
           async run(context) {
             await context.artifacts.writeText("partial.txt", "partial plugin output");
             await context.artifacts.writeText("flow.json", "nested plugin flow output");
@@ -2286,7 +2291,13 @@ test("plugin artifact and retained metadata fault restores main and worktree tre
           }
         };
       }
-    `);
+    `;
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), hookSource);
+    const worktreeHook = path.join(fixture.worktreePath, ".senti", "plugins", pluginId, "hooks", "finalize.js");
+    fs.mkdirSync(path.dirname(worktreeHook), { recursive: true });
+    fs.writeFileSync(worktreeHook, hookSource);
+    git(fixture.worktreePath, ["add", "-f", ".senti/config.json", `.senti/plugins/${pluginId}/hooks/finalize.js`]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "install finalize plugin runtime"]);
     fixture.state.plugins = { flowCommandHooks: [{
       apiVersion: 1,
       pluginId,
@@ -2295,6 +2306,7 @@ test("plugin artifact and retained metadata fault restores main and worktree tre
       command: "finalize-cleanup",
       hook: "pre",
       priority: 0,
+      failurePolicy: "advisory",
     }] };
     fixture.state.metrics = [{ name: "fault-metric", value: 1 }];
     replaceFlowState(fixture.worktreePath, fixture.state, { specId });
@@ -2366,6 +2378,7 @@ test("plugin lifecycle exceptions fail-stop and restore the prepared tree", asyn
         return class FinalizeThrowHook extends api.FlowCommandHook {
           static command = "finalize-cleanup";
           static hook = "pre";
+          static failurePolicy = "required";
           async run(context) {
             await context.artifacts.writeText("partial.txt", "must be rolled back");
             throw new Error("injected plugin lifecycle failure");
@@ -2381,6 +2394,7 @@ test("plugin lifecycle exceptions fail-stop and restore the prepared tree", asyn
       command: "finalize-cleanup",
       hook: "pre",
       priority: 0,
+      failurePolicy: "required",
     }] };
     replaceFlowState(root, fixture.state, { specId });
     git(root, ["add", `specs/${specId}/flow.json`]);
@@ -2390,11 +2404,9 @@ test("plugin lifecycle exceptions fail-stop and restore the prepared tree", asyn
     const stopped = await runFinalize(root, specId, { flowState: fixture.state });
 
     assert.equal(stopped.ok, false, JSON.stringify(stopped));
-    assert.equal(stopped.errors[0].code, "PLUGIN_LIFECYCLE_FAILED");
+    assert.equal(stopped.errors[0].code, "PLUGIN_HOOK_REQUIRED_FAILED");
     assertPreCommitSnapshot(root, specId, before);
-    const journal = JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8"));
-    assert.equal(journal.phase, "prepared");
-    assert.deepEqual(journal.beforeImages, []);
+    assert.equal(fs.existsSync(path.join(root, ".senti", "recovery", "finalize-cleanup")), false);
   } finally {
     removeTmpDir(root);
   }

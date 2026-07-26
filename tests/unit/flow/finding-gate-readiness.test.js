@@ -215,6 +215,60 @@ test("finding gate supersedes historical obligations after review evidence chang
   }
 });
 
+test("finding gate ignores legacy advisory-only history with stale finding identities", async () => {
+  const root = createTmpDir("finding-gate-legacy-advisory-");
+  try {
+    const specPath = "specs/demo/spec.json";
+    fs.mkdirSync(path.join(root, "specs/demo"), { recursive: true });
+    fs.writeFileSync(path.join(root, specPath), `${JSON.stringify({
+      requirements: [{ id: "R1", priority: "should", desc: "Keep review history readable." }],
+    })}\n`);
+    await runImplReview({
+      root,
+      flow: { spec: specPath },
+      touchedFiles: new Set(["src/example.js"]),
+      reviewOutput: JSON.stringify({
+        blockingFindings: [],
+        nonBlockingImprovements: [{
+          findingKey: "legacy-advisory",
+          title: "Legacy advisory",
+          failureMode: "refactor",
+          file: "src/example.js",
+          requirementId: "R1",
+          issue: "Historical advice.",
+          suggestion: "No action required.",
+          disposition: "informational",
+          rationale: "This does not block the requirement.",
+        }],
+      }),
+    });
+    const historyDir = path.join(root, "specs/demo/review-history");
+    fs.mkdirSync(historyDir, { recursive: true });
+    const historyPath = path.join(historyDir, "impl-attempt-001.json");
+    const history = JSON.parse(fs.readFileSync(path.join(root, "specs/demo/impl-review.json"), "utf8"));
+    history.nonBlockingImprovements[0].findingId = "0".repeat(64);
+    history.nonBlockingImprovements[0].fingerprint = "0".repeat(64);
+    fs.writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
+    await runImplReview({
+      root,
+      flow: { spec: specPath },
+      touchedFiles: new Set(),
+      reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
+    });
+
+    const readiness = evaluateReviewFindingGateReadiness({
+      root,
+      state: { spec: specPath, currentTaskId: null },
+      phase: "integration",
+      issueLog: { entries: [] },
+    });
+    assert.equal(readiness.artifact.verdict, "PASS");
+    assert.equal(readiness.decision.allowsPass(), true);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("finding gate fails closed for a missing or malformed review artifact", () => {
   const root = createTmpDir("finding-gate-malformed-");
   try {

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T01:30:39.880Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "prepare-pre-hooks-run-before-spec-artifacts",
+      "title": "Prepare pre hooks run before required spec artifacts exist",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "requirementId": "R6",
+      "issue": "`writeFlowState()` now wraps both source-file creation and `flowManager.create()` inside `runFlowCommandWithPluginLifecycle()`. That means newly supported `prepare.pre` hooks execute before `spec.json`, `spec.md`, and optional `issue.md` are written, while hook execution still builds contexts with `requireSpecArtifacts: true`. A required prepare pre hook that needs the prepare artifacts will fail before the command has created the artifacts it is expected to validate or consume.",
+      "suggestion": "Create the prepare source files before invoking `prepare.pre`, then run the required pre hook, create `flow.json`, and keep the rollback path deleting the created files and plugin artifacts on required hook failure.",
+      "disposition": "must-fix",
+      "rationale": "R6 covers prepare hook behavior in `src/flow/lib/run-prepare-spec.js`; the implementation contradicts the expected lifecycle ordering by enabling `prepare.pre` while withholding the artifacts required by the hook context.",
+      "findingId": "1ff5751b1a391443511ad247a1f93a182ce7c019afb7e7f84061c84d8c7068c6",
+      "fingerprint": "1ff5751b1a391443511ad247a1f93a182ce7c019afb7e7f84061c84d8c7068c6",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "finalize-post-required-failure-not-transactional",
+      "title": "Required finalize post hook failure can occur after spec-only completion",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R7",
+      "issue": "In the spec-only branch, `runSpecOnlyCompletion()` is executed before `runFinalizePostHooks()`. If a required finalize post hook fails, the command returns `PLUGIN_HOOK_REQUIRED_FAILED` after active-flow cleanup/report side effects have already completed, with no rollback or recovery journal path protecting those changes.",
+      "suggestion": "Run spec-only completion through the same transactional lifecycle pattern as teardown, or add an explicit rollback/recovery step around `runSpecOnlyCompletion()` before returning a required post-hook failure.",
+      "disposition": "must-fix",
+      "rationale": "R7 maps to finalize cleanup behavior and required hook failures. A required post-hook failure is mandatory blocking behavior, but this branch reports failure after mutating flow state, leaving the command in a partially completed state.",
+      "findingId": "363b4f1594a38170865e66c02b4954a5ab1a24c005fc84dcd97f5f6965e5373d",
+      "fingerprint": "363b4f1594a38170865e66c02b4954a5ab1a24c005fc84dcd97f5f6965e5373d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "1c1ce59b40736781c77c3a02d73aba53e7645e786cf7d160e04230b9e23bfaf2",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "ce62fbdf3b5af02861c1a170431d9eab94e7f9ac51546e65516d37b319adbf9a"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 16,
+  "findings": [
+    {
+      "id": "1ff5751b1a391443511ad247a1f93a182ce7c019afb7e7f84061c84d8c7068c6",
+      "findingId": "1ff5751b1a391443511ad247a1f93a182ce7c019afb7e7f84061c84d8c7068c6",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 16,
+      "severity": "blocking",
+      "title": "Prepare pre hooks run before required spec artifacts exist",
+      "body": "`writeFlowState()` now wraps both source-file creation and `flowManager.create()` inside `runFlowCommandWithPluginLifecycle()`. That means newly supported `prepare.pre` hooks execute before `spec.json`, `spec.md`, and optional `issue.md` are written, while hook execution still builds contexts with `requireSpecArtifacts: true`. A required prepare pre hook that needs the prepare artifacts will fail before the command has created the artifacts it is expected to validate or consume.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "1ff5751b1a391443511ad247a1f93a182ce7c019afb7e7f84061c84d8c7068c6",
+      "disposition": "must-fix",
+      "rationale": "R6 covers prepare hook behavior in `src/flow/lib/run-prepare-spec.js`; the implementation contradicts the expected lifecycle ordering by enabling `prepare.pre` while withholding the artifacts required by the hook context.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    },
+    {
+      "id": "363b4f1594a38170865e66c02b4954a5ab1a24c005fc84dcd97f5f6965e5373d",
+      "findingId": "363b4f1594a38170865e66c02b4954a5ab1a24c005fc84dcd97f5f6965e5373d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 16,
+      "severity": "blocking",
+      "title": "Required finalize post hook failure can occur after spec-only completion",
+      "body": "In the spec-only branch, `runSpecOnlyCompletion()` is executed before `runFinalizePostHooks()`. If a required finalize post hook fails, the command returns `PLUGIN_HOOK_REQUIRED_FAILED` after active-flow cleanup/report side effects have already completed, with no rollback or recovery journal path protecting those changes.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "363b4f1594a38170865e66c02b4954a5ab1a24c005fc84dcd97f5f6965e5373d",
+      "disposition": "must-fix",
+      "rationale": "R7 maps to finalize cleanup behavior and required hook failures. A required post-hook failure is mandatory blocking behavior, but this branch reports failure after mutating flow state, leaving the command in a partially completed state.",
+      "requirementId": "R7",
+      "repeatCount": 1
+    }
+  ]
+}

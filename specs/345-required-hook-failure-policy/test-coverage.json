@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Every discovered flow command hook and every persisted `plugins.flowCommandHooks` snapshot entry shall contain one failure policy with the exact value `required` or `advisory`. Registration and snapshot loading shall reject a missing or unknown policy before hook execution.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The hook runner shall return a typed execution outcome that classifies hook success, advisory business failure, required business failure, and runtime integrity failure. Callers shall consume this outcome instead of inferring severity by scanning generic warning codes.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "For a `required` hook, a thrown `run()` error, an `ok:false` envelope, a malformed or non-envelope result, or an artifact write failure shall produce a typed caller failure and shall not be converted into `ok:true`, warning-only, or follow-up-only success.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "For an `advisory` hook, the same business-failure categories may preserve warning, issue-log, and follow-up information while allowing the lifecycle main command to continue. A successful advisory or required hook shall preserve its hook data and follow-ups.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Import failure, invalid `register(api)`, invalid `FlowCommandHook` inheritance, missing snapshot module, and snapshot metadata mismatch shall remain hard failures regardless of the hook policy and shall not be normalized as advisory business failures.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "A required pre-hook failure shall stop the applicable lifecycle command before it returns a success envelope: prepare shall not create or modify its spec source, draft, flow state, issue-log, or plugin artifact files; finalize-cleanup shall not create a teardown transaction, create a finalize commit, remove its worktree, delete its feature branch, write `.senti/last-finalized-spec`, or clear active flow state.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "`run-prepare-spec` and `run-finalize-cleanup` shall use the structured runner outcome. Finalize-cleanup shall remove its `PLUGIN_HOOK_FAILED` warning reinterpretation path and shall not start teardown work after a required lifecycle failure.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Tests shall cover the required/advisory matrix for success, throw, `ok:false`, malformed result, and artifact write failure; registration/snapshot policy rejection; integrity hard failures; retained advisory behavior; and command-level atomicity for prepare and finalize-cleanup.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/required-hook-failure-policy.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/required-hook-failure-policy.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

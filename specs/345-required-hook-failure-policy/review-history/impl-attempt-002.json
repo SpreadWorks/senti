@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:44:30.261Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "integrity-outcome-missing",
+      "title": "Snapshot policy failures bypass the typed integrity outcome",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/plugin-registry.js",
+      "requirementId": "R2",
+      "issue": "`runFlowCommandHooks()` calls `validateHookSnapshot(snapshot)` before the load-hook try/catch, so missing or unknown snapshot policies still throw plain `Error`s with no `FlowCommandHookExecutionOutcome`. This leaves a mandatory runtime integrity failure path outside the typed outcome model.",
+      "suggestion": "Wrap snapshot validation failures in `FlowCommandHookIntegrityError` or otherwise surface an `integrity-failure` `FlowCommandHookExecutionOutcome` from `runFlowCommandHooks()` before rethrowing hard failures.",
+      "disposition": "must-fix",
+      "rationale": "R2 and the T-1 acceptance criteria require the runner's typed outcome contract to classify runtime integrity failures separately from policy-governed business failures. Snapshot policy validation is a required integrity boundary, so an untyped throw leaves the mandatory contract incomplete.",
+      "findingId": "a0ecaeac536d9d2d8fb9d048f493ef394a71ad6d16160e84c092e9b78ede3c1e",
+      "fingerprint": "a0ecaeac536d9d2d8fb9d048f493ef394a71ad6d16160e84c092e9b78ede3c1e",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "5b2a54f05a70d55acd87357bbda740e6bddeee9eed60a5676da1f3d47a2ef0ac",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/345-required-hook-failure-policy/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "46c3f3f3198013f17c2859d15d824f4d7c96ea30fb06f85f4d0b6d22af764ba7"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "a0ecaeac536d9d2d8fb9d048f493ef394a71ad6d16160e84c092e9b78ede3c1e",
+      "findingId": "a0ecaeac536d9d2d8fb9d048f493ef394a71ad6d16160e84c092e9b78ede3c1e",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Snapshot policy failures bypass the typed integrity outcome",
+      "body": "`runFlowCommandHooks()` calls `validateHookSnapshot(snapshot)` before the load-hook try/catch, so missing or unknown snapshot policies still throw plain `Error`s with no `FlowCommandHookExecutionOutcome`. This leaves a mandatory runtime integrity failure path outside the typed outcome model.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "a0ecaeac536d9d2d8fb9d048f493ef394a71ad6d16160e84c092e9b78ede3c1e",
+      "disposition": "must-fix",
+      "rationale": "R2 and the T-1 acceptance criteria require the runner's typed outcome contract to classify runtime integrity failures separately from policy-governed business failures. Snapshot policy validation is a required integrity boundary, so an untyped throw leaves the mandatory contract incomplete.",
+      "requirementId": "R2",
+      "repeatCount": 2
+    }
+  ]
+}

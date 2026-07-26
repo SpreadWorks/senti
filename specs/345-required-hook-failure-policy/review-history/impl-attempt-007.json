@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:55:38.817Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-required-pre-artifacts-persist",
+      "title": "Finalize required pre-hook leaves plugin artifacts",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-finalize-cleanup.js",
+      "requirementId": "R6",
+      "issue": "The new `runFlowCommandHooks(... hook: \"pre\")` checks in both the spec-only path and `runTeardownTransactionOwned()` return `PLUGIN_HOOK_REQUIRED_FAILED` immediately when `pre.ok` is false, but they do not remove plugin artifacts written before the required hook failed. A required `finalize-cleanup` pre-hook can therefore leave `specs/<id>/plugin-artifacts/...` or worktree plugin artifact files behind despite the command returning failure.",
+      "suggestion": "On a required finalize pre-hook failure, remove the plugin artifact directory for the same artifact root before returning the failure envelope, or run the pre-hook inside a rollback boundary that restores the plugin artifact surface.",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and explicitly requires required pre-hook failure to stop before leaving plugin artifact durable effects. The current finalize failure path can preserve artifacts written by the failing hook, so the command-level atomicity contract is incomplete.",
+      "findingId": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "fingerprint": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "prepare-writes-spec-before-branch-route",
+      "title": "Prepare lifecycle writes spec files before route-specific state",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "requirementId": "R6",
+      "issue": "`writeSpecFiles()` was moved into the lifecycle `main` before the later worktree/local/branch route branches, while the previous route-specific calls were removed. On success this changes prepare ordering so spec/draft files are written before worktree creation, branch checkout, flow-state publication, active-flow registration, and docs validation rather than within the selected route. That makes the lifecycle wrapper, not the command route, perform durable prepare writes and can leave files in the wrong repository/root for worktree flows.",
+      "suggestion": "Keep the required pre-hook gate before durable work, but leave `writeSpecFiles()` inside each prepare route after the route has established its target root/branch/worktree state, or pass the route-specific write operation as the lifecycle `main` only at the point where the old route performed those writes.",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and names prepare's spec source, draft, flow state, issue-log, and plugin artifact surfaces as command-level atomicity boundaries. Moving spec/draft writes ahead of the route-specific durable sequence changes the command behavior beyond the required failure gate and risks writing durable prepare outputs in the wrong phase/root.",
+      "findingId": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "fingerprint": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "6a7429f8aed9d9ec95679d2a3401c4cea83ca3af739ab2ba7e87b636467a8b1d",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "71223ef85bd4f74f731ca0c50599605bceef94b8efbc071004a2baaf5fb324e5"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "findingId": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Finalize required pre-hook leaves plugin artifacts",
+      "body": "The new `runFlowCommandHooks(... hook: \"pre\")` checks in both the spec-only path and `runTeardownTransactionOwned()` return `PLUGIN_HOOK_REQUIRED_FAILED` immediately when `pre.ok` is false, but they do not remove plugin artifacts written before the required hook failed. A required `finalize-cleanup` pre-hook can therefore leave `specs/<id>/plugin-artifacts/...` or worktree plugin artifact files behind despite the command returning failure.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and explicitly requires required pre-hook failure to stop before leaving plugin artifact durable effects. The current finalize failure path can preserve artifacts written by the failing hook, so the command-level atomicity contract is incomplete.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    },
+    {
+      "id": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "findingId": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Prepare lifecycle writes spec files before route-specific state",
+      "body": "`writeSpecFiles()` was moved into the lifecycle `main` before the later worktree/local/branch route branches, while the previous route-specific calls were removed. On success this changes prepare ordering so spec/draft files are written before worktree creation, branch checkout, flow-state publication, active-flow registration, and docs validation rather than within the selected route. That makes the lifecycle wrapper, not the command route, perform durable prepare writes and can leave files in the wrong repository/root for worktree flows.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and names prepare's spec source, draft, flow state, issue-log, and plugin artifact surfaces as command-level atomicity boundaries. Moving spec/draft writes ahead of the route-specific durable sequence changes the command behavior beyond the required failure gate and risks writing durable prepare outputs in the wrong phase/root.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

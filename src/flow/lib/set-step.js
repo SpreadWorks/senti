@@ -63,13 +63,14 @@ import {
 } from "./step-transition-policy.js";
 
 function definitionTransitions(state, plan) {
-  return plan.actions.map((action) => {
+  return plan.actions.flatMap((action) => {
     const target = findStepById(state.steps || [], action.step);
-    return new DefinitionLifecycleTransition({
+    if (target?.status === action.status) return [];
+    return [new DefinitionLifecycleTransition({
       action,
       plan,
       currentStatus: target?.status,
-    });
+    })];
   });
 }
 

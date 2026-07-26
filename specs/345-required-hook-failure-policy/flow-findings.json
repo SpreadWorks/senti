@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+      "fingerprint": "b358cb4befe8c8c72ad91860e082b451b4152b027b7d316d7ba5ae2fc4e2743d",
+      "disposition": "deferred",
+      "rationale": "R6 is mandatory and explicitly requires required pre-hook failure to stop before leaving plugin artifact durable effects. The current finalize failure path can preserve artifacts written by the failing hook, so the command-level atomicity contract is incomplete.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+      "fingerprint": "5ac3b15986477a2a3cc2f1faf148e37760db5d9c20c57ac96de8e8de91927451",
+      "disposition": "deferred",
+      "rationale": "R6 is mandatory and names prepare's spec source, draft, flow state, issue-log, and plugin artifact surfaces as command-level atomicity boundaries. Moving spec/draft writes ahead of the route-specific durable sequence changes the command behavior beyond the required failure gate and risks writing durable prepare outputs in the wrong phase/root.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    }
+  ]
+}

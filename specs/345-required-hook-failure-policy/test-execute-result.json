@@ -1,0 +1,334 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/345-required-hook-failure-policy/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R1: discovery and snapshots require an explicit known failure policy",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R2: lifecycle returns a structured outcome instead of warning-code severity inference",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R3: required pre-hook failures stop the caller for every business-failure form",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R4: advisory hook failures retain reporting while the main command continues",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R5: integrity failures and invalid snapshot policy are hard failures for either policy",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R6: required finalize-cleanup pre-hook failure leaves command state and Git state unchanged",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R7: required spec-only finalize post-hook failure leaves completion state unchanged",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "test_name": "R8: advisory matrix preserves reporting for every business-failure form",
+        "command": "node --test specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 177
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/commands/review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-finalize-cleanup.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-gate.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-prepare-spec.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-step.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/plugin-registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/commands/review.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finding-gate-readiness.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/gate-requirement-context.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-cleanup.js",
+        "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js",
+        "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js",
+        "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+        "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js",
+        "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finding-gate-readiness.test.js",
+        "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+        "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-requirement-context.test.js",
+        "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+        "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js",
+        "fingerprint": "e844320d3bf6d6f7f199f2aa888d888147b3524f764aefff5ce102b2fdd70b20"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-cleanup.js",
+        "fingerprint": "75616d974b4b3674d42bcd31fbc4c38b6e4ed66445a5b1839f20d0a39f7eed73"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-gate.js",
+        "fingerprint": "853ec86a45f3861d83a1ea429a6c92c4ed79c44d692a0c24acfbc65b28c5c8e2"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js",
+        "fingerprint": "768c22da36033b67bc5b34a82b35a38b9317c1d987a42f6a2acc90a0f7af6f46"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-step.js",
+        "fingerprint": "4647349efa832767dd945576a15e281154476bcfb11d95111c9633dc2ea81486"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/plugin-registry.js",
+        "fingerprint": "1f7328640653936925afa0abd5a5b19577dfe1e3470275f584a1766c41841aa7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/post-worktree-hook.test.js",
+        "fingerprint": "31181aa1291d195d9a6cda5c23fb65b8c0e0bbf4e8c5753c176c151fe62fe954"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js",
+        "fingerprint": "b162b8dd6c2b6b46ae2c3877a758788f78ceeae41b03d8c01afd95c6135445b9"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "fingerprint": "57d32e985edc2783e61d2ae41bab7493aca79d50a491b65a48fe72f46f6b41f6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finding-gate-readiness.test.js",
+        "fingerprint": "101fd1e2a7c107046513b96f22401a0d82dab083fdbf8d47681caaef5ce8427d"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-diff-compaction.test.js",
+        "fingerprint": "69c28e6b4d2b6be4aac046fbf6f842024b327f66a87257f96cad165fc75365f3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-evaluation-schema.test.js",
+        "fingerprint": "a10b7cbf8b89d588bc48c8982ae84ab3e966c55359bfeac9e8343fbfb5a71d65"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/gate-requirement-context.test.js",
+        "fingerprint": "1ae94abd03b7e6c862542163ae70a9136c3467bc12f71d788a05dfe7799f79d2"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/set-step-impl-repair.test.js",
+        "fingerprint": "1cfab09b7d893e6c6cd3e7a070bfb53554b23921f09021bbe3aca3daf9d8afb7"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/worktree-prepare-transaction.test.js",
+        "fingerprint": "940ac35c59304287ee2725ee8d08a9a2a291d3274fc0285f1c4aaec437a7a689"
+      }
+    ]
+  },
+  "repairFingerprint": "a3a28e9903689fd542ad10c056e147a99c7154beaf25d1441815688a905fcd84"
+}

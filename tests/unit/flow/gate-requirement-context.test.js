@@ -71,6 +71,7 @@ describe("requirement gate context", () => {
     const prompt = buildImplCheckPrompt({ contexts: [context], diff, knownIds: ["R1"] }).build();
     assert.match(prompt.userPrompt, /## Requirement Contexts/);
     assert.match(prompt.systemPrompt, /Every evaluation reason MUST cite \[REQ:<id>\]/);
+    assert.match(prompt.systemPrompt, /Deferred full-project regression evidence is valid at this integration gate/);
   });
 
   it("provides validated execution evidence and preserves its stage boundary", () => {

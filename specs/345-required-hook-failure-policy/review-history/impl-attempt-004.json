@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:49:36.860Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "advisory-failed-envelope-followups-dropped",
+      "title": "Advisory failed envelopes drop follow-ups",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/plugin-registry.js",
+      "requirementId": "R4",
+      "issue": "`runFlowCommandHooks()` throws immediately when a hook returns an `ok:false` envelope, before reading any `data.followUps` carried by that envelope. Advisory failures are then converted to a warning and issue-log entry only, so follow-up information from a failed advisory envelope is lost.",
+      "suggestion": "In `runFlowCommandHooks()`, normalize failed envelopes through the same advisory business-failure path while extracting supported `data.followUps` before returning/continuing; add an advisory `ok:false` test that includes follow-ups and asserts they are preserved.",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement that advisory business failures preserve warning, issue-log, and follow-up information while allowing the lifecycle main command to continue. The current failed-envelope branch drops one of those required surfaces.",
+      "findingId": "54e5b860364528a2ad6638b3ffff4f82b3ffbde6a5a1e5421ab1d5c293488209",
+      "fingerprint": "54e5b860364528a2ad6638b3ffff4f82b3ffbde6a5a1e5421ab1d5c293488209",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "command-atomicity-callers-not-updated",
+      "title": "Command atomicity paths are not implemented",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "The T-2 acceptance criteria require required pre-lifecycle failures to stop before prepare and finalize-cleanup durable operations, but the implementation only updates `src/lib/plugin-registry.js`. No caller-side changes are present to move prepare/finalize-cleanup lifecycle execution ahead of the enumerated spec/draft/flow-state/artifact, teardown transaction, Git, worktree, branch, pointer, or active-flow side effects.",
+      "suggestion": "Implement the R6 caller ordering in the lifecycle callers, or narrow this task's accepted scope so R6 command atomicity is not marked satisfied until the caller changes land.",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement in the task review scope. A shared wrapper that stops before `main()` is necessary but not sufficient when callers invoke the wrapper after durable setup work has already begun.",
+      "findingId": "d13fc36460888c9d5b9d8d18aca095cc02f6191dd8dfa460e02d9967656daabb",
+      "fingerprint": "d13fc36460888c9d5b9d8d18aca095cc02f6191dd8dfa460e02d9967656daabb",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "4d37216337264d934a615a06f34d0f1cf2cf296bf683b5346e0dcc4604e5f5a6",
+  "runId": "8a10af8a-1919-41a0-ba6c-d4ccd6fc9739",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/345-required-hook-failure-policy/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "60fc6fd53d278b91947691590abfd8f3383c13c2fd86f28e968ec997939a21c2"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "54e5b860364528a2ad6638b3ffff4f82b3ffbde6a5a1e5421ab1d5c293488209",
+      "findingId": "54e5b860364528a2ad6638b3ffff4f82b3ffbde6a5a1e5421ab1d5c293488209",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Advisory failed envelopes drop follow-ups",
+      "body": "`runFlowCommandHooks()` throws immediately when a hook returns an `ok:false` envelope, before reading any `data.followUps` carried by that envelope. Advisory failures are then converted to a warning and issue-log entry only, so follow-up information from a failed advisory envelope is lost.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "54e5b860364528a2ad6638b3ffff4f82b3ffbde6a5a1e5421ab1d5c293488209",
+      "disposition": "must-fix",
+      "rationale": "R4 is a mandatory requirement that advisory business failures preserve warning, issue-log, and follow-up information while allowing the lifecycle main command to continue. The current failed-envelope branch drops one of those required surfaces.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    },
+    {
+      "id": "d13fc36460888c9d5b9d8d18aca095cc02f6191dd8dfa460e02d9967656daabb",
+      "findingId": "d13fc36460888c9d5b9d8d18aca095cc02f6191dd8dfa460e02d9967656daabb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "Command atomicity paths are not implemented",
+      "body": "The T-2 acceptance criteria require required pre-lifecycle failures to stop before prepare and finalize-cleanup durable operations, but the implementation only updates `src/lib/plugin-registry.js`. No caller-side changes are present to move prepare/finalize-cleanup lifecycle execution ahead of the enumerated spec/draft/flow-state/artifact, teardown transaction, Git, worktree, branch, pointer, or active-flow side effects.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "d13fc36460888c9d5b9d8d18aca095cc02f6191dd8dfa460e02d9967656daabb",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement in the task review scope. A shared wrapper that stops before `main()` is necessary but not sufficient when callers invoke the wrapper after durable setup work has already begun.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

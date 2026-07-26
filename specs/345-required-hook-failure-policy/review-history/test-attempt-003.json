@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:32:01.461Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/345-required-hook-failure-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Required post-hook failures are not asserted to fail the caller",
+      "target": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js: R2/R3",
+      "findingId": "72a3869e9276c308e50cc54031712932027666968fb685e1e482667d5d968c1e",
+      "fingerprint": "72a3869e9276c308e50cc54031712932027666968fb685e1e482667d5d968c1e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could still treat required post-hook failures as successful lifecycle results while attaching outcome metadata, and these tests would not catch it.",
+      "issue": "R3 requires any required hook business failure to produce a typed caller failure and not be converted into ok:true, warning-only, or follow-up-only success. The business-failure matrix in R3 only exercises required pre-hooks. The only required post-hook failure test, R2, asserts outcome fields but never asserts result.ok is false or that the caller received the typed failure.",
+      "requiredChange": "Add a spec-local assertion or case for a required post-hook business failure that verifies result.ok is false and the typed required failure is exposed to the caller.",
+      "whyBlocking": "An implementation could still treat required post-hook failures as successful lifecycle results while attaching outcome metadata, and these tests would not catch it.",
+      "origin": "R3",
+      "failureKind": "missing required coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Integrity hard failures are only tested for advisory policy",
+      "target": "specs/345-required-hook-failure-policy/tests/required-hook-failure-policy.test.js: R5",
+      "findingId": "1146761762aaed973380c2ab0cd9413b3c71010b96f5027caef472e4b0da6af3",
+      "fingerprint": "1146761762aaed973380c2ab0cd9413b3c71010b96f5027caef472e4b0da6af3",
+      "disposition": "must-fix",
+      "rationale": "A regression that only normalizes required-policy integrity failures, or otherwise handles required-policy integrity differently from advisory, would pass the current tests despite violating R5.",
+      "issue": "R5 says import failure, invalid register(api), invalid FlowCommandHook inheritance, missing snapshot module, and snapshot metadata mismatch remain hard failures regardless of hook policy. The integrityCases table only uses failurePolicy: \"advisory\" for these cases.",
+      "requiredChange": "Exercise the same integrity hard-failure cases with failurePolicy: \"required\" as well, or parameterize the existing cases over both policies.",
+      "whyBlocking": "A regression that only normalizes required-policy integrity failures, or otherwise handles required-policy integrity differently from advisory, would pass the current tests despite violating R5.",
+      "origin": "R5",
+      "failureKind": "missing required coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/345-required-hook-failure-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2e011dbf50ad9e877b25534852234feef9bd3a22d80242202d98f4a304c5d061"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "72a3869e9276c308e50cc54031712932027666968fb685e1e482667d5d968c1e",
+      "findingId": "72a3869e9276c308e50cc54031712932027666968fb685e1e482667d5d968c1e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Required post-hook failures are not asserted to fail the caller",
+      "body": "R3 requires any required hook business failure to produce a typed caller failure and not be converted into ok:true, warning-only, or follow-up-only success. The business-failure matrix in R3 only exercises required pre-hooks. The only required post-hook failure test, R2, asserts outcome fields but never asserts result.ok is false or that the caller received the typed failure.",
+      "category": "unknown",
+      "fingerprint": "72a3869e9276c308e50cc54031712932027666968fb685e1e482667d5d968c1e",
+      "disposition": "must-fix",
+      "rationale": "An implementation could still treat required post-hook failures as successful lifecycle results while attaching outcome metadata, and these tests would not catch it."
+    },
+    {
+      "id": "1146761762aaed973380c2ab0cd9413b3c71010b96f5027caef472e4b0da6af3",
+      "findingId": "1146761762aaed973380c2ab0cd9413b3c71010b96f5027caef472e4b0da6af3",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Integrity hard failures are only tested for advisory policy",
+      "body": "R5 says import failure, invalid register(api), invalid FlowCommandHook inheritance, missing snapshot module, and snapshot metadata mismatch remain hard failures regardless of hook policy. The integrityCases table only uses failurePolicy: \"advisory\" for these cases.",
+      "category": "unknown",
+      "fingerprint": "1146761762aaed973380c2ab0cd9413b3c71010b96f5027caef472e4b0da6af3",
+      "disposition": "must-fix",
+      "rationale": "A regression that only normalizes required-policy integrity failures, or otherwise handles required-policy integrity differently from advisory, would pass the current tests despite violating R5."
+    }
+  ]
+}

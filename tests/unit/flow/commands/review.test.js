@@ -20,6 +20,7 @@ import {
   ReviewDisposition,
   ReviewEvidence,
 } from "../../../../src/flow/lib/review-convergence.js";
+import { ReviewFindingGateArtifact } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import {
   parseProposals,
   buildDraftReviewPrompt,
@@ -38,6 +39,7 @@ import {
   buildImplReviewPrompt,
   runImplReview,
   resolveReviewTarget,
+  createReviewExcludeMatcher,
   collectTestFiles,
   filterProposalsByScope,
   collectTouchedFiles,
@@ -1668,6 +1670,7 @@ describe("impl review structured artifact helpers", () => {
       assert.equal(triage.items[0].decision, "reject");
       assert.ok(fs.existsSync(path.join(fixture.root, "specs/demo/review-history/impl-attempt-001.json")));
       assert.match(artifact.repairFingerprint, /^[a-f0-9]{64}$/);
+      assert.doesNotThrow(() => new ReviewFindingGateArtifact(artifact));
     } finally {
       removeTmpDir(fixture.root);
     }
@@ -2062,6 +2065,44 @@ describe("resolveReviewTarget untracked spec tests", () => {
     assert.ok(target.untrackedFiles.has("specs/demo/tests/bounded-recovery.test.js"));
     assert.match(target.diff, /bounded-recovery\.test\.js/);
     assert.doesNotMatch(target.diff, /issue-log\.json/);
+  });
+
+  it("applies configured exclusions to the fallback tracked diff", async () => {
+    tmp = createTmpDir();
+    fs.mkdirSync(join(tmp, "specs/demo"), { recursive: true });
+    initTestRepo(tmp, {
+      "base.js": "export const base = true;\n",
+      "specs/demo/flow.json": "{\"version\":1}\n",
+    });
+    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    fs.mkdirSync(join(tmp, "specs/demo"), { recursive: true });
+    fs.writeFileSync(join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
+      goal: "Review configured exclusions.",
+      scope: { in: [], out: [] },
+      constraints: [],
+      design_principles: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      background: "Test fixture.",
+      requirements: [],
+      acceptance_criteria: [],
+      clarifications: [],
+      alternatives_considered: [],
+      open_questions: [],
+    })}\n`);
+    fs.writeFileSync(join(tmp, "base.js"), "export const base = false;\n");
+    fs.writeFileSync(join(tmp, "specs/demo/flow.json"), "{\"version\":2}\n");
+
+    const exclusions = ["specs/"];
+    const target = await resolveReviewTarget(
+      tmp,
+      { spec: "specs/demo/spec.json" },
+      baseSha,
+      createReviewExcludeMatcher({ root: tmp, exclusions }),
+      exclusions,
+    );
+
+    assert.match(target.diff, /base\.js/);
+    assert.doesNotMatch(target.diff, /specs\/demo\/flow\.json/);
   });
 });
 

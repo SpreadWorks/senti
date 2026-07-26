@@ -1102,6 +1102,42 @@ export async function resolvePluginPackageSources(root = repoRoot()) {
 
 export class FlowCommandHook {}
 
+const FLOW_COMMAND_HOOK_FAILURE_POLICIES = new Set(["required", "advisory"]);
+
+export class FlowCommandHookFailurePolicy {
+  constructor(value, label = "plugin hook failure policy") {
+    if (!FLOW_COMMAND_HOOK_FAILURE_POLICIES.has(value)) {
+      throw new Error(`${label} must be required or advisory: ${value ?? "missing"}`);
+    }
+    this.value = value;
+    Object.freeze(this);
+  }
+
+  get isRequired() { return this.value === "required"; }
+}
+
+export class FlowCommandHookExecutionOutcome {
+  constructor({ kind, policy = null, failure = null } = {}) {
+    if (!["success", "business-failure", "integrity-failure"].includes(kind)) throw new Error(`unknown flow command hook outcome: ${kind}`);
+    if (kind === "business-failure") this.policy = new FlowCommandHookFailurePolicy(policy).value;
+    else if (policy != null) throw new Error("successful flow command hook outcome cannot carry a failure policy");
+    else this.policy = null;
+    this.kind = kind;
+    this.failure = failure;
+    Object.freeze(this);
+  }
+
+  get isRequiredFailure() { return this.kind === "business-failure" && this.policy === "required"; }
+}
+
+export class FlowCommandHookIntegrityError extends Error {
+  constructor(error) {
+    super(error.message, { cause: error });
+    this.name = "FlowCommandHookIntegrityError";
+    this.outcome = new FlowCommandHookExecutionOutcome({ kind: "integrity-failure", failure: { message: error.message } });
+  }
+}
+
 function buildPluginApi() {
   return {
     Envelope: {
@@ -1117,8 +1153,14 @@ function validateHookClass(HookClass, label) {
   if (!(HookClass.prototype instanceof FlowCommandHook)) throw new Error(`plugin hook ${label} must extend FlowCommandHook`);
   if (!FLOW_COMMANDS.has(HookClass.command)) throw new Error(`plugin hook ${label} has unknown command: ${HookClass.command}`);
   if (!FLOW_COMMAND_HOOKS.has(HookClass.hook)) throw new Error(`plugin hook ${label} has unknown hook: ${HookClass.hook}`);
-  if (HookClass.command === "prepare" && HookClass.hook === "pre") throw new Error("plugin hook prepare.pre is not supported");
   if (!Number.isInteger(Number(HookClass.priority || 0))) throw new Error(`plugin hook ${label} priority must be an integer`);
+  return new FlowCommandHookFailurePolicy(HookClass.failurePolicy, `plugin hook ${label} failure policy`);
+}
+
+function validateHookSnapshot(snapshot) {
+  for (const plan of snapshot) {
+    new FlowCommandHookFailurePolicy(plan.failurePolicy, `snapshot hook ${plan.pluginId}/${plan.module} failure policy`);
+  }
 }
 
 export async function discoverFlowCommandHooks(root = repoRoot()) {
@@ -1139,7 +1181,7 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
       if (typeof mod.default !== "function" || mod.default.name !== "register") throw new Error(`plugin hook ${pkg.id}/${rel} must export named default function register(api)`);
       const HookClass = mod.default(buildPluginApi());
       if (Array.isArray(HookClass)) throw new Error(`plugin hook ${pkg.id}/${rel} must return one hook class per file`);
-      validateHookClass(HookClass, `${pkg.id}/${rel}`);
+      const failurePolicy = validateHookClass(HookClass, `${pkg.id}/${rel}`);
       plans.push({
         apiVersion: 1,
         pluginId: pkg.id,
@@ -1148,6 +1190,7 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
         command: HookClass.command,
         hook: HookClass.hook,
         priority: Number(HookClass.priority || 0),
+        failurePolicy: failurePolicy.value,
       });
     }
   }
@@ -1245,10 +1288,6 @@ function buildPluginContext({
   };
 }
 
-function isEnvelopeLike(value) {
-  return value && typeof value === "object" && typeof value.ok === "boolean" && Array.isArray(value.errors);
-}
-
 export async function dispatchPluginCommand(root, commandName, args) {
   const registry = loadPluginRegistry(root);
   const command = registry.resolveCommand(commandName);
@@ -1315,18 +1354,34 @@ async function loadHookClass(root, plan) {
   return { HookClass, pluginRoot };
 }
 
+function isEnvelopeLike(value) {
+  return value && typeof value === "object" && typeof value.ok === "boolean" && Array.isArray(value.errors);
+}
+
 export async function runFlowCommandHooks(root, snapshot, { command, hook, flow = {}, result = {} } = {}) {
+  try {
+    validateHookSnapshot(snapshot);
+  } catch (error) {
+    throw new FlowCommandHookIntegrityError(error);
+  }
   const warnings = [];
   const issueLogEntries = [];
   const hookData = [];
   const followUps = [];
+  let outcome = new FlowCommandHookExecutionOutcome({ kind: "success" });
   for (const plan of snapshot.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
-    const { HookClass, pluginRoot } = await loadHookClass(root, plan);
+    let loaded;
+    try {
+      loaded = await loadHookClass(root, plan);
+    } catch (error) {
+      throw new FlowCommandHookIntegrityError(error);
+    }
+    const { HookClass, pluginRoot } = loaded;
     const context = buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result, requireSpecArtifacts: true });
     try {
       const instance = new HookClass();
       const hookResult = await instance.run(context);
-      if (hookResult?.ok === false) throw new Error(hookResult.errors?.[0]?.messages?.join(" ") || "plugin hook returned ok:false");
+      if (!isEnvelopeLike(hookResult)) throw new Error("plugin hook must return an Envelope-compatible result");
       if (hookResult?.data) {
         hookData.push({ pluginId: plan.pluginId, command, hook, data: hookResult.data });
         if (Array.isArray(hookResult.data.warnings)) {
@@ -1336,28 +1391,45 @@ export async function runFlowCommandHooks(root, snapshot, { command, hook, flow 
           followUps.push(...hookResult.data.followUps.map((text) => ({ pluginId: plan.pluginId, command, hook, text })));
         }
       }
+      if (hookResult.ok === false) throw new Error(hookResult.errors?.[0]?.messages?.join(" ") || "plugin hook returned ok:false");
     } catch (err) {
       const warning = { code: "PLUGIN_HOOK_FAILED", pluginId: plan.pluginId, command, hook, message: err.message };
+      const failure = new FlowCommandHookExecutionOutcome({ kind: "business-failure", policy: plan.failurePolicy, failure: warning });
+      if (failure.isRequiredFailure) {
+        return { ok: false, outcome: failure, warnings, issueLogEntries, hookData, followUps };
+      }
+      outcome = failure;
       warnings.push(warning);
       issueLogEntries.push({ pluginId: plan.pluginId, reason: `plugin hook ${command}.${hook} failed: ${err.message}`, payload: warning });
     }
   }
-  return { ok: true, warnings, issueLogEntries, hookData, followUps };
+  return { ok: true, outcome, warnings, issueLogEntries, hookData, followUps };
 }
 
 export async function runFlowCommandWithPluginLifecycle(root, snapshot, { command, main, flow = {} } = {}) {
   const pre = await runFlowCommandHooks(root, snapshot, { command, hook: "pre", flow, result: {} });
+  if (!pre.ok) return pluginLifecycleFailure(pre, null);
   const result = await main();
   const post = await runFlowCommandHooks(root, snapshot, { command, hook: "post", flow, result });
+  if (!post.ok) return pluginLifecycleFailure(post, result, pre);
+  return composePluginLifecycleResult(result, pre, post, result?.ok !== false);
+}
+
+function pluginLifecycleFailure(failure, result, pre = null) {
+  return composePluginLifecycleResult(result, pre, failure, false);
+}
+
+function composePluginLifecycleResult(result, pre, terminal, ok) {
   return {
-    ok: result?.ok !== false,
+    ok,
+    outcome: terminal.outcome.kind === "business-failure" ? terminal.outcome : pre?.outcome || terminal.outcome,
     data: {
       ...(result?.data || {}),
-      pluginHooks: [...pre.hookData, ...post.hookData],
-      followUps: [...pre.followUps, ...post.followUps],
+      pluginHooks: [...(pre?.hookData || []), ...terminal.hookData],
+      followUps: [...(pre?.followUps || []), ...terminal.followUps],
     },
-    warnings: [...pre.warnings, ...post.warnings],
-    issueLogEntries: [...pre.issueLogEntries, ...post.issueLogEntries],
+    warnings: [...(pre?.warnings || []), ...terminal.warnings],
+    issueLogEntries: [...(pre?.issueLogEntries || []), ...terminal.issueLogEntries],
   };
 }
 
