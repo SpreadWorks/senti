@@ -161,8 +161,17 @@ C.1. **Ask the CLI for the next action**
    - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
+   - If the result has `yieldsControl: true`, treat `actionPrompt` as the complete recovery contract before evaluating any normal action:
+     1. Render `actionPrompt.question`, every choice, each `actionId`, label, impact, reason, state transition, and `recommendationReason` exactly as returned.
+     2. Do not omit, reword, replace, reorder, merge, or invent choices.
+     3. Wait for an explicit user selection. A recommendation is not permission.
+     4. Execute only the selected choice's exact `nextAction`. Substitute placeholders only with values the user explicitly supplied.
+     5. Re-fetch guarded `senti flow get next-action` after the command, including after failure. Never reuse the old prompt.
+   - An incomplete result without a valid `actionPrompt`, or a prompt choice without an executable `nextAction` or state transition, is a CLI contract failure. STOP instead of generating free-form recovery guidance.
+   - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
 
 C.1.5. **Auto-upgrade check (spec 232)**
+   - Skip this check for a response with `yieldsControl: true`; resolve its typed `actionPrompt` first.
    - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
      ```
      ──────────────────────────────────────────────────────────
@@ -209,6 +218,7 @@ C.2. **Execute instructions**
       - `awaiting-decision` (`AwaitingDecisionOutcome`): STOP and present the decision and resume instruction.
       - `external-blocked` (`ExternalBlockedOutcome`): STOP and present the external blocker and resume instruction.
       - State corruption or target mismatch: STOP without issuing another mutating command.
+   - Every incomplete control return, including the stopped outcomes above, must be presented through its CLI-provided `actionPrompt`. Do not reconstruct a resume choice from `lastStepOutcome`, errors, exit status, or prose instructions.
 
 C.3. **Loop**
    - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.
@@ -229,6 +239,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 - Do not advance past any step whose `requires_approval` is `true` without explicit user approval.
 - **autoApprove exception:** when `autoApprove: true`, `requires_approval: true` is satisfied by auto-selecting `[1]`.
+- **Non-auto-selectable actions:** autoApprove never selects entry into direct mode, already-merged adoption/reconcile, risk acceptance, deletion, orphan handling, or force actions.
 
 ### No-auto-promote
 
@@ -294,6 +305,7 @@ When implementation reveals that the spec needs additional tasks:
 # Reference forms below omit `targetGuardArgs`; when a dispatcher target is bound, append the required `--expect-run-id` / `--expect-issue` / `--expect-spec` guards.
 senti flow get status
 senti flow get next-action
+senti flow get direct
 senti flow get context [<path> | --search "..."] [--raw]
 senti flow get guardrail <draft|spec|task-spec|task-impl|integration|test|lint|review>  # alias: impl -> task-impl
 senti flow get prompt <kind>
@@ -326,6 +338,7 @@ senti flow run finalize-commit [--message "<msg>"]
 senti flow run finalize-merge
 senti flow run finalize-sync
 senti flow run finalize-cleanup
+senti flow run direct --action <CLI-provided-action>
 senti flow run reopen-draft [--reason "<text>"]
 senti flow run report [--dry-run]
 senti snapshot check

@@ -269,9 +269,10 @@ function buildStatusOutput(state, root, options = {}) {
     ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state), flowState: state })
     : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
   const finalRegression = buildFinalRegressionStatus(root, state);
+  const completion = new FlowCompletion(state);
 
   const output = {
-    active: !new FlowCompletion(state).complete,
+    active: completion.active,
     spec: state.spec,
     baseBranch: state.baseBranch,
     featureBranch: state.featureBranch,
@@ -289,6 +290,11 @@ function buildStatusOutput(state, root, options = {}) {
     ...(retryRecovery && { retryRecovery }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
+    completion: completion.toJSON(),
+    ...(state.directFlowSession && { directFlowSession: state.directFlowSession }),
+    ...(state.directResolutionPlan && { directResolutionPlan: state.directResolutionPlan }),
+    ...(state.directCompletionReceipt && { directCompletionReceipt: state.directCompletionReceipt }),
+    ...(state.directAbortReceipt && { directAbortReceipt: state.directAbortReceipt }),
   };
 
   if (!details) return output;

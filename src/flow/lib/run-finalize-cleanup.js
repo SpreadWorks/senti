@@ -55,6 +55,7 @@ import {
   FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
+import { FlowCompletion } from "./flow-completion.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
   RepositoryFlowOperationLock,
@@ -3176,11 +3177,12 @@ function restoreFinalizeIssueLog(root, state, image, issueLogIds, authorization,
 }
 
 export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
+  const completion = new FlowCompletion(state).toJSON();
   const inCleanupWorktree = Boolean(state?.worktree && worktreePath && mainRepoPath);
   if (!inCleanupWorktree) {
     return {
       root,
-      flow: state,
+      flow: { ...state, completion },
       artifactPath: `specs/${specId}`,
     };
   }
@@ -3196,7 +3198,7 @@ export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePat
   const artifactPath = path.relative(mainRepoPath, artifactDir).split(path.sep).join("/");
   return {
     root: mainRepoPath,
-    flow: { ...state, pluginArtifactRoot: artifactPath },
+    flow: { ...state, completion, pluginArtifactRoot: artifactPath },
     artifactPath,
   };
 }
@@ -3210,7 +3212,11 @@ function finalizeCleanupPrePluginLifecycleContext({ root, state, worktreePath, m
   const artifactPath = path.join(path.dirname(state.spec), "plugin-artifacts");
   return {
     root: worktreePath,
-    flow: { ...state, pluginArtifactRoot: artifactPath },
+    flow: {
+      ...state,
+      completion: new FlowCompletion(state).toJSON(),
+      pluginArtifactRoot: artifactPath,
+    },
     artifactPath,
     discardArtifactsOnSuccess: true,
   };
@@ -4486,6 +4492,16 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     const specId = specIdFromPath(state.spec);
     const reportRoot = mainRepoPath || root;
 
+    if (ctx.directFinalizeAdapter) {
+      return runTeardown(ctx, {
+        worktreePath,
+        mainRepoPath,
+        reportRoot,
+        specId,
+        finalizeAdapter: ctx.directFinalizeAdapter,
+      });
+    }
+
     // ── Stage (A) — args validation ─────────────────────────────────────────
     if (autoRescue && force) {
       return Envelope.fail("run", "finalize-cleanup", "ARGS_ERROR", [
@@ -4999,14 +5015,31 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
 }
 
 async function runTeardown(ctx, options) {
+  if (ctx.directFinalizeAdapter && !options.finalizeAdapter) {
+    options = { ...options, finalizeAdapter: ctx.directFinalizeAdapter };
+  }
   const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
   return withFinalizeTransactionStore(
     store,
-    () => runTeardownTransaction(ctx, options, store),
+    () => {
+      if (options.finalizeAdapter && !store.hasExisting()) {
+        options.finalizeAdapter.assertTeardownAuthority({
+          flowManager: ctx.flowManager,
+          state: ctx.flowState,
+          worktreePath: options.worktreePath,
+          mainRoot: options.mainRepoPath || options.reportRoot,
+          operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
+        });
+      }
+      return runTeardownTransaction(ctx, options, store);
+    },
   );
 }
 
 async function runPersistedTeardownIfPresent(ctx, options) {
+  if (ctx.directFinalizeAdapter && !options.finalizeAdapter) {
+    options = { ...options, finalizeAdapter: ctx.directFinalizeAdapter };
+  }
   const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
   return withFinalizeTransactionStore(store, async () => {
     if (!store.hasExisting()) return null;
@@ -5414,7 +5447,7 @@ async function runTeardownTransaction(ctx, options, transactionStore) {
 
 async function runTeardownTransactionOwned(
   ctx,
-  { worktreePath, mainRepoPath, reportRoot, specId },
+  { worktreePath, mainRepoPath, reportRoot, specId, finalizeAdapter = null },
   transactionStore,
   publicationAuthority,
 ) {
@@ -5971,6 +6004,7 @@ async function runTeardownTransactionOwned(
   }
   const completionData = {
     status: "done",
+    ...(finalizeAdapter?.completionData || {}),
     pluginHooks: pluginLifecycle.data?.pluginHooks || [],
     followUps: pluginLifecycle.data?.followUps || [],
     retainedCleanupMetadata: retainedCleanupMetadata
@@ -5978,7 +6012,11 @@ async function runTeardownTransactionOwned(
       : null,
   };
   if (!transaction.phase.atLeast("completed")) {
-    completeFinalizeCleanupStep(targetFm, specId, ctx.repositoryOperationOwnerToken);
+    if (finalizeAdapter) {
+      finalizeAdapter.complete(targetFm, specId, ctx.repositoryOperationOwnerToken);
+    } else {
+      completeFinalizeCleanupStep(targetFm, specId, ctx.repositoryOperationOwnerToken);
+    }
     const completionOutbox = new FlowOutboxStore(targetFm, {
       specId,
       operationOwnerToken: ctx.repositoryOperationOwnerToken,

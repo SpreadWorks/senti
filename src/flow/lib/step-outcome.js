@@ -6,6 +6,11 @@
  * only in the persisted JSON representation.
  */
 
+import {
+  genericFlowStopPrompt,
+  UserActionPrompt,
+} from "./user-action-prompt.js";
+
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`${field} must be a non-empty string`);
@@ -21,7 +26,13 @@ function requireAttempt(value) {
 }
 
 export class StepOutcome {
-  constructor({ terminal, nextAction = null, resumeInstruction = null }) {
+  constructor({
+    terminal,
+    nextAction = null,
+    resumeInstruction = null,
+    yieldsControl = false,
+    prompt = null,
+  }) {
     if (new.target === StepOutcome) throw new Error("StepOutcome is abstract");
     if (typeof terminal !== "boolean") throw new Error("step outcome terminal must be boolean");
     if (nextAction != null) requireString(nextAction, "nextAction");
@@ -32,6 +43,12 @@ export class StepOutcome {
     this.terminal = terminal;
     this.nextAction = nextAction;
     this.resumeInstruction = resumeInstruction;
+    if (typeof yieldsControl !== "boolean") throw new Error("step outcome yieldsControl must be boolean");
+    this.yieldsControl = yieldsControl;
+    this.prompt = prompt == null ? null : UserActionPrompt.fromStored(prompt);
+    if (this.yieldsControl !== (this.prompt != null)) {
+      throw new Error("step outcome yieldsControl requires exactly one valid UserActionPrompt");
+    }
   }
 
   toJSON() {
@@ -40,6 +57,11 @@ export class StepOutcome {
       terminal: this.terminal,
       ...(this.nextAction ? { nextAction: this.nextAction } : {}),
       ...(this.resumeInstruction ? { resumeInstruction: this.resumeInstruction } : {}),
+      ...(this.yieldsControl ? {
+        yieldsControl: true,
+        requiresUserAction: true,
+        actionPrompt: this.prompt.toJSON(),
+      } : {}),
     };
   }
 
@@ -50,6 +72,7 @@ export class StepOutcome {
     const common = {
       nextAction: value.nextAction,
       resumeInstruction: value.resumeInstruction,
+      prompt: value.actionPrompt,
     };
     if (value.kind === "retry") return new RetryOutcome({ nextAction: value.nextAction });
     if (value.kind === "decision") {
@@ -106,9 +129,20 @@ export class DeferOutcome extends StepOutcome {
 }
 
 class StoppedOutcome extends StepOutcome {
-  constructor({ reason, resumeInstruction }) {
-    super({ terminal: true, resumeInstruction });
-    this.reason = requireString(reason, "reason");
+  constructor({ reason, resumeInstruction, prompt = null }) {
+    const normalizedReason = requireString(reason, "reason");
+    const normalizedInstruction = requireString(resumeInstruction, "resumeInstruction");
+    super({
+      terminal: true,
+      resumeInstruction: normalizedInstruction,
+      yieldsControl: true,
+      prompt: prompt || genericFlowStopPrompt({
+        state: null,
+        code: "STEP_STOPPED",
+        message: normalizedReason,
+      }),
+    });
+    this.reason = normalizedReason;
   }
 
   toJSON() {
