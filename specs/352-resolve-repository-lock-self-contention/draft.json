@@ -1,0 +1,66 @@
+{
+  "devType": "bugfix",
+  "goal": "同一 dispatcher invocation 内の repository flow-operation lock 自己競合を解消し、command body から post-hook、outbox、runtime metadata まで成功した flow command が成功として完了するようにする。",
+  "analysis": {
+    "problem": "lock-required mutation の command body が durable な副作用を完了した後も、同じ invocation の post-hook、outbox 確定、runtime metadata 保存が repository flow-operation lock を再取得して自己競合し、最終結果だけが失敗になる。",
+    "proposedApproach": "dispatcher lifecycle と repository lock lifecycle の保持境界を揃え、同一 process の直列処理は現在の lock owner token と一致する場合だけ既存 lock を借用し、それ以外は完全解放後だけに再取得を許す。外部 owner の競合検出と outbox の idempotent retry は維持する。",
+    "validation": "test-execute、finalize-commit、finalize-sync の lifecycle 成功を確認し、foreign live PID lock の fail-closed、fault injection 後の outbox 再開による副作用非重複、owner/requester/operation/boundary を含む機械可読 diagnostics を検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "RepositoryFlowOperationLock は operationOwnerToken と同じ既存 owner を borrowed として扱う仕組みを持つ。",
+      "RepositoryMaintenanceLock と foreign flow-operation lock は相互排他であり、live、unknown、corrupt owner を fail-closed で拒否する既存テストがある。",
+      "dispatcher は command 成功後に post-hook、runtime log close、runtime metadata 保存を順番に実行する。",
+      "Issue #474 は、同一 invocation の command body、post-hook、outbox、runtime metadata が成功した場合に ok: true / exit 0 を要求する。"
+    ],
+    "decisionPoints": [
+      "must: 同一 invocation の lock-required lifecycle が command body から post-hook、outbox、runtime metadata まで自己競合なく完了すること。"
+    ],
+    "resolvedByProjectRules": [
+      "must: foreign live PID lock の取得を拒否する fail-closed 契約を維持する。",
+      "must: retry は同一 outbox entry を再開し、commit、docs sync、step transition を重複させない。",
+      "must: lock contention diagnostics を追加する場合は、owner、requester、operation、holding boundary を検証する専用クラスで表現する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "既存 owner token の借用と完全解放後の再取得のどちらで lock lifecycle を実現するか。",
+      "lock owner、requester、operation、holding boundary をどの error と envelope data に保持するか。",
+      "dispatcher、flow store、atomic writer、finalization command の責務分担とテストケース。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: dispatcher invocation 内の command body、post-hook、outbox 確定、runtime metadata 保存における repository lock lifecycle。",
+      "must: test-execute、finalize-commit、finalize-sync の成功結果と retry の idempotency。",
+      "must: lock contention diagnostics の機械可読な owner、requester、operation、holding boundary。"
+    ],
+    "out": [
+      "repository lock と無関係な flow command の動作変更。",
+      "foreign owner に対する fail-open または lock 取得待機への変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: lock-required flow command の成功判定は、command body だけでなく post-hook、outbox、runtime metadata まで成功した場合に ok: true / exit 0 となる。",
+    "must: foreign live、unknown、corrupt lock owner に対する既存の fail-closed error code と無変更保証を検証する。",
+    "must: durable boundary 後の retry は既存の outbox entry と idempotency identity を利用し、副作用を重複させない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "同一 process 内で直列に実行される lock-required lifecycle が、repository lock の自己競合により失敗せず完了することを要求しますか。",
+      "answer": "must: 同一 process 内で直列に実行される lock-required lifecycle は、repository lock の自己競合により失敗せず完了しなければならない。",
+      "evidence": "src/lib/repository-maintenance-lock.js の RepositoryFlowOperationLock は一致する operationOwnerToken を borrowed として扱い、src/lib/dispatcher.js は command 成功後に post-hook、runtime log close、runtime metadata 保存を順に実行する。",
+      "why": "Issue が成功条件を明示しており、実装方式ではなく観測可能な振る舞いを要件として固定するため。",
+      "considered": "既存 owner token の借用か完全解放後の再取得かは、Issue が両方を許容しているため spec の内部設計として扱う。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-26T02:07:32.219Z",
+    "notes": ""
+  }
+}

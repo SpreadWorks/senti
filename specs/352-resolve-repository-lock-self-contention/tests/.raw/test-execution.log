@@ -1,0 +1,77 @@
+[senti] spec-local tests start
+command: node --test specs/352-resolve-repository-lock-self-contention/tests/repository-lock-lifecycle.test.js
+process.kind: passed
+process.command: node --test specs/352-resolve-repository-lock-self-contention/tests/repository-lock-lifecycle.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1669
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 280.813271
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: repository lock lifecycle
+    # Subtest: R1: borrows a same-process lock without releasing the outer owner
+    ok 1 - R1: borrows a same-process lock without releasing the outer owner
+      ---
+      duration_ms: 13.730192
+      type: 'test'
+      ...
+    # Subtest: R2: persists runtime metadata while the dispatcher invocation owns the operation lock
+    ok 2 - R2: persists runtime metadata while the dispatcher invocation owns the operation lock
+      ---
+      duration_ms: 48.233572
+      type: 'test'
+      ...
+    # Subtest: R3: rejects a foreign live lock with owner, requester, and boundary diagnostics
+    ok 3 - R3: rejects a foreign live lock with owner, requester, and boundary diagnostics
+      ---
+      duration_ms: 2.471573
+      type: 'test'
+      ...
+    # Subtest: R4: records the lifecycle retry phase in a draft review artifact
+    ok 4 - R4: records the lifecycle retry phase in a draft review artifact
+      ---
+      duration_ms: 1.158526
+      type: 'test'
+      ...
+    # Subtest: R5: approves a resolved draft after a passing coverage route
+    ok 5 - R5: approves a resolved draft after a passing coverage route
+      ---
+      duration_ms: 2.781335
+      type: 'test'
+      ...
+    # Subtest: R6: keeps the lock and draft lifecycle regressions executable together
+    ok 6 - R6: keeps the lock and draft lifecycle regressions executable together
+      ---
+      duration_ms: 0.502963
+      type: 'test'
+      ...
+    1..6
+ok 1 - repository lock lifecycle
+  ---
+  duration_ms: 70.901451
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 280.813271
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] spec-local tests end

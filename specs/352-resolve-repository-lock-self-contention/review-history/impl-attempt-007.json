@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T03:10:14.059Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "foreign-owner-misclassified-as-same-process",
+      "title": "Foreign live owners can be borrowed as same-process locks",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/repository-maintenance-lock.js",
+      "requirementId": "R3",
+      "issue": "T3 requires foreign live locks to be rejected, but the process-wide `PROCESS_OPERATION_OWNERS` map is keyed only by `lockPath`. After one `RepositoryFlowOperationLock` acquires and releases is delayed, any later lock object in the same Node process can borrow the lock solely because the on-disk owner token matches the cached token. That means a caller without an explicit owner token can be treated as the owner even when its supplied identity source would represent a different requester boundary.",
+      "suggestion": "Only borrow when the requester identity matches the existing lock owner identity, or store enough owner identity with the process cache to verify same-process ownership before returning the cached token. Add a regression assertion in the R3 diagnostics tests where a second lock with a different process identity source cannot borrow an existing live owner and instead receives contention diagnostics.",
+      "disposition": "must-fix",
+      "rationale": "This is tied to the mandatory T3 acceptance criteria: foreign locks must reject, and contention errors must identify owner/requester/boundary. The current cache can bypass the rejection path entirely for a lock that should be considered foreign to the requester.",
+      "findingId": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "fingerprint": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "2cda126d7285075b5c2589b9771f256c9132eb33f2a9e743b3336d9e6c774054",
+  "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+  "planRewindAt": null,
+  "taskId": "T3",
+  "target": "specs/352-resolve-repository-lock-self-contention/tasks/T3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/352-resolve-repository-lock-self-contention/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "25204ac73d5d5518157d9217750545072c8196635126c543f3ab0fd08ac75e46"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "findingId": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Foreign live owners can be borrowed as same-process locks",
+      "body": "T3 requires foreign live locks to be rejected, but the process-wide `PROCESS_OPERATION_OWNERS` map is keyed only by `lockPath`. After one `RepositoryFlowOperationLock` acquires and releases is delayed, any later lock object in the same Node process can borrow the lock solely because the on-disk owner token matches the cached token. That means a caller without an explicit owner token can be treated as the owner even when its supplied identity source would represent a different requester boundary.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "disposition": "must-fix",
+      "rationale": "This is tied to the mandatory T3 acceptance criteria: foreign locks must reject, and contention errors must identify owner/requester/boundary. The current cache can bypass the rejection path entirely for a lock that should be considered foreign to the requester.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

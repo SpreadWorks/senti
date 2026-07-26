@@ -1,0 +1,650 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review-questions.json: phase must be draft-questions-review; draft-review-coverage.json: phase must be draft-coverage-review; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T02:07:51.066Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review-questions.json: phase must be draft-questions-review",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review-coverage.json: phase must be draft-coverage-review",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-b0068b9b-0a9d-4e6e-94f6-59014b7d9787"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The phrase \"既存 owner を安全に共有する\" uses the vague adjective \"安全に\" without stating verifiable conditions for what safe sharing requires.; The requirement to share the existing owner \"安全に\" is subjective and does not provide measurable criteria that would let two independent reviewers agree whether an implementation satisfies it.; This requirement is not assigned one of the required priorities: must, should, or nice-to-have.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T02:16:49.955Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The phrase \"既存 owner を安全に共有する\" uses the vague adjective \"安全に\" without stating verifiable conditions for what safe sharing requires.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement to share the existing owner \"安全に\" is subjective and does not provide measurable criteria that would let two independent reviewers agree whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "This requirement is not assigned one of the required priorities: must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"既存 owner を安全に共有する\" uses the vague adjective \"安全に\" without stating verifiable conditions for what safe sharing requires."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement to share the existing owner \"安全に\" is subjective and does not provide measurable criteria that would let two independent reviewers agree whether an implementation satisfies it."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "This requirement is not assigned one of the required priorities: must, should, or nice-to-have."
+        }
+      ],
+      "issueLogId": "issue-log-0b1d81f4-d02b-48bc-82c8-eceb57675b90"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.; The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T02:17:24.266Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns."
+        }
+      ],
+      "issueLogId": "issue-log-dfcba75f-40ec-4bbc-828f-49618dbf8649"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The constraint refers to retry behavior but does not state an explicit upper bound such as retry count or limit.; The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.; The test strategy says R4, R5, and R6 are verified by unit tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.; The test strategy says R1, R2, and R6 are verified by lock and dispatcher regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.; The test strategy says R3 and R6 are verified by rejection tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T02:27:26.195Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[2]"
+          },
+          "observed": "The constraint refers to retry behavior but does not state an explicit upper bound such as retry count or limit.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[0].test_strategy"
+          },
+          "observed": "The test strategy says R4, R5, and R6 are verified by unit tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[1].test_strategy"
+          },
+          "observed": "The test strategy says R1, R2, and R6 are verified by lock and dispatcher regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[2].test_strategy"
+          },
+          "observed": "The test strategy says R3 and R6 are verified by rejection tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The constraint refers to retry behavior but does not state an explicit upper bound such as retry count or limit."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy says R4, R5, and R6 are verified by unit tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy says R1, R2, and R6 are verified by lock and dispatcher regression tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test strategy says R3 and R6 are verified by rejection tests, but does not require new spec behavior coverage under specs/<specid>/tests/ with a // spec: R<N> header per file."
+        }
+      ],
+      "issueLogId": "issue-log-517247b6-3116-4fba-a7b2-d50b6a9daa98"
+    },
+    {
+      "step": "task-review",
+      "reason": "Split the draft lifecycle coverage into its required spec-owned test file.",
+      "normalizedFindingId": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "repairRef": {
+        "files": [
+          "specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js"
+        ]
+      },
+      "taskId": "T1",
+      "timestamp": "2026-07-26T02:55:17.141Z",
+      "issueLogId": "issue-log-ee1c35db-b6d9-4bd6-91fc-7c90d5b66cd2"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed the duplicate artifact phase assertion while retaining the lifecycle contract coverage.",
+      "normalizedFindingId": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T1",
+      "timestamp": "2026-07-26T02:55:23.318Z",
+      "issueLogId": "issue-log-9010157b-7e2e-450c-9171-f79a19229ecd"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed the shared checkpoint phase assertion; the dedicated spec lifecycle test is the single behavioral owner for R4.",
+      "normalizedFindingId": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "repairRef": {
+        "files": [
+          "tests/unit/flow/commands/review.test.js"
+        ]
+      },
+      "taskId": "T1",
+      "timestamp": "2026-07-26T02:56:48.048Z",
+      "issueLogId": "issue-log-fd1e53fb-84eb-47f1-ae7b-97639cc71b68"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added `catch` block returns `false` without logging or re-throwing the parse/read error.; The added `catch` block discards errors from diagnostic contention construction without logging or re-throwing them.; The diff adds a single-caller helper that only wraps a local `spec.json` read/parse and boolean check, without hiding meaningful complexity or enforcing an invariant.; The diff adds a single-caller wrapper method that only delegates to `processIdentitySource.createOwner(crypto.randomUUID())`, adding API surface without shared behavior, ownership boundary, or invariant enforcement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T02:58:10.233Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/run-recover-existing-implementation.js",
+            "locator": "approvedSpec catch block"
+          },
+          "observed": "The added `catch` block returns `false` without logging or re-throwing the parse/read error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/lib/repository-maintenance-lock.js",
+            "locator": "RepositoryFlowOperationLock.#attachContention catch block"
+          },
+          "observed": "The added `catch` block discards errors from diagnostic contention construction without logging or re-throwing them.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-recover-existing-implementation.js",
+            "locator": "approvedSpec"
+          },
+          "observed": "The diff adds a single-caller helper that only wraps a local `spec.json` read/parse and boolean check, without hiding meaningful complexity or enforcing an invariant.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/lib/repository-maintenance-lock.js",
+            "locator": "ProcessOwnedRepositoryLock.requesterIdentity"
+          },
+          "observed": "The diff adds a single-caller wrapper method that only delegates to `processIdentitySource.createOwner(crypto.randomUUID())`, adding API surface without shared behavior, ownership boundary, or invariant enforcement.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added `catch` block returns `false` without logging or re-throwing the parse/read error."
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added `catch` block discards errors from diagnostic contention construction without logging or re-throwing them."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a single-caller helper that only wraps a local `spec.json` read/parse and boolean check, without hiding meaningful complexity or enforcing an invariant."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a single-caller wrapper method that only delegates to `processIdentitySource.createOwner(crypto.randomUUID())`, adding API surface without shared behavior, ownership boundary, or invariant enforcement."
+        }
+      ],
+      "issueLogId": "issue-log-ad75b41f-9d1e-4ec1-83a3-341beb7fbb61"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed single-use approval and requester wrappers, and preserve non-live lock failures without diagnostic construction",
+      "resolution": "Spec approval now relies on the validated spec directly; contention metadata is created only for live busy owners, so unknown, stale, and corrupt locks remain fail-closed.",
+      "taskId": "T1",
+      "timestamp": "2026-07-26T02:59:51.340Z",
+      "issueLogId": "issue-log-4fc81c94-e7e7-4c8b-afce-3da88d5e6bdd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds a non-trivial task-lifecycle recovery data flow for existing implementation recovery, including alternate transitions for task flows, but the supplied spec/issue-log content does not provide evidence that this broader design direction was confirmed before implementation.; The diff adds multiple accepted lifecycle transition patterns for existing implementation revalidation, including task-flow and premature-verification paths, but the supplied spec/issue-log content does not provide evidence that this broader transition policy design was confirmed before implementation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-26T03:00:24.029Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-recover-existing-implementation.js",
+            "locator": "recoveryTransition / task recovery lifecycle additions"
+          },
+          "observed": "The diff adds a non-trivial task-lifecycle recovery data flow for existing implementation recovery, including alternate transitions for task flows, but the supplied spec/issue-log content does not provide evidence that this broader design direction was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/step-transition-policy.js",
+            "locator": "ExplicitRecoveryTransition validation for EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT"
+          },
+          "observed": "The diff adds multiple accepted lifecycle transition patterns for existing implementation revalidation, including task-flow and premature-verification paths, but the supplied spec/issue-log content does not provide evidence that this broader transition policy design was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds a non-trivial task-lifecycle recovery data flow for existing implementation recovery, including alternate transitions for task flows, but the supplied spec/issue-log content does not provide evidence that this broader design direction was confirmed before implementation."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds multiple accepted lifecycle transition patterns for existing implementation revalidation, including task-flow and premature-verification paths, but the supplied spec/issue-log content does not provide evidence that this broader transition policy design was confirmed before implementation."
+        }
+      ],
+      "issueLogId": "issue-log-7632c9d7-4b57-4a63-a6d8-0bfeb489dca6"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed task-lifecycle recovery extensions unrelated to the approved lock and draft lifecycle requirements",
+      "resolution": "The already-recovered flow state remains intact; the delivered diff now contains only the approved repository lock ownership, contention diagnostics, and draft lifecycle behavior.",
+      "taskId": "T1",
+      "timestamp": "2026-07-26T03:03:01.391Z",
+      "issueLogId": "issue-log-13a1812d-b7aa-4136-a308-61becba87b34"
+    },
+    {
+      "step": "task-review",
+      "reason": "Restored strict rejection for a review disposition that conflicts with mandatory requirement or blocking guardrail authority.",
+      "normalizedFindingId": "37fcf75e4de9d664460d566a7d571dbe3c729a33c4fa5a7fa8186a28b175999f",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/finding-disposition-policy.js"
+        ]
+      },
+      "taskId": "T2",
+      "timestamp": "2026-07-26T03:06:35.919Z",
+      "issueLogId": "issue-log-9ac8f8d1-d7a1-4e1e-8e34-1fd11e1370d2"
+    },
+    {
+      "step": "task-review",
+      "reason": "Attach contention metadata for live, unknown, and corrupt operation-lock failures, with null owner for malformed content.",
+      "normalizedFindingId": "cbbdd6b2cbe2d7e7b1a6aa59a251082021aaf2f48f4be6956e1488fb2d5ee1be",
+      "repairRef": {
+        "files": [
+          "specs/352-resolve-repository-lock-self-contention/tests/repository-lock-diagnostics.test.js"
+        ]
+      },
+      "taskId": "T3",
+      "timestamp": "2026-07-26T03:09:47.989Z",
+      "issueLogId": "issue-log-f7a383dd-5294-4cf2-b7d2-b986c3d28a39"
+    },
+    {
+      "step": "task-review",
+      "reason": "Registry now records the owning ProcessIdentity and borrows only when both the visible owner token and requester liveness identity match.",
+      "normalizedFindingId": "e5367925ac4f00b323832da9d1ed33901e7dcaa69ce699e98005c982a95d7f4b",
+      "repairRef": {
+        "files": [
+          "src/lib/repository-maintenance-lock.js"
+        ]
+      },
+      "taskId": "T3",
+      "timestamp": "2026-07-26T03:11:32.519Z",
+      "issueLogId": "issue-log-abdaf78e-4a58-42f8-84b7-77ce5421b21e"
+    },
+    {
+      "step": "task-review",
+      "reason": "Contention requester now uses the configured lock identity source; unavailable requester identity is retained as requesterError without replacing the lock refusal.",
+      "normalizedFindingId": "4292e0a4d7f79d9ae5aa37c7c525b27260c0044bb5e9a175051af8e9277f327c",
+      "repairRef": {
+        "files": [
+          "src/lib/repository-maintenance-lock.js"
+        ]
+      },
+      "taskId": "T3",
+      "timestamp": "2026-07-26T03:13:22.791Z",
+      "issueLogId": "issue-log-fa3c8380-2352-4bbb-9834-d8c5d7da8f72"
+    },
+    {
+      "step": "task-review",
+      "reason": "Expanded the unknown-owner assertion to verify the parsed owner token and configured requester identity are preserved in contention diagnostics.",
+      "normalizedFindingId": "1c7e480cebbeaa86c9c7acb6514e5db6f8cda7ac48bce83cad2af80f304cf51e",
+      "repairRef": {
+        "files": [
+          "specs/352-resolve-repository-lock-self-contention/tests/repository-lock-diagnostics.test.js"
+        ]
+      },
+      "taskId": "T3",
+      "timestamp": "2026-07-26T03:13:29.580Z",
+      "issueLogId": "issue-log-a0885556-e959-4ba4-b8f3-099675c1ca5b"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_FIX",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
+      "planRevision": 1,
+      "sourceStep": "implement",
+      "skippedSteps": [
+        "impl-review",
+        "impl-triage",
+        "impl-repair",
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": "subprocess_failure",
+      "findings": [
+        {
+          "findingId": "flow-finding:DF-1",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        },
+        {
+          "findingId": "flow-finding:DF-2",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        }
+      ],
+      "timestamp": "2026-07-26T12:24:19.578Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:56a88d9e-c305-427a-b278-ae0df9e97391:direct-plan-75d7ae2e6cb3fd04d637e7e3:r1"
+    },
+    {
+      "step": "direct-recovery",
+      "reason": "Re-run corrected bounded verification for the retained target.",
+      "trigger": "REOPEN_ABORTED_DIRECT",
+      "resolution": "Archived the abort receipt and reopened the retained target for bounded verification.",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
+      "planRevision": 2,
+      "abortReceiptId": "direct-abort-f44e4d32e68fdba99b63912ed826f730",
+      "sourceStep": "implement",
+      "timestamp": "2026-07-26T14:34:24.614Z",
+      "taskId": null,
+      "issueLogId": "direct-recovery:56a88d9e-c305-427a-b278-ae0df9e97391:direct-abort-f44e4d32e68fdba99b63912ed826f730:r2"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_FIX",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "planId": "direct-plan-75d7ae2e6cb3fd04d637e7e3",
+      "planRevision": 3,
+      "sourceStep": "implement",
+      "skippedSteps": [
+        "impl-review",
+        "impl-triage",
+        "impl-repair",
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": "subprocess_failure",
+      "findings": [
+        {
+          "findingId": "flow-finding:DF-1",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        },
+        {
+          "findingId": "flow-finding:DF-2",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Resolve the deferred finding in direct mode and cover it with deterministic verification.",
+          "changeTargets": [],
+          "rationale": "The finding remains unresolved in the durable Flow finding ledger."
+        },
+        {
+          "findingId": "r4-retry-phase-persistence",
+          "classification": "FIX_REQUIRED",
+          "selectedResolution": "Persist stage.retryPhase and pass retryPhase in the R4 fixture.",
+          "changeTargets": [
+            "src/flow/commands/review.js",
+            "tests/unit/flow/commands/review.test.js",
+            "specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js"
+          ],
+          "rationale": "R4 requires retry phase as the canonical artifact identity, so both production persistence and its regression fixture must model that lifecycle input."
+        }
+      ],
+      "timestamp": "2026-07-26T12:24:19.578Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:56a88d9e-c305-427a-b278-ae0df9e97391:direct-plan-75d7ae2e6cb3fd04d637e7e3:r3"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+[senti] scenario-validity preflight block
+command: diff --name-only main -- src/ tests/ package.json .senti/config.json
+invalid_paths: package.json, src/flow/definition.js, src/flow/lib/run-gate.js, src/lib/agent.js, src/lib/log.js, src/lib/repository-maintenance-lock.js, src/lib/worktree-cli-execution.js, src/senti.js, tests/e2e/flow/worktree-cli-execution.test.js, tests/unit/flow/commands/review.test.js, tests/unit/lib/agent.test.js, tests/unit/lib/log.test.js, tests/unit/lib/repository-maintenance-lock.test.js, tests/unit/flow/draft-review-route-artifacts.test.js
+[senti] requirement R1 result invalid_test
+[senti] requirement R2 result invalid_test
+[senti] requirement R3 result invalid_test
+[senti] requirement R4 result invalid_test
+[senti] requirement R5 result invalid_test
+[senti] requirement R6 result invalid_test
+[senti] scenario-validity preflight end

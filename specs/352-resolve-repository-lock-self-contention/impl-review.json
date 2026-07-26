@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T03:13:56.883Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "unknown-owner-diagnostics-dropped",
+      "title": "Unknown live-owner diagnostics lose the owner identity",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/repository-maintenance-lock.js",
+      "requirementId": "R3",
+      "issue": "`RepositoryFlowOperationLock.acquire()` catches failures from `this.lock.inspect()` and calls `#attachContention(error, null)`. For a well-formed flow-operation lock whose owner liveness is unknown, the refusal is still an unknown-lock rejection but the attached contention has `owner: null`, so callers cannot identify the owner from the contention error.",
+      "suggestion": "Preserve the parsed lock owner when `inspect()` rejects for unknown owner liveness, or add a lock-core helper that returns the parsed owner together with the refusal. The R3 unknown-owner test should assert that `error.contention.owner.ownerToken` is populated for a well-formed unknown lock.",
+      "disposition": "deferred",
+      "rationale": "T3 acceptance requires foreign, unknown, and malformed lock refusals to expose owner, requester, and operation boundary diagnostics. Dropping the owner identity for a well-formed unknown lock violates that mandatory R3 diagnostic contract and blocks recovery decisions.",
+      "findingId": "1c7e480cebbeaa86c9c7acb6514e5db6f8cda7ac48bce83cad2af80f304cf51e",
+      "fingerprint": "1c7e480cebbeaa86c9c7acb6514e5db6f8cda7ac48bce83cad2af80f304cf51e",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "a39c960684e45f9dd80803cc314edac4089104911d01cde39bacbd9c42f6b27b",
+  "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+  "planRewindAt": null,
+  "taskId": "T3",
+  "target": "specs/352-resolve-repository-lock-self-contention/tasks/T3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/352-resolve-repository-lock-self-contention/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "cbe9940c4a2e21c85827f93b7d072950fdb174190589d404ca3d6588c297a1ac"
+  },
+  "treeSha": "7a1ed1731ab4a05af2968fe01b1f537789d1102b",
+  "targetStateDigest": "a39c960684e45f9dd80803cc314edac4089104911d01cde39bacbd9c42f6b27b"
+}

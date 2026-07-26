@@ -49,6 +49,46 @@ describe("repository maintenance lock", () => {
     flow.release();
   });
 
+  it("shares a flow-operation lock within the owning process", () => {
+    tmp = createTmpDir("repository-flow-reentrant-");
+    const outer = new RepositoryFlowOperationLock({ mainRoot: tmp, processIdentitySource: identitySource() });
+    const ownerToken = outer.acquire();
+    const nested = new RepositoryFlowOperationLock({ mainRoot: tmp, processIdentitySource: identitySource() });
+
+    assert.equal(nested.acquire(), ownerToken);
+    nested.release();
+    assert.equal(fs.existsSync(path.join(tmp, ".senti", ".repository-flow-operation.lock")), true);
+
+    outer.release();
+    assert.equal(fs.existsSync(path.join(tmp, ".senti", ".repository-flow-operation.lock")), false);
+  });
+
+  it("reports structured diagnostics for a foreign live flow-operation owner", () => {
+    tmp = createTmpDir("repository-flow-foreign-diagnostics-");
+    const lockPath = path.join(tmp, ".senti", ".repository-flow-operation.lock");
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+    fs.writeFileSync(lockPath, `${JSON.stringify({
+      version: 1,
+      kind: "repository-flow-operation",
+      mainRoot: fs.realpathSync(tmp),
+      processIdentity: {
+        pid: process.pid,
+        bootIdentity: "boot",
+        startFingerprint: "100",
+        ownerToken: "11111111-1111-4111-8111-111111111111",
+      },
+    })}\n`);
+
+    assert.throws(
+      () => new RepositoryFlowOperationLock({ mainRoot: tmp, processIdentitySource: identitySource() }).acquire(),
+      (error) => error.code === "REPOSITORY_FLOW_OPERATION_BUSY"
+        && error.contention?.owner?.ownerToken === "11111111-1111-4111-8111-111111111111"
+        && error.contention?.requester?.pid === process.pid
+        && error.contention?.operation === "repository-flow-operation"
+        && error.contention?.boundary === "acquire",
+    );
+  });
+
   it("fails closed for malformed, stale, and unknown maintenance owners", () => {
     tmp = createTmpDir("repository-maintenance-owner-");
     const lockPath = RepositoryMaintenanceLock.pathFor(tmp);

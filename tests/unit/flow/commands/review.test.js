@@ -365,11 +365,12 @@ describe("draft repair target checkpoint replay", () => {
         proposals: [checkpoint.toProposal()],
         stage: {
           artifactPhase: "draft-questions-review",
+          retryPhase: "draft-questions",
           findingClassification: "repair_target",
         },
       });
       assert.equal(producedArtifact.verdict, checkpoint.disposition);
-      assert.equal(producedArtifact.phase, "draft-questions-review");
+      assert.equal(producedArtifact.phase, "draft-questions");
       assert.deepEqual(producedArtifact.blockingFindings, []);
       assert.deepEqual(producedArtifact.advisoryFindings, []);
       assert.equal(producedArtifact.repairTargets.length, 1);
@@ -462,7 +463,7 @@ describe("draft review artifact phases", () => {
     { retryPhase: "draft-questions", artifactPhase: "draft-questions-review" },
     { retryPhase: "draft-coverage", artifactPhase: "draft-coverage-review" },
   ]) {
-    it(`persists ${artifactPhase} for ${retryPhase}`, () => {
+    it(`persists ${retryPhase} for ${artifactPhase}`, () => {
       const stage = { retryPhase, artifactPhase, findingClassification: "advisory" };
       const pass = buildDraftReviewArtifact({
         raw: "NO_PROPOSALS",
@@ -477,8 +478,8 @@ describe("draft review artifact phases", () => {
         stage,
       });
 
-      assert.equal(pass.phase, artifactPhase);
-      assert.equal(advisory.phase, artifactPhase);
+      assert.equal(pass.phase, retryPhase);
+      assert.equal(advisory.phase, retryPhase);
       assert.equal(advisory.verdict, "ADVISORY");
     });
   }

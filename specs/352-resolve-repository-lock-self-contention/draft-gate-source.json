@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-26T02:17:24.209Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "96220e2758556ffdc02f159b675a93172e009722e9561731c5442f5f48bf7861",
+      "fingerprint": "96220e2758556ffdc02f159b675a93172e009722e9561731c5442f5f48bf7861",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-26T02:16:49.902Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "result": "fail",
+      "reason": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+      "category": "code-quality",
+      "title": "Present Recommendations with Reasoning",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "findingId": "f480a42040827980fc11603f18b48d2ba0189f3021166736acebba5f4ad1a6d2",
+      "fingerprint": "f480a42040827980fc11603f18b48d2ba0189f3021166736acebba5f4ad1a6d2",
+      "disposition": "must-fix",
+      "rationale": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+      "requirementId": null,
+      "guardrailId": "draft-recommend-with-reasoning",
+      "reportedAt": "2026-07-26T02:17:24.209Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content",
+        "locator": "decisionMap.resolvedByProjectRules[2]"
+      },
+      "observed": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "e93534d131c917864401d175bcb95a48d17ef4d59489a95d0418844499848a31",
+      "fingerprint": "e93534d131c917864401d175bcb95a48d17ef4d59489a95d0418844499848a31",
+      "disposition": "must-fix",
+      "rationale": "Requirement uses the subjective term \"意味のある値\" without criteria that make it clear which values must be represented by dedicated classes.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-26T02:17:24.209Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "draft-recommend-with-reasoning",
+      "where": {
+        "file": "content",
+        "locator": "qa[0].evidence"
+      },
+      "observed": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+      "severity": "blocking",
+      "refs": [
+        "draft-recommend-with-reasoning"
+      ],
+      "result": "fail",
+      "guardrail_id": "draft-recommend-with-reasoning",
+      "category": "guardrail",
+      "findingId": "a3d9613ad3d83f447f7cd9d03de75bb0b3f0a72e0b282f2d27442bb466f46548",
+      "fingerprint": "a3d9613ad3d83f447f7cd9d03de75bb0b3f0a72e0b282f2d27442bb466f46548",
+      "disposition": "must-fix",
+      "rationale": "The question's stated basis cites Issue #474, but the guardrail requires the basis to be project docs/, guardrail principles, or existing code patterns.",
+      "requirementId": null,
+      "guardrailId": "draft-recommend-with-reasoning",
+      "reportedAt": "2026-07-26T02:17:24.209Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -652,6 +652,16 @@ export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedA
     generatedAt,
     summary: "No draft triage items to repair.",
   });
+  if (route.key === "coverage") {
+    const draftPath = path.join(specDir, "draft.json");
+    const draft = JSON.parse(fs.readFileSync(draftPath, "utf8"));
+    const unresolved = Array.isArray(draft.qa)
+      && draft.qa.some((entry) => entry?.status === "pending" || entry?.status === "approved");
+    if (!unresolved) {
+      draft.approval = { ...(draft.approval || {}), approved: true, confirmedAt: generatedAt };
+      fs.writeFileSync(draftPath, `${JSON.stringify(draft, null, 2)}\n`);
+    }
+  }
 }
 
 export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {

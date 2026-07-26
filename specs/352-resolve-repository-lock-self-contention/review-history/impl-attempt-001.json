@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T02:51:50.768Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-draft-review-lifecycle-spec-test",
+      "title": "Missing Required Spec Lifecycle Test",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "The task test strategy requires adding `specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js` with a `// spec: R4, R5, R6` header, but the diff adds `repository-lock-lifecycle.test.js` instead and mixes unrelated R1-R3 lock assertions into the same spec test file.",
+      "suggestion": "Add the required `draft-review-lifecycle.test.js` artifact for the draft review lifecycle checks, limit its spec header to `// spec: R4, R5, R6`, and keep lock lifecycle coverage in a separate requirement-scoped test file if still needed.",
+      "disposition": "must-fix",
+      "rationale": "This is tied to the explicit task guardrail for acceptance evidence. The implementation currently does not provide the named executable evidence artifact for the draft lifecycle requirements, so the requirement traceability check cannot reliably resolve R4-R6 coverage.",
+      "findingId": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "fingerprint": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "duplicate-phase-assertion",
+      "title": "Duplicate Phase Assertion",
+      "failureMode": "test_maintainability",
+      "file": "tests/unit/flow/commands/review.test.js",
+      "requirementId": "R4",
+      "issue": "The checkpoint replay test now asserts `producedArtifact.phase === \"draft-questions\"` twice in succession, so the added assertion does not increase coverage and makes the test noisier.",
+      "suggestion": "Remove one of the duplicate `assert.equal(producedArtifact.phase, \"draft-questions\")` assertions in the draft repair target checkpoint replay test.",
+      "disposition": "must-fix",
+      "rationale": "This is an observable issue in a touched test file, but it does not violate a mandatory requirement or block behavior because the remaining assertion still verifies the same phase value.",
+      "findingId": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "fingerprint": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "4a5a4e23903527848278964cbd16589f289935d223af32099b3b655aeb68b0f6",
+  "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+  "planRewindAt": null,
+  "taskId": "T1",
+  "target": "specs/352-resolve-repository-lock-self-contention/tasks/T1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/352-resolve-repository-lock-self-contention/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "9acaf53905a52b31e100114c9974750aba8d6f4c479034c2f97183329b633c7f"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "findingId": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing Required Spec Lifecycle Test",
+      "body": "The task test strategy requires adding `specs/352-resolve-repository-lock-self-contention/tests/draft-review-lifecycle.test.js` with a `// spec: R4, R5, R6` header, but the diff adds `repository-lock-lifecycle.test.js` instead and mixes unrelated R1-R3 lock assertions into the same spec test file.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "1772f4e4a4c23ddc6697577896a68deb43ff1b5b14858efe11e23f5cadf5f081",
+      "disposition": "must-fix",
+      "rationale": "This is tied to the explicit task guardrail for acceptance evidence. The implementation currently does not provide the named executable evidence artifact for the draft lifecycle requirements, so the requirement traceability check cannot reliably resolve R4-R6 coverage.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    },
+    {
+      "id": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "findingId": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Duplicate Phase Assertion",
+      "body": "The checkpoint replay test now asserts `producedArtifact.phase === \"draft-questions\"` twice in succession, so the added assertion does not increase coverage and makes the test noisier.",
+      "category": "test_maintainability",
+      "fingerprint": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "disposition": "must-fix",
+      "rationale": "This is an observable issue in a touched test file, but it does not violate a mandatory requirement or block behavior because the remaining assertion still verifies the same phase value.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}

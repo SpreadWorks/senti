@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ProcessIdentitySource } from "./process-identity.js";
@@ -7,6 +8,7 @@ const MAINTENANCE_KIND = "repository-maintenance";
 const FLOW_OPERATION_KIND = "repository-flow-operation";
 const MAINTENANCE_FILE = ".repository-maintenance.lock";
 const FLOW_OPERATION_FILE = ".repository-flow-operation.lock";
+const PROCESS_OPERATION_OWNERS = new Map();
 
 export function resolveRepositoryLockRoot(root) {
   const resolved = path.resolve(root);
@@ -17,12 +19,31 @@ export function resolveRepositoryLockRoot(root) {
 }
 
 export class RepositoryLockError extends Error {
-  constructor(code, message, { lockPath, cause } = {}) {
+  constructor(code, message, { lockPath, cause, contention = null } = {}) {
     super(message, { cause });
     this.name = "RepositoryLockError";
     this.code = code;
     this.lockPath = lockPath;
+    this.contention = contention;
     this.committed = false;
+  }
+}
+
+export class RepositoryLockContention {
+  constructor({ owner, requester, requesterError = null, operation, boundary }) {
+    if (owner != null && typeof owner !== "object") throw new Error("repository lock contention owner must be an object or null");
+    if (requester == null && !(requesterError instanceof Error)) {
+      throw new Error("repository lock contention requires a requester identity or diagnostic error");
+    }
+    if (requester != null && typeof requester !== "object") throw new Error("repository lock contention requester must be an object or null");
+    if (typeof operation !== "string" || operation === "") throw new Error("repository lock contention requires an operation");
+    if (typeof boundary !== "string" || boundary === "") throw new Error("repository lock contention requires a boundary");
+    this.owner = owner;
+    this.requester = requester;
+    this.requesterError = requesterError;
+    this.operation = operation;
+    this.boundary = boundary;
+    Object.freeze(this);
   }
 }
 
@@ -206,24 +227,69 @@ export class RepositoryFlowOperationLock {
     });
   }
 
+  #attachContention(error, owner) {
+    if (
+      !(error instanceof RepositoryLockError)
+      || error.contention
+    ) return error;
+    let requester = null;
+    let requesterError = null;
+    try {
+      requester = this.lock.core.processIdentitySource.createOwner(crypto.randomUUID());
+    } catch (cause) {
+      requesterError = cause;
+    }
+    error.contention = new RepositoryLockContention({
+      owner: owner?.processIdentity ?? null,
+      requester,
+      requesterError,
+      operation: FLOW_OPERATION_KIND,
+      boundary: "acquire",
+    });
+    return error;
+  }
+
   acquire() {
     const before = inspectForeign(this.maintenance, this.maintenanceOwnerToken);
     if (before) throw before;
-    const existing = this.lock.inspect();
+    let existing;
+    try {
+      existing = this.lock.inspect();
+    } catch (error) {
+      throw this.#attachContention(error, null);
+    }
+    const processOwner = PROCESS_OPERATION_OWNERS.get(this.lockPath);
+    const knownOwnerToken = this.operationOwnerToken || processOwner?.ownerToken;
     if (
       existing
-      && this.operationOwnerToken
-      && existing.processIdentity.ownerToken === this.operationOwnerToken
+      && knownOwnerToken
+      && existing.processIdentity.ownerToken === knownOwnerToken
     ) {
-      this.borrowed = true;
-      this.acquiredOwnerToken = this.operationOwnerToken;
-      return this.operationOwnerToken;
+      if (processOwner && this.lock.core.processIdentitySource.assess(processOwner).status === "live") {
+        this.borrowed = true;
+        this.acquiredOwnerToken = knownOwnerToken;
+        return knownOwnerToken;
+      }
+      throw this.#attachContention(
+        repositoryErrorFactory(FLOW_OPERATION_KIND)(
+          "live",
+          "repository flow-operation lock is owned by a different requester identity",
+          { lockPath: this.lockPath },
+        ),
+        existing,
+      );
     }
-    const token = this.lock.acquire({ claimStale: true });
+    let token;
+    try {
+      token = this.lock.acquire({ claimStale: true });
+    } catch (error) {
+      throw this.#attachContention(error, existing);
+    }
     try {
       const after = inspectForeign(this.maintenance, this.maintenanceOwnerToken);
       if (after) throw after;
       this.acquiredOwnerToken = token;
+      PROCESS_OPERATION_OWNERS.set(this.lockPath, this.lock.processIdentity);
       return token;
     } catch (primaryError) {
       try {
@@ -268,6 +334,9 @@ export class RepositoryFlowOperationLock {
       return;
     }
     this.lock.release();
+    if (PROCESS_OPERATION_OWNERS.get(this.lockPath)?.ownerToken === this.acquiredOwnerToken) {
+      PROCESS_OPERATION_OWNERS.delete(this.lockPath);
+    }
     this.acquiredOwnerToken = null;
   }
 }

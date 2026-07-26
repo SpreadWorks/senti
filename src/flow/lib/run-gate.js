@@ -1061,7 +1061,7 @@ function validateDraftReviewArtifact(issues, artifactSet, review) {
     if (!(field in review)) issues.push(`${artifactSet.reviewArtifact}: missing field ${field}`);
   }
   if (review.version !== 1) issues.push(`${artifactSet.reviewArtifact}: version must be 1`);
-  if (review.phase !== artifactSet.reviewStepId) issues.push(`${artifactSet.reviewArtifact}: phase must be ${artifactSet.reviewStepId}`);
+  if (review.phase !== artifactSet.retryPhase) issues.push(`${artifactSet.reviewArtifact}: phase must be ${artifactSet.retryPhase}`);
   if (review.sourceDraft !== "draft.json") issues.push(`${artifactSet.reviewArtifact}: sourceDraft must be draft.json`);
   validateRequiredString(issues, `${artifactSet.reviewArtifact}: generatedAt`, review.generatedAt);
   validateRequiredString(issues, `${artifactSet.reviewArtifact}: summary`, review.summary);

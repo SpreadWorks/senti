@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "q1 を内部設計の選択から、Issue の成功契約を確認する質問へ置換した。",
+  "items": [
+    {
+      "title": "1. Internal implementation detail",
+      "target": "q1",
+      "rationale": "lock の再入方式を尋ねる文を、同一 invocation が自己競合なく完了する振る舞いの確認に置換した。decision map も同じ境界に揃えた。",
+      "evidence": "draft.json の qa[0].question は自己競合なく完了する契約を確認し、decisionMap.requiresUserJudgment は空、実装方式は deferredToSpec に記録した。",
+      "changedFieldPaths": [
+        "qa[0].question",
+        "decisionMap.decisionPoints[0]",
+        "decisionMap.requiresUserJudgment",
+        "decisionMap.deferredToSpec[0]"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "fingerprint": "8747fa0588b79cf56cb81f2d5d75b79500a0da11d0822b87902ea365f23d89bb",
+      "disposition": "deferred",
+      "rationale": "The duplicate assertion is an observable maintainability issue in a touched file, and the replacement action is specific. However, the remaining assertion still verifies the required phase behavior for R4, so no mandatory requirement or blocking guardrail requires repair.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "1c7e480cebbeaa86c9c7acb6514e5db6f8cda7ac48bce83cad2af80f304cf51e",
+      "runId": "56a88d9e-c305-427a-b278-ae0df9e97391",
+      "fingerprint": "1c7e480cebbeaa86c9c7acb6514e5db6f8cda7ac48bce83cad2af80f304cf51e",
+      "disposition": "deferred",
+      "rationale": "T3 acceptance requires foreign, unknown, and malformed lock refusals to expose owner, requester, and operation boundary diagnostics. Dropping the owner identity for a well-formed unknown lock violates that mandatory R3 diagnostic contract and blocks recovery decisions.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "q1 は実装方式を尋ねているため、Issue の期待契約に沿った振る舞い確認へ置換する。",
+  "items": [
+    {
+      "title": "1. Internal implementation detail",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "lock の借用か完全解放後の再取得かは既存パターンと spec が決める内部設計であり、ユーザーに求める判断ではない。",
+      "evidence": "Issue #474 は同一 invocation の post-hook、outbox、runtime metadata まで自己競合なく成功する振る舞いを要求しており、具体的な lock 再入方式は両方許容している。"
+    }
+  ]
+}
