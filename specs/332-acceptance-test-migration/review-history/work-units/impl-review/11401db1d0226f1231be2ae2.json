@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/finding-gate-readiness.test.js"
+    ],
+    "inputHash": "57826654e27a4ab9d82afa81ee695da1836e7f4e4ca7085aecec4368711c4722",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/finding-gate-readiness.test.js"
+  ],
+  "inputHash": "57826654e27a4ab9d82afa81ee695da1836e7f4e4ca7085aecec4368711c4722",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:07:12.513Z",
+  "finishedAt": "2026-07-25T16:07:12.513Z",
+  "rawResponse": "### 1. Bound Recursive Test Discovery\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** `#existingTestFile()` uses `fs.readdirSync(testsDir, { recursive: true, withFileTypes: true })` without an explicit depth, file-count, or size bound. This violates the `bounded-resource-usage` guardrail if a producer fixture has a very large or deeply nested `tests/` tree.  \n**Suggestion:** Replace the recursive bulk read with a bounded walker, for example cap max depth and max scanned entries, then throw a fixture-specific error if the cap is exceeded.\n\n### 2. Remove Impossible Raw Evidence Check\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** `const rawEndLine = Math.max(1, this.requirementIds.length);` followed by `if (rawEndLine < 1)` is dead code because `rawEndLine` can never be less than `1`.  \n**Suggestion:** Remove `rawEndLine` and the final check, or replace it with a meaningful boundary validation such as checking `this.requirementIds.length > 0` near constructor input normalization.\n\n### 3. Avoid Repeated Requirement Lookup\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Inside `#createFixtureRepository()`, each requirement performs `existingSpec.requirements?.find(...)` three separate times for `desc`, `priority`, and `status`. This duplicates lookup logic and makes the fixture assembly noisier.  \n**Suggestion:** Store the existing requirement once inside the map callback:\n```js\nrequirements: this.requirementIds.map((id) => {\n  const existingRequirement = existingSpec.requirements?.find((requirement) => requirement.id === id);\n  return {\n    id,\n    desc: existingRequirement?.desc || `${id} fixture requirement`,\n    priority: existingRequirement?.priority || \"must\",\n    status: existingRequirement?.status || \"pending\",\n  };\n}),\n```\n\n### 4. Extract Repeated Test Evidence Builders\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** The fixture repeats the same test name, command, and raw output line structure across test file generation, scenario validity summaries, test execution summaries, and retro notes. This makes future acceptance fixture changes easy to apply inconsistently.  \n**Suggestion:** Add small private helpers such as `#fixtureTestName(id)`, `#testCommand()`, and `#testEvidence(id, index)`, then reuse them in `#createFixtureRepository()` and `#writeMechanicalEvidence()`.\n\n### 5. Factor Duplicate Readiness Evaluation Setup\n**File:** `tests/unit/flow/finding-gate-readiness.test.js`  \n**Requirement:** R9  \n**Issue:** The added test calls `evaluateReviewFindingGateReadiness()` twice with the same `root`, `state`, `phase`, and `issueLog` object shape. The repetition obscures that the only behavioral difference is deleting the legacy fingerprint.  \n**Suggestion:** Extract a local helper inside the test, for example `const evaluate = () => evaluateReviewFindingGateReadiness({ ... });`, then assert the fresh and legacy cases through that helper.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Recursive Test Discovery",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** `#existingTestFile()` uses `fs.readdirSync(testsDir, { recursive: true, withFileTypes: true })` without an explicit depth, file-count, or size bound. This violates the `bounded-resource-usage` guardrail if a producer fixture has a very large or deeply nested `tests/` tree.  \n**Suggestion:** Replace the recursive bulk read with a bounded walker, for example cap max depth and max scanned entries, then throw a fixture-specific error if the cap is exceeded.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Remove Impossible Raw Evidence Check",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** `const rawEndLine = Math.max(1, this.requirementIds.length);` followed by `if (rawEndLine < 1)` is dead code because `rawEndLine` can never be less than `1`.  \n**Suggestion:** Remove `rawEndLine` and the final check, or replace it with a meaningful boundary validation such as checking `this.requirementIds.length > 0` near constructor input normalization.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Avoid Repeated Requirement Lookup",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Inside `#createFixtureRepository()`, each requirement performs `existingSpec.requirements?.find(...)` three separate times for `desc`, `priority`, and `status`. This duplicates lookup logic and makes the fixture assembly noisier.  \n**Suggestion:** Store the existing requirement once inside the map callback:\n```js\nrequirements: this.requirementIds.map((id) => {\n  const existingRequirement = existingSpec.requirements?.find((requirement) => requirement.id === id);\n  return {\n    id,\n    desc: existingRequirement?.desc || `${id} fixture requirement`,\n    priority: existingRequirement?.priority || \"must\",\n    status: existingRequirement?.status || \"pending\",\n  };\n}),\n```",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Extract Repeated Test Evidence Builders",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** The fixture repeats the same test name, command, and raw output line structure across test file generation, scenario validity summaries, test execution summaries, and retro notes. This makes future acceptance fixture changes easy to apply inconsistently.  \n**Suggestion:** Add small private helpers such as `#fixtureTestName(id)`, `#testCommand()`, and `#testEvidence(id, index)`, then reuse them in `#createFixtureRepository()` and `#writeMechanicalEvidence()`.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Factor Duplicate Readiness Evaluation Setup",
+        "body": "**File:** `tests/unit/flow/finding-gate-readiness.test.js`  \n**Requirement:** R9  \n**Issue:** The added test calls `evaluateReviewFindingGateReadiness()` twice with the same `root`, `state`, `phase`, and `issueLog` object shape. The repetition obscures that the only behavioral difference is deleting the legacy fingerprint.  \n**Suggestion:** Extract a local helper inside the test, for example `const evaluate = () => evaluateReviewFindingGateReadiness({ ... });`, then assert the fresh and legacy cases through that helper.",
+        "file": "tests/unit/flow/finding-gate-readiness.test.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

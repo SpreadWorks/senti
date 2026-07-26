@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "126b8f86809210da40894e10",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-602be6a7cb9e3279",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/set-retry.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/repair-state-identity.test.js"
+    ],
+    "inputHash": "602be6a7cb9e32799595133d43cbd770473a88fada7315bb544d40959ffbee43",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "126b8f86809210da40894e10"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/set-retry.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/repair-state-identity.test.js"
+  ],
+  "inputHash": "602be6a7cb9e32799595133d43cbd770473a88fada7315bb544d40959ffbee43",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:11:51.737Z",
+  "finishedAt": "2026-07-25T11:11:51.737Z",
+  "rawResponse": "### 1. Centralize Acceptance Review Fixture Invocation\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Multiple test files introduce the same `runAcceptanceReviewFixture` argument plumbing (`root`, `state`, `diff`, `requirementJudgments`) independently across `specs/293`, `specs/295`, and `specs/296`. This is a cross-file duplicate introduction around the same fixture interface.  \n**Suggestion:** Add an exported helper such as `runAcceptanceReviewForFixture(fixture, overrides = {})` in `tests/helpers/acceptance-review-fixture.js`, then update the affected specs to use it.\n\n### 2. Rename Review Tree SHA Interface Consistently\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** `resolveCurrentReviewTreeSha` now represents both clean Git tree SHAs and synthetic dirty-worktree review target hashes, while `src/flow/lib/set-retry.js` still consumes it as if it were strictly a tree SHA. This creates an interface naming inconsistency across producer and caller.  \n**Suggestion:** Rename the exported function to `resolveCurrentReviewTargetSha` or similar, and update all imports/call sites, including `src/flow/lib/set-retry.js`.\n\n### 3. Align Deferred Finding Naming Across Tests\n**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`  \n**Requirement:** R4  \n**Issue:** Deferred finding concepts are named inconsistently across files: `entry` in `specs/296`, `dispositions` in `specs/293`, and `blocking` in `specs/310`. These all refer to deferred finding records or final dispositions, but the vocabulary varies by file.  \n**Suggestion:** Standardize on domain-specific names such as `deferredFinding`, `deferredFinalDispositions`, and `blockingDispositionResult` across the affected tests.\n\n### 4. Share Deferred Acceptance Fixture Lifecycle Setup\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R8  \n**Issue:** `specs/310` duplicates deferred acceptance fixture lifecycle setup, while `specs/296` and related tests also perform similar adopted-fixture and deferred-finding setup flows. Keeping this lifecycle in individual files makes future fixture behavior changes easy to miss.  \n**Suggestion:** Add a shared helper for deferred acceptance review fixture setup/cleanup, for example `withDeferredAcceptanceFixture(...)`, and use it from the deferred-review specs.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Acceptance Review Fixture Invocation",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Multiple test files introduce the same `runAcceptanceReviewFixture` argument plumbing (`root`, `state`, `diff`, `requirementJudgments`) independently across `specs/293`, `specs/295`, and `specs/296`. This is a cross-file duplicate introduction around the same fixture interface.  \n**Suggestion:** Add an exported helper such as `runAcceptanceReviewForFixture(fixture, overrides = {})` in `tests/helpers/acceptance-review-fixture.js`, then update the affected specs to use it.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Rename Review Tree SHA Interface Consistently",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** `resolveCurrentReviewTreeSha` now represents both clean Git tree SHAs and synthetic dirty-worktree review target hashes, while `src/flow/lib/set-retry.js` still consumes it as if it were strictly a tree SHA. This creates an interface naming inconsistency across producer and caller.  \n**Suggestion:** Rename the exported function to `resolveCurrentReviewTargetSha` or similar, and update all imports/call sites, including `src/flow/lib/set-retry.js`.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Align Deferred Finding Naming Across Tests",
+        "body": "**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`  \n**Requirement:** R4  \n**Issue:** Deferred finding concepts are named inconsistently across files: `entry` in `specs/296`, `dispositions` in `specs/293`, and `blocking` in `specs/310`. These all refer to deferred finding records or final dispositions, but the vocabulary varies by file.  \n**Suggestion:** Standardize on domain-specific names such as `deferredFinding`, `deferredFinalDispositions`, and `blockingDispositionResult` across the affected tests.",
+        "file": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Share Deferred Acceptance Fixture Lifecycle Setup",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R8  \n**Issue:** `specs/310` duplicates deferred acceptance fixture lifecycle setup, while `specs/296` and related tests also perform similar adopted-fixture and deferred-finding setup flows. Keeping this lifecycle in individual files makes future fixture behavior changes easy to miss.  \n**Suggestion:** Add a shared helper for deferred acceptance review fixture setup/cleanup, for example `withDeferredAcceptanceFixture(...)`, and use it from the deferred-review specs.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

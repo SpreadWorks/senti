@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "d9f85e6a40669a6dfa208a1a",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-b8c0d451c929cc67",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/gate-diff-compaction.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/run-scenario-validity.test.js"
+    ],
+    "inputHash": "b8c0d451c929cc67d73dca9560c7c34db6abd933d8e6c486c8ea691a3adc6e4d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d9f85e6a40669a6dfa208a1a"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/gate-diff-compaction.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "inputHash": "b8c0d451c929cc67d73dca9560c7c34db6abd933d8e6c486c8ea691a3adc6e4d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T14:11:29.598Z",
+  "finishedAt": "2026-07-25T14:11:29.598Z",
+  "rawResponse": "### 1. Standardize Acceptance Fixture Helpers\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Multiple files propose local wrappers for the same `createAcceptanceReviewFixture()` / cleanup / `runAcceptanceReviewFixture()` pattern, with names like `withAcceptanceFixture`, `withAcceptanceReviewFixture`, `runAcceptanceFixture`, and `runFixtureAcceptance`. If each spec adds its own variant, the fixture API and naming will drift across the suite.  \n**Suggestion:** Add shared helper methods to `tests/helpers/acceptance-review-fixture.js`, for example `withAcceptanceReviewFixture(options, fn)` and `runAcceptanceReviewFixtureWithDefaults(fixture, overrides)`, then use the same names across affected spec files.\n\n### 2. Consolidate Flow Finding Fixture Builders\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Several proposals point to repeated FlowFinding or flow-findings artifact setup across files, including repair fingerprints, deferred finding dispositions, invalid FlowFinding constructor payloads, and filename-specific JSON mutation. These are all variations of the same test fixture contract but are being solved locally.  \n**Suggestion:** Introduce explicit shared builders such as `flowFindingData(overrides)`, `writeFlowFindingsArtifact(...)`, and `makeRepairFingerprint(...)`, keeping generic JSON writers pure and centralizing the current schema defaults.\n\n### 3. Align Review Target Identity Naming\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** `resolveCurrentReviewTreeSha()` can return a synthetic tree-plus-diff fingerprint, while other files discuss repair fingerprints, migration artifact freshness, and gate artifact identities. Across files, “tree sha”, “fingerprint”, and “artifact” are used inconsistently for identity-like values.  \n**Suggestion:** Rename the review evidence API toward `resolveCurrentReviewTargetFingerprint()` and use `fingerprint` terminology in callers where the value is not guaranteed to be a literal Git tree SHA.\n\n### 4. Centralize Spec-Correction Rewind Vocabulary\n**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is touched in `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, but naming and literals are inconsistent: `SPEC_CORRECTION_SUPPORTED_STAGES`, raw `\"spec-correction\"`, and helper names that hide rewind-specific intent.  \n**Suggestion:** Export or colocate shared constants such as `SPEC_CORRECTION_REWIND_CATEGORY` and `SPEC_CORRECTION_REWIND_SUPPORTED_STAGES`, then use them consistently in reopen and scenario-validity checks.\n\n### 5. Share Bounded Traversal Utilities\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Both `productionSourceFiles()` in the acceptance migration spec and `#existingTestFile()` in the acceptance fixture helper introduce recursive filesystem discovery without explicit bounds. Solving these independently risks inconsistent depth and file-count limits.  \n**Suggestion:** Add a small bounded file walker helper for tests, with shared max-depth and max-entry behavior, and use it for source discovery and fixture test discovery.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Acceptance Fixture Helpers",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Multiple files propose local wrappers for the same `createAcceptanceReviewFixture()` / cleanup / `runAcceptanceReviewFixture()` pattern, with names like `withAcceptanceFixture`, `withAcceptanceReviewFixture`, `runAcceptanceFixture`, and `runFixtureAcceptance`. If each spec adds its own variant, the fixture API and naming will drift across the suite.  \n**Suggestion:** Add shared helper methods to `tests/helpers/acceptance-review-fixture.js`, for example `withAcceptanceReviewFixture(options, fn)` and `runAcceptanceReviewFixtureWithDefaults(fixture, overrides)`, then use the same names across affected spec files.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Consolidate Flow Finding Fixture Builders",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Several proposals point to repeated FlowFinding or flow-findings artifact setup across files, including repair fingerprints, deferred finding dispositions, invalid FlowFinding constructor payloads, and filename-specific JSON mutation. These are all variations of the same test fixture contract but are being solved locally.  \n**Suggestion:** Introduce explicit shared builders such as `flowFindingData(overrides)`, `writeFlowFindingsArtifact(...)`, and `makeRepairFingerprint(...)`, keeping generic JSON writers pure and centralizing the current schema defaults.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Align Review Target Identity Naming",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** `resolveCurrentReviewTreeSha()` can return a synthetic tree-plus-diff fingerprint, while other files discuss repair fingerprints, migration artifact freshness, and gate artifact identities. Across files, “tree sha”, “fingerprint”, and “artifact” are used inconsistently for identity-like values.  \n**Suggestion:** Rename the review evidence API toward `resolveCurrentReviewTargetFingerprint()` and use `fingerprint` terminology in callers where the value is not guaranteed to be a literal Git tree SHA.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Centralize Spec-Correction Rewind Vocabulary",
+        "body": "**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is touched in `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, but naming and literals are inconsistent: `SPEC_CORRECTION_SUPPORTED_STAGES`, raw `\"spec-correction\"`, and helper names that hide rewind-specific intent.  \n**Suggestion:** Export or colocate shared constants such as `SPEC_CORRECTION_REWIND_CATEGORY` and `SPEC_CORRECTION_REWIND_SUPPORTED_STAGES`, then use them consistently in reopen and scenario-validity checks.",
+        "file": "src/flow/lib/plan-rewind.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Share Bounded Traversal Utilities",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R9  \n**Issue:** Both `productionSourceFiles()` in the acceptance migration spec and `#existingTestFile()` in the acceptance fixture helper introduce recursive filesystem discovery without explicit bounds. Solving these independently risks inconsistent depth and file-count limits.  \n**Suggestion:** Add a small bounded file walker helper for tests, with shared max-depth and max-entry behavior, and use it for source discovery and fixture test discovery.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      }
+    ]
+  }
+}

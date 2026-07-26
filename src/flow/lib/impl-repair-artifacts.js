@@ -571,6 +571,9 @@ export class RepairStateMigration {
       throw new Error(`repair state migration sourceVersion must be ${LEGACY_REPAIR_STATE_VERSION}`);
     }
     this.sourceVersion = LEGACY_REPAIR_STATE_VERSION;
+    this.sourceFingerprint = input.sourceFingerprint == null
+      ? null
+      : requireHash(input.sourceFingerprint, "sourceFingerprint");
     if (input.targetVersion !== REPAIR_STATE_VERSION) {
       throw new Error(`repair state migration targetVersion must be ${REPAIR_STATE_VERSION}`);
     }
@@ -602,6 +605,7 @@ export class RepairStateMigration {
       runId: this.runId,
       specPath: this.specPath,
       sourceVersion: this.sourceVersion,
+      ...(this.sourceFingerprint == null ? {} : { sourceFingerprint: this.sourceFingerprint }),
       targetVersion: this.targetVersion,
       baseline: this.baseline.toJSON(),
       invalidations: this.invalidations.map((record) => record.toJSON()),
@@ -944,6 +948,86 @@ class RepairMigrationManifestReplacement {
     }
     this.replaced = false;
   }
+}
+
+class RepairMigrationEvidenceReplacement {
+  constructor({ specDir, migration, currentManifest, previousFingerprint = null, invalidations }) {
+    this.specDir = path.resolve(specDir);
+    this.migration = migration;
+    this.currentManifest = currentManifest;
+    this.previousFingerprint = previousFingerprint;
+    this.invalidations = invalidations;
+    this.ledgerFile = path.join(this.specDir, IMPL_REPAIR_ARTIFACT_FILE);
+    this.deltaDirectory = path.join(this.specDir, REPAIR_DELTA_DIR);
+    this.wroteDelta = false;
+    this.wroteLedger = false;
+  }
+
+  replace() {
+    if (!this.migration.retainRecord || this.currentManifest == null) return;
+    if (fs.existsSync(this.ledgerFile) || fs.existsSync(this.deltaDirectory)) {
+      throw new Error("repair migration evidence must be invalidated before replacement");
+    }
+    const changedPaths = this.currentManifest.entries.map((entry) => entry.path);
+    if (changedPaths.length === 0) {
+      throw new Error("repair migration evidence requires at least one changed path");
+    }
+    const previousHash = this.previousFingerprint
+      || this.migration.sourceFingerprint
+      || this.migration.invalidations.find((record) => record.path === REPAIR_DELTA_DIR)?.previousFingerprint
+      || LEGACY_REPAIR_FINGERPRINT;
+    if (previousHash === this.currentManifest.hash) {
+      throw new Error("repair migration fingerprint must change");
+    }
+    const id = `migration-v${this.migration.targetVersion}`;
+    const delta = new RepairDeltaArtifact({
+      version: 1,
+      id,
+      previousHash,
+      currentHash: this.currentManifest.hash,
+      changedPaths,
+    });
+    const entry = new ImplRepairEntry({
+      id,
+      sourceFindingIds: [`repair-state-migration-v${this.migration.targetVersion}`],
+      reason: `Repair fingerprint migrated from version ${this.migration.sourceVersion} to ${this.migration.targetVersion}.`,
+      previousHash,
+      currentHash: this.currentManifest.hash,
+      changedPathCount: changedPaths.length,
+      changedPathsRef: `${REPAIR_DELTA_DIR}/${id}.json`,
+      changedPathsDigest: delta.digest,
+      changedPathsPreview: changedPaths.slice(0, CHANGED_PATH_PREVIEW_LIMIT),
+      changedPathGroups: changedPathGroups(changedPaths),
+      invalidations: this.invalidations,
+      createdAt: this.migration.createdAt,
+    });
+    writeRepairDelta(this.specDir, delta);
+    this.wroteDelta = true;
+    writeJson(this.ledgerFile, new ImplRepairLedger({ version: 2, entries: [entry] }).toJSON());
+    this.wroteLedger = true;
+  }
+
+  rollback() {
+    if (this.wroteLedger) fs.rmSync(this.ledgerFile, { force: true });
+    if (this.wroteDelta) fs.rmSync(this.deltaDirectory, { recursive: true, force: true });
+    this.wroteLedger = false;
+    this.wroteDelta = false;
+  }
+}
+
+function migrationEvidenceInvalidations(specDir, migration) {
+  const records = [...migration.invalidations];
+  const paths = new Set(records.map((record) => record.path));
+  const previousFingerprint = migration.sourceFingerprint || LEGACY_REPAIR_FINGERPRINT;
+  for (const relativePath of [IMPL_REPAIR_ARTIFACT_FILE, REPAIR_DELTA_DIR]) {
+    if (paths.has(relativePath) || !fs.existsSync(path.join(specDir, relativePath))) continue;
+    records.push(new InvalidatedArtifactRecord({
+      path: relativePath,
+      reason: "completed repair migration evidence is being regenerated",
+      previousFingerprint,
+    }));
+  }
+  return records;
 }
 
 export class RepairEvidenceInvalidationPlan {
@@ -1678,29 +1762,131 @@ function applyRepairMigrationState(state, migration) {
   return state;
 }
 
-function hasAppliedRepairMigration(state, specDir, migration) {
-  const testExecute = findStepById(state.steps || [], "test-execute");
-  if (testExecute?.status !== "in_progress") return false;
-  for (const stepId of migration.resetStepIds) {
-    if (stepId === "test-execute") continue;
-    const step = findStepById(state.steps || [], stepId);
-    if (step && step.status !== "pending") return false;
+function associatedPrimaryEvidencePath(relativePath) {
+  for (const [primary, associated] of Object.entries(ASSOCIATED_EVIDENCE_PATHS)) {
+    if (associated.includes(relativePath)) return primary;
   }
+  return relativePath.startsWith("tests/.raw/final-regression-attempt-")
+    ? "final-regression-result.json"
+    : null;
+}
+
+class MigrationEvidenceInspection {
+  constructor({ current, failure = null }) {
+    if (typeof current !== "boolean") throw new Error("migration evidence inspection current must be boolean");
+    this.current = current;
+    this.failure = failure == null ? null : String(failure);
+    Object.freeze(this);
+  }
+
+  static evaluate(reader) {
+    try {
+      return new MigrationEvidenceInspection({ current: reader() });
+    } catch (error) {
+      const failure = error instanceof Error ? error.message : String(error);
+      process.emitWarning(
+        `Migration evidence is not current because it is unreadable or invalid: ${failure}`,
+        { code: "SENTI_MIGRATION_EVIDENCE_INVALID", type: "SentiMigrationEvidenceWarning" },
+      );
+      return new MigrationEvidenceInspection({
+        current: false,
+        failure,
+      });
+    }
+  }
+}
+
+function isFreshMigrationArtifact(specDir, relativePath, currentFingerprint) {
+  const file = path.join(specDir, relativePath);
+  if (!fs.existsSync(file)) return true;
+  const primary = associatedPrimaryEvidencePath(relativePath);
+  if (primary) return isFreshMigrationArtifact(specDir, primary, currentFingerprint);
+  if (fs.statSync(file).isDirectory()) {
+    if (relativePath !== REPAIR_DELTA_DIR) return false;
+    return MigrationEvidenceInspection.evaluate(() => (
+      readImplRepairLedger(specDir)?.entries.at(-1)?.currentHash === currentFingerprint.hash
+    )).current;
+  }
+  if (!relativePath.endsWith(".json")) return false;
+  return MigrationEvidenceInspection.evaluate(() => {
+    const artifact = readJson(file);
+    if (artifact.repairFingerprint === currentFingerprint.hash) return true;
+    if (relativePath === IMPL_REPAIR_ARTIFACT_FILE) {
+      return new ImplRepairLedger(artifact).entries.at(-1)?.currentHash === currentFingerprint.hash;
+    }
+    if (relativePath === IMPL_TRIAGE_ARTIFACT_FILE) {
+      return artifact.previousFingerprint?.hash === currentFingerprint.hash;
+    }
+    return false;
+  }).current;
+}
+
+function hasCurrentTestExecutionEvidence(specDir, currentFingerprint) {
+  const resultPath = path.join(specDir, "test-execute-result.json");
+  const rawPath = path.join(specDir, "tests", ".raw", "test-execution.log");
+  if (!fs.existsSync(resultPath) || !fs.existsSync(rawPath) || !fs.statSync(rawPath).isFile()) {
+    return false;
+  }
+  return MigrationEvidenceInspection.evaluate(() => {
+    const result = readJson(resultPath);
+    const rawOutputPath = typeof result.raw_output_path === "string"
+      ? result.raw_output_path.replaceAll("\\", "/")
+      : "";
+    return result.version === "2"
+      && result.repairFingerprint === currentFingerprint.hash
+      && rawOutputPath.endsWith("/tests/.raw/test-execution.log");
+  }).current;
+}
+
+function hasCurrentRepairDelta(specDir, currentFingerprint) {
+  return MigrationEvidenceInspection.evaluate(() => {
+    const ledger = readImplRepairLedger(specDir);
+    if (ledger == null || ledger.entries.length === 0) return false;
+    ledger.validateDeltaEvidence(specDir);
+    return ledger.entries.at(-1).currentHash === currentFingerprint.hash;
+  }).current;
+}
+
+export function isCompletedRepairMigrationCurrent(state, specDir, migration, currentFingerprint) {
+  if (!state.repairBaseline || !sameBaselineAuthority(state.repairBaseline, migration.baseline)) {
+    return false;
+  }
+  const testExecute = findStepById(state.steps || [], "test-execute");
+  if (testExecute == null || testExecute.status === "pending" || testExecute.status === "skipped") return false;
+  if (!hasCurrentTestExecutionEvidence(specDir, currentFingerprint)) return false;
+  if (!hasCurrentRepairDelta(specDir, currentFingerprint)) return false;
   return migration.invalidations.every((record) => (
-    !fs.existsSync(path.join(specDir, record.path))
+    isFreshMigrationArtifact(specDir, record.path, currentFingerprint)
   ));
 }
 
-function commitRepairStateMigration({ root, state, flowManager, specDir, migration, currentManifest = null }) {
+function commitRepairStateMigration({
+  root,
+  state,
+  flowManager,
+  specDir,
+  migration,
+  currentManifest = null,
+  previousFingerprint = null,
+}) {
   const stateSnapshot = structuredClone(state);
-  const invalidation = new RepairInvalidationTransaction({ specDir, invalidations: migration.invalidations });
+  const invalidations = migrationEvidenceInvalidations(specDir, migration);
+  const invalidation = new RepairInvalidationTransaction({ specDir, invalidations });
   const manifest = new RepairMigrationManifestReplacement({ specDir, currentManifest });
+  const evidence = new RepairMigrationEvidenceReplacement({
+    specDir,
+    migration,
+    currentManifest,
+    previousFingerprint,
+    invalidations,
+  });
   let stateMutationStarted = false;
   try {
     invalidation.stage();
     stateMutationStarted = true;
     flowManager.mutate((next) => applyRepairMigrationState(next, migration));
     manifest.replace();
+    evidence.replace();
     appendIssueLogEntry(root, migration.specPath, {
       step: "test-execute",
       reason: `legacy repair fingerprint evidence migrated from version ${migration.sourceVersion} to ${migration.targetVersion}`,
@@ -1720,6 +1906,11 @@ function commitRepairStateMigration({ root, state, flowManager, specDir, migrati
     invalidation.commit();
   } catch (error) {
     const rollbackErrors = [];
+    try {
+      evidence.rollback();
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
     try {
       manifest.rollback();
     } catch (rollbackError) {
@@ -1762,9 +1953,14 @@ export function ensureRepairFingerprintContract({
   const migrationInput = fs.existsSync(manifestFile)
     ? readRepairFingerprintMigrationInput(specDir)
     : null;
+  const observedCurrent = migrationInput == null
+    ? null
+    : buildRepairFingerprint({ root, specPath: state.spec, state });
 
   if (persisted?.recordPhase === "completed"
-    && hasAppliedRepairMigration(state, specDir, persisted)) {
+    && migrationInput instanceof RepairFingerprintManifest
+    && migrationInput.hash === observedCurrent.hash
+    && isCompletedRepairMigrationCurrent(state, specDir, persisted, observedCurrent)) {
     if (state.repairBaseline) assertMatchingMigrationBaseline(state, persisted.baseline);
     return { state, migrated: false };
   }
@@ -1796,6 +1992,7 @@ export function ensureRepairFingerprintContract({
           runId: state.runId,
           specPath: state.spec,
           sourceVersion: LEGACY_REPAIR_STATE_VERSION,
+          sourceFingerprint: migrationInput.hash,
           targetVersion: REPAIR_STATE_VERSION,
           baseline: state.repairBaseline,
           invalidations: legacyMigrationInvalidations(specDir, {
@@ -1806,7 +2003,7 @@ export function ensureRepairFingerprintContract({
           retainRecord: true,
           createdAt: new Date().toISOString(),
         });
-        currentManifest = migrationInput.toCurrentManifest();
+        currentManifest = observedCurrent;
       } else {
         const baseline = migration?.baseline || captureRepairBaseline({
           root,
@@ -1833,7 +2030,7 @@ export function ensureRepairFingerprintContract({
         return { state, migrated: false };
       }
       assertMatchingMigrationBaseline(state, migration.baseline);
-      currentManifest = migrationInput;
+      currentManifest = observedCurrent;
     } else if (!migration) {
       const baseline = captureRepairBaseline({
         root,
@@ -1865,6 +2062,10 @@ export function ensureRepairFingerprintContract({
       specDir,
       migration,
       currentManifest,
+      previousFingerprint: migrationInput instanceof RepairFingerprintManifest
+        && migrationInput.hash === currentManifest?.hash
+        ? null
+        : migrationInput?.hash || null,
     });
   } finally {
     lock.release();

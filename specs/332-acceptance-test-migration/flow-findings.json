@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "impl-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+      "fingerprint": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "disposition": "deferred",
+      "rationale": "R9 covers the shared migration/acceptance contract. Skipping a required repair migration can preserve stale acceptance evidence and corrupt downstream review state, which is a mandatory data-integrity concern rather than an optional cleanup.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+      "fingerprint": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "disposition": "deferred",
+      "rationale": "R7 requires preserving no-tests acceptance pass and downstream report/finalize behavior in the complete spec 301 file. The implementation verifies acceptance and report separately, but the finalize behavior regression coverage remains dropped, so a mandatory acceptance requirement is still unverified.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    },
+    {
+      "findingId": "DF-3",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+      "fingerprint": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "disposition": "deferred",
+      "rationale": "R8 is an acceptance criterion for T-3 and requires preserving spec 310 test-review handoff and flow transition behavior. The migration weakened a mandatory historical assertion by replacing the unresolved post-hook handoff case with a resolved `fixed` case.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "still_open"
+    }
+  ]
+}

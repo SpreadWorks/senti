@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T12:34:53.887Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r8-default-still-open-handoff-removed",
+      "title": "Default deferred handoff no longer covered",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+      "requirementId": "R8",
+      "issue": "The migrated R8 post-hook handoff test now supplies an explicit `fixed` disposition and asserts a pass/final-regression transition. The original scenario verified that a deferred finding created by the post-hook path is received by acceptance-review with the default unresolved disposition (`still_open`) and does not pass automatically. That default handoff behavior is no longer directly covered in this file.",
+      "suggestion": "In `acceptance-review receives deferred findings created by the post-hook path`, use `deferredFindingDispositions: acceptanceFixture.dispositionJudgments(\"still_open\")` or add a separate assertion branch for the no-acceptance-resolution/default unresolved path, and assert the resulting `finalDisposition`, verdict, and routing match current unresolved semantics.",
+      "disposition": "must-fix",
+      "rationale": "R8 is an acceptance criterion for T-3 and requires preserving spec 310 test-review handoff and flow transition behavior. The migration weakened a mandatory historical assertion by replacing the unresolved post-hook handoff case with a resolved `fixed` case.",
+      "findingId": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "fingerprint": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "d7cb03cbd999f864ad787ed6e829fb039ccdf28be4331681ac4e0b9a92a6fb56",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/332-acceptance-test-migration/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "00bb98fe12f30bf43bbedc049b237d10bd4a511691925e9dda56736409cbb84d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 23,
+  "findings": [
+    {
+      "id": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "findingId": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 23,
+      "severity": "blocking",
+      "title": "Default deferred handoff no longer covered",
+      "body": "The migrated R8 post-hook handoff test now supplies an explicit `fixed` disposition and asserts a pass/final-regression transition. The original scenario verified that a deferred finding created by the post-hook path is received by acceptance-review with the default unresolved disposition (`still_open`) and does not pass automatically. That default handoff behavior is no longer directly covered in this file.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "b5f451eaa7377d31e202bac467aede0aebd3d3cdb6b6e1618493dda4f40cb8cf",
+      "disposition": "must-fix",
+      "rationale": "R8 is an acceptance criterion for T-3 and requires preserving spec 310 test-review handoff and flow transition behavior. The migration weakened a mandatory historical assertion by replacing the unresolved post-hook handoff case with a resolved `fixed` case.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

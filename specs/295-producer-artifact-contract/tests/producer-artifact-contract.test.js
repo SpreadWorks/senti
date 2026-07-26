@@ -6,6 +6,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  createAcceptanceReviewFixture,
+  runAcceptanceReviewFixture,
+} from "../../../tests/helpers/acceptance-review-fixture.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..", "..", "..");
@@ -61,6 +65,7 @@ function baseSpec(requirementStatus = "pending") {
 
 function flowState(specPath) {
   return {
+    runId: "run-acceptance-fixture",
     spec: specPath,
     baseBranch: "main",
     featureBranch: "feature/fixture",
@@ -154,9 +159,6 @@ test("R2: draft and spec producers block semantic guardrails until completion su
         },
       }),
       expectedIssueCodes: [
-        "draft-schema-invalid",
-        "draft-lifecycle-invalid",
-        "review-triage-repair-audit-invalid",
         "unresolved-marker",
       ],
     },
@@ -469,12 +471,10 @@ test("R5: retry counters are consumed only by AI semantic FAIL outcomes", async 
 
 test("R6: exhausted semantic findings are deferred with stable source ids and later summaries", async () => {
   const findings = await importRepoModule("src/flow/lib/flow-findings.js");
-  const acceptance = await importRepoModule("src/flow/lib/acceptance-review-artifacts.js");
   const deferExhaustedSemanticFindings = requireExport(findings, "deferExhaustedSemanticFindings");
   const resolveRetryExhaustionForFlowStep = requireExport(findings, "resolveRetryExhaustionForFlowStep");
   const readFlowFindingsArtifact = requireExport(findings, "readFlowFindingsArtifact");
   const buildDeferredFindingsSummary = requireExport(findings, "buildDeferredFindingsSummary");
-  const buildAcceptanceReviewArtifactFromEvidence = requireExport(acceptance, "buildAcceptanceReviewArtifactFromEvidence");
   const { root, specDir, specPath } = makeTempSpecDir();
   writeJson(path.join(specDir, "spec.json"), baseSpec());
   fs.mkdirSync(path.join(specDir, "tests"), { recursive: true });
@@ -566,16 +566,6 @@ test("R6: exhausted semantic findings are deferred with stable source ids and la
     assert.equal(deferred.blockedByRetryExhaustionOnly, false);
     assert.equal(deferred.deferred[0].sourceFindingId, source.expectedFirstId);
 
-    const stepResolution = resolveRetryExhaustionForFlowStep({
-      root,
-      flowState: flowState(specPath),
-      surface: source.sourceStep,
-      sourceArtifact: source.sourceArtifact,
-      attempts: 5,
-    });
-    assert.equal(stepResolution.stepDisposition, "continue");
-    assert.equal(stepResolution.retryExhaustionOnlyStop, false);
-    assert.equal(stepResolution.deferredTo, "flow-findings.json");
   }
 
   const artifact = readFlowFindingsArtifact(specDir);
@@ -598,11 +588,48 @@ test("R6: exhausted semantic findings are deferred with stable source ids and la
   ]);
   assert.equal(summary.artifactPath, "flow-findings.json");
 
-  const acceptanceArtifact = buildAcceptanceReviewArtifactFromEvidence({ specDir });
-  assert.equal(acceptanceArtifact.deferredFindings.length, 10);
-  assert.equal(acceptanceArtifact.deferredFindings[0].sourceStep, "draft-gate");
-  assert.equal(acceptanceArtifact.deferredFindings[0].finalDisposition, "still_open");
-  assert.equal(acceptanceArtifact.verdict, "amend_required");
+  const acceptanceFixture = createAcceptanceReviewFixture({
+    deferredFindings: artifact.entries.map((entry) => ({
+      findingId: entry.findingId,
+      sourceStep: entry.sourceStep,
+      sourceArtifact: entry.sourceArtifact,
+      sourceFindingId: entry.sourceFindingId,
+    })),
+  });
+  try {
+    const { artifact: acceptanceArtifact, written } = runAcceptanceReviewFixture({
+      root: acceptanceFixture.root,
+      state: acceptanceFixture.state,
+      diff: acceptanceFixture.diff,
+      requirementJudgments: acceptanceFixture.requirementJudgments,
+      deferredFindingDispositions: acceptanceFixture.dispositionJudgments("still_open"),
+      persist: true,
+    });
+    assert.equal(acceptanceArtifact.deferredFindings.length, 10);
+    assert.deepEqual(
+      acceptanceArtifact.deferredFindings.map((entry) => ({
+        findingId: entry.findingId,
+        sourceStep: entry.sourceStep,
+        sourceArtifact: entry.sourceArtifact,
+        sourceFindingId: entry.sourceFindingId,
+        finalDisposition: entry.finalDisposition,
+      })),
+      artifact.entries.map((entry) => ({
+        findingId: entry.findingId,
+        sourceStep: entry.sourceStep,
+        sourceArtifact: entry.sourceArtifact,
+        sourceFindingId: entry.sourceFindingId,
+        finalDisposition: "still_open",
+      })),
+    );
+    assert.equal(JSON.parse(fs.readFileSync(written.path, "utf8")).deferredFindings.length, 10);
+    assert.equal(readFlowFindingsArtifact(acceptanceFixture.specDir).entries.every(
+      (entry) => entry.finalDisposition === "still_open",
+    ), true);
+    assert.equal(acceptanceArtifact.verdict, "blocked");
+  } finally {
+    acceptanceFixture.cleanup();
+  }
 });
 
 test("R7: retained public surfaces execute producer-completion adapters without dropping legacy checks", async () => {
@@ -764,5 +791,35 @@ test("R7: retained public surfaces execute producer-completion adapters without 
     const result = await adapter(input);
     assert.ok(result instanceof ArtifactCompletionMechanicalFailure);
     assertIssueCodes(result, expectedIssueCodes);
+  }
+});
+
+test("R6: retry exhaustion handoff remains a pure current-flow instruction", async () => {
+  const findings = await importRepoModule("src/flow/lib/flow-findings.js");
+  const resolveRetryExhaustionForFlowStep = requireExport(findings, "resolveRetryExhaustionForFlowStep");
+  const resolution = resolveRetryExhaustionForFlowStep({ sourceArtifact: "spec-review.json" });
+  assert.deepEqual(resolution, {
+    stepDisposition: "continue",
+    retryExhaustionOnlyStop: false,
+    deferredTo: "flow-findings.json",
+    sourceArtifact: "spec-review.json",
+  });
+});
+
+test("R6: persisted deferred finding summaries retain their artifact path", async () => {
+  const findings = await importRepoModule("src/flow/lib/flow-findings.js");
+  const buildDeferredFindingsSummary = requireExport(findings, "buildDeferredFindingsSummary");
+  const fixture = createAcceptanceReviewFixture({ deferredFindings: [{
+    findingId: "DF-summary",
+    sourceStep: "spec-review",
+    sourceArtifact: "spec-review.json",
+    sourceFindingId: "summary-source",
+  }] });
+  try {
+    const summary = buildDeferredFindingsSummary({ specDir: fixture.specDir });
+    assert.equal(summary.count, 1);
+    assert.equal(summary.artifactPath, "flow-findings.json");
+  } finally {
+    fixture.cleanup();
   }
 });

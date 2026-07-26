@@ -7,6 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
+import { SPEC_CORRECTION_SUPPORTED_STAGES } from "./plan-rewind.js";
 
 const CATEGORY = "spec-correction";
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
@@ -68,6 +69,7 @@ const TASK_STEP_OPTIONAL_KEYS = Object.freeze(["finishedAt", "runtimeLog", "star
 const TASK_REQUIREMENT_REQUIRED_KEYS = Object.freeze(["desc", "status"]);
 const TASK_REQUIREMENT_OPTIONAL_KEYS = Object.freeze(["id", "priority"]);
 const RESET_STEP_IDS = Object.freeze(FLOW_STEPS.slice(FLOW_STEPS.indexOf("draft")));
+const SPEC_CORRECTION_STAGE_SET = new Set(SPEC_CORRECTION_SUPPORTED_STAGES);
 
 export class PlanRewindAuditValidationError extends Error {
   constructor(message) {
@@ -210,15 +212,17 @@ function validateTaskStatusMap(taskStatuses, path) {
 
 function validatePreviousState(previousState, path) {
   assertExactKeys(previousState, PREVIOUS_STATE_KEYS, [], path);
-  if (previousState.activeStep !== "implement") invalid(`${path}.activeStep`, "must be 'implement'");
+  if (!SPEC_CORRECTION_STAGE_SET.has(previousState.activeStep)) {
+    invalid(`${path}.activeStep`, `must be one of: ${SPEC_CORRECTION_SUPPORTED_STAGES.join(", ")}`);
+  }
   assertNullableString(previousState.currentTaskId, `${path}.currentTaskId`);
   validateStepStatusMap(previousState.stepStatuses, `${path}.stepStatuses`);
-  if (previousState.stepStatuses.implement !== "in_progress") {
-    invalid(`${path}.stepStatuses.implement`, "must be 'in_progress'");
+  if (previousState.stepStatuses[previousState.activeStep] !== "in_progress") {
+    invalid(`${path}.stepStatuses.${previousState.activeStep}`, "must be 'in_progress'");
   }
   for (const [id, status] of Object.entries(previousState.stepStatuses)) {
-    if (id !== "implement" && status === "in_progress") {
-      invalid(`${path}.stepStatuses.${id}`, "cannot be in_progress with activeStep implement");
+    if (id !== previousState.activeStep && status === "in_progress") {
+      invalid(`${path}.stepStatuses.${id}`, `cannot be in_progress with activeStep ${previousState.activeStep}`);
     }
   }
   validateTaskStatusMap(previousState.taskStatuses, `${path}.taskStatuses`);

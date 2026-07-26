@@ -23,6 +23,7 @@ import {
 } from "./spec-correction-rewind-audit.js";
 import {
   PLAN_REWIND_SUPPORTED_STAGES,
+  SPEC_CORRECTION_SUPPORTED_STAGES,
   PlanRewindError,
   PlanRewindRequest,
   applyPlanRewind,
@@ -555,7 +556,7 @@ export class RunReopenDraftCommand extends FlowCommand {
         return auditFailure(err);
       }
       const activeStep = findInProgressLeaf(state.steps || [])?.id ?? null;
-      if (activeStep !== "implement") {
+      if (!SPEC_CORRECTION_SUPPORTED_STAGES.includes(activeStep)) {
         const stepIds = specCorrectionResetStepIds();
         let retryAudit;
         try {
@@ -571,7 +572,7 @@ export class RunReopenDraftCommand extends FlowCommand {
           "run",
           "reopen-draft",
           "REOPEN_STAGE_UNSUPPORTED",
-          "spec-correction reopen is only available from implement",
+          "spec-correction reopen is only available from a supported implementation stage",
         );
       }
       return executeSpecCorrection({ flowManager, root, specId: ctx.specId, state, reason });

@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "415525d6a1b4b48c01f56413",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-4a144df7bc912d93",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/gate-diff-compaction.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/run-scenario-validity.test.js"
+    ],
+    "inputHash": "4a144df7bc912d93a07ea4525de931e32a229dfe1662442c470e5d1175c183ef",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "415525d6a1b4b48c01f56413"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/gate-diff-compaction.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "inputHash": "4a144df7bc912d93a07ea4525de931e32a229dfe1662442c470e5d1175c183ef",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T15:09:31.594Z",
+  "finishedAt": "2026-07-25T15:09:31.594Z",
+  "rawResponse": "### 1. Centralize bounded recursive scanning helpers\n**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple files introduce or rely on recursive traversal without explicit bounds: `productionSourceFiles()` in this test, `#existingTestFile()` in `tests/helpers/acceptance-review-fixture.js`, and `isFreshMigrationArtifact()` in `src/flow/lib/impl-repair-artifacts.js`. The same bounded-resource concern is appearing in different forms across production and test code.  \n**Suggestion:** Introduce a small bounded traversal helper for filesystem walks, and use a shared depth/visited-path pattern for recursive artifact freshness checks. Keep limits named and error messages consistent.\n\n### 2. Extract shared acceptance fixture review helpers\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R8  \n**Issue:** Several spec files repeat the same acceptance review setup shape: building context from `{ root, state, diff }`, passing `requirementJudgments`, wiring `flowManager`, and varying only dispositions or apply/persistence options. This duplication appears in `specs/296-review-gate-defer`, `specs/310-defer-test-review-exhaustion`, and `specs/332-acceptance-test-migration`.  \n**Suggestion:** Add reusable helper methods to the acceptance fixture helper, such as `buildAcceptanceContext(fixture)` and `runAcceptanceFixture(fixture, overrides)`, then migrate repeated local wrappers to those shared helpers.\n\n### 3. Standardize deferred finding fixture builders\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R5  \n**Issue:** Deferred finding data is being rebuilt in multiple shapes across files: identity projection in `specs/295-producer-artifact-contract`, disposition objects in `specs/332-acceptance-test-migration`, invalid `FlowFinding` payloads in `specs/296-review-gate-defer`, and producer setup in `specs/310-defer-test-review-exhaustion`. These are the same contract concepts expressed through separate ad hoc helpers.  \n**Suggestion:** Add shared fixture builders for deferred finding identity, disposition, and base `FlowFinding` data. Keep local tests focused on overrides and expected behavior.\n\n### 4. Unify review target fingerprint naming\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** The implementation can now return a synthetic tree-plus-diff fingerprint, while names still say `TreeSha`. Related tests such as `tests/unit/flow/review-evidence-tree.test.js` also frame the behavior as tree SHA resolution. This creates a cross-file terminology mismatch between the interface and actual identity semantics.  \n**Suggestion:** Rename the exported API and tests toward `reviewTargetFingerprint`, or clearly split literal Git tree SHA helpers from dirty-worktree fingerprint helpers.\n\n### 5. Centralize spec-correction rewind constants\n**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is spread across `plan-rewind.js`, `run-scenario-validity.js`, and `run-reopen-draft.js`, with repeated category/stage concepts and slightly different names/messages. This makes future stage/category changes easy to apply inconsistently.  \n**Suggestion:** Export a single spec-correction rewind category constant and supported-stage set from one flow module, then reuse it in eligibility checks, preflight bypass logic, error messages, and related tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize bounded recursive scanning helpers",
+        "body": "**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R9  \n**Issue:** Multiple files introduce or rely on recursive traversal without explicit bounds: `productionSourceFiles()` in this test, `#existingTestFile()` in `tests/helpers/acceptance-review-fixture.js`, and `isFreshMigrationArtifact()` in `src/flow/lib/impl-repair-artifacts.js`. The same bounded-resource concern is appearing in different forms across production and test code.  \n**Suggestion:** Introduce a small bounded traversal helper for filesystem walks, and use a shared depth/visited-path pattern for recursive artifact freshness checks. Keep limits named and error messages consistent.",
+        "file": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Extract shared acceptance fixture review helpers",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R8  \n**Issue:** Several spec files repeat the same acceptance review setup shape: building context from `{ root, state, diff }`, passing `requirementJudgments`, wiring `flowManager`, and varying only dispositions or apply/persistence options. This duplication appears in `specs/296-review-gate-defer`, `specs/310-defer-test-review-exhaustion`, and `specs/332-acceptance-test-migration`.  \n**Suggestion:** Add reusable helper methods to the acceptance fixture helper, such as `buildAcceptanceContext(fixture)` and `runAcceptanceFixture(fixture, overrides)`, then migrate repeated local wrappers to those shared helpers.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R8"
+      },
+      {
+        "title": "3. Standardize deferred finding fixture builders",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R5  \n**Issue:** Deferred finding data is being rebuilt in multiple shapes across files: identity projection in `specs/295-producer-artifact-contract`, disposition objects in `specs/332-acceptance-test-migration`, invalid `FlowFinding` payloads in `specs/296-review-gate-defer`, and producer setup in `specs/310-defer-test-review-exhaustion`. These are the same contract concepts expressed through separate ad hoc helpers.  \n**Suggestion:** Add shared fixture builders for deferred finding identity, disposition, and base `FlowFinding` data. Keep local tests focused on overrides and expected behavior.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Unify review target fingerprint naming",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** The implementation can now return a synthetic tree-plus-diff fingerprint, while names still say `TreeSha`. Related tests such as `tests/unit/flow/review-evidence-tree.test.js` also frame the behavior as tree SHA resolution. This creates a cross-file terminology mismatch between the interface and actual identity semantics.  \n**Suggestion:** Rename the exported API and tests toward `reviewTargetFingerprint`, or clearly split literal Git tree SHA helpers from dirty-worktree fingerprint helpers.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Centralize spec-correction rewind constants",
+        "body": "**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is spread across `plan-rewind.js`, `run-scenario-validity.js`, and `run-reopen-draft.js`, with repeated category/stage concepts and slightly different names/messages. This makes future stage/category changes easy to apply inconsistently.  \n**Suggestion:** Export a single spec-correction rewind category constant and supported-stage set from one flow module, then reuse it in eligibility checks, preflight bypass logic, error messages, and related tests.",
+        "file": "src/flow/lib/plan-rewind.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "devType": "test",
+  "goal": "削除済み acceptance-review 互換 export に依存する6件の historical regression scenario を現行 production 契約へ移行し、その実行で露出した flow-runtime defect を限定的に修正する。",
+  "analysis": {
+    "problem": "6件の回帰テストが削除済み buildAcceptanceReviewArtifactFromEvidence export を直接要求するため、各テスト本来の verdict policy、deferred finding、producer contract、retry exhaustion、no-tests state、post-hook deferral の検証前に module load が失敗する。",
+    "proposedApproach": "各 historical scenario を現行 owner へ対応付ける。verdict policy は classifyMechanicalBlockers、AcceptanceReviewOutcome、deriveAcceptanceReviewVerdict、validateAcceptanceReviewArtifact、persisted evidence 判定は buildAcceptanceReviewContext、judgment と deferred disposition の artifact 化は artifactFromAcceptanceJudgments、永続化と flow-findings mirror は writeAcceptanceReviewArtifact、flow transition は applyAcceptanceReviewResult、command orchestration は RunAcceptanceReviewCommand が所有する。加えて、同じ実行を妨げる flow-runtime defect は repair artifact freshness、uncommitted diff identity、retry reset、current-review obligation、spec-correction rewind の各 owner に限定して修正する。user-facing command、config、help、acceptance-review public export と schema は変更しない。",
+    "validation": "6件の complete regression file を完全実行する。290 は persisted test evidence から missing_tests と missing_required_tests、および現行 verdict derivation を検証する。293 は6種の deferred disposition、source identity と evidence binding、unresolved risk verdict を検証する。295 は各 producer の flow-findings 集約から acceptance artifact までを検証する。296 は review/gate retry exhaustion findings の disposition、writer mirror、repair/user-decision/blocked routing を検証する。301 は no-tests artifacts が valid state として acceptance pass、report、finalize まで消費されることを検証する。310 は fixed、still_open、blocking の test-review post-hook finding が acceptance へ handoff され、flow transition に反映されることを検証する。flow-runtime repair は tests/unit/flow/repair-state-identity.test.js、review-evidence-tree.test.js、finding-gate-readiness.test.js、reopen-draft-spec-correction.test.js を node --test で成功させ、guard 付き senti flow run test-execute、test-result-review、review --phase impl、gate、retro、final-regression を順に ok とする。final-regression が実行する npm test -- の終了コードは0とする。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: 対象は specs 290、293、295、296、301、310 にある6件の complete regression file。",
+      "must: production source に buildAcceptanceReviewArtifactFromEvidence export は存在せず、現行経路は class-based artifact normalization、validation、evidence binding、writer、command orchestration を使用する。",
+      "must: Issue #455 の preflight で Goal、Scope、Out of Scope はユーザー承認済み。",
+      "must: 対象6ファイルは個別の scenario semantics を保持し、complete regression file 単位で通過させる。",
+      "must: migration の実行を妨げる flow-runtime defect は、ユーザーの明示承認により原因 owner と回帰テストを伴う限定修正として含める。",
+      "must: spec 290 の retained behavior は persisted test evidence の mechanical blocker classification と current verdict derivation で、owner は buildAcceptanceReviewContext、classifyMechanicalBlockers、AcceptanceReviewOutcome、deriveAcceptanceReviewVerdict、validateAcceptanceReviewArtifact。",
+      "must: spec 293 の retained behavior は deferred findings の source evidence 読み取り、6種 disposition 保持、unresolved risk 判定で、owner は buildAcceptanceReviewContext、artifactFromAcceptanceJudgments、DeferredAcceptanceFinding、DeferredFindingBlocker。",
+      "must: spec 295 の retained behavior は review/gate producer から flow-findings 集約と acceptance artifact 生成までの producer contract で、owner は buildAcceptanceReviewContext、artifactFromAcceptanceJudgments、writeAcceptanceReviewArtifact。",
+      "must: spec 296 の retained behavior は retry exhaustion finding の disposition、flow-findings mirror、acceptance routing で、owner は buildAcceptanceReviewContext、writeAcceptanceReviewArtifact、applyAcceptanceReviewResult。",
+      "must: spec 301 の retained behavior は no-tests state の mechanical evidence 消費、acceptance pass、report、finalize 連携で、owner は buildAcceptanceReviewContext、artifactFromAcceptanceJudgments、validateAcceptanceReviewArtifact と既存 downstream commands。",
+      "must: spec 310 の retained behavior は test-review post-hook finding の acceptance handoff、disposition、flow transition で、owner は buildAcceptanceReviewContext、artifactFromAcceptanceJudgments、applyAcceptanceReviewResult。"
+    ],
+    "decisionPoints": [
+      "must: 各 historical scenario を、そのシナリオが検証する production-reachable な現行 acceptance-review 経路へ対応付ける。",
+      "must: 旧 verdict 名や旧 evidence fixture を機械的に置換せず、現行 lifecycle 上の同じ意味へ対応付ける。",
+      "must: user-facing acceptance-review lifecycle とは独立した flow-runtime defect だけを、根本原因と回帰テストが確認できる場合に限定修正する。",
+      "must: retained public surface ごとに production path を通る behavior-level assertion を最低1件保持する。",
+      "must: current writer を通す scenario は acceptance-review.json persistence と flow-findings finalDisposition mirror を検証する。",
+      "must: current apply path を通す scenario は pass、repair_required、user_decision_required、blocked の該当 verdict と flow step transition を検証する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 削除済み compatibility export、互換 shim、旧 format の保持は alpha 版ポリシーと Issue の除外範囲により禁止。",
+      "must: テストを通すための acceptance-review product code 変更や test-only shortcut は行わず、production から到達可能な契約を検証する。",
+      "must: 同じ移行パターンが2箇所以上に現れる場合は、対象テスト内の共通 fixture helper として抽出する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": []
+  },
+  "scopeVerification": {
+    "in": [
+      "must: specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js の verdict policy scenario 移行。",
+      "must: specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs の deferred finding scenario 移行。",
+      "must: specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js の producer contract scenario 移行。",
+      "must: specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js の retry exhaustion scenario 移行。",
+      "must: specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js の no-tests state scenario 移行。",
+      "must: specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js の post-hook deferral scenario 移行。"
+      ,"must: migration 実行で検証された flow-runtime evidence freshness、review identity、retry reset、gate obligation、spec-correction rewind の defect 修正。"
+    ],
+    "out": [
+      "must: buildAcceptanceReviewArtifactFromEvidence export または同等 compatibility shim の再導入は対象外。",
+      "must: acceptance-review product lifecycle の再設計、Issue #443、今回の実行を妨げない他の product defect は対象外。",
+      "must: production から到達不能な test-only API、fixture builder、shortcut の追加は対象外。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: acceptance-review の公開 export、schema、user-facing command、config は変更せず、historical regression coverage を現行契約へ追従させる。",
+    "must: 6件の complete regression file が module load を完了し、それぞれの既存 scenario semantics を継続検証する。",
+    "must: tests/unit/flow/repair-state-identity.test.js、review-evidence-tree.test.js、finding-gate-readiness.test.js、reopen-draft-spec-correction.test.js を node --test で通し、対象6 complete regression file と npm test -- を終了コード0で通す。",
+    "must: user-facing command、CLI help、config entry、acceptance-review public export の追加・削除・変更は行わない。",
+    "must: acceptance-review.json と flow-findings.json の schema、fingerprint validation、finalDisposition mirror を現行 writer 契約どおり検証する。",
+    "must: review/gate retry hook と test-review post-hook が生成する source findings の acceptance handoff を現行 context builder 経由で検証する。",
+    "must: applyAcceptanceReviewResult が所有する flow step transition と acceptance state side effect を該当 scenario で検証する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "削除 export を戻さず、対象6件の historical regression scenario を現行 production acceptance-review 契約へ移行する Goal と Scope でよいか（must）。",
+      "answer": "must: 提示した Goal と Scope で進める。",
+      "evidence": "Issue #455 の Problem、Acceptance Criteria、Scope、および prelude-auto-mode でのユーザー選択 [1]。",
+      "why": "ユーザーが preflight summary を承認し、削除 export を戻さない6シナリオ移行を明示したため。",
+      "considered": "compatibility export の再導入は Issue の明示的除外範囲と alpha 版ポリシーに反するため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "各 complete regression file の全テスト通過に加え、verdict policy、deferred finding、producer contract、retry exhaustion、no-tests state、post-hook deferral の意味を assertion で保持することを受入条件とするか（must）。",
+      "answer": "must: 6件の complete regression file 全体の通過と、列挙された各 scenario semantics の assertion 保持を受入条件とする。",
+      "evidence": "Issue #455 Acceptance Criteria は complete regression files の通過と6種類の scenario meanings の保持を要求する。",
+      "why": "module load failureだけを解消しても、本来の regression intent が失われれば移行 parity を証明できないため。",
+      "considered": "旧 import の除去だけを確認する方式は behavior-level verification を欠くため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "compatibility export、compatibility shim、production から到達不能な test-only shortcut、acceptance-review lifecycle 再設計、Issue #443 を除外するか（must）。",
+      "answer": "must: 列挙した5項目をすべて除外する。",
+      "evidence": "Issue #455 Acceptance Criteria と Scope、および AGENTS.md の alpha 版ポリシーとテスト変更ルール。",
+      "why": "本 Issue は historical regression migration に限定され、compatibility behavior や product lifecycle redesign を追加しないため。",
+      "considered": "互換 shim はテスト移行を回避して削除済み contract を復活させるため不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "移行した scenario が現 product defect を露出した場合、テストを弱めず issue-log に記録し、別 BUG として切り分けるか（must）。",
+      "answer": "must: テストを弱めない。今回の実行を妨げ、原因と回帰範囲が確認できた flow-runtime defect は、ユーザーの明示承認により同一 flow で限定修正する。その他の product defect は別 BUG として切り分ける。",
+      "evidence": "ユーザーの『あなた自身で修正したほうが、原因と解消が明確にわかるので、良いと思います。修正のうえ、続きを再開させてください。』という明示指示、impl-gate の scope mismatch evidence、AGENTS.md のテストコード保護ルール。",
+      "why": "flow を正しく再開するための実行基盤 defect は、同じ実行で原因・修正・回帰を一貫して確認できる。一方で acceptance-review lifecycle の仕様変更は引き続き除外するため。",
+      "considered": "assertion を弱める方式と、既知の flow defect を未修正のまま別 BUG 化して再発させる方式は不採用。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "各 scenario は production から到達可能な現行 acceptance-review 契約を通して検証し、test-only shortcut を使わない方針でよいか（must）。",
+      "answer": "must: 各 scenario の意味を所有する production-reachable な現行契約を通し、test-only shortcut を使わない。",
+      "evidence": "Issue #455 Acceptance Criteria、src/flow/lib/run-acceptance-review.js の production orchestration、および src/flow/lib/acceptance-review-artifacts.js の現行 artifact APIs。",
+      "why": "historical test を現 product lifecycle と同じ契約に追従させることが migration の目的だから。",
+      "considered": "新しい test fixture export は production consumer が使用しない別契約となるため不採用。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-24T14:21:41Z",
+    "notes": "Issue #455 の preflight summary と、flow-runtime defect を原因・回帰テスト付きで限定修正して再開するユーザー明示指示を反映。"
+  }
+}

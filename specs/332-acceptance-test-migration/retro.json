@@ -1,0 +1,70 @@
+{
+  "spec": "specs/332-acceptance-test-migration/spec.json",
+  "date": "2026-07-25T16:09:32.206Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "All six target regression files shall remove every import, require, or invocation of buildAcceptanceReviewArtifactFromEvidence, and production source shall not add an equivalent compatibility export.",
+      "status": "done",
+      "note": "R1: six historical consumers and production exports omit exact or equivalent compatibility contracts"
+    },
+    {
+      "desc": "Repeated acceptance fixture assembly shall call current production context, artifact, writer, and flow-application exports with complete flow state, mechanical evidence, deferred source evidence, and repair fingerprint inputs, without independently constructing acceptance outcomes.",
+      "status": "done",
+      "note": "R2: shared fixture executes complete current context, writer, and flow application inputs"
+    },
+    {
+      "desc": "The spec 290 regression shall derive missing_tests and missing_required_tests from persisted evidence and shall validate the current blocked, repair_required, user_decision_required, and pass verdict policy.",
+      "status": "done",
+      "note": "R3: persisted evidence derives missing and missing-required test blockers"
+    },
+    {
+      "desc": "The spec 293 regression shall preserve all six deferred final dispositions, exact source finding identity and evidence binding, and current unresolved-risk verdict behavior.",
+      "status": "done",
+      "note": "R4: spec 293 complete regression passes through the current lifecycle"
+    },
+    {
+      "desc": "The spec 295 regression shall preserve producer artifact aggregation into flow-findings and acceptance-review artifacts for every covered review and gate producer.",
+      "status": "done",
+      "note": "R5: producer findings aggregate into persisted and mirrored acceptance artifacts"
+    },
+    {
+      "desc": "The spec 296 regression shall preserve review/gate retry exhaustion dispositions, acceptance-review persistence, flow-findings mirror side effects, missing-source blocking, and current acceptance routing.",
+      "status": "done",
+      "note": "R6: retry findings persist, mirror, block on missing source, and route current flow state"
+    },
+    {
+      "desc": "The spec 301 regression shall consume no-tests artifacts as a valid acceptance pass state and preserve downstream report, finalize, durable pathspec, and final-regression skip behavior.",
+      "status": "done",
+      "note": "R7: no-tests evidence remains a valid acceptance, report, finalize, and durable-artifact state"
+    },
+    {
+      "desc": "The spec 310 regression shall preserve test-review post-hook deferred finding handoff, source identity, final disposition, acceptance verdict, and flow transition behavior.",
+      "status": "done",
+      "note": "R8: test-review handoff preserves source identity, disposition verdict, and routing"
+    },
+    {
+      "desc": "Each of the six complete target regression files, spec-local migration tests, and the final project regression shall pass without weakened assertions.",
+      "status": "done",
+      "note": "R9: all complete target files retain scenario counts and pass without disabled tests"
+    },
+    {
+      "desc": "The user-authorized flow-runtime repairs shall: skip a completed repair migration only when its raw evidence, v2 test result repairFingerprint, and repair delta all match the current fingerprint; include tracked uncommitted diff bytes in review identity; create a tooling recovery mutation only after the configured single tooling review attempt is exhausted; evaluate review obligations only for the latest repairFingerprint while retaining legacy evidence without a fingerprint; accept spec-correction rewinds from implement, impl-review, impl-gate, retro, acceptance-review, and final-regression; and bypass scenario-validity's implementation-diff preflight only when the latest plan rewind category is spec-correction. Acceptance-review lifecycle contracts remain unchanged.",
+      "status": "done",
+      "note": "R10: flow-runtime repairs preserve their bounded behavior contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "b63c1b74bdea045467b0f1d43aebfef29401828d7e54e5110ec4e1cd506c2a41"
+}

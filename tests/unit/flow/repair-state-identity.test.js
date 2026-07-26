@@ -79,6 +79,50 @@ function initRepository({ config = {} } = {}) {
 }
 
 describe("repair state identity", () => {
+  async function migrateBaselineBearingLegacyV2() {
+    const initialized = initRepository();
+    const state = {
+      ...initialized.state,
+      steps: [
+        { id: "test-execute", status: "done" },
+        { id: "test-result-review", status: "in_progress" },
+        { id: "impl-gate", status: "in_progress" },
+      ],
+    };
+    write("app/original.js", "export const value = 2;\n");
+    const current = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const { hash, ...legacyInput } = current.toJSON();
+    const legacy = new LegacyRepairFingerprintManifest({
+      ...legacyInput,
+      version: 2,
+    });
+    write("specs/demo/repair-fingerprint.json", JSON.stringify(legacy.toJSON()));
+    write("specs/demo/test-execute-result.json", JSON.stringify({ repairFingerprint: legacy.hash }));
+    const flowManager = {
+      mutate(mutator) { mutator(state); },
+    };
+    const result = await new RunGateCommand().execute({
+      root: tmp,
+      phase: "integration",
+      flowState: state,
+      flowManager,
+      skipGuardrail: true,
+    });
+    return { state, legacy, flowManager, result };
+  }
+
+  function writeCurrentTestExecutionEvidence() {
+    const specDir = path.join(tmp, "specs/demo");
+    const manifest = JSON.parse(fs.readFileSync(path.join(specDir, "repair-fingerprint.json"), "utf8"));
+    write("specs/demo/tests/.raw/test-execution.log", "current test evidence\n");
+    write("specs/demo/test-execute-result.json", JSON.stringify({
+      version: "2",
+      raw_output_path: "specs/demo/tests/.raw/test-execution.log",
+      repairFingerprint: manifest.hash,
+    }));
+    return manifest;
+  }
+
   it("pins and validates SHA-256 repository baselines when supported", (t) => {
     tmp = createTmpDir("repair-state-sha256-");
     try {
@@ -426,36 +470,7 @@ describe("repair state identity", () => {
   });
 
   it("returns integration-gate recovery for a baseline-bearing legacy v2 fingerprint", async () => {
-    const initialized = initRepository();
-    const state = {
-      ...initialized.state,
-      steps: [
-        { id: "test-execute", status: "done" },
-        { id: "test-result-review", status: "in_progress" },
-        { id: "impl-gate", status: "in_progress" },
-      ],
-    };
-    write("app/original.js", "export const value = 2;\n");
-    const current = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
-    const { hash, ...legacyInput } = current.toJSON();
-    const legacy = new LegacyRepairFingerprintManifest({
-      ...legacyInput,
-      version: 2,
-    });
-    assert.notEqual(legacy.hash, current.hash);
-    write("specs/demo/repair-fingerprint.json", JSON.stringify(legacy.toJSON()));
-    write("specs/demo/test-execute-result.json", JSON.stringify({ repairFingerprint: legacy.hash }));
-    const flowManager = {
-      mutate(mutator) { mutator(state); },
-    };
-
-    const result = await new RunGateCommand().execute({
-      root: tmp,
-      phase: "integration",
-      flowState: state,
-      flowManager,
-      skipGuardrail: true,
-    });
+    const { state, legacy, result } = await migrateBaselineBearingLegacyV2();
 
     assert.equal(result.result, "recovered");
     assert.equal(result.next, "test-execute");
@@ -463,6 +478,96 @@ describe("repair state identity", () => {
     assert.equal(state.steps[0].status, "in_progress");
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/test-execute-result.json")));
     assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/repair-fingerprint.json"), "utf8")).version, 3);
+    const ledger = readImplRepairLedger(path.join(tmp, "specs/demo"));
+    assert.equal(ledger.entries.at(-1).previousHash, legacy.hash);
+    assert.equal(ledger.entries.at(-1).currentHash, buildRepairFingerprint({ root: tmp, specPath: state.spec, state }).hash);
+  });
+
+  it("does not replay a completed retained migration after test execution recreates evidence", async () => {
+    const { state, flowManager } = await migrateBaselineBearingLegacyV2();
+
+    writeCurrentTestExecutionEvidence();
+    state.steps[0].status = "done";
+    state.steps[1].status = "in_progress";
+
+    const result = ensureRepairFingerprintContract({
+      root: tmp,
+      state,
+      flowManager,
+      continueAfterMigration: true,
+    });
+
+    assert.equal(result.migrated, false);
+    assert.equal(state.steps[0].status, "done");
+    assert.equal(state.steps[1].status, "in_progress");
+    assert.ok(fs.existsSync(path.join(tmp, "specs/demo/test-execute-result.json")));
+  });
+
+  for (const [label, invalidate] of [
+    ["test execution evidence is not version 2", ({ manifest }) => {
+      write("specs/demo/test-execute-result.json", JSON.stringify({
+        version: "1",
+        raw_output_path: "specs/demo/tests/.raw/test-execution.log",
+        repairFingerprint: manifest.hash,
+      }));
+    }],
+    ["test execution raw evidence is missing", () => {
+      fs.rmSync(path.join(tmp, "specs/demo/tests/.raw/test-execution.log"));
+    }],
+    ["repair delta evidence is missing", () => {
+      fs.rmSync(path.join(tmp, "specs/demo/repair-deltas"), { recursive: true });
+    }],
+  ]) {
+    it(`replays a completed retained migration when ${label}`, async () => {
+      const { state, flowManager } = await migrateBaselineBearingLegacyV2();
+      const manifest = writeCurrentTestExecutionEvidence();
+      state.steps[0].status = "done";
+      state.steps[1].status = "in_progress";
+      invalidate({ manifest });
+
+      const result = ensureRepairFingerprintContract({
+        root: tmp,
+        state,
+        flowManager,
+        continueAfterMigration: true,
+      });
+
+      assert.equal(result.migrated, true);
+      assert.equal(state.steps[0].status, "in_progress");
+    });
+  }
+
+  it("replays a completed retained migration when the reset step was not applied", async () => {
+    const { state, flowManager } = await migrateBaselineBearingLegacyV2();
+    state.steps[0].status = "pending";
+
+    const result = ensureRepairFingerprintContract({
+      root: tmp,
+      state,
+      flowManager,
+      continueAfterMigration: true,
+    });
+
+    assert.equal(result.migrated, true);
+    assert.equal(state.steps[0].status, "in_progress");
+  });
+
+  it("replays a completed retained migration when stale evidence is restored", async () => {
+    const { state, legacy, flowManager } = await migrateBaselineBearingLegacyV2();
+    state.steps[0].status = "done";
+    state.steps[1].status = "in_progress";
+    write("specs/demo/test-execute-result.json", JSON.stringify({ repairFingerprint: legacy.hash }));
+
+    const result = ensureRepairFingerprintContract({
+      root: tmp,
+      state,
+      flowManager,
+      continueAfterMigration: true,
+    });
+
+    assert.equal(result.migrated, true);
+    assert.equal(state.steps[0].status, "in_progress");
+    assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/test-execute-result.json")));
   });
 });
 

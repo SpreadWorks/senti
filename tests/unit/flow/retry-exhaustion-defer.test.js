@@ -577,7 +577,7 @@ test("gate rejects stale repair claims and tampered typed dispositions", () => {
   assert.equal(tampered.reason, "invalid_finding_disposition");
 });
 
-test("gate retry producer uses live scoped issue-log evidence at the bound", () => {
+test("gate retry producer rejects unverified scoped issue-log evidence at the bound", () => {
   const fixture = prepareSpecRoot();
   writeFile(fixture.root, "src/example.js", "export const example = true;\n");
   const flowState = flowStateAt("spec-gate", {
@@ -644,8 +644,8 @@ test("gate retry producer uses live scoped issue-log evidence at the bound", () 
     },
   }, boundedResult);
 
-  assert.equal(boundedResult.result, "deferred");
-  assert.deepEqual(updates, [{ id: "spec-gate", status: "done" }]);
+  assert.equal(boundedResult.result, "fail");
+  assert.deepEqual(updates, []);
 });
 
 test("gate retry exhaustion remains blocked when must-fix repair evidence is missing", () => {

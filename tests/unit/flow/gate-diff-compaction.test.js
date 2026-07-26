@@ -234,7 +234,16 @@ function setupTaskGateRepository(root) {
   });
   writeJson(root, TASK_GATE_SPEC, {
     goal: "Validate task gate evidence.",
+    background: "",
+    scope: { in: [], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
     requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
   });
   writeFile(root, TASK_GATE_TASK_SPEC, "# Task T-1\n\nValidate implementation evidence.\n");
   writeJson(root, `specs/${TASK_GATE_SPEC_ID}/impl-review.json`, {

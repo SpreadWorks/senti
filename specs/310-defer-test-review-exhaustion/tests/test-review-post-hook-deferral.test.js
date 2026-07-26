@@ -1,13 +1,14 @@
 // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import {
-  applyAcceptanceReviewResult,
-  buildAcceptanceReviewArtifactFromEvidence,
-} from "../../../src/flow/lib/acceptance-review-artifacts.js";
+  createAcceptanceReviewFixture,
+  runAcceptanceReviewFixture,
+} from "../../../tests/helpers/acceptance-review-fixture.js";
 import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { checkReviewRetryBelowMax, updateReviewRetryCounter } from "../../../src/flow/lib/run-review.js";
@@ -27,6 +28,9 @@ function semanticFinding(id) {
   return {
     findingId: id,
     severity: "blocking",
+    fingerprint: crypto.createHash("sha256").update(id).digest("hex"),
+    disposition: "must-fix",
+    rationale: "This semantic finding requires a test-review repair before it can pass.",
     failureMode: "missing_acceptance_requirement",
     category: "semantic",
     title: "Missing test-review behavior",
@@ -60,6 +64,7 @@ function retryMetrics(phase, count) {
 
 function makeFlowState(fixture, metrics = retryMetrics("test", 9)) {
   return {
+    runId: "run-acceptance-fixture",
     spec: fixture.specPath,
     metrics,
     steps: [
@@ -86,6 +91,7 @@ function makeActiveFlowFixture() {
   });
   findStepById(steps, "test-review").status = "in_progress";
   const flowState = {
+    runId: "run-acceptance-fixture",
     spec: fixture.specPath,
     baseBranch: "main",
     featureBranch: "feature/demo",
@@ -117,9 +123,11 @@ function makeActiveFlowFixture() {
 function fakeFlowManager(flowState, updates = []) {
   return {
     updateStepStatus(id, status) {
-      updates.push({ id, status });
-      const step = flowState.steps[0].children.find((child) => child.id === id);
-      if (step) step.status = status;
+      const stepId = typeof id === "string" ? id : id.stepId;
+      const nextStatus = typeof id === "string" ? status : id.action.status;
+      updates.push({ id: stepId, status: nextStatus });
+      const step = flowState.steps[0].children.find((child) => child.id === stepId);
+      if (step) step.status = nextStatus;
     },
     appendMetric(metric) {
       flowState.metrics.push(metric);
@@ -155,15 +163,15 @@ function runFinalSemanticFail({ fixture, findingId = "semantic-1", metrics, flow
   return { flowState, updates };
 }
 
-function prepareAcceptanceEvidence(specDir) {
-  writeJson(specDir, "scenario-validity-result.json", { result: "pass" });
-  writeFile(specDir, "tests/post-hook-deferral.test.js", "// spec: R1\nimport { test } from 'node:test';\ntest('R1: demo', () => {});\n");
-  writeJson(specDir, "test-execute-result.json", {
-    version: "2",
-    summary: [{ id: "R1", result: "pass" }],
+function acceptanceFixtureForDeferredFinding(entry) {
+  return createAcceptanceReviewFixture({
+    deferredFindings: [{
+      findingId: entry.findingId,
+      sourceStep: entry.sourceStep,
+      sourceArtifact: entry.sourceArtifact,
+      sourceFindingId: entry.sourceFindingId,
+    }],
   });
-  writeJson(specDir, "test-result-review.json", { verdict: "pass" });
-  writeJson(specDir, "retro.json", { result: "pass" });
 }
 
 test("R1: final semantic FAIL post-hook writes flow-findings.json in the same command lifecycle", () => {
@@ -264,7 +272,7 @@ test("R5: tooling and structured coverage failures stay outside semantic carryov
   runFinalSemanticFail({ fixture, findingId: "semantic-control" });
   writeJson(fixture.specDir, "test-review.json", {
     verdict: "TOOLING_FAILURE",
-    toolingFailure: true,
+    toolingOutcome: true,
     blockingFindings: [semanticFinding("tooling-should-not-defer")],
   });
   updateReviewRetryCounter({
@@ -328,60 +336,111 @@ test("R7: repeated carryover for the same source finding does not append duplica
 });
 
 test("R8: acceptance-review receives deferred findings created by the post-hook path", () => {
-  const fixture = prepareSpecRoot();
-  runFinalSemanticFail({ fixture, findingId: "acceptance-deferred" });
-  prepareAcceptanceEvidence(fixture.specDir);
-
-  const artifact = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(artifact.deferredFindings.length, 1);
-  assert.equal(artifact.deferredFindings[0].sourceStep, "test-review");
-  assert.equal(artifact.deferredFindings[0].sourceFindingId, "acceptance-deferred");
-  assert.equal(artifact.deferredFindings[0].finalDisposition, "still_open");
-  assert.equal(artifact.verdict, "amend_required");
-  assert.equal(artifact.targetStep, "implement");
+  const producerFixture = prepareSpecRoot();
+  runFinalSemanticFail({ fixture: producerFixture, findingId: "acceptance-deferred" });
+  const [entry] = readFlowFindingsArtifact(producerFixture.specDir).toJSON().entries;
+  const acceptanceFixture = acceptanceFixtureForDeferredFinding(entry);
+  try {
+    const { artifact, applied } = runAcceptanceReviewFixture({
+      root: acceptanceFixture.root,
+      state: acceptanceFixture.state,
+      diff: acceptanceFixture.diff,
+      requirementJudgments: acceptanceFixture.requirementJudgments,
+      deferredFindingDispositions: acceptanceFixture.dispositionJudgments("still_open"),
+      apply: true,
+      flowManager: acceptanceFixture.flowManager,
+    });
+    assert.equal(artifact.deferredFindings.length, 1);
+    assert.equal(artifact.deferredFindings[0].findingId, entry.findingId);
+    assert.equal(artifact.deferredFindings[0].sourceStep, "test-review");
+    assert.equal(artifact.deferredFindings[0].sourceFindingId, "acceptance-deferred");
+    assert.equal(artifact.deferredFindings[0].finalDisposition, "still_open");
+    assert.equal(artifact.verdict, "user_decision_required");
+    assert.equal(applied.verdict, "user_decision_required");
+    assert.equal(acceptanceFixture.activeStep(), "acceptance-decision");
+  } finally {
+    acceptanceFixture.cleanup();
+  }
 });
 
-test("R8: acceptance-review derives blocked and user-decision outcomes for deferred findings", () => {
-  const fixture = prepareSpecRoot();
-  runFinalSemanticFail({ fixture, findingId: "acceptance-branching" });
-  prepareAcceptanceEvidence(fixture.specDir);
-  const [entry] = readFlowFindingsArtifact(fixture.specDir).toJSON().entries;
-  writeJson(fixture.specDir, "acceptance-review-evidence.json", {
-    deferredFindingDispositions: [
-      {
-        findingId: entry.findingId,
-        finalDisposition: "blocking",
-        evidenceRefs: ["test-review.json"],
-      },
-    ],
-  });
-  const blocked = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(blocked.verdict, "blocked");
-  assert.equal(blocked.deferredFindings[0].finalDisposition, "blocking");
+test("R8: unresolved deferred findings route acceptance-review to user decision", () => {
+  const producerFixture = prepareSpecRoot();
+  runFinalSemanticFail({ fixture: producerFixture, findingId: "acceptance-branching" });
+  const [entry] = readFlowFindingsArtifact(producerFixture.specDir).toJSON().entries;
+  const blockingFixture = acceptanceFixtureForDeferredFinding(entry);
+  try {
+    const blocking = runAcceptanceReviewFixture({
+      root: blockingFixture.root,
+      state: blockingFixture.state,
+      diff: blockingFixture.diff,
+      requirementJudgments: blockingFixture.requirementJudgments,
+      deferredFindingDispositions: blockingFixture.dispositionJudgments("blocking"),
+    });
+    assert.equal(blocking.artifact.verdict, "user_decision_required");
+    assert.equal(blocking.artifact.deferredFindings[0].finalDisposition, "blocking");
+  } finally {
+    blockingFixture.cleanup();
+  }
 
-  fs.rmSync(path.join(fixture.specDir, "acceptance-review-evidence.json"));
-  const stillOpen = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  const flowState = {
-    spec: "specs/demo/spec.json",
-    runId: "run-demo",
-    acceptanceReview: { round: 1 },
-    steps: buildInitialSteps(),
-  };
-  const userDecision = applyAcceptanceReviewResult({
-    root: fixture.root,
-    flowManager: {
-      load() {
-        return flowState;
-      },
-      mutate(fn) {
-        fn(flowState);
-      },
-    },
-    artifact: stillOpen,
-  });
-  assert.equal(userDecision.verdict, "user_decision_required");
-  assert.equal(userDecision.artifact.nextAction, "user_decision");
-  assert.equal(userDecision.artifact.targetStep, "implement");
+  const acceptanceFixture = acceptanceFixtureForDeferredFinding(entry);
+  try {
+    const stillOpen = runAcceptanceReviewFixture({
+      root: acceptanceFixture.root,
+      state: acceptanceFixture.state,
+      diff: acceptanceFixture.diff,
+      requirementJudgments: acceptanceFixture.requirementJudgments,
+      deferredFindingDispositions: acceptanceFixture.dispositionJudgments("still_open"),
+      apply: true,
+      flowManager: acceptanceFixture.flowManager,
+    });
+    assert.equal(stillOpen.applied.verdict, "user_decision_required");
+    assert.equal(acceptanceFixture.activeStep(), "acceptance-decision");
+  } finally {
+    acceptanceFixture.cleanup();
+  }
+});
+
+test("R8: fixed post-hook findings retain source identity and route to final regression", () => {
+  const producerFixture = prepareSpecRoot();
+  runFinalSemanticFail({ fixture: producerFixture, findingId: "acceptance-fixed" });
+  const [entry] = readFlowFindingsArtifact(producerFixture.specDir).toJSON().entries;
+  const fixture = acceptanceFixtureForDeferredFinding(entry);
+  try {
+    const { artifact, applied } = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("fixed"),
+      apply: true,
+      flowManager: fixture.flowManager,
+    });
+    assert.equal(artifact.deferredFindings[0].findingId, entry.findingId);
+    assert.equal(artifact.deferredFindings[0].sourceArtifact, "test-review.json");
+    assert.equal(artifact.deferredFindings[0].finalDisposition, "fixed");
+    assert.equal(artifact.verdict, "pass");
+    assert.equal(applied.verdict, "pass");
+    assert.equal(fixture.activeStep(), "final-regression");
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("R8: passing acceptance review routes to final regression", () => {
+  const acceptanceFixture = createAcceptanceReviewFixture();
+  try {
+    runAcceptanceReviewFixture({
+      root: acceptanceFixture.root,
+      state: acceptanceFixture.state,
+      diff: acceptanceFixture.diff,
+      requirementJudgments: acceptanceFixture.requirementJudgments,
+      apply: true,
+      flowManager: acceptanceFixture.flowManager,
+    });
+    assert.equal(acceptanceFixture.activeStep(), "final-regression");
+  } finally {
+    acceptanceFixture.cleanup();
+  }
 });
 
 test("R9: post-hook carryover preserves reviewRetry evidence for manual retry reset workflows", () => {

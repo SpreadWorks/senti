@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-3af56518-06da-4897-a936-cc1692b54375",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "review retry recovery now distinguishes semantic counter reset from tooling convergence recovery",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "0d3ee74208d19dfb2062e9e5193187ff68b11624eb891840dd61f7fa7681f150",
+        "currentHash": "d557f4e025d08b25ce78825884f162635a0b9151b0f8393df4768afc52548ecc",
+        "changedPaths": [
+          "specs/332-acceptance-test-migration/spec.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 4,
+      "maxAttempts": 4,
+      "counterAfter": 3,
+      "recoveryCommand": "senti flow set retry reset review impl --reason \"review retry recovery now distinguishes semantic counter reset from tooling convergence recovery\" --yes",
+      "createdAt": "2026-07-25T11:06:26.877Z"
+    },
+    {
+      "id": "recovery-3f3977f3-86c5-45c8-a318-f031b1e0839d",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "Restored current retry-exhaustion coverage for task-impl, structured non-semantic blockers, and the final review retry slot; refreshed test artifacts and review evidence now prove the changed behavior.",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "52d491e8de912ffd65cbad5e99c113c277770c15756c9ebfc5d0b96fb024afa4",
+        "currentHash": "01835f90a132cd47318a50f343c248a5222d2a7c727dd6d2e55f6345879b4280",
+        "changedPaths": [
+          "specs/332-acceptance-test-migration/file-map.json",
+          "specs/332-acceptance-test-migration/test-execute-result.json",
+          "specs/332-acceptance-test-migration/test-result-review.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/spec-correction-rewind-audit.js",
+          "src/flow/prompts/impl/impl-gate.md"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"Restored current retry-exhaustion coverage for task-impl, structured non-semantic blockers, and the final review retry slot; refreshed test artifacts and review evidence now prove the changed behavior.\" --yes",
+      "createdAt": "2026-07-25T15:23:41.863Z"
+    },
+    {
+      "id": "recovery-2525bea9-dca7-47a1-bd1d-7d7de685c369",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "re-evaluate the integration gate with validated requirement execution evidence, deferred final-regression ownership, and typed structural retry behavior in the worktree implementation",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "01835f90a132cd47318a50f343c248a5222d2a7c727dd6d2e55f6345879b4280",
+        "currentHash": "eceece2be6e9216ac24164e904f4d2d5b4a8a6d386f45541ea46f2c14f7823b4",
+        "changedPaths": [
+          "specs/332-acceptance-test-migration/file-map.json",
+          "specs/332-acceptance-test-migration/test-execute-result.json",
+          "specs/332-acceptance-test-migration/test-result-review.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/spec-correction-rewind-audit.js",
+          "src/flow/prompts/impl/impl-gate.md"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"re-evaluate the integration gate with validated requirement execution evidence, deferred final-regression ownership, and typed structural retry behavior in the worktree implementation\" --yes",
+      "createdAt": "2026-07-25T15:50:42.128Z"
+    },
+    {
+      "id": "recovery-83b73993-d8dc-4e0c-84da-52833571e672",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "re-evaluate the integration gate after removing the reported single-caller helper while preserving tested spec-correction preflight behavior",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "eceece2be6e9216ac24164e904f4d2d5b4a8a6d386f45541ea46f2c14f7823b4",
+        "currentHash": "4980aa3096a6d93b423d2ca3fe0573d3bd4b3ab996c86d11bba1031c9ac5981b",
+        "changedPaths": [
+          "specs/332-acceptance-test-migration/file-map.json",
+          "specs/332-acceptance-test-migration/test-execute-result.json",
+          "specs/332-acceptance-test-migration/test-result-review.json",
+          "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/plan-rewind.js",
+          "src/flow/lib/review-convergence.js",
+          "src/flow/lib/review-evidence-store.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/spec-correction-rewind-audit.js",
+          "src/flow/prompts/impl/impl-gate.md"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate integration --reason \"re-evaluate the integration gate after removing the reported single-caller helper while preserving tested spec-correction preflight behavior\" --yes",
+      "createdAt": "2026-07-25T15:53:55.034Z"
+    }
+  ]
+}

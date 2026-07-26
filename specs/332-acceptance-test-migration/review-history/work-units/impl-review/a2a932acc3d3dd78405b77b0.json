@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "a2a932acc3d3dd78405b77b0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-ca64c150a8194344",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/gate-diff-compaction.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/run-scenario-validity.test.js"
+    ],
+    "inputHash": "ca64c150a819434457b86969234d6c256cca83e9a37400279e2e2ace66976db2",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "a2a932acc3d3dd78405b77b0"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/gate-diff-compaction.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "inputHash": "ca64c150a819434457b86969234d6c256cca83e9a37400279e2e2ace66976db2",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T14:42:13.131Z",
+  "finishedAt": "2026-07-25T14:42:13.131Z",
+  "rawResponse": "### 1. Standardize Acceptance Fixture Runner Helpers\n**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** Multiple files propose local helpers around the same `createAcceptanceReviewFixture()` / `runAcceptanceReviewFixture({ root, state, diff, requirementJudgments, ... })` pattern, including `specs/293`, `specs/296`, `specs/310`, and `specs/332`. Adding separate helpers with different names and option shapes would create cross-file fixture API drift.\n**Suggestion:** Add or extend a shared helper in `tests/helpers/acceptance-review-fixture.js` for running acceptance fixtures with common defaults, then reuse it from the spec tests instead of introducing per-file variants.\n\n### 2. Consolidate Deferred Finding Identity And Disposition Builders\n**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`\n**Requirement:** R5\n**Issue:** Deferred finding projection and disposition construction are being introduced or repeated in several files with slightly different helper names, such as `deferredFindingIdentity`, `toDeferredFindingFixture`, and `deferredDisposition`. These represent the same cross-file contract fields and can drift if the artifact schema changes.\n**Suggestion:** Define shared test helpers for deferred finding identity projection and disposition creation, preferably near the existing acceptance/deferred artifact helpers, and use consistent names across producer, acceptance, and migration tests.\n\n### 3. Use One Bounded Traversal Helper For Test And Source Discovery\n**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R9\n**Issue:** Both `tests/helpers/acceptance-review-fixture.js` and `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js` need bounded recursive filesystem traversal. Implementing separate walkers risks inconsistent depth, entry, and error behavior.\n**Suggestion:** Extract a shared bounded walker helper for tests, with explicit `maxDepth` and `maxEntries` options, then use it for fixture test discovery and production source scanning.\n\n### 4. Align Review Target Fingerprint Naming Across Store And Callers\n**File:** `src/flow/lib/review-evidence-store.js`\n**Requirement:** R3\n**Issue:** `resolveCurrentReviewTreeSha()` can now return a synthetic dirty-worktree fingerprint, while other files and tests still describe the value as a tree SHA. This creates an interface naming inconsistency between the evidence store and consumers/tests.\n**Suggestion:** Rename the exported API and related variables to `resolveCurrentReviewTargetFingerprint()` or similar, then update callers/tests to distinguish literal Git tree SHAs from review target fingerprints.\n\n### 5. Share Spec-Correction Rewind Constants Across Flow Modules\n**File:** `src/flow/lib/run-scenario-validity.js`\n**Requirement:** R1\n**Issue:** Spec-correction rewind behavior is referenced across `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, but proposals mention local strings and stage sets with different names. This can lead to inconsistent category/stage handling.\n**Suggestion:** Move the spec-correction category and supported-stage set into a shared flow constant module or export them from the ownership module, then reuse them in scenario validity and reopen-draft logic.\n\n### 6. Normalize Migration Fingerprint Naming\n**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R10\n**Issue:** `currentManifest` now represents a repair fingerprint, while related proposals and tests use terms like `currentFingerprint`, `repairFingerprint`, and `baselineBearingLegacyV2`. The mismatch obscures the artifact contract across implementation and repair-state tests.\n**Suggestion:** Rename implementation variables/properties to `currentRepairFingerprint` or `currentFingerprint`, and align test helper names so “manifest” is reserved for actual migration input manifests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Acceptance Fixture Runner Helpers",
+        "body": "**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** Multiple files propose local helpers around the same `createAcceptanceReviewFixture()` / `runAcceptanceReviewFixture({ root, state, diff, requirementJudgments, ... })` pattern, including `specs/293`, `specs/296`, `specs/310`, and `specs/332`. Adding separate helpers with different names and option shapes would create cross-file fixture API drift.\n**Suggestion:** Add or extend a shared helper in `tests/helpers/acceptance-review-fixture.js` for running acceptance fixtures with common defaults, then reuse it from the spec tests instead of introducing per-file variants.",
+        "file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Consolidate Deferred Finding Identity And Disposition Builders",
+        "body": "**File:** `specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js`\n**Requirement:** R5\n**Issue:** Deferred finding projection and disposition construction are being introduced or repeated in several files with slightly different helper names, such as `deferredFindingIdentity`, `toDeferredFindingFixture`, and `deferredDisposition`. These represent the same cross-file contract fields and can drift if the artifact schema changes.\n**Suggestion:** Define shared test helpers for deferred finding identity projection and disposition creation, preferably near the existing acceptance/deferred artifact helpers, and use consistent names across producer, acceptance, and migration tests.",
+        "file": "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Use One Bounded Traversal Helper For Test And Source Discovery",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R9\n**Issue:** Both `tests/helpers/acceptance-review-fixture.js` and `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js` need bounded recursive filesystem traversal. Implementing separate walkers risks inconsistent depth, entry, and error behavior.\n**Suggestion:** Extract a shared bounded walker helper for tests, with explicit `maxDepth` and `maxEntries` options, then use it for fixture test discovery and production source scanning.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "4. Align Review Target Fingerprint Naming Across Store And Callers",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`\n**Requirement:** R3\n**Issue:** `resolveCurrentReviewTreeSha()` can now return a synthetic dirty-worktree fingerprint, while other files and tests still describe the value as a tree SHA. This creates an interface naming inconsistency between the evidence store and consumers/tests.\n**Suggestion:** Rename the exported API and related variables to `resolveCurrentReviewTargetFingerprint()` or similar, then update callers/tests to distinguish literal Git tree SHAs from review target fingerprints.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Share Spec-Correction Rewind Constants Across Flow Modules",
+        "body": "**File:** `src/flow/lib/run-scenario-validity.js`\n**Requirement:** R1\n**Issue:** Spec-correction rewind behavior is referenced across `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, but proposals mention local strings and stage sets with different names. This can lead to inconsistent category/stage handling.\n**Suggestion:** Move the spec-correction category and supported-stage set into a shared flow constant module or export them from the ownership module, then reuse them in scenario validity and reopen-draft logic.",
+        "file": "src/flow/lib/run-scenario-validity.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Normalize Migration Fingerprint Naming",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`\n**Requirement:** R10\n**Issue:** `currentManifest` now represents a repair fingerprint, while related proposals and tests use terms like `currentFingerprint`, `repairFingerprint`, and `baselineBearingLegacyV2`. The mismatch obscures the artifact contract across implementation and repair-state tests.\n**Suggestion:** Rename implementation variables/properties to `currentRepairFingerprint` or `currentFingerprint`, and align test helper names so “manifest” is reserved for actual migration input manifests.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R10"
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/review-evidence-tree.test.js",
+      "tests/unit/flow/run-scenario-validity.test.js"
+    ],
+    "inputHash": "fc4d02ee0023ffc6393a39cc5aebc7bccd837ec7e8e1f83499289596b6ae4a10",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "tests/unit/flow/review-evidence-tree.test.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "inputHash": "fc4d02ee0023ffc6393a39cc5aebc7bccd837ec7e8e1f83499289596b6ae4a10",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:08:03.614Z",
+  "finishedAt": "2026-07-25T16:08:03.614Z",
+  "rawResponse": "### 1. Add Timeouts To Synchronous Git Calls\n**File:** `tests/unit/flow/review-evidence-tree.test.js`  \n**Requirement:** R1  \n**Issue:** The local `git(...args)` helper calls `execFileSync` without a timeout. If Git blocks unexpectedly, the test can hang without an explicit upper bound, which conflicts with the bounded-resource-usage guardrail.  \n**Suggestion:** Pass a small `timeout` option to `execFileSync`, for example `{ cwd: tmp, encoding: \"utf8\", timeout: 5000 }`.\n\n### 2. Extract Fixture Setup For Readability\n**File:** `tests/unit/flow/run-scenario-validity.test.js`  \n**Requirement:** R1  \n**Issue:** The test body mixes fixture creation, Git setup, command construction, failure assertion, and success assertion in one long flow. This makes the actual behavior under test harder to scan.  \n**Suggestion:** Extract narrowly scoped helpers inside the file, such as `writeSpecFixture(root, specDir, spec)` and `createContext(root, spec, planRewinds)`, keeping the assertions in the test body.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add Timeouts To Synchronous Git Calls",
+        "body": "**File:** `tests/unit/flow/review-evidence-tree.test.js`  \n**Requirement:** R1  \n**Issue:** The local `git(...args)` helper calls `execFileSync` without a timeout. If Git blocks unexpectedly, the test can hang without an explicit upper bound, which conflicts with the bounded-resource-usage guardrail.  \n**Suggestion:** Pass a small `timeout` option to `execFileSync`, for example `{ cwd: tmp, encoding: \"utf8\", timeout: 5000 }`.",
+        "file": "tests/unit/flow/review-evidence-tree.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Extract Fixture Setup For Readability",
+        "body": "**File:** `tests/unit/flow/run-scenario-validity.test.js`  \n**Requirement:** R1  \n**Issue:** The test body mixes fixture creation, Git setup, command construction, failure assertion, and success assertion in one long flow. This makes the actual behavior under test harder to scan.  \n**Suggestion:** Extract narrowly scoped helpers inside the file, such as `writeSpecFixture(root, specDir, spec)` and `createContext(root, spec, planRewinds)`, keeping the assertions in the test body.",
+        "file": "tests/unit/flow/run-scenario-validity.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

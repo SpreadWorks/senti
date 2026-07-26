@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T12:29:57.443Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "no-tests-finalize-downstream-assertions-dropped",
+      "title": "No-tests finalize behavior no longer fully verified",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "requirementId": "R7",
+      "issue": "The migrated no-tests downstream test still does not verify that finalize consumes the downstream report, test-execute, and final-regression artifacts. It now calls `commitDurableFinalizeArtifacts(finalizeCtx)` and asserts only `finalizeCtx._results.artifactCommit.status` plus `Object.keys(finalizeCtx._results) === [\"artifactCommit\"]`, which explicitly omits the previous finalize-context assertions for report status, `testExecute.summary[0].result`, and `finalRegression.skipKind`.",
+      "suggestion": "In `downstream artifact loading consumes no-tests states through existing file names`, restore coverage for finalize-level downstream artifact loading using the current finalize entry point that populates those results, or add equivalent assertions around the current finalize API. At minimum assert the report result/status, `testExecute.summary[0].result === \"not_applicable\"`, and `finalRegression.skipKind === \"skipped_by_project_policy\"` as part of finalize behavior.",
+      "disposition": "must-fix",
+      "rationale": "R7 requires preserving no-tests acceptance pass and downstream report/finalize behavior in the complete spec 301 file. The implementation verifies acceptance and report separately, but the finalize behavior regression coverage remains dropped, so a mandatory acceptance requirement is still unverified.",
+      "findingId": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "fingerprint": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "cb8b956ea15b7530e2190510695e6df1b16c973913af8cbd1b53ccdb781048fb",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/332-acceptance-test-migration/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "88df33d44a13515a7d10d984b3ec2abf17bc5a47e395c29860a30549ba049b79"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 22,
+  "findings": [
+    {
+      "id": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "findingId": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 22,
+      "severity": "blocking",
+      "title": "No-tests finalize behavior no longer fully verified",
+      "body": "The migrated no-tests downstream test still does not verify that finalize consumes the downstream report, test-execute, and final-regression artifacts. It now calls `commitDurableFinalizeArtifacts(finalizeCtx)` and asserts only `finalizeCtx._results.artifactCommit.status` plus `Object.keys(finalizeCtx._results) === [\"artifactCommit\"]`, which explicitly omits the previous finalize-context assertions for report status, `testExecute.summary[0].result`, and `finalRegression.skipKind`.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "59b19b9ce81cb81ad8ba207f46d02f77ddabfe852ee347e9023f0df608a07fac",
+      "disposition": "must-fix",
+      "rationale": "R7 requires preserving no-tests acceptance pass and downstream report/finalize behavior in the complete spec 301 file. The implementation verifies acceptance and report separately, but the finalize behavior regression coverage remains dropped, so a mandatory acceptance requirement is still unverified.",
+      "requirementId": "R7",
+      "repeatCount": 2
+    }
+  ]
+}

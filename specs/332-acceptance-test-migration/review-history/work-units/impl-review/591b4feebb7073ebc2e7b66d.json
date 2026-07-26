@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-reopen-draft.js"
+    ],
+    "inputHash": "b633881d29bde62899127c1d61a2c78dd82494f27919ebb7541ac6ae182aae32",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-reopen-draft.js"
+  ],
+  "inputHash": "b633881d29bde62899127c1d61a2c78dd82494f27919ebb7541ac6ae182aae32",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:06:46.513Z",
+  "finishedAt": "2026-07-25T16:06:46.513Z",
+  "rawResponse": "### 1. Bound execution summary scanning\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** `IntegrationExecutionEvidence.entriesFor()` scans `this.result.summary` with `.find()` and the constructor accepts any array size. This introduces unbounded bulk processing for externally loaded JSON, violating the bounded-resource-usage guardrail.  \n**Suggestion:** Enforce an explicit maximum summary length in the constructor before storing `result`, or build a bounded lookup map while validating. For example, reject `result.summary.length > MAX_TEST_EXECUTION_SUMMARY_ENTRIES`.\n\n### 2. Avoid repeated execution evidence entries per requirement\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `entriesFor(requirementId)` adds `[TEST-REVIEW]` and `[REGRESSION]` for every requirement context. These entries are requirement-independent, so the same text is duplicated across all rendered requirement contexts.  \n**Suggestion:** Split requirement-specific and global execution evidence. Add `[TEST:<id>]` per requirement, and attach `[TEST-REVIEW]` / `[REGRESSION]` once at a higher-level prompt context if available. If the existing prompt shape requires per-requirement context, extract helper methods like `testReviewEntry()` and `regressionEntry()` to make the intentional duplication explicit.\n\n### 3. Extract integration artifact path construction\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** The integration artifact filenames are hardcoded inline where evidence is loaded: `test-execute-result.json` and `test-result-review.json`. Similar artifact names are likely already used by `checkIntegrationTestArtifacts()`, so this risks drift.  \n**Suggestion:** Reuse existing constants if present in this file, or introduce local constants/helper such as `readIntegrationExecutionEvidence(root, state)` so validation and prompt evidence load from a single naming source.\n\n### 4. Rename `latestFingerprint` for precision\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `latestFingerprint` sounds like the latest finding fingerprint, but it actually stores `latestArtifact.repairFingerprint`. In a function already dealing with finding fingerprints, this is ambiguous.  \n**Suggestion:** Rename it to `latestRepairFingerprint` and use that name in the artifact filtering condition.\n\n### 5. Prefer a `Set` for supported stage membership\n**File:** `src/flow/lib/run-reopen-draft.js`  \n**Requirement:** R2  \n**Issue:** `SPEC_CORRECTION_SUPPORTED_STAGES.includes(activeStep)` performs linear membership checks and exposes array semantics at the call site. The name reads like a constant membership policy, not an ordered list.  \n**Suggestion:** If ordering is not meaningful, define/export the supported stages as a `Set` or add a helper such as `isSpecCorrectionSupportedStage(activeStep)`. That keeps the reopen command aligned with policy-level naming and hides representation details.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound execution summary scanning",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R1  \n**Issue:** `IntegrationExecutionEvidence.entriesFor()` scans `this.result.summary` with `.find()` and the constructor accepts any array size. This introduces unbounded bulk processing for externally loaded JSON, violating the bounded-resource-usage guardrail.  \n**Suggestion:** Enforce an explicit maximum summary length in the constructor before storing `result`, or build a bounded lookup map while validating. For example, reject `result.summary.length > MAX_TEST_EXECUTION_SUMMARY_ENTRIES`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid repeated execution evidence entries per requirement",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R4  \n**Issue:** `entriesFor(requirementId)` adds `[TEST-REVIEW]` and `[REGRESSION]` for every requirement context. These entries are requirement-independent, so the same text is duplicated across all rendered requirement contexts.  \n**Suggestion:** Split requirement-specific and global execution evidence. Add `[TEST:<id>]` per requirement, and attach `[TEST-REVIEW]` / `[REGRESSION]` once at a higher-level prompt context if available. If the existing prompt shape requires per-requirement context, extract helper methods like `testReviewEntry()` and `regressionEntry()` to make the intentional duplication explicit.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Extract integration artifact path construction",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R3  \n**Issue:** The integration artifact filenames are hardcoded inline where evidence is loaded: `test-execute-result.json` and `test-result-review.json`. Similar artifact names are likely already used by `checkIntegrationTestArtifacts()`, so this risks drift.  \n**Suggestion:** Reuse existing constants if present in this file, or introduce local constants/helper such as `readIntegrationExecutionEvidence(root, state)` so validation and prompt evidence load from a single naming source.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "4. Rename `latestFingerprint` for precision",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `latestFingerprint` sounds like the latest finding fingerprint, but it actually stores `latestArtifact.repairFingerprint`. In a function already dealing with finding fingerprints, this is ambiguous.  \n**Suggestion:** Rename it to `latestRepairFingerprint` and use that name in the artifact filtering condition.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "5. Prefer a `Set` for supported stage membership",
+        "body": "**File:** `src/flow/lib/run-reopen-draft.js`  \n**Requirement:** R2  \n**Issue:** `SPEC_CORRECTION_SUPPORTED_STAGES.includes(activeStep)` performs linear membership checks and exposes array semantics at the call site. The name reads like a constant membership policy, not an ordered list.  \n**Suggestion:** If ordering is not meaningful, define/export the supported stages as a `Set` or add a helper such as `isSpecCorrectionSupportedStage(activeStep)`. That keeps the reopen command aligned with policy-level naming and hides representation details.",
+        "file": "src/flow/lib/run-reopen-draft.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

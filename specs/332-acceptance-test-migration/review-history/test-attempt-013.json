@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T12:04:57.470Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/332-acceptance-test-migration/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Tracked diff identity is tested with an untracked file",
+      "target": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js R10",
+      "findingId": "0e7a455a39cb74aa2cd264e00e51669fb4e02d002649e62bc0bdfec3356dbb5c",
+      "fingerprint": "0e7a455a39cb74aa2cd264e00e51669fb4e02d002649e62bc0bdfec3356dbb5c",
+      "disposition": "must-fix",
+      "rationale": "R10 has no spec-local regression that specifically exercises tracked uncommitted diff bytes; the current test can validate a different implementation premise.",
+      "issue": "The review identity assertion writes `src/demo.js` inside the fixture and compares `resolveCurrentReviewTreeSha` before/after, but the test never establishes that `src/demo.js` is a tracked file in that fixture. This can pass by hashing newly created or untracked bytes, while R10 specifically requires tracked uncommitted diff bytes to affect review identity.",
+      "requiredChange": "Change this scenario to modify a fixture file that is already tracked, or explicitly stage/track the file before the baseline and then mutate it before the after hash comparison.",
+      "whyBlocking": "R10 has no spec-local regression that specifically exercises tracked uncommitted diff bytes; the current test can validate a different implementation premise.",
+      "origin": "R10",
+      "failureKind": "missing-regression-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/332-acceptance-test-migration/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "2154172041d308ee797c75f58b20858ae676e87295864a8c30b6ddc623420025"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 13,
+  "findings": [
+    {
+      "id": "0e7a455a39cb74aa2cd264e00e51669fb4e02d002649e62bc0bdfec3356dbb5c",
+      "findingId": "0e7a455a39cb74aa2cd264e00e51669fb4e02d002649e62bc0bdfec3356dbb5c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 13,
+      "severity": "blocking",
+      "title": "Tracked diff identity is tested with an untracked file",
+      "body": "The review identity assertion writes `src/demo.js` inside the fixture and compares `resolveCurrentReviewTreeSha` before/after, but the test never establishes that `src/demo.js` is a tracked file in that fixture. This can pass by hashing newly created or untracked bytes, while R10 specifically requires tracked uncommitted diff bytes to affect review identity.",
+      "category": "unknown",
+      "fingerprint": "0e7a455a39cb74aa2cd264e00e51669fb4e02d002649e62bc0bdfec3356dbb5c",
+      "disposition": "must-fix",
+      "rationale": "R10 has no spec-local regression that specifically exercises tracked uncommitted diff bytes; the current test can validate a different implementation premise."
+    }
+  ]
+}

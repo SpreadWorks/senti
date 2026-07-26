@@ -2396,7 +2396,7 @@ export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId 
   if (fs.existsSync(reviewPath)) candidates.push({ file: reviewPath, source: "impl-review.json", latest: true });
   const expectedTaskId = taskId == null ? null : String(taskId).trim();
   const cycle = new ReviewFindingCycle(state);
-  const obligations = new Map();
+  const reviewedArtifacts = [];
   let latestArtifact = null;
   for (const candidate of candidates) {
     const stat = fs.statSync(candidate.file);
@@ -2409,12 +2409,22 @@ export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId 
     if (!cycle.matchesArtifact(raw)) continue;
     const artifact = new ReviewFindingGateArtifact(raw, { source: candidate.source });
     if (candidate.latest) latestArtifact = raw;
-    for (const finding of artifact.findings) obligations.set(finding.fingerprint, finding);
+    reviewedArtifacts.push({ artifact, raw });
   }
   if (latestArtifact === null) {
     throw new Error(expectedTaskId === null
       ? "flow-scoped implementation review artifact is missing"
       : `task-scoped implementation review artifact is missing for ${expectedTaskId}`);
+  }
+  const obligations = new Map();
+  const latestFingerprint = latestArtifact.repairFingerprint || null;
+  for (const { artifact, raw } of reviewedArtifacts) {
+    if (
+      latestFingerprint !== null
+      && raw.repairFingerprint != null
+      && raw.repairFingerprint !== latestFingerprint
+    ) continue;
+    for (const finding of artifact.findings) obligations.set(finding.fingerprint, finding);
   }
   const decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
     findings: [...obligations.values()],
@@ -3789,6 +3799,7 @@ const REQUIREMENT_CONTEXT_SECTION_ORDER = Object.freeze([
   "task",
   "target",
   "file-map",
+  "execution",
   "evidence",
 ]);
 const REQUIREMENT_CONTEXT_SECTIONS = new Set(REQUIREMENT_CONTEXT_SECTION_ORDER);
@@ -3871,6 +3882,48 @@ export class RequirementObligation {
       return "Evaluate cited preservation, regression evidence, and non-interference only. Must not demand reimplementation or require delegated existing behavior to be reimplemented. Return FAIL when evidence is missing or mapped changes intercept, remove, or contradict preserved behavior.";
     }
     return "Evaluate whether mapped implementation evidence supplies every changed behavior, integration, and exact field required by the cited authoritative context. Return FAIL when required behavior is omitted or contradicted.";
+  }
+}
+
+export class IntegrationExecutionEvidence {
+  constructor({ result, review }) {
+    if (!result || typeof result !== "object" || Array.isArray(result)) {
+      throw new Error("test execution result must be an object");
+    }
+    if (!Array.isArray(result.summary)) throw new Error("test execution result summary must be an array");
+    if (!review || typeof review !== "object" || Array.isArray(review)) {
+      throw new Error("test result review must be an object");
+    }
+    this.result = result;
+    this.review = review;
+    Object.freeze(this);
+  }
+
+  entriesFor(requirementId) {
+    const entry = this.result.summary.find((item) => item?.id === requirementId && item.result === "pass");
+    const entries = [];
+    if (entry?.evidence) {
+      entries.push(new RequirementContextEntry({
+        section: "execution",
+        reference: `[TEST:${requirementId}]`,
+        text: `Validated test-execute result=pass. Executed ${entry.evidence.command}; test ${entry.evidence.test_name}.`,
+      }));
+    }
+    if (this.review.verdict === "pass") {
+      entries.push(new RequirementContextEntry({
+        section: "execution",
+        reference: "[TEST-REVIEW]",
+        text: "Validated test-result-review verdict=pass.",
+      }));
+    }
+    if (this.result.regression?.category === "full-regression-deferred") {
+      entries.push(new RequirementContextEntry({
+        section: "execution",
+        reference: "[REGRESSION]",
+        text: "Validated test-execute classification is full-regression-deferred; final-regression is the default owner of the full project regression.",
+      }));
+    }
+    return entries;
   }
 }
 
@@ -3984,11 +4037,20 @@ export function classifyRequirementObligation(requirement, acceptanceCriteria = 
   return new RequirementObligation(regression && !changedBehavior ? "regression-only" : "implementation");
 }
 
-export function buildRequirementGateContext({ spec, requirement, fileMap = {}, relatedDiff = "" }) {
+export function buildRequirementGateContext({
+  spec,
+  requirement,
+  fileMap = {},
+  relatedDiff = "",
+  executionEvidence = null,
+}) {
   if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new Error("spec must be an object");
   const normalizedRequirement = normalizeRequirementPromptInput(requirement);
   if (!fileMap || typeof fileMap !== "object" || Array.isArray(fileMap)) throw new Error("fileMap must be an object");
   if (typeof relatedDiff !== "string") throw new Error("relatedDiff must be a string");
+  if (executionEvidence !== null && !(executionEvidence instanceof IntegrationExecutionEvidence)) {
+    throw new Error("executionEvidence must be an IntegrationExecutionEvidence or null");
+  }
 
   const requirementId = normalizedRequirement.id;
   const acceptance = (spec.acceptance_criteria || [])
@@ -4081,6 +4143,7 @@ export function buildRequirementGateContext({ spec, requirement, fileMap = {}, r
     reference: `[FILE-MAP:${requirementId}:${index + 1}]`,
     text: file,
   })));
+  if (executionEvidence) entries.push(...executionEvidence.entriesFor(requirementId));
   if (relatedDiff.trim() !== "") {
     entries.push(new RequirementContextEntry({
       section: "evidence",
@@ -4457,6 +4520,8 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- A finding cannot require a field, outcome, rejection rule, or behavior absent from the rendered authoritative context.",
     "- Return FAIL when authoritative context requires changed behavior, an integration, or an exact field and mapped implementation evidence omits or contradicts it.",
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
+    "- Treat [TEST:<id>] and [TEST-REVIEW] entries as validated execution evidence. When [REGRESSION] records full-regression-deferred, full-project execution belongs exclusively to final-regression and its absence is not a FAIL at this gate.",
+    "- Preserve typed retry behavior: semantic findings may defer to flow-findings, while structural, tooling, no-progress, failed-test, or missing-repair failures must remain blocking. An explicit structural assertion of ESCALATE_RETRY_EXHAUSTED with no flow-findings artifact is required behavior, not a weakened semantic deferral assertion.",
     ...(sameSpecContractContext ? [
       "- Assess preservation against the explicit same-spec current contract, not legacy behavior that it replaces, retires, or invalidates.",
       "- Explicit same-spec replacement, retirement, or invalidation statements override legacy preservation obligations; otherwise preserve existing behavior.",
@@ -5367,6 +5432,7 @@ export class RunGateCommand extends FlowCommand {
     // test-result-review artifacts before delegating to the AI guardrail
     // pipeline. Missing / unverified results are treated as FAIL with no
     // retry budget consumption, since the failure is structural.
+    let integrationExecutionEvidence = null;
     if (phase === "integration") {
       const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase, ctx.config || {});
       if (integrationCheck instanceof StaleIntegrationTestEvidence) {
@@ -5401,6 +5467,11 @@ export class RunGateCommand extends FlowCommand {
         targetPath: state.spec,
       });
       if (findingReadiness) return finish(findingReadiness);
+      const specDir = path.dirname(path.resolve(root, state.spec));
+      integrationExecutionEvidence = new IntegrationExecutionEvidence({
+        result: readJsonStrict(path.join(specDir, "test-execute-result.json")),
+        review: readJsonStrict(path.join(specDir, "test-result-review.json")),
+      });
     }
 
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
@@ -5493,6 +5564,7 @@ export class RunGateCommand extends FlowCommand {
         requirement,
         fileMap,
         relatedDiff: perReqDiffs?.get(requirement.id) ?? diff,
+        executionEvidence: integrationExecutionEvidence,
       }),
     ]));
 
@@ -5629,7 +5701,11 @@ export class RunGateCommand extends FlowCommand {
 
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
-    const targetText = `${taskSpec.text}\n\n## Git Diff\n${guardrailDiff}`;
+    const specification = specJsonToPromptText(
+      loadSpecJson(path.resolve(root, state.spec)),
+      { title: getSpecName(state) },
+    );
+    const targetText = `${taskSpec.text}\n\n## Authoritative Flow Specification\n${specification}\n\n## Git Diff\n${guardrailDiff}`;
 
     return runGateFlow({
       root,

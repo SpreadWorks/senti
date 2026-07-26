@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T12:41:52.779Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-disabling-existing-tests",
+      "result": "fail",
+      "reason": "An existing R9 test is replaced with a different verdict-policy test and no longer asserts the prior secondary-score/unmet-goal behavior. The diff deletes existing test coverage rather than only migrating it to the current production API.",
+      "category": "testing",
+      "title": "No Disabling Existing Tests",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-disabling-existing-tests",
+          "where": {
+            "file": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+            "locator": "it(\"R9: requirement judgments and hard blockers determine the current verdict policy\", ...)"
+          },
+          "observed": "An existing R9 test is replaced with a different verdict-policy test and no longer asserts the prior secondary-score/unmet-goal behavior. The diff deletes existing test coverage rather than only migrating it to the current production API.",
+          "severity": "blocking",
+          "refs": [
+            "no-disabling-existing-tests"
+          ]
+        }
+      ],
+      "findingId": "bb03f75e13a1acfef1b091e8201e7ff0f78a86a6d08cc860ce01bfcc4f27c8ef",
+      "fingerprint": "bb03f75e13a1acfef1b091e8201e7ff0f78a86a6d08cc860ce01bfcc4f27c8ef",
+      "disposition": "must-fix",
+      "rationale": "An existing R9 test is replaced with a different verdict-policy test and no longer asserts the prior secondary-score/unmet-goal behavior. The diff deletes existing test coverage rather than only migrating it to the current production API.",
+      "requirementId": null,
+      "guardrailId": "no-disabling-existing-tests",
+      "reportedAt": "2026-07-25T12:41:52.779Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-disabling-existing-tests",
+      "where": {
+        "file": "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+        "locator": "it(\"R9: requirement judgments and hard blockers determine the current verdict policy\", ...)"
+      },
+      "observed": "An existing R9 test is replaced with a different verdict-policy test and no longer asserts the prior secondary-score/unmet-goal behavior. The diff deletes existing test coverage rather than only migrating it to the current production API.",
+      "severity": "blocking",
+      "refs": [
+        "no-disabling-existing-tests"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-disabling-existing-tests",
+      "category": "guardrail",
+      "findingId": "ebb3273301bc15ac7a77fd91634550bbec688c6d868f03e00024ced651296329",
+      "fingerprint": "ebb3273301bc15ac7a77fd91634550bbec688c6d868f03e00024ced651296329",
+      "disposition": "must-fix",
+      "rationale": "An existing R9 test is replaced with a different verdict-policy test and no longer asserts the prior secondary-score/unmet-goal behavior. The diff deletes existing test coverage rather than only migrating it to the current production API.",
+      "requirementId": null,
+      "guardrailId": "no-disabling-existing-tests",
+      "reportedAt": "2026-07-25T12:41:52.779Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "c1a5c7c990632b27692153aa",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-b3e76df2e4219b6c",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/reopen-draft-spec-correction.test.js",
+      "tests/unit/flow/review-evidence-tree.test.js"
+    ],
+    "inputHash": "b3e76df2e4219b6c9e8009019d6bf57b36ca8ab6cb0d0ea622a896e08594d22e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c1a5c7c990632b27692153aa"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/reopen-draft-spec-correction.test.js",
+    "tests/unit/flow/review-evidence-tree.test.js"
+  ],
+  "inputHash": "b3e76df2e4219b6c9e8009019d6bf57b36ca8ab6cb0d0ea622a896e08594d22e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T12:55:46.554Z",
+  "finishedAt": "2026-07-25T12:55:46.554Z",
+  "rawResponse": "### 1. Centralize acceptance fixture runner/adoption helpers\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Multiple spec tests independently repeat the same `runAcceptanceReviewFixture` argument plumbing and `adoptAcceptanceReviewFixture` + `try/finally cleanup` lifecycle. This duplication appears in specs 295, 296, and 310, so local helpers in each file would still leave cross-file drift.  \n**Suggestion:** Add shared helper APIs in `tests/helpers/acceptance-review-fixture.js`, such as `runAcceptanceReviewForFixture(fixture, overrides)` and `withAdoptedAcceptanceReviewFixture(producerFixture, fn)`, then update the affected tests to use them.\n\n### 2. Align acceptance/deferred requirement labels across migrated tests\n**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`  \n**Requirement:** R4  \n**Issue:** Requirement labels in test titles are inconsistent across related acceptance/deferred migration tests: one file still uses `R8`/`R9` labels for behavior mapped to `R3`, while this file uses `R5` for behavior mapped to `R4`. This weakens cross-spec auditability of the migration.  \n**Suggestion:** Rename the affected test descriptions so each title uses the same requirement id as the related spec mapping, especially `R3` for verdict/evidence behavior and `R4` for deferred final disposition behavior.\n\n### 3. Consolidate spec-correction rewind naming and category constants\n**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is named differently across `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, while the raw `\"spec-correction\"` category string is introduced separately. This creates a cross-file vocabulary mismatch around the same feature.  \n**Suggestion:** Export or colocate a shared constant/name set, for example `SPEC_CORRECTION_REWIND_CATEGORY` and `SPEC_CORRECTION_REWIND_SUPPORTED_STAGES`, and use those names consistently in all three files.\n\n### 4. Rename tree SHA interfaces to fingerprint consistently\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** `resolveCurrentReviewTreeSha()` can now return a synthetic tree-plus-diff fingerprint, while related tests and review convergence code still reason about “tree sha” terminology. The interface name no longer matches its cross-file semantics.  \n**Suggestion:** Rename the exported API and related variables/tests toward `reviewTargetFingerprint`, keeping `treeSha` only for actual Git tree SHA values.\n\n### 5. Share bounded traversal utilities for filesystem walks\n**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Unbounded recursive traversal is introduced in more than one place, including fixture test discovery and acceptance migration source scanning. Fixing each locally risks inconsistent depth/count limits.  \n**Suggestion:** Add a small shared bounded traversal helper for tests, with explicit `maxDepth` and `maxEntries` options, and use it from both fixture discovery and migration source-file scanning.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize acceptance fixture runner/adoption helpers",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Multiple spec tests independently repeat the same `runAcceptanceReviewFixture` argument plumbing and `adoptAcceptanceReviewFixture` + `try/finally cleanup` lifecycle. This duplication appears in specs 295, 296, and 310, so local helpers in each file would still leave cross-file drift.  \n**Suggestion:** Add shared helper APIs in `tests/helpers/acceptance-review-fixture.js`, such as `runAcceptanceReviewForFixture(fixture, overrides)` and `withAdoptedAcceptanceReviewFixture(producerFixture, fn)`, then update the affected tests to use them.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Align acceptance/deferred requirement labels across migrated tests",
+        "body": "**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`  \n**Requirement:** R4  \n**Issue:** Requirement labels in test titles are inconsistent across related acceptance/deferred migration tests: one file still uses `R8`/`R9` labels for behavior mapped to `R3`, while this file uses `R5` for behavior mapped to `R4`. This weakens cross-spec auditability of the migration.  \n**Suggestion:** Rename the affected test descriptions so each title uses the same requirement id as the related spec mapping, especially `R3` for verdict/evidence behavior and `R4` for deferred final disposition behavior.",
+        "file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Consolidate spec-correction rewind naming and category constants",
+        "body": "**File:** `src/flow/lib/plan-rewind.js`  \n**Requirement:** R1  \n**Issue:** Spec-correction rewind behavior is named differently across `plan-rewind.js`, `run-reopen-draft.js`, and `run-scenario-validity.js`, while the raw `\"spec-correction\"` category string is introduced separately. This creates a cross-file vocabulary mismatch around the same feature.  \n**Suggestion:** Export or colocate a shared constant/name set, for example `SPEC_CORRECTION_REWIND_CATEGORY` and `SPEC_CORRECTION_REWIND_SUPPORTED_STAGES`, and use those names consistently in all three files.",
+        "file": "src/flow/lib/plan-rewind.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Rename tree SHA interfaces to fingerprint consistently",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R3  \n**Issue:** `resolveCurrentReviewTreeSha()` can now return a synthetic tree-plus-diff fingerprint, while related tests and review convergence code still reason about “tree sha” terminology. The interface name no longer matches its cross-file semantics.  \n**Suggestion:** Rename the exported API and related variables/tests toward `reviewTargetFingerprint`, keeping `treeSha` only for actual Git tree SHA values.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Share bounded traversal utilities for filesystem walks",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`  \n**Requirement:** R2  \n**Issue:** Unbounded recursive traversal is introduced in more than one place, including fixture test discovery and acceptance migration source scanning. Fixing each locally risks inconsistent depth/count limits.  \n**Suggestion:** Add a small shared bounded traversal helper for tests, with explicit `maxDepth` and `maxEntries` options, and use it from both fixture discovery and migration source-file scanning.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

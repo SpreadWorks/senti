@@ -458,7 +458,14 @@ describe("worktree command identity", () => {
         if (entry.mismatchTargetResolution === true) mismatchEntries.push(`${groupName}.${commandName}`);
       }
     }
-    assert.deepEqual(entries, ["get.runtime-log", "set.issue-log", "run.finalize-cleanup"]);
+    assert.deepEqual(entries, [
+      "get.runtime-log",
+      "set.step",
+      "set.issue-log",
+      "run.finalize-cleanup",
+      "run.start-task",
+      "run.complete-task",
+    ]);
     assert.deepEqual(mismatchEntries, ["get.runtime-log"]);
   });
 

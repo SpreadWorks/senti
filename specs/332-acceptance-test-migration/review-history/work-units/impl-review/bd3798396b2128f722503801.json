@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "bd3798396b2128f722503801",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0005",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/review-evidence-store.js"
+    ],
+    "inputHash": "f77995ea21c4471ed78072b374dea82a49bbb272aff80b9359c76bcf78660d2e",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "bd3798396b2128f722503801"
+  },
+  "targetFiles": [
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/review-evidence-store.js"
+  ],
+  "inputHash": "f77995ea21c4471ed78072b374dea82a49bbb272aff80b9359c76bcf78660d2e",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:06:28.557Z",
+  "finishedAt": "2026-07-25T16:06:28.557Z",
+  "rawResponse": "### 1. Bound dirty diff hashing\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R7  \n**Issue:** `runGit([\"diff\", \"--binary\", \"HEAD\"])` captures the full binary diff in memory with no explicit size bound. This violates the bounded-resource-usage guardrail for bulk data loading, especially because `--binary` can include large blobs.  \n**Suggestion:** Add an explicit upper bound before hashing, for example by using a capped git output helper, streaming the diff into the hash with a byte limit, or rejecting diffs above a configured maximum with `REVIEW_TARGET_TREE_UNAVAILABLE`.\n\n### 2. Rename tree SHA resolver to reflect fingerprint semantics\n**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** `resolveCurrentReviewTreeSha()` no longer always returns a Git tree SHA. When the worktree has uncommitted changes, it returns a synthetic SHA-1 digest of `treeSha + diff`. The current name is now misleading and may encourage callers to treat the value as a real Git object ID.  \n**Suggestion:** Rename it to something like `resolveCurrentReviewTargetFingerprint()` or split the behavior into `resolveCurrentReviewTreeSha()` and `resolveCurrentReviewTargetFingerprint()` so the synthetic-digest case is explicit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound dirty diff hashing",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R7  \n**Issue:** `runGit([\"diff\", \"--binary\", \"HEAD\"])` captures the full binary diff in memory with no explicit size bound. This violates the bounded-resource-usage guardrail for bulk data loading, especially because `--binary` can include large blobs.  \n**Suggestion:** Add an explicit upper bound before hashing, for example by using a capped git output helper, streaming the diff into the hash with a byte limit, or rejecting diffs above a configured maximum with `REVIEW_TARGET_TREE_UNAVAILABLE`.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Rename tree SHA resolver to reflect fingerprint semantics",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`  \n**Requirement:** R2  \n**Issue:** `resolveCurrentReviewTreeSha()` no longer always returns a Git tree SHA. When the worktree has uncommitted changes, it returns a synthetic SHA-1 digest of `treeSha + diff`. The current name is now misleading and may encourage callers to treat the value as a real Git object ID.  \n**Suggestion:** Rename it to something like `resolveCurrentReviewTargetFingerprint()` or split the behavior into `resolveCurrentReviewTreeSha()` and `resolveCurrentReviewTargetFingerprint()` so the synthetic-digest case is explicit.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

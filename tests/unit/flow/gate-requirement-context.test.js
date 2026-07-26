@@ -4,6 +4,7 @@ import {
   MAX_REQUIREMENT_CONTEXT_CHARS,
   MAX_REQUIREMENT_CONTEXT_ITEM_CHARS,
   MAX_REQUIREMENT_CONTEXT_ITEMS,
+  IntegrationExecutionEvidence,
   RequirementGateBatch,
   buildImplCheckPrompt,
   buildRequirementGateContext,
@@ -70,6 +71,35 @@ describe("requirement gate context", () => {
     const prompt = buildImplCheckPrompt({ contexts: [context], diff, knownIds: ["R1"] }).build();
     assert.match(prompt.userPrompt, /## Requirement Contexts/);
     assert.match(prompt.systemPrompt, /Every evaluation reason MUST cite \[REQ:<id>\]/);
+  });
+
+  it("provides validated execution evidence and preserves its stage boundary", () => {
+    const executionEvidence = new IntegrationExecutionEvidence({
+      result: {
+        summary: [{
+          id: "R1",
+          result: "pass",
+          evidence: {
+            command: "node --test specs/demo/tests/migration.test.js",
+            test_name: "R1: current contract",
+          },
+        }],
+        regression: { category: "full-regression-deferred" },
+      },
+      review: { verdict: "pass" },
+    });
+    const context = buildRequirementGateContext({
+      spec: specFixture(),
+      requirement: { id: "R1", desc: "Verify current contract", priority: "must" },
+      fileMap: { R1: ["src/result.js"] },
+      executionEvidence,
+    });
+    const prompt = buildImplCheckPrompt({ contexts: [context], diff: "+current contract", knownIds: ["R1"] }).build();
+
+    assert.match(context.toPromptText(), /\[TEST:R1\].*node --test/);
+    assert.match(context.toPromptText(), /\[REGRESSION\].*final-regression/);
+    assert.match(prompt.systemPrompt, /ESCALATE_RETRY_EXHAUSTED.*flow-findings/i);
+    assert.match(prompt.systemPrompt, /full-regression-deferred.*final-regression/i);
   });
 
   it("uses matching acceptance criteria when classifying obligations", () => {

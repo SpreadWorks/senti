@@ -15,6 +15,7 @@ import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { resolveFlowContext } from "../../../src/flow/lib/flow-context.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import { RunReopenDraftCommand } from "../../../src/flow/lib/run-reopen-draft.js";
+import { SPEC_CORRECTION_SUPPORTED_STAGES } from "../../../src/flow/lib/plan-rewind.js";
 import { ExplicitRecoveryTransition } from "../../../src/flow/lib/step-transition-policy.js";
 import { findInProgressLeaf, findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { makeDefaultTask } from "../../helpers/flow-setup.js";
@@ -326,6 +327,25 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(audit.resultingState.stepStatuses.approval, "pending");
     assert.equal(findStepById(state.steps, "approval").runtimeLog, undefined);
     assert.doesNotMatch(JSON.stringify(audit), /originIssue|Issue #441/);
+  });
+
+  it("accepts every supported implementation stage for a spec correction", async () => {
+    for (const activeStep of SPEC_CORRECTION_SUPPORTED_STAGES) {
+      tmp = createTmpDir(`reopen-supported-stage-${activeStep}-`);
+      const { files } = setupFlow(tmp, { activeStep });
+
+      const result = await runDirect(tmp);
+
+      assert.equal(result.ok, true, `${activeStep}: ${JSON.stringify(result.errors)}`);
+      const state = JSON.parse(fs.readFileSync(files.flow, "utf8"));
+      assert.equal(state.planRewinds.at(-1).previousState.activeStep, activeStep);
+      assert.deepEqual(
+        flattenSteps(state.steps).filter((step) => step.status === "in_progress").map((step) => step.id),
+        ["draft"],
+      );
+      removeTmpDir(tmp);
+      tmp = null;
+    }
   });
 
   it("accepts only an absent rewind history as the fresh-state genesis", async () => {

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "38296a803ef33f50fc41fa69",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-f2e95a494151181b",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/plan-rewind.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/prompts/impl/impl-gate.md",
+      "tests/unit/flow/finding-gate-readiness.test.js",
+      "tests/unit/flow/gate-noop-rerun-guard.test.js",
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/run-scenario-validity.test.js"
+    ],
+    "inputHash": "f2e95a494151181b3f886584a891b99513cf9e12ddf61a9692a0df7a69fae065",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "38296a803ef33f50fc41fa69"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/plan-rewind.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/prompts/impl/impl-gate.md",
+    "tests/unit/flow/finding-gate-readiness.test.js",
+    "tests/unit/flow/gate-noop-rerun-guard.test.js",
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/run-scenario-validity.test.js"
+  ],
+  "inputHash": "f2e95a494151181b3f886584a891b99513cf9e12ddf61a9692a0df7a69fae065",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T15:23:14.685Z",
+  "finishedAt": "2026-07-25T15:23:14.685Z",
+  "rawResponse": "### 1. Acceptance fixture invocation helpers are being reintroduced independently\n**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`\n**Requirement:** R6\n**Issue:** Multiple files propose local helpers around `runAcceptanceReviewFixture`, including `runAcceptance(...)` in `specs/296...` and `runDeferredAcceptanceFixture(...)` in `specs/310...`. These solve the same cross-file duplication with different names and slightly different interfaces.\n**Suggestion:** Add one shared helper in the acceptance fixture test support layer, with a consistent name such as `runAcceptanceReviewForFixture(fixture, options = {})`, and use it across the affected spec tests.\n\n### 2. JSON artifact writing helpers are fragmented across test files\n**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`\n**Requirement:** R9\n**Issue:** Several summaries identify repeated JSON artifact writes, but proposed helpers are local and differently named, such as `writeFixtureArtifact`, `writeFlowFindingsFile`, and `writeSpecArtifact`. This risks inconsistent artifact formatting and schema-default behavior across acceptance tests.\n**Suggestion:** Centralize generic JSON artifact writing in a shared test helper, and keep schema-specific defaults in explicitly named wrappers such as `writeFlowFindingsArtifact(...)`.\n\n### 3. Repair fingerprint setup is duplicated across spec and unit tests\n**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** The summaries propose separate local helpers for `buildRepairFingerprint` setup and `ensureRepairFingerprintContract` invocation in different files. These are related repair identity fixture operations but would remain inconsistent if each file invents its own helper shape.\n**Suggestion:** Add shared repair-fingerprint fixture helpers for common setup and contract invocation, using names that distinguish fingerprint creation from migration/contract continuation.\n\n### 4. “Artifact” naming is inconsistent between raw JSON and parsed domain objects\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R4\n**Issue:** The summaries identify naming confusion where `artifact` can mean raw JSON in one place and parsed domain objects in another. Similar ambiguity appears in test helper proposals around artifact writers and reviewed artifacts.\n**Suggestion:** Standardize names across production and tests: use `rawArtifact` for plain JSON, `gateArtifact` or domain-specific names for parsed class instances, and reserve generic `artifact` only where the representation is irrelevant.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Acceptance fixture invocation helpers are being reintroduced independently",
+        "body": "**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`\n**Requirement:** R6\n**Issue:** Multiple files propose local helpers around `runAcceptanceReviewFixture`, including `runAcceptance(...)` in `specs/296...` and `runDeferredAcceptanceFixture(...)` in `specs/310...`. These solve the same cross-file duplication with different names and slightly different interfaces.\n**Suggestion:** Add one shared helper in the acceptance fixture test support layer, with a consistent name such as `runAcceptanceReviewForFixture(fixture, options = {})`, and use it across the affected spec tests.",
+        "file": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. JSON artifact writing helpers are fragmented across test files",
+        "body": "**File:** `specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js`\n**Requirement:** R9\n**Issue:** Several summaries identify repeated JSON artifact writes, but proposed helpers are local and differently named, such as `writeFixtureArtifact`, `writeFlowFindingsFile`, and `writeSpecArtifact`. This risks inconsistent artifact formatting and schema-default behavior across acceptance tests.\n**Suggestion:** Centralize generic JSON artifact writing in a shared test helper, and keep schema-specific defaults in explicitly named wrappers such as `writeFlowFindingsArtifact(...)`.",
+        "file": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "3. Repair fingerprint setup is duplicated across spec and unit tests",
+        "body": "**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** The summaries propose separate local helpers for `buildRepairFingerprint` setup and `ensureRepairFingerprintContract` invocation in different files. These are related repair identity fixture operations but would remain inconsistent if each file invents its own helper shape.\n**Suggestion:** Add shared repair-fingerprint fixture helpers for common setup and contract invocation, using names that distinguish fingerprint creation from migration/contract continuation.",
+        "file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "requirementId": "R9"
+      },
+      {
+        "title": "4. “Artifact” naming is inconsistent between raw JSON and parsed domain objects",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R4\n**Issue:** The summaries identify naming confusion where `artifact` can mean raw JSON in one place and parsed domain objects in another. Similar ambiguity appears in test helper proposals around artifact writers and reviewed artifacts.\n**Suggestion:** Standardize names across production and tests: use `rawArtifact` for plain JSON, `gateArtifact` or domain-specific names for parsed class instances, and reserve generic `artifact` only where the representation is irrelevant.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

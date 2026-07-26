@@ -304,7 +304,9 @@ export default class RunScenarioValidityCommand extends FlowCommand {
         : "node --test";
       const rawLines = [];
 
-    const changedFiles = listScenarioValidityPreflightFiles({ root, baseBranch: state.baseBranch || "main" });
+    const changedFiles = state?.planRewinds?.at(-1)?.category !== "spec-correction"
+      ? listScenarioValidityPreflightFiles({ root, baseBranch: state.baseBranch || "main" })
+      : [];
     const preflight = validateScenarioValidityPreflightPaths({ specId, changedFiles });
     if (!preflight.ok) {
       const range = appendRaw(rawLines, [

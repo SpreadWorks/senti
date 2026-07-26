@@ -13,7 +13,12 @@ import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
-import { ReviewRecoveryIdentity, ReviewSemanticRecoveryMutation, ReviewTargetState } from "./review-convergence.js";
+import {
+  ReviewRecoveryIdentity,
+  ReviewSemanticRecoveryMutation,
+  ReviewTargetState,
+  ReviewToolingRecoveryMutation,
+} from "./review-convergence.js";
 import { resolveImplReviewScope } from "./task-scope.js";
 import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
 import {
@@ -126,6 +131,38 @@ function unchangedReviewConvergenceTarget(ctx, phase, taskId, currentIdentity, c
   );
 }
 
+function reviewRecoveryMutation({ ctx, reviewRecord, phase, taskId, currentIdentity, currentTargetState }) {
+  if (reviewRecord == null) return null;
+  if (
+    reviewRecord.evidence?.disposition === "REJECTED"
+    && reviewRecord.semanticAttempts === reviewRecord.semanticMaxAttempts
+  ) {
+    return new ReviewSemanticRecoveryMutation({
+      phase,
+      taskId,
+      previousTreeSha: reviewRecord.treeSha,
+      nextTreeSha: currentIdentity.treeSha,
+      previousTargetStateDigest: reviewRecord.targetStateDigest,
+      nextTargetStateDigest: currentIdentity.targetStateDigest,
+      nextTargetState: currentTargetState.toJSON(),
+      expectedRunId: ctx.flowState.runId,
+      expectedSpec: ctx.flowState.spec,
+      ...(Object.hasOwn(ctx.flowState, "issue") && {
+        expectedIssue: ctx.flowState.issue,
+      }),
+    });
+  }
+  return ReviewToolingRecoveryMutation.forExhaustedAttempt({
+    reviewRecord,
+    phase,
+    taskId,
+    flowState: ctx.flowState,
+    nextTreeSha: currentIdentity.treeSha,
+    nextTargetStateDigest: currentIdentity.targetStateDigest,
+    nextTargetState: currentTargetState.toJSON(),
+  });
+}
+
 export default class SetRetryCommand extends FlowCommand {
   execute(ctx) {
     let input;
@@ -198,22 +235,14 @@ export default class SetRetryCommand extends FlowCommand {
         input: phaseInput,
         attemptsBefore,
         maxAttempts,
-        afterReset: reviewRecord == null
-          ? null
-          : new ReviewSemanticRecoveryMutation({
-              phase: p,
-              taskId: reviewTaskId,
-              previousTreeSha: reviewRecord.treeSha,
-              nextTreeSha: currentIdentity.treeSha,
-              previousTargetStateDigest: reviewRecord.targetStateDigest,
-              nextTargetStateDigest: currentIdentity.targetStateDigest,
-              nextTargetState: currentTargetState.toJSON(),
-              expectedRunId: ctx.flowState.runId,
-              expectedSpec: ctx.flowState.spec,
-              ...(Object.hasOwn(ctx.flowState, "issue") && {
-                expectedIssue: ctx.flowState.issue,
-              }),
-            }),
+        afterReset: reviewRecoveryMutation({
+          ctx,
+          reviewRecord,
+          phase: p,
+          taskId: reviewTaskId,
+          currentIdentity,
+          currentTargetState,
+        }),
       }));
     }
 

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+      "src/flow/lib/acceptance-review-artifacts.js"
+    ],
+    "inputHash": "963984b294d93ffd8eef898955e55bf296868ecd25a33508f6ef46abdf9415ea",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+    "src/flow/lib/acceptance-review-artifacts.js"
+  ],
+  "inputHash": "963984b294d93ffd8eef898955e55bf296868ecd25a33508f6ef46abdf9415ea",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:05:56.403Z",
+  "finishedAt": "2026-07-25T16:05:56.403Z",
+  "rawResponse": "### 1. Add an explicit recursion bound for source scanning\n**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R9  \n**Issue:** `productionSourceFiles()` recursively walks `src/` without an explicit depth or entry bound, which violates the `bounded-resource-usage` guardrail even though the current tree is finite.  \n**Suggestion:** Add parameters such as `maxDepth` and `maxEntries`, decrement/check them during traversal, and fail with a clear assertion if exceeded.\n\n### 2. Replace unused `Map` keys with a plain array\n**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R10  \n**Issue:** `runtimeRepairTestFiles` is a `Map`, but only `.values()` is used. The descriptive keys are dead metadata and make the structure look more meaningful than it is.  \n**Suggestion:** Change it to an array of test file paths, or use the labels in assertion messages if the names are intended to aid debugging.\n\n### 3. Reuse resolved review convergence records\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `latestReviewConvergenceRecords(flowState)` is now called repeatedly in nearby code paths, including once for handoffs and again for canonical records. This creates duplicated resolution logic and makes it easier for future edits to accidentally use different record sets.  \n**Suggestion:** Store the latest records in a local `latestRecords` variable and derive both `reviewHandoffs` and `canonicalRecords` from it.\n\n### 4. Clarify latest vs historical handoff naming\n**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `reviewHandoffs` now means latest handoffs, while `historicalReviewHandoffs` means all raw convergence records. The distinction is important but easy to miss because the names differ only by one adjective.  \n**Suggestion:** Rename them to something more explicit, such as `latestReviewHandoffs` and `allReviewHandoffs`, and consider naming the helper `reviewHandoffFindingsFromRecords(records)` to reflect its new parameter contract.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add an explicit recursion bound for source scanning",
+        "body": "**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R9  \n**Issue:** `productionSourceFiles()` recursively walks `src/` without an explicit depth or entry bound, which violates the `bounded-resource-usage` guardrail even though the current tree is finite.  \n**Suggestion:** Add parameters such as `maxDepth` and `maxEntries`, decrement/check them during traversal, and fail with a clear assertion if exceeded.",
+        "file": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Replace unused `Map` keys with a plain array",
+        "body": "**File:** `specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js`  \n**Requirement:** R10  \n**Issue:** `runtimeRepairTestFiles` is a `Map`, but only `.values()` is used. The descriptive keys are dead metadata and make the structure look more meaningful than it is.  \n**Suggestion:** Change it to an array of test file paths, or use the labels in assertion messages if the names are intended to aid debugging.",
+        "file": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "3. Reuse resolved review convergence records",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `latestReviewConvergenceRecords(flowState)` is now called repeatedly in nearby code paths, including once for handoffs and again for canonical records. This creates duplicated resolution logic and makes it easier for future edits to accidentally use different record sets.  \n**Suggestion:** Store the latest records in a local `latestRecords` variable and derive both `reviewHandoffs` and `canonicalRecords` from it.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Clarify latest vs historical handoff naming",
+        "body": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R4  \n**Issue:** `reviewHandoffs` now means latest handoffs, while `historicalReviewHandoffs` means all raw convergence records. The distinction is important but easy to miss because the names differ only by one adjective.  \n**Suggestion:** Rename them to something more explicit, such as `latestReviewHandoffs` and `allReviewHandoffs`, and consider naming the helper `reviewHandoffFindingsFromRecords(records)` to reflect its new parameter contract.",
+        "file": "src/flow/lib/acceptance-review-artifacts.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

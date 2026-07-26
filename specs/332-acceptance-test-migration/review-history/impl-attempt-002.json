@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-24T14:54:33.159Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "fixture-normalizes-inputs",
+      "title": "Helper Adds Independent Normalization",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "tests/helpers/acceptance-review-fixture.js",
+      "requirementId": "R3",
+      "issue": "The new fixture implements its own input normalization in `normalizedRequirementIds()` and `normalizedArtifactNames()`, including defaulting, duplicate checks, membership checks, and string-array validation. The task guardrail explicitly says the helper must contain no independent normalization implementation.",
+      "suggestion": "Remove the fixture-local normalization helpers and keep the helper as an assembler around already-valid scenario inputs, or delegate to the existing production contract that owns those invariants.",
+      "disposition": "must-fix",
+      "rationale": "R3 is a mandatory acceptance guardrail for this task: the fixture must not become a parallel contract layer. Local normalization changes observable behavior before production exports are invoked, so it is a blocking spec contradiction.",
+      "findingId": "fc21dd44f5eb11d297ea968b67076aef2dfccd2680aeada1dc7413653c1f2f46",
+      "fingerprint": "fc21dd44f5eb11d297ea968b67076aef2dfccd2680aeada1dc7413653c1f2f46",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "78b93a5d6145ff1a1b1c5c9d8a38dcbd1997193a1a8c3207a79bfaf331dc8777",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/332-acceptance-test-migration/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "4d8104b5ce9efdffc852ee2837f009da53582ca2e9edab987374e6fdb8f07452"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "fc21dd44f5eb11d297ea968b67076aef2dfccd2680aeada1dc7413653c1f2f46",
+      "findingId": "fc21dd44f5eb11d297ea968b67076aef2dfccd2680aeada1dc7413653c1f2f46",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "Helper Adds Independent Normalization",
+      "body": "The new fixture implements its own input normalization in `normalizedRequirementIds()` and `normalizedArtifactNames()`, including defaulting, duplicate checks, membership checks, and string-array validation. The task guardrail explicitly says the helper must contain no independent normalization implementation.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "fc21dd44f5eb11d297ea968b67076aef2dfccd2680aeada1dc7413653c1f2f46",
+      "disposition": "must-fix",
+      "rationale": "R3 is a mandatory acceptance guardrail for this task: the fixture must not become a parallel contract layer. Local normalization changes observable behavior before production exports are invoked, so it is a blocking spec contradiction.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

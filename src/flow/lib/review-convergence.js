@@ -853,6 +853,40 @@ class ReviewRecoveryMutation {
 }
 
 export class ReviewToolingRecoveryMutation extends ReviewRecoveryMutation {
+  static forExhaustedAttempt({
+    reviewRecord,
+    phase,
+    taskId,
+    flowState,
+    nextTreeSha = null,
+    nextTargetStateDigest = null,
+    nextTargetState = null,
+    resolveNextTreeSha = null,
+  }) {
+    if (
+      reviewRecord == null
+      || reviewRecord.toolingMaxAttempts !== REVIEW_TOOLING_MAX_ATTEMPTS
+      || reviewRecord.toolingAttempts !== REVIEW_TOOLING_MAX_ATTEMPTS
+    ) {
+      return null;
+    }
+    const resolvedNextTreeSha = resolveNextTreeSha === null ? nextTreeSha : resolveNextTreeSha();
+    return new ReviewToolingRecoveryMutation({
+      phase,
+      taskId,
+      previousTreeSha: reviewRecord.treeSha,
+      nextTreeSha: resolvedNextTreeSha,
+      previousTargetStateDigest: reviewRecord.targetStateDigest,
+      nextTargetStateDigest,
+      nextTargetState,
+      expectedRunId: flowState.runId,
+      expectedSpec: flowState.spec,
+      ...(Object.hasOwn(flowState, "issue") && {
+        expectedIssue: flowState.issue,
+      }),
+    });
+  }
+
   constructor(input = {}) {
     super(input);
     Object.freeze(this);

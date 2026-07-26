@@ -1,9 +1,17 @@
 // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
+import {
+  createAcceptanceReviewFixture,
+  runAcceptanceReviewFixture,
+} from "../../../tests/helpers/acceptance-review-fixture.js";
+import {
+  FlowFinding,
+  buildDeferredFindingsSummary,
+  readFlowFindingsArtifact,
+} from "../../../src/flow/lib/flow-findings.js";
 import {
   checkReviewRetryBelowMax,
   updateReviewRetryCounter,
@@ -12,264 +20,238 @@ import {
   checkRetryBelowMax as checkGateRetryBelowMax,
   classifyGateRetryExhaustionSource,
 } from "../../../src/flow/lib/run-gate.js";
-import {
-  buildAcceptanceReviewArtifactFromEvidence,
-  applyAcceptanceReviewResult,
-  writeAcceptanceReviewArtifact,
-} from "../../../src/flow/lib/acceptance-review-artifacts.js";
-import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
+import { makeFlowState, moveFlowToStep } from "../../../tests/helpers/flow-setup.js";
 
-const repoRoot = path.resolve(import.meta.dirname, "../../..");
+const RETRY_FINGERPRINT = "c".repeat(64);
 
-const reviewSourceByPhase = {
-  "draft-questions": {
-    commandPhase: "draft",
-    sourceArtifact: "draft-review-questions.json",
-    stepId: "draft-questions-review",
-    artifact: {
-      verdict: "FAIL",
-      findings: [semanticFinding("draft-semantic")]
-    },
-    steps: [
-      { id: "draft-questions-review", status: "in_progress" }
-    ]
-  },
-  spec: {
-    commandPhase: "spec",
-    sourceArtifact: "spec-review.json",
-    stepId: "spec-review",
-    artifact: {
-      verdict: "FAIL",
-      blocking: [semanticFinding("spec-semantic")]
-    }
-  },
-  test: {
-    commandPhase: "test",
-    sourceArtifact: "test-review.json",
-    stepId: "test-review",
-    artifact: {
-      verdict: "FAIL",
-      blockingFindings: [semanticFinding("test-semantic")]
-    }
-  },
-  impl: {
-    commandPhase: null,
-    sourceArtifact: "impl-review.json",
-    stepId: "impl-review",
-    artifact: {
-      verdict: "FAIL",
-      blockingFindings: [semanticFinding("impl-semantic")]
-    }
+function withFixture(options, callback) {
+  const fixture = createAcceptanceReviewFixture(options);
+  try {
+    return callback(fixture);
+  } finally {
+    fixture.cleanup();
   }
-};
+}
 
-const gateSourceByPhase = {
-  draft: {
-    sourceArtifact: "draft-gate-source.json",
-    stepId: "draft-gate"
-  },
-  spec: {
-    sourceArtifact: "spec-gate-source.json",
-    stepId: "spec-gate"
-  },
-  "task-impl": {
-    sourceArtifact: "task-impl-gate-source.json",
-    stepId: "impl-gate"
-  },
-  integration: {
-    sourceArtifact: "impl-gate-result.json",
-    stepId: "impl-gate"
-  }
-};
-
-function semanticFinding(id) {
+function deferredFinding(id, sourceStep = "test-review") {
   return {
     findingId: id,
+    sourceStep,
+    sourceArtifact: `${sourceStep}.json`,
+    sourceFindingId: `${id}-source`,
+  };
+}
+
+function retryMetrics(counter, phase, count = 10) {
+  return Array.from({ length: count }, () => ({ phase, counter, delta: 1 }));
+}
+
+function retryFlowState(fixture, stepId, metrics) {
+  return moveFlowToStep(makeFlowState({
+    spec: fixture.specPath,
+    runId: fixture.state.runId,
+    baseBranch: "main",
+    featureBranch: "feature/acceptance-fixture",
+    metrics,
+  }), stepId);
+}
+
+function semanticRetryFinding(id, disposition = "must-fix") {
+  return {
+    findingId: id,
+    fingerprint: RETRY_FINGERPRINT,
+    disposition,
     failureMode: "missing_acceptance_requirement",
     category: "semantic",
-    title: "Missing test coverage for semantic requirement",
-    reason: "The AI semantic finding mentions test and missing but is not a mechanical precheck failure."
+    title: "Missing acceptance behavior",
+    reason: "The current flow must retain this semantic finding.",
+    rationale: "The migration must preserve the bounded retry disposition.",
   };
 }
 
-function readRepoFile(relPath) {
-  return fs.readFileSync(path.join(repoRoot, relPath), "utf8");
+function writeRetrySource(specDir, file, artifact) {
+  fs.writeFileSync(path.join(specDir, file), JSON.stringify(artifact, null, 2) + "\n");
 }
 
-function makeTempFlowRoot() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "senti-296-"));
-  const specDir = path.join(root, "specs", "demo");
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
-    requirements: [
-      { id: "R1", desc: "demo", priority: "must" }
-    ]
-  }, null, 2) + "\n");
-  return { root, specDir, specPath: "specs/demo/spec.json" };
-}
+test("R1: deferred review findings are stored in the current v2 artifact", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1")] }, (fixture) => {
+    const artifact = readFlowFindingsArtifact(fixture.specDir);
+    assert.equal(artifact.version, 2);
+    assert.equal(artifact.entries[0].disposition, "deferred");
+    assert.equal(artifact.entries[0].runId, fixture.state.runId);
+  });
+});
 
-function writeAcceptancePrerequisites(specDir) {
-  fs.mkdirSync(path.join(specDir, "tests"), { recursive: true });
-  fs.writeFileSync(path.join(specDir, "scenario-validity-result.json"), JSON.stringify({ result: "pass" }, null, 2) + "\n");
-  fs.writeFileSync(path.join(specDir, "tests", "acceptance.test.js"), "test('R1: demo', () => {});\n");
-  fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
-    version: "2",
-    summary: [{ id: "R1", result: "pass" }]
-  }, null, 2) + "\n");
-  fs.writeFileSync(path.join(specDir, "test-result-review.json"), JSON.stringify({ verdict: "pass" }, null, 2) + "\n");
-  fs.writeFileSync(path.join(specDir, "retro.json"), JSON.stringify({ result: "pass" }, null, 2) + "\n");
-}
+test("R2: deferred findings retain bounded source references", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1", "spec-review")] }, (fixture) => {
+    const finding = readFlowFindingsArtifact(fixture.specDir).entries[0];
+    assert.equal(finding.sourceArtifact, "spec-review.json");
+    assert.equal(finding.sourceFindingId, "DF-1-source");
+    assert.equal(path.isAbsolute(finding.sourceArtifact), false);
+  });
+});
 
-function retryMetrics(counter, phase) {
-  return Array.from({ length: 10 }, () => ({ phase, counter, delta: 1 }));
-}
+test("R3: malformed flow findings are rejected at the schema boundary", () => {
+  assert.throws(() => new FlowFinding({
+    findingId: "DF-invalid",
+    sourceStep: "test-review",
+    sourceArtifact: "../outside.json",
+    sourceFindingId: "invalid",
+    fingerprint: "a".repeat(64),
+    disposition: "deferred",
+    rationale: "The source must remain inside the spec directory.",
+    retryExhausted: true,
+    attempts: 1,
+    round: 1,
+    completionKind: "deferred",
+    finalDisposition: null,
+  }), /sourceArtifact/);
+});
 
-function fakeFlowManager(flowState, updates) {
-  return {
-    updateStepStatus(id, status) {
-      updates.push({ id, status });
-    },
-    mutate(fn) {
-      fn(flowState);
-    }
-  };
-}
+test("R3: current review retry exhaustion writes a deferred finding through the production policy", () => {
+  withFixture({}, (fixture) => {
+    fs.writeFileSync(path.join(fixture.specDir, "test-review.json"), JSON.stringify({
+      verdict: "REJECTED",
+      blockingFindings: [semanticRetryFinding("review-semantic")],
+    }, null, 2) + "\n");
+    const updates = [];
+    const result = checkReviewRetryBelowMax({
+      root: fixture.root,
+      flowState: retryFlowState(fixture, "test-review", retryMetrics("reviewRetry", "test")),
+      flowManager: {
+        updateStepStatus(transition) {
+          updates.push({ id: transition.stepId, status: transition.requestedStatus });
+        },
+      },
+    }, "test");
+    assert.equal(result?.result, "deferred");
+    assert.deepEqual(updates, [{ id: "test-review", status: "done" }]);
+    const [finding] = readFlowFindingsArtifact(fixture.specDir).entries;
+    assert.equal(finding.sourceStep, "test-review");
+    assert.equal(finding.sourceArtifact, "test-review.json");
+    assert.equal(finding.sourceFindingId, "review-semantic");
+    assert.equal(finding.disposition, "deferred");
+  });
+});
 
-function reviewRetryContext(reviewPhase) {
-  const source = reviewSourceByPhase[reviewPhase];
-  const { root, specDir, specPath } = makeTempFlowRoot();
-  fs.writeFileSync(path.join(specDir, source.sourceArtifact), JSON.stringify(source.artifact, null, 2) + "\n");
-  const flowState = {
-    spec: specPath,
-    metrics: retryMetrics("reviewRetry", reviewPhase),
-    steps: source.steps || []
-  };
-  const updates = [];
-  return {
-    root,
-    specDir,
-    source,
-    updates,
-    ctx: {
-      root,
-      flowState,
-      flowManager: fakeFlowManager(flowState, updates)
-    }
-  };
-}
-
-function reviewRetryContextWithCount(reviewPhase, count) {
-  const fixture = reviewRetryContext(reviewPhase);
-  fixture.ctx.flowState.metrics = retryMetrics("reviewRetry", reviewPhase).slice(0, count);
-  fixture.ctx.flowManager.appendMetric = (entry) => {
-    fixture.ctx.flowState.metrics.push(entry);
-  };
-  return fixture;
-}
-
-function gateRetryContext(phase) {
-  const source = gateSourceByPhase[phase];
-  const { root, specDir, specPath } = makeTempFlowRoot();
-  fs.writeFileSync(path.join(specDir, source.sourceArtifact), JSON.stringify({
-    phase,
-    result: "fail",
-    evaluations: [
-      {
-        findingId: `${phase}-semantic`,
+test("R3: current gate retry exhaustion writes a deferred finding through the production policy", () => {
+  withFixture({}, (fixture) => {
+    fs.writeFileSync(path.join(fixture.specDir, "impl-gate-result.json"), JSON.stringify({
+      runId: fixture.state.runId,
+      planRewindAt: null,
+      phase: "integration",
+      result: "fail",
+      evaluations: [{
+        findingId: "gate-semantic",
+        fingerprint: RETRY_FINGERPRINT,
+        disposition: "informational",
         result: "fail",
-        category: "requirements",
-        guardrail_id: "R2",
-        reason: "Missing test command behavior in the semantic implementation path"
-      }
-    ]
-  }, null, 2) + "\n");
-  const flowState = {
-    spec: specPath,
-    metrics: retryMetrics("gateRetry", phase)
-  };
-  const updates = [];
-  return {
-    root,
-    specDir,
-    source,
-    updates,
-    ctx: {
-      root,
-      flowState,
-      flowManager: fakeFlowManager(flowState, updates)
-    }
-  };
-}
+        category: "semantic",
+        reason: "The current gate must retain this semantic finding.",
+        rationale: "The migration must preserve the bounded retry disposition.",
+      }],
+    }, null, 2) + "\n");
+    const updates = [];
+    const result = checkGateRetryBelowMax({
+      root: fixture.root,
+      flowState: retryFlowState(fixture, "impl-gate", retryMetrics("gateRetry", "integration")),
+      flowManager: {
+        updateStepStatus(transition) {
+          updates.push({ id: transition.stepId, status: transition.requestedStatus });
+        },
+      },
+    }, "integration");
+    assert.equal(result?.result, "deferred");
+    assert.deepEqual(updates, [{ id: "impl-gate", status: "done" }]);
+    const [finding] = readFlowFindingsArtifact(fixture.specDir).entries;
+    assert.equal(finding.sourceStep, "impl-gate");
+    assert.equal(finding.sourceArtifact, "impl-gate-result.json");
+    assert.equal(finding.sourceFindingId, "gate-semantic");
+  });
+});
 
-function gateRetryContextWithArtifact(phase, artifact) {
-  const source = gateSourceByPhase[phase];
-  const { root, specDir, specPath } = makeTempFlowRoot();
-  fs.writeFileSync(path.join(specDir, source.sourceArtifact), JSON.stringify({
-    phase,
-    result: "fail",
-    ...artifact
-  }, null, 2) + "\n");
-  const flowState = {
-    spec: specPath,
-    metrics: retryMetrics("gateRetry", phase)
-  };
-  const updates = [];
-  return {
-    root,
-    specDir,
-    source,
-    updates,
-    ctx: {
-      root,
-      flowState,
-      flowManager: fakeFlowManager(flowState, updates)
-    }
-  };
-}
+test("R3: every review and gate retry surface preserves a current deferred source record", () => {
+  const reviewCases = [
+    { phase: "draft", metricPhase: "draft-questions", stepId: "draft-questions-review", file: "draft-review-questions.json", findingsKey: "findings" },
+    { phase: "spec", metricPhase: "spec", stepId: "spec-review", file: "spec-review.json", findingsKey: "blocking" },
+    { phase: "test", metricPhase: "test", stepId: "test-review", file: "test-review.json", findingsKey: "blockingFindings" },
+    { phase: null, metricPhase: "impl", stepId: "impl-review", file: "impl-review.json", findingsKey: "blockingFindings" },
+  ];
+  for (const item of reviewCases) {
+    withFixture({}, (fixture) => {
+      writeRetrySource(fixture.specDir, item.file, {
+        verdict: "REJECTED",
+        [item.findingsKey]: [semanticRetryFinding(`review-${item.metricPhase}`)],
+      });
+      const result = checkReviewRetryBelowMax({
+        root: fixture.root,
+        flowState: retryFlowState(
+          fixture,
+          item.stepId,
+          retryMetrics("reviewRetry", item.metricPhase),
+        ),
+        flowManager: { updateStepStatus() {} },
+      }, item.phase);
+      assert.equal(result?.result, "deferred", item.metricPhase);
+      const [finding] = readFlowFindingsArtifact(fixture.specDir).entries;
+      assert.equal(finding.sourceStep, item.stepId, item.metricPhase);
+      assert.equal(finding.sourceArtifact, item.file, item.metricPhase);
+    });
+  }
 
-test("R1: review retry exhaustion defers semantic findings for every flow review phase", () => {
-  for (const phase of ["draft-questions", "spec", "test", "impl"]) {
-    const fixture = reviewRetryContext(phase);
-    const result = checkReviewRetryBelowMax(fixture.ctx, fixture.source.commandPhase);
-    assert.equal(result?.result, "deferred", phase);
-    assert.deepEqual(fixture.updates, [{ id: fixture.source.stepId, status: "done" }], phase);
-    const findings = readFlowFindingsArtifact(fixture.specDir).toJSON().entries;
-    assert.equal(findings.length, 1, phase);
-    assert.equal(findings[0].sourceStep, fixture.source.stepId, phase);
+  const gateCases = [
+    { phase: "draft", stepId: "draft-gate", file: "draft-gate-source.json" },
+    { phase: "spec", stepId: "spec-gate", file: "spec-gate-source.json" },
+    { phase: "task-impl", stepId: "impl-gate", file: "task-impl-gate-source.json" },
+    { phase: "integration", stepId: "impl-gate", file: "impl-gate-result.json" },
+  ];
+  for (const item of gateCases) {
+    withFixture({}, (fixture) => {
+      writeRetrySource(fixture.specDir, item.file, {
+        runId: fixture.state.runId,
+        planRewindAt: null,
+        phase: item.phase,
+        result: "fail",
+        evaluations: [{
+          ...semanticRetryFinding(`gate-${item.phase}`, "informational"),
+          result: "fail",
+        }],
+      });
+      const result = checkGateRetryBelowMax({
+        root: fixture.root,
+        flowState: retryFlowState(
+          fixture,
+          item.stepId,
+          retryMetrics("gateRetry", item.phase),
+        ),
+        flowManager: { updateStepStatus() {} },
+      }, item.phase);
+      assert.equal(result?.result, "deferred", item.phase);
+      const [finding] = readFlowFindingsArtifact(fixture.specDir).entries;
+      assert.equal(finding.sourceArtifact, item.file, item.phase);
+    });
   }
 });
 
-test("R2: gate retry exhaustion defers semantic findings for every tracked gate phase", () => {
-  for (const phase of ["draft", "spec", "task-impl", "integration"]) {
-    const fixture = gateRetryContext(phase);
-    const result = checkGateRetryBelowMax(fixture.ctx, phase);
-    assert.equal(result?.result, "deferred", phase);
-    assert.deepEqual(fixture.updates, [{ id: fixture.source.stepId, status: "done" }], phase);
-    const findings = readFlowFindingsArtifact(fixture.specDir).toJSON().entries;
-    assert.equal(findings.length, 1, phase);
-    assert.equal(findings[0].sourceStep, fixture.source.stepId, phase);
-  }
-});
-
-test("R3: prose words do not turn AI semantic findings into mechanical blockers", () => {
+test("R3: semantic wording does not turn a gate finding into a mechanical blocker", () => {
   const classification = classifyGateRetryExhaustionSource({
     sourceArtifact: {
       phase: "task-impl",
       result: "fail",
-      observations: [
-        {
-          severity: "blocking",
-          category: "semantic",
-          failureMode: "requirement_alignment",
-          observed: "The implementation is missing a test-facing command behavior required by the spec."
-        }
-      ]
-    }
+      observations: [{
+        ...semanticRetryFinding("wording-semantic", "informational"),
+        result: "fail",
+        severity: "blocking",
+        failureMode: "requirement_alignment",
+        observed: "The implementation is missing a test-facing command behavior required by the spec.",
+      }],
+    },
   });
   assert.equal(classification.deferAllowed, true);
+  assert.equal(classification.reason, "semantic_findings");
 });
 
-test("R4: structured non-semantic prechecks are not deferred as semantic findings", () => {
+test("R3: every structured non-semantic retry precheck remains non-deferrable", () => {
   const cases = [
     [{ toolingFailure: "parser_error" }, "tooling_failure"],
     [{ command: { exitCode: 1 } }, "failed_command"],
@@ -278,285 +260,170 @@ test("R4: structured non-semantic prechecks are not deferred as semantic finding
     [{ guardCode: "NO_PROGRESS_SINCE_LAST_FAIL" }, "no_progress_guard"],
     [{ flowStateValid: false }, "flow_corruption"],
     [{ malformedArtifact: true }, "malformed_artifact"],
-    [{ coverage: { validation: { ok: false, messages: ["missing spec header"] } } }, "coverage_header_failure"],
-    [{ blockingFindings: [{ origin: "test-coverage", failureKind: "missing_header" }] }, "coverage_header_failure"]
+    [{ coverage: { validation: { ok: false } } }, "coverage_header_failure"],
   ];
   for (const [sourceArtifact, reason] of cases) {
     const classification = classifyGateRetryExhaustionSource({
-      sourceArtifact: {
-        phase: "test",
-        result: "fail",
-        ...sourceArtifact
-      }
+      sourceArtifact: { phase: "test", result: "fail", ...sourceArtifact },
     });
     assert.equal(classification.deferAllowed, false, reason);
     assert.equal(classification.reason, reason);
   }
-
-  const retryFixture = gateRetryContextWithArtifact("integration", {
-    toolingFailure: "parser_error",
-    evaluations: [
-      {
-        result: "fail",
-        category: "requirements",
-        reason: "semantic-looking text must not matter when toolingFailure is structured"
-      }
-    ]
-  });
-  const retryResult = checkGateRetryBelowMax(retryFixture.ctx, "integration");
-  assert.notEqual(retryResult?.result, "deferred");
-  assert.equal(fs.existsSync(path.join(retryFixture.specDir, "flow-findings.json")), false);
 });
 
-test("R5: test-review uses flow-level repair and reviewRetry budget", () => {
-  const fixture = reviewRetryContextWithCount("test", 4);
-  assert.equal(checkReviewRetryBelowMax(fixture.ctx, "test"), null);
-  updateReviewRetryCounter(fixture.ctx, {
-    artifacts: {
-      phase: "test",
-      retryPhase: "test",
-      verdict: "FAIL"
-    }
-  });
-  assert.equal(fixture.ctx.flowState.metrics.length, 5);
-  const result = checkReviewRetryBelowMax(fixture.ctx, "test");
-  assert.equal(result?.result, "deferred");
-  assert.deepEqual(fixture.updates, [{ id: "test-review", status: "done" }]);
-  assert.equal(readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0].attempts, 5);
-
-  const toolingFixture = reviewRetryContext("test");
-  fs.writeFileSync(path.join(toolingFixture.specDir, "test-review.json"), JSON.stringify({
-    verdict: "TOOLING_FAILURE",
-    toolingFailure: "parser_error",
-    blockingFindings: [semanticFinding("ignored")]
-  }, null, 2) + "\n");
-  const toolingResult = checkReviewRetryBelowMax(toolingFixture.ctx, "test");
-  assert.notEqual(toolingResult?.result, "deferred");
-  assert.equal(fs.existsSync(path.join(toolingFixture.specDir, "flow-findings.json")), false);
-
-  const coverageFixture = reviewRetryContext("test");
-  fs.writeFileSync(path.join(coverageFixture.specDir, "test-coverage.json"), JSON.stringify({
-    validation: {
-      ok: false,
-      messages: ["missing spec header"]
-    }
-  }, null, 2) + "\n");
-  fs.writeFileSync(path.join(coverageFixture.specDir, "test-review.json"), JSON.stringify({
-    verdict: "FAIL",
-    blockingFindings: [
-      {
-        origin: "test-coverage",
-        failureKind: "missing_header",
-        title: "Missing spec header",
-        issue: "A spec-local test file lacks the required header."
-      }
-    ]
-  }, null, 2) + "\n");
-  const coverageResult = checkReviewRetryBelowMax(coverageFixture.ctx, "test");
-  assert.notEqual(coverageResult?.result, "deferred");
-  assert.equal(fs.existsSync(path.join(coverageFixture.specDir, "flow-findings.json")), false);
-
-  const prompt = readRepoFile("src/flow/prompts/plan/test-review.md");
-  assert.match(prompt, /flow-level repair/i);
-  assert.match(prompt, /reviewRetry/i);
-  assert.match(prompt, /separate .*senti flow run review --phase test/i);
-  assert.doesNotMatch(prompt, /one-shot|does not auto-fix|internal PASS-seeking loop|REVIEW_MAX_ATTEMPTS_EXCEEDED received:\s*STOP/is);
-});
-
-test("R6: flow-findings records bounded references after review deferral", () => {
-  const fixture = reviewRetryContext("spec");
-  checkReviewRetryBelowMax(fixture.ctx, "spec");
-  const entry = readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0];
-  assert.equal(typeof entry.findingId, "string");
-  assert.notEqual(entry.findingId, "");
-  assert.equal(entry.sourceStep, "spec-review");
-  assert.equal(entry.sourceArtifact, "spec-review.json");
-  assert.equal(entry.sourceFindingId, "spec-semantic");
-  assert.equal(entry.retryExhausted, true);
-  assert.equal(entry.attempts, 10);
-  assert.equal(entry.round, 10);
-  assert.equal(entry.completionKind, "deferred");
-  assert.equal(entry.finalDisposition, null);
-  assert.equal(Object.hasOwn(entry, "reason"), false);
-});
-
-test("R7: acceptance-review consumes deferred findings and mirrors finalDisposition", () => {
-  const fixture = reviewRetryContext("spec");
-  checkReviewRetryBelowMax(fixture.ctx, "spec");
-  writeAcceptancePrerequisites(fixture.specDir);
-  const generatedFindingId = readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0].findingId;
-  fs.writeFileSync(path.join(fixture.specDir, "acceptance-review-evidence.json"), JSON.stringify({
-    deferredFindingDispositions: [
-      {
-        findingId: generatedFindingId,
-        finalDisposition: "fixed",
-        evidenceRefs: ["spec-review.json#spec-semantic"]
-      }
-    ]
-  }, null, 2) + "\n");
-  const built = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(built.deferredFindings[0].finalDisposition, "fixed");
-  writeAcceptanceReviewArtifact({ specDir: fixture.specDir, artifact: built });
-  const mirrored = readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0];
-  assert.equal(mirrored.finalDisposition, "fixed");
-
-  fs.writeFileSync(path.join(fixture.specDir, "acceptance-review-evidence.json"), JSON.stringify({
-    deferredFindingDispositions: [
-      {
-        findingId: generatedFindingId,
-        finalDisposition: "still_open",
-        evidenceRefs: ["spec-review.json#spec-semantic"]
-      }
-    ]
-  }, null, 2) + "\n");
-  const amend = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(amend.verdict, "amend_required");
-  assert.equal(amend.nextAction, "repair");
-
-  fs.writeFileSync(path.join(fixture.specDir, "acceptance-review-evidence.json"), JSON.stringify({
-    deferredFindingDispositions: [
-      {
-        findingId: generatedFindingId,
-        finalDisposition: "blocking",
-        evidenceRefs: ["spec-review.json#spec-semantic"]
-      }
-    ]
-  }, null, 2) + "\n");
-  const blocked = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(blocked.verdict, "blocked");
-
-  const state = {
-    spec: "specs/demo/spec.json",
-    steps: [
-      { id: "implement", status: "done" },
-      { id: "acceptance-review", status: "in_progress" },
-      { id: "final-regression", status: "pending" }
-    ]
-  };
-  applyAcceptanceReviewResult({
-    root: fixture.root,
-    artifact: blocked,
-    flowManager: {
-      load: () => state,
-      mutate: (fn) => fn(state)
-    }
-  });
-  assert.equal(state.steps.find((step) => step.id === "final-regression").status, "pending");
-
-  const userDecision = writeAcceptanceReviewArtifact({
-    specDir: fixture.specDir,
-    artifact: {
-      version: 1,
-      goalSatisfactionScore: 1,
-      requirementAlignmentScore: 1,
-      implementationQualityScore: 1,
-      acceptanceScore: 1,
-      thresholds: {
-        goalSatisfactionPass: 0.9,
-        requirementAlignmentPass: 0.9,
-        implementationQualityPass: 0.8
+test("R3: review post-hook consumes the final retry slot before deferring", () => {
+  withFixture({}, (fixture) => {
+    const updates = [];
+    const flowState = retryFlowState(fixture, "test-review", retryMetrics("reviewRetry", "test", 4));
+    const flowManager = {
+      appendMetric(entry) {
+        flowState.metrics.push(entry);
       },
-      mechanicalBlockers: [],
-      hardBlockers: [],
-      attempt: 1,
-      findings: [{
-        findingId: "U-1",
-        summary: "A product decision is required.",
-        severity: "medium",
-        category: "product_decision",
-        mappedRequirementIds: ["R1"],
-        linkedRequirementAmendmentProposalIds: [],
-        evidenceRefs: [],
-        confidence: "high",
-        shouldReimplement: false,
-        reimplementationReason: "",
-        requiresUserDecision: true
-      }],
-      deferredFindings: [
-        {
-          findingId: generatedFindingId,
-          sourceStep: "spec-review",
-          sourceArtifact: "spec-review.json",
-          sourceFindingId: "spec-semantic",
-          finalDisposition: "fixed",
-          evidenceRefs: []
-        }
-      ],
-      requirementAmendmentProposals: [],
-      userDecision: null,
-      blockedDecision: null,
-      verdict: "pass",
-      nextAction: "user_decision",
-      targetStep: "spec"
-    }
+      updateStepStatus(transition) {
+        updates.push({ id: transition.stepId, status: transition.requestedStatus });
+      },
+    };
+    const context = { root: fixture.root, flowState, flowManager };
+    assert.equal(checkReviewRetryBelowMax(context, "test"), null);
+    fs.writeFileSync(path.join(fixture.specDir, "test-review.json"), JSON.stringify({
+      verdict: "REJECTED",
+      blockingFindings: [semanticRetryFinding("post-hook-semantic")],
+    }, null, 2) + "\n");
+    const result = { artifacts: { phase: "test", retryPhase: "test", verdict: "REJECTED" } };
+    updateReviewRetryCounter(context, result);
+    assert.equal(flowState.metrics.length, 5);
+    assert.equal(result.result, "deferred");
+    assert.deepEqual(updates, [{ id: "test-review", status: "done" }]);
+    assert.equal(readFlowFindingsArtifact(fixture.specDir).entries[0].sourceFindingId, "post-hook-semantic");
   });
-  assert.equal(userDecision.artifact.verdict, "user_decision_required");
-
-  fs.writeFileSync(path.join(fixture.specDir, "acceptance-review-evidence.json"), JSON.stringify({
-    deferredFindingDispositions: [
-      {
-        findingId: generatedFindingId,
-        finalDisposition: "fixed",
-        evidenceRefs: ["spec-review.json#spec-semantic"]
-      }
-    ]
-  }, null, 2) + "\n");
-  fs.renameSync(path.join(fixture.specDir, "spec-review.json"), path.join(fixture.specDir, "spec-review.json.bak"));
-  const missingSource = buildAcceptanceReviewArtifactFromEvidence({ specDir: fixture.specDir });
-  assert.equal(missingSource.verdict, "blocked");
-
-  const prompt = readRepoFile("src/flow/prompts/impl/acceptance-review.md");
-  assert.match(prompt, /flow-findings\.json/);
-  assert.match(prompt, /finalDisposition/);
 });
 
-test("R8: retry-limit prompts delegate deferrable semantic findings instead of stopping", () => {
-  const promptFiles = [
-    "src/flow/prompts/plan/spec-review.md",
-    "src/flow/prompts/plan/test-review.md",
-    "src/flow/prompts/plan/spec-gate.md",
-    "src/flow/prompts/plan/draft-gate.md",
-    "src/flow/prompts/impl/impl-review.md",
-    "src/flow/prompts/impl/impl-gate.md"
-  ];
-  for (const file of promptFiles) {
-    const prompt = readRepoFile(file);
-    assert.match(prompt, /acceptance-review|flow-findings\.json/i, `${file} should mention deferral`);
-    assert.doesNotMatch(prompt, /retry limit[^.\n]*STOP|REVIEW_MAX_ATTEMPTS_EXCEEDED received:\s*STOP|ESCALATE_RETRY_EXHAUSTED received:\s*STOP|GATE_MAX_ATTEMPTS_EXCEEDED received:\s*STOP/is, `${file} should not stop for deferrable semantic retry exhaustion`);
-  }
+test("R4: unresolved deferred findings require an acceptance decision", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1")] }, (fixture) => {
+    const stillOpen = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("still_open"),
+    });
+    assert.equal(stillOpen.artifact.verdict, "user_decision_required");
+    assert.equal(stillOpen.artifact.hardBlockers[0].kind, "unresolved_deferred_finding");
+  });
 });
 
-test("R9: shared regression coverage exists for retry exhaustion deferral contracts", () => {
-  const reviewFixture = reviewRetryContext("test");
-  assert.equal(checkReviewRetryBelowMax(reviewFixture.ctx, "test")?.result, "deferred");
-
-  const gateFixture = gateRetryContext("integration");
-  assert.equal(checkGateRetryBelowMax(gateFixture.ctx, "integration")?.result, "deferred");
-
-  const mechanical = classifyGateRetryExhaustionSource({
-    sourceArtifact: {
-      phase: "test",
-      result: "fail",
-      coverage: {
-        validation: {
-          ok: false,
-          messages: ["missing spec header"]
-        }
-      }
-    }
+test("R5: fixed deferred findings do not block acceptance", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1")] }, (fixture) => {
+    const fixed = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("fixed"),
+    });
+    assert.equal(fixed.artifact.verdict, "pass");
+    assert.equal(fixed.artifact.deferredFindings[0].finalDisposition, "fixed");
   });
-  assert.equal(mechanical.deferAllowed, false);
-  assert.equal(mechanical.reason, "coverage_header_failure");
+});
 
-  fs.writeFileSync(path.join(reviewFixture.specDir, "acceptance-review-evidence.json"), JSON.stringify({
-    deferredFindingDispositions: [
-      {
-        findingId: "DF-1",
-        finalDisposition: "fixed",
-        evidenceRefs: ["test-review.json#test-semantic"]
-      }
-    ]
-  }, null, 2) + "\n");
-  const acceptance = buildAcceptanceReviewArtifactFromEvidence({ specDir: reviewFixture.specDir });
-  assert.equal(acceptance.deferredFindings[0].finalDisposition, "fixed");
+test("R6: deferred finding summaries are observational rather than routing data", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1", "spec-review"), deferredFinding("DF-2", "impl-gate")] }, (fixture) => {
+    const summary = buildDeferredFindingsSummary({ specDir: fixture.specDir });
+    assert.deepEqual(summary.sourceSteps, ["spec-review", "impl-gate"]);
+    assert.equal(Object.hasOwn(summary, "nextAction"), false);
+    assert.equal(Object.hasOwn(summary, "targetStep"), false);
+  });
+});
+
+test("R7: acceptance persistence writes the current artifact, mirrors final disposition, and preserves source identity", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1")] }, (fixture) => {
+    const before = readFlowFindingsArtifact(fixture.specDir).entries[0];
+    const { artifact, written, applied } = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("fixed"),
+      persist: true,
+      apply: true,
+      flowManager: fixture.flowManager,
+    });
+    const after = readFlowFindingsArtifact(fixture.specDir).entries[0];
+    assert.equal(JSON.parse(fs.readFileSync(written.path, "utf8")).verdict, "pass");
+    assert.equal(artifact.deferredFindings[0].finalDisposition, "fixed");
+    assert.equal(applied.verdict, "pass");
+    assert.equal(fixture.activeStep(), "final-regression");
+    assert.equal(after.finalDisposition, "fixed");
+    assert.equal(after.fingerprint, before.fingerprint);
+    assert.equal(after.sourceArtifact, before.sourceArtifact);
+  });
+});
+
+test("R8: deferred source evidence remains available to acceptance review", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-1", "impl-review")] }, (fixture) => {
+    assert.equal(fs.existsSync(path.join(fixture.specDir, "impl-review.json")), true);
+    const { artifact } = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("not_needed"),
+    });
+    assert.equal(artifact.deferredFindings[0].sourceArtifact, "impl-review.json");
+  });
+});
+
+test("R8: missing current mechanical evidence blocks acceptance", () => {
+  withFixture({ omitArtifacts: ["test-execute-result.json"] }, (fixture) => {
+    const missingSource = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+    });
+    assert.equal(missingSource.artifact.verdict, "blocked");
+  });
+});
+
+test("R8: missing deferred source evidence blocks the current acceptance artifact", () => {
+  withFixture({ deferredFindings: [deferredFinding("DF-source", "test-review")] }, (fixture) => {
+    fs.unlinkSync(path.join(fixture.specDir, "test-review.json"));
+    const missingSource = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      deferredFindingDispositions: fixture.dispositionJudgments("still_open"),
+    });
+    assert.equal(missingSource.artifact.verdict, "blocked");
+    assert.ok(missingSource.artifact.mechanicalBlockers.some(
+      (blocker) => blocker.kind === "missing_deferred_source",
+    ));
+  });
+});
+
+test("R9: structural gate failures remain non-deferrable", () => {
+  const classification = classifyGateRetryExhaustionSource({
+    sourceArtifact: { sourceArtifactStatus: "invalid_schema" },
+    phase: "spec",
+  });
+  assert.equal(classification.deferAllowed, false);
+  assert.equal(classification.completionKind, "blocking");
+});
+
+test("R9: final dispositions use only the allowlisted values", () => {
+  assert.throws(() => new FlowFinding({
+    findingId: "DF-invalid-disposition",
+    sourceStep: "test-review",
+    sourceArtifact: "test-review.json",
+    sourceFindingId: "invalid",
+    fingerprint: "b".repeat(64),
+    disposition: "deferred",
+    rationale: "The bounded retry policy deferred this finding.",
+    retryExhausted: true,
+    attempts: 1,
+    round: 1,
+    completionKind: "deferred",
+    finalDisposition: "unsupported",
+  }), /finalDisposition/);
 });

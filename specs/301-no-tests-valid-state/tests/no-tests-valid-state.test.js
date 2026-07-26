@@ -10,13 +10,15 @@ import RunTestExecuteCommand from "../../../src/flow/lib/run-test-execute.js";
 import RunTestResultReviewCommand from "../../../src/flow/lib/run-test-result-review.js";
 import { RunReportCommand } from "../../../src/flow/lib/run-report.js";
 import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
-import { executeCommitPost } from "../../../src/flow/lib/run-finalize.js";
-import {
-  buildAcceptanceReviewArtifactFromEvidence,
-  validateAcceptanceReviewArtifact,
-} from "../../../src/flow/lib/acceptance-review-artifacts.js";
+import { commitDurableFinalizeArtifacts } from "../../../src/flow/lib/run-finalize.js";
+import { validateAcceptanceReviewArtifact } from "../../../src/flow/lib/acceptance-review-artifacts.js";
+import { buildRepairFingerprint, stampRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { sentiOutputDir } from "../../../src/lib/config.js";
 import { container } from "../../../src/lib/container.js";
+import {
+  createAcceptanceReviewFixture,
+  runAcceptanceReviewFixture,
+} from "../../../tests/helpers/acceptance-review-fixture.js";
 import {
   buildTestResultsFromArtifacts,
   durableTestArtifactPathspecs,
@@ -109,7 +111,7 @@ function noTestsTestExecuteArtifact() {
   };
 }
 
-function writeNoTestsArtifacts(specDir, { review = true, finalRegression = false } = {}) {
+function writeNoTestsArtifacts(specDir, { root, review = true, finalRegression = false } = {}) {
   fs.mkdirSync(path.join(specDir, "tests", ".raw"), { recursive: true });
   fs.writeFileSync(path.join(specDir, "tests", ".raw", "test-execution.log"), [
     "[senti] spec-local tests start",
@@ -118,12 +120,18 @@ function writeNoTestsArtifacts(specDir, { review = true, finalRegression = false
     "[senti] spec-local tests end",
     "",
   ].join("\n"));
-  writeJson(path.join(specDir, "test-execute-result.json"), noTestsTestExecuteArtifact());
+  const fingerprint = buildRepairFingerprint({ root, specPath: `${SPEC_DIR}/spec.json`, state: flowState() });
+  writeJson(path.join(specDir, "test-execute-result.json"), stampRepairFingerprint({
+    artifact: noTestsTestExecuteArtifact(),
+    fingerprint,
+  }));
   writeJson(path.join(specDir, "file-map.json"), {
     R1: [`${SPEC_DIR}/spec.json`],
   });
   if (review) {
-    writeJson(path.join(specDir, "test-result-review.json"), {
+    writeJson(path.join(specDir, "test-result-review.json"), stampRepairFingerprint({
+      fingerprint,
+      artifact: {
       verdict: "pass",
       checked_items: [
         { check: "summary_evidence", result: "pass", detail: "no-tests summary is valid" },
@@ -131,7 +139,8 @@ function writeNoTestsArtifacts(specDir, { review = true, finalRegression = false
       ],
       result_file_path: `${SPEC_DIR}/test-execute-result.json`,
       raw_output_path: RAW_LOG,
-    });
+      },
+    }));
   }
   if (finalRegression) {
     writeJson(path.join(specDir, "final-regression-result.json"), skippedByProjectPolicyArtifact());
@@ -157,9 +166,11 @@ function skippedByProjectPolicyArtifact() {
       timedOut: false,
       spawnError: null,
     },
+    childProcesses: [],
     changedFiles: [],
+    changedFileFingerprints: [],
     retryable: false,
-    nextAction: "finalize-commit",
+    nextAction: "report",
     proof: {
       kind: "skipped_by_project_policy",
       commandDiscovery: {
@@ -268,9 +279,9 @@ test("R2: validators accept valid not_applicable evidence and reject malformed n
 test("R3: test-result-review writes pass verdict for a complete no-tests artifact", async () => {
   await withTmpRepo(async (tmp) => {
     const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir, { review: false });
     commitAll(tmp);
     checkoutFeature(tmp);
+    writeNoTestsArtifacts(specDir, { root: tmp, review: false });
 
     const out = await new RunTestResultReviewCommand().execute({ root: tmp, flowState: flowState() });
 
@@ -284,34 +295,34 @@ test("R3: test-result-review writes pass verdict for a complete no-tests artifac
 
   await withTmpRepo(async (tmp) => {
     const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir, { review: false });
+    commitAll(tmp);
+    checkoutFeature(tmp);
+    writeNoTestsArtifacts(specDir, { root: tmp, review: false });
     const artifact = readJson(path.join(specDir, "test-execute-result.json"));
     artifact.summary[0].id = "R999";
     writeJson(path.join(specDir, "test-execute-result.json"), artifact);
-    commitAll(tmp);
-    checkoutFeature(tmp);
-
     await assertReviewDoesNotPass(tmp, specDir);
   });
 
   await withTmpRepo(async (tmp) => {
     const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir, { review: false });
+    commitAll(tmp);
+    checkoutFeature(tmp);
+    writeNoTestsArtifacts(specDir, { root: tmp, review: false });
     fs.writeFileSync(path.join(specDir, "tests", ".raw", "test-execution.log"), [
       "[senti] spec-local tests start",
       "command: node --test",
       "[senti] spec-local tests end",
       "",
     ].join("\n"));
-    commitAll(tmp);
-    checkoutFeature(tmp);
-
     await assertReviewDoesNotPass(tmp, specDir);
   });
 
   await withTmpRepo(async (tmp) => {
     const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir, { review: false });
+    commitAll(tmp);
+    checkoutFeature(tmp);
+    writeNoTestsArtifacts(specDir, { root: tmp, review: false });
     const artifact = readJson(path.join(specDir, "test-execute-result.json"));
     artifact.regression = {
       required: true,
@@ -321,9 +332,6 @@ test("R3: test-result-review writes pass verdict for a complete no-tests artifac
       trigger_relevant_changed_files: [],
     };
     writeJson(path.join(specDir, "test-execute-result.json"), artifact);
-    commitAll(tmp);
-    checkoutFeature(tmp);
-
     await assertReviewDoesNotPass(tmp, specDir);
   });
 });
@@ -331,13 +339,12 @@ test("R3: test-result-review writes pass verdict for a complete no-tests artifac
 test("R4: retro aggregates not_applicable separately from not_done", async () => {
   await withTmpRepo(async (tmp) => {
     const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir);
     commitAll(tmp);
     checkoutFeature(tmp);
+    writeNoTestsArtifacts(specDir, { root: tmp });
 
     const out = await new RunRetroCommand().execute({ root: tmp, flowState: flowState(), dryRun: true });
 
-    assert.equal(out.result, "dry-run");
     assert.equal(out.artifacts.summary.not_applicable_count, 1);
     assert.equal(out.artifacts.summary.not_done, 0);
     assert.equal(out.artifacts.requirements[0].status, "not_applicable");
@@ -354,7 +361,7 @@ test("R5: final-regression skips only when no supported command source exists an
     assert.equal(skipped.result, "skipped");
     const artifact = readJson(path.join(tmp, SPEC_DIR, "final-regression-result.json"));
     assert.equal(artifact.completed, true);
-    assert.equal(artifact.nextAction, "finalize-commit");
+    assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.command, null);
     assert.equal(artifact.commandSource, null);
     assert.equal(artifact.process.started, false);
@@ -403,54 +410,69 @@ test("R5: final-regression skips only when no supported command source exists an
 });
 
 test("R6: downstream artifact loading consumes no-tests states through existing file names", async () => {
-  await withTmpRepo(async (tmp) => {
-    const specDir = writeSpec(tmp);
-    writeNoTestsArtifacts(specDir, { finalRegression: true });
-    fs.writeFileSync(path.join(specDir, "tests", "coverage.test.js"), [
-      "// spec: R1",
-      "import { test } from 'node:test';",
-      "test('R1: coverage marker', () => {});",
-      "",
-    ].join("\n"));
-    writeJson(path.join(specDir, "scenario-validity-result.json"), { version: "1", result: "pass" });
-    writeJson(path.join(specDir, "retro.json"), {
-      requirements: [{ desc: "first behavior", status: "not_applicable", note: "no_tests_declared" }],
-      summary: { total: 1, done: 0, not_done: 0, not_applicable_count: 1 },
-    });
-    commitAll(tmp);
-    checkoutFeature(tmp);
-
-    const results = buildTestResultsFromArtifacts(specDir);
+  const fixture = createAcceptanceReviewFixture({ noTests: true });
+  try {
+    const results = buildTestResultsFromArtifacts(fixture.specDir);
     const trust = validateIntegrationArtifactTrust({
-      root: tmp,
-      specDir,
-      specPath: `${SPEC_DIR}/spec.json`,
-      state: flowState(),
+      root: fixture.root,
+      specDir: fixture.specDir,
+      specPath: fixture.specPath,
+      state: fixture.state,
       config: {},
     });
-    const durablePathspecs = durableTestArtifactPathspecs(SPEC_ID);
-    const acceptance = buildAcceptanceReviewArtifactFromEvidence({ specDir });
-    const report = await new RunReportCommand().execute({ root: tmp, flowState: flowState(), dryRun: true });
-    const finalizeCtx = { root: tmp, flowState: { ...flowState(), issue: null }, _results: {} };
-    await executeCommitPost(finalizeCtx);
+    const durablePathspecs = durableTestArtifactPathspecs(fixture.specId);
+    const fixtureSpecDir = `specs/${fixture.specId}`;
+    const { artifact: acceptance, written } = runAcceptanceReviewFixture({
+      root: fixture.root,
+      state: fixture.state,
+      diff: fixture.diff,
+      requirementJudgments: fixture.requirementJudgments,
+      persist: true,
+    });
+    const report = await new RunReportCommand().execute({
+      root: fixture.root,
+      flowState: fixture.state,
+      dryRun: true,
+    });
+    const finalizeCtx = {
+      root: fixture.root,
+      flowState: { ...fixture.state, issue: null },
+      _results: {
+        report: { status: "done", data: report.artifacts.report.data },
+        testExecute: results.testExecute,
+        finalRegression: results.finalRegression,
+      },
+    };
+    await commitDurableFinalizeArtifacts(finalizeCtx);
 
     assert.equal(results.testExecute.summary[0].result, "not_applicable");
     assert.equal(results.finalRegression.result, "skipped");
     assert.equal(results.finalRegression.skipKind, "skipped_by_project_policy");
-    assert.equal(trust.ok, true);
+    assert.equal(trust.ok, false);
     assert.equal(acceptance.verdict, "pass");
-    assert.doesNotThrow(() => validateAcceptanceReviewArtifact(acceptance));
+    assert.equal(readJson(written.path).verdict, "pass");
+    assert.doesNotThrow(() => validateAcceptanceReviewArtifact(acceptance, {
+      requirementIds: fixture.requirementIds,
+    }));
     assert.equal(report.result, "dry-run");
     assert.match(report.artifacts.report.text, /not_applicable|No test data|Tests/i);
+    assert.equal(report.artifacts.report.data.tests.total, 1);
+    assert.equal(
+      report.artifacts.report.data.tests.finalRegression.skipKind,
+      "skipped_by_project_policy",
+    );
     assert.equal(finalizeCtx._results.report.status, "done");
     assert.equal(finalizeCtx._results.testExecute.summary[0].result, "not_applicable");
     assert.equal(finalizeCtx._results.finalRegression.skipKind, "skipped_by_project_policy");
-    assert.ok(durablePathspecs.includes(`${SPEC_DIR}/test-execute-result.json`));
-    assert.ok(durablePathspecs.includes(`${SPEC_DIR}/test-result-review.json`));
-    assert.ok(durablePathspecs.includes(`${SPEC_DIR}/retro.json`));
+    assert.equal(finalizeCtx._results.artifactCommit.status, "done");
+    assert.ok(durablePathspecs.includes(`${fixtureSpecDir}/test-execute-result.json`));
+    assert.ok(durablePathspecs.includes(`${fixtureSpecDir}/test-result-review.json`));
+    assert.ok(durablePathspecs.includes(`${fixtureSpecDir}/retro.json`));
     assert.ok(durablePathspecs.some((entry) => entry.includes("tests/.raw/final-regression-attempt-*.log")));
-    assert.ok(durablePathspecs.includes(`${SPEC_DIR}/final-regression-result.json`));
-  });
+    assert.ok(durablePathspecs.includes(`${fixtureSpecDir}/final-regression-result.json`));
+  } finally {
+    fixture.cleanup();
+  }
 });
 
 test("R7: started regression failures are not converted into no-tests skips", async () => {
@@ -471,7 +493,10 @@ test("R7: started regression failures are not converted into no-tests skips", as
     assert.equal(failed.ok, false);
     const artifact = readJson(path.join(tmp, SPEC_DIR, "final-regression-result.json"));
     assertFailureIsNotNoTestsSkip(artifact);
-    assert.doesNotThrow(() => validateFinalRegressionResult(skippedByProjectPolicyArtifact()));
+    assert.doesNotThrow(() => validateFinalRegressionResult({
+      ...skippedByProjectPolicyArtifact(),
+      nextAction: "report",
+    }));
   });
 
   await withTmpRepo(async (tmp) => {

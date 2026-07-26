@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T11:40:33.851Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The requirement depends on tooling retry exhaustion but does not state an explicit retry count or upper bound.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R10].desc"
+          },
+          "observed": "The requirement depends on tooling retry exhaustion but does not state an explicit retry count or upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "The requirement depends on tooling retry exhaustion but does not state an explicit retry count or upper bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T11:40:33.851Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "bounded-resource-usage",
+      "result": "fail",
+      "reason": "The acceptance item requires retry reset semantics but does not state an explicit retry count or upper bound.",
+      "category": "code-quality",
+      "title": "Bounded Resource Usage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[T-4].acceptance[0]"
+          },
+          "observed": "The acceptance item requires retry reset semantics but does not state an explicit retry count or upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "findingId": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "fingerprint": "73b8c2326aa81923c7151f97c6fea39a3e8129861968e8e5b954a1b2a99a4427",
+      "disposition": "must-fix",
+      "rationale": "The acceptance item requires retry reset semantics but does not state an explicit retry count or upper bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T11:40:33.851Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R10].desc"
+      },
+      "observed": "The requirement depends on tooling retry exhaustion but does not state an explicit retry count or upper bound.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "The requirement depends on tooling retry exhaustion but does not state an explicit retry count or upper bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T11:40:33.851Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "bounded-resource-usage",
+      "where": {
+        "file": "spec.json",
+        "locator": "tasks[T-4].acceptance[0]"
+      },
+      "observed": "The acceptance item requires retry reset semantics but does not state an explicit retry count or upper bound.",
+      "severity": "blocking",
+      "refs": [
+        "bounded-resource-usage"
+      ],
+      "result": "fail",
+      "guardrail_id": "bounded-resource-usage",
+      "category": "guardrail",
+      "findingId": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "fingerprint": "54c9c3d2361f685b30436526df57c2242735bcdb6e5eda0632be60273148fbf9",
+      "disposition": "must-fix",
+      "rationale": "The acceptance item requires retry reset semantics but does not state an explicit retry count or upper bound.",
+      "requirementId": null,
+      "guardrailId": "bounded-resource-usage",
+      "reportedAt": "2026-07-25T11:40:33.851Z",
+      "repeatCount": 1
+    }
+  ]
+}

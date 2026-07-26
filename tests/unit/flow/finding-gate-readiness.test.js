@@ -152,6 +152,69 @@ test("finding gate retains unresolved must-fix obligations from review history",
   }
 });
 
+test("finding gate supersedes historical obligations after review evidence changes", async () => {
+  const root = createTmpDir("finding-gate-fresh-review-");
+  try {
+    const specPath = "specs/demo/spec.json";
+    fs.mkdirSync(path.join(root, "specs/demo"), { recursive: true });
+    fs.writeFileSync(path.join(root, specPath), `${JSON.stringify({
+      requirements: [{ id: "R1", priority: "must", desc: "Persist typed review findings." }],
+    }, null, 2)}\n`);
+    await runImplReview({
+      root,
+      flow: { spec: specPath },
+      touchedFiles: new Set(),
+      reviewOutput: JSON.stringify({
+        blockingFindings: [{
+          findingKey: "missing-typed-artifact",
+          title: "Missing typed artifact",
+          failureMode: "missing_acceptance_requirement",
+          file: null,
+          requirementId: "R1",
+          issue: "The typed review artifact is missing.",
+          suggestion: "Write the typed artifact.",
+          disposition: "must-fix",
+          rationale: "R1 makes this artifact mandatory.",
+        }],
+        nonBlockingImprovements: [],
+      }),
+    });
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "reviewed-change.js"), "export const reviewed = true;\n");
+    await runImplReview({
+      root,
+      flow: { spec: specPath },
+      touchedFiles: new Set(),
+      reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
+    });
+
+    const readiness = evaluateReviewFindingGateReadiness({
+      root,
+      state: { spec: specPath, currentTaskId: null },
+      phase: "integration",
+      issueLog: { entries: [] },
+    });
+    assert.equal(readiness.artifact.verdict, "PASS");
+    assert.equal(readiness.decision.allowsPass(), true);
+
+    const historyDir = path.join(root, "specs/demo/review-history");
+    const originalReviewPath = path.join(historyDir, "impl-attempt-001.json");
+    const legacyReview = JSON.parse(fs.readFileSync(originalReviewPath, "utf8"));
+    delete legacyReview.repairFingerprint;
+    fs.writeFileSync(originalReviewPath, `${JSON.stringify(legacyReview)}\n`);
+
+    const legacyReadiness = evaluateReviewFindingGateReadiness({
+      root,
+      state: { spec: specPath, currentTaskId: null },
+      phase: "integration",
+      issueLog: { entries: [] },
+    });
+    assert.equal(legacyReadiness.decision.allowsPass(), false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("finding gate fails closed for a missing or malformed review artifact", () => {
   const root = createTmpDir("finding-gate-malformed-");
   try {

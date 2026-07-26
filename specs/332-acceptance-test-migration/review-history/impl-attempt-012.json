@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T10:55:11.174Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 3,
+    "nonBlocking": 0,
+    "total": 3
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "blocking-deferred-verdict-user-decision",
+      "title": "Blocking deferred findings no longer produce a blocked verdict",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+      "requirementId": "R8",
+      "issue": "The updated R8 test now asserts that a deferred finding with finalDisposition=\"blocking\" yields verdict=\"user_decision_required\" while also adding a hard blocker. A finding explicitly classified as blocking is tied to blocking authority and should not be routed as a user decision outcome.",
+      "suggestion": "In the R8 unresolved deferred findings branch, restore the assertion that blocking deferred dispositions produce verdict=\"blocked\" and verify the corresponding hardBlockers entry remains present.",
+      "disposition": "must-fix",
+      "rationale": "The typed disposition policy requires mandatory or blocking guardrail findings to be must-fix/blocking. Treating finalDisposition=\"blocking\" as user_decision_required weakens that mandatory authority and contradicts the blocking guardrail behavior under test.",
+      "findingId": "846b9c879505ad06863409b57561140cd7b2c223029eeb54d2bc302eee0036b7",
+      "fingerprint": "846b9c879505ad06863409b57561140cd7b2c223029eeb54d2bc302eee0036b7",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "blocking-deferred-verdict-review-gate",
+      "title": "Review-gate coverage also normalizes blocking disposition to user decision",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+      "requirementId": "R7",
+      "issue": "The new R7 test case asserts artifact.verdict=\"user_decision_required\" for deferredFindingDispositions(\"blocking\") even though it verifies hardBlockers[0].kind=\"blocking_deferred_finding\".",
+      "suggestion": "Change the R7 blocking deferred disposition assertion to expect verdict=\"blocked\" and keep the hard-blocker authority assertion.",
+      "disposition": "must-fix",
+      "rationale": "A blocking deferred disposition is mandatory repair/blocking authority. The policy cannot resolve it correctly if the acceptance-review contract records a hard blocker but exposes a non-blocking user decision verdict.",
+      "findingId": "93c434b73d26595cdd19508a1f17d092b63d701f9b9f21942fc4a0637e21cf99",
+      "fingerprint": "93c434b73d26595cdd19508a1f17d092b63d701f9b9f21942fc4a0637e21cf99",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "deferred-source-failuremode-not-guardrail-id",
+      "title": "Fixture guardrail findings do not use guardrail id as failureMode",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "tests/helpers/acceptance-review-fixture.js",
+      "requirementId": "R9",
+      "issue": "deferredSourceEvidence() emits advisory findings with guardrail_id set to finding.sourceFindingId but failureMode hard-coded to \"missing_acceptance_requirement\". For a blocking guardrail finding, the policy requires failureMode to be the exact guardrail id so authority can be resolved.",
+      "suggestion": "In deferredSourceEvidence(), set failureMode to the guardrail identifier used for the fixture finding, or stop marking the fixture finding as a guardrail-authoritative must-fix if it is meant to exercise the generic missing_acceptance_requirement path.",
+      "disposition": "must-fix",
+      "rationale": "The requested guardrail explicitly says blocking guardrail findings must use the exact guardrail id as failureMode. The helper creates reusable acceptance-review evidence, so this mismatch can make multiple requirement tests validate the wrong authority path.",
+      "findingId": "5f97b4faac03a082a8f8ed97f5384e0ddad8b9fa4d4b153c29a2d8c71041e99d",
+      "fingerprint": "5f97b4faac03a082a8f8ed97f5384e0ddad8b9fa4d4b153c29a2d8c71041e99d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "fd9cfe28a58bddca4673799578758ffe85a55af9706b45cff10d9c9eea6c7000",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "2ec2e052ff28c80b17e90a315f112f1dc6155de073295e18743f183006d7d1bd"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "846b9c879505ad06863409b57561140cd7b2c223029eeb54d2bc302eee0036b7",
+      "findingId": "846b9c879505ad06863409b57561140cd7b2c223029eeb54d2bc302eee0036b7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Blocking deferred findings no longer produce a blocked verdict",
+      "body": "The updated R8 test now asserts that a deferred finding with finalDisposition=\"blocking\" yields verdict=\"user_decision_required\" while also adding a hard blocker. A finding explicitly classified as blocking is tied to blocking authority and should not be routed as a user decision outcome.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "846b9c879505ad06863409b57561140cd7b2c223029eeb54d2bc302eee0036b7",
+      "disposition": "must-fix",
+      "rationale": "The typed disposition policy requires mandatory or blocking guardrail findings to be must-fix/blocking. Treating finalDisposition=\"blocking\" as user_decision_required weakens that mandatory authority and contradicts the blocking guardrail behavior under test.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    },
+    {
+      "id": "93c434b73d26595cdd19508a1f17d092b63d701f9b9f21942fc4a0637e21cf99",
+      "findingId": "93c434b73d26595cdd19508a1f17d092b63d701f9b9f21942fc4a0637e21cf99",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Review-gate coverage also normalizes blocking disposition to user decision",
+      "body": "The new R7 test case asserts artifact.verdict=\"user_decision_required\" for deferredFindingDispositions(\"blocking\") even though it verifies hardBlockers[0].kind=\"blocking_deferred_finding\".",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "93c434b73d26595cdd19508a1f17d092b63d701f9b9f21942fc4a0637e21cf99",
+      "disposition": "must-fix",
+      "rationale": "A blocking deferred disposition is mandatory repair/blocking authority. The policy cannot resolve it correctly if the acceptance-review contract records a hard blocker but exposes a non-blocking user decision verdict.",
+      "requirementId": "R7",
+      "repeatCount": 1
+    },
+    {
+      "id": "5f97b4faac03a082a8f8ed97f5384e0ddad8b9fa4d4b153c29a2d8c71041e99d",
+      "findingId": "5f97b4faac03a082a8f8ed97f5384e0ddad8b9fa4d4b153c29a2d8c71041e99d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Fixture guardrail findings do not use guardrail id as failureMode",
+      "body": "deferredSourceEvidence() emits advisory findings with guardrail_id set to finding.sourceFindingId but failureMode hard-coded to \"missing_acceptance_requirement\". For a blocking guardrail finding, the policy requires failureMode to be the exact guardrail id so authority can be resolved.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "5f97b4faac03a082a8f8ed97f5384e0ddad8b9fa4d4b153c29a2d8c71041e99d",
+      "disposition": "must-fix",
+      "rationale": "The requested guardrail explicitly says blocking guardrail findings must use the exact guardrail id as failureMode. The helper creates reusable acceptance-review evidence, so this mismatch can make multiple requirement tests validate the wrong authority path.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    }
+  ]
+}

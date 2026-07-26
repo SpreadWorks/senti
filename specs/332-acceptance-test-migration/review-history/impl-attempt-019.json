@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T12:13:05.973Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "adopt-fixture-mutates-existing-producer-root",
+      "title": "Adopted fixture rewrites producer repositories",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "tests/helpers/acceptance-review-fixture.js",
+      "requirementId": "R2",
+      "issue": "`AcceptanceReviewFixture` still calls `#prepareRepository()` unconditionally, even when `existingRoot` is supplied by `adoptAcceptanceReviewFixture()`. That setup rewrites `.senti/config.json`, `spec.json`, `spec.md`, `src/demo.js`, fixture tests, initializes/commits/branches the repository, and then overwrites source again before the migrated producer regression is reviewed.",
+      "suggestion": "In `AcceptanceReviewFixture.constructor`, run repository/spec/source setup only for owned temporary roots. For `existingRoot`, adopt the existing producer repository as-is, read its existing spec and deferred findings, and add only missing acceptance-review prerequisite artifacts without changing scenario-owned source, spec, branch, or producer artifacts.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the helper to assemble complete current production inputs, while the task guardrail requires scenario-specific producer setup to remain in the owning historical test. Mutating an adopted producer root changes the subject under review instead of assembling acceptance inputs around it, so this remains tied to a mandatory requirement.",
+      "findingId": "5cb8a32840fe06780f03bdc82675e922b1cde915bae408409f2bc0d7de6b251a",
+      "fingerprint": "5cb8a32840fe06780f03bdc82675e922b1cde915bae408409f2bc0d7de6b251a",
+      "repeatCount": 2
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "9603b135495a61d292c9972a497b1ee16d5f1aa632b3e14af36138feb79e1287",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/332-acceptance-test-migration/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "5100af8bfefbab082c48ba2b561efe59a64791601747f537eedd33d4316c8502"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 19,
+  "findings": [
+    {
+      "id": "5cb8a32840fe06780f03bdc82675e922b1cde915bae408409f2bc0d7de6b251a",
+      "findingId": "5cb8a32840fe06780f03bdc82675e922b1cde915bae408409f2bc0d7de6b251a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 19,
+      "severity": "blocking",
+      "title": "Adopted fixture rewrites producer repositories",
+      "body": "`AcceptanceReviewFixture` still calls `#prepareRepository()` unconditionally, even when `existingRoot` is supplied by `adoptAcceptanceReviewFixture()`. That setup rewrites `.senti/config.json`, `spec.json`, `spec.md`, `src/demo.js`, fixture tests, initializes/commits/branches the repository, and then overwrites source again before the migrated producer regression is reviewed.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "5cb8a32840fe06780f03bdc82675e922b1cde915bae408409f2bc0d7de6b251a",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the helper to assemble complete current production inputs, while the task guardrail requires scenario-specific producer setup to remain in the owning historical test. Mutating an adopted producer root changes the subject under review instead of assembling acceptance inputs around it, so this remains tied to a mandatory requirement.",
+      "requirementId": "R2",
+      "repeatCount": 2
+    }
+  ]
+}

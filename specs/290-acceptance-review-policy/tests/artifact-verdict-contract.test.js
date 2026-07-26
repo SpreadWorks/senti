@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
+import { createAcceptanceReviewFixture } from "../../../tests/helpers/acceptance-review-fixture.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SCHEMA_PATH = path.join(ROOT, "src", "flow", "schemas", "acceptance-review.schema.json");
@@ -20,56 +21,41 @@ async function loadArtifactModule() {
   return import(pathToFileURL(ARTIFACT_MODULE).href);
 }
 
-function validFinding(overrides = {}) {
+function validRequirementJudgment(overrides = {}) {
   return {
-    findingId: "F-1",
-    summary: "Goal gap requires amendment.",
-    severity: "blocking",
-    category: "goal_gap",
-    mappedRequirementIds: ["R3"],
-    linkedRequirementAmendmentProposalIds: ["P-1"],
-    evidenceRefs: ["spec:R3", "diff:src/flow/definition.js"],
-    confidence: "high",
-    shouldReimplement: true,
-    reimplementationReason: "The flow order must change after the requirement is amended.",
-    requiresUserDecision: false,
+    requirementId: "R3",
+    status: "met",
+    requestRefs: ["flow.request"],
+    requirementRefs: ["spec.json#R3"],
+    diffRefs: ["diff:src/demo.js"],
+    repairRefs: ["impl-repair.json"],
+    testRefs: ["test-execute-result.json#R3", "test-result-review.json"],
+    missingEvidence: [],
     ...overrides,
   };
 }
 
-function validProposal(overrides = {}) {
+function validDeferredFinding(overrides = {}) {
   return {
-    proposalId: "P-1",
-    proposalType: "modify_requirement",
-    targetRequirementIds: ["R3"],
-    proposedRequirementSummary: "Require acceptance-review before final-regression.",
-    reason: "The original request requires holistic acceptance before final regression.",
-    relationToOriginalRequest: "direct",
-    linkedFindingIds: ["F-1"],
-    shouldReimplementAfterAmendment: true,
+    findingId: "DF-1",
+    sourceStep: "impl-review",
+    sourceArtifact: "impl-review.json",
+    sourceFindingId: "F-1",
+    finalDisposition: "fixed",
+    evidenceRefs: ["impl-review.json#F-1"],
     ...overrides,
   };
 }
 
 function validArtifact(overrides = {}) {
   return {
-    version: 1,
-    goalSatisfactionScore: 1,
-    requirementAlignmentScore: 1,
-    implementationQualityScore: 1,
-    acceptanceScore: 1,
-    thresholds: {
-      goalSatisfactionPass: 0.9,
-      requirementAlignmentPass: 0.9,
-      implementationQualityPass: 0.8,
-    },
+    version: 2,
+    repairFingerprint: "a".repeat(64),
     mechanicalBlockers: [],
     hardBlockers: [],
-    attempt: 1,
-    findings: [validFinding()],
-    requirementAmendmentProposals: [validProposal()],
+    requirementJudgments: [validRequirementJudgment()],
+    deferredFindings: [],
     userDecision: null,
-    blockedDecision: null,
     verdict: "pass",
     ...overrides,
   };
@@ -84,18 +70,13 @@ describe("acceptance-review artifact and verdict contract", () => {
 
   it("R5: schema rejects artifacts missing any required top-level field", () => {
     const requiredTopLevelFields = [
-      "goalSatisfactionScore",
-      "requirementAlignmentScore",
-      "implementationQualityScore",
-      "acceptanceScore",
-      "thresholds",
+      "version",
+      "repairFingerprint",
       "mechanicalBlockers",
       "hardBlockers",
-      "attempt",
-      "findings",
-      "requirementAmendmentProposals",
+      "requirementJudgments",
+      "deferredFindings",
       "userDecision",
-      "blockedDecision",
       "verdict",
     ];
     for (const field of requiredTopLevelFields) {
@@ -107,97 +88,100 @@ describe("acceptance-review artifact and verdict contract", () => {
 
   it("R5: artifact writer persists schema-valid output and only includes existing report refs", async () => {
     const { writeAcceptanceReviewArtifact } = await loadArtifactModule();
-    const tmp = fs.mkdtempSync(path.join(process.cwd(), ".tmp-acceptance-review-"));
+    const fixture = createAcceptanceReviewFixture();
     try {
-      const specDir = path.join(tmp, "specs", "001-test");
-      fs.mkdirSync(specDir, { recursive: true });
+      const artifact = validArtifact({ repairFingerprint: fixture.fingerprint.hash });
 
       const withoutReport = writeAcceptanceReviewArtifact({
-        specDir,
-        artifact: validArtifact({ reportRefs: undefined }),
+        specDir: fixture.specDir,
+        artifact,
+        fingerprint: fixture.fingerprint,
+        flowState: fixture.state,
       });
       const first = JSON.parse(fs.readFileSync(withoutReport.path, "utf8"));
       assert.deepEqual(validateSchema(first, loadSchema()), []);
       assert.equal(Object.hasOwn(first, "reportRefs"), false);
 
       const suppliedReportRefs = writeAcceptanceReviewArtifact({
-        specDir,
-        artifact: validArtifact({ reportRefs: ["report.json"] }),
+        specDir: fixture.specDir,
+        artifact: { ...artifact, reportRefs: ["report.json"] },
+        fingerprint: fixture.fingerprint,
+        flowState: fixture.state,
       });
       const supplied = JSON.parse(fs.readFileSync(suppliedReportRefs.path, "utf8"));
       assert.equal(Object.hasOwn(supplied, "reportRefs"), false);
 
-      fs.writeFileSync(path.join(specDir, "report.json"), JSON.stringify({
+      fs.writeFileSync(path.join(fixture.specDir, "report.json"), JSON.stringify({
         version: 1,
         summary: "Existing finalize report context.",
       }, null, 2));
       const withReport = writeAcceptanceReviewArtifact({
-        specDir,
-        artifact: validArtifact({ reportRefs: undefined }),
+        specDir: fixture.specDir,
+        artifact,
+        fingerprint: fixture.fingerprint,
+        flowState: fixture.state,
       });
       const second = JSON.parse(fs.readFileSync(withReport.path, "utf8"));
       assert.deepEqual(validateSchema(second, loadSchema()), []);
       assert.deepEqual(second.reportRefs, ["report.json"]);
     } finally {
-      fs.rmSync(tmp, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
   it("R5: artifact writer rejects invalid artifacts before persisting them", async () => {
     const { writeAcceptanceReviewArtifact } = await loadArtifactModule();
-    const tmp = fs.mkdtempSync(path.join(process.cwd(), ".tmp-acceptance-review-"));
+    const fixture = createAcceptanceReviewFixture();
     try {
-      const specDir = path.join(tmp, "specs", "001-test");
-      fs.mkdirSync(specDir, { recursive: true });
-      const invalid = validArtifact({ goalSatisfactionScore: undefined });
+      const invalid = validArtifact({ requirementJudgments: undefined });
 
       assert.throws(
-        () => writeAcceptanceReviewArtifact({ specDir, artifact: invalid }),
-        /goalSatisfactionScore|schema|validation/i,
+        () => writeAcceptanceReviewArtifact({
+          specDir: fixture.specDir,
+          artifact: invalid,
+          fingerprint: fixture.fingerprint,
+          flowState: fixture.state,
+        }),
+        /requirementJudgments|schema|validation/i,
       );
-      assert.equal(fs.existsSync(path.join(specDir, "acceptance-review.json")), false);
+      assert.equal(fs.existsSync(path.join(fixture.specDir, "acceptance-review.json")), false);
     } finally {
-      fs.rmSync(tmp, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
-  it("R6: schema rejects findings missing required evidence and mapping fields", () => {
-    const requiredFindingFields = [
-      "findingId",
-      "summary",
-      "severity",
-      "category",
-      "mappedRequirementIds",
-      "linkedRequirementAmendmentProposalIds",
-      "evidenceRefs",
-      "confidence",
-      "shouldReimplement",
-      "reimplementationReason",
-      "requiresUserDecision",
+  it("R6: schema rejects requirement judgments missing current evidence bindings", () => {
+    const requiredJudgmentFields = [
+      "requirementId",
+      "status",
+      "requestRefs",
+      "requirementRefs",
+      "diffRefs",
+      "repairRefs",
+      "testRefs",
+      "missingEvidence",
     ];
-    for (const field of requiredFindingFields) {
+    for (const field of requiredJudgmentFields) {
       const broken = validArtifact({
-        findings: [validFinding({ [field]: undefined })],
+        requirementJudgments: [validRequirementJudgment({ [field]: undefined })],
       });
 
       assert.notDeepEqual(validateSchema(broken, loadSchema()), [], `${field} must be required`);
     }
   });
 
-  it("R7: schema rejects requirementAmendmentProposals missing handoff fields", () => {
-    const requiredProposalFields = [
-      "proposalId",
-      "proposalType",
-      "targetRequirementIds",
-      "proposedRequirementSummary",
-      "reason",
-      "relationToOriginalRequest",
-      "linkedFindingIds",
-      "shouldReimplementAfterAmendment",
+  it("R7: schema rejects deferred findings missing current source bindings", () => {
+    const requiredDeferredFindingFields = [
+      "findingId",
+      "sourceStep",
+      "sourceArtifact",
+      "sourceFindingId",
+      "finalDisposition",
+      "evidenceRefs",
     ];
-    for (const field of requiredProposalFields) {
+    for (const field of requiredDeferredFindingFields) {
       const broken = validArtifact({
-        requirementAmendmentProposals: [validProposal({ [field]: undefined })],
+        deferredFindings: [validDeferredFinding({ [field]: undefined })],
       });
 
       assert.notDeepEqual(validateSchema(broken, loadSchema()), [], `${field} must be required`);
@@ -208,10 +192,6 @@ describe("acceptance-review artifact and verdict contract", () => {
     const { deriveAcceptanceReviewVerdict } = await loadArtifactModule();
     const artifact = validArtifact({
       mechanicalBlockers: [{ blockerId: "M-1", kind: "missing_tests", summary: "Test evidence missing." }],
-      goalSatisfactionScore: 1,
-      requirementAlignmentScore: 1,
-      implementationQualityScore: 1,
-      acceptanceScore: 1,
       verdict: "pass",
     });
 
@@ -238,59 +218,81 @@ describe("acceptance-review artifact and verdict contract", () => {
     assert.equal(deriveAcceptanceReviewVerdict(validArtifact({ mechanicalBlockers: blockers })), "blocked");
   });
 
-  it("R8: evidence builder derives missing tests and missing required tests from persisted test evidence", async () => {
-    const { buildAcceptanceReviewArtifactFromEvidence } = await loadArtifactModule();
-    const tmp = fs.mkdtempSync(path.join(process.cwd(), ".tmp-acceptance-review-"));
+  it("R8: production context derives missing tests and missing required tests from persisted test evidence", async () => {
+    const {
+      artifactFromAcceptanceJudgments,
+      buildAcceptanceReviewContext,
+      deriveAcceptanceReviewVerdict,
+    } = await loadArtifactModule();
+    const missingRequiredFixture = createAcceptanceReviewFixture({
+      requirementIds: ["R1", "R2"],
+      testSummaryIds: ["R1"],
+    });
+    const missingTestsFixture = createAcceptanceReviewFixture({
+      requirementIds: ["R1", "R2"],
+      omitArtifacts: ["test-execute-result.json"],
+    });
     try {
-      const specDir = path.join(tmp, "specs", "001-test");
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
-        requirements: [
-          { id: "R1", desc: "Covered requirement." },
-          { id: "R2", desc: "Missing required test." },
-          { id: "R3", desc: "Not testable.", testable: false },
-        ],
-      }, null, 2));
-      for (const file of ["scenario-validity-result.json", "test-result-review.json", "retro.json"]) {
-        fs.writeFileSync(path.join(specDir, file), JSON.stringify({ result: "pass", verdict: "pass" }, null, 2));
-      }
-      fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
-        version: "2",
-        summary: [{ id: "R1", result: "pass" }],
-        regression: { result: "pass" },
-      }, null, 2));
+      const missingRequiredContext = buildAcceptanceReviewContext({
+        root: missingRequiredFixture.root,
+        state: missingRequiredFixture.state,
+        diff: missingRequiredFixture.diff,
+      });
+      const artifact = artifactFromAcceptanceJudgments({
+        context: missingRequiredContext,
+        requirementJudgments: [],
+      });
+      const missingRequired = missingRequiredContext.mechanicalBlockers.find((blocker) => (
+        blocker.kind === "missing_required_tests"
+      ));
+      const missingTestsContext = buildAcceptanceReviewContext({
+        root: missingTestsFixture.root,
+        state: missingTestsFixture.state,
+        diff: missingTestsFixture.diff,
+      });
 
-      const artifact = buildAcceptanceReviewArtifactFromEvidence({ specDir });
-      const kinds = artifact.mechanicalBlockers.map((blocker) => blocker.kind).sort();
-
-      assert.deepEqual(kinds, ["missing_required_tests", "missing_tests"]);
-      assert.match(
-        artifact.mechanicalBlockers.find((blocker) => blocker.kind === "missing_required_tests").summary,
-        /R2/,
-      );
+      assert.ok(missingRequired);
+      assert.match(missingRequired.summary, /R2/);
+      assert.ok(missingTestsContext.mechanicalBlockers.some((blocker) => blocker.kind === "missing_tests"));
+      assert.equal(deriveAcceptanceReviewVerdict(artifact), "blocked");
     } finally {
-      fs.rmSync(tmp, { recursive: true, force: true });
+      missingRequiredFixture.cleanup();
+      missingTestsFixture.cleanup();
     }
   });
 
-  it("R9: secondary scores cannot offset unmet goal satisfaction", async () => {
+  it("R9: secondary scores cannot offset current unmet requirements or hard blockers", async () => {
     const { deriveAcceptanceReviewVerdict } = await loadArtifactModule();
-    const artifact = validArtifact({
-      goalSatisfactionScore: 0.2,
-      requirementAlignmentScore: 1,
-      implementationQualityScore: 1,
-      acceptanceScore: 0.95,
-      findings: [validFinding({ shouldReimplement: true })],
-      hardBlockers: [],
-      verdict: "pass",
-    });
-
-    assert.notEqual(deriveAcceptanceReviewVerdict(artifact), "pass");
-
-    assert.notEqual(
-      deriveAcceptanceReviewVerdict(validArtifact({
+    assert.equal(
+      deriveAcceptanceReviewVerdict({
+        mechanicalBlockers: [],
+        hardBlockers: [],
+        requirementJudgments: [{ status: "notMet" }],
+      }),
+      "repair_required",
+    );
+    assert.equal(
+      deriveAcceptanceReviewVerdict({
+        mechanicalBlockers: [],
+        hardBlockers: [],
+        requirementJudgments: [{ status: "notVerifiable" }],
+      }),
+      "user_decision_required",
+    );
+    assert.equal(
+      deriveAcceptanceReviewVerdict({
+        mechanicalBlockers: [],
         hardBlockers: [{ blockerId: "H-1", summary: "Original goal remains unmet." }],
-      })),
+        requirementJudgments: [],
+      }),
+      "user_decision_required",
+    );
+    assert.equal(
+      deriveAcceptanceReviewVerdict({
+        mechanicalBlockers: [],
+        hardBlockers: [],
+        requirementJudgments: [],
+      }),
       "pass",
     );
   });

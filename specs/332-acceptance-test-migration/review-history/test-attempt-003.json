@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-24T14:38:08.705Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/332-acceptance-test-migration/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R1 does not review all target-file reference forms",
+      "target": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js R1",
+      "findingId": "8ac137b539f07b63ddfd9832199c785ab2da58c1b4a36a4a8ba14b0a7cbd259c",
+      "fingerprint": "8ac137b539f07b63ddfd9832199c785ab2da58c1b4a36a4a8ba14b0a7cbd259c",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly requires every import, require, or invocation to be removed from all six target files. The current test can pass without enforcing that production behavior is no longer exercised through the removed API.",
+      "issue": "The R1 test searches target files with a raw substring check, so it will miss dynamic property access or string-concatenated invocations such as `acceptance[\"buildAcceptance\" + \"ReviewArtifactFromEvidence\"](...)`. That can leave an invocation of the removed compatibility API in a target regression while the test still passes.",
+      "requiredChange": "Parse or otherwise statically inspect the six target regression files for import/require/member-call usage of the deleted API, including computed member access, rather than relying only on `source.includes(deletedExport)`.",
+      "whyBlocking": "R1 explicitly requires every import, require, or invocation to be removed from all six target files. The current test can pass without enforcing that production behavior is no longer exercised through the removed API.",
+      "origin": "R1",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R2-R8 rely on token presence instead of executable behavior for core requirement coverage",
+      "target": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js R2-R8",
+      "findingId": "7ad41d4b8d43695b6b33f311b6d17e14f4b5f0798ecf861f0d01dcfb69adea4d",
+      "fingerprint": "7ad41d4b8d43695b6b33f311b6d17e14f4b5f0798ecf861f0d01dcfb69adea4d",
+      "disposition": "must-fix",
+      "rationale": "R2 through R8 are acceptance requirements about preserved behavior. String inclusion checks are a static anti-pattern that can pass without exercising production behavior or the specified regression scenarios.",
+      "issue": "The requirement-specific tests mostly assert that historical files or the shared fixture contain string tokens such as function names, verdict names, disposition names, and artifact filenames. These checks can pass if the tokens appear in comments, dead code, unrelated assertions, or fixture helper text, without proving that the historical regressions execute the intended current production APIs with the required evidence, dispositions, routing, and side effects.",
+      "requiredChange": "Replace the token-presence coverage checks with executable assertions that observe the target regressions or shared fixture calling current production exports and producing/validating the required artifacts, verdicts, dispositions, source bindings, routing, and side effects for each requirement.",
+      "whyBlocking": "R2 through R8 are acceptance requirements about preserved behavior. String inclusion checks are a static anti-pattern that can pass without exercising production behavior or the specified regression scenarios.",
+      "origin": "R2-R8",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R9 cannot prove assertions were not weakened",
+      "target": "specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js R9",
+      "findingId": "c02d6f37a902a08a5b3c44e286b2f69f5f26384db2a8003cf7a151bd1ee36580",
+      "fingerprint": "c02d6f37a902a08a5b3c44e286b2f69f5f26384db2a8003cf7a151bd1ee36580",
+      "disposition": "must-fix",
+      "rationale": "R9 expressly requires the complete target regressions to pass without weakened assertions. The current test design can pass after assertion weakening, so the coverage artifact overstates R9 coverage.",
+      "issue": "R9 only checks that each target file exits successfully, lacks `.skip`/`.only`, and has at least a minimum number of test declarations. A target file can retain the same number of tests but weaken or delete the material assertions inside them, so this would not enforce the requirement that the complete target regressions pass without weakened assertions.",
+      "requiredChange": "Add a spec-local static or behavioral guard that verifies the target regression assertions/coverage remain materially intact, such as checking expected assertion anchors or comparing required scenario assertions for each target file, not just test counts.",
+      "whyBlocking": "R9 expressly requires the complete target regressions to pass without weakened assertions. The current test design can pass after assertion weakening, so the coverage artifact overstates R9 coverage.",
+      "origin": "R9",
+      "failureKind": "static anti-pattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/332-acceptance-test-migration/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f94bcc0da41329d02d2df6ea649d6fcece2f0563278557ceda82ddbf52c113a4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "8ac137b539f07b63ddfd9832199c785ab2da58c1b4a36a4a8ba14b0a7cbd259c",
+      "findingId": "8ac137b539f07b63ddfd9832199c785ab2da58c1b4a36a4a8ba14b0a7cbd259c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R1 does not review all target-file reference forms",
+      "body": "The R1 test searches target files with a raw substring check, so it will miss dynamic property access or string-concatenated invocations such as `acceptance[\"buildAcceptance\" + \"ReviewArtifactFromEvidence\"](...)`. That can leave an invocation of the removed compatibility API in a target regression while the test still passes.",
+      "category": "unknown",
+      "fingerprint": "8ac137b539f07b63ddfd9832199c785ab2da58c1b4a36a4a8ba14b0a7cbd259c",
+      "disposition": "must-fix",
+      "rationale": "R1 explicitly requires every import, require, or invocation to be removed from all six target files. The current test can pass without enforcing that production behavior is no longer exercised through the removed API."
+    },
+    {
+      "id": "7ad41d4b8d43695b6b33f311b6d17e14f4b5f0798ecf861f0d01dcfb69adea4d",
+      "findingId": "7ad41d4b8d43695b6b33f311b6d17e14f4b5f0798ecf861f0d01dcfb69adea4d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R2-R8 rely on token presence instead of executable behavior for core requirement coverage",
+      "body": "The requirement-specific tests mostly assert that historical files or the shared fixture contain string tokens such as function names, verdict names, disposition names, and artifact filenames. These checks can pass if the tokens appear in comments, dead code, unrelated assertions, or fixture helper text, without proving that the historical regressions execute the intended current production APIs with the required evidence, dispositions, routing, and side effects.",
+      "category": "unknown",
+      "fingerprint": "7ad41d4b8d43695b6b33f311b6d17e14f4b5f0798ecf861f0d01dcfb69adea4d",
+      "disposition": "must-fix",
+      "rationale": "R2 through R8 are acceptance requirements about preserved behavior. String inclusion checks are a static anti-pattern that can pass without exercising production behavior or the specified regression scenarios."
+    },
+    {
+      "id": "c02d6f37a902a08a5b3c44e286b2f69f5f26384db2a8003cf7a151bd1ee36580",
+      "findingId": "c02d6f37a902a08a5b3c44e286b2f69f5f26384db2a8003cf7a151bd1ee36580",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R9 cannot prove assertions were not weakened",
+      "body": "R9 only checks that each target file exits successfully, lacks `.skip`/`.only`, and has at least a minimum number of test declarations. A target file can retain the same number of tests but weaken or delete the material assertions inside them, so this would not enforce the requirement that the complete target regressions pass without weakened assertions.",
+      "category": "unknown",
+      "fingerprint": "c02d6f37a902a08a5b3c44e286b2f69f5f26384db2a8003cf7a151bd1ee36580",
+      "disposition": "must-fix",
+      "rationale": "R9 expressly requires the complete target regressions to pass without weakened assertions. The current test design can pass after assertion weakening, so the coverage artifact overstates R9 coverage."
+    }
+  ]
+}

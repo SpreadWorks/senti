@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/repair-state-identity.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js"
+    ],
+    "inputHash": "5c2c347951a611ab8dc9cff32db10f9e0ae05e6aef65d058ee90780605f24b5c",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/repair-state-identity.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js"
+  ],
+  "inputHash": "5c2c347951a611ab8dc9cff32db10f9e0ae05e6aef65d058ee90780605f24b5c",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:08:03.459Z",
+  "finishedAt": "2026-07-25T16:08:03.459Z",
+  "rawResponse": "### 1. Extract retained-migration replay setup\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R3  \n**Issue:** Several new tests repeat the same post-migration setup: call `migrateBaselineBearingLegacyV2()`, optionally recreate evidence, set `state.steps[0]` / `state.steps[1]`, then call `ensureRepairFingerprintContract()` with the same options.  \n**Suggestion:** Add a small helper such as `runRetainedMigrationContract({ recreateEvidence = false, mutateEvidence, mutateState } = {})` that performs the common setup and returns `{ state, flowManager, result, manifest }`. This would make each replay scenario focus only on what it invalidates.\n\n### 2. Replace positional step mutation with named helper\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R4  \n**Issue:** The new tests mutate `state.steps[0]` and `state.steps[1]` directly. That couples the assertions to array order rather than the semantic step IDs, even though the setup already names steps as `\"test-execute\"` and `\"test-result-review\"`.  \n**Suggestion:** Introduce a helper like `setStepStatus(state, \"test-execute\", \"done\")` or reuse an existing local pattern if present. This improves readability and avoids brittle test failures if step order changes.\n\n### 3. Name helper by observable behavior\n**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R2  \n**Issue:** `migrateBaselineBearingLegacyV2()` does more than migrate: it initializes a repository, writes legacy fingerprint/evidence, executes `RunGateCommand`, mutates flow state, and returns the recovery result. The name hides the important side effect that the gate command has already run.  \n**Suggestion:** Rename it to something more explicit, for example `recoverBaselineBearingLegacyV2Fingerprint()` or `runLegacyV2BaselineRecovery()`, so callers understand they receive post-recovery state.\n\n### 4. Extract review evidence fixture construction\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R3  \n**Issue:** The new acceptance-review test manually constructs two `ReviewEvidence` instances with mostly fixture metadata. Similar review evidence construction appears common in this test file, and the new block is long enough to obscure the behavior under test.  \n**Suggestion:** Add or reuse a helper such as `createReviewEvidence({ phase = \"impl\", treeSha, invocationId, disposition })`. The test would then emphasize the retained historical rejection followed by the current pass.\n\n### 5. Avoid hard-coded repeated semantic attempt count\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R5  \n**Issue:** The value `4` is repeated in `configuredSemanticMaxAttempts`, `attempts`, and `round`. These values are intentionally linked, but the test does not make that relationship explicit.  \n**Suggestion:** Introduce `const semanticMaxAttempts = 4;` and use it for all related fields. This reduces accidental drift if the fixture changes.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract retained-migration replay setup",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R3  \n**Issue:** Several new tests repeat the same post-migration setup: call `migrateBaselineBearingLegacyV2()`, optionally recreate evidence, set `state.steps[0]` / `state.steps[1]`, then call `ensureRepairFingerprintContract()` with the same options.  \n**Suggestion:** Add a small helper such as `runRetainedMigrationContract({ recreateEvidence = false, mutateEvidence, mutateState } = {})` that performs the common setup and returns `{ state, flowManager, result, manifest }`. This would make each replay scenario focus only on what it invalidates.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Replace positional step mutation with named helper",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R4  \n**Issue:** The new tests mutate `state.steps[0]` and `state.steps[1]` directly. That couples the assertions to array order rather than the semantic step IDs, even though the setup already names steps as `\"test-execute\"` and `\"test-result-review\"`.  \n**Suggestion:** Introduce a helper like `setStepStatus(state, \"test-execute\", \"done\")` or reuse an existing local pattern if present. This improves readability and avoids brittle test failures if step order changes.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Name helper by observable behavior",
+        "body": "**File:** `tests/unit/flow/repair-state-identity.test.js`  \n**Requirement:** R2  \n**Issue:** `migrateBaselineBearingLegacyV2()` does more than migrate: it initializes a repository, writes legacy fingerprint/evidence, executes `RunGateCommand`, mutates flow state, and returns the recovery result. The name hides the important side effect that the gate command has already run.  \n**Suggestion:** Rename it to something more explicit, for example `recoverBaselineBearingLegacyV2Fingerprint()` or `runLegacyV2BaselineRecovery()`, so callers understand they receive post-recovery state.",
+        "file": "tests/unit/flow/repair-state-identity.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Extract review evidence fixture construction",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R3  \n**Issue:** The new acceptance-review test manually constructs two `ReviewEvidence` instances with mostly fixture metadata. Similar review evidence construction appears common in this test file, and the new block is long enough to obscure the behavior under test.  \n**Suggestion:** Add or reuse a helper such as `createReviewEvidence({ phase = \"impl\", treeSha, invocationId, disposition })`. The test would then emphasize the retained historical rejection followed by the current pass.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "5. Avoid hard-coded repeated semantic attempt count",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R5  \n**Issue:** The value `4` is repeated in `configuredSemanticMaxAttempts`, `attempts`, and `round`. These values are intentionally linked, but the test does not make that relationship explicit.  \n**Suggestion:** Introduce `const semanticMaxAttempts = 4;` and use it for all related fields. This reduces accidental drift if the fixture changes.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

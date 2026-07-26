@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { runGit } from "../../lib/git-helpers.js";
@@ -23,14 +24,23 @@ function reviewEvidenceError(code, message) {
 }
 
 export function resolveCurrentReviewTreeSha(root) {
-  const result = runGit(["rev-parse", "HEAD^{tree}"], { cwd: root });
-  if (!result.ok) {
+  const tree = runGit(["rev-parse", "HEAD^{tree}"], { cwd: root });
+  if (!tree.ok) {
     throw reviewEvidenceError(
       "REVIEW_TARGET_TREE_UNAVAILABLE",
-      `failed to resolve current review target tree: ${result.stderr.trim()}`,
+      `failed to resolve current review target tree: ${tree.stderr.trim()}`,
     );
   }
-  return result.stdout.trim().toLowerCase();
+  const diff = runGit(["diff", "--binary", "HEAD"], { cwd: root });
+  if (!diff.ok) {
+    throw reviewEvidenceError(
+      "REVIEW_TARGET_TREE_UNAVAILABLE",
+      `failed to resolve current review target diff: ${diff.stderr.trim()}`,
+    );
+  }
+  const treeSha = tree.stdout.trim().toLowerCase();
+  if (diff.stdout === "") return treeSha;
+  return crypto.createHash("sha1").update(treeSha).update("\0").update(diff.stdout).digest("hex");
 }
 
 function requireDocument(value) {

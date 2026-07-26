@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "b61c069f91d9859a732209e1",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-3b506c8b6a6bc26f",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+      "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+      "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+      "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+      "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+      "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-evidence-store.js",
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/set-retry.js",
+      "tests/helpers/acceptance-review-fixture.js",
+      "tests/unit/flow/finding-gate-readiness.test.js",
+      "tests/unit/flow/repair-state-identity.test.js"
+    ],
+    "inputHash": "3b506c8b6a6bc26f8e44996ffbb269b4dfc5062180251447aa69968a293dd666",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "b61c069f91d9859a732209e1"
+  },
+  "targetFiles": [
+    "specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js",
+    "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+    "specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js",
+    "specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js",
+    "specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js",
+    "specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-evidence-store.js",
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/set-retry.js",
+    "tests/helpers/acceptance-review-fixture.js",
+    "tests/unit/flow/finding-gate-readiness.test.js",
+    "tests/unit/flow/repair-state-identity.test.js"
+  ],
+  "inputHash": "3b506c8b6a6bc26f8e44996ffbb269b4dfc5062180251447aa69968a293dd666",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T11:25:49.516Z",
+  "finishedAt": "2026-07-25T11:25:49.516Z",
+  "rawResponse": "### 1. Standardize acceptance review fixture runner helpers\n**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** Multiple spec files introduce or request local helpers for the same `runAcceptanceReviewFixture` wiring: `root`, `state`, `diff`, and `requirementJudgments`. The proposed helper names vary across files (`runAcceptanceReviewForFixture`, `runAcceptance`, inline destructuring), which would preserve duplication and create inconsistent test patterns.\n**Suggestion:** Add one shared helper to `tests/helpers/acceptance-review-fixture.js`, for example `runAdoptedAcceptanceReviewFixture(fixture, overrides)`, and use it from `specs/293-*`, `specs/295-*`, and `specs/296-*`.\n\n### 2. Align review target SHA naming across producer and consumer code\n**File:** `src/flow/lib/review-evidence-store.js`\n**Requirement:** R2\n**Issue:** `resolveCurrentReviewTreeSha()` now represents either a real tree SHA or a synthetic dirty-worktree review identity. Other files, such as `src/flow/lib/set-retry.js`, still refer to this value as `nextTreeSha`, which compounds the misleading interface name across call sites.\n**Suggestion:** Rename the API and locals consistently to review-target terminology, for example `resolveCurrentReviewTargetSha()` and `nextReviewTargetSha`, so clean and dirty review identities use the same vocabulary.\n\n### 3. Consolidate raw versus wrapped review artifact naming\n**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R2\n**Issue:** The review summaries identify naming ambiguity around raw parsed artifacts versus `ReviewFindingGateArtifact` instances. If only `latestArtifact` is renamed locally, other files may still use generic `artifact` names for different artifact representations, keeping the interface unclear across the review pipeline.\n**Suggestion:** Use a consistent convention across review evidence code: `rawReviewArtifact` for parsed JSON and `reviewArtifact` for wrapped domain objects. Apply that naming in `run-gate.js` and any touched producer/consumer code.\n\n### 4. Centralize deferred finding terminology\n**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R4\n**Issue:** Deferred finding data is named inconsistently across tests and helpers: `entry`, `dispositions`, `blocking`, and `deferredSourceEvidence()` all refer to related deferred-review concepts at different abstraction levels. This makes cross-file test intent harder to follow.\n**Suggestion:** Adopt a small naming convention: `deferredFinding` for flow-finding entries, `deferredFinalDispositions` for disposition maps, and `deferredAdvisoryFindings()` for generated advisory finding payloads. Update the affected spec tests and fixture helper together.\n\n### 5. Extract shared evidence payload builders instead of per-file local helpers\n**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R2\n**Issue:** Several reviews propose local extraction of repeated artifact or evidence shapes, while the fixture helper itself already duplicates evidence payload construction. Adding only local helpers in individual tests would create parallel mini-factories for the same contract.\n**Suggestion:** Put shared builders in `tests/helpers/acceptance-review-fixture.js`, such as `testEvidenceForRequirement()` and `reviewArtifactOutput()`, then keep per-test helpers only for scenario-specific setup.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize acceptance review fixture runner helpers",
+        "body": "**File:** `specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs`\n**Requirement:** R9\n**Issue:** Multiple spec files introduce or request local helpers for the same `runAcceptanceReviewFixture` wiring: `root`, `state`, `diff`, and `requirementJudgments`. The proposed helper names vary across files (`runAcceptanceReviewForFixture`, `runAcceptance`, inline destructuring), which would preserve duplication and create inconsistent test patterns.\n**Suggestion:** Add one shared helper to `tests/helpers/acceptance-review-fixture.js`, for example `runAdoptedAcceptanceReviewFixture(fixture, overrides)`, and use it from `specs/293-*`, `specs/295-*`, and `specs/296-*`.",
+        "file": "specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs",
+        "requirementId": "R9"
+      },
+      {
+        "title": "2. Align review target SHA naming across producer and consumer code",
+        "body": "**File:** `src/flow/lib/review-evidence-store.js`\n**Requirement:** R2\n**Issue:** `resolveCurrentReviewTreeSha()` now represents either a real tree SHA or a synthetic dirty-worktree review identity. Other files, such as `src/flow/lib/set-retry.js`, still refer to this value as `nextTreeSha`, which compounds the misleading interface name across call sites.\n**Suggestion:** Rename the API and locals consistently to review-target terminology, for example `resolveCurrentReviewTargetSha()` and `nextReviewTargetSha`, so clean and dirty review identities use the same vocabulary.",
+        "file": "src/flow/lib/review-evidence-store.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Consolidate raw versus wrapped review artifact naming",
+        "body": "**File:** `src/flow/lib/run-gate.js`\n**Requirement:** R2\n**Issue:** The review summaries identify naming ambiguity around raw parsed artifacts versus `ReviewFindingGateArtifact` instances. If only `latestArtifact` is renamed locally, other files may still use generic `artifact` names for different artifact representations, keeping the interface unclear across the review pipeline.\n**Suggestion:** Use a consistent convention across review evidence code: `rawReviewArtifact` for parsed JSON and `reviewArtifact` for wrapped domain objects. Apply that naming in `run-gate.js` and any touched producer/consumer code.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Centralize deferred finding terminology",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R4\n**Issue:** Deferred finding data is named inconsistently across tests and helpers: `entry`, `dispositions`, `blocking`, and `deferredSourceEvidence()` all refer to related deferred-review concepts at different abstraction levels. This makes cross-file test intent harder to follow.\n**Suggestion:** Adopt a small naming convention: `deferredFinding` for flow-finding entries, `deferredFinalDispositions` for disposition maps, and `deferredAdvisoryFindings()` for generated advisory finding payloads. Update the affected spec tests and fixture helper together.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "5. Extract shared evidence payload builders instead of per-file local helpers",
+        "body": "**File:** `tests/helpers/acceptance-review-fixture.js`\n**Requirement:** R2\n**Issue:** Several reviews propose local extraction of repeated artifact or evidence shapes, while the fixture helper itself already duplicates evidence payload construction. Adding only local helpers in individual tests would create parallel mini-factories for the same contract.\n**Suggestion:** Put shared builders in `tests/helpers/acceptance-review-fixture.js`, such as `testEvidenceForRequirement()` and `reviewArtifactOutput()`, then keep per-test helpers only for scenario-specific setup.",
+        "file": "tests/helpers/acceptance-review-fixture.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

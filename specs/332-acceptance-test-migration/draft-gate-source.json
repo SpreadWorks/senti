@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-25T11:34:03.675Z",
+  "phase": "draft",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement says to verify flow-runtime repair with \"全体 flow の再実行\" and pass through \"最終 project regression\" without identifying the concrete flow command, regression suite, or pass condition, so two independent reviewers may not agree on what satisfies it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "analysis.validation"
+          },
+          "observed": "The requirement says to verify flow-runtime repair with \"全体 flow の再実行\" and pass through \"最終 project regression\" without identifying the concrete flow command, regression suite, or pass condition, so two independent reviewers may not agree on what satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The requirement says to verify flow-runtime repair with \"全体 flow の再実行\" and pass through \"最終 project regression\" without identifying the concrete flow command, regression suite, or pass condition, so two independent reviewers may not agree on what satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T11:34:03.675Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "The requirement says not to regress \"対象外の spec tests\" and the acceptance-review production command behavior, but does not define which spec tests or command behavior must be checked, so satisfaction is not independently verifiable.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "content.json",
+            "locator": "impactOnExisting[2]"
+          },
+          "observed": "The requirement says not to regress \"対象外の spec tests\" and the acceptance-review production command behavior, but does not define which spec tests or command behavior must be checked, so satisfaction is not independently verifiable.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "fingerprint": "d7dd03a811cf5978ba100a7a43c3ed91db2100da13f34e81fc9e61f65ef9b312",
+      "disposition": "must-fix",
+      "rationale": "The requirement says not to regress \"対象外の spec tests\" and the acceptance-review production command behavior, but does not define which spec tests or command behavior must be checked, so satisfaction is not independently verifiable.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T11:34:03.675Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content.json",
+        "locator": "analysis.validation"
+      },
+      "observed": "The requirement says to verify flow-runtime repair with \"全体 flow の再実行\" and pass through \"最終 project regression\" without identifying the concrete flow command, regression suite, or pass condition, so two independent reviewers may not agree on what satisfies it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The requirement says to verify flow-runtime repair with \"全体 flow の再実行\" and pass through \"最終 project regression\" without identifying the concrete flow command, regression suite, or pass condition, so two independent reviewers may not agree on what satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T11:34:03.675Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "content.json",
+        "locator": "impactOnExisting[2]"
+      },
+      "observed": "The requirement says not to regress \"対象外の spec tests\" and the acceptance-review production command behavior, but does not define which spec tests or command behavior must be checked, so satisfaction is not independently verifiable.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "fingerprint": "1c86ea738ccaf23f8e9015854b1ab2faf0dcfe9f42aa123880551b60c7fdc92a",
+      "disposition": "must-fix",
+      "rationale": "The requirement says not to regress \"対象外の spec tests\" and the acceptance-review production command behavior, but does not define which spec tests or command behavior must be checked, so satisfaction is not independently verifiable.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-25T11:34:03.675Z",
+      "repeatCount": 1
+    }
+  ]
+}

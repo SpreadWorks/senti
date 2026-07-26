@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T12:38:13.860Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "test-coverage-path-contract-change",
+      "title": "Test coverage artifact paths changed",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/commands/review.js",
+      "requirementId": "R10",
+      "issue": "`TestCoverageArtifact` now records coverage file paths relative to the repository root instead of the spec directory, changing persisted `test-review` coverage artifact values from paths like `tests/example.test.js` to `specs/demo/tests/example.test.js`. T-4 explicitly says the runtime repair must make no user-facing command contract changes, and this is unrelated to the resumption repairs in R10.",
+      "suggestion": "Restore `TestCoverageArtifact` and `TestFileCoverageEntry` to compute paths relative to `absoluteSpecDir`/`specDir`, and remove or update the new unit assertion so it preserves the existing spec-local artifact contract.",
+      "disposition": "must-fix",
+      "rationale": "The task acceptance criteria include a mandatory no-contract-change guardrail. Changing persisted command artifact path semantics is a user-facing command contract change, so this must be repaired before acceptance.",
+      "findingId": "0d726d9749c4a1a26e8de13333457cb33cf66c144ca7a05b794076a6e227f2cb",
+      "fingerprint": "0d726d9749c4a1a26e8de13333457cb33cf66c144ca7a05b794076a6e227f2cb",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "3463d583b6415629717260d8cb9a67c4202409c778b8e3786a099bd1df545d21",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "taskId": "T-4",
+  "target": "specs/332-acceptance-test-migration/tasks/T-4.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "d179c164c4907403b770dbe51f2ee5a99005953506e0fe96315ab586d7d21626"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 24,
+  "findings": [
+    {
+      "id": "0d726d9749c4a1a26e8de13333457cb33cf66c144ca7a05b794076a6e227f2cb",
+      "findingId": "0d726d9749c4a1a26e8de13333457cb33cf66c144ca7a05b794076a6e227f2cb",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 24,
+      "severity": "blocking",
+      "title": "Test coverage artifact paths changed",
+      "body": "`TestCoverageArtifact` now records coverage file paths relative to the repository root instead of the spec directory, changing persisted `test-review` coverage artifact values from paths like `tests/example.test.js` to `specs/demo/tests/example.test.js`. T-4 explicitly says the runtime repair must make no user-facing command contract changes, and this is unrelated to the resumption repairs in R10.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "0d726d9749c4a1a26e8de13333457cb33cf66c144ca7a05b794076a6e227f2cb",
+      "disposition": "must-fix",
+      "rationale": "The task acceptance criteria include a mandatory no-contract-change guardrail. Changing persisted command artifact path semantics is a user-facing command contract change, so this must be repaired before acceptance.",
+      "requirementId": "R10",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T10:58:16.143Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "completed-repair-migration-skips-state-application",
+      "title": "Completed migration check no longer verifies migrated state",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R9",
+      "issue": "`hasAppliedRepairMigration` now treats any completed migration with the same baseline authority as already applied. It no longer verifies that the repair migration left `test-execute` in progress, reset the target steps, or removed the invalidated artifacts. A retained `repair-fingerprint.json` can therefore suppress a needed migration even when stale artifacts or step statuses remain.",
+      "suggestion": "Restore state/evidence checks in `hasAppliedRepairMigration`, or record and verify an explicit migration-applied marker that proves the reset step statuses and artifact invalidations were already performed before returning `migrated: false`.",
+      "disposition": "must-fix",
+      "rationale": "R9 covers the shared migration/acceptance contract. Skipping a required repair migration can preserve stale acceptance evidence and corrupt downstream review state, which is a mandatory data-integrity concern rather than an optional cleanup.",
+      "findingId": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "fingerprint": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "0450dbc5181b6791fec9e0ed16ef46e35a02a5e7c0242be37a1b0fca4f93cde2",
+  "runId": "2d0439dc-13ce-4358-846f-48278d21c02c",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/332-acceptance-test-migration/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "bce933036e4d5d54d1e6a0778a1569212bcff0b9040b0871757ea3408523c8fc"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 13,
+  "findings": [
+    {
+      "id": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "findingId": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 13,
+      "severity": "blocking",
+      "title": "Completed migration check no longer verifies migrated state",
+      "body": "`hasAppliedRepairMigration` now treats any completed migration with the same baseline authority as already applied. It no longer verifies that the repair migration left `test-execute` in progress, reset the target steps, or removed the invalidated artifacts. A retained `repair-fingerprint.json` can therefore suppress a needed migration even when stale artifacts or step statuses remain.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "b45f5cbafa6b4ba84e7c457ba2c1bbcdba1f003749a7e6748b88bd7a1d5801f4",
+      "disposition": "must-fix",
+      "rationale": "R9 covers the shared migration/acceptance contract. Skipping a required repair migration can preserve stale acceptance evidence and corrupt downstream review state, which is a mandatory data-integrity concern rather than an optional cleanup.",
+      "requirementId": "R9",
+      "repeatCount": 1
+    }
+  ]
+}

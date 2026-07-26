@@ -1,0 +1,211 @@
+[senti] scenario-validity tests start
+command: node --test specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js
+[senti] scenario-validity file start command=node specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js
+TAP version 13
+# Subtest: R1: six historical consumers and production exports omit exact or equivalent compatibility contracts
+ok 1 - R1: six historical consumers and production exports omit exact or equivalent compatibility contracts
+  ---
+  duration_ms: 2.269451
+  type: 'test'
+  ...
+# Subtest: R2: shared fixture executes complete current context, writer, and flow application inputs
+ok 2 - R2: shared fixture executes complete current context, writer, and flow application inputs
+  ---
+  duration_ms: 284.96515
+  type: 'test'
+  ...
+# Subtest: R3: persisted evidence derives missing and missing-required test blockers
+not ok 3 - R3: persisted evidence derives missing and missing-required test blockers
+  ---
+  duration_ms: 812.36151
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:158:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:202:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: spec 293 complete regression passes through the current lifecycle
+not ok 4 - R4: spec 293 complete regression passes through the current lifecycle
+  ---
+  duration_ms: 2039.4172
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:205:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/293-bounded-defer-review/tests/deferred-flow-findings.test.mjs exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:246:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: producer findings aggregate into persisted and mirrored acceptance artifacts
+not ok 5 - R5: producer findings aggregate into persisted and mirrored acceptance artifacts
+  ---
+  duration_ms: 930.852602
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:249:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/295-producer-artifact-contract/tests/producer-artifact-contract.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:293:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6: retry findings persist, mirror, block on missing source, and route current flow state
+not ok 6 - R6: retry findings persist, mirror, block on missing source, and route current flow state
+  ---
+  duration_ms: 1005.94571
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:296:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/296-review-gate-defer/tests/retry-exhaustion-defer.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:356:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: no-tests evidence remains a valid acceptance, report, finalize, and durable-artifact state
+not ok 7 - R7: no-tests evidence remains a valid acceptance, report, finalize, and durable-artifact state
+  ---
+  duration_ms: 1305.255893
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:359:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/301-no-tests-valid-state/tests/no-tests-valid-state.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:397:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R8: test-review handoff preserves source identity, disposition verdict, and routing
+not ok 8 - R8: test-review handoff preserves source identity, disposition verdict, and routing
+  ---
+  duration_ms: 991.738236
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:400:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/310-defer-test-review-exhaustion/tests/test-review-post-hook-deferral.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:447:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R9: all complete target files retain scenario counts and pass without disabled tests
+not ok 9 - R9: all complete target files retain scenario counts and pass without disabled tests
+  ---
+  duration_ms: 1.744529
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:450:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    specs/290-acceptance-review-policy/tests/artifact-verdict-contract.test.js exited with status 1
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    assertHistoricalFilePasses (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:73:10)
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-332-acceptance-test-migration/specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js:452:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R10: flow correction support remains bounded to the approved implementation stages
+ok 10 - R10: flow correction support remains bounded to the approved implementation stages
+  ---
+  duration_ms: 1.235086
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 3
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7406.924529
+Command failed: node specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/332-acceptance-test-migration/tests/acceptance-test-migration.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: six historical consumers and production exports omit exact or equivalent compatibility contracts
+[senti] requirement R2 observed: R2: shared fixture executes complete current context, writer, and flow application inputs
+[senti] requirement R3 observed: R3: persisted evidence derives missing and missing-required test blockers
+[senti] requirement R4 observed: R4: spec 293 complete regression passes through the current lifecycle
+[senti] requirement R5 observed: R5: producer findings aggregate into persisted and mirrored acceptance artifacts
+[senti] requirement R6 observed: R6: retry findings persist, mirror, block on missing source, and route current flow state
+[senti] requirement R7 observed: R7: no-tests evidence remains a valid acceptance, report, finalize, and durable-artifact state
+[senti] requirement R8 observed: R8: test-review handoff preserves source identity, disposition verdict, and routing
+[senti] requirement R9 observed: R9: all complete target files retain scenario counts and pass without disabled tests
+[senti] requirement R10 observed: R10: flow correction support remains bounded to the approved implementation stages
+[senti] scenario-validity tests end

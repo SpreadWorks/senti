@@ -13,6 +13,11 @@ export const PLAN_REWIND_SUPPORTED_STAGES = Object.freeze([
   "final-regression",
 ]);
 
+export const SPEC_CORRECTION_SUPPORTED_STAGES = Object.freeze([
+  "implement",
+  ...PLAN_REWIND_SUPPORTED_STAGES,
+]);
+
 export const PLAN_REWIND_REVIEW_PHASES = Object.freeze([
   "draft-questions",
   "draft-coverage",

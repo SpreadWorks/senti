@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/plan-rewind.js"
+    ],
+    "inputHash": "2e142cea53bb0510b91267cd7bb0ddf950fa936c7da5224c4bd805e3e2e6953a",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/plan-rewind.js"
+  ],
+  "inputHash": "2e142cea53bb0510b91267cd7bb0ddf950fa936c7da5224c4bd805e3e2e6953a",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-25T16:06:16.300Z",
+  "finishedAt": "2026-07-25T16:06:16.300Z",
+  "rawResponse": "### 1. Bound Recursive Evidence Resolution\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `isFreshMigrationArtifact()` recursively resolves associated evidence paths without an explicit depth or visited-path bound. If `ASSOCIATED_EVIDENCE_PATHS` ever contains a cycle or self-reference, this can recurse indefinitely, violating `bounded-resource-usage`.  \n**Suggestion:** Replace recursion with an iterative resolver using a `visited` set and a small max depth, or pass a `visited` set through recursive calls and return `false` on repeats.\n\n### 2. Avoid Rechecking Repair Delta Evidence\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `isCompletedRepairMigrationCurrent()` calls `hasCurrentRepairDelta()` and then also checks every invalidation with `isFreshMigrationArtifact()`. If `REPAIR_DELTA_DIR` appears in `migration.invalidations`, the ledger/delta evidence is read and inspected twice.  \n**Suggestion:** Skip `REPAIR_DELTA_DIR` in the final invalidation loop after `hasCurrentRepairDelta()` succeeds, or compute evidence freshness once and reuse the result.\n\n### 3. Rename Manifest Variables To Fingerprint\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `observedCurrent` is produced by `buildRepairFingerprint()`, then stored in `currentManifest` and passed through classes as `currentManifest`. The object appears to represent the current repair fingerprint, not only a manifest, which makes the migration logic harder to follow.  \n**Suggestion:** Rename `observedCurrent` and the newer `currentManifest` usages to `currentFingerprint` or `currentRepairFingerprint`, especially in `commitRepairStateMigration()` and `RepairMigrationEvidenceReplacement`.\n\n### 4. Simplify MigrationEvidenceInspection\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `MigrationEvidenceInspection` stores `failure`, but callers only read `.current`. This adds an object type and retained state without useful behavior in the current code path.  \n**Suggestion:** Replace it with a small helper such as `inspectMigrationEvidence(reader)` that emits the warning and returns a boolean, unless future callers need the failure detail.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Recursive Evidence Resolution",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `isFreshMigrationArtifact()` recursively resolves associated evidence paths without an explicit depth or visited-path bound. If `ASSOCIATED_EVIDENCE_PATHS` ever contains a cycle or self-reference, this can recurse indefinitely, violating `bounded-resource-usage`.  \n**Suggestion:** Replace recursion with an iterative resolver using a `visited` set and a small max depth, or pass a `visited` set through recursive calls and return `false` on repeats.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "2. Avoid Rechecking Repair Delta Evidence",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `isCompletedRepairMigrationCurrent()` calls `hasCurrentRepairDelta()` and then also checks every invalidation with `isFreshMigrationArtifact()`. If `REPAIR_DELTA_DIR` appears in `migration.invalidations`, the ledger/delta evidence is read and inspected twice.  \n**Suggestion:** Skip `REPAIR_DELTA_DIR` in the final invalidation loop after `hasCurrentRepairDelta()` succeeds, or compute evidence freshness once and reuse the result.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "3. Rename Manifest Variables To Fingerprint",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `observedCurrent` is produced by `buildRepairFingerprint()`, then stored in `currentManifest` and passed through classes as `currentManifest`. The object appears to represent the current repair fingerprint, not only a manifest, which makes the migration logic harder to follow.  \n**Suggestion:** Rename `observedCurrent` and the newer `currentManifest` usages to `currentFingerprint` or `currentRepairFingerprint`, especially in `commitRepairStateMigration()` and `RepairMigrationEvidenceReplacement`.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "4. Simplify MigrationEvidenceInspection",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R10  \n**Issue:** `MigrationEvidenceInspection` stores `failure`, but callers only read `.current`. This adds an object type and retained state without useful behavior in the current code path.  \n**Suggestion:** Replace it with a small helper such as `inspectMigrationEvidence(reader)` that emits the warning and returns a boolean, unless future callers need the failure detail.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R10"
+      }
+    ]
+  }
+}

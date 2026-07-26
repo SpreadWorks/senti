@@ -31,7 +31,7 @@ function initializeRepository(root) {
   git(root, ["commit", "-m", "initial fixture"]);
 }
 
-test("review retry reset accepts an uncommitted target-state change without a new tree", () => {
+test("review retry reset includes an uncommitted target-state change in review identity", () => {
   const root = createTmpDir("set-retry-worktree-identity-");
   roots.push(root);
   initializeRepository(root);
@@ -87,6 +87,8 @@ test("review retry reset accepts an uncommitted target-state change without a ne
   flowManager.create(state);
 
   fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 2;\n");
+  const changedTreeSha = resolveCurrentReviewTreeSha(root);
+  assert.notEqual(changedTreeSha, treeSha);
 
   const command = new SetRetryCommand();
   const result = command.execute({
@@ -102,7 +104,7 @@ test("review retry reset accepts an uncommitted target-state change without a ne
 
   assert.equal(result.reset, true, JSON.stringify(result));
   const recovered = flowManager.load().reviewConvergence.records[0];
-  assert.equal(recovered.treeSha, treeSha);
+  assert.equal(recovered.treeSha, changedTreeSha);
   assert.notEqual(recovered.targetStateDigest, targetStateDigest);
   assert.equal(recovered.semanticAttempts, 4);
 

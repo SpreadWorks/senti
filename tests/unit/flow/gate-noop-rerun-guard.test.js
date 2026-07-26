@@ -248,4 +248,12 @@ describe("impl-gate prompt MUST items (REQ-5, REQ-6)", () => {
       "impl-gate.md must include a MUST forbidding re-run when the tree has not changed",
     );
   });
+
+  it("keeps deferred full regression owned by final-regression", () => {
+    assert.match(
+      readGateImplPrompt(),
+      /MUST:[\s\S]*full-regression-deferred[\s\S]*final-regression/i,
+      "impl-gate.md must not require a deferred full regression before final-regression",
+    );
+  });
 });

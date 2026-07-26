@@ -887,8 +887,8 @@ function reviewHandoffFindingId(record, finding) {
   return `RF-${String(digest).slice(0, 12)}-${finding.findingId}`;
 }
 
-function reviewHandoffFindings(flowState) {
-  return latestReviewConvergenceRecords(flowState).flatMap((record) => (
+function reviewHandoffFindings(records) {
+  return records.flatMap((record) => (
     Array.isArray(record.handoffFindings) ? record.handoffFindings.map((finding) => ({
       findingId: reviewHandoffFindingId(record, finding),
       sourceStep: finding.sourceStep || (record.taskId == null ? `${record.phase}-review` : "task-review"),
@@ -946,8 +946,11 @@ class ResolvedDeferredFindingSource {
 
 class DeferredFindingSources {
   constructor(specDir, flowState = null) {
-    const reviewHandoffs = reviewHandoffFindings(flowState);
-    const canonicalHandoffs = new Map(reviewHandoffs.map((entry) => [
+    const reviewHandoffs = reviewHandoffFindings(latestReviewConvergenceRecords(flowState));
+    const retainedReviewHandoffs = reviewHandoffFindings(
+      Array.isArray(flowState?.reviewConvergence?.records) ? flowState.reviewConvergence.records : [],
+    );
+    const canonicalHandoffs = new Map(retainedReviewHandoffs.map((entry) => [
       `${entry.sourceStep}:${entry.handoffFinding.fingerprint}`,
       entry,
     ]));
@@ -1025,7 +1028,9 @@ function inspectDeferredSources(specDir, deferredFindings, flowState) {
   const evidence = [];
   const sourceCache = new Map();
   const canonicalCache = new Map();
-  const reviewHandoffs = new Map(reviewHandoffFindings(flowState).map((entry) => [entry.findingId, entry]));
+  const reviewHandoffs = new Map(
+    reviewHandoffFindings(latestReviewConvergenceRecords(flowState)).map((entry) => [entry.findingId, entry]),
+  );
   const canonicalRecords = new Map(latestReviewConvergenceRecords(flowState).map((record) => [
     record.canonicalEvidenceRef,
     record,
