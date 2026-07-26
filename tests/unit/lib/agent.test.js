@@ -11,7 +11,7 @@ function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "agent-test-"));
 }
 
-function makeAgent(profile, { config, paths, flowManager } = {}) {
+function makeAgent(profile, { config, paths, flowManager, logger } = {}) {
   const root = paths?.root || tmpDir();
   const agentWorkDir = paths?.agentWorkDir || path.join(root, ".tmp");
   const userProviders = profile ? { "test/exec": profile } : {};
@@ -27,7 +27,7 @@ function makeAgent(profile, { config, paths, flowManager } = {}) {
     config: cfg,
     paths: { root, agentWorkDir, ...(paths || {}) },
     registry,
-    logger: new Logger({ logDir: os.tmpdir(), enabled: false }),
+    logger: logger || new Logger({ logDir: os.tmpdir(), enabled: false }),
     flowManager,
   });
 }
@@ -54,6 +54,36 @@ describe("Agent.call() — basic invocation", () => {
   it("throws on failing command", async () => {
     const agent = makeAgent({ command: "node", args: ["-e", "process.exit(1)"] });
     await assert.rejects(agent.call("test", { commandId: "test" }));
+  });
+
+  it("persists complete failed subprocess output and links the diagnostic log", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const stdout = "stdout-" + "x".repeat(500);
+    const stderr = "stderr-" + "y".repeat(500);
+    const script = `process.stdout.write(${JSON.stringify(stdout)}); process.stderr.write(${JSON.stringify(stderr)}); process.exit(1);`;
+    const logger = new Logger({ logDir: path.join(root, ".tmp", "logs"), enabled: true, cwd: root });
+    const agent = makeAgent(
+      { command: "node", args: ["-e", script] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") }, logger },
+    );
+
+    let error;
+    try {
+      await agent.call("test", { commandId: "test", retryCount: 0 });
+    } catch (caught) {
+      error = caught;
+    }
+
+    assert.ok(error instanceof Error);
+    assert.equal(error.stdout, stdout);
+    assert.equal(error.stderr, stderr);
+    assert.match(error.message, /stdoutPreview=stdout-/);
+    assert.ok(error.diagnosticLog);
+    assert.match(error.message, /diagnosticLog=/);
+    const diagnostic = JSON.parse(fs.readFileSync(error.diagnosticLog, "utf8"));
+    assert.equal(diagnostic.response.stdout, stdout);
+    assert.equal(diagnostic.response.stderr, stderr);
   });
 
   it("falls back to stdin when args exceed threshold", async () => {

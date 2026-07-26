@@ -138,7 +138,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
       agentKey: "spec.gate",
       model: "claude-opus-4-6",
       prompt: { system: "system text", user: "user text" },
-      response: { text: "response text", exitCode: 0 },
+      response: { text: "response text", stdout: "raw stdout", stderr: "raw stderr", exitCode: 0 },
       durationSec: 0.5,
     });
     await inst.flush();
@@ -157,6 +157,8 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     assert.equal(promptJson.prompt.user, "user text");
     assert.equal(typeof promptJson.prompt.stats.totalChars, "number");
     assert.equal(promptJson.response.text, "response text");
+    assert.equal(promptJson.response.stdout, "raw stdout");
+    assert.equal(promptJson.response.stderr, "raw stderr");
     assert.equal(promptJson.response.exitCode, 0);
   });
 
@@ -472,7 +474,12 @@ describe("Logger — sensitive information masking", () => {
         system: `remember token ${FAKE.ghp}`,
         user: `call https://${FAKE.urlCred}@api.example.com/v1`,
       },
-      response: { text: `ok, Bearer ${FAKE.bearer} received`, exitCode: 0 },
+      response: {
+        text: `ok, Bearer ${FAKE.bearer} received`,
+        stdout: `provider stdout token ${FAKE.ghp}`,
+        stderr: `provider stderr https://${FAKE.urlCred}@api.example.com/v1`,
+        exitCode: 0,
+      },
       durationSec: 0.1,
     });
     await inst.flush();

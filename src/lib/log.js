@@ -230,7 +230,7 @@ export class Logger {
    * @param {string} [entry.agentKey]
    * @param {string} [entry.model]
    * @param {{system?: string, user?: string}} [entry.prompt]
-   * @param {{text?: string, exitCode?: number, error?: string|null}} [entry.response]
+   * @param {{text?: string, stdout?: string|null, stderr?: string|null, exitCode?: number, error?: string|null}} [entry.response]
    * @param {number} [entry.durationSec]
    * @param {Object} [entry.usage]
    * @param {{spec?: string|null, sentiPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
@@ -298,6 +298,8 @@ export class Logger {
       },
       response: {
         text: responseObj.text ?? null,
+        stdout: responseObj.stdout ?? null,
+        stderr: responseObj.stderr ?? null,
         stats: {
           chars: responseStats.chars,
           lines: responseStats.lines,
@@ -345,6 +347,7 @@ export class Logger {
         costUsd: entry.usage.cost_usd,
       }),
     });
+    return promptFileAbs;
   }
 
   /**

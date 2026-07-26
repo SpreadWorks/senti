@@ -401,9 +401,13 @@ class Agent {
             const trimmed = String(stdout).trim();
             if (profile.jsonOutputFlag) {
               const parsed = tryParseProvider(provider, trimmed);
-              resolve(parsed ?? { text: trimmed, usage: null, cacheable: false });
+              resolve({
+                ...(parsed ?? { text: trimmed, usage: null, cacheable: false }),
+                stdout,
+                stderr,
+              });
             } else {
-              resolve({ text: filterStreamingEvents(trimmed), usage: null });
+              resolve({ text: filterStreamingEvents(trimmed), usage: null, stdout, stderr });
             }
             return;
           }
@@ -421,6 +425,8 @@ class Agent {
           error.signal = signal;
           error.killed = signal === "SIGTERM";
           error.stdinError = stdinError || null;
+          error.stdout = stdout;
+          error.stderr = stderr;
           reject(error);
         }, (err) => {
           reject(formatSpawnError(err, {
@@ -1285,13 +1291,19 @@ async function runWithLogging({
       prompt: { system: systemPrompt, user: prompt },
       response: {
         text,
+        stdout: result?.stdout ?? err?.stdout ?? null,
+        stderr: result?.stderr ?? err?.stderr ?? null,
         exitCode: err ? (err.code ?? 1) : 0,
         error: err ? err.message : null,
       },
       usage,
       durationSec: (Date.now() - startedAt) / 1000,
     };
-    await logger.agent({ phase: "end", requestId, ...payload, ...logAttribution });
+    const diagnosticLog = await logger.agent({ phase: "end", requestId, ...payload, ...logAttribution });
+    if (err && diagnosticLog) {
+      err.diagnosticLog = diagnosticLog;
+      err.message += ` | diagnosticLog=${diagnosticLog}`;
+    }
 
     // Metric accumulation is the Agent's responsibility: it runs independently
     // of cfg.logs.enabled so flow.json metrics are always up to date (R3).
