@@ -1026,7 +1026,7 @@ function canonicalArtifactName(phase) {
 }
 
 function resolveCurrentReviewTreeSha(ctx) {
-  return resolveReviewTargetTreeSha(ctx.root);
+  return resolveReviewTargetTreeSha(ctx.root, ctx.flowState.spec);
 }
 
 function resolveCurrentReviewRepairFingerprint(ctx) {

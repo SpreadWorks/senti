@@ -11,6 +11,7 @@ import {
   applyReviewEvidenceTransition,
   resolveReviewPermittedOperation,
 } from "./review-convergence.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 
 function isInside(parent, child) {
   const relative = path.relative(parent, child);
@@ -23,7 +24,7 @@ function reviewEvidenceError(code, message) {
   return error;
 }
 
-export function resolveCurrentReviewTreeSha(root) {
+export function resolveCurrentReviewTreeSha(root, specPath = null) {
   const tree = runGit(["rev-parse", "HEAD^{tree}"], { cwd: root });
   if (!tree.ok) {
     throw reviewEvidenceError(
@@ -31,7 +32,13 @@ export function resolveCurrentReviewTreeSha(root) {
       `failed to resolve current review target tree: ${tree.stderr.trim()}`,
     );
   }
-  const diff = runGit(["diff", "--binary", "HEAD"], { cwd: root });
+  const registry = specPath == null ? null : new RepairArtifactRegistry(specPath);
+  const diff = runGit([
+    "diff",
+    "--binary",
+    "HEAD",
+    ...(registry ? ["--", ".", ...registry.gitPathspecExcludes()] : []),
+  ], { cwd: root });
   if (!diff.ok) {
     throw reviewEvidenceError(
       "REVIEW_TARGET_TREE_UNAVAILABLE",

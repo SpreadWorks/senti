@@ -184,7 +184,7 @@ function buildStatusReviewViews(state, active, root) {
   const reviewAction = resolveReviewActionForFlowState(state, {
     phase: reviewPhase,
     taskId,
-    resolveTreeSha: () => resolveCurrentReviewTreeSha(root),
+    resolveTreeSha: () => resolveCurrentReviewTreeSha(root, state.spec),
   });
   return reviewAction ? { reviewAction } : null;
 }

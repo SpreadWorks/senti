@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import SetRetryCommand from "../../../src/flow/lib/set-retry.js";
+import { RunReviewCommand } from "../../../src/flow/lib/run-review.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { resolveCurrentReviewTreeSha } from "../../../src/flow/lib/review-evidence-store.js";
 import { buildCurrentRecoveryFingerprint, persistRecoveryBaseline } from "../../../src/flow/lib/retry-recovery.js";
@@ -31,7 +32,7 @@ function initializeRepository(root) {
   git(root, ["commit", "-m", "initial fixture"]);
 }
 
-test("review retry reset includes an uncommitted target-state change in review identity", () => {
+test("review retry reset includes an uncommitted target-state change in review identity", async () => {
   const root = createTmpDir("set-retry-worktree-identity-");
   roots.push(root);
   initializeRepository(root);
@@ -46,7 +47,7 @@ test("review retry reset includes an uncommitted target-state change in review i
       taskId: null,
     })),
   }), "test-review");
-  const treeSha = resolveCurrentReviewTreeSha(root);
+  const treeSha = resolveCurrentReviewTreeSha(root, state.spec);
   const targetState = buildRepairFingerprint({ root, specPath: state.spec, state });
   const targetStateDigest = targetState.hash;
   state.reviewConvergence = {
@@ -85,9 +86,11 @@ test("review retry reset includes an uncommitted target-state change in review i
   });
   const flowManager = makeFlowManager(root);
   flowManager.create(state);
+  git(root, ["add", "specs/001-retry/flow.json"]);
+  git(root, ["commit", "-m", "track flow state"]);
 
   fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 2;\n");
-  const changedTreeSha = resolveCurrentReviewTreeSha(root);
+  const changedTreeSha = resolveCurrentReviewTreeSha(root, state.spec);
   assert.notEqual(changedTreeSha, treeSha);
 
   const command = new SetRetryCommand();
@@ -107,6 +110,33 @@ test("review retry reset includes an uncommitted target-state change in review i
   assert.equal(recovered.treeSha, changedTreeSha);
   assert.notEqual(recovered.targetStateDigest, targetStateDigest);
   assert.equal(recovered.semanticAttempts, 4);
+
+  const review = new RunReviewCommand({
+    finalizeResult: ({ parse }) => parse(),
+    runCommand() {
+      const flowPath = path.join(root, "specs", "001-retry", "flow.json");
+      const persisted = JSON.parse(fs.readFileSync(flowPath, "utf8"));
+      fs.writeFileSync(flowPath, `${JSON.stringify({
+        ...persisted,
+        agentTelemetry: { calls: 1 },
+      }, null, 2)}\n`);
+      return {
+        ok: true,
+        status: 0,
+        stdout: "Test review PASS. No blocking test issues found.",
+        stderr: "[test-review] verdict=PASS blocking=0 advisory=0",
+        signal: null,
+        killed: false,
+      };
+    },
+  });
+  const reviewResult = await review.execute({
+    root,
+    phase: "test",
+    config: { agent: {} },
+    flowState: { ...flowManager.load(), metrics: [] },
+  });
+  assert.equal(reviewResult.result, "ok", JSON.stringify(reviewResult));
 
   const unchanged = command.execute({
     action: "reset",

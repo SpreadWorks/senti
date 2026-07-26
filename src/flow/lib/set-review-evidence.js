@@ -123,7 +123,7 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
         specDir,
         inputPath: ctx.file,
       });
-      target = currentReviewTarget(ctx.flowState, resolveCurrentReviewTreeSha(ctx.root));
+      target = currentReviewTarget(ctx.flowState, resolveCurrentReviewTreeSha(ctx.root, ctx.flowState.spec));
       const fingerprint = buildRepairFingerprint({
         root: ctx.root,
         specPath: ctx.flowState.spec,

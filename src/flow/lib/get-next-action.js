@@ -373,7 +373,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     const reviewAction = resolveReviewActionForFlowState(state, {
       phase: reviewPhase,
       taskId: target.taskId,
-      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.root),
+      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.root, state.spec),
     });
     if (reviewAction) result.reviewAction = reviewAction;
   }

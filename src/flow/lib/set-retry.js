@@ -99,7 +99,7 @@ function currentReviewTargetState(ctx) {
 
 function currentReviewRecoveryIdentity(ctx, targetState) {
   return new ReviewRecoveryIdentity({
-    treeSha: resolveCurrentReviewTreeSha(ctx.root),
+    treeSha: resolveCurrentReviewTreeSha(ctx.root, ctx.flowState.spec),
     targetStateDigest: targetState.digest,
   });
 }
