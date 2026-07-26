@@ -1,0 +1,3840 @@
+{
+  "spec": "specs/347-bind-mandatory-repair-evidence/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/347-bind-mandatory-repair-evidence",
+  "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+  "repairBaseline": {
+    "kind": "git",
+    "objectFormat": "sha1",
+    "commitOid": "35be69b63ba1debec5aa7d0dcb11370d70fdb924",
+    "treeOid": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+    "sourceRef": "main",
+    "ref": "refs/senti/flows/772043a8-bee6-4208-ac96-f68ca55ea053/baseline",
+    "capturedAt": "2026-07-25T14:04:48.474Z"
+  },
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-07-25T14:04:50.158Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-07-25T14:04:50.158Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-07-25T14:04:50.158Z",
+          "finishedAt": "2026-07-25T14:06:25.360Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 8,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:06:25.252Z",
+            "endedAt": "2026-07-25T14:06:25.391Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-07-25T14:06:25.360Z",
+          "finishedAt": "2026-07-25T14:06:57.491Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 10,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T14:06:38.711Z",
+            "endedAt": "2026-07-25T14:06:57.683Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T14:06:57.491Z",
+          "finishedAt": "2026-07-25T14:07:23.562Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 13,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:07:23.460Z",
+            "endedAt": "2026-07-25T14:07:23.598Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T14:07:23.562Z",
+          "finishedAt": "2026-07-25T14:19:54.244Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 20,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:19:54.186Z",
+            "endedAt": "2026-07-25T14:19:54.269Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-07-25T14:19:54.244Z",
+          "finishedAt": "2026-07-25T14:20:14.954Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 22,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:20:14.832Z",
+            "endedAt": "2026-07-25T14:20:15.017Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-07-25T14:20:14.954Z",
+          "finishedAt": "2026-07-25T14:20:35.156Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 24,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T14:20:23.655Z",
+            "endedAt": "2026-07-25T14:20:35.363Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T14:20:35.156Z",
+          "finishedAt": "2026-07-25T14:20:35.212Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T14:20:35.212Z",
+          "finishedAt": "2026-07-25T14:20:35.276Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-07-25T14:20:35.276Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 36,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T14:23:36.042Z",
+            "endedAt": "2026-07-25T14:23:55.742Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T14:23:55.610Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-07-25T14:23:55.610Z",
+          "finishedAt": "2026-07-25T14:26:20.835Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 43,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:26:20.762Z",
+            "endedAt": "2026-07-25T14:26:20.868Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-07-25T14:26:20.835Z",
+          "finishedAt": "2026-07-25T14:27:54.157Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 45,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T14:26:31.491Z",
+            "endedAt": "2026-07-25T14:27:54.324Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-07-25T14:27:54.157Z",
+          "finishedAt": "2026-07-25T14:27:54.200Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-07-25T14:27:54.200Z",
+          "finishedAt": "2026-07-25T14:27:54.243Z"
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-07-25T14:27:54.243Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 220,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T15:20:21.046Z",
+            "endedAt": "2026-07-25T15:20:34.511Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T14:30:11.163Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-07-25T14:30:11.163Z",
+          "finishedAt": "2026-07-25T14:30:44.458Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 57,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:30:44.383Z",
+            "endedAt": "2026-07-25T14:30:44.503Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-07-25T14:30:44.458Z",
+          "finishedAt": "2026-07-25T14:31:57.691Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 60,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:31:57.624Z",
+            "endedAt": "2026-07-25T14:31:57.714Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-07-25T14:31:57.691Z",
+          "finishedAt": "2026-07-25T14:32:08.124Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 62,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-07-25T14:32:07.571Z",
+            "endedAt": "2026-07-25T14:32:08.171Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-07-25T14:32:08.124Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 100,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T14:46:37.320Z",
+            "endedAt": "2026-07-25T14:46:57.738Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T14:46:57.693Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-07-25T14:46:57.693Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 121,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T14:52:21.329Z",
+            "endedAt": "2026-07-25T14:52:21.639Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T14:52:21.544Z"
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-07-25T14:52:21.544Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 214,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-07-25T15:19:27.701Z",
+            "endedAt": "2026-07-25T15:19:29.067Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T15:19:29.036Z"
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 216,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-07-25T15:19:38.423Z",
+            "endedAt": "2026-07-25T15:19:39.896Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:19:29.036Z",
+          "finishedAt": "2026-07-25T15:19:39.862Z"
+        },
+        {
+          "id": "impl-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 218,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-25T15:19:50.761Z",
+            "endedAt": "2026-07-25T15:20:11.292Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:19:39.862Z",
+          "finishedAt": "2026-07-25T15:20:10.736Z"
+        },
+        {
+          "id": "impl-triage",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 166,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T15:01:50.970Z",
+            "endedAt": "2026-07-25T15:01:51.203Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-25T15:20:10.845Z"
+        },
+        {
+          "id": "impl-repair",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 167,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-25T15:01:56.549Z",
+            "endedAt": "2026-07-25T15:01:58.315Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:01:51.159Z",
+          "finishedAt": "2026-07-25T15:01:57.400Z"
+        },
+        {
+          "id": "impl-gate",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 196,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-25T15:13:14.397Z",
+            "endedAt": "2026-07-25T15:13:47.071Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:20:11.037Z",
+          "finishedAt": "2026-07-25T15:20:34.376Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 222,
+            "attempt": 1,
+            "command": "flow run retro",
+            "startedAt": "2026-07-25T15:20:44.702Z",
+            "endedAt": "2026-07-25T15:20:45.361Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:20:34.376Z",
+          "finishedAt": "2026-07-25T15:20:45.328Z"
+        },
+        {
+          "id": "acceptance-review",
+          "status": "done",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 234,
+            "attempt": 1,
+            "command": "flow run acceptance-review",
+            "startedAt": "2026-07-25T15:28:16.023Z",
+            "endedAt": "2026-07-25T15:28:17.644Z",
+            "exitCode": 0
+          },
+          "startedAt": "2026-07-25T15:20:45.328Z"
+        },
+        {
+          "id": "acceptance-decision",
+          "status": "done"
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "finishedAt": "2026-07-26T00:22:16.944Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 245,
+            "attempt": 1,
+            "command": "flow run final-regression",
+            "startedAt": "2026-07-26T00:22:16.500Z",
+            "endedAt": "2026-07-26T00:22:16.975Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "report",
+          "status": "done",
+          "startedAt": "2026-07-26T00:22:16.944Z",
+          "finishedAt": "2026-07-26T00:22:38.339Z",
+          "runtimeLog": {
+            "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+            "sequence": 247,
+            "attempt": 1,
+            "command": "flow run report",
+            "startedAt": "2026-07-26T00:22:35.272Z",
+            "endedAt": "2026-07-26T00:22:38.505Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-07-26T00:22:38.339Z",
+              "finishedAt": "2026-07-26T00:22:56.784Z",
+              "runtimeLog": {
+                "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+                "sequence": 250,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-26T00:22:55.367Z",
+                "endedAt": "2026-07-26T00:22:56.898Z",
+                "exitCode": 0
+              }
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-07-26T00:22:56.784Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "spec": "specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T14:52:56.787Z",
+          "finishedAt": "2026-07-25T14:53:57.495Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-2",
+      "spec": "specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T14:54:59.135Z",
+          "finishedAt": "2026-07-25T14:55:13.325Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-3",
+      "spec": "specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T14:55:18.910Z",
+          "finishedAt": "2026-07-25T14:55:33.984Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-4",
+      "spec": "specs/347-bind-mandatory-repair-evidence/tasks/T-4.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-25T14:55:39.671Z",
+          "finishedAt": "2026-07-25T14:55:51.583Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    }
+  ],
+  "currentTaskId": null,
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:772043a8-bee6-4208-ac96-f68ca55ea053:flow:report:report",
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "report",
+      "operation": "report",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-26T00:22:35.307Z",
+      "updatedAt": "2026-07-26T00:22:38.418Z",
+      "result": {
+        "result": "ok",
+        "changed": [
+          "specs/347-bind-mandatory-repair-evidence/report.json"
+        ],
+        "artifacts": {
+          "report": {
+            "data": {
+              "implementation": {
+                "diffStat": ".../tests/finding-disposition-policy.test.js       | 217 +++++++++++++++++++++\n tests/unit/flow/finding-disposition-policy.test.js |  92 ++++++++-\n 2 files changed, 300 insertions(+), 9 deletions(-)",
+                "commits": [
+                  "test: reject absent repair evidence fields",
+                  "test: bind repair evidence to reviewed head",
+                  "test: cover guardrail evidence requirements",
+                  "test: define mandatory repair evidence policy"
+                ]
+              },
+              "retro": {
+                "total": 7,
+                "done": 7,
+                "partial": 0,
+                "not_done": 0,
+                "not_applicable_count": 0,
+                "na_count": 0,
+                "not_testable_count": 0,
+                "rate": 1,
+                "notes": "aggregated from test-execute-result.json",
+                "requirements": [
+                  {
+                    "desc": "mandatory requirement または blocking guardrail に紐付く finding は、repeatCount が maxOccurrences 以上でも MustFixDisposition と requiresRepair=true を維持する。",
+                    "status": "done",
+                    "note": "R1: keeps a repeated mandatory finding must-fix at the occurrence limit"
+                  },
+                  {
+                    "desc": "mandatory finding が gate を pass できるのは、evidence.findingFingerprint、evidence.reviewedTree、evidence.repairDiff、evidence.validatingTestResult の各値が current finding と evaluated target state に一致する場合、または既存の明示的 allow/defer decision が適用される場合だけとする。",
+                    "status": "done",
+                    "note": "R2: unblocks a mandatory finding only with exact repair evidence"
+                  },
+                  {
+                    "desc": "repair evidence は finding fingerprint、reviewed HEAD/tree、repair diff、validating test result を必須の検証対象として保持し、gate は四値のそれぞれが current finding と evaluated target state に一致する場合だけ evidence を受け入れる。",
+                    "status": "done",
+                    "note": "R3: requires the evidence fingerprint, tree, diff, and test result to match"
+                  },
+                  {
+                    "desc": "repair evidence が unrelated、stale、touched-only、fingerprint/tree/diff/test-result mismatch のいずれかである場合、gate はその evidence を拒否し mandatory finding を blocking のままにする。",
+                    "status": "done",
+                    "note": "R4: rejects evidence with a mismatched ${name}"
+                  },
+                  {
+                    "desc": "ReviewFindingFingerprint は canonical identity に finding location と root cause を含め、同じ requirement/guardrail/file でも location または root cause が異なる finding を別 fingerprint として追跡する。",
+                    "status": "done",
+                    "note": "R5: gives findings at different locations or with different root causes distinct fingerprints"
+                  },
+                  {
+                    "desc": "non-mandatory finding は既存どおり InformationalDisposition となり、repair loop に入らない。",
+                    "status": "done",
+                    "note": "R6: retains informational disposition for a non-mandatory finding"
+                  },
+                  {
+                    "desc": "spec-local と shared policy tests は R1-R6 の mandatory recurrence、explicit decision、repair evidence binding/rejection、identity separation、non-mandatory regression を検証する。",
+                    "status": "done",
+                    "note": "R7: exercises policy classes used by the shared and spec-local regression contracts"
+                  }
+                ]
+              },
+              "upgrade": null,
+              "issueLog": {
+                "count": 38,
+                "fullLogPath": "specs/347-bind-mandatory-repair-evidence/issue-log.json",
+                "importantTotal": 14,
+                "importantShown": 10,
+                "importantOmitted": 4,
+                "recentOtherTotal": 24,
+                "recentOtherShown": 5,
+                "recentOtherOmitted": 19,
+                "entries": [
+                  {
+                    "classification": "important",
+                    "step": "draft-gate",
+                    "reason": "lock owner pid 2462665 is active",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "Test review result recording encountered a repository lock after the reviewer completed",
+                    "resolution": "Verified the reported process is absent and retry the same changed test evidence once"
+                  },
+                  {
+                    "classification": "important",
+                    "step": "test-review",
+                    "reason": "Second test review result recording encountered a stale repository lock owner",
+                    "resolution": "Confirmed the owner pid is absent, waited briefly, then use the remaining tooling retry"
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-triage",
+                    "reason": "The impl-review finding that malformed evidence throws is not reproducible: IssueLogRepairEvidenceSource catches RepairEvidenceReference validation failures and excludes malformed entries, leaving the gate blocking.",
+                    "resolution": "Rejected as a false positive; the existing fail-closed source boundary and missing-evidence tests already satisfy R4."
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "lock owner pid 2710474 is active",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "tooling: gate retry initially failed with a repository lock that named a no-longer-running PID",
+                    "resolution": "Verified pid 2710474 is absent and will retry the unchanged requested gate operation after the stale lock recovery path"
+                  },
+                  {
+                    "classification": "important",
+                    "step": "spec-gate",
+                    "reason": "The diff adds a static parse wrapper with a single production caller in the IssueLogRepairEvidenceSource constructor. It only catches RepairEvidenceReference construction failures and returns null, adding API surface without shared behav...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "important",
+                    "step": "impl-gate",
+                    "reason": "fix: inlined the one-use invalid-evidence parser into IssueLogRepairEvidenceSource construction",
+                    "resolution": "The constructor still fails closed by excluding malformed repair claims, without exposing a single-use static wrapper; refreshed focused policy tests passed 44/44"
+                  },
+                  {
+                    "classification": "important",
+                    "step": "acceptance-review",
+                    "reason": "Acceptance review was briefly blocked by a live repository flow lock",
+                    "resolution": "Verified the lock owner had exited, refreshed the target action, and retried safely"
+                  },
+                  {
+                    "classification": "important",
+                    "step": "final-regression",
+                    "reason": "final-regression failed: timeout",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "spec-gate",
+                    "reason": "[REQ:R7] requires spec-local and shared policy tests to verify the R1-R6 contract, and [AC:6] specifically requires specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js to contain // spec: R1 through // spec:...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-gate",
+                    "reason": "fix: clarified R7 to require the single canonical spec header accepted by the existing test-header parser",
+                    "resolution": "The spec-local policy file already declares // spec: R1 R2 R3 R4 R5 R6 R7; the acceptance criterion and clarification now state that canonical syntax explicitly, and test artifacts were refreshed"
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "spec-gate",
+                    "reason": "[REQ:R7] requires spec-local and shared policy tests to verify the R1-R6 policy contract, including explicit decision behavior and repair evidence binding/rejection. [TASK:T-4] further states production contract changes are covered in te...",
+                    "resolution": null
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "impl-gate",
+                    "reason": "fix: expanded focused shared policy coverage for explicit decisions and fingerprint/tree/diff/test-result repair-evidence rejections",
+                    "resolution": "The shared suite now exercises allow/defer only when fingerprint-bound and rejects every required repair-evidence mismatch; the refreshed focused execution passed 44/44"
+                  },
+                  {
+                    "classification": "recent-other",
+                    "step": "acceptance-review",
+                    "reason": "tooling: acceptance review waited for a concurrent repository flow lock held by feature-332-acceptance-test-migration",
+                    "resolution": "Verified the lock owner completed before retrying the same acceptance-review operation"
+                  }
+                ]
+              },
+              "metrics": {
+                "docsRead": 1,
+                "srcRead": 13,
+                "question": 0,
+                "issueLog": 25
+              },
+              "tokenMetrics": {
+                "input": 520399,
+                "output": 21641,
+                "cacheRead": 455296,
+                "cacheCreation": 0,
+                "cost": null,
+                "callCount": 31,
+                "durationMs": 751938,
+                "phaseDurations": [
+                  {
+                    "phase": "draft-questions-review",
+                    "durationMs": 10884
+                  },
+                  {
+                    "phase": "draft-coverage-review",
+                    "durationMs": 9205
+                  },
+                  {
+                    "phase": "draft-gate",
+                    "durationMs": 54550
+                  },
+                  {
+                    "phase": "spec-review",
+                    "durationMs": 79090
+                  },
+                  {
+                    "phase": "spec-gate",
+                    "durationMs": 41313
+                  },
+                  {
+                    "phase": "test-review",
+                    "durationMs": 167599
+                  },
+                  {
+                    "phase": "impl-review",
+                    "durationMs": 87905
+                  },
+                  {
+                    "phase": "impl-gate",
+                    "durationMs": 150770
+                  },
+                  {
+                    "phase": "acceptance-review",
+                    "durationMs": 150622
+                  }
+                ]
+              },
+              "tests": {
+                "total": 7,
+                "passed": 7,
+                "failed": 0,
+                "verdict": "pass",
+                "invalidReason": null,
+                "rawOutputPath": "specs/347-bind-mandatory-repair-evidence/tests/.raw/test-execution.log",
+                "projectRegression": {
+                  "required": false,
+                  "result": "skipped",
+                  "mode": "none",
+                  "category": "full-regression-deferred",
+                  "reason": "full project regression deferred to final-regression",
+                  "classified_paths": [
+                    {
+                      "path": "src/flow/lib/finding-disposition-policy.js",
+                      "category": "full-regression-deferred"
+                    },
+                    {
+                      "path": "tests/unit/flow/finding-disposition-policy.test.js",
+                      "category": "full-regression-deferred"
+                    }
+                  ],
+                  "trigger_relevant_changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/finding-disposition-policy.js",
+                      "fingerprint": "3fd834582ed4e0fffa8fa2c885e1ca41fa696f47cf557fdeaa0df32c977efc60"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/finding-disposition-policy.test.js",
+                      "fingerprint": "4ffd37cd51baea5a67d978a70683e21ed7d6c90de227a377592ce75931e2afbb"
+                    }
+                  ],
+                  "changed_files": [
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/finding-disposition-policy.js",
+                      "fingerprint": "3fd834582ed4e0fffa8fa2c885e1ca41fa696f47cf557fdeaa0df32c977efc60"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/finding-disposition-policy.test.js",
+                      "fingerprint": "4ffd37cd51baea5a67d978a70683e21ed7d6c90de227a377592ce75931e2afbb"
+                    }
+                  ]
+                },
+                "finalRegression": {
+                  "status": "done",
+                  "result": "fail",
+                  "failureKind": "timeout",
+                  "failureCategory": "timeout",
+                  "failureNature": "assertion",
+                  "skipKind": null,
+                  "rawOutputPath": "specs/347-bind-mandatory-repair-evidence/tests/.raw/final-regression-attempt-001.log",
+                  "command": "node tests/run.js",
+                  "process": {
+                    "started": true,
+                    "exitCode": null,
+                    "signal": "SIGTERM",
+                    "timedOut": true,
+                    "spawnError": null
+                  },
+                  "exitCode": null,
+                  "failureSummary": "process.kind: timeout\nprocess.command: node tests/run.js\nprocess.started: true\nprocess.completed: false\nprocess.exitCode: null\nprocess.signal: SIGTERM\nprocess.errorCode: null\nprocess.timedOut: true",
+                  "currentDiffRelationship": "non-current-diff",
+                  "changedFiles": [
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/acceptance-review.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-coverage-repair.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-coverage-triage.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-gate-source.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-questions-repair.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-questions-triage.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-review-coverage.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-review-questions.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/file-map.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/flow-findings.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-gate-result.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-repair.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-review.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-triage.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/issue.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-002.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-003.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-004.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-005.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-fingerprint.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/retro.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/228c35b4b113bf992750bca168b2006d890d3b755800f06971f7008623dbd346.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/2b98235689d1ca95122455ea65742141ddb81eebe122b7e2c4f42d08b395868a.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/4fd7517955f1c750ceab2f41085e8421c0ef32ed8c6bf47d7c78df3de175bf6d.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/588ae4c7df8b4bda68bd4cf03bf7d44d1067f0e59c37a2ac12dc71af06924644.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/742a977457db85a163992249d168bf42eddd3725933cee7a255e0809356e43fc.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/7bb0d7a2558104ff4fbf237de3e65e7539e3a1f8aee75738fb506d6bc83a21f5.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/8fbdca5df4b47c74a74f7c1cce9c249eb0d3d97b5a8a9797655d3facc8758ab9.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/a6188774a7e163ca1635f88e7ba32e815a46caf1a1d52b13ed62b015e6507fd2.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/bc431509dd5934cd70af98381c9fd76a2ea711bc3190c0e31239912a443a667b.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/dfeeacf51c622ddb12106d0ee81f0033e61315f5b958528bd50f1d0343fd57c3.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/fb506ea1ab7385238db90d9d787b09a86052f2c745faa88b4ee81a58f2076f20.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/draft-coverage-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/draft-questions-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-001.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-002.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-002.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-003.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-003.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-004.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-004.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/spec-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/spec-attempt-001.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-001.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-001.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-002.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-002.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-003.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-003.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-004.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-004.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-005.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-005.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-006.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-006.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-007.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-007.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-008.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-008.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-009.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-009.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-010.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-010.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-011.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-011.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/review.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/scenario-validity-result.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-gate-source.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-review.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-review.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-1.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-2.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-3.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-coverage.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-execute-result.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-result-review.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-result-review.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-review.json"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-review.md"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/.raw/scenario-validity.log"
+                    },
+                    {
+                      "status": "untracked",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/.raw/test-execution.log"
+                    },
+                    {
+                      "status": "added",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "src/flow/lib/finding-disposition-policy.js"
+                    },
+                    {
+                      "status": "modified",
+                      "path": "tests/unit/flow/finding-disposition-policy.test.js"
+                    }
+                  ],
+                  "changedFileFingerprints": [
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/acceptance-review.json",
+                      "fingerprint": "a21a36267b265a76797240844bf1d090884bae844a3948733a6587a8776f709d"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-coverage-repair.json",
+                      "fingerprint": "16e109c32c77829fd9b0d3dc586c6f5ca8892d5bf77d60f19dec74d8c77847be"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-coverage-triage.json",
+                      "fingerprint": "8376204e1b5787bae5453b8f6a87a923e94fb158d8dd39ee725745ba3621175b"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-gate-source.json",
+                      "fingerprint": "dcd7c79f5a5b06a19cc2f95b46770e7295f8c512fc099486e7be137ed3236ae6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-questions-repair.json",
+                      "fingerprint": "1b0e750cff2653389598c68a041685d8c7811856c9d98a4d7a194614bd7c4b15"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-questions-triage.json",
+                      "fingerprint": "1bf73fa48c52b50c1cfae78d63b9e8f4cd95b48ac358a03bd6384ae0e92e0aef"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-review-coverage.json",
+                      "fingerprint": "967c351d7114ffd0eeb9c35981416b3b27074ad219f5b68c73e97e9bdb96e8b3"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft-review-questions.json",
+                      "fingerprint": "376b4e70ec1d0ea363fd4a2e684c65156966f92bef439e1683e9c428d484811d"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/draft.json",
+                      "fingerprint": "96c9fabbc9a53b8a893de986278cf9f66b5c85d1133fdbd1916c74b42aec4ed9"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/file-map.json",
+                      "fingerprint": "f07b4222100299ded0396f43ef2604bec833fff1a4034ded84b5d128a2e0549e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/flow-findings.json",
+                      "fingerprint": "f1c885228806650cb1dbe016a4ec9be63266317e7eeb47c9c59117d2fe6b90bc"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-gate-result.json",
+                      "fingerprint": "12de6f1a0c57d45a7d6ac2048f0fc7a59133dc408be87cc4c8c7527459540669"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-repair.json",
+                      "fingerprint": "ac9a4a6df9d2fa168d145c1f6193f3386dc42ae04b51cb2ac40f0088a1faf189"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-review.json",
+                      "fingerprint": "6eef016890457dbbb032f1e762bb0eabf8b51c428480c5e172a7b1e53e969bf6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/impl-triage.json",
+                      "fingerprint": "79f95ca3cbfa067e6aeb2ae001a1dd2cdcb9530ce196d09820468cca63d04fb1"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/issue.md",
+                      "fingerprint": "e635bd654851b91339dd0f6751ab713d7b2a5a54fd715efacec52d7a8d7f669e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+                      "fingerprint": "bdf5bb89588ce3c3f40839e5382dea63daf3dc1f4147b2dc7ba09e2e2a8d0d89"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-001.json",
+                      "fingerprint": "bcb78babacf157bbb5aaa2de43703764539b148e3d5dcee72b4d40d821e595fe"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-002.json",
+                      "fingerprint": "7de53c26013bf24cb52369ddc25313558e691bc07b52a0aac9620ffbf1ae91cf"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-003.json",
+                      "fingerprint": "b136096e65d2fccbad4e890cd40dca385096efd26efbc2914c3498bcacd5f051"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-004.json",
+                      "fingerprint": "f36d1eec2b91e7d630207528854581b89e8ffd89ae6b295c966aabfffa72de92"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-deltas/repair-005.json",
+                      "fingerprint": "a6467f2564cd8cf23e3271b653dcc593228b6e2e01db283807429dfc848d1ab2"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/repair-fingerprint.json",
+                      "fingerprint": "2b713783ff5894e04402ea794b60b9f5581b67268d15ee987d9dac3d9d20dd5e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/retro.json",
+                      "fingerprint": "3553d569cd75eeaff2dae2e8d70092ee2234e3c0182e72601713a3f0d2b9c48f"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/228c35b4b113bf992750bca168b2006d890d3b755800f06971f7008623dbd346.json",
+                      "fingerprint": "fbba65f2eea804aaf1cfc99e7df8ce0ed3eb3a8a479bfb5434571886e510bd2f"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/2b98235689d1ca95122455ea65742141ddb81eebe122b7e2c4f42d08b395868a.json",
+                      "fingerprint": "5b559db13df600f0ce21d83b2a812059be1ca728a3a90ed4f7b9295eff145a0e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/4fd7517955f1c750ceab2f41085e8421c0ef32ed8c6bf47d7c78df3de175bf6d.json",
+                      "fingerprint": "e4423cf456b28e13e961f3fec0f0f12eedaf50a575995da793de3657d2a828ec"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549.json",
+                      "fingerprint": "2a7a8c70e92efcca4501d686cf07d4e5e8eee40a7ffd6c9f1e113f1d1802a0db"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/588ae4c7df8b4bda68bd4cf03bf7d44d1067f0e59c37a2ac12dc71af06924644.json",
+                      "fingerprint": "ab3edb66266d74dc4c2d948e50f8eba40eb18fb236ac1124094cfc40fd3f4865"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json",
+                      "fingerprint": "ea15063beab926122b0249ce76bce8eabda6c186e5f9de7ae70fdb0c14e32527"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/742a977457db85a163992249d168bf42eddd3725933cee7a255e0809356e43fc.json",
+                      "fingerprint": "1c751c82b1ff83c015909cd1a624be2fe0c51326da6db559408279bc2d783cf5"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/7bb0d7a2558104ff4fbf237de3e65e7539e3a1f8aee75738fb506d6bc83a21f5.json",
+                      "fingerprint": "5cad2d5ec2c41c7332375acffe9aaa5103736d540c54b007425cd1ec59b6b09b"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/8fbdca5df4b47c74a74f7c1cce9c249eb0d3d97b5a8a9797655d3facc8758ab9.json",
+                      "fingerprint": "f000f94203bbcb0c3221a7a4c8a691fb39356b09355cb52856d73d6486ac3e30"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/a6188774a7e163ca1635f88e7ba32e815a46caf1a1d52b13ed62b015e6507fd2.json",
+                      "fingerprint": "875f01f914511d57dfa46f32e2ab3e67ccf91a44ace80d07f77d76548dc79c17"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed.json",
+                      "fingerprint": "bf216f515eb7316c77ada590a8a1af46e06687e56c0392ee76b60fb78c4041d6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/bc431509dd5934cd70af98381c9fd76a2ea711bc3190c0e31239912a443a667b.json",
+                      "fingerprint": "6f76c950e2e75943d597188a6d655dc8ee780a0683e162eecf3d7ed8ddad4b0f"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/dfeeacf51c622ddb12106d0ee81f0033e61315f5b958528bd50f1d0343fd57c3.json",
+                      "fingerprint": "2250d0053f6512a5de2fd36b7cddd784914fd46b927d53caea3184a1e8552726"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json",
+                      "fingerprint": "341b55fbc7ee8cc5a57bfceb1ddacf22dd4b5534d5ce969245fd6fd0eabe8c3e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e.json",
+                      "fingerprint": "bdb8f0b6541019d5d144c2fb1b69848b59f0673290504ae0124cd0619e024bb2"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-evidence/fb506ea1ab7385238db90d9d787b09a86052f2c745faa88b4ee81a58f2076f20.json",
+                      "fingerprint": "270e4ebf4c919e95743cca5ee44b44b5b136ad53c8aff010158315231b53d5c7"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/draft-coverage-attempt-001.json",
+                      "fingerprint": "e3f06fb9ec2ef46948234c979dac7ad10e881553e758d44dc43238666a05ded3"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/draft-questions-attempt-001.json",
+                      "fingerprint": "e9fe6d8026d7ce8ea3b6d5685f0f22e152b5b877cc75aad01866ca79b4ad527e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-001.json",
+                      "fingerprint": "24e012bef7a99a08389c2f9982531d4863ed590067361fe2703b5792ad2cdf1c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-001.md",
+                      "fingerprint": "d58fd46097dfab6961e4751741cfbd5f5e0d22d2a20a6eab63f106fd15a79979"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-002.json",
+                      "fingerprint": "b876faab79191b64c345b857de3e9624fdd10127430a54420d6e9f7da5a78cd5"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-002.md",
+                      "fingerprint": "e8aaf07a65095ee1100520f961b7a993008a6db6c191c91a2581a6371b8cc91c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-003.json",
+                      "fingerprint": "8de7dcb733eeb58aa2d0e0cf91353c8f40fe73144be24053d3c2ef680fa330bb"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-003.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-004.json",
+                      "fingerprint": "78d7ca9d56215ed5778f0652cd62a639b242561080ec7f409d0e1ad076f4875d"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/impl-attempt-004.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/spec-attempt-001.json",
+                      "fingerprint": "272b798f45e1a1e8186046dacc58ce7497b19c346ed60c9402ebe6d2aec37547"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/spec-attempt-001.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-001.json",
+                      "fingerprint": "44731eaa1d6206fd113818e02bae1702b4e290efd03114675b1a93707c51b94a"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-001.md",
+                      "fingerprint": "98f7441244afd387121dc969e27536d60e0f380c4ec9f6ce8525044f504e2c03"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-002.json",
+                      "fingerprint": "465c9edeae476f0796fff71b6a3cb2a425d921dec79ed99429d8b81d50d75771"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-002.md",
+                      "fingerprint": "053143d821ed7beb3123269e092df0f730b50187c8ee6dc2cd3e659b6e7843f6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-003.json",
+                      "fingerprint": "2e1bd05490f9f78471e2231e35382c7abcdd27da8f533b66b23c101b8216a8f4"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-003.md",
+                      "fingerprint": "053143d821ed7beb3123269e092df0f730b50187c8ee6dc2cd3e659b6e7843f6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-004.json",
+                      "fingerprint": "e6c1c54465a1cf41579323a55b1aea9d0f883c84763c22748a40f8c342f28de8"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-004.md",
+                      "fingerprint": "053143d821ed7beb3123269e092df0f730b50187c8ee6dc2cd3e659b6e7843f6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-005.json",
+                      "fingerprint": "bd25cefd0115bfaa8618cfc8e6b1e2a9f2439fe41e9597d2cae49383c16f6bc4"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-005.md",
+                      "fingerprint": "053143d821ed7beb3123269e092df0f730b50187c8ee6dc2cd3e659b6e7843f6"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-006.json",
+                      "fingerprint": "475cdf913587aaa59adb02c2861eed27b51aef8f4af0c350f69c5a86e34d9ffd"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-006.md",
+                      "fingerprint": "e38a284e8261bdec30cb5158e640b8d27bd34c127ba6ab837a982a12acde417b"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-007.json",
+                      "fingerprint": "c0fd6ee07385b42c3b4271f0026495bf3c58df0dcf470a1acc124f8924bd1f62"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-007.md",
+                      "fingerprint": "921824c9a237e47eca2ec94f6524a618cc626f282494d164d1799a57f7b2d88c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-008.json",
+                      "fingerprint": "31162678af7c6efa9cb5872bdeb84e28a0f60184ccae308a0d753e98355027ad"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-008.md",
+                      "fingerprint": "3a46360719b08ae7c1d84d5c9c64cb2faf9154c223737d64179fc6c24a3f3b6e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-009.json",
+                      "fingerprint": "05e87b248cd11e956ccab44398b13fb3c76e091bc5ec949e796e3ec48594756a"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-009.md",
+                      "fingerprint": "43caa48b156b1528612041c6839ca24cec3591841ce06bacc50ed1c05840bd63"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-010.json",
+                      "fingerprint": "6a927ae55963102bd6d5e4f749ed1966f2553e9913f351f87d9c55e59b41a01c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-010.md",
+                      "fingerprint": "a4ac906ce94c67d5121afbad6abfa09ee723bb145ce96f9ec0d4e17dc7efc97e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-011.json",
+                      "fingerprint": "76972062343650b1614d0bb7283c93b7c1926c33149c31e897cddc12469d9f54"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review-history/test-attempt-011.md",
+                      "fingerprint": "8fcb93f98864f3774602b75532a495563b6110585873fc56b8c5eac618daa340"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/review.md",
+                      "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/scenario-validity-result.json",
+                      "fingerprint": "5eb5fb8f7ed5629bc9d658a066a838631b29abe6eb57d33f57a90cd9f7bb0888"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-gate-source.json",
+                      "fingerprint": "705e6a679f6bc17d5a954826e67b69b669ae153d2cab1aacd74ca27303cfd62c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-review.json",
+                      "fingerprint": "a72674898cc2fd75df6f909619d3cac7d90f86083ca62b800143a920fa826a85"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec-review.md",
+                      "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec.json",
+                      "fingerprint": "95f5235812698b11713ee8a9b7eba48debb85a7826546e7b8488132c373efb54"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/spec.md",
+                      "fingerprint": "7436760780f1574515780b500688dec6bc3b104ad68e180c00a891a625cb1616"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+                      "fingerprint": "2ef444278d22d75662810b082c506f06ef3f7d79e5042b0f3f4d189dd08059b2"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+                      "fingerprint": "b812a4dd7bbebd500306df66d181fc5f972457f707443a353f558c937ff952c0"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+                      "fingerprint": "a327861446a8e428bbc0aece059790776050c52b24c3bf5ca58d389af3ef2aa7"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-4.md",
+                      "fingerprint": "79d8f431dea929e36e870ddb3c2b9b71bfef65171c145bb0b8e6d7e1ceb107e9"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+                      "fingerprint": "72e77466eabdf9461aaec6239ae2fadf5292f62d1fee4501ec9efc79b168cb8c"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-execute-result.json",
+                      "fingerprint": "570f4d282398b1b09deb87b90fe2b3602dae67f37769e613cd1e3b730d38766a"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-result-review.json",
+                      "fingerprint": "ea18db4aa0896104598599e241f1c7258cd79338f73bf91fddd3a2586561eb4d"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-result-review.md",
+                      "fingerprint": "e090ca4fb503bc531e339f46bc1521cfc914ee2da58fd07215d9dbb23f0fec20"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+                      "fingerprint": "4f36780096d3e69a95b45c582c20b2592f495566b78c0ba7102d649171690a59"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/test-review.md",
+                      "fingerprint": "8fcb93f98864f3774602b75532a495563b6110585873fc56b8c5eac618daa340"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/.raw/scenario-validity.log",
+                      "fingerprint": "ffdf5b4aa432c6cbaac69c38815da206882f03870f9b37949dbab2cc01c71492"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/.raw/test-execution.log",
+                      "fingerprint": "a8210417c3b8062a6cb69f90c6d70e793491911746801840f1c72e59aef09303"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+                      "fingerprint": "51ec85a69a26d3c92614cc7817e6e85d10429c9051ca44c2999c4ab29dd14041"
+                    },
+                    {
+                      "path": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+                      "fingerprint": "51ec85a69a26d3c92614cc7817e6e85d10429c9051ca44c2999c4ab29dd14041"
+                    },
+                    {
+                      "path": "src/flow/lib/finding-disposition-policy.js",
+                      "fingerprint": "3fd834582ed4e0fffa8fa2c885e1ca41fa696f47cf557fdeaa0df32c977efc60"
+                    },
+                    {
+                      "path": "tests/unit/flow/finding-disposition-policy.test.js",
+                      "fingerprint": "4ffd37cd51baea5a67d978a70683e21ed7d6c90de227a377592ce75931e2afbb"
+                    }
+                  ],
+                  "fixAttempts": 0,
+                  "selectedAction": "record-and-proceed",
+                  "remainingRisk": "final-regression remains failed; category=timeout",
+                  "retryable": false,
+                  "nextAction": "report",
+                  "nextRecommendedAction": "record-and-proceed",
+                  "recordAndProceed": {
+                    "eligible": true,
+                    "validated": true,
+                    "evidence": "record-and-proceed selected for timeout"
+                  },
+                  "humanSummary": "result=fail failureCategory=timeout failureKind=timeout raw_output=specs/347-bind-mandatory-repair-evidence/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=timeout"
+                }
+              },
+              "sync": {
+                "status": "skipped",
+                "reason": "sync was skipped"
+              },
+              "tasks": [
+                {
+                  "id": "T-1",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "pending",
+                  "gateImpl": "pending"
+                },
+                {
+                  "id": "T-2",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "pending",
+                  "gateImpl": "pending"
+                },
+                {
+                  "id": "T-3",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "pending",
+                  "gateImpl": "pending"
+                },
+                {
+                  "id": "T-4",
+                  "status": "done",
+                  "implementationSummary": "missing",
+                  "testExecute": "available",
+                  "review": "pending",
+                  "gateImpl": "pending"
+                }
+              ],
+              "taskTotal": 4,
+              "tasksTruncated": 0,
+              "broadModeHistory": [],
+              "broadModeHistoryTotal": 0,
+              "broadModeHistoryTruncated": 0
+            },
+            "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    test: reject absent repair evidence fields\n    test: bind repair evidence to reviewed head\n    test: cover guardrail evidence requirements\n    test: define mandatory repair evidence policy\n    2 files changed, 300 insertions(+), 9 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 13\n    Q&A ......................... 0\n    issue-log ................... 25\n    agent calls ................. 31\n    input tokens ................ 520,399\n    output tokens ............... 21,641\n    cache-read tokens ........... 455,296\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 751.9s\n      draft-questions-review .... 10.9s\n      draft-coverage-review ..... 9.2s\n      draft-gate ................ 54.5s\n      spec-review ............... 79.1s\n      spec-gate ................. 41.3s\n      test-review ............... 167.6s\n      impl-review ............... 87.9s\n      impl-gate ................. 150.8s\n      acceptance-review ......... 150.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/347-bind-mandatory-repair-evidence/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=timeout failureCategory=timeout raw_output=specs/347-bind-mandatory-repair-evidence/tests/.raw/final-regression-attempt-001.log fixAttempts=0 selectedAction=record-and-proceed nextRecommendedAction=record-and-proceed remainingRisk=final-regression remains failed; category=timeout\n\n  Tasks (4/4)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=pending gate=pending\n    T-2 status=done impl=missing test=available review=pending gate=pending\n    T-3 status=done impl=missing test=available review=pending gate=pending\n    T-4 status=done impl=missing test=available review=pending gate=pending\n\n  Issue Log Summary (38 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/347-bind-mandatory-repair-evidence/issue-log.json\n\n    Important (10 of 14)\n    - [draft-gate] lock owner pid 2462665 is active\n    - [test-review] Test review result recording encountered a repository lock after the reviewer completed\n    - [test-review] Second test review result recording encountered a stale repository lock owner\n    - [impl-triage] The impl-review finding that malformed evidence throws is not reproducible: IssueLogRepairEvidenceSource catches RepairEvidenceReference validation failures and excludes malformed entries, leaving the gate blocking.\n    - [impl-gate] lock owner pid 2710474 is active\n    - [impl-gate] tooling: gate retry initially failed with a repository lock that named a no-longer-running PID\n    - [spec-gate] The diff adds a static parse wrapper with a single production caller in the IssueLogRepairEvidenceSource constructor. It only catches RepairEvidenceReference construction failures and returns null, adding API surface without shared behav...\n    - [impl-gate] fix: inlined the one-use invalid-evidence parser into IssueLogRepairEvidenceSource construction\n    - [acceptance-review] Acceptance review was briefly blocked by a live repository flow lock\n    - [final-regression] final-regression failed: timeout\n    ... 4 important issue-log entries omitted\n\n    Recent Other (5 of 24)\n    - [spec-gate] [REQ:R7] requires spec-local and shared policy tests to verify the R1-R6 contract, and [AC:6] specifically requires specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js to contain // spec: R1 through // spec:...\n    - [impl-gate] fix: clarified R7 to require the single canonical spec header accepted by the existing test-header parser\n    - [spec-gate] [REQ:R7] requires spec-local and shared policy tests to verify the R1-R6 policy contract, including explicit decision behavior and repair evidence binding/rejection. [TASK:T-4] further states production contract changes are covered in te...\n    - [impl-gate] fix: expanded focused shared policy coverage for explicit decisions and fingerprint/tree/diff/test-result repair-evidence rejections\n    - [acceptance-review] tooling: acceptance review waited for a concurrent repository flow lock held by feature-332-acceptance-test-migration\n    ... 19 other issue-log entries omitted"
+          },
+          "issueComment": {
+            "status": "done",
+            "issue": 467,
+            "resumed": false
+          }
+        }
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:772043a8-bee6-4208-ac96-f68ca55ea053:flow:finalize-commit:finalize-commit",
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "finalize-commit",
+      "operation": "finalize-commit",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-26T00:22:55.437Z",
+      "updatedAt": "2026-07-26T00:22:56.870Z",
+      "result": {
+        "status": "done",
+        "message": "feat: feature/347-bind-mandatory-repair-evidence"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:772043a8-bee6-4208-ac96-f68ca55ea053:flow:finalize-merge:finalize-merge",
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-26T00:23:06.903Z",
+      "updatedAt": "2026-07-26T00:23:06.903Z"
+    }
+  ],
+  "issue": 467,
+  "request": "Goal: Prevent mandatory findings from auto-deferring and bind repair evidence to the exact current finding and reviewed code state. Scope: Correct src/flow/lib/finding-disposition-policy.js with focused coverage for disposition, evidence validation, and finding identity. Out of scope: Redesigning the disposition type surface or changing non-mandatory behavior. #467: mandatory findings must remain gate-blocking without valid repair evidence or an explicit allow/defer decision; evidence must bind the precise fingerprint, target HEAD/tree, repair diff, and validating test result.",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "goalGate": {
+      "checked": true,
+      "passed": true
+    },
+    "reason": "目的・対象ファイル・受入条件・非目標が明確で、既存挙動の修正とテストで機械的に検証できる。"
+  },
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:05:30.236Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:05:41.021Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:05:46.927Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 390,
+      "durationMs": 10884,
+      "tokens": {
+        "input": 17022,
+        "output": 265,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:06:53.794Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:06:57.576Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:07:08.345Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:18:19.638Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 9205,
+      "tokens": {
+        "input": 6742,
+        "output": 117,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:20:34.160Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:20:35.319Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 755,
+      "durationMs": 17963,
+      "tokens": {
+        "input": 7614,
+        "output": 598,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:21:23.934Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:21:24.023Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:21:32.631Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 695,
+      "durationMs": 17746,
+      "tokens": {
+        "input": 17110,
+        "output": 616,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:22:20.695Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:22:20.753Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:22:27.409Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:22:54.882Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 18841,
+      "tokens": {
+        "input": 10321,
+        "output": 480,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:23:55.554Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:23:55.650Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:24:08.734Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:24:18.083Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:24:30.007Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:24:45.968Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3640,
+      "durationMs": 79090,
+      "tokens": {
+        "input": 57629,
+        "output": 2862,
+        "cacheRead": 166528,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:27:53.277Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:27:54.275Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 645,
+      "durationMs": 11299,
+      "tokens": {
+        "input": 9959,
+        "output": 156,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:28:29.140Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:28:29.240Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:28:39.244Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1052,
+      "durationMs": 10670,
+      "tokens": {
+        "input": 21634,
+        "output": 239,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:29:09.614Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:29:09.691Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:29:20.778Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 19344,
+      "tokens": {
+        "input": 12508,
+        "output": 531,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:30:11.074Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:30:11.212Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:30:29.525Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2689,
+      "durationMs": 22324,
+      "tokens": {
+        "input": 17039,
+        "output": 848,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:32:42.282Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:32:58.507Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 976,
+      "durationMs": 18592,
+      "tokens": {
+        "input": 8116,
+        "output": 594,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:34:24.349Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:34:37.843Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 976,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:34:51.497Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:35:02.271Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 976,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:35:48.319Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:36:01.293Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 976,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:36:23.340Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:36:30.480Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:36:39.588Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1684,
+      "durationMs": 27139,
+      "tokens": {
+        "input": 10535,
+        "output": 688,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:37:27.630Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2318,
+      "durationMs": 15858,
+      "tokens": {
+        "input": 8308,
+        "output": 459,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:39:57.782Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:40:29.739Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:41:56.241Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:43:15.185Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1891,
+      "durationMs": 22167,
+      "tokens": {
+        "input": 8282,
+        "output": 872,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:43:50.605Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:44:30.259Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 767,
+      "durationMs": 23055,
+      "tokens": {
+        "input": 8404,
+        "output": 682,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:45:03.560Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:45:29.257Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1167,
+      "durationMs": 20439,
+      "tokens": {
+        "input": 10877,
+        "output": 751,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:45:59.987Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T14:46:28.075Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 594,
+      "durationMs": 18025,
+      "tokens": {
+        "input": 8517,
+        "output": 576,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:46:56.940Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:47:22.897Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:50:44.759Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:53:12.711Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-1",
+      "ts": "2026-07-25T14:53:40.654Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1412,
+      "durationMs": 34369,
+      "tokens": {
+        "input": 25845,
+        "output": 1198,
+        "cacheRead": 51328,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T14:57:19.283Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:57:24.285Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T14:58:02.167Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1167,
+      "durationMs": 16136,
+      "tokens": {
+        "input": 21770,
+        "output": 543,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:00:11.741Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:00:16.483Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 104,
+      "durationMs": 27229,
+      "tokens": {
+        "input": 21819,
+        "output": 898,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:02:51.453Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T15:02:53.442Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2884,
+      "durationMs": 25592,
+      "tokens": {
+        "input": 30094,
+        "output": 1065,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:03:34.341Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 508,
+      "durationMs": 17117,
+      "tokens": {
+        "input": 23769,
+        "output": 642,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:03:51.547Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:03:52.088Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:08:50.030Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1444,
+      "durationMs": 19641,
+      "tokens": {
+        "input": 25561,
+        "output": 862,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:09:15.457Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 528,
+      "durationMs": 16901,
+      "tokens": {
+        "input": 20148,
+        "output": 672,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:09:32.408Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:09:33.087Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:11:08.142Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:11:23.278Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 818,
+      "durationMs": 13699,
+      "tokens": {
+        "input": 11028,
+        "output": 505,
+        "cacheRead": 14720,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:11:42.340Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:11:42.840Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:13:09.657Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 985,
+      "durationMs": 15792,
+      "tokens": {
+        "input": 1849,
+        "output": 591,
+        "cacheRead": 24960,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:13:31.050Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 507,
+      "durationMs": 14442,
+      "tokens": {
+        "input": 28361,
+        "output": 353,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:13:45.582Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:13:46.630Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:14:55.713Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 16167,
+      "tokens": {
+        "input": 28042,
+        "output": 469,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:15:17.466Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T15:15:18.234Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:16:50.411Z"
+    },
+    {
+      "phase": "impl-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 104,
+      "durationMs": 10171,
+      "tokens": {
+        "input": 24493,
+        "output": 207,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:20:05.389Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T15:20:11.146Z"
+    },
+    {
+      "phase": "impl-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 11419,
+      "tokens": {
+        "input": 16534,
+        "output": 335,
+        "cacheRead": 10624,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:20:33.567Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-25T15:20:34.414Z"
+    },
+    {
+      "phase": "acceptance-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 5655,
+      "durationMs": 150622,
+      "tokens": {
+        "input": 469,
+        "output": 1967,
+        "cacheRead": 37248,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-25T15:23:30.790Z"
+    },
+    {
+      "phase": "acceptance-review",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 5655,
+      "taskId": null,
+      "ts": "2026-07-25T15:27:49.975Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:28:06.567Z"
+    },
+    {
+      "phase": "acceptance-review",
+      "kind": "agent-cache",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 0,
+      "cachedResponse": true,
+      "responseChars": 5655,
+      "taskId": null,
+      "ts": "2026-07-25T15:28:17.208Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-25T15:38:45.506Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T00:18:46.781Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T00:19:58.976Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-26T00:21:18.588Z"
+    }
+  ],
+  "reviewConvergence": {
+    "version": 1,
+    "records": [
+      {
+        "phase": "draft-questions",
+        "taskId": null,
+        "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5",
+          "disposition": "ADVISORY"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "draft-questions-advisory-001",
+            "summary": "1. Question includes directive wording",
+            "fingerprint": "fd7ff7255d1d23d2c354651af2581e4ca588b4674918c53d2be61f10e3e66d15",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-001"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "376b4e70ec1d0ea363fd4a2e684c65156966f92bef439e1683e9c428d484811d",
+              "capturedAt": "2026-07-25T14:06:53.811Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json",
+            "evidenceDigest": "ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-questions",
+          "taskId": null,
+          "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "376b4e70ec1d0ea363fd4a2e684c65156966f92bef439e1683e9c428d484811d",
+            "capturedAt": "2026-07-25T14:06:53.811Z"
+          },
+          "evidenceDigest": "ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "376b4e70ec1d0ea363fd4a2e684c65156966f92bef439e1683e9c428d484811d",
+              "capturedAt": "2026-07-25T14:06:53.811Z"
+            },
+            "evidenceDigest": "ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json",
+        "targetStateDigest": "a984535bade7dcc17b5c761fa6f590765086beec6afb5b3b8e479b83f06644e3"
+      },
+      {
+        "phase": "draft-coverage",
+        "taskId": null,
+        "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-coverage",
+          "taskId": null,
+          "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "967c351d7114ffd0eeb9c35981416b3b27074ad219f5b68c73e97e9bdb96e8b3",
+            "capturedAt": "2026-07-25T14:20:34.177Z"
+          },
+          "evidenceDigest": "a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-coverage",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "967c351d7114ffd0eeb9c35981416b3b27074ad219f5b68c73e97e9bdb96e8b3",
+              "capturedAt": "2026-07-25T14:20:34.177Z"
+            },
+            "evidenceDigest": "a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/a982a667febe1db083b54cc43d3606d6b5bc03e92944e63793026ac8fd2df6ed.json",
+        "targetStateDigest": "a984535bade7dcc17b5c761fa6f590765086beec6afb5b3b8e479b83f06644e3"
+      },
+      {
+        "phase": "spec",
+        "taskId": null,
+        "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "spec",
+          "taskId": null,
+          "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "a72674898cc2fd75df6f909619d3cac7d90f86083ca62b800143a920fa826a85",
+            "capturedAt": "2026-07-25T14:27:53.304Z"
+          },
+          "evidenceDigest": "563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "spec",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "a72674898cc2fd75df6f909619d3cac7d90f86083ca62b800143a920fa826a85",
+              "capturedAt": "2026-07-25T14:27:53.304Z"
+            },
+            "evidenceDigest": "563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/563db138606cef34c77c36d963c1cf94329cb9a6f326ab1f2cf64ef639cc1549.json",
+        "targetStateDigest": "3ab8127c2d9bad1d39d9af244a7257b67bf426ab05cab38356a25652f8dc7cc6"
+      },
+      {
+        "phase": "test",
+        "taskId": null,
+        "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+        "semanticAttempts": 4,
+        "semanticMaxAttempts": 5,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e",
+          "disposition": "ADVISORY"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+            "summary": "R3 assertion could verify accepted evidence identity",
+            "fingerprint": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+            "evidenceRefs": [
+              "test-review.json#0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566"
+            ],
+            "sourceStep": "test-review",
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "4f36780096d3e69a95b45c582c20b2592f495566b78c0ba7102d649171690a59",
+              "capturedAt": "2026-07-25T14:46:56.957Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json",
+            "evidenceDigest": "71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "test",
+          "taskId": null,
+          "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "4f36780096d3e69a95b45c582c20b2592f495566b78c0ba7102d649171690a59",
+            "capturedAt": "2026-07-25T14:46:56.957Z"
+          },
+          "evidenceDigest": "71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "fb4d58c0309ceaa2c34ae3e82b98e98b5af233e1310c076d6afbdc167d65ad13",
+              "capturedAt": "2026-07-25T14:32:42.300Z"
+            },
+            "evidenceDigest": "8fbdca5df4b47c74a74f7c1cce9c249eb0d3d97b5a8a9797655d3facc8758ab9"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "53d72cfecd5494a83a3367306005ce09d27f762849d26f0d4ed0ebcca9185f72",
+              "capturedAt": "2026-07-25T14:34:51.513Z"
+            },
+            "evidenceDigest": "588ae4c7df8b4bda68bd4cf03bf7d44d1067f0e59c37a2ac12dc71af06924644"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "ddbdaec522d557879f366c8ce1ccb05e08d84528385ecab4c6ee7f1968c5e091",
+              "capturedAt": "2026-07-25T14:36:23.376Z"
+            },
+            "evidenceDigest": "dfeeacf51c622ddb12106d0ee81f0033e61315f5b958528bd50f1d0343fd57c3"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "24ed263c27a15ea14916137f8c67c9ed7c48091466d57b59e8f083d2ab690e67",
+              "capturedAt": "2026-07-25T14:37:27.680Z"
+            },
+            "evidenceDigest": "228c35b4b113bf992750bca168b2006d890d3b755800f06971f7008623dbd346"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "5211c3061f61beb72bbabd2f4338bddf3d4f3d39",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "ab32473bd0869384dfdb825c1400eeb685d04fbca920b13ea18c9dfe47f5203c",
+              "capturedAt": "2026-07-25T14:39:57.808Z"
+            },
+            "evidenceDigest": "bc431509dd5934cd70af98381c9fd76a2ea711bc3190c0e31239912a443a667b"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "20105e0fd3c61276a20884a1859c7f4c4a34ccf9",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "17b6c01b903264fd7f61a4e28cb3cc44f28f1c60428723cffa179e69ab227bee",
+              "capturedAt": "2026-07-25T14:43:50.620Z"
+            },
+            "evidenceDigest": "7bb0d7a2558104ff4fbf237de3e65e7539e3a1f8aee75738fb506d6bc83a21f5"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "af1def8cda52c529d148179764b519521fc0bc08",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "cfc2542611f957ea5f8791fb0ffdf7455aee64d52e46de0c968c34f097eef22b",
+              "capturedAt": "2026-07-25T14:45:03.590Z"
+            },
+            "evidenceDigest": "742a977457db85a163992249d168bf42eddd3725933cee7a255e0809356e43fc"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "dfcf9afa37ff9a664173970ba44779b650233cac",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "bb65f8606dde28b038381fb59becdff5e139def6d86d08fc3dc44dfe22762553",
+              "capturedAt": "2026-07-25T14:46:00.004Z"
+            },
+            "evidenceDigest": "a6188774a7e163ca1635f88e7ba32e815a46caf1a1d52b13ed62b015e6507fd2"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "4f36780096d3e69a95b45c582c20b2592f495566b78c0ba7102d649171690a59",
+              "capturedAt": "2026-07-25T14:46:56.957Z"
+            },
+            "evidenceDigest": "71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json",
+        "targetStateDigest": "13b071c44bc8b82e5344ed95f9fc1f217d7eb5cbd99437b8a3f30475c79689b2"
+      },
+      {
+        "phase": "impl",
+        "taskId": null,
+        "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+        "semanticAttempts": 2,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": null,
+          "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "6eef016890457dbbb032f1e762bb0eabf8b51c428480c5e172a7b1e53e969bf6",
+            "capturedAt": "2026-07-25T15:20:05.435Z"
+          },
+          "evidenceDigest": "f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "4d9c612a2f52960b9aa8e24c0a9c9b33f11a7e9ce42515aa0de2a78486393638",
+              "capturedAt": "2026-07-25T14:57:19.322Z"
+            },
+            "evidenceDigest": "fb506ea1ab7385238db90d9d787b09a86052f2c745faa88b4ee81a58f2076f20"
+          },
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "66d941bb523e7412a6a491e07348763a53e267bd8b0dad02b63b8d71b09fa847",
+              "capturedAt": "2026-07-25T15:00:11.798Z"
+            },
+            "evidenceDigest": "2b98235689d1ca95122455ea65742141ddb81eebe122b7e2c4f42d08b395868a"
+          },
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "9bad52c8cc19b653ec7cbf731546b65fb5ca26dc558f6c772bca8f776f75e920",
+              "capturedAt": "2026-07-25T15:02:51.478Z"
+            },
+            "evidenceDigest": "4fd7517955f1c750ceab2f41085e8421c0ef32ed8c6bf47d7c78df3de175bf6d"
+          },
+          {
+            "phase": "impl",
+            "taskId": null,
+            "treeSha": "d6781f67bcac59f8fa57bd0498dbf297ccab040f",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "6eef016890457dbbb032f1e762bb0eabf8b51c428480c5e172a7b1e53e969bf6",
+              "capturedAt": "2026-07-25T15:20:05.435Z"
+            },
+            "evidenceDigest": "f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/f9a7ef44f5d19ef24401c3c94bc1a23a41ff6aab3d707a2fadedb246de13bc6e.json",
+        "targetStateDigest": "46e2b8f98152081f186be44ca934408e6e5777aa3916ece91674afea380167b7",
+        "targetState": {
+          "digest": "46e2b8f98152081f186be44ca934408e6e5777aa3916ece91674afea380167b7",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "abc59ffc8e488f7675e393ba82faf82e384af55089929beaabe86f2f87a37603",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "09de14b89df9babdf974b64420615707dca1b73b9374acb39c7ef9e72d29cd43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/spec.json",
+              "contentHash": "ed30cceda1afa5642d2125788aaa5cf056a728699bcc9a30c609631291966424",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+              "contentHash": "97c63b67913074483c4df17023870056c4d8456e44133032699d54c887a26b8b",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+              "contentHash": "1c143f5d0419109140d72bd55f758c37222dc7a8e688cb5bd4c5a5003499e4be",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+              "contentHash": "4daf83e673d4233ce213ee767ceed3a74ce750d0ad92548465f19198bae922f1",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/tasks/T-4.md",
+              "contentHash": "2ace2ab6123ad88671aec407cc4ba96a26d268f518e4fede43714cf5e7c03230",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+              "contentHash": "092beba7d5a6d557bb1eaba4a19c1398bbdef90cfef1eba7a405a6b37aae25c7",
+              "mode": "100644"
+            },
+            {
+              "path": "src/flow/lib/finding-disposition-policy.js",
+              "contentHash": "f639820db0927bc802f3940dc197dc56bd1b6ef2a86bd506cb24c68c950d48ab",
+              "mode": "100644"
+            },
+            {
+              "path": "tests/unit/flow/finding-disposition-policy.test.js",
+              "contentHash": "5227f4ff2fd6d126d18156f1db8b263ec1a7ce2cc4a8a8dda67c2744014ee7d1",
+              "mode": "100644"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "stepAttempts": [
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "draft-questions-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-questions-triage",
+        "decision": "ADVISORY"
+      },
+      "recordedAt": "2026-07-25T14:06:57.601Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "draft-coverage-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T14:20:35.336Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-25T14:21:24.035Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-25T14:22:20.762Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T14:23:55.666Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "spec-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T14:27:54.288Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-25T14:28:29.254Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-25T14:29:09.707Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "approval",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T14:30:11.223Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review"
+      },
+      "recordedAt": "2026-07-25T15:00:16.498Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T15:02:53.454Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-25T15:09:33.109Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-25T15:11:42.855Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 4,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-integration"
+      },
+      "recordedAt": "2026-07-25T15:13:46.662Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 5,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "retro",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T15:15:18.247Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T15:20:11.179Z"
+    },
+    {
+      "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+      "taskId": null,
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "retro",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-25T15:20:34.427Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "dispatcher-recovery: user selected investigate and recover empty next-action for draft-questions-repair",
+      "taskId": null,
+      "ts": "2026-07-25T14:18:00.424Z"
+    },
+    {
+      "text": "external-block-recovery: user selected resume draft gate after repository lock owner exited",
+      "taskId": null,
+      "ts": "2026-07-25T14:23:28.565Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "8d03512e0c6a775bda804686babf501455bf05065f201cd1b1b23b8abaa14ace",
+        "paths": [
+          "specs/347-bind-mandatory-repair-evidence/file-map.json",
+          "specs/347-bind-mandatory-repair-evidence/test-execute-result.json",
+          "specs/347-bind-mandatory-repair-evidence/test-result-review.json",
+          "src/flow/lib/finding-disposition-policy.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "8d03512e0c6a775bda804686babf501455bf05065f201cd1b1b23b8abaa14ace",
+          "runtimeHash": null
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T15:03:52.264Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "b3c06569bd3c43757c3277107cc17864488167185783307e2ea45e38f87f5178",
+        "paths": [
+          "specs/347-bind-mandatory-repair-evidence/file-map.json",
+          "specs/347-bind-mandatory-repair-evidence/test-execute-result.json",
+          "specs/347-bind-mandatory-repair-evidence/test-result-review.json",
+          "src/flow/lib/finding-disposition-policy.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "b3c06569bd3c43757c3277107cc17864488167185783307e2ea45e38f87f5178",
+          "runtimeHash": null
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T15:09:33.306Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "094683cb3f17c41fea0bebad9f36c65c7ff57430fd56ae8d96bf8e9f202373cd",
+        "paths": [
+          "specs/347-bind-mandatory-repair-evidence/file-map.json",
+          "specs/347-bind-mandatory-repair-evidence/test-execute-result.json",
+          "specs/347-bind-mandatory-repair-evidence/test-result-review.json",
+          "src/flow/lib/finding-disposition-policy.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "094683cb3f17c41fea0bebad9f36c65c7ff57430fd56ae8d96bf8e9f202373cd",
+          "runtimeHash": null
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T15:11:43.003Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "64bc64902248f2102cf6420e17f028b3ce1665c3621204e97ba1e99aded6b0f8",
+        "paths": [
+          "specs/347-bind-mandatory-repair-evidence/file-map.json",
+          "specs/347-bind-mandatory-repair-evidence/test-execute-result.json",
+          "specs/347-bind-mandatory-repair-evidence/test-result-review.json",
+          "src/flow/lib/finding-disposition-policy.js"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "64bc64902248f2102cf6420e17f028b3ce1665c3621204e97ba1e99aded6b0f8",
+          "runtimeHash": null
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-25T15:13:46.984Z"
+    }
+  ],
+  "acceptanceReview": {
+    "verdict": "pass",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/acceptance-review.json",
+    "requirementJudgments": [
+      {
+        "requirementId": "R1",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R1"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R1",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R2",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R2"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R2",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R3",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R3"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R3",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R4",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R4"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R4",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R5",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R5"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R5",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R6",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R6"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R6",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      },
+      {
+        "requirementId": "R7",
+        "status": "met",
+        "requestRefs": [
+          "flow.request"
+        ],
+        "requirementRefs": [
+          "spec.json#R7"
+        ],
+        "diffRefs": [
+          "diff:specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+          "diff:src/flow/lib/finding-disposition-policy.js",
+          "diff:tests/unit/flow/finding-disposition-policy.test.js",
+          "diff:specs/347-bind-mandatory-repair-evidence/plugin-artifacts/workflow/prepare.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/spec.json",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-1.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-2.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-3.md",
+          "diff:specs/347-bind-mandatory-repair-evidence/tasks/T-4.md"
+        ],
+        "repairRefs": [
+          "impl-repair.json"
+        ],
+        "testRefs": [
+          "test-execute-result.json#R7",
+          "test-result-review.json"
+        ],
+        "missingEvidence": []
+      }
+    ],
+    "mechanicalBlockers": [],
+    "deferredFindings": [
+      {
+        "findingId": "RF-ece859f536dd-draft-questions-advisory-001",
+        "sourceStep": "draft-questions-review",
+        "sourceArtifact": "review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json",
+        "sourceFindingId": "draft-questions-advisory-001",
+        "finalDisposition": "not_needed",
+        "evidenceRefs": [
+          "review-evidence/ece859f536dd06d8e03757f628a0b8d7f8c942b252060df6423525ffd96a02b5.json#draft-questions-advisory-001"
+        ]
+      },
+      {
+        "findingId": "RF-71d9100e4bd7-0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+        "sourceStep": "test-review",
+        "sourceArtifact": "review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json",
+        "sourceFindingId": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+        "finalDisposition": "fixed",
+        "evidenceRefs": [
+          "review-evidence/71d9100e4bd7e75bdabdb34d89817dd8c8487b9abfe1c1dfb8f787ca792f600e.json#0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+          "test-execute-result.json#R3"
+        ]
+      }
+    ],
+    "updatedAt": "2026-07-25T15:28:17.609Z"
+  },
+  "state": {
+    "finalizedAt": "2026-07-26T00:22:55.838Z"
+  }
+}

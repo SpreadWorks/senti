@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "0ed7b3b983c5f4ac0a6aca05b17bf268caa8f9092a46c6813458db1cb92c0556",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-25T15:00:12.932Z",
+  "items": [
+    {
+      "findingId": "6592caccfdcbb38442e984735a6276b6b5d473912f94c47723f0f894573c5ce0",
+      "sourceStep": "impl-review",
+      "decision": "apply",
+      "rationale": "Remove `allowed` from `REVIEW_DISPOSITIONS`, delete `AllowedDisposition`, and remove the `GateFinding` branch that constructs it. Keep pass behavior limited to non-repair findings and policy-recognized deferred evidence states.",
+      "evidenceRefs": [
+        "impl-review.json#6592caccfdcbb38442e984735a6276b6b5d473912f94c47723f0f894573c5ce0"
+      ]
+    }
+  ]
+}

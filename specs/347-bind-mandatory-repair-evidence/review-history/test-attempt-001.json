@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:32:42.300Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 4,
+    "advisory": 0,
+    "total": 4
+  },
+  "coverageArtifact": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing explicit decision coverage",
+      "target": "tests/finding-disposition-policy.test.js R2",
+      "findingId": "77230b2c765d3b070666759a7a93016cb8570c1f4954f8b720b12b51830aaa86",
+      "fingerprint": "77230b2c765d3b070666759a7a93016cb8570c1f4954f8b720b12b51830aaa86",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for one of its allowed pass conditions.",
+      "issue": "R2 requires a mandatory finding to pass only with exact repair evidence or an existing explicit allow/defer decision. The tests cover exact repair evidence but do not cover the explicit allow/defer decision path.",
+      "requiredChange": "Add a spec-local test that exercises an existing explicit allow/defer decision allowing the mandatory finding through the gate.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for one of its allowed pass conditions.",
+      "origin": "R2",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Incomplete stale/unrelated/touched-only evidence rejection coverage",
+      "target": "tests/finding-disposition-policy.test.js R4",
+      "findingId": "74ae77047cbc7a53d7ce2d052402c94f828473ae74adc1b096a15c22a7f961b1",
+      "fingerprint": "74ae77047cbc7a53d7ce2d052402c94f828473ae74adc1b096a15c22a7f961b1",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R4 covered, but actual test files do not cover several required rejection classes.",
+      "issue": "R4 requires rejection of unrelated, stale, touched-only, fingerprint mismatch, tree mismatch, diff mismatch, and test-result mismatch evidence. The tests cover only the four mismatch cases, leaving unrelated, stale, and touched-only evidence untested.",
+      "requiredChange": "Add spec-local rejection tests for unrelated evidence, stale evidence, and touched-only evidence.",
+      "whyBlocking": "The requirement coverage artifact marks R4 covered, but actual test files do not cover several required rejection classes.",
+      "origin": "R4",
+      "failureKind": "coverage-contradiction"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 test is a no-op",
+      "target": "tests/finding-disposition-policy.test.js R7",
+      "findingId": "620a13b4caddaeb47df10e2790779d74072faf7042a6519958a607f2fd335f2d",
+      "fingerprint": "620a13b4caddaeb47df10e2790779d74072faf7042a6519958a607f2fd335f2d",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that would pass without exercising production behavior.",
+      "issue": "The R7 test only asserts `true === true`, so it passes without exercising production behavior or the required shared/spec-local policy contracts.",
+      "requiredChange": "Replace the no-op assertion with executable assertions that validate R7's required coverage contract, or remove the no-op and rely on meaningful tests explicitly mapped to R7.",
+      "whyBlocking": "This is a static anti-pattern that would pass without exercising production behavior.",
+      "origin": "R7",
+      "failureKind": "static-anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing shared policy test coverage",
+      "target": "Requirement-to-Test Coverage Artifact R7",
+      "findingId": "89651bb61c28dfef4d654bb626bb77460e7223d468854ab3a553830cc29bc176",
+      "fingerprint": "89651bb61c28dfef4d654bb626bb77460e7223d468854ab3a553830cc29bc176",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding shared policy test coverage, and the coverage artifact contradicts the stated requirement.",
+      "issue": "R7 requires both spec-local and shared policy tests, but the coverage artifact lists only `tests/finding-disposition-policy.test.js` and no shared policy test file.",
+      "requiredChange": "Add the shared policy test file to the coverage artifact and ensure it contains executable coverage for the R1-R6 policy contracts, or adjust the requirement if shared policy tests are not actually required.",
+      "whyBlocking": "An acceptance requirement has no corresponding shared policy test coverage, and the coverage artifact contradicts the stated requirement.",
+      "origin": "R7",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 4,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6d8c9920d8f4db0d098b8867d572af041b47a85a2db869e56b1f1c9d57229bc3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "77230b2c765d3b070666759a7a93016cb8570c1f4954f8b720b12b51830aaa86",
+      "findingId": "77230b2c765d3b070666759a7a93016cb8570c1f4954f8b720b12b51830aaa86",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing explicit decision coverage",
+      "body": "R2 requires a mandatory finding to pass only with exact repair evidence or an existing explicit allow/defer decision. The tests cover exact repair evidence but do not cover the explicit allow/defer decision path.",
+      "category": "unknown",
+      "fingerprint": "77230b2c765d3b070666759a7a93016cb8570c1f4954f8b720b12b51830aaa86",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for one of its allowed pass conditions."
+    },
+    {
+      "id": "74ae77047cbc7a53d7ce2d052402c94f828473ae74adc1b096a15c22a7f961b1",
+      "findingId": "74ae77047cbc7a53d7ce2d052402c94f828473ae74adc1b096a15c22a7f961b1",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Incomplete stale/unrelated/touched-only evidence rejection coverage",
+      "body": "R4 requires rejection of unrelated, stale, touched-only, fingerprint mismatch, tree mismatch, diff mismatch, and test-result mismatch evidence. The tests cover only the four mismatch cases, leaving unrelated, stale, and touched-only evidence untested.",
+      "category": "unknown",
+      "fingerprint": "74ae77047cbc7a53d7ce2d052402c94f828473ae74adc1b096a15c22a7f961b1",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R4 covered, but actual test files do not cover several required rejection classes."
+    },
+    {
+      "id": "620a13b4caddaeb47df10e2790779d74072faf7042a6519958a607f2fd335f2d",
+      "findingId": "620a13b4caddaeb47df10e2790779d74072faf7042a6519958a607f2fd335f2d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R7 test is a no-op",
+      "body": "The R7 test only asserts `true === true`, so it passes without exercising production behavior or the required shared/spec-local policy contracts.",
+      "category": "unknown",
+      "fingerprint": "620a13b4caddaeb47df10e2790779d74072faf7042a6519958a607f2fd335f2d",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that would pass without exercising production behavior."
+    },
+    {
+      "id": "89651bb61c28dfef4d654bb626bb77460e7223d468854ab3a553830cc29bc176",
+      "findingId": "89651bb61c28dfef4d654bb626bb77460e7223d468854ab3a553830cc29bc176",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing shared policy test coverage",
+      "body": "R7 requires both spec-local and shared policy tests, but the coverage artifact lists only `tests/finding-disposition-policy.test.js` and no shared policy test file.",
+      "category": "unknown",
+      "fingerprint": "89651bb61c28dfef4d654bb626bb77460e7223d468854ab3a553830cc29bc176",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding shared policy test coverage, and the coverage artifact contradicts the stated requirement."
+    }
+  ]
+}

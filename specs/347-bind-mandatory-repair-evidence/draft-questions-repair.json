@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "q1 から回答を誘導する directive wording を除去した。",
+  "items": [
+    {
+      "title": "1. Question includes directive wording",
+      "target": "q1",
+      "rationale": "QA question を中立な疑問文にし、must priority marker を requirement-like field に限定した。",
+      "evidence": "draft.json qa[0].question は先頭の must: を含まず、既存の allow/defer 方針だけを確認する質問になっている。",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    }
+  ]
+}

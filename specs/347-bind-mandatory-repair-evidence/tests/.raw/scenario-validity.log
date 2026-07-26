@@ -1,0 +1,219 @@
+[senti] scenario-validity tests start
+command: node --test specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js
+[senti] scenario-validity file start command=node specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js
+TAP version 13
+# Subtest: Issue \#467 finding disposition policy
+    # Subtest: R1: keeps a repeated mandatory finding must-fix at the occurrence limit
+    not ok 1 - R1: keeps a repeated mandatory finding must-fix at the occurrence limit
+      ---
+      duration_ms: 23.530482
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:51:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The expression evaluated to a falsy value:
+        
+          assert.ok(disposition instanceof MustFixDisposition)
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:59:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        node:internal/test_runner/test:1440:71
+        node:internal/per_context/primordials:464:82
+        new Promise (<anonymous>)
+        new SafePromise (node:internal/per_context/primordials:433:3)
+        node:internal/per_context/primordials:464:9
+        Array.map (<anonymous>)
+      ...
+    # Subtest: R2: unblocks a mandatory finding only with exact repair evidence
+    ok 2 - R2: unblocks a mandatory finding only with exact repair evidence
+      ---
+      duration_ms: 3.167537
+      type: 'test'
+      ...
+    # Subtest: R3: requires the evidence fingerprint, tree, diff, and test result to match
+    ok 3 - R3: requires the evidence fingerprint, tree, diff, and test result to match
+      ---
+      duration_ms: 5.034986
+      type: 'test'
+      ...
+    # Subtest: R4: rejects evidence with a mismatched finding fingerprint
+    not ok 4 - R4: rejects evidence with a mismatched finding fingerprint
+      ---
+      duration_ms: 3.032735
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:95:5'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:105:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: rejects evidence with a mismatched reviewed tree
+    not ok 5 - R4: rejects evidence with a mismatched reviewed tree
+      ---
+      duration_ms: 2.434372
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:95:5'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:105:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: rejects evidence with a mismatched repair diff
+    not ok 6 - R4: rejects evidence with a mismatched repair diff
+      ---
+      duration_ms: 0.663323
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:95:5'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:105:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R4: rejects evidence with a mismatched test result
+    not ok 7 - R4: rejects evidence with a mismatched test result
+      ---
+      duration_ms: 0.812965
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:95:5'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:105:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R5: gives findings at different locations or with different root causes distinct fingerprints
+    not ok 8 - R5: gives findings at different locations or with different root causes distinct fingerprints
+      ---
+      duration_ms: 7.72516
+      type: 'test'
+      location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:109:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        true !== false
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: false
+      actual: true
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:135:12)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: R6: retains informational disposition for a non-mandatory finding
+    ok 9 - R6: retains informational disposition for a non-mandatory finding
+      ---
+      duration_ms: 0.656124
+      type: 'test'
+      ...
+    # Subtest: R7: exercises the mandatory disposition, binding, identity, and non-mandatory contracts
+    ok 10 - R7: exercises the mandatory disposition, binding, identity, and non-mandatory contracts
+      ---
+      duration_ms: 6.496634
+      type: 'test'
+      ...
+    1..10
+not ok 1 - Issue \#467 finding disposition policy
+  ---
+  duration_ms: 59.448869
+  type: 'suite'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-347-bind-mandatory-repair-evidence/specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:50:1'
+  failureType: 'subtestsFailed'
+  error: '6 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 4
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95.390535
+Command failed: node specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: keeps a repeated mandatory finding must-fix at the occurrence limit
+[senti] requirement R2 observed: R2: unblocks a mandatory finding only with exact repair evidence
+[senti] requirement R3 observed: R3: requires the evidence fingerprint, tree, diff, and test result to match
+[senti] requirement R4 observed: R4: rejects evidence with a mismatched ${name}
+[senti] requirement R5 observed: R5: gives findings at different locations or with different root causes distinct fingerprints
+[senti] requirement R6 observed: R6: retains informational disposition for a non-mandatory finding
+[senti] requirement R7 observed: R7: exercises the mandatory disposition, binding, identity, and non-mandatory contracts
+[senti] scenario-validity tests end

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "q1 の directive wording を中立な質問へ修正する。",
+  "items": [
+    {
+      "title": "1. Question includes directive wording",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "質問本文の priority marker は requirement-like text に必要だが、QA question 自体には回答を誘導する directive wording を含めない。",
+      "evidence": "draft-review-questions.json の repairTargets[0] は draft.json qa[0].question の先頭 must: を問題としている。"
+    }
+  ]
+}

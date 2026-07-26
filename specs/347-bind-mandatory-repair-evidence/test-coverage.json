@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "mandatory requirement または blocking guardrail に紐付く finding は、repeatCount が maxOccurrences 以上でも MustFixDisposition と requiresRepair=true を維持する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "mandatory finding が gate を pass できるのは、evidence.findingFingerprint、evidence.reviewedTree、evidence.repairDiff、evidence.validatingTestResult の各値が current finding と evaluated target state に一致する場合、または既存の明示的 allow/defer decision が適用される場合だけとする。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "repair evidence は finding fingerprint、reviewed HEAD/tree、repair diff、validating test result を必須の検証対象として保持し、gate は四値のそれぞれが current finding と evaluated target state に一致する場合だけ evidence を受け入れる。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "repair evidence が unrelated、stale、touched-only、fingerprint/tree/diff/test-result mismatch のいずれかである場合、gate はその evidence を拒否し mandatory finding を blocking のままにする。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "ReviewFindingFingerprint は canonical identity に finding location と root cause を含め、同じ requirement/guardrail/file でも location または root cause が異なる finding を別 fingerprint として追跡する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "non-mandatory finding は既存どおり InformationalDisposition となり、repair loop に入らない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "spec-local と shared policy tests は R1-R6 の mandatory recurrence、explicit decision、repair evidence binding/rejection、identity separation、non-mandatory regression を検証する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finding-disposition-policy.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/finding-disposition-policy.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:46:56.957Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 assertion could verify accepted evidence identity",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:109",
+      "findingId": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+      "fingerprint": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+      "disposition": "informational",
+      "rationale": "R2 and the R4 mismatch matrix already exercise pass/fail behavior for exact and invalid evidence, so requirement coverage is present; this would make the positive R3 contract more explicit.",
+      "improvement": "In the R3 test, assert that the accepted evidence is bound to the expected fingerprint/tree/head/diff/test-result values, not only that one evidence entry exists.",
+      "whyNonBlocking": "R2 and the R4 mismatch matrix already exercise pass/fail behavior for exact and invalid evidence, so requirement coverage is present; this would make the positive R3 contract more explicit."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "4b812063a07e3d5a44e7e0db023c1c6e79dca75cab09cd163ff06ff8c4543ddd"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 11,
+  "findings": [
+    {
+      "id": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+      "findingId": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 11,
+      "severity": "non-blocking",
+      "title": "R3 assertion could verify accepted evidence identity",
+      "body": "R2 and the R4 mismatch matrix already exercise pass/fail behavior for exact and invalid evidence, so requirement coverage is present; this would make the positive R3 contract more explicit.",
+      "category": "unknown",
+      "fingerprint": "0d636baa78fc361358d513212609baea14c8b0f144fe747631fe0ffa3fe6a566",
+      "disposition": "informational",
+      "rationale": "R2 and the R4 mismatch matrix already exercise pass/fail behavior for exact and invalid evidence, so requirement coverage is present; this would make the positive R3 contract more explicit."
+    }
+  ]
+}

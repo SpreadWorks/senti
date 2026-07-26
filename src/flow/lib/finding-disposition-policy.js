@@ -36,6 +36,18 @@ function requirePositiveInteger(value, field) {
   return value;
 }
 
+function requireSha256(value, field) {
+  const hash = requireString(value, field);
+  if (!SHA256_RE.test(hash)) throw new Error(`${field} must be a lowercase SHA-256 string`);
+  return hash;
+}
+
+function requireCommit(value, field) {
+  const commit = requireString(value, field);
+  if (!COMMIT_RE.test(commit)) throw new Error(`${field} must be a Git commit hash`);
+  return commit;
+}
+
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (value && typeof value === "object") {
@@ -75,6 +87,8 @@ function findingIdentity(value) {
     guardrailId,
     findingKey: normalizeIdentityText(findingKey),
     file: normalizeIdentityPath(finding.file),
+    location: normalizeIdentityText(finding.location),
+    rootCause: normalizeIdentityText(finding.rootCause),
     title: authoritative ? null : normalizeIdentityText(finding.title),
     issue: authoritative ? null : normalizeIdentityText(finding.issue || finding.reason || finding.body),
   };
@@ -326,9 +340,7 @@ class RepairReference {
     this.commit = repairRef.commit == null
       ? null
       : requireString(repairRef.commit, "repairRef.commit");
-    if (this.commit !== null && !COMMIT_RE.test(this.commit)) {
-      throw new Error("repairRef.commit must be a Git commit hash");
-    }
+    if (this.commit !== null) this.commit = requireCommit(this.commit, "repairRef.commit");
     if (repairRef.files == null) {
       this.files = Object.freeze([]);
     } else {
@@ -396,10 +408,32 @@ class RepairReference {
   }
 }
 
+class ValidatingTestResult {
+  constructor(value) {
+    const result = requireRecord(value, "validatingTestResult");
+    if (result.status !== "pass") throw new Error("validatingTestResult.status must be pass");
+    this.findingFingerprint = requireSha256(
+      result.findingFingerprint,
+      "validatingTestResult.findingFingerprint",
+    );
+    this.reviewedTree = requireSha256(result.reviewedTree, "validatingTestResult.reviewedTree");
+    Object.freeze(this);
+  }
+
+  matches({ findingFingerprint, reviewedTree } = {}) {
+    return this.findingFingerprint === findingFingerprint && this.reviewedTree === reviewedTree;
+  }
+}
+
 export class RepairEvidenceReference {
   constructor(input = {}) {
     const value = requireRecord(input, "repair evidence");
     this.normalizedFindingId = requireString(value.normalizedFindingId, "normalizedFindingId");
+    this.findingFingerprint = requireSha256(value.findingFingerprint, "findingFingerprint");
+    this.reviewedTree = requireSha256(value.reviewedTree, "reviewedTree");
+    this.reviewedHead = requireCommit(value.reviewedHead, "reviewedHead");
+    this.repairDiff = requireSha256(value.repairDiff, "repairDiff");
+    this.validatingTestResult = new ValidatingTestResult(value.validatingTestResult);
     this.repairRef = value.repairRef instanceof RepairReference
       ? value.repairRef
       : new RepairReference(value.repairRef);
@@ -417,20 +451,52 @@ export class RepairEvidenceReference {
     Object.freeze(this);
   }
 
-  matches({ normalizedFindingId, phase, taskId = null, reportedAt = null, root = null } = {}) {
+  matches({
+    normalizedFindingId,
+    phase,
+    taskId = null,
+    reportedAt = null,
+    root = null,
+    findingFingerprint = null,
+    reviewedTree = null,
+    reviewedHead = null,
+    repairDiff = null,
+  } = {}) {
     const scope = new ReviewEvidenceScope({ phase, taskId });
     if (this.normalizedFindingId !== normalizedFindingId || !this.scope.equals(scope)) return false;
     if (reportedAt !== null) {
       const findingTime = Date.parse(requireString(reportedAt, "finding.reportedAt"));
       if (!Number.isFinite(findingTime) || this.recordedAt < findingTime) return false;
     }
+    if (
+      findingFingerprint === null
+      || reviewedTree === null
+      || reviewedHead === null
+      || repairDiff === null
+    ) return false;
+    if (
+      this.findingFingerprint !== findingFingerprint
+      || this.reviewedTree !== reviewedTree
+      || this.reviewedHead !== reviewedHead
+      || this.repairDiff !== repairDiff
+      || !this.validatingTestResult.matches({ findingFingerprint, reviewedTree })
+    ) return false;
     return root === null || this.repairRef.materializesAfter(root, reportedAt);
   }
 
   toJSON() {
     return {
       normalizedFindingId: this.normalizedFindingId,
+      findingFingerprint: this.findingFingerprint,
+      reviewedTree: this.reviewedTree,
+      reviewedHead: this.reviewedHead,
+      repairDiff: this.repairDiff,
       repairRef: this.repairRef.toJSON(),
+      validatingTestResult: {
+        status: "pass",
+        findingFingerprint: this.validatingTestResult.findingFingerprint,
+        reviewedTree: this.validatingTestResult.reviewedTree,
+      },
       scope: this.scope.toJSON(),
       timestamp: this.timestamp,
       ...(this.issueLogId && { issueLogId: this.issueLogId }),
@@ -449,14 +515,24 @@ export class IssueLogRepairEvidenceSource {
       try {
         evidence.push(new RepairEvidenceReference(entry));
       } catch {
-        // Malformed claims are not repair evidence. The gate remains blocking.
+        // Invalid issue-log claims are not repair evidence.
       }
     }
     this.entries = Object.freeze(evidence);
     Object.freeze(this);
   }
 
-  find({ normalizedFindingId, phase, taskId = null, reportedAt = null, root = null } = {}) {
+  find({
+    normalizedFindingId,
+    phase,
+    taskId = null,
+    reportedAt = null,
+    root = null,
+    findingFingerprint = null,
+    reviewedTree = null,
+    reviewedHead = null,
+    repairDiff = null,
+  } = {}) {
     const id = requireString(normalizedFindingId, "normalizedFindingId");
     return this.entries.findLast((entry) => entry.matches({
       normalizedFindingId: id,
@@ -464,6 +540,10 @@ export class IssueLogRepairEvidenceSource {
       taskId,
       reportedAt,
       root,
+      findingFingerprint,
+      reviewedTree,
+      reviewedHead,
+      repairDiff,
     })) || null;
   }
 }
@@ -489,6 +569,9 @@ class GateFinding {
     this.requirementId = finding.requirementId;
     this.guardrailId = finding.guardrailId;
     this.reportedAt = optionalString(value.reportedAt, "finding.reportedAt");
+    this.explicitDecision = value.explicitDecision == null
+      ? null
+      : new ExplicitFindingDecision(value.explicitDecision, this.fingerprint);
     Object.freeze(this);
   }
 
@@ -499,6 +582,21 @@ class GateFinding {
 
   toJSON() {
     return this.disposition.toJSON();
+  }
+}
+
+class ExplicitFindingDecision {
+  constructor(value, findingFingerprint) {
+    const decision = requireRecord(value, "explicitDecision");
+    if (!["allow", "defer"].includes(decision.kind)) {
+      throw new Error("explicitDecision.kind must be allow or defer");
+    }
+    if (requireSha256(decision.findingFingerprint, "explicitDecision.findingFingerprint") !== findingFingerprint) {
+      throw new Error("explicitDecision.findingFingerprint must match the finding fingerprint");
+    }
+    this.kind = decision.kind;
+    this.findingFingerprint = findingFingerprint;
+    Object.freeze(this);
   }
 }
 
@@ -650,11 +748,19 @@ export class FindingDispositionPolicy {
       repeatCount: occurrences,
     };
     if (!mandatory) return new InformationalDisposition(dispositionInput);
-    if (occurrences >= this.maxOccurrences) return new DeferredDisposition(dispositionInput);
     return new MustFixDisposition(dispositionInput);
   }
 
-  evaluateGate({ findings, issueLogEntries = [], phase, taskId = null, root = null } = {}) {
+  evaluateGate({
+    findings,
+    issueLogEntries = [],
+    phase,
+    taskId = null,
+    root = null,
+    reviewedTree = null,
+    reviewedHead = null,
+    repairDiff = null,
+  } = {}) {
     if (!Array.isArray(findings)) throw new Error("gate findings must be an array");
     const scope = new ReviewEvidenceScope({ phase, taskId });
     const evidenceSource = issueLogEntries instanceof IssueLogRepairEvidenceSource
@@ -665,6 +771,7 @@ export class FindingDispositionPolicy {
 
     for (const rawFinding of findings) {
       const finding = rawFinding instanceof GateFinding ? rawFinding : new GateFinding(rawFinding);
+      if (finding.explicitDecision !== null) continue;
       if (!(finding.disposition instanceof MustFixDisposition)) continue;
       if (!finding.isAuthoritativeMustFix) {
         blocks.push(new FindingGateBlock(
@@ -679,6 +786,10 @@ export class FindingDispositionPolicy {
         taskId: scope.taskId,
         reportedAt: finding.reportedAt,
         root,
+        findingFingerprint: finding.fingerprint,
+        reviewedTree,
+        reviewedHead,
+        repairDiff,
       });
       if (!matched) {
         blocks.push(new FindingGateBlock(

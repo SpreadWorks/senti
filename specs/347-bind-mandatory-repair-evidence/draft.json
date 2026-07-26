@@ -1,0 +1,70 @@
+{
+  "devType": "bugfix",
+  "goal": "mandatory finding の自動 defer を禁止し、修復証跡を正確な finding と現在のレビュー対象ツリーへ厳密に束縛する。",
+  "analysis": {
+    "problem": "必須 requirement または blocking guardrail に紐付く finding が発生回数の上限だけで Deferred となり、修復なしで gate を通過し得る。加えて既存の修復証跡はファイル存在と mtime を根拠にするため、別 finding・古いツリー・実修復を含まない変更へ再利用できる。",
+    "proposedApproach": "既存の disposition 型を保ったまま、mandatory finding の分類規則と repair evidence の検証契約を限定的に強化する。finding identity を位置と根本原因まで区別し、証跡が対象 fingerprint、レビュー対象 HEAD/tree、修復 diff、検証済みテスト結果に一致するときだけ gate の修復として扱う。",
+    "validation": "focused tests で mandatory の繰返し、明示的 allow/defer、無関係・stale・touched-only 証跡、fingerprint/位置/根本原因が異なる finding、非 mandatory の既存挙動を検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: mandatory finding は valid repair evidence または明示的 allow/defer がない限り gate を block し続ける。",
+      "must: mandatory finding の repeatCount は requiresRepair を暗黙に解除しない。",
+      "must: repair evidence は正確な finding fingerprint、レビュー対象 HEAD/tree、repair diff、検証済み test result に結び付く。",
+      "must: location または root cause が異なる finding は別々に追跡する。",
+      "must: non-mandatory finding の既存 disposition 挙動は維持する。"
+    ],
+    "decisionPoints": [
+      "証跡束縛に必要な既存の evidence schema と writer/consumer を特定し、型 surface を変えずに検証する。",
+      "明示的 allow/defer の既存経路を維持し、repeatCount による自動 defer と区別する。"
+    ],
+    "resolvedByProjectRules": [
+      "対象は #467 の単一 concern とし、disposition model の再設計へ拡張しない。",
+      "Node.js built-in modules のみを使い、意味のある値は専用クラスで表現する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "証跡の各束縛値をどの既存 artifact から取得・検証するか。",
+      "identity canonicalization に location と root cause をどの粒度で含めるか。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finding disposition behavior を修正する。",
+      "must: repair-evidence validation と finding identity/fingerprint separation の focused tests を追加または更新する。"
+    ],
+    "out": [
+      "must not: #422 で導入した disposition type surface または全体モデルを再設計しない。",
+      "must not: non-mandatory finding の既存 disposition behavior を変更しない。",
+      "must not: src/flow/commands/review.js、src/flow/lib/run-gate.js、flow command definition、hook、config entry、focused finding-disposition test 以外の test suite を変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: public flow run review behavior は finding の disposition、fingerprint、repeatCount を生成 artifact に記録し続ける。owner は既存の review command と FindingDispositionPolicy であり、mandatory finding の recurrence cap だけを Deferred から must-fix 維持へ置換する。",
+    "must: public flow run gate behavior は review artifact と issue-log repair evidence を消費し続ける。owner は FindingDispositionPolicy.evaluateGate と RepairEvidenceReference であり、current finding、reviewed HEAD/tree、repair diff、validating test result に一致しない証跡を gate pass 根拠から除外する。",
+    "must: issue-log の repair evidence producer contract は normalized finding identity、scope、timestamp、repair reference を保持する。owner は RepairEvidenceReference であり、追加の束縛情報は既存 consumer が検証するために利用する。",
+    "must: finding fingerprint は review と gate artifact 間の照合キーであり続ける。owner は ReviewFindingFingerprint であり、location または root cause が異なる finding を同一 fingerprint に統合しない。",
+    "must: user-facing CLI command、hook、config entry は追加・削除しない。generated review/gate artifact の既存読み書き経路は維持し、検証条件だけを強化する。",
+    "must: behavior-level verification は focused policy tests で mandatory recurrence が blocking のままであること、explicit allow/defer または valid evidence が通過根拠になること、無関係・stale・touched-only evidence が拒否されること、異なる identity が独立することを検証する。",
+    "must: non-mandatory finding の disposition behavior は変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "#467 が定める既存の明示的 allow/defer 経路だけを mandatory finding の非 blocking 化に使い、repeatCount による暗黙の Deferred 化を禁止するか。",
+      "answer": "must: mandatory finding を non-blocking にできるのは valid repair evidence がある場合、または既存の明示的 allow/defer decision がある場合だけとする。repeatCount の閾値到達はその根拠にしない。",
+      "evidence": "#467 Acceptance Criteria は、mandatory finding が max occurrence threshold に達しても valid repair evidence または explicit allow/defer decision がない限り gate を block すると定めている。",
+      "why": "Issue が policy outcome を明示しており、新たな user judgment は不要である。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-25T23:20:50+09:00",
+    "notes": "#467 の Issue により mandatory finding、repair evidence binding、非 mandatory behavior の範囲と受入条件は明示済み。"
+  }
+}

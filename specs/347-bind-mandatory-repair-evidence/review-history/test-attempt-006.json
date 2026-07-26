@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:37:27.680Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing validatingTestResult binding mismatch coverage",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+      "findingId": "e7ffe56afde7a28773823c10392f3705ac25af810abe90895b5119874a3d1cd6",
+      "fingerprint": "e7ffe56afde7a28773823c10392f3705ac25af810abe90895b5119874a3d1cd6",
+      "disposition": "must-fix",
+      "rationale": "This leaves a mandatory evidence-binding requirement without regression coverage and permits a static anti-pattern where production behavior can ignore nested validation-result identity binding.",
+      "issue": "R2/R3 require evidence.validatingTestResult to match the current finding and evaluated target state, but the tests only reject a failing status. They do not cover a passing validatingTestResult with mismatched findingFingerprint or reviewedTree, so an implementation that checks only status: \"pass\" would still pass.",
+      "requiredChange": "Add spec-local rejection cases for validatingTestResult.findingFingerprint mismatch and validatingTestResult.reviewedTree mismatch while the top-level evidence fingerprint/tree still match.",
+      "whyBlocking": "This leaves a mandatory evidence-binding requirement without regression coverage and permits a static anti-pattern where production behavior can ignore nested validation-result identity binding.",
+      "origin": "R2, R3",
+      "failureKind": "missing-regression-test"
+    },
+    {
+      "kind": "blocking",
+      "title": "Missing explicit allow decision coverage",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+      "findingId": "f7f015e26fd8b1b4d352649b6318811626a612046578d51e10d1d29edb4ef849",
+      "fingerprint": "f7f015e26fd8b1b4d352649b6318811626a612046578d51e10d1d29edb4ef849",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R2 covered, but one of its explicit acceptance alternatives has no corresponding executable test coverage.",
+      "issue": "R2 allows mandatory findings to pass without repair evidence when an existing explicit allow/defer decision applies, but the tests only cover a deferred disposition and not an explicit allow decision.",
+      "requiredChange": "Add a spec-local test for the explicit allow decision path without repair evidence.",
+      "whyBlocking": "The coverage artifact marks R2 covered, but one of its explicit acceptance alternatives has no corresponding executable test coverage.",
+      "origin": "R2",
+      "failureKind": "coverage-artifact-contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "27b8bb01c8b20c9b317a2d5c63cebb0a811ef88de5ecfc16d805c3a6b35c7e6b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "e7ffe56afde7a28773823c10392f3705ac25af810abe90895b5119874a3d1cd6",
+      "findingId": "e7ffe56afde7a28773823c10392f3705ac25af810abe90895b5119874a3d1cd6",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Missing validatingTestResult binding mismatch coverage",
+      "body": "R2/R3 require evidence.validatingTestResult to match the current finding and evaluated target state, but the tests only reject a failing status. They do not cover a passing validatingTestResult with mismatched findingFingerprint or reviewedTree, so an implementation that checks only status: \"pass\" would still pass.",
+      "category": "unknown",
+      "fingerprint": "e7ffe56afde7a28773823c10392f3705ac25af810abe90895b5119874a3d1cd6",
+      "disposition": "must-fix",
+      "rationale": "This leaves a mandatory evidence-binding requirement without regression coverage and permits a static anti-pattern where production behavior can ignore nested validation-result identity binding."
+    },
+    {
+      "id": "f7f015e26fd8b1b4d352649b6318811626a612046578d51e10d1d29edb4ef849",
+      "findingId": "f7f015e26fd8b1b4d352649b6318811626a612046578d51e10d1d29edb4ef849",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Missing explicit allow decision coverage",
+      "body": "R2 allows mandatory findings to pass without repair evidence when an existing explicit allow/defer decision applies, but the tests only cover a deferred disposition and not an explicit allow decision.",
+      "category": "unknown",
+      "fingerprint": "f7f015e26fd8b1b4d352649b6318811626a612046578d51e10d1d29edb4ef849",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact marks R2 covered, but one of its explicit acceptance alternatives has no corresponding executable test coverage."
+    }
+  ]
+}

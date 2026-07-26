@@ -1,0 +1,55 @@
+{
+  "spec": "specs/347-bind-mandatory-repair-evidence/spec.json",
+  "date": "2026-07-25T15:20:45.264Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "mandatory requirement または blocking guardrail に紐付く finding は、repeatCount が maxOccurrences 以上でも MustFixDisposition と requiresRepair=true を維持する。",
+      "status": "done",
+      "note": "R1: keeps a repeated mandatory finding must-fix at the occurrence limit"
+    },
+    {
+      "desc": "mandatory finding が gate を pass できるのは、evidence.findingFingerprint、evidence.reviewedTree、evidence.repairDiff、evidence.validatingTestResult の各値が current finding と evaluated target state に一致する場合、または既存の明示的 allow/defer decision が適用される場合だけとする。",
+      "status": "done",
+      "note": "R2: unblocks a mandatory finding only with exact repair evidence"
+    },
+    {
+      "desc": "repair evidence は finding fingerprint、reviewed HEAD/tree、repair diff、validating test result を必須の検証対象として保持し、gate は四値のそれぞれが current finding と evaluated target state に一致する場合だけ evidence を受け入れる。",
+      "status": "done",
+      "note": "R3: requires the evidence fingerprint, tree, diff, and test result to match"
+    },
+    {
+      "desc": "repair evidence が unrelated、stale、touched-only、fingerprint/tree/diff/test-result mismatch のいずれかである場合、gate はその evidence を拒否し mandatory finding を blocking のままにする。",
+      "status": "done",
+      "note": "R4: rejects evidence with a mismatched ${name}"
+    },
+    {
+      "desc": "ReviewFindingFingerprint は canonical identity に finding location と root cause を含め、同じ requirement/guardrail/file でも location または root cause が異なる finding を別 fingerprint として追跡する。",
+      "status": "done",
+      "note": "R5: gives findings at different locations or with different root causes distinct fingerprints"
+    },
+    {
+      "desc": "non-mandatory finding は既存どおり InformationalDisposition となり、repair loop に入らない。",
+      "status": "done",
+      "note": "R6: retains informational disposition for a non-mandatory finding"
+    },
+    {
+      "desc": "spec-local と shared policy tests は R1-R6 の mandatory recurrence、explicit decision、repair evidence binding/rejection、identity separation、non-mandatory regression を検証する。",
+      "status": "done",
+      "note": "R7: exercises policy classes used by the shared and spec-local regression contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "46e2b8f98152081f186be44ca934408e6e5777aa3916ece91674afea380167b7"
+}

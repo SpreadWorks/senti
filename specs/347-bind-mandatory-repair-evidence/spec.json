@@ -1,0 +1,274 @@
+{
+  "goal": "mandatory finding の繰返しによる自動 defer を禁止し、repair evidence の fingerprint、reviewed tree、repair diff、validating test result を現在の finding と評価対象へ一致させる。",
+  "scope": {
+    "in": [
+      "src/flow/lib/finding-disposition-policy.js の mandatory disposition、finding identity、repair evidence validation",
+      "finding disposition policy の shared regression tests と spec-local behavior coverage"
+    ],
+    "out": [
+      "#422 で導入した disposition class の export 名・全体モデルの再設計",
+      "non-mandatory finding の disposition policy 変更",
+      "src/flow/commands/review.js、src/flow/lib/run-gate.js、flow command definition、hook、config entry、focused finding-disposition test 以外の test suite の変更"
+    ]
+  },
+  "constraints": [
+    "Node.js built-in modules のみを使い、外部依存を追加しない。",
+    "ReviewFindingFingerprint、FindingDispositionPolicy、RepairEvidenceReference の既存 type surface を保持し、値の invariant は各専用 class の constructor と method で強制する。",
+    "gate は evidence.findingFingerprint が finding.fingerprint、evidence.reviewedTree が evaluated target tree、evidence.repairDiff が current repair diff、evidence.validatingTestResult が同じ finding/tree を検証した pass result の各値に一致しない場合に evidence を拒否する。",
+    "変更対象は finding disposition policy と focused finding-disposition tests に限定する。"
+  ],
+  "design_principles": [
+    "mandatory authority は repeatCount より優先し、明示的な decision または検証済み repair evidence だけが blocking 状態を解除できる。",
+    "repair evidence は finding fingerprint、reviewed tree、repair diff、validating test result の四値を保存し、gate は各値を current finding と evaluated target state の対応値へ個別に一致比較する。",
+    "finding fingerprint は location と root cause を含む canonical identity から計算し、異なる finding の repair status 共有を防ぐ。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/finding-disposition-policy.js: mandatory/informational disposition、finding fingerprint、repair evidence reference、gate decision を所有する。"
+      },
+      {
+        "text": "tests/unit/flow/finding-disposition-policy.test.js: existing public policy contract の shared regression を検証する。"
+      },
+      {
+        "text": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js: R1-R6 の spec-local behavior coverage を所有する。"
+      },
+      {
+        "text": "FindingDispositionPolicy preserves MustFixDisposition for mandatory findings regardless of recurrence count.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "ReviewFindingFingerprint derives canonical identity from location and rootCause in addition to requirement, guardrail, and file.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "RepairEvidenceReference validates exact finding fingerprint, reviewed tree and HEAD, repair diff, and validating test result before gate use.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Spec-local and shared finding-disposition tests cover the R1-R7 policy contract.",
+        "added_by_task": "T-4"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "review finding + requirement/guardrail authority → canonical fingerprint → disposition classification → mandatory gate block または explicit decision / fully bound repair evidence → gate decision"
+      },
+      {
+        "text": "repair evidence claim → fingerprint/tree/diff/test-result の各値を current finding と evaluated target state に比較 → scope match → gate pass eligibility"
+      },
+      {
+        "text": "mandatory authority and repeat count -> MustFixDisposition -> repair-required gate path",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "review finding identity fields -> normalized canonical tuple -> distinct SHA-256 fingerprint",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "repair evidence claim -> typed validation -> exact target-state comparison -> matching repair evidence or mandatory gate block",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "policy inputs and repair evidence variants -> focused regression assertions -> requirement evidence",
+        "added_by_task": "T-4"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] mandatory authority を持つ finding は maxOccurrences 到達時に DeferredDisposition へ変換されるため、自動 defer を除去して MustFixDisposition を維持する。",
+        "evidence": "src/flow/lib/finding-disposition-policy.js: FindingDispositionPolicy.classify() は mandatory を判定した後、occurrences >= maxOccurrences で DeferredDisposition を返す。Issue #467 の R1 はこの分岐の置換を要求する。"
+      },
+      {
+        "text": "[VERIFY] existing repair evidence は normalizedFindingId、scope、timestamp、file/commit materialization だけを照合するため、finding fingerprint、current tree、repair diff、validating test result の一致比較を追加する。",
+        "evidence": "src/flow/lib/finding-disposition-policy.js: RepairEvidenceReference.matches() は id/scope/time と RepairReference.materializesAfter() を使い、file existence と mtime を受け入れる。Issue #467 の evidence acceptance criteria と一致する不足である。"
+      },
+      {
+        "text": "[VERIFY] authoritative finding identity は file を含むが source location と root cause text を除外し得るため、canonical identity に両方を含めて distinct finding を分離する。",
+        "evidence": "src/flow/lib/finding-disposition-policy.js: findingIdentity() は authoritative requirement/guardrail のとき title と issue を null にし、position locator を含めない。ReviewFindingFingerprint.fromFinding() はこの identity を hash 化する。"
+      },
+      {
+        "text": "Migration parity: flow run review は disposition/fingerprint/repeatCount artifact を生成し続け、flow run gate は同じ artifact と issue-log evidence を消費し続ける。owner は FindingDispositionPolicy、ReviewFindingFingerprint、RepairEvidenceReference のままで、変更は evidence acceptance 条件だけである。",
+        "evidence": "Affected public commands: senti flow run review and senti flow run gate. Affected generated artifacts: review findings and issue-log repair evidence. Hooks/config/command registrations are unchanged. Behavior-level tests assert retained review-to-gate behavior plus stricter mandatory/evidence outcomes."
+      },
+      {
+        "text": "Mandatory recurrence never creates an implicit defer; only explicit gate dispositions can unblock without repair evidence.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Location and root cause are semantic identity fields, so findings that differ in either field cannot share repair evidence.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Malformed, incomplete, stale, or mismatched evidence is ignored rather than weakening a mandatory finding.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Spec-local coverage complements the shared suite so issue-specific requirements remain executable and traceable.",
+        "added_by_task": "T-4"
+      }
+    ]
+  },
+  "background": "現行 policy は requirement または blocking guardrail に紐付く mandatory finding を must-fix とするが、repeatCount が maxOccurrences に達すると DeferredDisposition を返し requiresRepair を解除する。さらに repair evidence は同じ normalized finding id と scope、時刻以後の file/commit を確認するだけで、レビューした tree、実際の repair diff、検証済み test result を結び付けない。authoritative finding の fingerprint は source location と root cause を区別しない経路があり、別 finding が同じ repair status を共有し得る。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "mandatory requirement または blocking guardrail に紐付く finding は、repeatCount が maxOccurrences 以上でも MustFixDisposition と requiresRepair=true を維持する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "mandatory finding が gate を pass できるのは、evidence.findingFingerprint、evidence.reviewedTree、evidence.repairDiff、evidence.validatingTestResult の各値が current finding と evaluated target state に一致する場合、または既存の明示的 allow/defer decision が適用される場合だけとする。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "repair evidence は finding fingerprint、reviewed HEAD/tree、repair diff、validating test result を必須の検証対象として保持し、gate は四値のそれぞれが current finding と evaluated target state に一致する場合だけ evidence を受け入れる。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "repair evidence が unrelated、stale、touched-only、fingerprint/tree/diff/test-result mismatch のいずれかである場合、gate はその evidence を拒否し mandatory finding を blocking のままにする。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "ReviewFindingFingerprint は canonical identity に finding location と root cause を含め、同じ requirement/guardrail/file でも location または root cause が異なる finding を別 fingerprint として追跡する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "non-mandatory finding は既存どおり InformationalDisposition となり、repair loop に入らない。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "spec-local と shared policy tests は R1-R6 の mandatory recurrence、explicit decision、repair evidence binding/rejection、identity separation、non-mandatory regression を検証する。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A mandatory R1 finding at repeatCount=maxOccurrences is a MustFixDisposition with requiresRepair=true and blocks the gate without accepted evidence or explicit decision.",
+    "A gate accepts repair evidence only when its fingerprint, reviewed tree, repair diff, and validating test result match the current mandatory finding and review state.",
+    "Unrelated, stale, touched-only, or any bound-value-mismatched evidence does not unblock a mandatory finding.",
+    "Two findings that differ by location or root cause receive different fingerprints and cannot share repair evidence or repair status.",
+    "A non-mandatory finding remains InformationalDisposition with requiresRepair=false.",
+    "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js contains the canonical // spec: R1 R2 R3 R4 R5 R6 R7 header, and the focused shared policy test suite passes."
+  ],
+  "clarifications": [
+    {
+      "q": "既存の explicit allow/defer decision はどう扱うか。",
+      "a": "既存の明示的 decision 経路は維持する。repeatCount は explicit decision を生成せず、repair requirement を暗黙に解除しない。"
+    },
+    {
+      "q": "evidence validation failure 時に artifact をどう扱うか。",
+      "a": "無効な evidence claim は repair evidence として採用せず、gate を blocking に保つ。無関係な flow artifact の削除や command/hook/config の変更は行わない。"
+    },
+    {
+      "q": "R7 の spec test header は requirement ごとに分割するか。",
+      "a": "既存の test-header parser が定義する単一の canonical header `// spec: R1 R2 R3 R4 R5 R6 R7` を使用する。これにより全 requirement の traceability を一つの spec-local policy test file に宣言する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "mandatory finding を recurrence cap で DeferredDisposition にし続ける。",
+      "reason": "修復または明示判断なしに must-fix finding が non-blocking となり、#467 の gate contract に反するため採用しない。"
+    },
+    {
+      "option": "file existence と mtime を repair evidence の十分条件として残す。",
+      "reason": "別 finding、古い tree、touched-only file を current repair と誤認でき、fingerprint/tree/diff/test-result の四値比較要件を満たさないため採用しない。"
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "finding-disposition-policy",
+    "mandatory-finding",
+    "must-fix",
+    "repair-evidence",
+    "review-finding-fingerprint",
+    "repair-reference",
+    "reviewed-tree",
+    "repair-diff",
+    "test-result",
+    "gate-decision"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/finding-disposition-policy.js",
+    "tests/unit/flow/finding-disposition-policy.test.js",
+    "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js (// spec: R1 through R7)"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Preserve mandatory blocking",
+      "goal": "mandatory authority を持つ finding が recurrence cap に達しても must-fix のまま gate-blocking となる policy を実装する。",
+      "acceptance": [
+        "mandatory finding at and above maxOccurrences returns MustFixDisposition with requiresRepair=true.",
+        "Existing explicit allow/defer decisions remain the only non-evidence path for a mandatory finding to become non-blocking."
+      ],
+      "implementation_notes": "FindingDispositionPolicy.classify() の mandatory branch を変更する。DeferredDisposition class と non-mandatory behavior は残す。",
+      "test_strategy": "unit/spec-local tests cover repeatCount boundary and above-bound mandatory findings plus non-mandatory regression.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Separate finding identity",
+      "goal": "finding location と root cause を canonical identity に含め、distinct finding が fingerprint と repair status を共有しないようにする。",
+      "acceptance": [
+        "Findings with a different location have different fingerprints.",
+        "Findings with a different root cause have different fingerprints even when their requirement/guardrail and file match."
+      ],
+      "implementation_notes": "findingIdentity() と ReviewFindingFingerprint.fromFinding() の existing canonicalization path を拡張し、text は trim・連続空白を単一空白・小文字化、path は slash を / に統一してから location と root cause を hash input に含める。",
+      "test_strategy": "unit/spec-local tests build otherwise equal findings that differ only by location or root cause.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Bind repair evidence",
+      "goal": "repair evidence の fingerprint、reviewed tree、repair diff、validating test result を current finding と evaluated target state に個別比較し、不一致 evidence を gate が受理しないようにする。",
+      "acceptance": [
+        "Accepted evidence matches fingerprint, reviewed tree, repair diff, and validating test result.",
+        "Unrelated, stale, touched-only, or mismatched evidence leaves the mandatory gate block in place."
+      ],
+      "implementation_notes": "RepairEvidenceReference、RepairReference、IssueLogRepairEvidenceSource、FindingDispositionPolicy.evaluateGate() の typed contract を変更し、current invariants を class boundary で fail closed にする。",
+      "test_strategy": "unit/spec-local tests cover four-value equality acceptance and each evidence mismatch category through evaluateGate().",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Cover disposition policy",
+      "goal": "#467 の policy contract を spec-local coverage と focused shared regression に記録する。",
+      "acceptance": [
+        "Spec-local test file maps R1 through R7 with required headers.",
+        "Focused shared policy tests exercise retained non-mandatory behavior and changed mandatory/evidence behavior."
+      ],
+      "implementation_notes": "Production contract changes are covered in tests/unit/flow/finding-disposition-policy.test.js; spec-local coverage is additive evidence rather than a replacement.",
+      "test_strategy": "Run node --test against the spec-local and focused shared policy files.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-25T14:30:37.205Z",
+    "notes": "auto: preflight accepted by user; draft, spec review, and gates passed."
+  }
+}

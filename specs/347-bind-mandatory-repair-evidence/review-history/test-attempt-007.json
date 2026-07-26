@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:39:57.808Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3/R4 do not statically prove repair diff binding to the evaluated target state",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:90",
+      "findingId": "18bd294ddb9181efc65db675f089678cd12e223f847671639acdbebb860c2304",
+      "fingerprint": "18bd294ddb9181efc65db675f089678cd12e223f847671639acdbebb860c2304",
+      "disposition": "must-fix",
+      "rationale": "R3 requires the gate to accept evidence only when fingerprint, reviewed tree, repair diff, and validating test result each match the current finding and evaluated target state; the current test design does not exercise the target-state side of the repair diff comparison.",
+      "issue": "The tests model `repairDiff` only as an arbitrary `repairRef.diffSha256` value and assert acceptance/rejection based on that field, but they do not provide or assert any evaluated target-state diff/hash source for the gate to compare against. This allows an implementation to accept any evidence-carried diff token as long as it matches itself, without exercising production behavior that binds repair evidence to the actual evaluated target state.",
+      "requiredChange": "Add spec-local coverage where `evaluateGate` is given the current/evaluated repair diff or equivalent production target-state input, and assert evidence is accepted only when `repairRef.diffSha256` matches that target-state diff and rejected when it does not.",
+      "whyBlocking": "R3 requires the gate to accept evidence only when fingerprint, reviewed tree, repair diff, and validating test result each match the current finding and evaluated target state; the current test design does not exercise the target-state side of the repair diff comparison.",
+      "origin": "R3",
+      "failureKind": "static anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 stale evidence test encodes an unsupported timestamp premise",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js:95",
+      "findingId": "4042930dad52b00299b16ca4efe51db114dbbb83e7081448fc014bd58db9395d",
+      "fingerprint": "4042930dad52b00299b16ca4efe51db114dbbb83e7081448fc014bd58db9395d",
+      "disposition": "must-fix",
+      "rationale": "A test that requires timestamp-age rejection contradicts the specified gate contract and can force an incorrect implementation premise unrelated to the required evidence binding.",
+      "issue": "The `stale timestamp` case expects evidence to be rejected solely because `timestamp` is old. The requirements define stale evidence in terms of mismatch with the current finding and evaluated target state, specifically fingerprint/tree/diff/test-result binding. Timestamp age is not one of the required validation values and is not sufficient by itself to prove staleness.",
+      "requiredChange": "Replace the timestamp-only stale case with a target-state mismatch case, such as evidence whose reviewed HEAD/tree or reviewedTree no longer matches the evaluated target state.",
+      "whyBlocking": "A test that requires timestamp-age rejection contradicts the specified gate contract and can force an incorrect implementation premise unrelated to the required evidence binding.",
+      "origin": "R4",
+      "failureKind": "incorrect implementation premise"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "b211b42080b98ab6f8c1c5d6035d209e5a15ec45917fe3d578aecddf141fadaf"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "18bd294ddb9181efc65db675f089678cd12e223f847671639acdbebb860c2304",
+      "findingId": "18bd294ddb9181efc65db675f089678cd12e223f847671639acdbebb860c2304",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R3/R4 do not statically prove repair diff binding to the evaluated target state",
+      "body": "The tests model `repairDiff` only as an arbitrary `repairRef.diffSha256` value and assert acceptance/rejection based on that field, but they do not provide or assert any evaluated target-state diff/hash source for the gate to compare against. This allows an implementation to accept any evidence-carried diff token as long as it matches itself, without exercising production behavior that binds repair evidence to the actual evaluated target state.",
+      "category": "unknown",
+      "fingerprint": "18bd294ddb9181efc65db675f089678cd12e223f847671639acdbebb860c2304",
+      "disposition": "must-fix",
+      "rationale": "R3 requires the gate to accept evidence only when fingerprint, reviewed tree, repair diff, and validating test result each match the current finding and evaluated target state; the current test design does not exercise the target-state side of the repair diff comparison."
+    },
+    {
+      "id": "4042930dad52b00299b16ca4efe51db114dbbb83e7081448fc014bd58db9395d",
+      "findingId": "4042930dad52b00299b16ca4efe51db114dbbb83e7081448fc014bd58db9395d",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "R4 stale evidence test encodes an unsupported timestamp premise",
+      "body": "The `stale timestamp` case expects evidence to be rejected solely because `timestamp` is old. The requirements define stale evidence in terms of mismatch with the current finding and evaluated target state, specifically fingerprint/tree/diff/test-result binding. Timestamp age is not one of the required validation values and is not sufficient by itself to prove staleness.",
+      "category": "unknown",
+      "fingerprint": "4042930dad52b00299b16ca4efe51db114dbbb83e7081448fc014bd58db9395d",
+      "disposition": "must-fix",
+      "rationale": "A test that requires timestamp-age rejection contradicts the specified gate contract and can force an incorrect implementation premise unrelated to the required evidence binding."
+    }
+  ]
+}

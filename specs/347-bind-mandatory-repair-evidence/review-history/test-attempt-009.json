@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-25T14:45:03.590Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/347-bind-mandatory-repair-evidence/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 does not cover reviewed HEAD binding",
+      "target": "specs/347-bind-mandatory-repair-evidence/tests/finding-disposition-policy.test.js",
+      "findingId": "45926a7cbb9a5021dcab8d7ff3f5f56516cffa16eaab73e6c215ee40373e6439",
+      "fingerprint": "45926a7cbb9a5021dcab8d7ff3f5f56516cffa16eaab73e6c215ee40373e6439",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for one of its required evidence binding fields.",
+      "issue": "R3 requires repair evidence to bind both reviewed HEAD/tree, but the spec-local tests only model and assert reviewedTree. No test would fail if reviewed HEAD were omitted from the evidence contract or ignored by the gate.",
+      "requiredChange": "Add spec-local coverage that supplies the expected reviewed HEAD value and rejects evidence whose reviewed HEAD is missing or mismatched.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for one of its required evidence binding fields.",
+      "origin": "R3",
+      "failureKind": "missing-test-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "3149a3e49ee6ac4ec8b5c922a724b674a8b11e944e1caff64313b0a96be1eae3"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "45926a7cbb9a5021dcab8d7ff3f5f56516cffa16eaab73e6c215ee40373e6439",
+      "findingId": "45926a7cbb9a5021dcab8d7ff3f5f56516cffa16eaab73e6c215ee40373e6439",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "R3 does not cover reviewed HEAD binding",
+      "body": "R3 requires repair evidence to bind both reviewed HEAD/tree, but the spec-local tests only model and assert reviewedTree. No test would fail if reviewed HEAD were omitted from the evidence contract or ignored by the gate.",
+      "category": "unknown",
+      "fingerprint": "45926a7cbb9a5021dcab8d7ff3f5f56516cffa16eaab73e6c215ee40373e6439",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for one of its required evidence binding fields."
+    }
+  ]
+}

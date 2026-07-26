@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-25T14:57:19.322Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "malformed-evidence-crashes-gate",
+      "title": "Malformed evidence crashes instead of being rejected",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/finding-disposition-policy.js",
+      "requirementId": "R4",
+      "issue": "`IssueLogRepairEvidenceSource` eagerly constructs `RepairEvidenceReference` for every issue-log entry, and the new mandatory fields (`findingFingerprint`, `reviewedTree`, `reviewedHead`, `repairRef.diffSha256`, `validatingTestResult`) throw when absent or malformed. That means evidence cases that should be treated as non-matching cause `evaluateGate()` to throw instead of returning a blocking gate decision.",
+      "suggestion": "Change `IssueLogRepairEvidenceSource` or `find()` to skip invalid/incomplete repair-evidence entries, or catch `RepairEvidenceReference` validation failures and treat them as non-matches for the current finding. Keep exact matching strict for valid records, but make missing/mismatched evidence produce `allowsPass() === false`.",
+      "disposition": "must-fix",
+      "rationale": "R4 requires mismatched or missing evidence components to be rejected. A thrown exception prevents the policy from producing the required gate result and also breaks the added R4 table tests for missing repair reference, missing fingerprint, missing reviewed tree/head, missing test result, and touched-only repair reference.",
+      "findingId": "756e251987377ddb0b957ee11ac32bce431ad70d9a0f3f6a9a3edd5c71e02ca0",
+      "fingerprint": "756e251987377ddb0b957ee11ac32bce431ad70d9a0f3f6a9a3edd5c71e02ca0",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "3118a736b92abb410a1212ab203606f63495fce7d3e6fa2eb763d24d273de059",
+  "runId": "772043a8-bee6-4208-ac96-f68ca55ea053",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/347-bind-mandatory-repair-evidence/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "12f6012fcbeaedf4b29e836b458eafa6702ce6eb7b0d92965164d3528671d551"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "756e251987377ddb0b957ee11ac32bce431ad70d9a0f3f6a9a3edd5c71e02ca0",
+      "findingId": "756e251987377ddb0b957ee11ac32bce431ad70d9a0f3f6a9a3edd5c71e02ca0",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Malformed evidence crashes instead of being rejected",
+      "body": "`IssueLogRepairEvidenceSource` eagerly constructs `RepairEvidenceReference` for every issue-log entry, and the new mandatory fields (`findingFingerprint`, `reviewedTree`, `reviewedHead`, `repairRef.diffSha256`, `validatingTestResult`) throw when absent or malformed. That means evidence cases that should be treated as non-matching cause `evaluateGate()` to throw instead of returning a blocking gate decision.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "756e251987377ddb0b957ee11ac32bce431ad70d9a0f3f6a9a3edd5c71e02ca0",
+      "disposition": "must-fix",
+      "rationale": "R4 requires mismatched or missing evidence components to be rejected. A thrown exception prevents the policy from producing the required gate result and also breaks the added R4 table tests for missing repair reference, missing fingerprint, missing reviewed tree/head, missing test result, and touched-only repair reference.",
+      "requirementId": "R4",
+      "repeatCount": 1
+    }
+  ]
+}
