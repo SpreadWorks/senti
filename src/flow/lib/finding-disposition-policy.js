@@ -334,7 +334,7 @@ class ReviewEvidenceScope {
   }
 }
 
-class RepairReference {
+export class RepairReference {
   constructor(value) {
     const repairRef = requireRecord(value, "repairRef");
     this.commit = repairRef.commit == null

@@ -106,7 +106,7 @@ describe("flow run final-regression", () => {
 
   it("uses the authority root final regression timeout over a stale context config", async () => {
     tmp = createTmpDir("final-regression-authority-timeout-");
-    const ctx = setupProject(tmp, "sleep 2\nprintf '%s\\n' 'final pass'\n");
+    const ctx = setupProject(tmp, "sleep 2\nprintf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
     writeFile(tmp, ".senti/config.json", JSON.stringify({
       lang: "en",
       type: "node-cli",

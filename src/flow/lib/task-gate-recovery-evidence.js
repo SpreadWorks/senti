@@ -2,13 +2,64 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-  IssueLogRepairEvidenceSource,
+  RepairReference,
   ReviewFindingCycle,
 } from "./finding-disposition-policy.js";
 
 const TASK_GATE_SOURCE_FILE = "task-impl-gate-source.json";
 const MAX_TASK_GATE_SOURCE_BYTES = 1024 * 1024;
 const FINDING_ID_RE = /^[a-f0-9]{64}$/;
+
+class TaskGateRepairEvidenceReference {
+  constructor(value) {
+    if (value == null || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("task gate repair evidence must be an object");
+    }
+    this.normalizedFindingId = String(value.normalizedFindingId || "").trim();
+    this.step = String(value.step || "").trim();
+    this.taskId = String(value.taskId || "").trim();
+    this.timestamp = String(value.timestamp || "").trim();
+    this.recordedAt = Date.parse(this.timestamp);
+    if (!FINDING_ID_RE.test(this.normalizedFindingId)) {
+      throw new Error("task gate repair evidence requires a normalized finding id");
+    }
+    if (this.step !== "task-gate") {
+      throw new Error("task gate repair evidence must be recorded by task-gate");
+    }
+    if (this.taskId === "" || !Number.isFinite(this.recordedAt)) {
+      throw new Error("task gate repair evidence requires task and timestamp");
+    }
+    this.repairRef = new RepairReference(value.repairRef);
+    Object.freeze(this);
+  }
+
+  matches({ normalizedFindingId, taskId, reportedAt, root }) {
+    const findingTime = Date.parse(String(reportedAt || "").trim());
+    return this.normalizedFindingId === normalizedFindingId
+      && this.taskId === taskId
+      && Number.isFinite(findingTime)
+      && this.recordedAt >= findingTime
+      && this.repairRef.materializesAfter(root, reportedAt);
+  }
+}
+
+class TaskGateRepairEvidenceSource {
+  constructor(entries) {
+    const source = Array.isArray(entries) ? entries : [];
+    this.entries = Object.freeze(source.flatMap((entry) => {
+      try {
+        return [new TaskGateRepairEvidenceReference(entry)];
+      } catch {
+        return [];
+      }
+    }));
+    Object.freeze(this);
+  }
+
+  find(input) {
+    return this.entries.findLast((entry) => entry.matches(input)) || null;
+  }
+}
 
 function failedFindings(artifact) {
   const blocking = Array.isArray(artifact.blockingFindings)
@@ -98,7 +149,7 @@ export function assessTaskGateRepairEvidence({ root, flowState, issueLogEntries 
   if (findings.length === 0) {
     return TaskGateRepairEvidenceAssessment.reject("missing-current-task-gate-finding");
   }
-  const evidenceSource = new IssueLogRepairEvidenceSource(issueLogEntries);
+  const evidenceSource = new TaskGateRepairEvidenceSource(issueLogEntries);
   const findingIds = [];
   for (const finding of findings) {
     const findingId = String(finding?.findingId || finding?.fingerprint || "").trim();
@@ -108,7 +159,6 @@ export function assessTaskGateRepairEvidence({ root, flowState, issueLogEntries 
     }
     const evidence = evidenceSource.find({
       normalizedFindingId: findingId,
-      phase: "task-impl",
       taskId,
       reportedAt,
       root: repositoryRoot,

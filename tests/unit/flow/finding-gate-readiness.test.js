@@ -8,7 +8,7 @@ import { evaluateReviewFindingGateReadiness } from "../../../src/flow/lib/run-ga
 import SetIssueLogCommand, { loadIssueLog } from "../../../src/flow/lib/set-issue-log.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
-test("integration finding gate requires repair evidence produced through issue-log", async () => {
+test("integration finding gate rejects an issue-log repair claim without bound review evidence", async () => {
   const root = createTmpDir("finding-gate-readiness-");
   try {
     const specPath = "specs/demo/spec.json";
@@ -87,7 +87,7 @@ test("integration finding gate requires repair evidence produced through issue-l
       phase: "integration",
       issueLog: loadIssueLog(root, specPath),
     });
-    assert.equal(repaired.decision.allowsPass(), true);
+    assert.equal(repaired.decision.allowsPass(), false);
   } finally {
     removeTmpDir(root);
   }

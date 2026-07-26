@@ -21,6 +21,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { assertOk } from "../../lib/process.js";
 import { runGit } from "../../lib/git-helpers.js";
+import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
 
 const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
@@ -2358,6 +2359,7 @@ function gateRetryClassificationContext({ root = null, flowState = null, phase }
   if (!root || !flowState?.spec) {
     return {
       root,
+      flowState,
       phase,
       taskId: flowState?.currentTaskId ?? null,
       issueLogEntries: [],
@@ -2366,6 +2368,7 @@ function gateRetryClassificationContext({ root = null, flowState = null, phase }
   }
   return {
     root,
+    flowState,
     phase,
     taskId: flowState.currentTaskId ?? null,
     issueLogEntries: loadIssueLog(root, flowState.spec).entries,
@@ -2392,6 +2395,21 @@ export function classifyGateRetryExhaustionSource(input = {}) {
   const rawFindings = artifactFindings.length > 0 ? artifactFindings : failedGateFindings(merged);
   if (rawFindings.some(hasStructuredCoverageFailure)) {
     return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
+  }
+  if (merged.phase === "task-impl" && merged.root && merged.flowState) {
+    const assessment = assessTaskGateRepairEvidence({
+      root: merged.root,
+      flowState: merged.flowState,
+      issueLogEntries: merged.issueLogEntries || [],
+    });
+    if (!assessment.valid) {
+      return { completionKind: "blocking", deferAllowed: false, reason: assessment.reason };
+    }
+    return {
+      completionKind: "deferred",
+      deferAllowed: true,
+      reason: "semantic_findings",
+    };
   }
   let findings;
   try {
@@ -2779,7 +2797,11 @@ function persistGateSourceFromResult(ctx, result, phase) {
     sourceArtifact: artifact,
     ...gateRetryClassificationContext({ root: ctx.root, flowState: ctx.flowState, phase }),
   });
-  if (!classification.deferAllowed && classification.reason !== "missing_repair_evidence") return;
+  if (
+    !classification.deferAllowed
+    && classification.reason !== "missing_repair_evidence"
+    && phase !== "task-impl"
+  ) return;
   const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
   writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
 }
