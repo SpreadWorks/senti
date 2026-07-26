@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-07-26T01:41:22.709Z",
+  "analyzedAt": "2026-07-26T03:31:53.578Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "798b95e8e73a8c180d5114e4ca56636d",
+        "hash": "a2d2b171b720153ad49c1bcb0bb1c448",
         "lines": 45,
-        "mtime": "2026-07-21T02:54:11.387Z",
+        "mtime": "2026-07-26T03:06:25.805Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -27,23 +27,23 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "Package manifest for the Senti CLI and library distribution. It defines the published entry points, runtime requirements, and release/test scripts for the project.",
-        "detail": "This file declares the package as an ES module and exposes `src/senti.js` as both the CLI binary and the main export. It limits published files to `src/` while excluding preset test folders, which keeps package contents focused on runtime assets. The manifest pins Node.js to version 18.19.0 or newer and records a specific pnpm version for consistent tooling. Its script set centers on release preflight/version synchronization and several test scopes, showing a workflow designed around automated validation and alpha releases.",
+        "summary": "Package metadata for the Senti CLI, including distribution settings, runtime requirements, and test/release scripts. It defines the executable entrypoint and publishes the `src/` tree as an ES module package.",
+        "detail": "The manifest exposes `src/senti.js` as both the CLI binary and the package export, which indicates a single entrypoint for command execution and library-style loading. It targets Node.js 18.19 or newer and uses `pnpm` as the locked package manager for reproducible installs. The `files` field limits published contents to source files while excluding preset test folders from the package tarball. Script definitions group release validation, alpha version synchronization, scoped test runs, and CI execution around custom Node-based tooling rather than third-party task runners.",
         "chapter": "stack_and_ops",
         "role": "config",
         "enrich": {
-          "processedAt": "2026-07-21T05:14:26.594Z",
+          "processedAt": "2026-07-26T03:32:50.366Z",
           "attempts": 1
         },
         "keywords": [
           "package manifest",
-          "npm package",
-          "CLI entrypoint",
+          "CLI package",
           "Node.js runtime",
-          "ES modules",
+          "pnpm",
           "release scripts",
           "test scripts",
-          "pnpm configuration"
+          "ES module",
+          "distribution config"
         ]
       }
     ],
@@ -2662,9 +2662,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "828a8c8e47b2f527c887d7796d679024",
-        "lines": 4210,
-        "mtime": "2026-07-26T01:25:36.884Z",
+        "hash": "4f20fc5cdbcf296623746f4809018c3c",
+        "lines": 4228,
+        "mtime": "2026-07-26T03:31:38.613Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2922,25 +2922,24 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and its supporting review pipelines for implementation, test, spec, and draft phases. It coordinates diff collection, prompt construction, AI-agent calls, schema validation, artifact persistence, and retry or loop-based review flows.",
-        "detail": "The file centralizes review orchestration by resolving review targets, exclusions, merge-base diffs, guardrails, requirement mappings, and phase-specific limits before dispatching to the appropriate review mode. It contains rich parsing and normalization logic for AI outputs, including repair paths for malformed JSON, typed finding classes, schema-backed artifacts, and scope filtering against touched files and requirement IDs. Implementation review supports both single-shot and looped work-unit execution with persistence strategies, trusted serialized outputs, review history tracking, and finding disposition policies. Additional sections handle test coverage review, spec review, and draft QA review, writing markdown and JSON artifacts into spec folders while preserving normalized history records for later analysis.",
+        "summary": "Implements the flow review command pipeline for specs, implementation diffs, tests, and draft artifacts. The module coordinates AI-driven review prompts, schema validation, persistence, scope filtering, and review history management.",
+        "detail": "The file centralizes multiple review modes, including implementation review, loop-based chunked review, spec review, test review, and draft QA review, all routed through a single command surface. It builds structured prompts, validates AI responses against explicit JSON schemas, and repairs malformed JSON when possible before converting results into typed review artifacts. The implementation applies repository-aware scoping through git diff collection, exclusion rules, requirement-to-file mapping, and touched-file filtering so findings stay aligned with the current change set. It also persists outputs as JSON and Markdown, tracks attempt history, supports trusted loop outputs for convergence workflows, and classifies failures into recoverable review error types for CLI handling.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-26T01:41:56.554Z",
+          "processedAt": "2026-07-26T03:32:50.366Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
-          "code review command",
-          "diff analysis",
+          "review command",
+          "code review pipeline",
           "AI prompt orchestration",
           "schema validation",
-          "review artifacts",
-          "test review",
+          "git diff analysis",
           "spec review",
-          "draft review",
-          "implementation review"
+          "test review",
+          "artifact persistence",
+          "review history"
         ]
       },
       {
@@ -6564,9 +6563,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "351a156d91070473b9597661e99e6e83",
-        "lines": 6009,
-        "mtime": "2026-07-22T08:22:16.379Z",
+        "hash": "a432cf7b8fa51d0bed81f8f11dd9301d",
+        "lines": 6135,
+        "mtime": "2026-07-26T03:31:38.614Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "FinalizeTeardownPhase",
@@ -6637,6 +6636,14 @@
           "verifyExactWorktreeBinding",
           "finalizeLifecycleIssueLogId",
           "restoreFinalizeIssueLog",
+          "finalizeCleanupPrePluginLifecycleContext",
+          "removeFinalizePluginArtifacts",
+          "finalizePluginLifecycleFailure",
+          "finalizeRequiredPluginHookFailure",
+          "composeFinalizePluginLifecycle",
+          "attachFinalizePluginLifecycle",
+          "runFinalizePreHooks",
+          "runFinalizePostHooks",
           "readOrphanCommits",
           "appendIssueLog",
           "restoreIssueLog",
@@ -6723,25 +6730,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "Implements the flow `finalize-cleanup` command, including normal teardown, forced finalize paths, and spec-only completion. It also persists recovery state so cleanup can resume safely after interruptions.",
-        "detail": "This module is a large orchestration layer for finalizing flow worktrees and cleaning up repository state with strong Git and filesystem authority checks. It models teardown phases, commit expectations, before-images, lock ownership, temporary index workspaces, and recovery journals as validated classes so interrupted operations can be resumed or rolled back deterministically. The implementation captures and restores file trees, reconciles Git indexes through isolated temporary copies, manages repository and index locks, and verifies branch, worktree, and commit reachability before destructive cleanup steps. It also integrates issue-log restoration, plugin lifecycle hooks, forced-finalize auditing, submodule diagnostics, and auto-rescue cherry-pick recovery to keep finalize operations durable and observable.",
+        "summary": "Implements the `finalize-cleanup` flow command and its recovery path for completing teardown after a finalize operation. It coordinates Git state validation, durable transaction journaling, cleanup, restoration, and plugin lifecycle hooks.",
+        "detail": "This module is a large orchestration layer around finalize teardown, combining command dispatch with many authority and state objects that validate filesystem, index, worktree, and commit invariants before destructive steps run. It uses durable transaction records, lock files, before-image snapshots, and atomic file handling so interrupted cleanup can be resumed or rolled back safely. The implementation includes isolated Git index workflows, worktree and branch removal helpers, orphan commit inspection, and forced-finalize audit logging for failure and recovery scenarios. It also integrates pre/post plugin hooks, issue-log restoration, and auto-rescue logic that can cherry-pick or recover commits when the normal finalize path cannot complete cleanly.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-22T08:25:26.066Z",
+          "processedAt": "2026-07-26T03:32:50.391Z",
           "attempts": 1
         },
         "keywords": [
           "finalize cleanup",
-          "flow command",
-          "Git teardown",
-          "worktree cleanup",
-          "recovery journal",
+          "teardown transaction",
+          "Git worktree",
           "index lock",
-          "transaction recovery",
-          "forced finalize",
+          "recovery journal",
+          "rollback restore",
+          "flow command",
           "auto rescue",
-          "repository cleanup"
+          "plugin hooks"
         ]
       },
       {
@@ -6951,9 +6957,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "c5c96d5de326d444b31f2c73c1f0075b",
-        "lines": 5907,
-        "mtime": "2026-07-26T00:49:42.396Z",
+        "hash": "a78502986219abae2093fce7849dddb3",
+        "lines": 5963,
+        "mtime": "2026-07-26T03:31:38.616Z",
         "className": "run-gate",
         "methods": [
           "parsePublicGateArguments",
@@ -6964,6 +6970,7 @@
           "collectUntrackedDiff",
           "excludeScenarioValidityEvidenceFromTaskGateDiff",
           "excludeGateLifecycleArtifactsFromGateDiff",
+          "excludeGeneratedSpecArtifactsFromGateDiff",
           "buildGuardrailArticleEvalPrompt",
           "EvaluationSchemaError",
           "parseGuardrailArticleEvaluation",
@@ -7019,6 +7026,8 @@
           "appendIssueLogFromGateError",
           "runGitDiff",
           "splitDiffByFile",
+          "shouldIncludeGateDiffFile",
+          "excludeGeneratedSpecArtifactsFromPerFileDiffs",
           "buildGateEvaluationDiff",
           "summarizeDiffSegment",
           "appendPromptLine",
@@ -7177,6 +7186,7 @@
           "collectUntrackedDiff",
           "excludeScenarioValidityEvidenceFromTaskGateDiff",
           "excludeGateLifecycleArtifactsFromGateDiff",
+          "excludeGeneratedSpecArtifactsFromGateDiff",
           "buildGuardrailArticleEvalPrompt",
           "EvaluationSchemaError",
           "parseGuardrailArticleEvaluation",
@@ -7264,25 +7274,24 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine that evaluates draft, spec, task implementation, and integration phases before allowing workflow progression. It combines diff analysis, artifact validation, retry handling, and AI guardrail evaluation into a single command module.",
-        "detail": "This module powers `RunGateCommand` and related helpers that validate gate inputs, collect git diffs, inspect generated artifacts, and build structured gate result reports. It contains extensive phase-specific checks for spec, draft, task implementation, and integration gates, including schema validation, test-evidence checks, lifecycle enforcement, and file-map reconciliation. The code also manages retry accounting, durable deferral and recovery paths, repeated-failure detection, and issue-log persistence so failed gates can be classified and resumed safely. Prompt-building and response-parsing utilities enforce strict JSON output from AI evaluations and map those results into normalized pass/fail artifacts used by the broader flow system.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "Implements the flow gate pipeline that validates spec, draft, task implementation, and integration phases before advancing lifecycle state. It combines git diff analysis, artifact validation, AI guardrail evaluation, retry handling, and command execution in one orchestration module.",
+        "detail": "The module defines parsing helpers, phase-to-level mappings, and many bounded constants used to control diff size, prompt size, artifact size, and retry behavior. It builds gate inputs from repository state by collecting committed, uncommitted, and untracked diffs, filtering generated lifecycle artifacts, and deriving per-file or per-requirement context for semantic checks. A large part of the file validates structured artifacts such as spec review, draft review, repair logs, integration test evidence, and gate result JSON, with explicit schema checks and detailed failure envelopes. It also manages durable retry workflows, including retry counters, recovery baselines, repeated-failure detection, deferral classification, issue-log persistence, and source artifact checkpointing. The exported `RunGateCommand` coordinates all of this to execute phase-specific gate flows, call AI evaluators with repair-aware parsing, persist results, and trigger lifecycle transitions or side effects.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-07-26T00:50:43.044Z",
+          "processedAt": "2026-07-26T03:32:50.408Z",
           "attempts": 1
         },
         "keywords": [
-          "gate engine",
-          "workflow validation",
-          "guardrail evaluation",
-          "retry logic",
-          "diff analysis",
-          "artifact validation",
+          "gate execution",
           "flow command",
-          "integration gate",
-          "spec review",
-          "AI evaluation"
+          "guardrail evaluation",
+          "spec validation",
+          "integration checks",
+          "retry handling",
+          "git diff analysis",
+          "artifact validation",
+          "lifecycle transition"
         ]
       },
       {
@@ -7401,9 +7410,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "827b3774000ceab11f63ecdc372795a8",
-        "lines": 1189,
-        "mtime": "2026-07-21T07:44:18.277Z",
+        "hash": "7d7fa493303255259a50fb9e796268de",
+        "lines": 1221,
+        "mtime": "2026-07-26T03:31:38.616Z",
         "className": "run-prepare-spec",
         "methods": [
           "buildDraftTemplate",
@@ -7429,6 +7438,7 @@
           "exactKeys",
           "fsyncDirectory",
           "optionalBytes",
+          "rollbackRequiredPrepareHookFailure",
           "encodedBytes",
           "decodedBytes",
           "worktreeIgnoreBytes",
@@ -7468,22 +7478,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Implements the flow prepare-spec command, including spec scaffolding, draft creation, and optional isolated worktree setup. It also coordinates plugin hooks and crash-safe recovery state for worktree preparation.",
-        "detail": "The module builds spec directory names, detects or validates the base branch, and can trigger a docs scan so generated analysis data exists before preparation continues. It performs strict repository checks such as dirty-worktree detection and required branch-file validation to prevent preparing from an unsafe state. For worktree mode, it uses atomic files, path and object-ID validation, and a journal record to publish, recover, complete, or roll back a prepare attempt safely. It also syncs plugin runtime files into the worktree, writes initial flow state and issue/draft/spec files, and runs plugin lifecycle hooks around the process.",
+        "summary": "Implements the flow prepare command and the lower-level machinery needed to create a new spec, optionally in an isolated Git worktree. It validates repository state, initializes spec artifacts, and coordinates plugin and hook lifecycles around preparation.",
+        "detail": "The module combines many small filesystem and Git helper routines to derive branch names, inspect required branch files, and verify that the worktree matches strict authority and ownership expectations. A dedicated journal record class persists worktree preparation attempts so interrupted operations can be resumed or rolled back safely with atomic writes, inode checks, and process identity validation. It also mirrors plugin runtime assets into the worktree, runs documentation analysis to validate generated analysis output, and writes initial spec files such as draft, issue, and flow state artifacts. The exported command class orchestrates these steps, returning structured envelope failures for user-facing problems and using hooks before and after worktree creation.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-21T08:01:09.528Z",
+          "processedAt": "2026-07-26T03:32:50.428Z",
           "attempts": 1
         },
         "keywords": [
-          "prepare spec",
-          "worktree orchestration",
-          "flow setup",
+          "flow prepare",
+          "git worktree",
+          "spec initialization",
           "atomic journal",
-          "plugin hooks",
           "branch validation",
-          "draft scaffold"
+          "plugin hooks",
+          "rollback recovery",
+          "repository state"
         ]
       },
       {
@@ -8952,9 +8963,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "40cc9730265c022352730f55a55ef883",
-        "lines": 664,
-        "mtime": "2026-07-25T17:28:22.509Z",
+        "hash": "0223d839bd6c4691c1abbbbb9780fa3e",
+        "lines": 665,
+        "mtime": "2026-07-26T03:31:38.616Z",
         "className": "set-step",
         "methods": [
           "preValidateImplementStepCompletion",
@@ -9003,23 +9014,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "Implements the command that updates flow step status while enforcing artifact and lifecycle preconditions. It contains the main validation logic for complex step completion and recovery scenarios.",
-        "detail": "This command centralizes step status mutation and pre-validation for task, approval, test, implement, and recovery steps. It reads spec-side artifacts to enforce stateful prerequisites such as fresh test evidence, repair-ledger consistency, issue-log context, and post-hook managed outputs. Helper routines detect blocked impl-repair recovery cases, validate allowed lifecycle transitions, and derive side effects or follow-up payload data for downstream steps. The exported command returns structured envelopes and extra metadata while updating flow state through the command framework.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "Controls flow step state transitions with strong validation around completion, repair recovery, and test or approval evidence. It enforces workflow rules before updating a step and packages failures into structured envelopes.",
+        "detail": "The file centers on transition guards that inspect flow state, spec artifacts, and side-effect records before allowing a requested status change. Several helpers specifically handle impl-repair recovery, checking triage and review fingerprints, applied findings, repair ledgers, and fresh test evidence so recovery only occurs when evidence is coherent and current. Additional pre-validation paths verify test headers, approval freshness, managed post-hook artifacts, and implementation evidence such as scenario validity, test execution, and reviewed outputs. The command class integrates these checks with step lookup and transition contracts, then returns normalized payloads describing downstream actions such as gate dispositions.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-25T17:29:31.956Z",
+          "processedAt": "2026-07-26T03:32:50.428Z",
           "attempts": 1
         },
         "keywords": [
-          "step status",
-          "flow transition",
-          "pre-validation",
+          "step transition",
+          "workflow validation",
           "repair recovery",
-          "artifact gating",
-          "lifecycle transition",
-          "implementation evidence",
-          "issue log"
+          "test evidence",
+          "approval checks",
+          "flow state",
+          "status update",
+          "gate disposition"
         ]
       },
       {
@@ -10441,9 +10452,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "73adf092059f95ed5d4cca6927ea04ef",
-        "lines": 1384,
-        "mtime": "2026-07-25T08:56:00.226Z",
+        "hash": "dcda13d1066c72a018d368036aa8368b",
+        "lines": 1396,
+        "mtime": "2026-07-26T02:42:44.644Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
@@ -10504,22 +10515,23 @@
           "src/lib/plugin-registry.js"
         ],
         "id": "13ddf392",
-        "summary": "Implements the core agent execution layer that resolves provider and profile settings, then runs external model commands. It also wraps caching, retries, logging, metrics, and process supervision around each invocation.",
-        "detail": "The `Agent` pipeline resolves command IDs against built-in and user-defined profiles, normalizes provider aliases, and assembles final CLI arguments, environment variables, working directories, and optional JSON schema payloads. It supports prompt caching keyed by a stable serialized invocation identity, with flow-aware attribution and sidecar metric recording for cache hits and finalized responses. Execution uses `child_process.spawn` with timeout handling, retry backoff, provider-specific output parsing, and filtering of streaming protocol events before text extraction. The module also includes cross-platform child-process supervision, prompt token substitution helpers, spawn diagnostics, and a plugin-facing API that exposes safe `resolve` and `call` methods.",
+        "summary": "Provides the core agent execution runtime, including provider and profile resolution, retries, prompt caching, subprocess supervision, and metric recording. It abstracts command invocation details behind a reusable Agent API.",
+        "detail": "The module resolves agent configuration through profile selection and provider-family aliases, then builds provider-specific invocations with optional JSON schema injection, working-directory flags, and prompt substitution. Execution paths support retries with backoff, prompt cache lookups keyed by stable request identity, and logging or metrics for both live runs and cache hits. A substantial child-process supervision layer tracks timeouts, grace periods, and lingering process-group members across POSIX and Windows, using Linux `/proc` inspection when available to detect unterminated descendants. Supporting classes model cache policy, flow attribution, cache identity, and plugin-facing wrappers so other parts of the system can call agents without reimplementing process control.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-25T10:36:37.315Z",
+          "processedAt": "2026-07-26T03:32:50.428Z",
           "attempts": 1
         },
         "keywords": [
-          "agent execution",
+          "agent runtime",
+          "provider resolution",
           "prompt cache",
-          "child process supervision",
+          "subprocess supervision",
           "retry backoff",
-          "provider profiles",
-          "CLI invocation",
-          "metrics logging"
+          "profile selection",
+          "timeout handling",
+          "metrics"
         ]
       },
       {
@@ -12369,9 +12381,9 @@
       },
       {
         "file": "src/lib/log.js",
-        "hash": "26016dc6774cde24556d559e3a3c094e",
-        "lines": 403,
-        "mtime": "2026-07-21T13:02:14.496Z",
+        "hash": "375fc5b99b240111d278112a80f4679c",
+        "lines": 406,
+        "mtime": "2026-07-26T02:43:34.415Z",
         "className": "log",
         "methods": [
           "generateRequestId",
@@ -12398,22 +12410,23 @@
           "src/lib/container.js"
         ],
         "id": "3d7bb5e6",
-        "summary": "Provides masked structured logging for agent, git, and custom events. It generates request IDs, writes daily JSONL logs, and can persist sanitized prompt snapshots.",
-        "detail": "The logger enriches records with timestamps, process metadata, text statistics, caller file and line information, and optional flow attribution pulled from runtime state. Before anything is written, payloads are passed through a masking layer so secrets and sensitive paths are redacted relative to trusted roots. Log files are organized by day, with separate JSONL streams and prompt snapshot files stored under a dated prompts directory. Asynchronous writes are tracked internally so pending operations can be flushed in a controlled way. Logging failures are treated as non-fatal and reported to stderr instead of interrupting the main command flow.",
+        "summary": "Implements masked structured logging for agent, Git, and general events, with optional prompt snapshot files and lightweight flow attribution. It is designed to append daily JSONL logs while reducing accidental leakage of sensitive data.",
+        "detail": "The module generates compact request IDs, computes text statistics, and inspects stack traces to identify the calling file and line for richer diagnostics. Before writing, payloads are passed through masking logic and then appended to date-based JSONL files, while prompt bodies can also be written to separate per-request JSON files under a daily prompt directory. The Logger class tracks asynchronous writes, gathers runtime context such as pid, cwd, and flow state, and exposes focused methods for agent, Git, and event logging. Failures in logging paths are reported to stderr instead of interrupting the main command flow, making the logging system best-effort but operationally useful.",
         "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T13:03:46.155Z",
+          "processedAt": "2026-07-26T03:32:50.428Z",
           "attempts": 1
         },
         "keywords": [
           "structured logging",
           "JSONL logs",
-          "request ID",
           "prompt snapshot",
           "sensitive data masking",
-          "caller tracing",
-          "telemetry"
+          "request id",
+          "flow attribution",
+          "diagnostics",
+          "stderr fallback"
         ]
       },
       {
@@ -12724,9 +12737,9 @@
       },
       {
         "file": "src/lib/plugin-registry.js",
-        "hash": "7bc60efd17001852bec143267dc7ea61",
-        "lines": 1525,
-        "mtime": "2026-07-21T13:02:14.497Z",
+        "hash": "3e438a761bd3bb8001b5edb9b87fc38f",
+        "lines": 1597,
+        "mtime": "2026-07-26T03:31:38.617Z",
         "className": "plugin-registry",
         "methods": [
           "readProjectConfig",
@@ -12751,6 +12764,9 @@
           "setPluginEnabled",
           "resolvePluginPackageSources",
           "FlowCommandHook",
+          "FlowCommandHookFailurePolicy",
+          "FlowCommandHookExecutionOutcome",
+          "FlowCommandHookIntegrityError",
           "discoverFlowCommandHooks",
           "dispatchPluginCommand",
           "runFlowCommandHooks",
@@ -12809,14 +12825,17 @@
           "resolveInstalledPluginUpdate",
           "buildPluginApi",
           "validateHookClass",
+          "validateHookSnapshot",
           "pluginConfigFor",
           "artifactRoot",
           "artifactHelpers",
           "buildPluginContext",
-          "isEnvelopeLike",
           "snapshotPluginRoot",
           "assertSnapshotMetadata",
           "loadHookClass",
+          "isEnvelopeLike",
+          "pluginLifecycleFailure",
+          "composePluginLifecycleResult",
           "cloneOfficialPresetSource",
           "officialPresetSourceFromRoot",
           "assertOfficialPresetManifest",
@@ -12859,6 +12878,9 @@
           "setPluginEnabled",
           "resolvePluginPackageSources",
           "FlowCommandHook",
+          "FlowCommandHookFailurePolicy",
+          "FlowCommandHookExecutionOutcome",
+          "FlowCommandHookIntegrityError",
           "discoverFlowCommandHooks",
           "dispatchPluginCommand",
           "runFlowCommandHooks",
@@ -12869,7 +12891,7 @@
           "ensureSetupOfficialPresetState",
           "default"
         ],
-        "extends": null,
+        "extends": "Error",
         "usedBy": [
           "src/help.js",
           "src/lib/presets.js",
@@ -12878,23 +12900,23 @@
           "src/upgrade.js"
         ],
         "id": "bfaf1dcd",
-        "summary": "Implements the plugin and preset registry, covering source resolution, installation, validation, and runtime dispatch. It is the central integration layer for packaged commands, presets, data sources, and flow hooks.",
-        "detail": "The module merges project and local plugin configuration, validates manifests with strict size and path-confinement checks, and indexes contributed commands, presets, and data sources into a searchable catalog. It resolves plugin sources from local paths or Git URLs, tracks commits, maintains a managed source cache, and materializes reproducible package contents before installation. Safety guards reject path traversal, symlink escapes, oversized metadata, duplicate registrations, and disallowed imports into core internals. At runtime it loads ESM hook modules, constructs plugin execution context with artifact helpers and optional agent access, and runs lifecycle hooks around flow commands and plugin commands. It also manages the official preset package and exposes utilities for listing, enabling, updating, and synchronizing installed plugins.",
+        "summary": "Implements the plugin and preset registry, covering plugin source resolution, installation, updates, manifest loading, and flow-hook execution. It combines package management with strong safety checks around paths, imports, and metadata.",
+        "detail": "The module validates plugin IDs, relative paths, JSON size limits, file counts, and root confinement before trusting any package content. It supports both local and Git-backed plugin sources, including clone/fetch/update flows, commit resolution, materialization, hashing, and allowlisted file copying into managed plugin directories. Manifest, catalog, runtime, and source-store classes organize presets, data sources, commands, and installed package state into a loadable registry. The same file also drives plugin lifecycle behavior for flow commands by discovering hook modules, validating exported hook classes, building plugin context and artifact helpers, and composing pre/post/error execution results. Official preset installation and synchronization are treated as a managed plugin source with additional integrity checks.",
         "chapter": "project_structure",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-07-21T13:03:46.155Z",
+          "processedAt": "2026-07-26T03:32:50.446Z",
           "attempts": 1
         },
         "keywords": [
           "plugin registry",
-          "preset system",
-          "manifest validation",
-          "Git source sync",
+          "preset catalog",
+          "plugin manifest",
           "flow hooks",
-          "plugin installation",
-          "command dispatch",
-          "artifact helpers"
+          "git source sync",
+          "package installation",
+          "path validation",
+          "plugin lifecycle"
         ]
       },
       {
@@ -13785,6 +13807,52 @@
         ]
       },
       {
+        "file": "src/lib/worktree-cli-execution.js",
+        "hash": "60d0f42d17abbc3ce33cff884bc2c297",
+        "lines": 119,
+        "mtime": "2026-07-26T03:03:14.036Z",
+        "className": "worktree-cli-execution",
+        "methods": [
+          "executeWorktreeLocalCli",
+          "gitWorktreeRoot",
+          "packageName",
+          "isFile",
+          "resolveWorktreeCli",
+          "failClosed"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "child_process",
+          "url"
+        ],
+        "exports": [
+          "executeWorktreeLocalCli"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/senti.js"
+        ],
+        "id": "dceb9611",
+        "summary": "Resolves whether a Git worktree should run its own local CLI entrypoint instead of the currently executing one. The logic is intentionally fail-closed and provides a recovery command when safety checks do not pass.",
+        "detail": "The module first validates absolute paths and detects a worktree root by inspecting Git metadata under the current directory. It compares package identities between the running CLI and the worktree package, then requires a real local `src/senti.js` entrypoint before redirecting execution. When the redirect is valid, it launches the worktree-local CLI with `spawnSync`, inherited stdio, and the current environment. If any check fails or execution errors, it writes a clear diagnostic to stderr and returns a nonzero exit code rather than guessing.",
+        "chapter": "stack_and_ops",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-07-26T03:32:50.446Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "git worktree",
+          "CLI bootstrap",
+          "local execution",
+          "fail closed",
+          "package identity",
+          "spawnSync",
+          "runtime safety"
+        ]
+      },
+      {
         "file": "src/lib/worktree-flow-binding.js",
         "hash": "e7fd4be826f56aea913ea3e3117236c6",
         "lines": 1202,
@@ -14412,9 +14480,9 @@
       },
       {
         "file": "src/senti.js",
-        "hash": "b73b3c76b77f2d53d797da6ed1199924",
-        "lines": 119,
-        "mtime": "2026-07-17T05:13:56.201Z",
+        "hash": "bdd84fc1f3ed021f68d75eddcc11d62b",
+        "lines": 122,
+        "mtime": "2026-07-26T02:53:45.692Z",
         "className": "senti",
         "methods": [
           "isHelpRequest",
@@ -14423,27 +14491,29 @@
         ],
         "imports": [
           "./lib/constants.js",
-          "./lib/container.js"
+          "./lib/container.js",
+          "./lib/worktree-cli-execution.js"
         ],
         "exports": [],
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "Primary CLI entrypoint for the `senti` command. It routes subcommands, shared help requests, handled JSON responses, and exit codes.",
-        "detail": "The module slices raw argv, initializes shared command infrastructure, and decides whether to render global help, subcommand help, or execute a matched command definition. It normalizes help topics so `-h` and `--help` behave consistently even when attached to nested commands. For handlers that return structured results, it prints JSON and maps success or failure to the appropriate process exit code. Error cases fall back to shared help or `EXIT_ERROR`, keeping the top-level CLI behavior uniform.",
+        "summary": "Provides the top-level `senti` CLI bootstrap and command dispatcher. It initializes shared services, routes built-in and plugin commands, renders help, and normalizes process exit codes.",
+        "detail": "The entrypoint slices raw arguments, gives the worktree-local executor a chance to take over, and then initializes the dependency container used by core command registries. It handles help requests consistently by stripping help flags, computing the intended help topic, and rendering shared help output for both known and unknown commands. Built-in commands are dispatched through the core registry, while plugin commands are delegated to plugin dispatch and printed as structured JSON results. The file exits explicitly for success, help, plugin failures, and unknown-command cases, making CLI behavior predictable for both humans and automation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-07-18T08:24:04.645Z",
+          "processedAt": "2026-07-26T03:32:50.446Z",
           "attempts": 1
         },
         "keywords": [
-          "senti CLI",
-          "command dispatch",
-          "help routing",
+          "CLI entrypoint",
+          "command dispatcher",
+          "help handling",
           "exit codes",
-          "entrypoint",
-          "JSON handler output"
+          "plugin commands",
+          "dependency container",
+          "argument parsing"
         ]
       },
       {
@@ -14754,10 +14824,10 @@
       }
     ],
     "summary": {
-      "total": 258,
-      "totalMethods": 2924
+      "total": 259,
+      "totalMethods": 2948
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-07-26T01:41:56.600Z"
+  "enrichedAt": "2026-07-26T03:32:50.446Z"
 }
