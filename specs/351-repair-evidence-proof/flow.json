@@ -544,10 +544,38 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-26T12:52:08.345Z",
-      "updatedAt": "2026-07-26T12:52:08.384Z"
+      "updatedAt": "2026-07-26T12:52:11.148Z",
+      "result": {
+        "status": "done",
+        "completionMode": "direct",
+        "mergeDisposition": "already-merged",
+        "receiptId": "direct-completion-f34c45a3313a7161adffbab940d86421",
+        "externalUpdateKey": "direct-external-update-f34c45a3313a7161adffbab940d86421",
+        "summary": "Direct completion direct-completion-f34c45a3313a7161adffbab940d86421; mode=direct; merge=already-merged; sourceStep=impl-gate; verification=passed; skipped=impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+        "pluginHooks": [
+          {
+            "pluginId": "workflow",
+            "command": "finalize-cleanup",
+            "hook": "post",
+            "data": {
+              "skipped": true,
+              "reason": "retro extraction is available via `senti workflow retro <specid>`"
+            }
+          }
+        ],
+        "followUps": [],
+        "retainedCleanupMetadata": {
+          "surfaces": [
+            "agent-metrics",
+            "notes",
+            "plugin-artifact",
+            "plugin-hook-output"
+          ]
+        }
+      }
     }
   ],
   "request": "Goal: reconcile repair-evidence production with integration-gate verification so a must-fix review finding can be repaired and subsequently pass the flow gate. Scope: create one authoritative proof record from the repair workflow, have the gate verify that same record, and cover both producer and verifier with regression tests. Out of scope: acceptance-fixture behavior and unrelated flow features.",
@@ -6734,8 +6762,8 @@
   ],
   "retryRecovery": null,
   "directFlowSession": {
-    "phase": "DIRECT_RECONCILE",
-    "revision": 6,
+    "phase": "COMPLETED_DIRECT",
+    "revision": 7,
     "target": {
       "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
       "issue": null,
@@ -6754,7 +6782,7 @@
     "adoptedActionId": "SELECT_DIRECT_RECONCILE",
     "requestedScopePaths": [],
     "selectedAt": "2026-07-26T12:26:10.426Z",
-    "updatedAt": "2026-07-26T12:39:50.873Z",
+    "updatedAt": "2026-07-26T12:52:11.060Z",
     "planId": "direct-plan-94c9e24998b4ef1d28a15de2",
     "planRevision": 1,
     "verification": {
@@ -6833,15 +6861,15 @@
     "verificationAttempts": 1,
     "suspendedFrom": null,
     "completion": {
-      "status": "prepared",
+      "status": "completed",
       "completionMode": "direct",
-      "success": null,
+      "success": true,
       "mergeDisposition": "already-merged",
       "receiptId": "direct-completion-f34c45a3313a7161adffbab940d86421",
       "integrationReceiptId": null,
       "reason": null,
       "recordedAt": null,
-      "completedAt": null
+      "completedAt": "2026-07-26T12:52:11.059Z"
     }
   },
   "directResolutionPlan": {
@@ -6937,7 +6965,7 @@
   "directCompletionReceipt": {
     "version": 1,
     "receiptId": "direct-completion-f34c45a3313a7161adffbab940d86421",
-    "status": "prepared",
+    "status": "completed",
     "completionMode": "direct",
     "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
     "issue": null,
@@ -7067,7 +7095,7 @@
     },
     "preparedAt": "2026-07-26T12:39:50.827Z",
     "reconciledAt": "2026-07-26T12:39:50.827Z",
-    "completedAt": null,
+    "completedAt": "2026-07-26T12:52:11.059Z",
     "externalUpdateKey": "direct-external-update-f34c45a3313a7161adffbab940d86421",
     "summary": "Direct completion direct-completion-f34c45a3313a7161adffbab940d86421; mode=direct; merge=already-merged; sourceStep=impl-gate; verification=passed; skipped=impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup"
   },
