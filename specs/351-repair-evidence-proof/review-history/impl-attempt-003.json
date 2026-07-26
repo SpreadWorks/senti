@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T01:57:55.362Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "proof-not-persisted-test-gap",
+      "title": "Persisted proof path is untested",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/351-repair-evidence-proof/tests/repair-evidence-proof.test.js",
+      "requirementId": "R1",
+      "issue": "The new R1-R4 tests only exercise `buildAppliedFindingRepairProof`, `RepairEvidenceReference`, and gate evaluation with in-memory proof objects. They do not call `recordAppliedFindingRepairEvidence` or complete an impl-repair transaction and then read the issue log, so the acceptance-critical persisted payload path is not verified. A regression in the producer wiring, idempotency key, or persisted issue-log shape could pass these tests while failing to give every applied finding exactly one complete proof.",
+      "suggestion": "Add a persisted issue-log test for the affected producer path: drive `recordAppliedFindingRepairEvidence` through the repair transaction/completion API or an exported test seam, write realistic `impl-review.json`, `test-execute-result.json`, and `test-result-review.json`, then assert the issue log contains exactly one entry per source finding with all R1 proof fields validated by `RepairEvidenceReference`.",
+      "disposition": "must-fix",
+      "rationale": "T-1 explicitly requires proof entries to be written for every applied finding, and its test strategy requires verifying persisted issue-log entries. The current tests do not cover the mandatory persistence behavior, so the acceptance requirement remains unproven.",
+      "findingId": "19b314ecb9e5297b9f856ba81e0f0998b3c35d9dd0cdda703976f46615d077e6",
+      "fingerprint": "19b314ecb9e5297b9f856ba81e0f0998b3c35d9dd0cdda703976f46615d077e6",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "8d80bd52889dc86b449a37710591bf2e375b9cb8d7bb9ca16cffcde654ff7c93",
+  "reviewedTree": "8d80bd52889dc86b449a37710591bf2e375b9cb8d7bb9ca16cffcde654ff7c93",
+  "reviewedHead": "2391904069c94113906b2d8bcb8dd16359459a64",
+  "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/351-repair-evidence-proof/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/351-repair-evidence-proof/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "046d0573d43367888476eb1d653c59ed1df0075221d3bf4cf81d0d479a41ec4b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "19b314ecb9e5297b9f856ba81e0f0998b3c35d9dd0cdda703976f46615d077e6",
+      "findingId": "19b314ecb9e5297b9f856ba81e0f0998b3c35d9dd0cdda703976f46615d077e6",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Persisted proof path is untested",
+      "body": "The new R1-R4 tests only exercise `buildAppliedFindingRepairProof`, `RepairEvidenceReference`, and gate evaluation with in-memory proof objects. They do not call `recordAppliedFindingRepairEvidence` or complete an impl-repair transaction and then read the issue log, so the acceptance-critical persisted payload path is not verified. A regression in the producer wiring, idempotency key, or persisted issue-log shape could pass these tests while failing to give every applied finding exactly one complete proof.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "19b314ecb9e5297b9f856ba81e0f0998b3c35d9dd0cdda703976f46615d077e6",
+      "disposition": "must-fix",
+      "rationale": "T-1 explicitly requires proof entries to be written for every applied finding, and its test strategy requires verifying persisted issue-log entries. The current tests do not cover the mandatory persistence behavior, so the acceptance requirement remains unproven.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

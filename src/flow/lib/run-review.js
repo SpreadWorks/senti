@@ -1025,6 +1025,12 @@ function canonicalArtifactName(phase) {
   return REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase] || `${phase}-review.json`;
 }
 
+function sourceArtifactPhase(phase) {
+  if (phase === "draft-questions") return "draft-questions-review";
+  if (phase === "draft-coverage") return "draft-coverage-review";
+  return phase;
+}
+
 function resolveCurrentReviewTreeSha(ctx) {
   return resolveReviewTargetTreeSha(ctx.root);
 }
@@ -1200,6 +1206,52 @@ export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
   return registration;
 }
 
+function completedReviewLifecycleReplay(ctx, {
+  phase,
+  taskId,
+  treeSha,
+  targetStateDigest,
+} = {}) {
+  const artifactPhase = sourceArtifactPhase(phase);
+  if (artifactPhase !== phase) {
+    const artifactPath = path.join(
+      path.dirname(path.resolve(ctx.root, ctx.flowState.spec)),
+      canonicalArtifactName(phase),
+    );
+    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+    if (
+      artifact.phase !== phase
+      || artifact.taskId !== taskId
+      || artifact.treeSha !== treeSha
+      || artifact.targetStateDigest !== targetStateDigest
+    ) return null;
+    artifact.phase = artifactPhase;
+    fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+  }
+  const state = new ReviewConvergenceStore({ flowManager: ctx.flowManager }).read({
+    phase,
+    taskId,
+    treeSha,
+    targetStateDigest,
+  });
+  if (state.disposition !== "PASS" && state.disposition !== "ADVISORY") return null;
+  return {
+    result: "ok",
+    changed: [canonicalArtifactName(phase)],
+    artifacts: {
+      phase: ctx.phase,
+      verdict: state.disposition,
+      issueCount: state.evidence?.blockingFindings?.length || 0,
+      retryPhase: phase,
+      canonicalVerdict: state.disposition,
+      evidenceDigest: state.evidence?.evidenceId || null,
+      replayedCanonicalEvidence: true,
+    },
+    next: null,
+    output: "Replayed lifecycle from canonical review evidence.",
+  };
+}
+
 export class ReviewExecutionGuard {
   constructor({ flowManager, boundaries } = {}) {
     if (!flowManager) throw new Error("flowManager is required");
@@ -1332,7 +1384,12 @@ function persistCanonicalReviewArtifact(
   }
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
   const taskId = result.artifacts.taskId ?? null;
-  for (const [field, value] of Object.entries({ phase, taskId, treeSha, targetStateDigest: repairFingerprint })) {
+  for (const [field, value] of Object.entries({
+    phase: sourceArtifactPhase(phase),
+    taskId,
+    treeSha,
+    targetStateDigest: repairFingerprint,
+  })) {
     if (Object.hasOwn(artifact, field) && artifact[field] !== value) {
       const error = new Error(`finalized review artifact ${field} does not match the current review target`);
       error.code = "STALE_REVIEW_TARGET";
@@ -1985,7 +2042,18 @@ export class RunReviewCommand extends FlowCommand {
         resolveTargetStateDigest: () => this.resolveTargetStateDigest(reviewCtx),
       },
     );
-    if (canonicalBlock) return canonicalBlock;
+    if (canonicalBlock) {
+      if (canonicalBlock.errors?.[0]?.code === "REVIEW_ALREADY_COMPLETED") {
+        const replay = completedReviewLifecycleReplay(reviewCtx, {
+          phase: persistedPhase,
+          taskId: completionScope.taskId,
+          treeSha: reviewTargetTreeSha,
+          targetStateDigest: reviewTargetRepairFingerprint,
+        });
+        if (replay) return replay;
+      }
+      return canonicalBlock;
+    }
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/get-next-action.js",
+      "src/flow/lib/impl-repair-artifacts.js"
+    ],
+    "inputHash": "e5001a90b9f262dcec998396590282aefd775fcf91f69a3b46d21a59a5ac6817",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/impl-repair-artifacts.js"
+  ],
+  "inputHash": "e5001a90b9f262dcec998396590282aefd775fcf91f69a3b46d21a59a5ac6817",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:08:07.887Z",
+  "finishedAt": "2026-07-26T03:08:07.887Z",
+  "rawResponse": "I’ll review only the two diffed files and frame each item as a code-quality proposal with the required requirement id.### 1. Remove Unused Parameter\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `repairProofValidationContext({ specDir, entry })` accepts `entry` but never uses it, which adds noise and suggests validation may depend on entry data when it does not.  \n**Suggestion:** Change the signature to `repairProofValidationContext({ specDir })` and update the call site accordingly.\n\n### 2. Avoid Revalidating Proof Input Through a Second Wrapper\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `recordAppliedFindingRepairEvidence` manually constructs a proof-shaped object, then `buildAppliedFindingRepairProof` immediately wraps it in `new RepairEvidenceReference(input)` and reconstructs nearly the same structure. This duplicates field mapping and makes the data flow harder to follow.  \n**Suggestion:** Either construct `RepairEvidenceReference` directly in `recordAppliedFindingRepairEvidence` and serialize it once, or make `buildAppliedFindingRepairProof` accept a `RepairEvidenceReference` instance so the validation/mapping boundary is explicit.\n\n### 3. Rename Validated Purpose For Consistency\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `ValidatedAppliedFindingRepairPurpose` is semantically close to `AppliedFindingRepairPurpose`, but the name does not clearly indicate that it represents the post-validation evidence-recording phase rather than a different kind of repair.  \n**Suggestion:** Rename it to something more precise, such as `AppliedFindingRepairEvidencePurpose` or `ValidatedRepairEvidencePurpose`, and update the serialized `kind` string if persisted compatibility allows.\n\n### 4. Extract Attempt Freshness Check\n**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `attachLatestStepAttempt` now combines two freshness checks inline: attempt before `startedAt`, and attempt before retry reset timestamp. This makes the guard harder to read and will be easy to duplicate if similar filtering is needed elsewhere.  \n**Suggestion:** Extract a helper such as `isAttemptCurrentForStep({ attempt, targetStep, resetAt })` or `isStaleStepAttempt(...)` and use it in the early return.\n\n### 5. Guard Invalid Timestamp Parsing\n**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `Date.parse(attempt.recordedAt) < resetAt` silently returns `false` when `attempt.recordedAt` is invalid because `Date.parse` returns `NaN`. That can allow malformed attempt timestamps to survive the reset filter.  \n**Suggestion:** Store the parsed timestamp in a named variable and explicitly handle non-finite values, either by treating them as stale or throwing if invalid timestamps should never occur.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove Unused Parameter",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `repairProofValidationContext({ specDir, entry })` accepts `entry` but never uses it, which adds noise and suggests validation may depend on entry data when it does not.  \n**Suggestion:** Change the signature to `repairProofValidationContext({ specDir })` and update the call site accordingly.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Revalidating Proof Input Through a Second Wrapper",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `recordAppliedFindingRepairEvidence` manually constructs a proof-shaped object, then `buildAppliedFindingRepairProof` immediately wraps it in `new RepairEvidenceReference(input)` and reconstructs nearly the same structure. This duplicates field mapping and makes the data flow harder to follow.  \n**Suggestion:** Either construct `RepairEvidenceReference` directly in `recordAppliedFindingRepairEvidence` and serialize it once, or make `buildAppliedFindingRepairProof` accept a `RepairEvidenceReference` instance so the validation/mapping boundary is explicit.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Rename Validated Purpose For Consistency",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `ValidatedAppliedFindingRepairPurpose` is semantically close to `AppliedFindingRepairPurpose`, but the name does not clearly indicate that it represents the post-validation evidence-recording phase rather than a different kind of repair.  \n**Suggestion:** Rename it to something more precise, such as `AppliedFindingRepairEvidencePurpose` or `ValidatedRepairEvidencePurpose`, and update the serialized `kind` string if persisted compatibility allows.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Extract Attempt Freshness Check",
+        "body": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `attachLatestStepAttempt` now combines two freshness checks inline: attempt before `startedAt`, and attempt before retry reset timestamp. This makes the guard harder to read and will be easy to duplicate if similar filtering is needed elsewhere.  \n**Suggestion:** Extract a helper such as `isAttemptCurrentForStep({ attempt, targetStep, resetAt })` or `isStaleStepAttempt(...)` and use it in the early return.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Guard Invalid Timestamp Parsing",
+        "body": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R1  \n**Issue:** `Date.parse(attempt.recordedAt) < resetAt` silently returns `false` when `attempt.recordedAt` is invalid because `Date.parse` returns `NaN`. That can allow malformed attempt timestamps to survive the reset filter.  \n**Suggestion:** Store the parsed timestamp in a named variable and explicitly handle non-finite values, either by treating them as stale or throwing if invalid timestamps should never occur.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

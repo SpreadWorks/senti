@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-26T02:22:38.344Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 2,
+    "nonBlocking": 0,
+    "total": 2
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "impl-gate-finding-readiness-bypass",
+      "title": "Implementation gate bypasses must-fix proof readiness",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/run-gate.js",
+      "requirementId": "R2",
+      "issue": "RunGateCommand.execute no longer calls reviewFindingGateFailure before collecting and evaluating the implementation diff. That removes the gate-time FindingDispositionPolicy check that requires must-fix review findings to have matching repair proof before the gate can pass.",
+      "suggestion": "Restore the reviewFindingGateFailure call in RunGateCommand.execute before diff collection, or move the same evaluateReviewFindingGateReadiness/FindingDispositionPolicy decision into the active gate path so implementation and task gates cannot pass while must-fix findings lack valid proof.",
+      "disposition": "must-fix",
+      "rationale": "The typed disposition policy is mandatory gate authority for must-fix findings. Removing the gate readiness check lets a blocking disposition proceed without the complete proof required by the task acceptance criteria and policy guardrails.",
+      "findingId": "f43bc0b28daf13caec8ca9bb1ab31c05b49c0b09b68544e03f8e3b0bc09d38b7",
+      "fingerprint": "f43bc0b28daf13caec8ca9bb1ab31c05b49c0b09b68544e03f8e3b0bc09d38b7",
+      "repeatCount": 1
+    },
+    {
+      "findingKey": "task-proof-phase-mismatch",
+      "title": "Task-scoped repair proof records the wrong phase",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/impl-repair-artifacts.js",
+      "requirementId": "R1",
+      "issue": "repairProofValidationContext rewrites every task-scoped impl-review proof phase to \"task-review\" when review.taskId is present. The disposition policy is evaluated with the gate/review phase supplied by evaluateReviewFindingGateReadiness, so task-scoped proof can fail to bind to the current review scope even though the impl-review artifact already contains the authoritative phase.",
+      "suggestion": "Use the impl-review artifact scope directly when building the proof, e.g. phase: review.phase and taskId: review.taskId ?? null, and add a task-scoped regression where evaluateGate receives that same phase and taskId and accepts the persisted RepairEvidenceReference.",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires proof values to bind to the current review, repair, and passing validation artifacts. Inventing a different task phase instead of preserving the reviewed artifact phase breaks that mandatory binding for task-scoped applied findings.",
+      "findingId": "5d5781a5df8a9aa9fe0202c362e1614ba6a737e62eb387cfa9c066fba3c06b3d",
+      "fingerprint": "5d5781a5df8a9aa9fe0202c362e1614ba6a737e62eb387cfa9c066fba3c06b3d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "80731d16b20b4adf13a2b6995fa326bf503a0d7dca8a098f12a2714540575711",
+  "reviewedTree": "80731d16b20b4adf13a2b6995fa326bf503a0d7dca8a098f12a2714540575711",
+  "reviewedHead": "2391904069c94113906b2d8bcb8dd16359459a64",
+  "runId": "9a7c65b3-2556-4186-aa09-b969103574fe",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/351-repair-evidence-proof/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/351-repair-evidence-proof/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "d276a7d0b0680aa6d7b471f961a74e51dc3bcc3618f804ee06798128e4bbc600"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "f43bc0b28daf13caec8ca9bb1ab31c05b49c0b09b68544e03f8e3b0bc09d38b7",
+      "findingId": "f43bc0b28daf13caec8ca9bb1ab31c05b49c0b09b68544e03f8e3b0bc09d38b7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Implementation gate bypasses must-fix proof readiness",
+      "body": "RunGateCommand.execute no longer calls reviewFindingGateFailure before collecting and evaluating the implementation diff. That removes the gate-time FindingDispositionPolicy check that requires must-fix review findings to have matching repair proof before the gate can pass.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "f43bc0b28daf13caec8ca9bb1ab31c05b49c0b09b68544e03f8e3b0bc09d38b7",
+      "disposition": "must-fix",
+      "rationale": "The typed disposition policy is mandatory gate authority for must-fix findings. Removing the gate readiness check lets a blocking disposition proceed without the complete proof required by the task acceptance criteria and policy guardrails.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    },
+    {
+      "id": "5d5781a5df8a9aa9fe0202c362e1614ba6a737e62eb387cfa9c066fba3c06b3d",
+      "findingId": "5d5781a5df8a9aa9fe0202c362e1614ba6a737e62eb387cfa9c066fba3c06b3d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Task-scoped repair proof records the wrong phase",
+      "body": "repairProofValidationContext rewrites every task-scoped impl-review proof phase to \"task-review\" when review.taskId is present. The disposition policy is evaluated with the gate/review phase supplied by evaluateReviewFindingGateReadiness, so task-scoped proof can fail to bind to the current review scope even though the impl-review artifact already contains the authoritative phase.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5d5781a5df8a9aa9fe0202c362e1614ba6a737e62eb387cfa9c066fba3c06b3d",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires proof values to bind to the current review, repair, and passing validation artifacts. Inventing a different task phase instead of preserving the reviewed artifact phase breaks that mandatory binding for task-scoped applied findings.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1031,6 +1031,23 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    "preimplementation-bootstrap": {
+      helpKey: "flow.run.preimplementation-bootstrap",
+      command: () => import("./lib/run-preimplementation-bootstrap.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: FLOW_RUN_OPTIONS,
+      },
+      help: [
+        `Usage: senti flow run preimplementation-bootstrap [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Record an audited recovery from a scenario-validity preflight block caused by existing implementation-target changes. Exact target guards, an immutable repair baseline, and the persisted preflight evidence are required; the command skips only scenario-validity and test-review, then resumes implement.",
+        "",
+        "Options:",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     "rewind-test-evidence": {
       helpKey: "flow.run.rewind-test-evidence",
       command: () => import("./lib/run-rewind-test-evidence.js"),

@@ -1,0 +1,139 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "id": "repair-001",
+      "sourceFindingIds": [
+        "test-evidence-refresh:impl-review"
+      ],
+      "reason": "implementation review detected stale fingerprint evidence",
+      "changedPathCount": 2,
+      "changedPathsPreview": [
+        "src/lib/agent.js",
+        "tests/unit/lib/agent.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/lib/",
+          "count": 1
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-001.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md"
+      ],
+      "previousHash": "2385837b71232d69700b479492a9b462092aeb8fe84fc1d1f7f78c2cdaacbf5d",
+      "currentHash": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc",
+      "createdAt": "2026-07-26T03:13:18.525Z",
+      "changedPathsDigest": "a8c78488d24913349d008728b4f45e43e5a742d77afee4c37c48b8f99af4afb7",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "implementation review detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "2385837b71232d69700b479492a9b462092aeb8fe84fc1d1f7f78c2cdaacbf5d"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "implementation review detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "2385837b71232d69700b479492a9b462092aeb8fe84fc1d1f7f78c2cdaacbf5d"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "implementation review detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "2385837b71232d69700b479492a9b462092aeb8fe84fc1d1f7f78c2cdaacbf5d"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "implementation review detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "2385837b71232d69700b479492a9b462092aeb8fe84fc1d1f7f78c2cdaacbf5d"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "implementation review detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "97116be6921b09874d3672d9dd16293eeb49f0d7f7cc51139aa71e0977f46698"
+        },
+        {
+          "path": "review.md",
+          "reason": "implementation review detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "97116be6921b09874d3672d9dd16293eeb49f0d7f7cc51139aa71e0977f46698"
+        }
+      ]
+    },
+    {
+      "id": "repair-002",
+      "sourceFindingIds": [
+        "test-evidence-refresh:impl-gate"
+      ],
+      "reason": "integration gate detected stale fingerprint evidence",
+      "changedPathCount": 2,
+      "changedPathsPreview": [
+        "specs/351-repair-evidence-proof/tests/repair-evidence-proof.test.js",
+        "tests/unit/lib/agent.test.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "specs/351-repair-evidence-proof/",
+          "count": 1
+        },
+        {
+          "prefix": "tests/unit/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-002.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "test-result-review.json",
+        "test-result-review.md",
+        "impl-review.json",
+        "review.md"
+      ],
+      "previousHash": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc",
+      "currentHash": "26f9d6edc732e5d7b6b229a92e9bdec9d653522957707f11060f24dd02a3ff9f",
+      "createdAt": "2026-07-26T03:19:16.827Z",
+      "changedPathsDigest": "cd8cfe4178be0a168437e6bc16f2700063f69cc7e8026b9a55dd9a56d1aa312f",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        },
+        {
+          "path": "test-result-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        },
+        {
+          "path": "test-result-review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "integration gate detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        },
+        {
+          "path": "review.md",
+          "reason": "integration gate detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "49d76c152a0240fa22033e9513182fca0bd688fb8290ee4f5426f5477e0692dc"
+        }
+      ]
+    }
+  ]
+}

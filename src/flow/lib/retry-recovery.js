@@ -30,8 +30,8 @@ const MAX_FINGERPRINT_FILES = 500;
 const MAX_RECOVERY_BASELINES_PER_TARGET = 10;
 const VALID_ACTIONS = Object.freeze(["reset"]);
 const VALID_KINDS = Object.freeze(["gate", "review"]);
-const GATE_RECOVERABLE_PHASES = Object.freeze(["task-impl", "integration"]);
-const GATE_TRACKED_UNRECOVERABLE_PHASES = Object.freeze(["draft", "spec"]);
+const GATE_RECOVERABLE_PHASES = Object.freeze(["draft", "task-impl", "integration"]);
+const GATE_TRACKED_UNRECOVERABLE_PHASES = Object.freeze(["spec"]);
 const REVIEW_RECOVERABLE_PHASES = Object.freeze([
   "draft-questions",
   "draft-coverage",
@@ -408,6 +408,13 @@ export class RecoveryEvidenceSource {
 
 export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir }) {
   const dir = normalizeRelPath(specDir || ".");
+  if (kind === "gate" && canonicalPhase === "draft") {
+    return new RecoveryEvidenceSource({
+      sourceKind: "draft-artifact",
+      paths: [`${dir}/draft.json`],
+      runtimeIdentities: [GATE_EVALUATOR_IDENTITY],
+    });
+  }
   if (kind === "gate" && canonicalPhase === "task-impl") {
     return new RecoveryEvidenceSource({
       sourceKind: "implementation-diff",
@@ -1541,8 +1548,9 @@ function inProgressStepIds(steps, out = []) {
   return out;
 }
 
-function expectedActiveStep(kind, canonicalPhase) {
+function expectedActiveStep(kind, canonicalPhase, flowState) {
   if (kind === "gate") {
+    if (canonicalPhase === "draft") return "draft-gate";
     return canonicalPhase === "task-impl" ? "task-gate" : "impl-gate";
   }
   return {
@@ -1550,7 +1558,7 @@ function expectedActiveStep(kind, canonicalPhase) {
     "draft-coverage": "draft-coverage-review",
     spec: "spec-review",
     test: "test-review",
-    impl: "impl-review",
+    impl: flowState.currentTaskId == null ? "impl-review" : "task-review",
   }[canonicalPhase] || null;
 }
 
@@ -1572,7 +1580,7 @@ function assertFreshRecoveryTarget(flowState, input, expected) {
   for (const task of Array.isArray(flowState.tasks) ? flowState.tasks : []) {
     inProgressStepIds(task.steps, activeIds);
   }
-  const expectedStep = expectedActiveStep(input.kind, input.canonicalPhase);
+  const expectedStep = expectedActiveStep(input.kind, input.canonicalPhase, flowState);
   if (expectedStep && !activeIds.includes(expectedStep)) {
     throw new RetryRecoveryGrantError(
       "STALE_RECOVERY_TARGET",

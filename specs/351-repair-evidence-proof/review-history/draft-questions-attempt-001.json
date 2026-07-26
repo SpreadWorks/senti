@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-26T00:53:21.082Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Empty Initial QA List",
+      "target": "qa[]",
+      "rationale": "Return the draft to the draft step so it supplies at least one initial QA entry, or explicitly mark that no clarification questions are needed in the owning draft artifact if that state is supported.",
+      "evidence": "qa[] is empty before any answer exists",
+      "classification": "repair_target"
+    }
+  ],
+  "sourceArtifact": "draft-review-questions.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "draft-questions-001-non-blocking-001",
+      "findingId": "draft-questions-001-non-blocking-001",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. Empty Initial QA List",
+      "body": "Return the draft to the draft step so it supplies at least one initial QA entry, or explicitly mark that no clarification questions are needed in the owning draft artifact if that state is supported.",
+      "category": "repair_target",
+      "target": "qa[]",
+      "evidence": "qa[] is empty before any answer exists",
+      "rationale": "Return the draft to the draft step so it supplies at least one initial QA entry, or explicitly mark that no clarification questions are needed in the owning draft artifact if that state is supported."
+    }
+  ]
+}

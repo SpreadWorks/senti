@@ -8,6 +8,7 @@ import {
   ExplicitRecoveryTransition,
   StepTransitionCommitIntent,
 } from "./step-transition-policy.js";
+import { RepairEvidenceReference } from "./finding-disposition-policy.js";
 import {
   REPAIR_DELTA_DIR,
   REPAIR_FINGERPRINT_MANIFEST_FILE,
@@ -349,6 +350,7 @@ export class ImplRepairPurpose {
         ? input.kind
         : input.kind;
     if (kind === "applied-finding-repair") return new AppliedFindingRepairPurpose();
+    if (kind === "validated-applied-finding-repair") return new ValidatedAppliedFindingRepairPurpose();
     if (kind === "test-evidence-refresh") return new TestEvidenceRefreshPurpose();
     throw new Error(`unknown impl-repair purpose: ${kind}`);
   }
@@ -365,6 +367,18 @@ export class ImplRepairPurpose {
 export class AppliedFindingRepairPurpose extends ImplRepairPurpose {
   constructor() {
     super("applied-finding-repair");
+    Object.freeze(this);
+  }
+
+  recordEvidence() {
+    // An initial repair has no post-repair test result yet, so it cannot
+    // produce a consumable finding proof.
+  }
+}
+
+export class ValidatedAppliedFindingRepairPurpose extends ImplRepairPurpose {
+  constructor() {
+    super("validated-applied-finding-repair");
     Object.freeze(this);
   }
 
@@ -492,7 +506,7 @@ export class ImplRepairTransaction {
       ledger: this.ledger.toJSON(),
       currentManifest: this.currentManifest.toJSON(),
       delta: this.delta.toJSON(),
-      ...(this.purpose instanceof TestEvidenceRefreshPurpose
+      ...(!(this.purpose instanceof AppliedFindingRepairPurpose)
         ? { purpose: this.purpose.toJSON() }
         : {}),
       invalidations: this.invalidations.map((record) => record.toJSON()),
@@ -1394,7 +1408,7 @@ export function completeLateAppliedFindingRepair({
   specDir,
   sourceStep,
   sourceFindingIds,
-  resetStepIds = flowLeafIdsBetween("test-execute", "finalize-cleanup"),
+  resetStepIds = ["impl-gate"],
   specId = null,
 }) {
   if (!flowManager || typeof flowManager.updateStepStatuses !== "function") {
@@ -1421,15 +1435,11 @@ export function completeLateAppliedFindingRepair({
     throw new Error("late applied-finding repair changed paths must be non-empty");
   }
   const reason = `Late repair evidence recorded for findings ${appliedFindingIds.join(", ")}.`;
-  const invalidations = planRepairInvalidation({
-    specDir: resolvedSpecDir,
-    currentFingerprint: current,
-    previousFingerprint: previous,
-    reason,
-  });
-  if (invalidations.length === 0) {
-    throw new Error("late applied-finding repair must invalidate stale test evidence");
-  }
+  const invalidations = [new InvalidatedArtifactRecord({
+    path: EVIDENCE_FILE_BY_STEP["impl-gate"],
+    reason: `${reason} (late_repair_evidence_recorded)`,
+    previousFingerprint: previous.hash,
+  })];
   const id = `repair-${String(existing.entries.length + 1).padStart(3, "0")}`;
   const delta = ledgerPreviousHash === previous.hash
     ? repairDeltaArtifact({ id, previous, current, changedPaths })
@@ -1465,6 +1475,7 @@ export function completeLateAppliedFindingRepair({
     currentManifest: current,
     delta,
     invalidations,
+    purpose: new ValidatedAppliedFindingRepairPurpose(),
   });
   const changes = plannedRepairStepChanges(activeState, transaction.resetStepIds);
   if (changes.length === 0) {
@@ -1532,19 +1543,86 @@ function repairEvidenceFile({ root, specPath, entry }) {
   return file;
 }
 
-function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry }) {
+export function buildAppliedFindingRepairProof(input = {}) {
+  const evidence = new RepairEvidenceReference(input);
+  return {
+    normalizedFindingId: evidence.normalizedFindingId,
+    findingFingerprint: evidence.findingFingerprint,
+    reviewedTree: evidence.reviewedTree,
+    reviewedHead: evidence.reviewedHead,
+    repairDiff: evidence.repairDiff,
+    validatingTestResult: {
+      status: "pass",
+      findingFingerprint: evidence.validatingTestResult.findingFingerprint,
+      reviewedTree: evidence.validatingTestResult.reviewedTree,
+    },
+    repairRef: evidence.repairRef.toJSON(),
+    phase: evidence.scope.phase,
+    taskId: evidence.scope.taskId,
+    timestamp: evidence.timestamp,
+  };
+}
+
+function repairProofValidationContext({ specDir, entry }) {
+  const review = readJson(path.join(specDir, "impl-review.json"));
+  const testResult = readJson(path.join(specDir, "test-execute-result.json"));
+  const testReview = readJson(path.join(specDir, "test-result-review.json"));
+  const reviewedTree = requireHash(review.reviewedTree, "impl-review reviewedTree");
+  const reviewedHead = requireString(review.reviewedHead, "impl-review reviewedHead");
+  const reviewPhase = requireString(review.phase, "impl-review phase");
+  const taskId = review.taskId == null ? null : requireString(review.taskId, "impl-review taskId");
+  const phase = reviewPhase;
+  if (!Array.isArray(testResult.summary) || testResult.summary.some((result) => result?.result !== "pass")) {
+    throw new Error("repair proof requires passing test-execute results");
+  }
+  if (testReview.verdict !== "pass") throw new Error("repair proof requires a passing test-result-review");
+  if (testResult.repairFingerprint !== reviewedTree || testReview.repairFingerprint !== reviewedTree) {
+    throw new Error("repair proof requires validation artifacts bound to the reviewed tree");
+  }
+  return { review, reviewedTree, reviewedHead, phase, taskId };
+}
+
+function normalizedReviewFindingId(finding) {
+  return requireString(
+    finding?.normalizedFindingId || finding?.findingId || finding?.id || finding?.fingerprint,
+    "impl-review finding identity",
+  );
+}
+
+export function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry }) {
+  const specDir = path.dirname(path.resolve(root, specPath));
   const repairFile = repairEvidenceFile({ root, specPath, entry });
+  const { review, reviewedTree, reviewedHead, phase, taskId } = repairProofValidationContext({ specDir, entry });
+  const findings = [
+    ...(Array.isArray(review.blockingFindings) ? review.blockingFindings : []),
+    ...(Array.isArray(review.nonBlockingImprovements) ? review.nonBlockingImprovements : []),
+  ];
   for (const findingId of entry.sourceFindingIds) {
+    const finding = findings.find((candidate) => normalizedReviewFindingId(candidate) === findingId);
+    if (!finding) throw new Error(`repair proof finding is absent from impl-review: ${findingId}`);
+    const proof = buildAppliedFindingRepairProof({
+      normalizedFindingId: findingId,
+      findingFingerprint: finding.fingerprint,
+      reviewedTree,
+      reviewedHead,
+      repairDiff: entry.changedPathsDigest,
+      validatingTestResult: {
+        status: "pass",
+        findingFingerprint: finding.fingerprint,
+        reviewedTree,
+      },
+      repairRef: { files: [repairFile] },
+      phase,
+      taskId,
+      timestamp: entry.createdAt,
+    });
     appendIssueLogEntry(root, specPath, {
       step: sourceStep,
       reason: entry.reason,
       trigger: "impl-repair completed for an applied review finding",
       resolution: `Repair evidence recorded by ${entry.id}; ${entry.changedPathCount} changed path(s), delta ${entry.changedPathsRef}.`,
-      normalizedFindingId: findingId,
-      repairRef: { files: [repairFile] },
-      taskId: null,
-      timestamp: entry.createdAt,
-    }, `impl-repair:${entry.id}:${findingId}`);
+      ...proof,
+    }, `impl-repair:${entry.id}:${findingId}:validated`);
   }
 }
 

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { Agent } from "../../../src/lib/agent.js";
+import { EventEmitter } from "events";
+import { Agent, ChildProcessSupervisor } from "../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
 
@@ -64,6 +65,25 @@ describe("Agent.call() — basic invocation", () => {
     const largePrompt = "X".repeat(2000);
     const result = await agent.call(largePrompt, { commandId: "test" });
     assert.equal(result, largePrompt);
+  });
+});
+
+describe("ChildProcessSupervisor", () => {
+  it("settles after a bounded drain when the direct child exits without close", async () => {
+    const child = new EventEmitter();
+    const supervisor = new ChildProcessSupervisor({
+      child,
+      timeoutMs: 1_000,
+      graceMs: 10,
+      exitDrainMs: 1,
+    });
+
+    const completion = supervisor.wait();
+    child.emit("exit", 0, null);
+
+    assert.deepEqual(await completion, { code: 0, signal: null });
+    assert.equal(child.listenerCount("close"), 0);
+    assert.equal(child.listenerCount("exit"), 0);
   });
 });
 

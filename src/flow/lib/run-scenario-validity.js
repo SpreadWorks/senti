@@ -81,8 +81,8 @@ export function buildScenarioValidityDiffArgs(baseBranch = "main") {
   ];
 }
 
-function listScenarioValidityPreflightFiles({ root, baseBranch }) {
-  const diff = runGit(buildScenarioValidityDiffArgs(baseBranch), { cwd: root });
+function listScenarioValidityPreflightFiles({ root, baselineRef }) {
+  const diff = runGit(buildScenarioValidityDiffArgs(baselineRef), { cwd: root });
   if (!diff.ok) throw new Error(`scenario-validity preflight diff failed: ${diff.stderr || diff.stdout}`);
   const diffFiles = diff.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const statusFiles = listChangedFilesDetailed({ cwd: root, untrackedFiles: "all", maxChangedFileEntries: 2000 })
@@ -304,12 +304,13 @@ export default class RunScenarioValidityCommand extends FlowCommand {
         : "node --test";
       const rawLines = [];
 
-    const changedFiles = listScenarioValidityPreflightFiles({ root, baseBranch: state.baseBranch || "main" });
+    const baselineRef = state?.repairBaseline?.ref || state?.baseBranch || "main";
+    const changedFiles = listScenarioValidityPreflightFiles({ root, baselineRef });
     const preflight = validateScenarioValidityPreflightPaths({ specId, changedFiles });
     if (!preflight.ok) {
       const range = appendRaw(rawLines, [
         "[senti] scenario-validity preflight block",
-        `command: ${buildScenarioValidityDiffArgs(state.baseBranch || "main").join(" ")}`,
+        `command: ${buildScenarioValidityDiffArgs(baselineRef).join(" ")}`,
         `invalid_paths: ${preflight.invalidPaths.join(", ")}`,
         ...requirements.filter((req) => req.testable !== false).map((req) => `[senti] requirement ${req.id} result invalid_test`),
         "[senti] scenario-validity preflight end",

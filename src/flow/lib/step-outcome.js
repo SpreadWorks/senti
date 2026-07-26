@@ -237,13 +237,36 @@ export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null
   return record;
 }
 
+const RETRY_RESET_METRIC_BY_STEP = Object.freeze({
+  "task-review": { phase: "impl", counter: "reviewRetry" },
+  "task-gate": { phase: "task-impl", counter: "gateRetry" },
+  "impl-review": { phase: "impl", counter: "reviewRetry" },
+  "impl-gate": { phase: "integration", counter: "gateRetry" },
+});
+
+export function retryResetTimestampForStep(flowState, stepId) {
+  const metric = RETRY_RESET_METRIC_BY_STEP[stepId];
+  if (!metric) return -Infinity;
+  return (flowState.metrics || [])
+    .filter((entry) => (
+      entry?.phase === metric.phase
+      && entry?.counter === metric.counter
+      && entry?.reset === true
+    ))
+    .map((entry) => Date.parse(entry.ts))
+    .filter(Number.isFinite)
+    .reduce((latest, timestamp) => Math.max(latest, timestamp), -Infinity);
+}
+
 export function nextStepAttemptNumber(flowState, stepId) {
   if (!flowState?.runId) return 1;
   const log = new StepAttemptLog(flowState.stepAttempts || []);
+  const resetAt = retryResetTimestampForStep(flowState, stepId);
   const matching = log.entries.filter((entry) => (
     entry.runId === flowState.runId
     && entry.taskId === (flowState.currentTaskId ?? null)
     && entry.stepId === stepId
+    && Date.parse(entry.recordedAt) >= resetAt
   ));
   return matching.reduce((max, entry) => Math.max(max, entry.attempt), 0) + 1;
 }

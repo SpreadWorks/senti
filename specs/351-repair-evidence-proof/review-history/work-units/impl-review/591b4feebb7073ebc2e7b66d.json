@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "591b4feebb7073ebc2e7b66d",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0006",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js"
+    ],
+    "inputHash": "1ddaaf7cc7f88067b4fdac855f5b2ec3d1c3d8dccf5faaa15e13696dcdd8b810",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "591b4feebb7073ebc2e7b66d"
+  },
+  "targetFiles": [
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js"
+  ],
+  "inputHash": "1ddaaf7cc7f88067b4fdac855f5b2ec3d1c3d8dccf5faaa15e13696dcdd8b810",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:15:08.506Z",
+  "finishedAt": "2026-07-26T03:15:08.506Z",
+  "rawResponse": "### 1. Extract Supported Recovery Entrypoints\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** `ExplicitRecoveryTransition.validate()` and `isStepTransition()` now both encode supported recovery entrypoints separately. This creates drift risk when adding future recovery entrypoints.  \n**Suggestion:** Introduce a shared `SUPPORTED_RECOVERY_ENTRYPOINTS` `Set` using `RESET_SKIPPED_ENTRYPOINT`, `\"impl-repair-invalidation\"`, and `PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT`, then reuse it in `isStepTransition()` and validation dispatch where appropriate.\n\n### 2. Move Bootstrap Expected Changes To Module Constant\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R5  \n**Issue:** The expected preimplementation bootstrap transition `Map` is recreated every time validation runs, even though it is static policy data.  \n**Suggestion:** Define a module-level constant such as `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES`, then reference it from `validate()`. This makes the policy easier to scan and avoids repeated allocation.\n\n### 3. Name Bootstrap Transition Policy More Specifically\n**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** The local variable name `expected` is generic and does not communicate that it encodes required current/requested status pairs for this specific recovery entrypoint.  \n**Suggestion:** Rename it to something like `requiredBootstrapTransitions` or `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES` if extracted to module scope.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Supported Recovery Entrypoints",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R4  \n**Issue:** `ExplicitRecoveryTransition.validate()` and `isStepTransition()` now both encode supported recovery entrypoints separately. This creates drift risk when adding future recovery entrypoints.  \n**Suggestion:** Introduce a shared `SUPPORTED_RECOVERY_ENTRYPOINTS` `Set` using `RESET_SKIPPED_ENTRYPOINT`, `\"impl-repair-invalidation\"`, and `PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT`, then reuse it in `isStepTransition()` and validation dispatch where appropriate.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Move Bootstrap Expected Changes To Module Constant",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R5  \n**Issue:** The expected preimplementation bootstrap transition `Map` is recreated every time validation runs, even though it is static policy data.  \n**Suggestion:** Define a module-level constant such as `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES`, then reference it from `validate()`. This makes the policy easier to scan and avoids repeated allocation.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Name Bootstrap Transition Policy More Specifically",
+        "body": "**File:** `src/flow/lib/step-transition-policy.js`  \n**Requirement:** R2  \n**Issue:** The local variable name `expected` is generic and does not communicate that it encodes required current/requested status pairs for this specific recovery entrypoint.  \n**Suggestion:** Rename it to something like `requiredBootstrapTransitions` or `PREIMPLEMENTATION_BOOTSTRAP_EXPECTED_CHANGES` if extracted to module scope.",
+        "file": "src/flow/lib/step-transition-policy.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

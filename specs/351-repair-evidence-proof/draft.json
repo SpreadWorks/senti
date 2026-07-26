@@ -1,0 +1,71 @@
+{
+  "devType": "bugfix",
+  "goal": "must reconcile repair-evidence production with integration-gate verification and preserve the plan recovery path so a repaired must-fix finding passes only when one proof record matches its fingerprint, review revision, repair delta, and passing test result.",
+  "analysis": {
+    "problem": "RepairEvidenceReference requires finding, reviewed-tree, reviewed-head, repair-diff, and validating-test proof fields, but SetIssueLogCommand and impl-repair currently emit only a finding id and file or commit reference. A task gate runs before validation artifacts exist, so it cannot require a post-validation proof; integration verification must enforce that proof after validation. The plan recovery route also rejects scenario-validity because approval has synchronized a pending task cursor, even though no implementation task has started.",
+    "proposedApproach": "Migration inventory: retain SetIssueLogCommand as the owner of existing step, reason, trigger, and resolution diagnostic entries in issue-log.json, with the same CLI flags and location; replace only recordAppliedFindingRepairEvidence's partial normalizedFindingId plus repairRef entry. The replacement is one impl-repair proof writer owned by the repair workflow: completeLateAppliedFindingRepair writes it only after the repair transaction has applied its delta and after test-execute plus test-result-review report pass. It binds the review finding fingerprint, reviewed tree and head, repair-delta digest, and passing test-result artifact to the repair-entry id. The removed partial entry no longer qualifies as proof; generic diagnostics remain ignored as proof unless the workflow writes the complete record. Behavior-level verification proves retained diagnostics persist unchanged, a complete workflow proof passes, and incomplete or stale proof blocks. Keep existing CLI flags unchanged and add no caller-supplied proof input, configuration, public API, or generated artifact path. Pass the current reviewed tree, head, repair digest, and test-result identity into FindingDispositionPolicy.evaluateGate through gate readiness; it becomes the sole verifier of the issue-log proof and rejects duplicate, missing, stale, or mismatched records. Keep pre-implementation reopen-draft selected by the active plan leaf, including scenario-validity, rather than a pending task cursor.",
+    "validation": "Regression tests must cover a valid repaired finding passing gate readiness and tampered, stale, or incomplete proof failing closed. Regression tests must also prove scenario-validity can reopen draft before any done implementation task when a plan correction is required. The #466 integration gate must return a pass result when its repaired must-fix finding has a complete matching proof."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "RepairEvidenceReference validates five proof fields in addition to repairRef.",
+      "SetIssueLogCommand currently persists no proof fields.",
+      "FindingDispositionPolicy.evaluateGate requires those proof fields to match before it accepts repair evidence.",
+      "must: only the impl-repair transaction may write a repair proof; SetIssueLogCommand accepts diagnostic fields but has no proof-field input path.",
+      "must: approval can synchronize a pending task cursor before implementation, so plan recovery must use the active plan leaf instead."
+      ,"must: integration is the first gate after test-result-review, so it is the only gate lifecycle point that can verify a proof requiring a passing validation artifact."
+    ],
+    "decisionPoints": [
+      "must: choose one repair-proof record produced by the repair workflow and accepted by gate verification only when its finding fingerprint, tree, head, repair digest, and passing test result all match.",
+      "must: select pre-implementation draft recovery from scenario-validity by its active plan step even when a pending task cursor exists."
+    ],
+    "resolvedByProjectRules": [
+      "No external dependencies; use Node.js built-ins and existing repair fingerprint and git helpers.",
+      "Fail closed for malformed, missing, stale, or mismatched evidence."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: exact class and module boundaries for the proof record.",
+      "must: the repair workflow reads the finding fingerprint and reviewed tree/head from impl-review, the repair-delta digest from the impl-repair transaction, and the passing validation identity from test-execute and test-result-review; spec defines their exact field mapping."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: repair-evidence generation for applied implementation-review findings.",
+      "must: integration gate verification of the generated post-validation proof; task gates retain their pre-validation review lifecycle.",
+      "must: regression tests where a complete matching proof passes gate readiness and each missing, stale, or mismatched proof field blocks gate readiness.",
+      "must: pre-implementation reopen-draft recovery from scenario-validity with no completed implementation task."
+    ],
+    "out": [
+      "Acceptance-review fixture injection behavior.",
+      "Changing review disposition policy or weakening gate requirements.",
+      "Manual issue-log proof entry by CLI users."
+    ]
+  },
+  "impactOnExisting": [
+    "must: an issue-log entry without normalizedFindingId remains a diagnostic entry, and gate readiness ignores it as repair evidence.",
+    "must: migration inventory: the partial impl-repair normalizedFindingId plus repairRef entry is removed as proof and replaced by the workflow-owned complete proof at the same issue-log lifecycle point; SetIssueLogCommand diagnostics retain their fields, CLI flags, and issue-log.json location, while callers gain no proof-field path. Tests verify retained diagnostics, complete proof acceptance, and partial, stale, or malformed proof rejection.",
+    "must: impl-repair invalidation resets stale downstream artifacts; the repair fingerprint manifest is the impl-repair transaction's changed-path digest for the current repair entry and must equal the digest recorded in its issue-log proof.",
+    "must: existing task and integration gate calls retain their result shape while gate readiness supplies proof context to FindingDispositionPolicy.evaluateGate; no new hook, configuration key, or generated artifact path is introduced.",
+    "must: reopen-draft preserves its existing reset artifacts while accepting scenario-validity as a pre-implementation plan leaf regardless of a pending task cursor."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "must: Should repair proof be produced only by the repair workflow and reject caller-supplied issue-log proof fields?",
+      "answer": "must: Yes. Only an impl-repair transaction may create repair proof; generic issue-log input remains diagnostic text and cannot assert proof fields.",
+      "evidence": "The draft goal requires one authoritative proof record, and the existing SetIssueLogCommand accepts generic diagnostics without the review, diff, and test evidence needed to establish that proof.",
+      "why": "Accepting caller-supplied proof fields would let an untrusted CLI invocation satisfy an integration-gate obligation without the repair workflow's authoritative evidence.",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-26T01:36:39Z",
+    "notes": ""
+  }
+}

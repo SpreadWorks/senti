@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/run-gate.js",
+      "src/flow/lib/run-reopen-draft.js"
+    ],
+    "inputHash": "38002a6d7a54ecbedd9b916b1996f0f36ab10da520a81c48e2ca2059a61f4176",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/run-gate.js",
+    "src/flow/lib/run-reopen-draft.js"
+  ],
+  "inputHash": "38002a6d7a54ecbedd9b916b1996f0f36ab10da520a81c48e2ca2059a61f4176",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-26T03:09:58.523Z",
+  "finishedAt": "2026-07-26T03:09:58.523Z",
+  "rawResponse": "I’ll review only the two diff files and check the guardrail against the changed logic. I’m going to inspect surrounding code so the proposals are grounded in existing patterns, not just the patch hunk.The working directory is the temporary review root and doesn’t contain `src` directly. I’m locating the repo layout first, then I’ll read the same touched files from their actual path.I found the touched files one directory above the temp root. I can read them under the sandbox, so I’m checking the surrounding implementations now.### 1. Extract retry reset record construction\n**File:** `src/flow/lib/run-reopen-draft.js`  \n**Requirement:** R5  \n**Issue:** `resetSpecCorrectionRetries` duplicates the same metric record shape across two loops, differing only by phase list and counter name. This makes future retry-reset changes easy to apply inconsistently.  \n**Suggestion:** Build one local reset descriptor list, e.g. `SPEC_CORRECTION_RETRY_RESETS`, and loop once to append `{ phase, counter, delta: 0, reset: true, taskId: null, ts }`.\n\n### 2. Clarify draft semantic finding predicate\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The draft retry-exhaustion branch embeds `finding?.category === \"semantic\"` inline. That category check is now policy-significant because only semantic draft findings defer.  \n**Suggestion:** Extract a named helper such as `isDraftDeferrableSemanticFinding(finding)` or `allFindingsAreSemantic(rawFindings)` and use it in `classifyGateRetryExhaustionSource`.\n\n### 3. Rename recovery phase set to match behavior\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `GATE_RECOVERY_PHASES` now includes `draft`, but draft exhaustion does not follow the same repair-evidence recovery path as task/integration; it defers semantic findings directly. The name is broader than the behavior.  \n**Suggestion:** Rename it to something like `GATE_RETRY_EXHAUSTION_PHASES` so the constant describes which phases participate in retry-exhaustion handling, not just repair recovery.\n\n### 4. Avoid stale “latest ledger entry” ambiguity\n**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `repairDiff` is derived from `ledger?.entries.at(-1)?.changedPathsDigest`, but the name hides that this is specifically the latest repair ledger digest.  \n**Suggestion:** Introduce a small helper or clearer local name, e.g. `latestRepairDiff = latestImplRepairDiffDigest(ledger)`, then pass it as `repairDiff`. That keeps the policy API intact while making the source and selection rule explicit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract retry reset record construction",
+        "body": "**File:** `src/flow/lib/run-reopen-draft.js`  \n**Requirement:** R5  \n**Issue:** `resetSpecCorrectionRetries` duplicates the same metric record shape across two loops, differing only by phase list and counter name. This makes future retry-reset changes easy to apply inconsistently.  \n**Suggestion:** Build one local reset descriptor list, e.g. `SPEC_CORRECTION_RETRY_RESETS`, and loop once to append `{ phase, counter, delta: 0, reset: true, taskId: null, ts }`.",
+        "file": "src/flow/lib/run-reopen-draft.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "2. Clarify draft semantic finding predicate",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** The draft retry-exhaustion branch embeds `finding?.category === \"semantic\"` inline. That category check is now policy-significant because only semantic draft findings defer.  \n**Suggestion:** Extract a named helper such as `isDraftDeferrableSemanticFinding(finding)` or `allFindingsAreSemantic(rawFindings)` and use it in `classifyGateRetryExhaustionSource`.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "3. Rename recovery phase set to match behavior",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R5  \n**Issue:** `GATE_RECOVERY_PHASES` now includes `draft`, but draft exhaustion does not follow the same repair-evidence recovery path as task/integration; it defers semantic findings directly. The name is broader than the behavior.  \n**Suggestion:** Rename it to something like `GATE_RETRY_EXHAUSTION_PHASES` so the constant describes which phases participate in retry-exhaustion handling, not just repair recovery.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R5"
+      },
+      {
+        "title": "4. Avoid stale “latest ledger entry” ambiguity",
+        "body": "**File:** `src/flow/lib/run-gate.js`  \n**Requirement:** R2  \n**Issue:** `repairDiff` is derived from `ledger?.entries.at(-1)?.changedPathsDigest`, but the name hides that this is specifically the latest repair ledger digest.  \n**Suggestion:** Introduce a small helper or clearer local name, e.g. `latestRepairDiff = latestImplRepairDiffDigest(ledger)`, then pass it as `repairDiff`. That keeps the policy API intact while making the source and selection rule explicit.",
+        "file": "src/flow/lib/run-gate.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

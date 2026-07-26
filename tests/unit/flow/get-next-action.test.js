@@ -27,6 +27,7 @@ import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
+import { ExternalBlockedOutcome, StepAttempt } from "../../../src/flow/lib/step-outcome.js";
 
 const CLI = join(process.cwd(), "src/senti.js");
 
@@ -179,6 +180,46 @@ describe("flow get next-action", () => {
       assert.equal(reloaded.tasks[0].status, "in_progress");
       assert.equal(reloaded.tasks[0].steps[0].status, "in_progress");
     });
+  });
+
+  it("ignores a task-gate external block recorded before its audited retry reset", () => {
+    tmp = createTmpDir();
+    const state = setupActiveFlow(tmp, {
+      tasks: [{
+        id: "T-1",
+        spec: "specs/001-test/tasks/T-1.md",
+        origin: "plan",
+        parent: null,
+        status: "in_progress",
+        steps: buildInitialTaskSteps("plan"),
+        requirements: [],
+      }],
+      metrics: [{
+        phase: "task-impl",
+        counter: "gateRetry",
+        reset: true,
+        ts: "2026-07-26T02:00:00.000Z",
+      }],
+    });
+    setTaskStepInProgress(state, "T-1", "task-gate");
+    state.stepAttempts = [new StepAttempt({
+      runId: state.runId,
+      taskId: "T-1",
+      stepId: "task-gate",
+      attempt: 1,
+      recordedAt: "2026-07-26T01:00:00.000Z",
+      outcome: new ExternalBlockedOutcome({
+        reason: "mechanical",
+        resumeInstruction: "Resolve the previous failure.",
+      }),
+    }).toJSON()];
+    replaceFlowState(tmp, state);
+
+    const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+    assert.equal(exitCode, 0);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.halt, undefined);
   });
 
   describe("flow-level fallback (REQ-4)", () => {
