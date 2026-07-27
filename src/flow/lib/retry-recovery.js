@@ -30,8 +30,7 @@ const MAX_FINGERPRINT_FILES = 500;
 const MAX_RECOVERY_BASELINES_PER_TARGET = 10;
 const VALID_ACTIONS = Object.freeze(["reset"]);
 const VALID_KINDS = Object.freeze(["gate", "review"]);
-const GATE_RECOVERABLE_PHASES = Object.freeze(["draft", "task-impl", "integration"]);
-const GATE_TRACKED_UNRECOVERABLE_PHASES = Object.freeze(["spec"]);
+const GATE_RECOVERABLE_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 const REVIEW_RECOVERABLE_PHASES = Object.freeze([
   "draft-questions",
   "draft-coverage",
@@ -349,15 +348,6 @@ export function resolveRecoveryTarget(kind, phase) {
     if (GATE_RECOVERABLE_PHASES.includes(phase)) {
       return new RecoveryTarget({ kind, phase, canonicalPhase: phase, recoverable: true, reason: "recoverable" });
     }
-    if (GATE_TRACKED_UNRECOVERABLE_PHASES.includes(phase)) {
-      return new RecoveryTarget({
-        kind,
-        phase,
-        canonicalPhase: phase,
-        recoverable: false,
-        reason: "unsupported-plan-gate-phase",
-      });
-    }
   }
   if (kind === "review") {
     const canonicalPhase = canonicalReviewPhase(phase);
@@ -412,6 +402,13 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
     return new RecoveryEvidenceSource({
       sourceKind: "draft-artifact",
       paths: [`${dir}/draft.json`],
+      runtimeIdentities: [GATE_EVALUATOR_IDENTITY],
+    });
+  }
+  if (kind === "gate" && canonicalPhase === "spec") {
+    return new RecoveryEvidenceSource({
+      sourceKind: "spec-artifact",
+      paths: [`${dir}/spec.json`],
       runtimeIdentities: [GATE_EVALUATOR_IDENTITY],
     });
   }
@@ -743,6 +740,32 @@ export function persistRecoveryBaseline(state, input = {}) {
   return baseline;
 }
 
+function buildSpecGateBaselineMigration({ kind, target, current }) {
+  if (
+    kind !== "gate"
+    || target.canonicalPhase !== "spec"
+    || current.components?.runtimeHash == null
+  ) {
+    return null;
+  }
+  return new ReviewRecoveryBaseline({
+    kind,
+    phase: target.phase,
+    canonicalPhase: target.canonicalPhase,
+    fingerprint: new EvidenceFingerprint({
+      sourceKind: current.sourceKind,
+      hash: current.components.projectHash,
+      paths: current.paths,
+      truncated: current.truncated,
+      components: new EvidenceFingerprintComponents({
+        projectHash: current.components.projectHash,
+        runtimeHash: null,
+      }),
+    }),
+    trigger: "spec-gate-recovery-enabled",
+  });
+}
+
 export function evaluateRecoveryEligibility(input = {}) {
   const kind = requireString(input.kind, "kind");
   const phase = requireString(input.phase, "phase");
@@ -754,10 +777,17 @@ export function evaluateRecoveryEligibility(input = {}) {
     return { recoverable: true, reason: "retry-budget-available" };
   }
 
-  const baseline = latestMatchingBaseline(input.baselines, kind, target.canonicalPhase);
+  let current = null;
+  let baseline = latestMatchingBaseline(input.baselines, kind, target.canonicalPhase);
+  if (!baseline && kind === "gate" && target.canonicalPhase === "spec") {
+    current = input.currentFingerprint instanceof EvidenceFingerprint
+      ? input.currentFingerprint
+      : new EvidenceFingerprint(input.currentFingerprint || {});
+    baseline = buildSpecGateBaselineMigration({ kind, target, current });
+  }
   if (!baseline) return { recoverable: false, reason: "missing-baseline" };
 
-  const current = input.currentFingerprint instanceof EvidenceFingerprint
+  current ??= input.currentFingerprint instanceof EvidenceFingerprint
     ? input.currentFingerprint
     : new EvidenceFingerprint(input.currentFingerprint || {});
   const source = input.mappedSource || null;

@@ -54,6 +54,17 @@ function implReviewEligibility(root, flowState) {
   });
 }
 
+function specGateEligibility(root, flowState) {
+  return buildRecoveryEligibilityForState({
+    root,
+    flowState,
+    kind: "gate",
+    phase: "spec",
+    attempts: 5,
+    maxAttempts: 5,
+  });
+}
+
 describe("integration gate retry recovery file-map evidence", () => {
   const cleanup = [];
   afterEach(() => {
@@ -125,5 +136,47 @@ describe("implementation review retry recovery evidence", () => {
     const changed = implReviewEligibility(root, flowState);
     assert.equal(changed.recoverable, true);
     assert.deepEqual(changed.changedEvidence.changedPaths, [testPath]);
+  });
+});
+
+describe("spec gate retry recovery evidence", () => {
+  const cleanup = [];
+  afterEach(() => {
+    while (cleanup.length > 0) removeTmpDir(cleanup.pop());
+  });
+
+  it("migrates a pre-support stopped gate once, then requires changed spec evidence", () => {
+    const root = setupRepo();
+    cleanup.push(root);
+    const flowState = { spec: SPEC_PATH, baseBranch: "main", reviewRecoveryBaselines: [] };
+    const source = resolveRecoveryEvidenceSource({
+      kind: "gate",
+      canonicalPhase: "spec",
+      specDir: SPEC_DIR,
+    });
+    assert.ok(source.includes(SPEC_PATH));
+    assert.equal(source.includes(`${SPEC_DIR}/tests/spec-coverage.test.js`), false);
+
+    const migrated = specGateEligibility(root, flowState);
+    assert.equal(migrated.recoverable, true);
+    assert.equal(migrated.changeKind, "runtime-evaluator");
+
+    persistCurrentRecoveryBaseline({
+      root,
+      flowState,
+      kind: "gate",
+      phase: "spec",
+      trigger: "test-baseline",
+      createdAt: "2026-07-27T00:00:00.000Z",
+    });
+    const unchanged = specGateEligibility(root, flowState);
+    assert.equal(unchanged.recoverable, false);
+    assert.equal(unchanged.reason, "unchanged-evidence");
+
+    writeJson(root, SPEC_PATH, { goal: "corrected fixture" });
+    const changed = specGateEligibility(root, flowState);
+    assert.equal(changed.recoverable, true);
+    assert.equal(changed.changeKind, "project-evidence");
+    assert.deepEqual(changed.changedEvidence.changedPaths, [SPEC_PATH]);
   });
 });

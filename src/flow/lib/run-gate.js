@@ -114,6 +114,10 @@ import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { GateMutationOwner } from "./gate-mutation-owner.js";
 import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
+import {
+  SPEC_TEST_COVERAGE_GUARDRAIL_ID,
+  SpecTestCoverageDecision,
+} from "./spec-test-coverage.js";
 
 export { resolveGateStepId };
 
@@ -1287,6 +1291,12 @@ export const IMPL_DIFF_SCOPE_LINES = [
 // Phases where diff-scope constraint applies (task-impl and integration both operate on git diff).
 const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
 
+function filterGuardrailsForEvaluation(guardrails, phase, excludedIds = []) {
+  const excluded = new Set(excludedIds);
+  return filterByPhase(guardrails, phase)
+    .filter((guardrail) => !excluded.has(guardrail.id));
+}
+
 /**
  * Build AI prompt for structured guardrail-article evaluation.
  *
@@ -1302,7 +1312,11 @@ const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
  * @returns {string|null} prompt, or null if no guardrails match phase
  */
 function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds, options = {}) {
-  const filtered = filterByPhase(guardrails, phase);
+  const filtered = filterGuardrailsForEvaluation(
+    guardrails,
+    phase,
+    options.excludedGuardrailIds,
+  );
   const pb = buildGuardrailArticleEvalPrompt(
     targetText,
     filtered,
@@ -1992,7 +2006,11 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     );
   }
 
-  const filtered = filterByPhase(guardrails, phase);
+  const filtered = filterGuardrailsForEvaluation(
+    guardrails,
+    phase,
+    options.excludedGuardrailIds,
+  );
   if (filtered.length === 0) return { passed: true, evaluations: [] };
   const filteredIds = new Set(filtered.map((g) => g.id));
   const promptPreviouslyPassedIds = Array.isArray(previouslyPassedIds)
@@ -2079,7 +2097,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 import { resolveMaxAttempts } from "../definition.js";
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
-const GATE_RECOVERY_PHASES = new Set(["draft", "task-impl", "integration"]);
+const GATE_RECOVERY_PHASES = new Set(["draft", "spec", "task-impl", "integration"]);
 const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
 const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 
@@ -4795,7 +4813,9 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
 
 function gateFail(level, phase, targetPath, evaluations, issues) {
   const failedSemanticEvaluations = Array.isArray(evaluations)
-    && evaluations.some((entry) => entry?.result === "fail");
+    && evaluations.some((entry) => entry?.result === "fail" && entry?.authority !== "mechanical");
+  const failedMechanicalEvaluations = Array.isArray(evaluations)
+    && evaluations.some((entry) => entry?.result === "fail" && entry?.authority === "mechanical");
   const observations = issues?.length
     ? issues.map((issue) => Observation.processEvidenceMissing({
         requirementRef: "process:gate-structure",
@@ -4820,7 +4840,11 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
       evaluations: evaluations || [],
       reasons: reasonsFromEvaluations(evaluations),
       issues: issues || [],
-      failureKind: failedSemanticEvaluations ? "ai_semantic_fail" : "mechanical",
+      failureKind: failedSemanticEvaluations
+        ? "ai_semantic_fail"
+        : failedMechanicalEvaluations
+          ? "mechanical_guardrail_fail"
+          : "mechanical",
       nextAction,
     },
     next: FAIL_NEXT[phase],
@@ -4925,6 +4949,7 @@ export async function runGateFlow(args) {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
     ctx, guardrailPromptOptions = {}, checkGuardrailFn = checkGuardrail,
+    authoritativeEvaluations = [],
   } = args;
   const priorMemoryMarkdown = ctx?.flowState?.spec
     ? buildGateImplPriorMemoryPrompt({ root, flowState: ctx.flowState, phase })
@@ -4947,6 +4972,11 @@ export async function runGateFlow(args) {
     return gateFail(level, phase, targetPath, [], issues);
   }
 
+  const ownedEvaluations = authoritativeEvaluations.map((evaluation) => ({ ...evaluation }));
+  if (ownedEvaluations.some((evaluation) => evaluation.result === "fail")) {
+    return gateFail(level, phase, targetPath, ownedEvaluations, []);
+  }
+
   if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
     warnGateRetryBudget(ctx, phase);
     if (ctx.gitState) {
@@ -4964,7 +4994,7 @@ export async function runGateFlow(args) {
   }
 
   if (skipGuardrail) {
-    return gatePass(level, phase, targetPath, []);
+    return gatePass(level, phase, targetPath, ownedEvaluations);
   }
 
   let previouslyPassedIds;
@@ -4984,17 +5014,18 @@ export async function runGateFlow(args) {
     {
       ...guardrailPromptOptions,
       priorMemoryMarkdown,
+      excludedGuardrailIds: ownedEvaluations.map((evaluation) => evaluation.guardrail_id),
     },
   );
   if (!result) {
-    return gatePass(level, phase, targetPath, []);
+    return gatePass(level, phase, targetPath, ownedEvaluations);
   }
 
   if (result.failureCode) {
     return gateRequiredEvaluationFail(level, phase, targetPath, result);
   }
 
-  let evaluations = result.evaluations;
+  let evaluations = [...ownedEvaluations, ...result.evaluations];
 
   if (ctx && RETRY_TRACKED_PHASES.includes(phase) && ctx.gitState) {
     const prevEntry = findPreviousPassedGuardrails({ flowState: ctx.flowState, issueLog: ctx.issueLog, phase });
@@ -5424,6 +5455,15 @@ export class RunGateCommand extends FlowCommand {
     ctx.gitState = gitState;
     const issueLog = ctx.flowState?.spec ? loadIssueLog(root, ctx.flowState.spec) : { entries: [] };
     const specGuardrails = filterByPhase(loadMergedGuardrails(root), "spec");
+    const specTestCoverageGuardrail = specGuardrails.find(
+      (guardrail) => guardrail.id === SPEC_TEST_COVERAGE_GUARDRAIL_ID,
+    );
+    const authoritativeEvaluations = specTestCoverageGuardrail
+      ? [new SpecTestCoverageDecision({
+          phase: "spec",
+          guardrail: specTestCoverageGuardrail,
+        }).toGateEvaluation()]
+      : [];
     const acknowledgedRationale = buildAcknowledgedRationaleSection({
       spec,
       guardrails: specGuardrails,
@@ -5448,6 +5488,7 @@ export class RunGateCommand extends FlowCommand {
       skipGuardrail,
       ctx: { ...ctx, issueLog, gitState },
       guardrailPromptOptions: { acknowledgedRationale },
+      authoritativeEvaluations,
     });
   }
 
