@@ -378,6 +378,30 @@ C.1. **Ask the CLI for the next action**
    - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
+   - Before following a generic `continuation`, handle a typed
+     `STEP_EXTERNAL_BLOCKED` / `ExternalBlockedOutcome` recovery:
+     1. This is not automatically a terminal Flow state and is not a reason to
+        enter direct mode. Inspect `retryRecovery`, `gateStop`, or the matching
+        review recovery view returned in the same envelope.
+     2. If `recoveryPossible: true` and an executable `recoveryCommand` is
+        present, execute that audited retry reset immediately with all known
+        target guards, then re-fetch guarded `next-action`. Do not ask the user
+        to approve a deterministic retry recovery.
+     3. If recovery is unavailable only because
+        `recoveryReason: "unchanged-evidence"`, perform one bounded repair pass
+        for that evidence fingerprint. Read the persisted blocking findings
+        and the source artifact named by the current phase, correct the
+        referenced Flow-owned evidence inside the managed worktree, and
+        re-fetch guarded `next-action`. Do not spend another gate/review attempt
+        before the audited reset is granted.
+     4. After the repair changes the evidence fingerprint, execute the returned
+        `recoveryCommand` and continue the normal dispatcher loop.
+     5. If the repair would require a product decision not established by the
+        request, project rules, or persisted findings, surface that real
+        decision in the user's language. If no executable recovery exists
+        because of an environment, provider, permission, missing-source, or
+        state-corruption blocker, explain that concrete blocker and stop. Never
+        offer inspection as the solution.
    - If the result contains `continuation` with `requiresUserAction: false`, execute
      its exact guarded `nextAction` immediately and re-fetch guarded
      `next-action`. This is a mechanical continuation, not a user decision.
@@ -460,7 +484,9 @@ C.2. **Execute instructions**
       - `decision` (`DecisionOutcome`) / `defer` (`DeferOutcome`): follow the newly returned action; a defer is a completed terminal attempt, not a stop.
       - `retry` (`RetryOutcome`): follow the newly returned retry action within its resolved budget.
       - `awaiting-decision` (`AwaitingDecisionOutcome`): STOP and present the decision and resume instruction.
-      - `external-blocked` (`ExternalBlockedOutcome`): STOP and present the external blocker and resume instruction.
+      - `external-blocked` (`ExternalBlockedOutcome`): follow the recovery
+        handling in C.1. Stop only when it classifies a concrete non-recoverable
+        external blocker or a real unresolved user decision.
       - State corruption or target mismatch: STOP without issuing another mutating command.
    - Every incomplete control return, including the stopped outcomes above,
      must use its CLI-provided mechanical `continuation` or `actionPrompt`. Do
@@ -473,7 +499,7 @@ C.3. **Loop**
 
 ### Loop exit condition
 
-The loop exits when target-aware status reports all steps either `done` or `skipped`, or when the guarded refreshed next-action returns `AwaitingDecisionOutcome`, `ExternalBlockedOutcome`, state corruption, or target mismatch. If `targetRunId` is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for the exit check; the positional runId selects the flow, and `--expect-run-id` validates that the resolved flow still matches the dispatcher target. Retry exhaustion by itself is not an exit condition: its persisted terminal outcome determines whether to continue or surface a resume instruction.
+The loop exits when target-aware status reports all steps either `done` or `skipped`, or when the guarded refreshed next-action returns `AwaitingDecisionOutcome`, a non-recoverable `ExternalBlockedOutcome`, state corruption, or target mismatch. If `targetRunId` is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for the exit check; the positional runId selects the flow, and `--expect-run-id` validates that the resolved flow still matches the dispatcher target. Retry exhaustion by itself is not an exit condition: a recoverable persisted outcome must follow the C.1 evidence-repair and audited-reset path before the Flow stops.
 
 ## Post-flow: plugin lifecycle
 

@@ -427,6 +427,18 @@ describe("flow skill liveness contract", () => {
     assert.match(skill, /do not expose action IDs/);
   });
 
+  it("repairs recoverable evidence from an external block before stopping", () => {
+    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    assert.match(skill, /Before following a generic `continuation`/);
+    assert.match(skill, /recoveryReason: "unchanged-evidence"/);
+    assert.match(skill, /one bounded repair pass/);
+    assert.match(skill, /execute the returned\s+`recoveryCommand`/);
+    assert.doesNotMatch(
+      skill,
+      /`external-blocked` \(`ExternalBlockedOutcome`\): STOP and present/,
+    );
+  });
+
   it("keeps mechanical direct recovery out of user choice prompts", () => {
     const skill = fs.readFileSync("src/skills/senti.flow-direct/SKILL.md", "utf8");
     assert.match(skill, /DIRECT_MODE_UNSUPPORTED/);
