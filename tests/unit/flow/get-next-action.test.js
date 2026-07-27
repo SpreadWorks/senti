@@ -117,6 +117,12 @@ describe("flow get next-action", () => {
       assert.ok("context" in d, "context field present");
       assert.ok("output_schema" in d, "output_schema field present");
       assert.ok("requires_approval" in d, "requires_approval field present");
+      assert.deepEqual(d.directive, {
+        kind: "execute_step",
+        terminal: false,
+        requiresUserAction: false,
+        action: d.action,
+      });
     });
   });
 
@@ -128,6 +134,7 @@ describe("flow get next-action", () => {
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.step, null);
       assert.equal(envelope.data.action, null);
+      assert.equal(envelope.data.directive.kind, "idle");
     });
   });
 

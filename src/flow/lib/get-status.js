@@ -262,6 +262,15 @@ function buildStatusOutput(state, root, options = {}) {
   const reviewAction = reviewViews?.reviewAction || null;
   const gateViews = buildStatusGateViews(state, active, root);
   const retryRecovery = gateViews?.retryRecovery || null;
+  const recoveryDiagnostics = (
+    reviewAction
+    || retryRecovery
+    || gateViews?.gateStop
+  ) ? {
+      ...(reviewAction && { review: reviewAction }),
+      ...(retryRecovery && { gate: retryRecovery }),
+      ...(gateViews?.gateStop && { gateStopped: true }),
+    } : null;
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
@@ -286,8 +295,7 @@ function buildStatusOutput(state, root, options = {}) {
     requirementsProgress: { done: doneReqs, total: totalReqs },
     ...(deferredFindings.count > 0 && { deferredFindings }),
     ...(finalRegression && { finalRegression }),
-    ...(reviewAction && { reviewAction }),
-    ...(retryRecovery && { retryRecovery }),
+    ...(recoveryDiagnostics && { recoveryDiagnostics }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
     completion: completion.toJSON(),
@@ -307,7 +315,6 @@ function buildStatusOutput(state, root, options = {}) {
     notes: state.notes || [],
     metrics: state.metrics || [],
     metricsSummary: buildMetricsSummary(state.metrics || []),
-    ...(gateViews?.gateStop && { gateStop: gateViews.gateStop }),
     broadModeHistory: broadMode.entries,
     broadModeHistoryTotal: broadMode.total,
     broadModeHistoryTruncated: broadMode.truncated,

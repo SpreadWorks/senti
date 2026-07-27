@@ -111,12 +111,9 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
     ]);
     assert.notEqual(mismatch.status, 0);
     assert.equal(mismatch.envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
-    assert.equal(mismatch.envelope.data.yieldsControl, false);
-    assert.equal(mismatch.envelope.data.requiresUserAction, false);
-    assert.equal(
-      mismatch.envelope.data.continuation.actionId,
-      "INSPECT_FLOW_STATUS",
-    );
+    assert.equal(Object.hasOwn(mismatch.envelope.data, "yieldsControl"), false);
+    assert.equal(Object.hasOwn(mismatch.envelope.data, "requiresUserAction"), false);
+    assert.equal(Object.hasOwn(mismatch.envelope.data, "continuation"), false);
     assert.equal(Object.hasOwn(mismatch.envelope.data, "actionPrompt"), false);
     assert.equal(fixture.context().flowState.directFlowSession, undefined);
 
@@ -147,8 +144,12 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
 
     const nextAction = invoke(fixture, ["get", "next-action", ...targetGuards(fixture)]);
     assert.equal(nextAction.status, 0, nextAction.stderr || nextAction.stdout);
-    assert.equal(nextAction.envelope.data.code, "DIRECT_IMPLEMENTATION_REQUIRED");
-    assert.equal(nextAction.envelope.data.requiresUserAction, false);
+    assert.equal(nextAction.envelope.data.directive.kind, "repair_evidence");
+    assert.equal(nextAction.envelope.data.directive.evidenceKind, "implementation");
+    assert.equal(
+      nextAction.envelope.data.directive.actionId,
+      "CONFIRM_DIRECT_IMPLEMENTATION",
+    );
 
     const sourcePath = path.join(fixture.worktreePath, "src", "direct-cli.js");
     fs.mkdirSync(path.dirname(sourcePath), { recursive: true });

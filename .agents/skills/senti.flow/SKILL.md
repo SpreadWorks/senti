@@ -395,85 +395,43 @@ C.1. **Ask the CLI for the next action**
    - If `targetRunId` is not known, first establish an exact target from the user's intent using target-aware status. Bare `senti flow get next-action` is allowed only when the current context has been verified as the intended single active flow; if another active flow exists or the target is ambiguous, STOP and ask for the Issue/spec/runId.
    - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
-   - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
-   - Before generic blocked-step recovery, obey a returned `reviewAction` as
-     the review authority:
-     1. `kind: "retry_review"` with `requiresChangedEvidence: false` and a
-        remaining budget means rerun the current review command from
-        `instructions.content` immediately. Do not run `flow set retry reset`;
-        a tooling retry neither requires nor benefits from that reset.
-     2. `kind: "retry_review"` with `requiresChangedEvidence: true` means
-        repair the review target first. Re-fetch guarded `next-action` after
-        the edit and rerun the current review only after its target identity
-        changes. Do not substitute a retry reset unless the refreshed CLI
-        explicitly returns one as the executable recovery command.
-     3. Follow `register_alternative_evidence` using the CLI-provided evidence
-        registration action. Follow `move_to_acceptance` through the refreshed
-        normal action. Only `stop_as_blocker` is a terminal review blocker.
-     4. A generic `continuation` such as status inspection MUST NOT override a
-        more specific executable `reviewAction`.
-   - Before following a generic `continuation`, handle a typed
-     `STEP_EXTERNAL_BLOCKED` / `ExternalBlockedOutcome` recovery:
-     1. This is not automatically a terminal Flow state and is not a reason to
-        enter direct mode. Inspect `retryRecovery`, `gateStop`, or the matching
-        review recovery view returned in the same envelope.
-     2. If `recoveryPossible: true` and an executable `recoveryCommand` is
-        present, execute that audited retry reset immediately with all known
-        target guards, then re-fetch guarded `next-action`. Do not ask the user
-        to approve a deterministic retry recovery.
-     3. If recovery is unavailable only because
-        `recoveryReason: "unchanged-evidence"`, perform one bounded repair pass
-        for that evidence fingerprint. Read the persisted blocking findings
-        and the source artifact named by the current phase, correct the
-        referenced Flow-owned evidence inside the managed worktree, and
-        re-fetch guarded `next-action`. Do not spend another gate/review attempt
-        before the audited reset is granted.
-     4. After the repair changes the evidence fingerprint, execute the returned
-        `recoveryCommand` and continue the normal dispatcher loop.
-     5. If the repair would require a product decision not established by the
-        request, project rules, or persisted findings, surface that real
-        decision in the user's language. If no executable recovery exists
-        because of an environment, provider, permission, missing-source, or
-        state-corruption blocker, explain that concrete blocker and stop. Never
-        offer inspection as the solution.
-   - If the result contains `continuation` with `requiresUserAction: false`, execute
-     its exact guarded `nextAction` immediately and re-fetch guarded
-     `next-action`. This is a mechanical continuation, not a user decision.
-     Never display it as a numbered choice. If the same read-only continuation
-     returns unchanged after one execution, report the concrete blocker in the
-     user's language and stop without asking the user to select the same
-     inspection again.
-   - If the result has `yieldsControl: true`, treat `actionPrompt` as the complete recovery contract before evaluating any normal action:
-     1. Classify choices before presenting anything. A read-only choice whose
-        action ID starts with `INSPECT_` or `KEEP_` and whose impact changes and
-        deletes nothing is passive.
-     2. When only one read-only choice exists, execute it once immediately and
-        re-fetch. Do not ask the user to choose the only available operation.
-     3. When the recommended choice only fetches the normal next action and all
-        alternatives are passive, execute the recommendation immediately. The
-        user's invocation of this Flow already means “continue”; “do nothing”
-        is not a separate product decision.
-     4. Otherwise this is a real decision. Explain the concrete situation and
-        materially different outcomes in the user's language. Translate and
-        reword user-facing text for clarity; do not expose action IDs, exact
-        commands, raw impact arrays, state-transition names, or internal class
-        names unless the user asks for diagnostics.
-     5. Present every materially different choice in the standard numbered
-        format, place the recommendation first, and wait for the user's number
-        or localized label. A recommendation is not permission.
-     6. Map the selection back to the current choice's exact `nextAction`.
-        Substitute placeholders only with values the user explicitly supplied.
-     7. Re-fetch guarded `senti flow get next-action` after the command,
-        including after failure. Never reuse the old prompt.
-   - An incomplete result without either a valid mechanical `continuation` or a
-     valid `actionPrompt`, or a prompt choice without an executable
-     `nextAction` or state transition, is a CLI contract failure. STOP instead
-     of generating free-form recovery guidance.
+   - Otherwise, consume `directive` as the sole execution authority. Fields
+     such as step outcomes and recovery diagnostics explain state only; they
+     MUST NOT be interpreted as competing next actions.
+   - Dispatch the directive by its typed kind:
+     1. `execute_step`: execute `instructions.content`, then re-fetch guarded
+        `next-action`.
+     2. `execute_command`: execute the directive's exact `nextAction`
+        immediately, then re-fetch guarded `next-action`. This includes bounded
+        tooling retry, audited retry recovery, and durable transaction replay.
+        It is not a user decision and MUST NOT be displayed as a choice.
+     3. `repair_evidence`: perform one bounded repair pass using the persisted
+        findings and the named `evidenceKind` / `phase`. Keep all edits inside
+        the managed worktree. Then execute the directive's guarded
+        `nextAction`, which refreshes authority before any retry. If the repair
+        requires a product decision not established by the request, project
+        rules, or persisted evidence, stop and ask only that concrete decision.
+     4. `await_user_decision`: explain the concrete situation and materially
+        different outcomes in the user's language. Translate and reword text
+        for clarity; do not expose raw action IDs, commands, impact arrays,
+        state-transition names, or internal class names unless diagnostics
+        were requested. Present every materially different choice in the
+        standard numbered format, put the recommendation first, and wait for
+        the user's number or localized label. Map the answer to the current
+        choice's exact action and re-fetch afterward.
+     5. `blocked`: report `reason` and `resumeInstruction` as the concrete
+        non-recoverable blocker. Do not offer status inspection, normal/direct
+        mode selection, retry, keep-state, or another `$senti.flow` invocation
+        unless the refreshed CLI returns one as an executable directive.
+     6. `completed`, `aborted`, or `idle`: exit the loop and report the terminal
+        state.
+   - A missing or invalid `directive` is a CLI contract failure. STOP instead
+     of reconstructing recovery from `reviewAction`, `retryRecovery`,
+     `gateStop`, `continuation`, `actionPrompt`, process exit status, or prose.
    - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
 
 C.1.5. **Auto-upgrade check (spec 232)**
-   - Skip this check for a response with a mechanical `continuation` or
-     `yieldsControl: true`; resolve that recovery contract first.
+   - Run this check only for `directive.kind: "execute_step"`.
    - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
      ```
      ──────────────────────────────────────────────────────────
@@ -509,31 +467,31 @@ C.2. **Execute instructions**
 
         - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / REJECTED enter the route's triage step. Triage records disposition, repair records mutation audit, and draft-gate performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
         - `spec-review` records detection output via post hook. PASS / ADVISORY complete review, while REJECTED completes review and advances to `spec-triage`.
-        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; REJECTED leaves it open for a test-design fix; TOOLING_ERROR leaves it open without consuming semantic review retry. Follow the single `reviewAction`; register finalized independent evidence with guarded `senti flow set review-evidence --file <path>` when requested, and never substitute a completion override for canonical review evidence.
+        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; REJECTED leaves it open for a test-design fix; TOOLING_ERROR leaves it open without consuming semantic review retry. Follow the single returned `directive`; register finalized independent evidence only when its repair instruction requires it, and never substitute a completion override for canonical review evidence.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
       - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `senti flow set step <current-step> done <targetGuardArgs>`.
    - After every instruction command completes, including a command with a non-zero exit status, re-fetch `next-action` with `targetGuardArgs` before deciding whether to continue or stop. The previously fetched action is stale after command and post-hook completion.
-   - Interpret the refreshed `lastStepOutcome.kind` (the persisted class is named in parentheses):
-      - `decision` (`DecisionOutcome`) / `defer` (`DeferOutcome`): follow the newly returned action; a defer is a completed terminal attempt, not a stop.
-      - `retry` (`RetryOutcome`): follow the newly returned retry action within its resolved budget.
-      - `awaiting-decision` (`AwaitingDecisionOutcome`): STOP and present the decision and resume instruction.
-      - `external-blocked` (`ExternalBlockedOutcome`): follow the recovery
-        handling in C.1. Stop only when it classifies a concrete non-recoverable
-        external blocker or a real unresolved user decision.
-      - State corruption or target mismatch: STOP without issuing another mutating command.
-   - Every incomplete control return, including the stopped outcomes above,
-     must use its CLI-provided mechanical `continuation` or `actionPrompt`. Do
-     not reconstruct a resume choice from `lastStepOutcome`, errors, exit
-     status, or prose instructions. Never turn a mechanical continuation into
-     a user question.
+   - Treat `lastStepOutcome` as durable diagnostics only. The refreshed
+     `directive` has already reconciled that outcome with review, gate, and
+     recovery authority. Never route directly from the outcome kind, command
+     exit status, errors, or prose.
+   - State corruption or target mismatch stops the loop without another
+     mutating command.
 
 C.3. **Loop**
    - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.
 
 ### Loop exit condition
 
-The loop exits when target-aware status reports all steps either `done` or `skipped`, or when the guarded refreshed next-action returns `AwaitingDecisionOutcome`, a non-recoverable `ExternalBlockedOutcome`, state corruption, or target mismatch. If `targetRunId` is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for the exit check; the positional runId selects the flow, and `--expect-run-id` validates that the resolved flow still matches the dispatcher target. Retry exhaustion by itself is not an exit condition: a recoverable persisted outcome must follow the C.1 evidence-repair and audited-reset path before the Flow stops.
+The loop exits when the guarded refreshed next-action returns a terminal
+`directive` (`completed`, `aborted`, `idle`, or `blocked`), a real
+`await_user_decision`, state corruption, or target mismatch. If `targetRunId`
+is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for final
+readback; the positional runId selects the flow, and `--expect-run-id` validates
+that the resolved flow still matches the dispatcher target. Retry exhaustion
+by itself is not an exit condition when the directive provides deterministic
+recovery or evidence repair.
 
 ## Post-flow: plugin lifecycle
 

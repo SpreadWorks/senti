@@ -7,6 +7,7 @@
  */
 
 import { assertUserActionResultContract } from "../flow/lib/user-action-prompt.js";
+import { assertNextActionDirective } from "../flow/lib/next-action-directive.js";
 
 export class Envelope {
   constructor({ ok, type, key, data, errors }) {
@@ -66,6 +67,7 @@ export class Envelope {
 
   toJSON() {
     assertUserActionResultContract(this.data);
+    assertNextActionDirective(this.data);
     return {
       ok: this.ok,
       type: this.type,

@@ -1230,7 +1230,7 @@ export class ReviewConvergenceStore {
   }
 }
 
-export function resolveReviewActionForFlowState(
+export function resolveReviewOperationForFlowState(
   flowState,
   { phase, taskId = null, resolveTreeSha } = {},
 ) {
@@ -1240,7 +1240,7 @@ export function resolveReviewActionForFlowState(
   if (scopedRecords.length === 0) return null;
   if (resolveTreeSha == null) {
     const state = storedConvergenceState(scopedRecords[scopedRecords.length - 1]);
-    return resolveReviewPermittedOperation(state).toJSON();
+    return resolveReviewPermittedOperation(state);
   }
   if (typeof resolveTreeSha !== "function") {
     throw new Error("resolveTreeSha is required for a persisted review target");
@@ -1253,5 +1253,12 @@ export function resolveReviewActionForFlowState(
   }));
   if (matches.length === 0) return null;
   const state = storedConvergenceState(matches[matches.length - 1]);
-  return resolveReviewPermittedOperation(state).toJSON();
+  return resolveReviewPermittedOperation(state);
+}
+
+export function resolveReviewActionForFlowState(
+  flowState,
+  options = {},
+) {
+  return resolveReviewOperationForFlowState(flowState, options)?.toJSON() ?? null;
 }

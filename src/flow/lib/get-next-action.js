@@ -32,15 +32,20 @@ import {
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
 import {
-  AwaitingDecisionOutcome,
-  ExternalBlockedOutcome,
   retryResetTimestampForStep,
   StepAttemptLog,
 } from "./step-outcome.js";
-import { resolveReviewActionForFlowState } from "./review-convergence.js";
+import { resolveReviewOperationForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 import { getDirectFlowAction } from "./direct-flow-controller.js";
+import {
+  AbortedDirective,
+  CompletedDirective,
+  ExecuteStepDirective,
+  IdleDirective,
+  NextActionDirectiveResolver,
+} from "./next-action-directive.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -153,16 +158,6 @@ function isFlowImplementationStep(target) {
     && ["implement", "impl-review", "impl-triage", "impl-repair", "impl-gate"].includes(target.stepId);
 }
 
-function attachRetryRecovery(result, stopKey, stopView, retryRecovery) {
-  const view = retryRecovery ? { ...(stopView || {}), ...retryRecovery } : stopView;
-  if (view && stopKey) result[stopKey] = view;
-  if (retryRecovery) result.retryRecovery = retryRecovery;
-  if (!view) return;
-  for (const key of ["stopReason", "classification", "phase", "retryBudgetConsumed", "recoveryCommand", "reason", "recoveryHint"]) {
-    if (view[key] !== undefined) result[key] = view[key];
-  }
-}
-
 function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) {
   return buildStateRetryRecoveryView({
     root: ctx.root,
@@ -175,7 +170,7 @@ function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) 
 }
 
 function attachLatestStepAttempt(result, state, target) {
-  if (!state.runId || !target?.stepId) return;
+  if (!state.runId || !target?.stepId) return null;
   const log = new StepAttemptLog(state.stepAttempts || []);
   const lastAttempt = log.latestForRun(state.runId);
   if (lastAttempt) {
@@ -187,7 +182,7 @@ function attachLatestStepAttempt(result, state, target) {
     taskId: target.taskId ?? null,
     stepId: target.stepId,
   });
-  if (!attempt) return;
+  if (!attempt) return null;
   const targetSteps = target.scope === "task"
     ? state.tasks.find((task) => task.id === target.taskId)?.steps
     : state.steps;
@@ -197,13 +192,10 @@ function attachLatestStepAttempt(result, state, target) {
   if (
     (targetStep?.startedAt && attempt.recordedAt < targetStep.startedAt)
     || Date.parse(attempt.recordedAt) < resetAt
-  ) return;
+  ) return null;
   result.stepAttempt = attempt.toJSON();
   result.stepOutcome = attempt.outcome.toJSON();
-  if (attempt.outcome instanceof ExternalBlockedOutcome || attempt.outcome instanceof AwaitingDecisionOutcome) {
-    result.halt = true;
-    result.resumeInstruction = attempt.outcome.resumeInstruction;
-  }
+  return attempt;
 }
 
 function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) {
@@ -225,13 +217,7 @@ function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) 
     recoveryReason: "semantic_findings",
     classification: "semantic_findings",
     changedEvidence: null,
-    recoveryCommand: [
-      "senti flow run gate",
-      `--phase ${phase}`,
-      `--expect-run-id ${state.runId}`,
-      `--expect-issue ${state.issue}`,
-      `--expect-spec ${state.spec}`,
-    ].join(" "),
+    recoveryCommand: `senti flow run gate --phase ${phase}`,
     reason: "semantic_findings",
   });
 }
@@ -277,6 +263,7 @@ function completedNextAction() {
     context: null,
     output_schema: null,
     requires_approval: false,
+    directive: new CompletedDirective().toJSON(),
   };
 }
 
@@ -289,6 +276,7 @@ function abortedNextAction() {
     context: null,
     output_schema: null,
     requires_approval: false,
+    directive: new AbortedDirective().toJSON(),
   };
 }
 
@@ -367,20 +355,10 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;
   }
-  attachLatestStepAttempt(result, state, target);
-  if (result.halt === true) {
-    const directAction = getDirectFlowAction({ ...ctx, flowState: state, state });
-    if (directAction?.yieldsControl === true) {
-      result.yieldsControl = true;
-      result.requiresUserAction = true;
-      result.actionPrompt = directAction.actionPrompt;
-      result.directMode = {
-        code: directAction.code,
-        currentStep: target.stepId,
-      };
-    }
-  }
+  const stepAttempt = attachLatestStepAttempt(result, state, target);
   const reviewPhase = reviewPhaseForStepId(target.stepId);
+  let reviewOperation = null;
+  let reviewTargetChanged = false;
   if (reviewPhase) {
     assertReviewRecoveryAuthority({
       root: ctx.root,
@@ -388,12 +366,17 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
       phase: reviewPhase,
       resolvedMax: derived.maxAttempts,
     });
-    const reviewAction = resolveReviewActionForFlowState(state, {
+    reviewOperation = resolveReviewOperationForFlowState(state, {
       phase: reviewPhase,
       taskId: target.taskId,
       resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.root, state.spec),
     });
-    if (reviewAction) result.reviewAction = reviewAction;
+    reviewTargetChanged = reviewOperation == null && (
+      state.reviewConvergence?.records || []
+    ).some((record) => (
+      record?.phase === reviewPhase
+      && (record?.taskId ?? null) === (target.taskId ?? null)
+    ));
   }
   const gateRecoveryDisplay = target.stepId.endsWith("-gate")
     ? resolveGateRecoveryDisplayPhase({
@@ -403,24 +386,20 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
         maxAttempts: derived.maxAttempts,
       })
     : null;
-  if (gateRecoveryDisplay) {
-    const retryRecovery = buildGateRetryRecovery(ctx, state, gateRecoveryDisplay);
-    if (retryRecovery) {
-      attachRetryRecovery(result, "gateStop", null, retryRecovery);
-      if (retryRecovery.attempts >= retryRecovery.max) {
-        const directAction = getDirectFlowAction({ ...ctx, flowState: state, state });
-        if (directAction?.yieldsControl === true) {
-          result.yieldsControl = true;
-          result.requiresUserAction = true;
-          result.actionPrompt = directAction.actionPrompt;
-          result.directMode = {
-            code: directAction.code,
-            currentStep: target.stepId,
-          };
-        }
-      }
-    }
-  }
+  const gateRecovery = gateRecoveryDisplay
+    ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
+    : null;
+  const directive = new NextActionDirectiveResolver({
+    state,
+    action: derived.action,
+    reviewPhase,
+    reviewTargetChanged,
+    gatePhase: gateRecoveryDisplay?.phase ?? null,
+    stepAttempt,
+    reviewOperation,
+    gateRecovery,
+  }).resolve();
+  result.directive = directive.toJSON();
   return result;
 }
 
@@ -428,18 +407,23 @@ export class NextActionPlanner {
   build(ctx) {
     const original = ctx.flowState;
     if (original.directFlowSession) {
-      return new NextActionTerminalPlan(getDirectFlowAction({ ...ctx, state: original }));
+      const directAction = getDirectFlowAction({ ...ctx, state: original });
+      return new NextActionTerminalPlan({
+        taskId: null,
+        step: null,
+        action: "direct",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+        directive: new NextActionDirectiveResolver({
+          state: original,
+          directAction,
+        }).resolve().toJSON(),
+      });
     }
     if (original.acceptanceReview?.status === "aborted") {
-      const result = abortedNextAction();
-      const directAction = getDirectFlowAction({ ...ctx, state: original });
-      if (directAction?.yieldsControl === true) {
-        result.yieldsControl = true;
-        result.requiresUserAction = true;
-        result.actionPrompt = directAction.actionPrompt;
-        result.directMode = { code: directAction.code };
-      }
-      return new NextActionTerminalPlan(result);
+      return new NextActionTerminalPlan(abortedNextAction());
     }
     if (new FlowCompletion(original).complete) {
       return new NextActionTerminalPlan(completedNextAction());
@@ -575,6 +559,7 @@ function injectedPlanResult(plan) {
     output_schema: plan.outputSchema,
     requires_approval: plan.rule.requiresApproval === true,
     maxAttempts: plan.maxAttempts,
+    directive: new ExecuteStepDirective({ action: plan.rule.action }).toJSON(),
   };
 }
 
@@ -605,6 +590,7 @@ export default class GetNextActionCommand extends FlowCommand {
         context: null,
         output_schema: null,
         requires_approval: false,
+        directive: new IdleDirective().toJSON(),
       };
     }
 

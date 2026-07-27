@@ -103,13 +103,20 @@ export class UserActionPrompt {
   }) {
     this.requiresUserAction = true;
     this.question = requireString(question, "prompt.question");
-    if (!Array.isArray(choices) || choices.length < 1 || choices.length > MAX_CHOICES) {
-      throw new Error(`prompt.choices must contain 1 through ${MAX_CHOICES} choices`);
+    if (!Array.isArray(choices) || choices.length < 2 || choices.length > MAX_CHOICES) {
+      throw new Error(`prompt.choices must contain 2 through ${MAX_CHOICES} materially different choices`);
     }
     this.choices = Object.freeze(choices.map((choice) => UserActionChoice.fromStored(choice)));
     const actionIds = this.choices.map((choice) => choice.actionId);
     if (new Set(actionIds).size !== actionIds.length) {
       throw new Error("prompt choice actionIds must be unique");
+    }
+    const materialOutcomes = this.choices.map((choice) => JSON.stringify({
+      nextAction: choice.nextAction,
+      stateTransition: choice.stateTransition,
+    }));
+    if (new Set(materialOutcomes).size !== materialOutcomes.length) {
+      throw new Error("prompt choices must describe materially different outcomes");
     }
     this.recommendedActionId = requireString(
       recommendedActionId,
@@ -182,64 +189,6 @@ export function guardFlagsForState(state) {
       ? [state.issue == null ? "--expect-no-issue" : `--expect-issue ${state.issue}`]
       : []),
   ].join(" ");
-}
-
-export function genericFlowStopContinuation({
-  state,
-  code,
-  message,
-}) {
-  const guards = guardFlagsForState(state);
-  return new FlowContinuation({
-    actionId: "INSPECT_FLOW_STATUS",
-    nextAction: `senti flow get status --details${guards ? ` ${guards}` : ""}`,
-    instruction: "Inspect the preserved Flow state once and use the result to determine whether recovery can continue.",
-    reason: `${requireString(code || "FLOW_STOPPED", "stop code", 200)}: ${requireString(
-      message || "Flow stopped before completion.",
-      "stop message",
-    )}`,
-  });
-}
-
-export function genericFlowStopPrompt({
-  state,
-  code,
-  message,
-  retryAction = null,
-}) {
-  const guards = guardFlagsForState(state);
-  const inspectAction = `senti flow get status --details${guards ? ` ${guards}` : ""}`;
-  const choices = [
-    new UserActionChoice({
-      actionId: "INSPECT_FLOW_STATUS",
-      label: "Inspect the preserved Flow state and recovery evidence",
-      nextAction: inspectAction,
-      impact: new UserActionImpact({
-        retains: ["Flow state", "worktree", "feature branch", "artifacts"],
-      }),
-      reason: "Inspection is non-destructive and revalidates the target before another mutation.",
-    }),
-  ];
-  if (retryAction) {
-    choices.unshift(new UserActionChoice({
-      actionId: "RETRY_STOPPED_ACTION",
-      label: "Retry the stopped action after resolving the reported cause",
-      nextAction: retryAction,
-      impact: new UserActionImpact({
-        retains: ["Flow identity", "existing artifacts"],
-        changes: ["Only the retried Flow operation on success"],
-      }),
-      reason: "Retry uses the existing durable state and idempotency authority.",
-    }));
-  }
-  return new UserActionPrompt({
-    question: `Flow stopped with ${requireString(code || "FLOW_STOPPED", "stop code", 200)}. What should happen next?`,
-    choices,
-    recommendedActionId: retryAction ? "RETRY_STOPPED_ACTION" : "INSPECT_FLOW_STATUS",
-    recommendationReason: retryAction
-      ? requireString(message || "Resolve the reported cause, then retry the same durable operation.", "stop message")
-      : "Inspecting the exact preserved target is the safest available action.",
-  });
 }
 
 export function attachUserActionPrompt(target, prompt) {

@@ -25,12 +25,7 @@ import {
   ExternalBlockedOutcome,
   StepAttempt,
 } from "../flow/lib/step-outcome.js";
-import { FlowCompletion } from "../flow/lib/flow-completion.js";
-import {
-  attachFlowContinuation,
-  attachUserActionPrompt,
-  genericFlowStopContinuation,
-} from "../flow/lib/user-action-prompt.js";
+import { attachUserActionPrompt } from "../flow/lib/user-action-prompt.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -247,7 +242,7 @@ function emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr }) {
   if (text) writeErr(text);
 }
 
-function settleTypedStepOutcome(envelope, result, hookCtx) {
+function settleTypedStepOutcome(envelope, result) {
   if (!(envelope instanceof Envelope) || !result?.stepAttempt) return;
   const attempt = StepAttempt.fromStored(result.stepAttempt);
   if (!(attempt.outcome instanceof ExternalBlockedOutcome)
@@ -260,53 +255,9 @@ function settleTypedStepOutcome(envelope, result, hookCtx) {
       : "STEP_EXTERNAL_BLOCKED",
     messages: [attempt.outcome.resumeInstruction],
   });
-  if (attempt.outcome instanceof ExternalBlockedOutcome) {
-    attachFlowContinuation(envelope, genericFlowStopContinuation({
-      state: hookCtx?.flowState || null,
-      code: "STEP_EXTERNAL_BLOCKED",
-      message: attempt.outcome.resumeInstruction,
-    }));
-    return;
+  if (attempt.outcome instanceof AwaitingDecisionOutcome) {
+    attachUserActionPrompt(envelope, attempt.outcome.prompt);
   }
-  attachUserActionPrompt(envelope, attempt.outcome.prompt);
-}
-
-function ensureIncompleteFailurePrompt(envelope, hookCtx) {
-  if (!(envelope instanceof Envelope) || envelope.ok !== false) return envelope;
-  if (envelope.data?.yieldsControl === true || envelope.data?.continuation != null) return envelope;
-  const error = envelope.errors?.find((entry) => entry?.level === "fatal") || envelope.errors?.[0];
-  const targetStop = new Set([
-    "ACTIVE_FLOW_MISMATCH",
-    "FLOW_TARGET_NOT_FOUND",
-    "FLOW_TARGET_AMBIGUOUS",
-  ]).has(error?.code);
-  if (!hookCtx?.flowState && !targetStop) return envelope;
-  if (hookCtx?.flowState) {
-    try {
-      if (new FlowCompletion(hookCtx.flowState).complete) return envelope;
-    } catch {
-      // A corrupt/inconsistent state is itself an incomplete stop and still
-      // needs a safe user-action contract.
-    }
-  }
-  const message = (error?.messages || []).join(" ") || "Flow stopped before completion.";
-  const expectedIssueProvided = hookCtx?.expectNoIssue === true
-    || hookCtx?.expectIssue != null
-    || Object.hasOwn(envelope.data || {}, "expectedIssue");
-  const promptState = hookCtx?.flowState || {
-    runId: hookCtx?.expectRunId ?? envelope.data?.expectedRunId ?? null,
-    spec: hookCtx?.expectSpec ?? envelope.data?.expectedSpec ?? null,
-    ...(expectedIssueProvided && {
-      issue: hookCtx?.expectNoIssue === true
-        ? null
-        : (hookCtx?.expectIssue ?? envelope.data?.expectedIssue ?? null),
-    }),
-  };
-  return attachFlowContinuation(envelope, genericFlowStopContinuation({
-    state: promptState,
-    code: error?.code || "FLOW_STOPPED",
-    message,
-  }));
 }
 
 /**
@@ -419,7 +370,6 @@ export async function dispatch({
         String(err.message || err),
         helpHint,
       ]);
-      ensureIncompleteFailurePrompt(env, parseHookCtx);
       attachRuntimeLog(env, runtimeLog?.metadata);
       writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
     } else {
@@ -445,7 +395,6 @@ export async function dispatch({
   // lifecycle hooks, execution, or step metadata persistence.
   const hookCtx = buildRuntimeHookCtx(input);
   const emitTargetFailure = (failure) => {
-    ensureIncompleteFailurePrompt(failure, hookCtx);
     attachRuntimeLog(failure, enableRuntimeLog === true && container.has("paths")
       ? { runId: runtimeLogRunId(hookCtx) }
       : null);
@@ -512,7 +461,6 @@ export async function dispatch({
 
   const emitPreconditionFailure = (code, message) => {
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, message);
-    ensureIncompleteFailurePrompt(env, hookCtx);
     attachRuntimeLog(env, runtimeLog?.metadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
     setExit(1);
@@ -561,14 +509,12 @@ export async function dispatch({
       await emitFailure({
         err,
         mode,
-        entry,
         envelopeType,
         envelopeKey,
         writeOut,
         writeErr,
         setExit,
         runtimeLogMetadata: runtimeLog?.metadata,
-        hookCtx,
       });
       closeRuntimeLog();
       persistRuntimeLogMetadata(null);
@@ -640,8 +586,7 @@ export async function dispatch({
       }
     }
     if (mode === "envelope") {
-      settleTypedStepOutcome(envelope, result, hookCtx);
-      ensureIncompleteFailurePrompt(envelope, hookCtx);
+      settleTypedStepOutcome(envelope, result);
       if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
       emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr });
@@ -672,14 +617,12 @@ export async function dispatch({
   await emitFailure({
     err: caught,
     mode,
-    entry,
     envelopeType,
     envelopeKey,
     writeOut,
     writeErr,
     setExit,
     runtimeLogMetadata: runtimeLog?.metadata,
-    hookCtx,
   });
   closeRuntimeLog();
   await persistFinalizeCleanupPostReturnMetadata({
@@ -710,13 +653,11 @@ function emitFailure({
   writeErr,
   setExit,
   runtimeLogMetadata,
-  hookCtx,
 }) {
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, String(err?.message || err));
     if (err?.data !== undefined) env.data = err.data;
-    ensureIncompleteFailurePrompt(env, hookCtx);
     attachRuntimeLog(env, runtimeLogMetadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
   } else {

@@ -933,7 +933,7 @@ export function buildStateRetryRecoveryView({ root, flowState, kind, phase, atte
       canonicalPhase: target.canonicalPhase,
       attempts,
       max,
-      recoveryPossible: false,
+      recoveryPossible: true,
       recoveryReason: "recovery-resume-required",
       changedEvidence: transaction.request.changedEvidence,
       reason: transaction.request.reason,

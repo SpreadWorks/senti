@@ -6,10 +6,7 @@
  * only in the persisted JSON representation.
  */
 
-import {
-  genericFlowStopPrompt,
-  UserActionPrompt,
-} from "./user-action-prompt.js";
+import { UserActionPrompt } from "./user-action-prompt.js";
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -135,12 +132,8 @@ class StoppedOutcome extends StepOutcome {
     super({
       terminal: true,
       resumeInstruction: normalizedInstruction,
-      yieldsControl: true,
-      prompt: prompt || genericFlowStopPrompt({
-        state: null,
-        code: "STEP_STOPPED",
-        message: normalizedReason,
-      }),
+      yieldsControl: prompt != null,
+      prompt,
     });
     this.reason = normalizedReason;
   }
@@ -152,7 +145,7 @@ class StoppedOutcome extends StepOutcome {
 
 export class ExternalBlockedOutcome extends StoppedOutcome {
   constructor(input) {
-    super(input);
+    super({ ...input, prompt: null });
     this.kind = "external-blocked";
     Object.freeze(this);
   }
@@ -160,6 +153,9 @@ export class ExternalBlockedOutcome extends StoppedOutcome {
 
 export class AwaitingDecisionOutcome extends StoppedOutcome {
   constructor(input) {
+    if (input?.prompt == null) {
+      throw new Error("awaiting-decision outcome requires a UserActionPrompt");
+    }
     super(input);
     this.kind = "awaiting-decision";
     Object.freeze(this);

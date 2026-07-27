@@ -37,6 +37,11 @@ import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
+import {
+  UserActionChoice,
+  UserActionImpact,
+  UserActionPrompt,
+} from "../../../src/flow/lib/user-action-prompt.js";
 
 function semanticFinding(findingId) {
   return {
@@ -77,6 +82,28 @@ function flowManagerFor(flowState, updates) {
   };
 }
 
+function decisionPrompt() {
+  return new UserActionPrompt({
+    question: "Choose the recorded resolution.",
+    choices: [
+      new UserActionChoice({
+        actionId: "ACCEPT_RESOLUTION",
+        label: "Accept the recorded resolution",
+        nextAction: "senti flow set decision accept",
+        impact: new UserActionImpact({ changes: ["decision record"] }),
+      }),
+      new UserActionChoice({
+        actionId: "REJECT_RESOLUTION",
+        label: "Reject the recorded resolution",
+        nextAction: "senti flow set decision reject",
+        impact: new UserActionImpact({ changes: ["decision record"] }),
+      }),
+    ],
+    recommendedActionId: "ACCEPT_RESOLUTION",
+    recommendationReason: "The recorded resolution matches the request.",
+  });
+}
+
 describe("typed step outcomes", () => {
   it("round-trips the outcome hierarchy through durable StepAttempt records", () => {
     const outcomes = [
@@ -90,6 +117,7 @@ describe("typed step outcomes", () => {
       new AwaitingDecisionOutcome({
         reason: "risk_acceptance",
         resumeInstruction: "Record the user's acceptance decision.",
+        prompt: decisionPrompt(),
       }),
     ];
 
@@ -243,10 +271,10 @@ describe("typed step outcomes", () => {
         flowManager: { mutate() { throw new Error("active target must not be promoted"); } },
       });
 
-      assert.equal(result.halt, true);
       assert.equal(result.stepOutcome.kind, "external-blocked");
       assert.equal(result.lastStepOutcome.kind, "external-blocked");
-      assert.equal(result.resumeInstruction, "Retry after the provider recovers.");
+      assert.equal(result.directive.kind, "blocked");
+      assert.equal(result.directive.resumeInstruction, "Retry after the provider recovers.");
     } finally {
       removeTmpDir(root);
     }
@@ -408,9 +436,8 @@ describe("typed dispatcher settlement", () => {
     const envelope = JSON.parse(stdout);
     assert.equal(envelope.ok, false);
     assert.equal(envelope.errors[0].code, "STEP_EXTERNAL_BLOCKED");
-    assert.equal(envelope.data.yieldsControl, false);
-    assert.equal(envelope.data.requiresUserAction, false);
-    assert.equal(envelope.data.continuation.actionId, "INSPECT_FLOW_STATUS");
+    assert.equal(envelope.data.stepAttempt.outcome.kind, "external-blocked");
+    assert.equal(Object.hasOwn(envelope.data, "continuation"), false);
     assert.equal(Object.hasOwn(envelope.data, "actionPrompt"), false);
     assert.equal(exitCode, 1);
   });
@@ -422,9 +449,9 @@ describe("flow skill liveness contract", () => {
     assert.doesNotMatch(skill, /When that limit is reached, STOP/);
     assert.doesNotMatch(skill, /On budget exhaustion, STOP/);
     assert.match(skill, /re-fetch[^\n]*next-action[^\n]*targetGuardArgs/i);
-    assert.match(skill, /AwaitingDecisionOutcome|ExternalBlockedOutcome|state corruption/);
-    assert.match(skill, /only one read-only choice exists/);
-    assert.match(skill, /do not expose action IDs/);
+    assert.match(skill, /`directive` as the sole execution authority/);
+    assert.match(skill, /`execute_command`/);
+    assert.match(skill, /do not expose raw action IDs/i);
   });
 
   it("forbids ending a turn at an ordinary intermediate step", () => {
@@ -436,25 +463,19 @@ describe("flow skill liveness contract", () => {
     assert.match(skill, /A final response is allowed only after/);
   });
 
-  it("repairs recoverable evidence from an external block before stopping", () => {
+  it("repairs recoverable evidence only through the single directive", () => {
     const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
-    assert.match(skill, /Before following a generic `continuation`/);
-    assert.match(skill, /recoveryReason: "unchanged-evidence"/);
-    assert.match(skill, /one bounded repair pass/);
-    assert.match(skill, /execute the returned\s+`recoveryCommand`/);
-    assert.doesNotMatch(
-      skill,
-      /`external-blocked` \(`ExternalBlockedOutcome`\): STOP and present/,
-    );
+    assert.match(skill, /`repair_evidence`: perform one bounded repair pass/);
+    assert.match(skill, /persisted\s+findings/);
+    assert.match(skill, /refreshes authority before any retry/);
+    assert.match(skill, /Never route directly from the outcome kind/);
   });
 
-  it("uses reviewAction before generic blocked recovery", () => {
+  it("forbids reconstructing authority from subsystem diagnostics", () => {
     const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
-    assert.match(skill, /Before generic blocked-step recovery, obey a returned `reviewAction`/);
-    assert.match(skill, /`requiresChangedEvidence: false`/);
-    assert.match(skill, /Do not run `flow set retry reset`/);
-    assert.match(skill, /Only `stop_as_blocker` is a terminal review blocker/);
-    assert.match(skill, /generic `continuation`[\s\S]*MUST NOT override/);
+    assert.match(skill, /Fields\s+such as step outcomes and recovery diagnostics explain state only/);
+    assert.match(skill, /missing or invalid `directive` is a CLI contract failure/);
+    assert.match(skill, /reconstructing recovery from `reviewAction`, `retryRecovery`/);
   });
 
   it("keeps mechanical direct recovery out of user choice prompts", () => {

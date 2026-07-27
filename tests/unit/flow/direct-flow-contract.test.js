@@ -31,8 +31,6 @@ import {
   StepOutcome,
 } from "../../../src/flow/lib/step-outcome.js";
 import {
-  attachFlowContinuation,
-  genericFlowStopContinuation,
   UserActionChoice,
   UserActionImpact,
   UserActionPrompt,
@@ -45,6 +43,28 @@ const NOW = "2026-07-26T00:00:00.000Z";
 const FEATURE_HEAD = "a".repeat(40);
 const MAIN_HEAD = "b".repeat(40);
 const FLOW_REVISION = "c".repeat(64);
+
+function decisionPrompt() {
+  return new UserActionPrompt({
+    question: "Choose a resolution.",
+    choices: [
+      new UserActionChoice({
+        actionId: "ACCEPT_RESOLUTION",
+        label: "Accept the resolution",
+        nextAction: "senti flow set resolution accept",
+        impact: new UserActionImpact({ changes: ["resolution record"] }),
+      }),
+      new UserActionChoice({
+        actionId: "REJECT_RESOLUTION",
+        label: "Reject the resolution",
+        nextAction: "senti flow set resolution reject",
+        impact: new UserActionImpact({ changes: ["resolution record"] }),
+      }),
+    ],
+    recommendedActionId: "ACCEPT_RESOLUTION",
+    recommendationReason: "The recorded evidence supports acceptance.",
+  });
+}
 
 function target() {
   return new DirectFlowTarget({
@@ -177,33 +197,55 @@ describe("typed user-action stop contract", () => {
         label: "Inspect",
         nextAction: "senti flow get status",
         impact: new UserActionImpact({ retains: ["Flow state"] }),
+      }), new UserActionChoice({
+        actionId: "KEEP_FLOW",
+        label: "Keep",
+        nextAction: "senti flow get status --details",
+        impact: new UserActionImpact({ retains: ["Flow state"] }),
       })],
       recommendedActionId: "MISSING_ACTION",
       recommendationReason: "Inspect first.",
     }), /must reference an existing choice/);
+    assert.throws(() => new UserActionPrompt({
+      question: "Continue?",
+      choices: [
+        new UserActionChoice({
+          actionId: "INSPECT_FLOW",
+          label: "Inspect",
+          nextAction: "senti flow get status",
+          impact: new UserActionImpact({ retains: ["Flow state"] }),
+        }),
+        new UserActionChoice({
+          actionId: "KEEP_FLOW",
+          label: "Keep",
+          nextAction: "senti flow get status",
+          impact: new UserActionImpact({ retains: ["Flow and Git state"] }),
+        }),
+      ],
+      recommendedActionId: "INSPECT_FLOW",
+      recommendationReason: "Inspect first.",
+    }), /materially different outcomes/);
   });
 
-  it("preserves StepOutcome terminal semantics while yielding a typed prompt", () => {
-    const outcomes = [
-      new ExternalBlockedOutcome({
-        reason: "provider unavailable",
-        resumeInstruction: "Retry after provider recovery.",
-      }),
-      new AwaitingDecisionOutcome({
-        reason: "risk decision",
-        resumeInstruction: "Record the explicit decision.",
-      }),
-    ];
+  it("separates an external blocker from a real typed user decision", () => {
+    const external = new ExternalBlockedOutcome({
+      reason: "provider unavailable",
+      resumeInstruction: "Retry after provider recovery.",
+    });
+    const decision = new AwaitingDecisionOutcome({
+      reason: "risk decision",
+      resumeInstruction: "Record the explicit decision.",
+      prompt: decisionPrompt(),
+    });
 
-    for (const outcome of outcomes) {
-      const json = outcome.toJSON();
-      assert.equal(outcome.terminal, true);
-      assert.equal(json.terminal, true);
-      assert.equal(json.yieldsControl, true);
-      assert.equal(json.requiresUserAction, true);
-      assert.ok(UserActionPrompt.fromStored(json.actionPrompt));
-      assert.deepEqual(StepOutcome.fromStored(json).toJSON(), json);
-    }
+    assert.equal(external.terminal, true);
+    assert.equal(external.toJSON().yieldsControl, undefined);
+    assert.equal(external.toJSON().actionPrompt, undefined);
+    assert.equal(decision.toJSON().yieldsControl, true);
+    assert.equal(decision.toJSON().requiresUserAction, true);
+    assert.ok(UserActionPrompt.fromStored(decision.toJSON().actionPrompt));
+    assert.deepEqual(StepOutcome.fromStored(external.toJSON()).toJSON(), external.toJSON());
+    assert.deepEqual(StepOutcome.fromStored(decision.toJSON()).toJSON(), decision.toJSON());
   });
 
   it("rejects incomplete envelopes that do not carry a valid prompt", () => {
@@ -221,29 +263,16 @@ describe("typed user-action stop contract", () => {
     assert.throws(() => invalid.toJSON(), /requires requiresUserAction/);
   });
 
-  it("represents lock inspection as a mechanical continuation", () => {
+  it("does not manufacture status inspection as a recovery action", () => {
     const envelope = Envelope.fail(
       "get",
       "status",
       "PROCESS_OWNED_LOCK_LIVE",
       "lock owner is active",
     );
-    attachFlowContinuation(envelope, genericFlowStopContinuation({
-      state: {
-        runId: "run-lock",
-        issue: null,
-        spec: "specs/001-lock/spec.json",
-      },
-      code: "PROCESS_OWNED_LOCK_LIVE",
-      message: "lock owner is active",
-    }));
 
     const json = envelope.toJSON();
-    assert.equal(json.data.yieldsControl, false);
-    assert.equal(json.data.requiresUserAction, false);
-    assert.equal(json.data.continuation.actionId, "INSPECT_FLOW_STATUS");
-    assert.match(json.data.continuation.nextAction, /--expect-run-id 'run-lock'/);
-    assert.equal(Object.hasOwn(json.data, "actionPrompt"), false);
+    assert.equal(json.data, null);
   });
 });
 
