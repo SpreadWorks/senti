@@ -19,6 +19,7 @@ import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
+import { findStepById } from "./step-tree.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
 
@@ -55,6 +56,13 @@ function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   };
 }
 
+function mainStateOwnsPostMergeFlow(mainState, worktreeState) {
+  if (findStepById(mainState?.steps || [], "finalize-merge")?.status === "done") {
+    return true;
+  }
+  return JSON.stringify(mainState?.steps || []) === JSON.stringify(worktreeState?.steps || []);
+}
+
 function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, options) {
   if (!container.get("inWorktree")) return null;
   if (baseFlowManager.usesWorktreeFlowBinding() === false) return null;
@@ -76,15 +84,17 @@ function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, opt
     if (fs.existsSync(mainFlowPath)) {
       const mainManager = baseFlowManager.forRoot(mainRoot, { specId: identity.specId });
       const mainState = mainManager.load(identity.specId);
-      identity.assertFlowState(mainState);
-      return {
-        flowManager: mainManager,
-        flowState: mainState,
-        preparingFlowState: null,
-        authorityRoot: mainRoot,
-        flowResolutionError: null,
-        worktreeFlowProvenance: new WorktreeFlowProvenance(identity, mainRoot),
-      };
+      if (mainStateOwnsPostMergeFlow(mainState, flowState)) {
+        identity.assertFlowState(mainState);
+        return {
+          flowManager: mainManager,
+          flowState: mainState,
+          preparingFlowState: null,
+          authorityRoot: mainRoot,
+          flowResolutionError: null,
+          worktreeFlowProvenance: new WorktreeFlowProvenance(identity, mainRoot),
+        };
+      }
     }
   }
   const flowManager = baseFlowManager.forRoot(paths.root, { specId: identity.specId });
@@ -176,7 +186,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
       if (fs.existsSync(mainFlowPath)) {
         const mainManager = baseFlowManager.forRoot(mainRoot, { specId });
         const mainState = mainManager.load(specId);
-        if (mainState) {
+        if (mainStateOwnsPostMergeFlow(mainState, cwdState)) {
           return {
             flowManager: mainManager,
             flowState: mainState,

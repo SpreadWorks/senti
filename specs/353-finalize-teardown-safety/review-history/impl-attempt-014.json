@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T10:45:18.328Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r6-registry-retains-direct-writer-fallback",
+      "title": "Registry still retains direct finalize state writers",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/registry.js",
+      "requirementId": "R6",
+      "issue": "`RegistryLifecycleAdapter.outboxStore()` and `recordMergeOutcome()` still fall back to constructing `FlowOutboxStore` from `ctx.flowManager` and calling `ctx.flowManager.setMergeOutcome(...)` when `ctx.finalizeFlowStateOwner` is absent. That leaves production finalize lifecycle mutations with a retained direct-writer path outside the new `FinalizeFlowStateOwner`, so the implementation does not prove that replaced direct writers are absent.",
+      "suggestion": "In `RegistryLifecycleAdapter.outboxStore()` and `recordMergeOutcome()`, require or create `FinalizeFlowStateOwner.fromContext(this.ctx)` and route outbox and merge outcome updates through that owner instead of keeping the `ctx.flowManager` fallback branch.",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and T-5 explicitly requires finalize lifecycle `flow.json` updates to route through one owner with replaced production direct writers absent. A fallback direct writer is still executable production behavior, so this is blocking for the single-owner acceptance criterion.",
+      "findingId": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "fingerprint": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "20ac001120c7466f9f0caeb79e4aa63da8b05acca505810be41f589830f57311",
+  "reviewedTree": "20ac001120c7466f9f0caeb79e4aa63da8b05acca505810be41f589830f57311",
+  "reviewedHead": "a92c8a980be055e37de0864110c95d759625bbe9",
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "taskId": "T-5",
+  "target": "specs/353-finalize-teardown-safety/tasks/T-5.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/353-finalize-teardown-safety/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "335c2afbb0e5bced52bd5d5ea7aadadbcf2c687c68b5a3cf95bfa2254d241d89"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 14,
+  "findings": [
+    {
+      "id": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "findingId": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 14,
+      "severity": "blocking",
+      "title": "Registry still retains direct finalize state writers",
+      "body": "`RegistryLifecycleAdapter.outboxStore()` and `recordMergeOutcome()` still fall back to constructing `FlowOutboxStore` from `ctx.flowManager` and calling `ctx.flowManager.setMergeOutcome(...)` when `ctx.finalizeFlowStateOwner` is absent. That leaves production finalize lifecycle mutations with a retained direct-writer path outside the new `FinalizeFlowStateOwner`, so the implementation does not prove that replaced direct writers are absent.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "disposition": "must-fix",
+      "rationale": "R6 is mandatory and T-5 explicitly requires finalize lifecycle `flow.json` updates to route through one owner with replaced production direct writers absent. A fallback direct writer is still executable production behavior, so this is blocking for the single-owner acceptance criterion.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

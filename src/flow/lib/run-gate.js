@@ -4663,6 +4663,7 @@ function buildImplCheckPrompt(specTextOrOptions, diffArg, knownIdsArg) {
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
     "- Deferred full-project regression evidence is valid at this integration gate: final-regression, not this gate, owns the default full project test command. Do not fail solely because that deferred evidence does not yet contain a passing full regression result.",
     "- Treat [TEST:<id>] and [TEST-REVIEW] entries as validated execution evidence. When [REGRESSION] records full-regression-deferred, full-project execution belongs exclusively to final-regression and its absence is not a FAIL at this gate.",
+    "- Respect later-step ownership. When a requirement explicitly assigns its observable output to a later normal Flow step, evaluate whether the mapped implementation preserves and correctly configures that step. Do not require the later step's output before that step has run.",
     "- Preserve typed retry behavior: semantic findings may defer to flow-findings, while structural, tooling, no-progress, failed-test, or missing-repair failures must remain blocking. An explicit structural assertion of ESCALATE_RETRY_EXHAUSTED with no flow-findings artifact is required behavior, not a weakened semantic deferral assertion.",
     ...(sameSpecContractContext ? [
       "- Assess preservation against the explicit same-spec current contract, not legacy behavior that it replaces, retires, or invalidates.",

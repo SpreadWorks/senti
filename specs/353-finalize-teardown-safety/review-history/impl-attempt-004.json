@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T10:12:42.238Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-r1-retry-bound-assertion",
+      "title": "R1 retry bound is not verified",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+      "requirementId": "R1",
+      "issue": "The R1 replay test only proves that a second invocation can resume a persisted unfinished checkpoint and complete. It never asserts the required at-most-one retry per invocation behavior, nor does it inject or observe a second retry opportunity within the same invocation to prove it is rejected or bounded.",
+      "suggestion": "Extend the `R1: retry adopts only the unfinished ${targetPhase} checkpoint` branch, or add a new R1 test, to create a persisted unfinished checkpoint plus a second retry-triggering failure in the same invocation and assert the command performs at most one resume attempt before returning a bounded failure.",
+      "disposition": "must-fix",
+      "rationale": "R1 is a must requirement and T-1 acceptance explicitly requires at most one retry per invocation to resume only an unfinished recorded checkpoint. Current coverage proves exact-target replay but not the mandatory retry bound.",
+      "findingId": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "fingerprint": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "39c9743cbdf415d672d4ba4e70c2358d9c0689ea71cf77032a637c8e4981ccfc",
+  "reviewedTree": "39c9743cbdf415d672d4ba4e70c2358d9c0689ea71cf77032a637c8e4981ccfc",
+  "reviewedHead": "a92c8a980be055e37de0864110c95d759625bbe9",
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/353-finalize-teardown-safety/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/353-finalize-teardown-safety/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "63b1998890d831b83b7d330f31dfd4f14c4289c747180975e33453ac9263c3ad"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "findingId": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R1 retry bound is not verified",
+      "body": "The R1 replay test only proves that a second invocation can resume a persisted unfinished checkpoint and complete. It never asserts the required at-most-one retry per invocation behavior, nor does it inject or observe a second retry opportunity within the same invocation to prove it is rejected or bounded.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "disposition": "must-fix",
+      "rationale": "R1 is a must requirement and T-1 acceptance explicitly requires at most one retry per invocation to resume only an unfinished recorded checkpoint. Current coverage proves exact-target replay but not the mandatory retry bound.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

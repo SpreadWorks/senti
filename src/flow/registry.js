@@ -39,7 +39,6 @@ import {
   StepAttempt,
 } from "./lib/step-outcome.js";
 import {
-  FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./lib/flow-outbox.js";
 import {
@@ -47,6 +46,7 @@ import {
   ExplicitRecoveryTransition,
 } from "./lib/step-transition-policy.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
+import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -106,10 +106,7 @@ export function assertDraftReviewRegistryHookBoundary() {
  * the now-stale worktree copy — so authority is switched via forRoot().
  */
 function switchToMainRepoFlowAuthority(ctx) {
-  const { mainRepoPath } = ctx.flowManager.resolveWorktreePaths(ctx.flowState);
-  if (!mainRepoPath) return;
-  ctx.flowManager = ctx.flowManager.forRoot(mainRepoPath);
-  ctx.root = mainRepoPath;
+  FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx);
 }
 
 /**
@@ -122,13 +119,13 @@ function switchToMainRepoFlowAuthority(ctx) {
 /**
  * @returns {boolean} true when at least one leaf was reset, false when no-op.
  */
-function resetSkippedDownstreamSteps(targetFm, opts, stepIds = []) {
-  const state = opts?.specId ? targetFm.load(opts.specId) : targetFm.load();
+function resetSkippedDownstreamSteps(stateOwner, stepIds = []) {
+  const state = stateOwner.loadReadOnly();
   if (!state) return false;
   const flat = flattenSteps(state.steps || []);
   const resetIds = stepIds.filter((id) => flat.find((step) => step.id === id)?.status === "skipped");
   if (resetIds.length === 0) return false;
-  targetFm.updateStepStatus(new ExplicitRecoveryTransition({
+  stateOwner.updateStepStatus(new ExplicitRecoveryTransition({
     stepId: resetIds[0],
     currentStatus: "skipped",
     requestedStatus: "pending",
@@ -138,7 +135,7 @@ function resetSkippedDownstreamSteps(targetFm, opts, stepIds = []) {
       currentStatus: "skipped",
       requestedStatus: "pending",
     })),
-  }), opts);
+  }));
   return true;
 }
 
@@ -162,10 +159,12 @@ function deriveActivePhase(ctx) {
  * hooks which target the main repo flow.json via forRoot().
  */
 function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
-  const isHookContext = Boolean(target && typeof target === "object" && target.flowManager);
+  const isFinalizeStateOwner = target instanceof FinalizeFlowStateOwner;
+  const isHookContext = !isFinalizeStateOwner
+    && Boolean(target && typeof target === "object" && target.flowManager);
   const fm = isHookContext
     ? target.flowManager
-    : target;
+    : (isFinalizeStateOwner ? target.flowManager : target);
   let mutationOpts = opts;
   if (isHookContext) {
     mutationOpts = { ...(opts || {}) };
@@ -211,11 +210,19 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
     const action = provenance.action
       || plan.actions.find((candidate) => candidate.step === stepId && candidate.status === status);
     if (!action) throw new Error(`definition lifecycle did not emit ${stepId}=${status}`);
-    fm.updateStepStatus(new DefinitionLifecycleTransition({
+    const transition = new DefinitionLifecycleTransition({
       action,
       plan,
       currentStatus: targetStep.status,
-    }), mutationOpts);
+    });
+    if (isFinalizeStateOwner) {
+      target.updateStepStatus(transition, {
+        taskId: mutationOpts?.taskId ?? null,
+        operationOwnerToken: mutationOpts?.operationOwnerToken ?? null,
+      });
+    } else {
+      fm.updateStepStatus(transition, mutationOpts);
+    }
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
@@ -334,6 +341,13 @@ class RegistryLifecycleAdapter {
     };
   }
 
+  finalizeStateOwner() {
+    if (!this.ctx.finalizeFlowStateOwner) {
+      FinalizeFlowStateOwner.fromContext(this.ctx).bindContext(this.ctx);
+    }
+    return this.ctx.finalizeFlowStateOwner;
+  }
+
   setStepStatus(step, status, action) {
     const attempt = this.result?.stepAttempt
       ? StepAttempt.fromStored(this.result.stepAttempt)
@@ -341,13 +355,12 @@ class RegistryLifecycleAdapter {
     if (status === "in_progress" && attempt?.outcome instanceof DeferOutcome) return;
     const settledStatus = status;
     if (step.startsWith("finalize-")) {
-      const current = this.ctx.specId
-        ? this.ctx.flowManager.loadReadOnly(this.ctx.specId)
-        : this.ctx.flowManager.load();
+      const stateOwner = this.finalizeStateOwner();
+      const current = stateOwner.loadReadOnly();
       const currentStep = findStepById(current?.steps || [], step);
       if (currentStep?.status === settledStatus) return;
       tryUpdateStepStatus(
-        this.ctx.flowManager,
+        stateOwner,
         step,
         settledStatus,
         this.mutationOpts(step, { specId: this.ctx.specId }),
@@ -430,7 +443,7 @@ class RegistryLifecycleAdapter {
   }
 
   outboxStore() {
-    return new FlowOutboxStore(this.ctx.flowManager, { specId: this.ctx.specId || null });
+    return this.finalizeStateOwner().outbox();
   }
 
   outboxIdentity(step) {
@@ -458,9 +471,16 @@ class RegistryLifecycleAdapter {
   }
 
   skipSteps(steps) {
+    const stateOwner = this.finalizeStateOwner();
     for (const id of steps) {
       try {
-        tryUpdateStepStatus(this.ctx, id, "skipped", undefined, { event: "definition:skip-steps" });
+        tryUpdateStepStatus(
+          stateOwner,
+          id,
+          "skipped",
+          { specId: stateOwner.specId },
+          { event: "definition:skip-steps" },
+        );
       } catch (e) {
         process.stderr.write(`[senti] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
       }
@@ -518,7 +538,10 @@ class RegistryLifecycleAdapter {
       })) {
         return;
       }
-      const mutated = resetSkippedDownstreamSteps(this.ctx.flowManager, undefined, args?.steps || []);
+      const mutated = resetSkippedDownstreamSteps(
+        this.finalizeStateOwner(),
+        args?.steps || [],
+      );
       finalize.commitFinalizeMergeMetadataIfSafe({
         root: this.ctx.root,
         specId: this.ctx.specId,
@@ -556,17 +579,15 @@ class RegistryLifecycleAdapter {
       const strategy = this.result?.strategy === "skip" ? null : (this.result?.strategy ?? null);
       const baseline = strategy === "squash" ? (this.result?.mergedFromSha ?? null) : null;
       try {
-        this.ctx.flowManager.setMergeOutcome(
-          { mergeStrategy: strategy, featureBranchSquashedSha: baseline },
-          { specId: this.ctx.specId },
-        );
+        const outcome = { mergeStrategy: strategy, featureBranchSquashedSha: baseline };
+        this.finalizeStateOwner().setMergeOutcome(outcome);
       } catch (err) {
         process.stderr.write(`[senti] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
       }
       return;
     }
     if (handler === "resetSkippedDownstreamSteps") {
-      resetSkippedDownstreamSteps(this.ctx.flowManager, { specId: this.ctx.specId }, args?.steps || []);
+      resetSkippedDownstreamSteps(this.finalizeStateOwner(), args?.steps || []);
       return;
     }
     if (handler === "finalizeOnError") {

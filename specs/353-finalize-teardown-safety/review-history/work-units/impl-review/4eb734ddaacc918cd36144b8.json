@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "4eb734ddaacc918cd36144b8",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-5524c5928588e9ea",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/353-finalize-teardown-safety/draft-review-questions.json",
+      "specs/353-finalize-teardown-safety/issue-log.json",
+      "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+      "specs/353-finalize-teardown-safety/spec-gate-source.json",
+      "specs/353-finalize-teardown-safety/spec.md",
+      "specs/353-finalize-teardown-safety/tasks/T-6.md",
+      "src/flow/commands/review.js",
+      "src/flow/lib/run-finalize-cleanup.js",
+      "src/flow/registry.js"
+    ],
+    "inputHash": "5524c5928588e9ea7f3b80ebe5cad07da25713967fbfcd49310f619e6f970d01",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "4eb734ddaacc918cd36144b8"
+  },
+  "targetFiles": [
+    "specs/353-finalize-teardown-safety/draft-review-questions.json",
+    "specs/353-finalize-teardown-safety/issue-log.json",
+    "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+    "specs/353-finalize-teardown-safety/spec-gate-source.json",
+    "specs/353-finalize-teardown-safety/spec.md",
+    "specs/353-finalize-teardown-safety/tasks/T-6.md",
+    "src/flow/commands/review.js",
+    "src/flow/lib/run-finalize-cleanup.js",
+    "src/flow/registry.js"
+  ],
+  "inputHash": "5524c5928588e9ea7f3b80ebe5cad07da25713967fbfcd49310f619e6f970d01",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T11:57:03.019Z",
+  "finishedAt": "2026-07-27T11:57:03.019Z",
+  "rawResponse": "### 1. Normalize Finalize Flow Owner Interfaces\n**File:** `src/flow/registry.js`\n**Requirement:** R6\n**Issue:** Multiple files introduce slightly different ways to handle finalize flow ownership: `registry.js` accepts hook contexts, `FinalizeFlowStateOwner`, and raw `FlowManager`; `run-finalize-cleanup.js` repeatedly resolves `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext(...)`; `dispatcher.js` constructs an owner but passes only its raw `flowManager` onward. These inconsistent interfaces weaken the single-owner model and make mutation authority harder to audit across files.\n**Suggestion:** Define one canonical owner-resolution helper or interface for finalize flow mutations, then have `registry.js`, `run-finalize-cleanup.js`, and `dispatcher.js` pass and consume that owner consistently instead of mixing owner and raw manager paths.\n\n### 2. Consolidate Duplicate Review And Gate Artifacts\n**File:** `specs/353-finalize-teardown-safety/spec-review.json`\n**Requirement:** R7\n**Issue:** Several review artifacts appear to describe overlapping spec-phase outcomes but disagree or duplicate each other: `spec-review.json` reports PASS, `spec-gate-source.json` reports a blocking coverage failure, `review-history/spec-attempt-001.md` duplicates a PASS/no-findings result also present in structured JSON, and `issue-log.json` repeats similar gate failures. This creates cross-file ambiguity about the authoritative review state.\n**Suggestion:** Pick one canonical structured artifact for the current review/gate result, keep historical attempts only when they add distinct signal, and make other files reference the canonical artifact by id/path instead of duplicating full findings or contradictory verdicts.\n\n### 3. Deduplicate Retry Recovery Data Across Logs\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`\n**Requirement:** R8\n**Issue:** Retry recovery details are duplicated between `issue-log.json`, `retry-recovery.json`, and the large runtime data embedded in `flow.json`. The same ids, retry counts, commands, timestamps, and changed evidence can drift across these artifacts.\n**Suggestion:** Make `retry-recovery.json` the authoritative detailed recovery record. Store only compact references and summaries in `issue-log.json` and `flow.json`, such as `recoveryId`, status, and evidence digest/path.\n\n### 4. Align Requirement, Task, And Test Traceability\n**File:** `specs/353-finalize-teardown-safety/spec.json`\n**Requirement:** R7\n**Issue:** Requirement/task/test traceability is inconsistent across files: `spec.json` marks requirements R1-R7 done while tasks T-1 through T-6 remain pending, `spec.md` duplicates task metadata from `tasks/T-*.md`, `tests/finalize-teardown-contract.test.js` uses one broad `// spec: R1 R2 R3 R4 R5 R6 R7` marker, and `tests/unit/flow/commands/review.test.js` lacks a requirement marker for a new requirement-related test.\n**Suggestion:** Use one task source of truth in `tasks/T-*.md`, keep `spec.md` as a compact index, align `spec.json` task statuses with requirement statuses, and place requirement-specific `// spec: R<N>` headers near the relevant tests.\n\n### 5. Unify Bounded Resource Guardrails\n**File:** `src/flow/lib/run-finalize-cleanup.js`\n**Requirement:** R1\n**Issue:** Bounded-resource concerns appear in multiple places with no shared limit or naming convention: journal scanning in `run-finalize-cleanup.js`, recovery journal reading in `finalize-teardown-contract.test.js`, lifecycle step loops in `registry.js`, and append-only history arrays in `flow.json`. The same guardrail is being handled ad hoc across runtime code, tests, and artifacts.\n**Suggestion:** Introduce named limits for finalize journal scans, lifecycle step mutations, and retained review/recovery history. Reuse those names in tests and artifact-shaping logic so R1/R2 bounded-resource behavior is consistent across files.\n\n### 6. Standardize Retry Policy Naming\n**File:** `specs/353-finalize-teardown-safety/spec.md`\n**Requirement:** R2\n**Issue:** The retry policy is repeatedly described as “at most one retry per invocation” across `spec.md`, `spec.json`, task text, and review artifacts, while related implementation/test helpers use broader or different names like `assertRetryRejected`, `runFinalize`, and foreign/missing target checks. This increases the chance of semantic drift between specification and code.\n**Suggestion:** Define a single term such as `single-retry replay policy` in the spec, then use that term consistently in `spec.md`, `spec.json`, task files, test helper names, and review artifacts.\n\n### 7. Remove Cross-Artifact Placeholder Noise\n**File:** `specs/353-finalize-teardown-safety/spec.md`\n**Requirement:** R8\n**Issue:** Empty or placeholder fields appear across several artifacts: placeholder sections in `spec.md`, empty optional fields in `draft-review-questions.json`, empty draft sections in `draft.json`, and duplicated issue identifiers in workflow/issue artifacts. Across files, this makes it harder to distinguish meaningful missing information from schema filler.\n**Suggestion:** Adopt a minimal artifact convention: omit empty optional fields and sections, keep only canonical identifiers, and require placeholders only when a documented consumer needs them.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Normalize Finalize Flow Owner Interfaces",
+        "body": "**File:** `src/flow/registry.js`\n**Requirement:** R6\n**Issue:** Multiple files introduce slightly different ways to handle finalize flow ownership: `registry.js` accepts hook contexts, `FinalizeFlowStateOwner`, and raw `FlowManager`; `run-finalize-cleanup.js` repeatedly resolves `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext(...)`; `dispatcher.js` constructs an owner but passes only its raw `flowManager` onward. These inconsistent interfaces weaken the single-owner model and make mutation authority harder to audit across files.\n**Suggestion:** Define one canonical owner-resolution helper or interface for finalize flow mutations, then have `registry.js`, `run-finalize-cleanup.js`, and `dispatcher.js` pass and consume that owner consistently instead of mixing owner and raw manager paths.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Consolidate Duplicate Review And Gate Artifacts",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec-review.json`\n**Requirement:** R7\n**Issue:** Several review artifacts appear to describe overlapping spec-phase outcomes but disagree or duplicate each other: `spec-review.json` reports PASS, `spec-gate-source.json` reports a blocking coverage failure, `review-history/spec-attempt-001.md` duplicates a PASS/no-findings result also present in structured JSON, and `issue-log.json` repeats similar gate failures. This creates cross-file ambiguity about the authoritative review state.\n**Suggestion:** Pick one canonical structured artifact for the current review/gate result, keep historical attempts only when they add distinct signal, and make other files reference the canonical artifact by id/path instead of duplicating full findings or contradictory verdicts.",
+        "file": "specs/353-finalize-teardown-safety/spec-review.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Deduplicate Retry Recovery Data Across Logs",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`\n**Requirement:** R8\n**Issue:** Retry recovery details are duplicated between `issue-log.json`, `retry-recovery.json`, and the large runtime data embedded in `flow.json`. The same ids, retry counts, commands, timestamps, and changed evidence can drift across these artifacts.\n**Suggestion:** Make `retry-recovery.json` the authoritative detailed recovery record. Store only compact references and summaries in `issue-log.json` and `flow.json`, such as `recoveryId`, status, and evidence digest/path.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R8"
+      },
+      {
+        "title": "4. Align Requirement, Task, And Test Traceability",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.json`\n**Requirement:** R7\n**Issue:** Requirement/task/test traceability is inconsistent across files: `spec.json` marks requirements R1-R7 done while tasks T-1 through T-6 remain pending, `spec.md` duplicates task metadata from `tasks/T-*.md`, `tests/finalize-teardown-contract.test.js` uses one broad `// spec: R1 R2 R3 R4 R5 R6 R7` marker, and `tests/unit/flow/commands/review.test.js` lacks a requirement marker for a new requirement-related test.\n**Suggestion:** Use one task source of truth in `tasks/T-*.md`, keep `spec.md` as a compact index, align `spec.json` task statuses with requirement statuses, and place requirement-specific `// spec: R<N>` headers near the relevant tests.",
+        "file": "specs/353-finalize-teardown-safety/spec.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Unify Bounded Resource Guardrails",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`\n**Requirement:** R1\n**Issue:** Bounded-resource concerns appear in multiple places with no shared limit or naming convention: journal scanning in `run-finalize-cleanup.js`, recovery journal reading in `finalize-teardown-contract.test.js`, lifecycle step loops in `registry.js`, and append-only history arrays in `flow.json`. The same guardrail is being handled ad hoc across runtime code, tests, and artifacts.\n**Suggestion:** Introduce named limits for finalize journal scans, lifecycle step mutations, and retained review/recovery history. Reuse those names in tests and artifact-shaping logic so R1/R2 bounded-resource behavior is consistent across files.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Standardize Retry Policy Naming",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.md`\n**Requirement:** R2\n**Issue:** The retry policy is repeatedly described as “at most one retry per invocation” across `spec.md`, `spec.json`, task text, and review artifacts, while related implementation/test helpers use broader or different names like `assertRetryRejected`, `runFinalize`, and foreign/missing target checks. This increases the chance of semantic drift between specification and code.\n**Suggestion:** Define a single term such as `single-retry replay policy` in the spec, then use that term consistently in `spec.md`, `spec.json`, task files, test helper names, and review artifacts.",
+        "file": "specs/353-finalize-teardown-safety/spec.md",
+        "requirementId": "R2"
+      },
+      {
+        "title": "7. Remove Cross-Artifact Placeholder Noise",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.md`\n**Requirement:** R8\n**Issue:** Empty or placeholder fields appear across several artifacts: placeholder sections in `spec.md`, empty optional fields in `draft-review-questions.json`, empty draft sections in `draft.json`, and duplicated issue identifiers in workflow/issue artifacts. Across files, this makes it harder to distinguish meaningful missing information from schema filler.\n**Suggestion:** Adopt a minimal artifact convention: omit empty optional fields and sections, keep only canonical identifiers, and require placeholders only when a documented consumer needs them.",
+        "file": "specs/353-finalize-teardown-safety/spec.md",
+        "requirementId": "R8"
+      }
+    ]
+  }
+}

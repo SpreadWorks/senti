@@ -1,0 +1,464 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "075492327528c91e7467615fe1917b89adf3d48379438f335de5e06f8393cb37",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-27T12:10:20.315Z",
+  "items": [
+    {
+      "findingId": "4360bb542d5268a7645f424895ae1d8612250447f3872eb90379d46837dc8e5d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/draft-review-questions.json`\n**Requirement:** R8\n**Issue:** The PASS result includes multiple empty arrays and null placeholders (`blockingFindings`, `advisoryFindings`, `repairTargets`, `taskId`) that add schema noise without carrying information.\n**Suggestion:** Omit empty optional fields from successful review artifacts, or replace them with a compact `findings: []` field if the schema needs an explicit empty result.",
+      "evidenceRefs": [
+        "impl-review.json#4360bb542d5268a7645f424895ae1d8612250447f3872eb90379d46837dc8e5d"
+      ]
+    },
+    {
+      "findingId": "e986acaca5f812df9f5541880ca5a0e5fcbacbd0c5525ad38df2c229a99f5fc3",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/draft.json`\n**Requirement:** R8\n**Issue:** Several sections encode empty placeholders (`requiresUserJudgment`, `notes`, `droppedReason`) where absence already communicates the same state.\n**Suggestion:** Drop optional empty sections/fields from the draft artifact, or normalize them through one schema-level “none” convention to reduce dead metadata.",
+      "evidenceRefs": [
+        "impl-review.json#e986acaca5f812df9f5541880ca5a0e5fcbacbd0c5525ad38df2c229a99f5fc3"
+      ]
+    },
+    {
+      "findingId": "122aba450051e19cc8a1152e7ebfbdcfa0aa2f28372742dee9982156b0c30ff8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/flow.json`\n**Requirement:** R1\n**Issue:** `flow.json` stores large, append-only runtime collections such as `metrics`, `reviewConvergence.records`, `stepAttempts`, and `reviewRecoveryBaselines` without an evident retention bound. This violates the bounded-resource-usage guardrail because repeated retries/reviews can grow the artifact indefinitely.\n**Suggestion:** Add an explicit retention policy for each append-only collection, for example keep the latest N records plus canonical summary pointers, or move older entries into bounded referenced artifacts.",
+      "evidenceRefs": [
+        "impl-review.json#122aba450051e19cc8a1152e7ebfbdcfa0aa2f28372742dee9982156b0c30ff8"
+      ]
+    },
+    {
+      "findingId": "d495c731b4e2d071bf1445ee1b158bae6f9365aaab5cfcd0451c53e7932a9026",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/flow.json`\n**Requirement:** R6\n**Issue:** `reviewConvergence.records[*].targetState.entries` repeats near-identical full file snapshots many times, making the file hard to review and increasing storage churn.\n**Suggestion:** Store each unique target-state snapshot once in a keyed map by digest, then have each record reference `targetStateDigest` only or a compact `targetStateRef`.",
+      "evidenceRefs": [
+        "impl-review.json#d495c731b4e2d071bf1445ee1b158bae6f9365aaab5cfcd0451c53e7932a9026"
+      ]
+    },
+    {
+      "findingId": "a6d16a7bed26abfa39b40a6688fc64c4470351f400c02d55956d8ab832272fdb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/flow.json`\n**Requirement:** R8\n**Issue:** The file contains highly volatile execution telemetry such as timestamps, token counts, runtime logs, invocation IDs, and retry attempts. This creates noisy diffs and obscures the durable state relevant to the spec.\n**Suggestion:** Split durable flow state from runtime telemetry. Keep stable fields in `flow.json` and write logs/metrics to ignored or bounded artifact files referenced by digest.",
+      "evidenceRefs": [
+        "impl-review.json#a6d16a7bed26abfa39b40a6688fc64c4470351f400c02d55956d8ab832272fdb"
+      ]
+    },
+    {
+      "findingId": "d31c1866997458719959e750bd18d5df3b9f7f23aadabe8bcdf7240b4ea2d437",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry duplicates the same recovery metadata already stored in `retry-recovery.json`, including IDs, hashes, command text, counters, and timestamps. This creates two sources of truth that can drift.  \n**Suggestion:** Keep `issue-log.json` as a concise audit reference only, for example storing `step`, `issueLogId`, `retryRecoveryId`, `reason`, and `timestamp`, while leaving the full structured recovery payload in `retry-recovery.json`.",
+      "evidenceRefs": [
+        "impl-review.json#d31c1866997458719959e750bd18d5df3b9f7f23aadabe8bcdf7240b4ea2d437"
+      ]
+    },
+    {
+      "findingId": "ce5f3bad387fa44f2969c45dc81b13db0ea39063ce77c8071d8d698e02a1c9f8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry contains both `grantId` and `id` with the same value, while most other entries use `issueLogId` as the entry identifier. This naming overlap makes the schema harder to read and maintain.  \n**Suggestion:** Use one canonical field for the recovery identifier, preferably `issueLogId` for log identity plus `recoveryId` if a domain-specific recovery reference is needed.",
+      "evidenceRefs": [
+        "impl-review.json#ce5f3bad387fa44f2969c45dc81b13db0ea39063ce77c8071d8d698e02a1c9f8"
+      ]
+    },
+    {
+      "findingId": "96bdfcc54b168d32d85801eec5f0720a3572c63da15d131e5e59ee8b7d482e5f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** Several entries repeat the same long guardrail text across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This makes the file very large and increases the chance of inconsistent edits.  \n**Suggestion:** Store the detailed text once per observation and derive summary fields from it, or replace repeated `failedEvaluations` reasons with references to observation IDs.",
+      "evidenceRefs": [
+        "impl-review.json#96bdfcc54b168d32d85801eec5f0720a3572c63da15d131e5e59ee8b7d482e5f"
+      ]
+    },
+    {
+      "findingId": "02f4ff3073e920563a8c45f4e63997e5bc79753cf8f553b580f2140d4053adf2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The new issue log is nearly 2,000 lines and contains large embedded payloads. Continued retries or review loops could grow this file without an explicit cap, which violates the bounded-resource-usage guardrail for bulk log accumulation.  \n**Suggestion:** Add an explicit retention policy to the artifact format, such as max entries per phase, max serialized bytes, or archival/rollover behavior for older review evidence.",
+      "evidenceRefs": [
+        "impl-review.json#02f4ff3073e920563a8c45f4e63997e5bc79753cf8f553b580f2140d4053adf2"
+      ]
+    },
+    {
+      "findingId": "c5dfd85b2f50e9cc6a8633e4cafd1237fb0242c9107e9d8d4fb1f389d0404e62",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md`  \n**Requirement:** R7  \n**Issue:** This Markdown file records the same effective PASS/no-findings result as `spec-attempt-002.json`, creating duplicate review history in two formats with no additional signal.  \n**Suggestion:** Keep the structured JSON attempt as the canonical artifact, or add a short note explaining why both formats are intentionally retained.",
+      "evidenceRefs": [
+        "impl-review.json#c5dfd85b2f50e9cc6a8633e4cafd1237fb0242c9107e9d8d4fb1f389d0404e62"
+      ]
+    },
+    {
+      "findingId": "7029fd98f609bc500e66a2968446bc5c243f6e26ccd4d838dcf3cde5f5295163",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md`  \n**Requirement:** R7  \n**Issue:** The file has no trailing newline, which is inconsistent with common repository formatting and can create unnecessary diff churn.  \n**Suggestion:** Add a final newline at the end of the Markdown file.",
+      "evidenceRefs": [
+        "impl-review.json#7029fd98f609bc500e66a2968446bc5c243f6e26ccd4d838dcf3cde5f5295163"
+      ]
+    },
+    {
+      "findingId": "9a43e2523f481514f4a0de82428916b739e6bcd1cd8cadf530788870805dd35a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md`  \n**Requirement:** R7  \n**Issue:** This Markdown file records the same effective PASS/no-findings result as `spec-attempt-002.json`, creating duplicate review history in two formats with no additional signal.  \n**Suggestion:** Keep the structured JSON attempt as the canonical artifact, or add a short note explaining why both formats are intentionally retained.",
+      "evidenceRefs": [
+        "impl-review.json#9a43e2523f481514f4a0de82428916b739e6bcd1cd8cadf530788870805dd35a"
+      ]
+    },
+    {
+      "findingId": "3c9b2bc15a9f56fcdc9f7b494fd11f03d4b39383f24238e296cc9b33b1ba81eb",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md`  \n**Requirement:** R7  \n**Issue:** The file has no trailing newline, which is inconsistent with common repository formatting and can create unnecessary diff churn.  \n**Suggestion:** Add a final newline at the end of the Markdown file.",
+      "evidenceRefs": [
+        "impl-review.json#3c9b2bc15a9f56fcdc9f7b494fd11f03d4b39383f24238e296cc9b33b1ba81eb"
+      ]
+    },
+    {
+      "findingId": "0f4fbbc00d38bb93443fe57fcf907893cc66aeab5f844bbad3ed9e2f8688a7f1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec-review.md`  \n**Requirement:** R7  \n**Issue:** This Markdown file records the same effective PASS/no-findings result as `spec-attempt-002.json`, creating duplicate review history in two formats with no additional signal.  \n**Suggestion:** Keep the structured JSON attempt as the canonical artifact, or add a short note explaining why both formats are intentionally retained.",
+      "evidenceRefs": [
+        "impl-review.json#0f4fbbc00d38bb93443fe57fcf907893cc66aeab5f844bbad3ed9e2f8688a7f1"
+      ]
+    },
+    {
+      "findingId": "845ead930c6e77867097cb67ac94435c9f27faf78219a90ec8d98323e13f3a24",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec-review.md`  \n**Requirement:** R7  \n**Issue:** The file has no trailing newline, which is inconsistent with common repository formatting and can create unnecessary diff churn.  \n**Suggestion:** Add a final newline at the end of the Markdown file.",
+      "evidenceRefs": [
+        "impl-review.json#845ead930c6e77867097cb67ac94435c9f27faf78219a90ec8d98323e13f3a24"
+      ]
+    },
+    {
+      "findingId": "79272a5760b4cb36a813eb8eb0837daf3a8c2e737074ac90acf7434dccf9a88a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/scenario-validity-result.json`  \n**Requirement:** R8  \n**Issue:** Each `summary` entry repeats the same `test_file`, `command`, and `raw_output_lines`, making the artifact noisy and harder to review.  \n**Suggestion:** Move shared evidence fields to a top-level `evidenceDefaults` or equivalent shared object, leaving each requirement entry with only the requirement-specific `id`, `classification`, and `test_name`.",
+      "evidenceRefs": [
+        "impl-review.json#79272a5760b4cb36a813eb8eb0837daf3a8c2e737074ac90acf7434dccf9a88a"
+      ]
+    },
+    {
+      "findingId": "2ae75c1d0baee5713f9c5ddc9e678a3a9ca8749cce582923c27cb96cd89f72b7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same `spec-test-coverage` violation is represented once under `evaluations[0].observations` and again under top-level `observations`, with mostly duplicated fields and different `findingId`/`fingerprint` values. This creates avoidable duplication and risks consumers treating one issue as two separate findings.  \n**Suggestion:** Keep one canonical observation source, or make the top-level `observations` reference the evaluation finding instead of duplicating the full payload.",
+      "evidenceRefs": [
+        "impl-review.json#2ae75c1d0baee5713f9c5ddc9e678a3a9ca8749cce582923c27cb96cd89f72b7"
+      ]
+    },
+    {
+      "findingId": "45b3f4ac73aca42cbf7078d1054aecd6fdbfc937abeac88914a51150a711aba0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec-review.json`  \n**Requirement:** R7  \n**Issue:** `spec-review.json` reports `\"verdict\": \"PASS\"` with zero findings, while `spec-gate-source.json` reports a blocking `spec-test-coverage` failure for missing spec-local tests. These artifacts describe the same spec phase but disagree, which makes the review state ambiguous.  \n**Suggestion:** Regenerate or update the review artifact so it reflects the blocking R7 coverage failure, or remove the stale passing review artifact from this change set.",
+      "evidenceRefs": [
+        "impl-review.json#45b3f4ac73aca42cbf7078d1054aecd6fdbfc937abeac88914a51150a711aba0"
+      ]
+    },
+    {
+      "findingId": "0a6ca3f9c31dde07e8669f64c320c65b81c0a46cbf1e19ac322de1461f729ccc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** Requirements R1 through R7 are marked `\"status\": \"done\"`, but their corresponding tasks T-1 through T-6 remain `\"status\": \"pending\"`. That inconsistency makes it unclear whether the spec considers the work complete or only planned.  \n**Suggestion:** Update task statuses to match the requirement state, or keep the requirements pending until their tasks and evidence are complete.",
+      "evidenceRefs": [
+        "impl-review.json#0a6ca3f9c31dde07e8669f64c320c65b81c0a46cbf1e19ac322de1461f729ccc"
+      ]
+    },
+    {
+      "findingId": "06cab765f8f7c8443e0a94a36a521ec0875851504627e82c6118686c34159c33",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** The spec repeats near-identical checkpoint language across `goal`, `design_principles`, `overview.data_flow`, requirement R1, acceptance criteria, and task T-1. The repetition increases maintenance cost and makes future edits easy to miss.  \n**Suggestion:** Keep the normative checkpoint behavior in R1 and acceptance criteria, then shorten the overview/task text to reference that requirement instead of restating the full behavior.",
+      "evidenceRefs": [
+        "impl-review.json#06cab765f8f7c8443e0a94a36a521ec0875851504627e82c6118686c34159c33"
+      ]
+    },
+    {
+      "findingId": "77f3b67f1ec2e3dd10f4353f59d3ea1cd16a545489724cd3944038e5d4095445",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R2  \n**Issue:** The phrase “at most one retry per invocation” appears many times, but the spec does not name the policy as a distinct concept. This makes the text verbose and increases the chance of slight semantic drift between sections.  \n**Suggestion:** Define a concise term such as `single-retry replay policy` once, then use that consistently in requirements, data flow, and task descriptions.",
+      "evidenceRefs": [
+        "impl-review.json#77f3b67f1ec2e3dd10f4353f59d3ea1cd16a545489724cd3944038e5d4095445"
+      ]
+    },
+    {
+      "findingId": "73e945ae4c7d7ce1cfcba0cff1628bc65eb3332d96638196f3ac13d913e297af",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R8  \n**Issue:** `## Implementation Targets` contains only `-`, and `## Open Questions` contains only `- [ ]`. These placeholders add noise and may be mistaken for intentionally incomplete spec content.  \n**Suggestion:** Remove these sections until they contain real entries, or populate them with concrete implementation targets/open questions.",
+      "evidenceRefs": [
+        "impl-review.json#73e945ae4c7d7ce1cfcba0cff1628bc65eb3332d96638196f3ac13d913e297af"
+      ]
+    },
+    {
+      "findingId": "1dffc4203ba793326d3f6fb89b3c1e713a801769bd3be120748e0c3f0a0d3668",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R1  \n**Issue:** The phrase “at most one retry per invocation” is repeated across Goal, Scope, Data Flow, Clarifications, Requirements, and Acceptance Criteria. This makes future edits error-prone because the same policy must be kept consistent in many places.  \n**Suggestion:** Define the retry policy once in Requirements R1/R2, then shorten surrounding sections to reference “the R1/R2 retry policy” or “recorded-checkpoint replay.”",
+      "evidenceRefs": [
+        "impl-review.json#1dffc4203ba793326d3f6fb89b3c1e713a801769bd3be120748e0c3f0a0d3668"
+      ]
+    },
+    {
+      "findingId": "b0b34083fcac51919c1f1f0032f3d40155b44050af3de2c2c76ad92d4c9a406b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R1  \n**Issue:** R1 says “destructive persistence, authority, worktree, branch, validation, pointer, and active-flow transition.” “Destructive persistence” is ambiguous because persistence itself is usually the safety boundary before destructive work, not the destructive action.  \n**Suggestion:** Rename this to a clearer boundary list, such as “merge-outcome persistence, finalize-metadata persistence, authority deletion, worktree deletion, branch deletion, validation, pointer publication, and active-flow clearing.”",
+      "evidenceRefs": [
+        "impl-review.json#b0b34083fcac51919c1f1f0032f3d40155b44050af3de2c2c76ad92d4c9a406b"
+      ]
+    },
+    {
+      "findingId": "ddf9a30a707e25df82c001da61c0698bd1647136a4408cd476344a6019e82111",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R7  \n**Issue:** The `## Tasks` section duplicates task titles, status, summaries, and file references that are also present in `tasks/T-1.md` through `tasks/T-6.md`. This creates two sources that can drift.  \n**Suggestion:** Keep only a compact task index in `spec.md`, such as task ID plus link, and let each `tasks/T-*.md` own goal, acceptance criteria, implementation notes, and test strategy.",
+      "evidenceRefs": [
+        "impl-review.json#ddf9a30a707e25df82c001da61c0698bd1647136a4408cd476344a6019e82111"
+      ]
+    },
+    {
+      "findingId": "60a1fa0ec9639d05c72c4591b830c88bf64836674548ecc2eb6c088b0a947fd8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R7  \n**Issue:** The file has one broad `// spec: R1 R2 R3 R4 R5 R6 R7` header at the top, while individual tests are requirement-specific. This weakens traceability because any test in the file appears to cover every requirement.  \n**Suggestion:** Move requirement headers next to the relevant test groups, for example `// spec: R1` before the checkpoint matrix tests, `// spec: R2` before retry target rejection tests, and so on. Keep the final meta-test aligned with that structure.",
+      "evidenceRefs": [
+        "impl-review.json#60a1fa0ec9639d05c72c4591b830c88bf64836674548ecc2eb6c088b0a947fd8"
+      ]
+    },
+    {
+      "findingId": "ea908ddf528ce813aecc6b5757dd7eeb1a2c4ea4a311e364c9f41c67e4737910",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R2  \n**Issue:** `assertForeignTargetRejected` and `assertMissingTargetRejected` duplicate the same run/catch/rejection serialization and journal snapshot comparison flow.  \n**Suggestion:** Introduce a shared helper such as `assertRetryRejected(fixture, expectedPattern, extraAssertions)` that captures the result or thrown error once, checks the journal is unchanged, and lets callers add target-specific assertions.",
+      "evidenceRefs": [
+        "impl-review.json#ea908ddf528ce813aecc6b5757dd7eeb1a2c4ea4a311e364c9f41c67e4737910"
+      ]
+    },
+    {
+      "findingId": "c2831d6c33b778fe3e18dd97e636427e11e9caa7ff786f7e9570d9088644b78f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** `readRecoveryJournal` reads all filenames in `.senti/recovery/finalize-cleanup` and filters them without an explicit bound. The fixture should normally contain one file, but the helper does not enforce bounded directory processing before loading the list. This touches the `bounded-resource-usage` guardrail.  \n**Suggestion:** Use a bounded scan or assert a maximum directory size before filtering, e.g. fail if `fs.readdirSync(directory).length > 2`, then assert exactly one `.json` journal. This keeps the test helper consistent with the project guardrail.",
+      "evidenceRefs": [
+        "impl-review.json#c2831d6c33b778fe3e18dd97e636427e11e9caa7ff786f7e9570d9088644b78f"
+      ]
+    },
+    {
+      "findingId": "6f64e963a5b37de5dc1340c749f40dce6153c8b1ca937b0c4078b4a19fa9d4a6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log`  \n**Requirement:** R7  \n**Issue:** The committed `.raw/scenario-validity.log` records `invalid_test` for R1 through R7 and includes a large environment-specific invalid path list. As a checked-in artifact, it can make the change set look intentionally invalid or stale.  \n**Suggestion:** Remove this file from the change set if it is transient output, or regenerate it only after the scenario-validity preflight passes. If raw failing evidence is required, rename or document it so it is clearly not consumed as passing test evidence.",
+      "evidenceRefs": [
+        "impl-review.json#6f64e963a5b37de5dc1340c749f40dce6153c8b1ca937b0c4078b4a19fa9d4a6"
+      ]
+    },
+    {
+      "findingId": "6f0d1554e0af7c7c991ce3b76ba350f8f387ca42a45d5f7d3b6eea14c132d65e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** Names like `setupFinalizeFixture`, `runFinalize`, and `captureBoundaryReality` are broad compared with what they actually do: they build a managed-worktree cleanup fixture, run finalize cleanup, and snapshot destructive-boundary state.  \n**Suggestion:** Rename them to more precise names such as `setupManagedWorktreeCleanupFixture`, `runFinalizeCleanup`, and `captureDestructiveBoundarySnapshot`. This makes the large test file easier to scan and reduces ambiguity with finalize sync tests.",
+      "evidenceRefs": [
+        "impl-review.json#6f0d1554e0af7c7c991ce3b76ba350f8f387ca42a45d5f7d3b6eea14c132d65e"
+      ]
+    },
+    {
+      "findingId": "92c6cfebfc92161bef25cb6e137b952632192663b4cc01ff646fdb04be055464",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R6  \n**Issue:** The R6 test asserts implementation details by reading source files and matching regexes such as `class FinalizeFlowStateOwner`, `new FlowManager`, and `hookCtx.flowManager.forRoot(...)`. These checks are brittle and can fail on harmless refactors while missing equivalent behavior implemented differently.  \n**Suggestion:** Prefer behavioral assertions through instrumentation, like the existing `mutationRoots` checks. Keep only minimal source checks if the spec explicitly requires removal of direct writers, and wrap them in a helper with comments explaining why a source-level assertion is intentional.",
+      "evidenceRefs": [
+        "impl-review.json#92c6cfebfc92161bef25cb6e137b952632192663b4cc01ff646fdb04be055464"
+      ]
+    },
+    {
+      "findingId": "48d96e05d3bbaa0bdb262b3eb43dd25c5084d49652390a858d56a0b761ab0d87",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/finalize-cleanup-state.js`  \n**Requirement:** R6  \n**Issue:** `specIdFromPath` is still imported but no longer used after `ensureCleanupStep()` moved to `stateOwner.mutate()`.  \n**Suggestion:** Delete `import { specIdFromPath } from \"../../lib/flow-helpers.js\";`.",
+      "evidenceRefs": [
+        "impl-review.json#48d96e05d3bbaa0bdb262b3eb43dd25c5084d49652390a858d56a0b761ab0d87"
+      ]
+    },
+    {
+      "findingId": "476dc862abd12ff029b8533793168c5b0c293d40393015236a08d44c056f7d5a",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/finalize-cleanup-state.js`  \n**Requirement:** R6  \n**Issue:** `FinalizeWorktreeFlowSnapshot.capture()` and `authorizedDirtyRootFiles()` both read the entire `flow.json` with `fs.readFileSync()` and hash it. This duplicates logic and may violate `bounded-resource-usage` because the file read has no explicit size bound.  \n**Suggestion:** Add a small helper like `hashFlowFileIfBounded(filePath)` that checks `fs.statSync(filePath).size` against an explicit max before reading, then reuse it in both methods.",
+      "evidenceRefs": [
+        "impl-review.json#476dc862abd12ff029b8533793168c5b0c293d40393015236a08d44c056f7d5a"
+      ]
+    },
+    {
+      "findingId": "5e41337669b1035b5d229d69f13757f8babb002c17457749563a1d4831eebbe6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/finalize-cleanup-state.js`  \n**Requirement:** R6  \n**Issue:** `FinalizeWorktreeFlowSnapshot` rejects paths starting with `../`, but not the exact string `\"..\"`. A malformed `spec` could produce a relative path that escapes the worktree but passes this check.  \n**Suggestion:** Change the validation to reject both `relativePath === \"..\"` and `relativePath.startsWith(\\`..${path.sep}\\`)`.",
+      "evidenceRefs": [
+        "impl-review.json#5e41337669b1035b5d229d69f13757f8babb002c17457749563a1d4831eebbe6"
+      ]
+    },
+    {
+      "findingId": "75f65f048369951785bcc883a25bbc96c72a1e4327f01f015e8f5d4bb092d17d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-context.js`  \n**Requirement:** R6  \n**Issue:** `mainStateOwnsPostMergeFlow()` compares `mainState.steps` and `worktreeState.steps` using `JSON.stringify()`. This is brittle, potentially expensive for large step trees, and conflicts with the `bounded-resource-usage` guardrail because the comparison has no explicit bound.  \n**Suggestion:** Replace it with a focused comparison of the fields needed to establish ownership, such as step ids/statuses for the relevant finalize lifecycle steps, or add an explicit bounded step-summary helper.",
+      "evidenceRefs": [
+        "impl-review.json#75f65f048369951785bcc883a25bbc96c72a1e4327f01f015e8f5d4bb092d17d"
+      ]
+    },
+    {
+      "findingId": "602dc642071cc36086435e1d214b746fa39f96dfa8f9c3e6913f94cd8b32a7ff",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/flow-context.js`  \n**Requirement:** R6  \n**Issue:** `mainStateOwnsPostMergeFlow()` returns true either when `finalize-merge` is done or when the main/worktree step arrays serialize identically. The name implies a direct ownership check, but the implementation also treats synchronized state as ownership.  \n**Suggestion:** Rename it to something more precise, such as `mainStateIsAuthoritativeForWorktreeFlow()` or `mainStateCanOwnWorktreeFlow()`.",
+      "evidenceRefs": [
+        "impl-review.json#602dc642071cc36086435e1d214b746fa39f96dfa8f9c3e6913f94cd8b32a7ff"
+      ]
+    },
+    {
+      "findingId": "240b1d9790d093e17c6702869edf26eae173fdfd405d9d9852d7449bdef2f2d1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R1  \n**Issue:** `#assertNoForeignTargetJournal()` scans every `.json` file in the teardown transaction directory with no explicit count or size bound, which violates the `bounded-resource-usage` guardrail for bulk loading.  \n**Suggestion:** Add an explicit maximum journal-file count, fail closed when exceeded, and preferably skip non-transaction names via a stricter filename pattern before reading/parsing candidates.",
+      "evidenceRefs": [
+        "impl-review.json#240b1d9790d093e17c6702869edf26eae173fdfd405d9d9852d7449bdef2f2d1"
+      ]
+    },
+    {
+      "findingId": "5c3c5281b0beea2755f57d017319070c93329001240080203b144071da91e3cf",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R1  \n**Issue:** `FinalizeTeardownCheckpoint.fromResult()` parses checkpoint JSON embedded in `result.code` without a maximum payload length. A malformed or oversized journal value can force unbounded parsing work.  \n**Suggestion:** Define a small constant such as `MAX_FINALIZE_CHECKPOINT_CODE_BYTES` and reject checkpoint codes exceeding it before `JSON.parse`.",
+      "evidenceRefs": [
+        "impl-review.json#5c3c5281b0beea2755f57d017319070c93329001240080203b144071da91e3cf"
+      ]
+    },
+    {
+      "findingId": "b0442875fa64c7b23b3c3cf80e40a9daf52365cf3c5be04c5de922f64b1e44db",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R1  \n**Issue:** The pattern `persistFinalizeTeardownCheckpoint(...)`, perform boundary action, on error `transaction.fail(...)` plus `store.write(...)`, then `persistFinalizeTeardownCompletion(...)` is repeated for pointer, active-flow, validation, completion, and commit phases.  \n**Suggestion:** Introduce a focused helper for checkpointed phase execution that owns begin/fail/complete persistence, while allowing each call site to supply the destructive action and failure envelope code.",
+      "evidenceRefs": [
+        "impl-review.json#b0442875fa64c7b23b3c3cf80e40a9daf52365cf3c5be04c5de922f64b1e44db"
+      ]
+    },
+    {
+      "findingId": "e40d10eb3aa324ba7dc82e0858153b42b97bea88f02d289ce0d32d7c7c16a5c8",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize-sync.js`  \n**Requirement:** R3  \n**Issue:** Constructor fields like `git`, `commit`, and `hasCommit` are short enough to obscure that they are injected command helpers, while surrounding code uses more descriptive function names like `runGit`, `commitOrSkip`, and `hasOutboxCommit`.  \n**Suggestion:** Rename the constructor options and instance fields to `runGitCommand`, `commitOrSkipCommand`, and `hasOutboxCommitMarker` or similar, preserving backwards compatibility only if tests or external callers instantiate this command directly.",
+      "evidenceRefs": [
+        "impl-review.json#e40d10eb3aa324ba7dc82e0858153b42b97bea88f02d289ce0d32d7c7c16a5c8"
+      ]
+    },
+    {
+      "findingId": "a26f6991f23036c0d44f00a33f7ccd8664d7969782b444fd779d96ca157d231b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `switchToMainRepoFlowAuthority()` uses `FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx)`, while `RegistryLifecycleAdapter.finalizeStateOwner()` uses `FinalizeFlowStateOwner.fromContext(this.ctx).bindContext(this.ctx)`. These two authority-selection paths are very similar but subtly different, which makes finalize write ownership harder to reason about.  \n**Suggestion:** Consolidate ownership creation behind one helper or make `finalizeStateOwner()` delegate to the same main-context binding path used by `switchToMainRepoFlowAuthority()` when finalization requires durable main-repository state.",
+      "evidenceRefs": [
+        "impl-review.json#a26f6991f23036c0d44f00a33f7ccd8664d7969782b444fd779d96ca157d231b"
+      ]
+    },
+    {
+      "findingId": "32d4c598cefb81bc8e84addb1c8c8a35fc341c7b8e897bc580a35918c117acc9",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `tryUpdateStepStatus()` now supports three target shapes: hook context, raw `FlowManager`, and `FinalizeFlowStateOwner`. The branching makes mutation ownership less obvious and requires special-case option forwarding for `FinalizeFlowStateOwner`.  \n**Suggestion:** Normalize the target at the start into a small `{ flowManager, updateStepStatus, mutationOpts }` adapter object, then use one mutation call path. This would reduce conditional complexity and make the single-owner finalize mutation behavior clearer.",
+      "evidenceRefs": [
+        "impl-review.json#32d4c598cefb81bc8e84addb1c8c8a35fc341c7b8e897bc580a35918c117acc9"
+      ]
+    },
+    {
+      "findingId": "58c1ee31387bd74ad59d92dc1a111c4c71b5f04c1b67db94207790361e730341",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R7  \n**Issue:** The added `scopeTaskReviewTarget` test appears to cover spec-local review scoping, but it lacks the mandatory `// spec: R<N>` header required by R7.  \n**Suggestion:** Add an explicit requirement marker immediately before or inside the test, for example `// spec: R7`, so the test is discoverable by the project’s spec-local coverage checks.",
+      "evidenceRefs": [
+        "impl-review.json#58c1ee31387bd74ad59d92dc1a111c4c71b5f04c1b67db94207790361e730341"
+      ]
+    },
+    {
+      "findingId": "a2afa9016735a9acc9b2521cc8bd4f1b379122f46771c814306e5ba48d3b33ad",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec-review.json`\n**Requirement:** R7\n**Issue:** `spec-review.json`, `spec-gate-source.json`, `review-history/spec-attempt-001.md`, and `review-history/spec-attempt-002.json` appear to describe overlapping spec review state, but they disagree or duplicate PASS/failure outcomes. This creates ambiguous review authority across files.\n**Suggestion:** Pick one canonical structured review/gate artifact for the current outcome, make historical attempts clearly archival, and remove or regenerate stale PASS artifacts when the gate source reports a blocking failure.",
+      "evidenceRefs": [
+        "impl-review.json#a2afa9016735a9acc9b2521cc8bd4f1b379122f46771c814306e5ba48d3b33ad"
+      ]
+    },
+    {
+      "findingId": "e90a1868d64718ba97e248ab0eeae59cf7542acf2c076662453a6493c17d004d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/flow.json`\n**Requirement:** R1\n**Issue:** `flow.json`, `issue-log.json`, `retry-recovery.json`, `scenario-validity-result.json`, and `.raw/scenario-validity.log` all carry runtime evidence, logs, counters, timestamps, retries, or raw outputs. The same pattern of unbounded or volatile telemetry appears across several artifacts.\n**Suggestion:** Define a shared bounded telemetry convention: durable state stays in canonical JSON files, bulky runtime evidence moves to capped referenced artifacts, and each collection declares max entries, max bytes, or rollover behavior.",
+      "evidenceRefs": [
+        "impl-review.json#e90a1868d64718ba97e248ab0eeae59cf7542acf2c076662453a6493c17d004d"
+      ]
+    },
+    {
+      "findingId": "0db333b325ec87f7975d053afd0dce0bb50a59dea2afe577585871dc82e2aacc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.md`\n**Requirement:** R7\n**Issue:** Task status and metadata are represented in both `spec.md` and `tasks/T-*.md`, while `spec.json` also tracks task statuses that conflict with requirement statuses. This makes task completion state drift-prone across Markdown, JSON, and per-task files.\n**Suggestion:** Make `tasks/T-*.md` or `spec.json` the canonical task-state source, then reduce `spec.md` to a linked task index and ensure requirement/task statuses are updated from the same source.",
+      "evidenceRefs": [
+        "impl-review.json#0db333b325ec87f7975d053afd0dce0bb50a59dea2afe577585871dc82e2aacc"
+      ]
+    },
+    {
+      "findingId": "5e22767e2f9ed97a3ddbb9c7943ce456859f3d3598c256eed6dae378c12e4f62",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/spec.json`\n**Requirement:** R2\n**Issue:** The retry rule is repeatedly phrased as “at most one retry per invocation” across `spec.json`, `spec.md`, and related task/review artifacts without a named policy. Repeated prose across files increases the chance of semantic drift.\n**Suggestion:** Define a single named term, such as `single-retry replay policy`, in the normative requirement text, then reference that term consistently in `spec.md`, `spec.json`, tasks, and tests.",
+      "evidenceRefs": [
+        "impl-review.json#5e22767e2f9ed97a3ddbb9c7943ce456859f3d3598c256eed6dae378c12e4f62"
+      ]
+    },
+    {
+      "findingId": "e5081675926dd0372a29baf09f21cca193d79f419433fbf839e62d170e320c8f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/registry.js`\n**Requirement:** R6\n**Issue:** Finalize flow ownership is initialized through different APIs across files: `FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx)` in `registry.js`, `FinalizeFlowStateOwner.fromContext(...).bindContext(...)` elsewhere, and direct flow-manager paths in review/finalize helpers. These near-duplicate construction paths make ownership semantics harder to verify.\n**Suggestion:** Introduce one canonical helper for obtaining the finalize state owner for durable main-repository mutations, and have registry, cleanup, review, and lifecycle code call that helper.",
+      "evidenceRefs": [
+        "impl-review.json#e5081675926dd0372a29baf09f21cca193d79f419433fbf839e62d170e320c8f"
+      ]
+    },
+    {
+      "findingId": "687e5bd96d65d39ffd28ee744ef1b9d6e4f4981afc7400949f6e0d139b796097",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-finalize-cleanup.js`\n**Requirement:** R1\n**Issue:** Multiple files independently read or parse potentially large artifacts: journal directory scans in `run-finalize-cleanup.js`, full `flow.json` hashing in `finalize-cleanup-state.js`, `JSON.stringify()` step comparisons in `flow-context.js`, and recovery-journal reads in tests. The same bounded-resource concern is being solved piecemeal.\n**Suggestion:** Add shared bounded helpers for directory scans, JSON parsing, file hashing, and compact flow-step comparison, then reuse them in production code and tests.",
+      "evidenceRefs": [
+        "impl-review.json#687e5bd96d65d39ffd28ee744ef1b9d6e4f4981afc7400949f6e0d139b796097"
+      ]
+    },
+    {
+      "findingId": "48ca2951dca414b0f63a2b1ab1d110216b1cd3ed7106e350f767d2139ccddf20",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`\n**Requirement:** R7\n**Issue:** One test file uses a broad `// spec: R1 R2 R3 R4 R5 R6 R7` header, while `tests/unit/flow/commands/review.test.js` reportedly lacks a required `// spec: R7` marker. This creates inconsistent test-to-requirement traceability across spec-local and unit tests.\n**Suggestion:** Require per-test or per-describe requirement markers, placing `// spec: R<N>` next to the specific coverage it provides, and update the coverage scanner expectations accordingly.",
+      "evidenceRefs": [
+        "impl-review.json#48ca2951dca414b0f63a2b1ab1d110216b1cd3ed7106e350f767d2139ccddf20"
+      ]
+    }
+  ]
+}

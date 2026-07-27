@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/353-finalize-teardown-safety/spec-gate-source.json",
+      "specs/353-finalize-teardown-safety/spec-review.json",
+      "specs/353-finalize-teardown-safety/spec.json"
+    ],
+    "inputHash": "212f8a0e4b56b6598aa4020260eccc619fc102eb5bac0b737078328eadaef249",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "specs/353-finalize-teardown-safety/spec-gate-source.json",
+    "specs/353-finalize-teardown-safety/spec-review.json",
+    "specs/353-finalize-teardown-safety/spec.json"
+  ],
+  "inputHash": "212f8a0e4b56b6598aa4020260eccc619fc102eb5bac0b737078328eadaef249",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T11:30:22.323Z",
+  "finishedAt": "2026-07-27T11:30:22.323Z",
+  "rawResponse": "### 1. Reconcile Contradictory Review Outcomes\n**File:** `specs/353-finalize-teardown-safety/spec-review.json`  \n**Requirement:** R7  \n**Issue:** `spec-review.json` reports `\"verdict\": \"PASS\"` with zero findings, while `spec-gate-source.json` reports a blocking `spec-test-coverage` failure for missing spec-local tests. These artifacts describe the same spec phase but disagree, which makes the review state ambiguous.  \n**Suggestion:** Regenerate or update the review artifact so it reflects the blocking R7 coverage failure, or remove the stale passing review artifact from this change set.\n\n### 2. Remove Duplicate Finding Payloads\n**File:** `specs/353-finalize-teardown-safety/spec-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same `spec-test-coverage` violation is represented once under `evaluations[0].observations` and again under top-level `observations`, with mostly duplicated fields and different `findingId`/`fingerprint` values. This creates avoidable duplication and risks consumers treating one issue as two separate findings.  \n**Suggestion:** Keep one canonical observation source, or make the top-level `observations` reference the evaluation finding instead of duplicating the full payload.\n\n### 3. Align Task Status With Requirement Status\n**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** Requirements R1 through R7 are marked `\"status\": \"done\"`, but their corresponding tasks T-1 through T-6 remain `\"status\": \"pending\"`. That inconsistency makes it unclear whether the spec considers the work complete or only planned.  \n**Suggestion:** Update task statuses to match the requirement state, or keep the requirements pending until their tasks and evidence are complete.\n\n### 4. Simplify Repeated Lifecycle Descriptions\n**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** The spec repeats near-identical checkpoint language across `goal`, `design_principles`, `overview.data_flow`, requirement R1, acceptance criteria, and task T-1. The repetition increases maintenance cost and makes future edits easy to miss.  \n**Suggestion:** Keep the normative checkpoint behavior in R1 and acceptance criteria, then shorten the overview/task text to reference that requirement instead of restating the full behavior.\n\n### 5. Clarify “At Most One Retry Per Invocation” Naming\n**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R2  \n**Issue:** The phrase “at most one retry per invocation” appears many times, but the spec does not name the policy as a distinct concept. This makes the text verbose and increases the chance of slight semantic drift between sections.  \n**Suggestion:** Define a concise term such as `single-retry replay policy` once, then use that consistently in requirements, data flow, and task descriptions.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Reconcile Contradictory Review Outcomes",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec-review.json`  \n**Requirement:** R7  \n**Issue:** `spec-review.json` reports `\"verdict\": \"PASS\"` with zero findings, while `spec-gate-source.json` reports a blocking `spec-test-coverage` failure for missing spec-local tests. These artifacts describe the same spec phase but disagree, which makes the review state ambiguous.  \n**Suggestion:** Regenerate or update the review artifact so it reflects the blocking R7 coverage failure, or remove the stale passing review artifact from this change set.",
+        "file": "specs/353-finalize-teardown-safety/spec-review.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Remove Duplicate Finding Payloads",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec-gate-source.json`  \n**Requirement:** R7  \n**Issue:** The same `spec-test-coverage` violation is represented once under `evaluations[0].observations` and again under top-level `observations`, with mostly duplicated fields and different `findingId`/`fingerprint` values. This creates avoidable duplication and risks consumers treating one issue as two separate findings.  \n**Suggestion:** Keep one canonical observation source, or make the top-level `observations` reference the evaluation finding instead of duplicating the full payload.",
+        "file": "specs/353-finalize-teardown-safety/spec-gate-source.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Align Task Status With Requirement Status",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** Requirements R1 through R7 are marked `\"status\": \"done\"`, but their corresponding tasks T-1 through T-6 remain `\"status\": \"pending\"`. That inconsistency makes it unclear whether the spec considers the work complete or only planned.  \n**Suggestion:** Update task statuses to match the requirement state, or keep the requirements pending until their tasks and evidence are complete.",
+        "file": "specs/353-finalize-teardown-safety/spec.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Simplify Repeated Lifecycle Descriptions",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R1  \n**Issue:** The spec repeats near-identical checkpoint language across `goal`, `design_principles`, `overview.data_flow`, requirement R1, acceptance criteria, and task T-1. The repetition increases maintenance cost and makes future edits easy to miss.  \n**Suggestion:** Keep the normative checkpoint behavior in R1 and acceptance criteria, then shorten the overview/task text to reference that requirement instead of restating the full behavior.",
+        "file": "specs/353-finalize-teardown-safety/spec.json",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Clarify “At Most One Retry Per Invocation” Naming",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R2  \n**Issue:** The phrase “at most one retry per invocation” appears many times, but the spec does not name the policy as a distinct concept. This makes the text verbose and increases the chance of slight semantic drift between sections.  \n**Suggestion:** Define a concise term such as `single-retry replay policy` once, then use that consistently in requirements, data flow, and task descriptions.",
+        "file": "specs/353-finalize-teardown-safety/spec.json",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

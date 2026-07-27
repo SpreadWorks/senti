@@ -69,7 +69,11 @@ import {
   stampRepairFingerprint,
 } from "../lib/impl-repair-artifacts.js";
 import { ReviewToolingOutcome } from "../lib/review-convergence.js";
-import { collectUntrackedDiff } from "../lib/run-gate.js";
+import {
+  collectUntrackedDiff,
+  excludeGateLifecycleArtifactsFromGateDiff,
+  excludeGeneratedSpecArtifactsFromGateDiff,
+} from "../lib/run-gate.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -219,6 +223,27 @@ function collectDiffFilePaths(diff) {
   const files = new Set();
   for (const match of diff.matchAll(/^diff --git a\/.+ b\/(.+)$/gm)) files.add(match[1]);
   return files;
+}
+
+function scopeTaskReviewTarget(target, specPath) {
+  if (!target || typeof target !== "object") {
+    throw new Error("task review target is required");
+  }
+  const diff = excludeGateLifecycleArtifactsFromGateDiff(
+    excludeGeneratedSpecArtifactsFromGateDiff(
+      target.diff || "",
+      specPath,
+    ),
+    specPath,
+  );
+  const includedFiles = collectDiffFilePaths(diff);
+  return {
+    diff,
+    untrackedFiles: new Set(
+      [...(target.untrackedFiles || [])]
+        .filter((file) => includedFiles.has(file)),
+    ),
+  };
 }
 
 /** Paths excluded from the fallback (whole-repo) diff in code review.
@@ -924,6 +949,8 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
       modeList,
       "Non-blocking improvements are optional. Do not generate one unless it names a touched file, describes an observable issue in that file, and provides a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.",
       "File-specific findings must use a file from the touched file set.",
+      "Implementation review is static. Do not require running tests or completing test-execute as a prerequisite; scenario-validity, test-execute, test-result-review, impl-gate, and final-regression own runtime verdicts.",
+      "For task review, a task spec's Test Strategy describes the later spec-level execution plan, not evidence that must already exist during task-review.",
       "requirementId is always required and must use one of the allowed target requirement IDs.",
       "A missing_acceptance_requirement blocker may omit file only when its requirementId identifies the missing target requirement.",
       "Put must-fix findings in blockingFindings[]. Put informational findings in nonBlockingImprovements[].",
@@ -4037,13 +4064,17 @@ async function runReview(rawArgs) {
 
   const reviewExclusions = resolveReviewExcludePaths(config);
   const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: reviewExclusions });
-  const reviewTarget = await resolveReviewTarget(
+  const taskSpec = resolveTaskReviewSpec(root, cli.taskSpec);
+  const resolvedReviewTarget = await resolveReviewTarget(
     root,
     flow,
     mergeBase,
     reviewExcludeMatcher,
     reviewExclusions,
   );
+  const reviewTarget = taskSpec
+    ? scopeTaskReviewTarget(resolvedReviewTarget, flow.spec)
+    : resolvedReviewTarget;
   const { diff } = reviewTarget;
   if (!diff) {
     const result = await runImplReview({
@@ -4059,10 +4090,11 @@ async function runReview(rawArgs) {
     return;
   }
 
-  const touchedFiles = collectTouchedFiles(root, mergeBase, { excludeMatcher: reviewExcludeMatcher });
+  const touchedFiles = taskSpec
+    ? collectDiffFilePaths(diff)
+    : collectTouchedFiles(root, mergeBase, { excludeMatcher: reviewExcludeMatcher });
   for (const file of reviewTarget.untrackedFiles) touchedFiles.add(file);
   const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
-  const taskSpec = resolveTaskReviewSpec(root, cli.taskSpec);
 
   let fileMap = {};
   if (taskSpec) {
@@ -4188,6 +4220,7 @@ function isValidSpecOutput(text) {
 
 export {
   parseProposals, formatReviewMd, resolveReviewTarget,
+  scopeTaskReviewTarget,
   resolveMergeBase,
   buildDraftSystemPrompt,
   NO_PROPOSALS_MARKER,

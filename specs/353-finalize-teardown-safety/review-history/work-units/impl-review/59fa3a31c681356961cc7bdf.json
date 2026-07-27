@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/353-finalize-teardown-safety/issue-log.json",
+      "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+      "specs/353-finalize-teardown-safety/retry-recovery.json"
+    ],
+    "inputHash": "1b324f849286b93b39f4e8677fc50068073e7d6d26086498400dd769ef807743",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "specs/353-finalize-teardown-safety/issue-log.json",
+    "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+    "specs/353-finalize-teardown-safety/retry-recovery.json"
+  ],
+  "inputHash": "1b324f849286b93b39f4e8677fc50068073e7d6d26086498400dd769ef807743",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T12:08:32.209Z",
+  "finishedAt": "2026-07-27T12:08:32.209Z",
+  "rawResponse": "### 1. Avoid Duplicating Retry Recovery Records\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry duplicates the same recovery metadata already stored in `retry-recovery.json`, including IDs, hashes, command text, counters, and timestamps. This creates two sources of truth that can drift.  \n**Suggestion:** Keep `issue-log.json` as a concise audit reference only, for example storing `step`, `issueLogId`, `retryRecoveryId`, `reason`, and `timestamp`, while leaving the full structured recovery payload in `retry-recovery.json`.\n\n### 2. Remove Redundant Identifier Fields\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry contains both `grantId` and `id` with the same value, while most other entries use `issueLogId` as the entry identifier. This naming overlap makes the schema harder to read and maintain.  \n**Suggestion:** Use one canonical field for the recovery identifier, preferably `issueLogId` for log identity plus `recoveryId` if a domain-specific recovery reference is needed.\n\n### 3. Consolidate Repeated Guardrail Failure Text\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** Several entries repeat the same long guardrail text across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This makes the file very large and increases the chance of inconsistent edits.  \n**Suggestion:** Store the detailed text once per observation and derive summary fields from it, or replace repeated `failedEvaluations` reasons with references to observation IDs.\n\n### 4. Bound Audit Log Growth\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The new issue log is nearly 2,000 lines and contains large embedded payloads. Continued retries or review loops could grow this file without an explicit cap, which violates the bounded-resource-usage guardrail for bulk log accumulation.  \n**Suggestion:** Add an explicit retention policy to the artifact format, such as max entries per phase, max serialized bytes, or archival/rollover behavior for older review evidence.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Avoid Duplicating Retry Recovery Records",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry duplicates the same recovery metadata already stored in `retry-recovery.json`, including IDs, hashes, command text, counters, and timestamps. This creates two sources of truth that can drift.  \n**Suggestion:** Keep `issue-log.json` as a concise audit reference only, for example storing `step`, `issueLogId`, `retryRecoveryId`, `reason`, and `timestamp`, while leaving the full structured recovery payload in `retry-recovery.json`.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Remove Redundant Identifier Fields",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The retry recovery entry contains both `grantId` and `id` with the same value, while most other entries use `issueLogId` as the entry identifier. This naming overlap makes the schema harder to read and maintain.  \n**Suggestion:** Use one canonical field for the recovery identifier, preferably `issueLogId` for log identity plus `recoveryId` if a domain-specific recovery reference is needed.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Consolidate Repeated Guardrail Failure Text",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** Several entries repeat the same long guardrail text across `reason`, `observations[].observed`, and `failedEvaluations[].reason`. This makes the file very large and increases the chance of inconsistent edits.  \n**Suggestion:** Store the detailed text once per observation and derive summary fields from it, or replace repeated `failedEvaluations` reasons with references to observation IDs.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "4. Bound Audit Log Growth",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R7  \n**Issue:** The new issue log is nearly 2,000 lines and contains large embedded payloads. Continued retries or review loops could grow this file without an explicit cap, which violates the bounded-resource-usage guardrail for bulk log accumulation.  \n**Suggestion:** Add an explicit retention policy to the artifact format, such as max entries per phase, max serialized bytes, or archival/rollover behavior for older review evidence.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

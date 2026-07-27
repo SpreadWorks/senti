@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-27T06:26:52.814Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "fail",
+      "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R7]"
+          },
+          "observed": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "findingId": "c1458d1dae08321fb8e8192da61505908c2576e1d271417f2899865363ebd30c",
+      "fingerprint": "c1458d1dae08321fb8e8192da61505908c2576e1d271417f2899865363ebd30c",
+      "disposition": "must-fix",
+      "rationale": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-27T06:25:23.738Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "spec-test-coverage",
+      "where": {
+        "file": "spec.json",
+        "locator": "requirements[R7]"
+      },
+      "observed": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "severity": "blocking",
+      "refs": [
+        "spec-test-coverage"
+      ],
+      "result": "fail",
+      "guardrail_id": "spec-test-coverage",
+      "category": "guardrail",
+      "findingId": "5fc7059db728ae83fb31f75307729ae55b4f05b76dab43d26d7b98a9fb822b48",
+      "fingerprint": "5fc7059db728ae83fb31f75307729ae55b4f05b76dab43d26d7b98a9fb822b48",
+      "disposition": "must-fix",
+      "rationale": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "requirementId": null,
+      "guardrailId": "spec-test-coverage",
+      "reportedAt": "2026-07-27T06:26:52.814Z",
+      "repeatCount": 1
+    }
+  ]
+}

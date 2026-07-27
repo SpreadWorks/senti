@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T10:05:58.570Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-r1-fault-matrix-replay-tests",
+      "title": "R1 fault-matrix replay coverage is missing",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+      "requirementId": "R1",
+      "issue": "The T-1 test strategy requires unit fault-matrix coverage for checkpoint persistence and replay, but the added spec-local test only regex-checks that `FINALIZE_TEARDOWN_PHASES` and `transaction.advance(` appear in `run-finalize-cleanup.js`. It does not exercise persistence-boundary failures, persisted checkpoint replay, or the acceptance condition that a persistence failure blocks later cleanup transitions.",
+      "suggestion": "Replace or supplement the R1 test in `finalize-teardown-contract.test.js` with unit cases that inject `FinalizeTeardownTransactionStore.write` failures before destructive phases, assert no later destructive operation runs, then rerun from the persisted checkpoint and assert only the recorded unfinished checkpoint is resumed.",
+      "disposition": "must-fix",
+      "rationale": "R1 is a must requirement and T-1 explicitly mandates fault-matrix tests for checkpoint persistence and replay; source regex assertions do not verify the required behavior.",
+      "findingId": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "fingerprint": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "34dac9b3aca6cf5d8fcbfb44fe65318a57d83a56afacb982c695b7d32a7ce23e",
+  "reviewedTree": "34dac9b3aca6cf5d8fcbfb44fe65318a57d83a56afacb982c695b7d32a7ce23e",
+  "reviewedHead": "a92c8a980be055e37de0864110c95d759625bbe9",
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/353-finalize-teardown-safety/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/353-finalize-teardown-safety/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "1cd6783e2b804e843669db7cdd179178e3b024539a3052600df1d5dab2167ab1"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "findingId": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "R1 fault-matrix replay coverage is missing",
+      "body": "The T-1 test strategy requires unit fault-matrix coverage for checkpoint persistence and replay, but the added spec-local test only regex-checks that `FINALIZE_TEARDOWN_PHASES` and `transaction.advance(` appear in `run-finalize-cleanup.js`. It does not exercise persistence-boundary failures, persisted checkpoint replay, or the acceptance condition that a persistence failure blocks later cleanup transitions.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "disposition": "must-fix",
+      "rationale": "R1 is a must requirement and T-1 explicitly mandates fault-matrix tests for checkpoint persistence and replay; source regex assertions do not verify the required behavior.",
+      "requirementId": "R1",
+      "repeatCount": 1
+    }
+  ]
+}

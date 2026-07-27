@@ -49,14 +49,11 @@ import {
 import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
+import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandHooks } from "../../lib/plugin-registry.js";
-import { FlowManager } from "../../lib/flow-manager.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import {
-  FlowOutbox,
-  FlowOutboxEntry,
-  FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
 import { FlowCompletion } from "./flow-completion.js";
@@ -134,6 +131,82 @@ export class FinalizeTeardownPhase {
 
   atLeast(other) {
     return this.index >= FinalizeTeardownPhase.from(other).index;
+  }
+}
+
+const FINALIZE_CHECKPOINT_CODE_PREFIX = "FINALIZE_CHECKPOINT:";
+
+export class FinalizeTeardownCheckpoint {
+  constructor({
+    completedPhase,
+    targetPhase,
+    failureCode = null,
+    startedAt = new Date().toISOString(),
+  }) {
+    this.completedPhase = FinalizeTeardownPhase.from(completedPhase);
+    this.targetPhase = FinalizeTeardownPhase.from(targetPhase);
+    if (this.targetPhase.index !== this.completedPhase.index + 1) {
+      throw new Error(
+        `finalize teardown checkpoint must target the next phase: ${this.completedPhase.name} -> ${this.targetPhase.name}`,
+      );
+    }
+    if (failureCode != null && (typeof failureCode !== "string" || failureCode === "")) {
+      throw new Error("finalize teardown checkpoint failureCode is invalid");
+    }
+    if (typeof startedAt !== "string" || startedAt === "") {
+      throw new Error("finalize teardown checkpoint startedAt is invalid");
+    }
+    this.failureCode = failureCode;
+    this.startedAt = startedAt;
+    Object.freeze(this);
+  }
+
+  static fromResult(result) {
+    if (
+      !(result instanceof FinalizeTeardownResult)
+      || typeof result.code !== "string"
+      || !result.code.startsWith(FINALIZE_CHECKPOINT_CODE_PREFIX)
+    ) {
+      return null;
+    }
+    let stored;
+    try {
+      stored = JSON.parse(result.code.slice(FINALIZE_CHECKPOINT_CODE_PREFIX.length));
+    } catch (error) {
+      throw new Error("finalize teardown checkpoint is malformed", { cause: error });
+    }
+    assertExactObjectKeys(
+      stored,
+      ["targetPhase", "failureCode", "startedAt"],
+      "finalize teardown checkpoint",
+    );
+    return new FinalizeTeardownCheckpoint({
+      completedPhase: result.phase,
+      ...stored,
+    });
+  }
+
+  withFailure(failureCode) {
+    return new FinalizeTeardownCheckpoint({
+      completedPhase: this.completedPhase,
+      targetPhase: this.targetPhase,
+      failureCode,
+      startedAt: this.startedAt,
+    });
+  }
+
+  toResult(commitSha = null) {
+    return new FinalizeTeardownResult({
+      phase: this.completedPhase,
+      ok: false,
+      code: `${FINALIZE_CHECKPOINT_CODE_PREFIX}${JSON.stringify({
+        targetPhase: this.targetPhase.name,
+        failureCode: this.failureCode,
+        startedAt: this.startedAt,
+      })}`,
+      commitSha,
+      at: this.startedAt,
+    });
   }
 }
 
@@ -934,6 +1007,7 @@ class FinalizeTeardownTransaction {
     } else if (this.result && this.result.phase.name !== this.phase.name) {
       throw new Error("finalize teardown phase and result phase must match");
     }
+    FinalizeTeardownCheckpoint.fromResult(this.result);
     this.updatedAt = String(updatedAt);
   }
 
@@ -986,9 +1060,39 @@ class FinalizeTeardownTransaction {
       && this.authorization.mergeStrategy === (state.state?.mergeStrategy ?? null);
   }
 
+  get checkpoint() {
+    return FinalizeTeardownCheckpoint.fromResult(this.result);
+  }
+
+  beginCheckpoint(phase) {
+    const target = FinalizeTeardownPhase.from(phase);
+    const existing = this.checkpoint;
+    if (existing != null) {
+      if (existing.targetPhase.name !== target.name) {
+        throw new Error(
+          `finalize teardown checkpoint already targets ${existing.targetPhase.name}`,
+        );
+      }
+      return false;
+    }
+    const checkpoint = new FinalizeTeardownCheckpoint({
+      completedPhase: this.phase,
+      targetPhase: target,
+    });
+    this.result = checkpoint.toResult(this.result?.commitSha ?? null);
+    this.updatedAt = new Date().toISOString();
+    return true;
+  }
+
   advance(phase, { ok = true, code = null, commitSha = this.result?.commitSha ?? null } = {}) {
     const next = FinalizeTeardownPhase.from(phase);
     if (next.index < this.phase.index) throw new Error(`finalize teardown phase cannot move backward: ${this.phase.name} -> ${next.name}`);
+    const checkpoint = this.checkpoint;
+    if (checkpoint != null && checkpoint.targetPhase.name !== next.name) {
+      throw new Error(
+        `finalize teardown checkpoint targets ${checkpoint.targetPhase.name}, not ${next.name}`,
+      );
+    }
     this.phase = next;
     this.result = new FinalizeTeardownResult({ phase: next, ok, code, commitSha });
     this.updatedAt = new Date().toISOString();
@@ -1120,12 +1224,15 @@ class FinalizeTeardownTransaction {
   }
 
   fail(code) {
-    this.result = new FinalizeTeardownResult({
-      phase: this.phase,
-      ok: false,
-      code,
-      commitSha: this.result?.commitSha ?? null,
-    });
+    const checkpoint = this.checkpoint;
+    this.result = checkpoint == null
+      ? new FinalizeTeardownResult({
+          phase: this.phase,
+          ok: false,
+          code,
+          commitSha: this.result?.commitSha ?? null,
+        })
+      : checkpoint.withFailure(code).toResult(this.result?.commitSha ?? null);
     this.updatedAt = new Date().toISOString();
     return this;
   }
@@ -2292,12 +2399,16 @@ function pathExistsStrict(filePath) {
 }
 
 function assertFeatureBranchAbsent(mainRepoPath, featureBranch) {
+  if (!featureBranchExists(mainRepoPath, featureBranch)) return;
+  throw new Error(`finalize persisted reality diverged: feature branch remains: ${featureBranch}`);
+}
+
+function featureBranchExists(mainRepoPath, featureBranch) {
   const ref = `refs/heads/${featureBranch}`;
   const result = runGit(["-C", mainRepoPath, "show-ref", "--verify", "--quiet", ref]);
-  if (result.ok) throw new Error(`finalize persisted reality diverged: feature branch remains: ${featureBranch}`);
-  if (result.status !== 1) {
-    throw new Error(`finalize feature branch absence could not be verified: ${result.stderr || result.stdout || "git probe failed"}`);
-  }
+  if (result.ok) return true;
+  if (result.status === 1) return false;
+  throw new Error(`finalize feature branch absence could not be verified: ${result.stderr || result.stdout || "git probe failed"}`);
 }
 
 function assertPointerReality(reportRoot, spec) {
@@ -2317,10 +2428,14 @@ function assertPointerReality(reportRoot, spec) {
 }
 
 function assertActiveFlowCleared(ctx, specId) {
-  const active = ctx.flowManager.loadActiveFlows();
-  if (active.some((entry) => entry.spec === specId)) {
+  if (!activeFlowIsCleared(ctx, specId)) {
     throw new Error(`finalize persisted active-flow reality still contains ${specId}`);
   }
+}
+
+function activeFlowIsCleared(ctx, specId) {
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
+  return stateOwner.activeFlowIsCleared();
 }
 
 function assertPersistedTeardownReality(transaction, ctx, {
@@ -2666,6 +2781,7 @@ class FinalizeTeardownTransactionStore {
     this.#assertOwned();
     const snapshot = this.#readSnapshot();
     this.revision = snapshot.revision;
+    if (snapshot.value == null) this.#assertNoForeignTargetJournal();
     const transaction = snapshot.value == null
       ? FinalizeTeardownTransaction.create(this.state, {
         commitRequired: this.commitRequired,
@@ -2715,21 +2831,45 @@ class FinalizeTeardownTransactionStore {
   }
 
   #readSnapshot() {
+    return this.#readSnapshotAt(this.path);
+  }
+
+  #assertNoForeignTargetJournal() {
+    const expected = finalizeTeardownIdentity(this.state);
+    for (const entry of fs.readdirSync(this.directory, { withFileTypes: true })) {
+      if (!entry.name.endsWith(".json") || path.join(this.directory, entry.name) === this.path) continue;
+      const candidate = this.#readSnapshotAt(path.join(this.directory, entry.name)).value;
+      const transaction = FinalizeTeardownTransaction.fromStored(candidate);
+      if (
+        transaction.identity.spec !== expected.spec
+        && transaction.identity.featureBranch !== expected.featureBranch
+      ) {
+        continue;
+      }
+      const error = new Error(
+        "finalize teardown target identity changed while another transaction remains authoritative",
+      );
+      error.code = "FINALIZE_TEARDOWN_TARGET_MISMATCH";
+      throw error;
+    }
+  }
+
+  #readSnapshotAt(filePath) {
     let stat;
     try {
-      stat = fs.lstatSync(this.path);
+      stat = fs.lstatSync(filePath);
     } catch (error) {
       if (error.code === "ENOENT") return { revision: null, value: null };
       throw error;
     }
     if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
-      throw new Error(`finalize teardown transaction must be one real non-hardlinked file: ${this.path}`);
+      throw new Error(`finalize teardown transaction must be one real non-hardlinked file: ${filePath}`);
     }
-    const descriptor = fs.openSync(this.path, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
     try {
       const opened = fs.fstatSync(descriptor);
       if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink !== 1 || !opened.isFile()) {
-        throw new Error(`finalize teardown transaction identity changed while reading: ${this.path}`);
+        throw new Error(`finalize teardown transaction identity changed while reading: ${filePath}`);
       }
       const bytes = fs.readFileSync(descriptor);
       return {
@@ -3089,14 +3229,22 @@ function writeJsonFile(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function removeGitWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch, force, runGit: runGitFn }) {
+function removeGitWorktreeForCleanup({
+  mainRepoPath,
+  worktreePath,
+  featureBranch,
+  force,
+  authorizedDirtyRootFiles = [],
+  runGit: runGitFn,
+}) {
   const removeArgs = ["-C", mainRepoPath, "worktree", "remove"];
   if (force) removeArgs.push("--force");
   removeArgs.push(worktreePath);
   const removeRes = runGitFn(removeArgs);
   if (removeRes.ok) return { ok: true };
 
-  if (!isSubmoduleWorktreeRemoveFailure(removeRes)) {
+  const submoduleRemoval = isSubmoduleWorktreeRemoveFailure(removeRes);
+  if (!submoduleRemoval && (force || authorizedDirtyRootFiles.length === 0)) {
     return {
       ok: false,
       env: Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
@@ -3121,10 +3269,33 @@ function removeGitWorktreeForCleanup({ mainRepoPath, worktreePath, featureBranch
       env: submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection }),
     };
   }
-  if (inspection.dirty) {
+  const authorizedPaths = new Set(authorizedDirtyRootFiles);
+  const unauthorizedRootFiles = inspection.dirtyRootFiles
+    .filter((filePath) => !authorizedPaths.has(filePath));
+  const authorizedResiduePresent = inspection.dirtyRootFiles
+    .some((filePath) => authorizedPaths.has(filePath));
+  if (unauthorizedRootFiles.length > 0 || inspection.dirtySubmodules.length > 0) {
     return {
       ok: false,
-      env: submoduleDirtyEnvelope({ worktreePath, featureBranch, inspection }),
+      env: submoduleDirtyEnvelope({
+        worktreePath,
+        featureBranch,
+        inspection: {
+          ...inspection,
+          dirtyRootFiles: unauthorizedRootFiles,
+          dirty: true,
+        },
+      }),
+    };
+  }
+  if (!submoduleRemoval && !authorizedResiduePresent) {
+    return {
+      ok: false,
+      env: Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
+        `git worktree remove failed: ${removeRes.stderr || removeRes.stdout || "unknown"}`,
+        "The worktree was clean, but Git did not remove it.",
+        "Inspect the Git worktree registration and retry cleanup.",
+      ]),
     };
   }
 
@@ -3164,6 +3335,7 @@ export function removeWorktreeForCleanup({
   runGit: runGitFn = runGit,
   expectedBinding = null,
   missingBindingRecoveryAuthorized = false,
+  authorizedDirtyRootFiles = [],
 }) {
   if (typeof missingBindingRecoveryAuthorized !== "boolean") {
     throw new Error("worktree cleanup missing-binding recovery authority must be boolean");
@@ -3187,6 +3359,7 @@ export function removeWorktreeForCleanup({
     worktreePath,
     featureBranch,
     force,
+    authorizedDirtyRootFiles,
     runGit: runGitFn,
   });
 }
@@ -4658,13 +4831,11 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
   async executeOwned(ctx) {
     const resolution = FinalizeCleanupStateResolution.resolve(ctx);
     if (resolution instanceof Envelope) return resolution;
-    ctx = {
+    ctx = resolution.stateOwner.bindContext({
       ...ctx,
-      root: resolution.mainRepoPath,
-      flowManager: resolution.mainFlowManager,
       flowState: resolution.state,
       finalizeCleanupStateResolution: resolution,
-    };
+    });
     const { root, autoRescue, force } = ctx;
     const state = resolution.state;
     const { worktreePath, mainRepoPath } = resolution;
@@ -5092,9 +5263,9 @@ async function withFinalizeTransactionStore(store, body) {
   return result;
 }
 
-function createFinalizeCleanupCompletionTransition(flowManager, specId) {
+function createFinalizeCleanupCompletionTransition(stateOwner) {
   return createLifecycleStepTransition({
-    flowState: flowManager.loadReadOnly(specId),
+    flowState: stateOwner.loadReadOnly(),
     stepId: "finalize-cleanup",
     status: "done",
     event: "finalize-cleanup:complete",
@@ -5102,17 +5273,95 @@ function createFinalizeCleanupCompletionTransition(flowManager, specId) {
   });
 }
 
-function completeFinalizeCleanupStep(flowManager, specId, operationOwnerToken) {
-  const transition = createFinalizeCleanupCompletionTransition(flowManager, specId);
+function completeFinalizeCleanupStep(stateOwner, operationOwnerToken) {
+  const transition = createFinalizeCleanupCompletionTransition(stateOwner);
   if (!transition) return;
-  flowManager.updateStepStatus(transition, {
-    specId,
-    taskId: null,
+  stateOwner.updateStepStatus(transition, {
     operationOwnerToken,
   });
 }
 
+function persistFinalizeTeardownCheckpoint(store, transaction, targetPhase) {
+  const created = transaction.beginCheckpoint(targetPhase);
+  if (created) store.write(transaction);
+  return created;
+}
+
+function persistFinalizeTeardownCompletion(store, transaction, completedPhase, options = {}) {
+  transaction.advance(completedPhase, options);
+  store.write(transaction);
+}
+
+function deleteFeatureBranchAtCheckpoint({
+  store,
+  transaction,
+  mainRepoPath,
+  state,
+}) {
+  const branchExists = featureBranchExists(mainRepoPath, state.featureBranch);
+  if (
+    !branchExists
+    && transaction.checkpoint?.targetPhase.name !== "branch-deleted"
+  ) {
+    const error = new Error(
+      `finalize feature branch is missing before its recorded deletion: ${state.featureBranch}`,
+    );
+    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
+    throw error;
+  }
+  if (branchExists) {
+    assertFeatureAuthority(transaction, { mainRepoPath, state });
+    assertCommitReachableFromBase(transaction, { mainRepoPath, state });
+  }
+  const checkpointCreated = persistFinalizeTeardownCheckpoint(
+    store,
+    transaction,
+    "branch-deleted",
+  );
+  if (checkpointCreated || branchExists) {
+    const result = deleteFeatureBranchForCleanup({
+      mainRepoPath,
+      featureBranch: state.featureBranch,
+      expectedSha: transaction.commitExpectation.featureRef,
+    });
+    if (!result.ok) return result.env;
+  }
+  persistFinalizeTeardownCompletion(store, transaction, "branch-deleted");
+  return null;
+}
+
+function publishFinalizePointerBoundary({
+  checkpointCreated,
+  reportRoot,
+  spec,
+}) {
+  if (
+    !checkpointCreated
+    && pathExistsStrict(path.join(reportRoot, ".senti", "last-finalized-spec"))
+  ) {
+    assertPointerReality(reportRoot, spec);
+  } else {
+    writeLastFinalizedPointer(reportRoot, spec);
+  }
+}
+
+function clearActiveFlowBoundary({
+  checkpointCreated,
+  ctx,
+  specId,
+  gitRoot,
+}) {
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
+  if (checkpointCreated || !stateOwner.activeFlowIsCleared()) {
+    deleteRepairBaselineForFlow(gitRoot, ctx.flowState);
+    stateOwner.clearActiveFlow({
+      operationOwnerToken: ctx.repositoryOperationOwnerToken,
+    });
+  }
+}
+
 async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
   const store = new FinalizeTeardownTransactionStore(reportRoot, ctx.flowState, { commitRequired: false });
   return withFinalizeTransactionStore(store, async () => {
     let result;
@@ -5127,8 +5376,17 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
       return env;
     };
     if (!transaction.phase.atLeast("pointer-written")) {
+      const checkpointCreated = persistFinalizeTeardownCheckpoint(
+        store,
+        transaction,
+        "pointer-written",
+      );
       try {
-        writeLastFinalizedPointer(reportRoot, ctx.flowState.spec);
+        publishFinalizePointerBoundary({
+          checkpointCreated,
+          reportRoot,
+          spec: ctx.flowState.spec,
+        });
       } catch (error) {
         transaction.fail("FINALIZE_POINTER_WRITE_FAILED");
         store.write(transaction);
@@ -5141,15 +5399,21 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
         ));
       }
       if (!result) {
-        transaction.advance("pointer-written", { commitSha: null });
-        store.write(transaction);
+        persistFinalizeTeardownCompletion(store, transaction, "pointer-written");
       }
     }
     if (!result && !transaction.phase.atLeast("active-cleared")) {
+      const checkpointCreated = persistFinalizeTeardownCheckpoint(
+        store,
+        transaction,
+        "active-cleared",
+      );
       try {
-        deleteRepairBaselineForFlow(ctx.mainRoot || ctx.root, ctx.flowState);
-        ctx.flowManager.clearFlowState(specId, {
-          operationOwnerToken: ctx.repositoryOperationOwnerToken,
+        clearActiveFlowBoundary({
+          checkpointCreated,
+          ctx,
+          specId,
+          gitRoot: ctx.mainRoot || ctx.root,
         });
       } catch (error) {
         transaction.fail("ACTIVE_FLOW_CLEAR_FAILED");
@@ -5163,8 +5427,7 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
         ));
       }
       if (!result) {
-        transaction.advance("active-cleared", { commitSha: null });
-        store.write(transaction);
+        persistFinalizeTeardownCompletion(store, transaction, "active-cleared");
       }
     }
     if (!result) {
@@ -5177,20 +5440,18 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
         ...(receipt.advisorySummary && { advisorySummary: receipt.advisorySummary }),
       };
       if (!transaction.phase.atLeast("completed")) {
+        persistFinalizeTeardownCheckpoint(store, transaction, "completed");
         completeFinalizeCleanupStep(
-          ctx.flowManager,
-          specId,
+          stateOwner,
           ctx.repositoryOperationOwnerToken,
         );
-        const outbox = new FlowOutboxStore(ctx.flowManager, {
-          specId,
+        const outbox = stateOwner.outbox({
           operationOwnerToken: ctx.repositoryOperationOwnerToken,
         });
         const identity = finalizationOutboxIdentity(ctx.flowState, "finalize-cleanup");
         outbox.begin(identity);
         outbox.complete(identity, completionData);
-        transaction.advance("completed", { commitSha: null });
-        store.write(transaction);
+        persistFinalizeTeardownCompletion(store, transaction, "completed", { commitSha: null });
       }
       result = attachTransaction(attachReport(
         Envelope.ok("run", "finalize-cleanup", completionData),
@@ -5449,7 +5710,7 @@ function restorePreparedFinalize(
   transactionStore,
   transaction,
   targetRoot,
-  targetFm,
+  stateOwner,
   specId,
   state,
   operationOwnerToken,
@@ -5463,10 +5724,7 @@ function restorePreparedFinalize(
       const beforeBytes = Buffer.from(flowImage.bytes, "base64");
       const currentBytes = fs.readFileSync(path.join(targetRoot, flowImage.relativePath));
       if (!currentBytes.equals(beforeBytes)) {
-        const flowAuthority = targetFm.forRoot(targetRoot, { specId });
-        const current = flowAuthority.loadReadOnly(specId);
-        flowAuthority.saveAtomic(JSON.parse(beforeBytes.toString("utf8")), {
-          expectedOriginal: current,
+        stateOwner.restoreState(JSON.parse(beforeBytes.toString("utf8")), {
           operationOwnerToken,
         });
       }
@@ -5664,19 +5922,23 @@ async function runTeardownTransactionOwned(
 
   // (i) metadata sync + durable pending cleanup intent.
   const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
-  const targetFm = ctx.finalizeCleanupStateResolution?.mainFlowManager
-    || ((worktree && mainRepoPath) ? ctx.flowManager.forRoot(mainRepoPath) : ctx.flowManager);
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
   const transactionExisted = transactionStore.hasExisting();
   const transaction = transactionStore.loadOrCreate();
   let callerIndexLease = null;
   let tempIndexWorkspace = null;
   if (!transactionExisted) transactionStore.write(transaction);
   if (!transaction.phase.atLeast("commit-durable") && transaction.commitExpectation) {
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "commit-durable");
     const recovery = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
     if (recovery.adopted) {
-      transaction.advance("commit-durable", { commitSha: recovery.head });
       transaction.clearBeforeImages();
-      transactionStore.write(transaction);
+      persistFinalizeTeardownCompletion(
+        transactionStore,
+        transaction,
+        "commit-durable",
+        { commitSha: recovery.head },
+      );
     }
   }
   if (!transaction.phase.atLeast("commit-durable") && transaction.beforeImages.length > 0) {
@@ -5685,7 +5947,7 @@ async function runTeardownTransactionOwned(
       transactionStore,
       transaction,
       targetRoot,
-      targetFm,
+      stateOwner,
       specId,
       state,
       ctx.repositoryOperationOwnerToken,
@@ -5714,7 +5976,7 @@ async function runTeardownTransactionOwned(
         transactionStore,
         transaction,
         targetRoot,
-        targetFm,
+        stateOwner,
         specId,
         state,
         ctx.repositoryOperationOwnerToken,
@@ -5812,6 +6074,7 @@ async function runTeardownTransactionOwned(
           mainRepoPath,
           specId,
           ctx.repositoryOperationOwnerToken,
+          stateOwner,
         );
       } catch (err) {
         return failBeforeCommit(Envelope.fail(
@@ -5863,7 +6126,7 @@ async function runTeardownTransactionOwned(
       transactionStore.write(transaction);
       const finalizeCleanupStep = flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup");
       retainedCleanupMetadata = recordFinalizeCleanupPostCommandMetadata({
-        flowManager: ctx.flowManager,
+        flowManager: stateOwner.flowManager,
         specId,
         metrics: Array.isArray(state.metrics) ? state.metrics : [],
         runtimeLog: finalizeCleanupStep?.runtimeLog || null,
@@ -5876,8 +6139,7 @@ async function runTeardownTransactionOwned(
 
     const flowJsonRel = `specs/${specId}/flow.json`;
     ctx.finalizeCleanupStateResolution?.ensureCleanupStep(ctx.repositoryOperationOwnerToken);
-    const cleanupOutbox = new FlowOutboxStore(targetFm, {
-      specId,
+    const cleanupOutbox = stateOwner.outbox({
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
     });
     const cleanupIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
@@ -5927,6 +6189,7 @@ async function runTeardownTransactionOwned(
     });
     transaction.expectCommit(commitExpectation);
     transactionStore.write(transaction);
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "commit-durable");
     assertCommitExpectationFresh(transaction.commitExpectation, {
       targetRoot,
       state,
@@ -5969,9 +6232,13 @@ async function runTeardownTransactionOwned(
     if (!commitRes.ok) {
       const recovery = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
       if (recovery.adopted) {
-        transaction.advance("commit-durable", { commitSha: recovery.head });
         transaction.clearBeforeImages();
-        transactionStore.write(transaction);
+        persistFinalizeTeardownCompletion(
+          transactionStore,
+          transaction,
+          "commit-durable",
+          { commitSha: recovery.head },
+        );
       } else {
         const primary = gitFailure("COMMIT_FAILED", "git commit failed", commitRes);
         if (isolatedCommit.cleanupErrors.length > 0) throw isolatedIndexFailure(primary, isolatedCommit);
@@ -5990,9 +6257,13 @@ async function runTeardownTransactionOwned(
           "Finalize commit returned success but repository HEAD did not advance.",
         ]), primary);
       }
-      transaction.advance("commit-durable", { commitSha: committed.head });
       transaction.clearBeforeImages();
-      transactionStore.write(transaction);
+      persistFinalizeTeardownCompletion(
+        transactionStore,
+        transaction,
+        "commit-durable",
+        { commitSha: committed.head },
+      );
     }
     try {
       throwIsolatedIndexCleanup(isolatedCommit);
@@ -6016,7 +6287,7 @@ async function runTeardownTransactionOwned(
             transactionStore,
             transaction,
             targetRoot,
-            targetFm,
+            stateOwner,
             specId,
             state,
             ctx.repositoryOperationOwnerToken,
@@ -6034,6 +6305,7 @@ async function runTeardownTransactionOwned(
   }
 
   if (transaction.phase.atLeast("commit-durable") && !transaction.phase.atLeast("index-reconciled")) {
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "index-reconciled");
     try {
       if (callerIndexLease == null) {
         callerIndexLease = acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot);
@@ -6089,15 +6361,60 @@ async function runTeardownTransactionOwned(
     }
     transaction.clearIndexLock();
     transaction.clearTempIndexWorkspace();
-    transaction.advance("index-reconciled", { commitSha: transaction.result.commitSha });
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(
+      transactionStore,
+      transaction,
+      "index-reconciled",
+      { commitSha: transaction.result.commitSha },
+    );
   }
 
   // (iii) Commit is durable. Resume destructive phases without revisiting the commit.
   if (!transaction.phase.atLeast("worktree-removed") && worktree && mainRepoPath) {
-    assertWorktreeAuthority(transaction, { mainRepoPath, state });
     const wtPath = worktreePath || ctx.root;
-    if (fs.existsSync(wtPath)) {
+    const worktreeExists = pathExistsStrict(wtPath);
+    if (
+      !worktreeExists
+      && transaction.checkpoint?.targetPhase.name !== "worktree-removed"
+    ) {
+      const error = new Error(
+        `finalize worktree is missing before its recorded deletion: ${wtPath}`,
+      );
+      error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
+      throw error;
+    }
+    if (worktreeExists) {
+      if (!featureBranchExists(mainRepoPath, state.featureBranch)) {
+        const error = new Error(
+          `finalize feature branch is missing before worktree deletion: ${state.featureBranch}`,
+        );
+        error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
+        throw error;
+      }
+      assertWorktreeAuthority(transaction, { mainRepoPath, state });
+    }
+    const checkpointCreated = persistFinalizeTeardownCheckpoint(
+      transactionStore,
+      transaction,
+      "worktree-removed",
+    );
+    if (!checkpointCreated && !worktreeExists) {
+      const validation = validateTeardown({
+        worktreePath: wtPath,
+        mainRepoPath,
+        featureBranch,
+        specId,
+        checkBranch: false,
+      });
+      if (!validation.ok) {
+        return failAfterCommit(Envelope.fail(
+          "run",
+          "finalize-cleanup",
+          "WORKTREE_REMOVAL_RECOVERY_FAILED",
+          validation.reasons,
+        ));
+      }
+    } else {
       const worktreeFlowManager = ctx.flowManager.forRoot(wtPath, { specId });
       const expectedBinding = worktreeFlowManager.usesWorktreeFlowBinding()
         ? new WorktreeFlowIdentity({
@@ -6122,38 +6439,26 @@ async function runTeardownTransactionOwned(
         force: ctx.force === true,
         expectedBinding,
         missingBindingRecoveryAuthorized,
+        authorizedDirtyRootFiles: ctx.finalizeCleanupStateResolution
+          ?.worktreeFlowSnapshot
+          ?.authorizedDirtyRootFiles() || [],
       });
       if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }
-    transaction.advance("worktree-removed");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "worktree-removed");
   } else if (!transaction.phase.atLeast("worktree-removed")) {
-    transaction.advance("worktree-removed");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "worktree-removed");
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "worktree-removed");
   }
 
-  if (!transaction.phase.atLeast("branch-deleted") && worktree && mainRepoPath) {
-    assertFeatureAuthority(transaction, { mainRepoPath, state });
-    assertCommitReachableFromBase(transaction, { mainRepoPath, state });
-    const branchDelete = deleteFeatureBranchForCleanup({
-      mainRepoPath,
-      featureBranch,
-      expectedSha: transaction.commitExpectation.featureRef,
+  if (!transaction.phase.atLeast("branch-deleted")) {
+    const branchFailure = deleteFeatureBranchAtCheckpoint({
+      store: transactionStore,
+      transaction,
+      mainRepoPath: worktree && mainRepoPath ? mainRepoPath : targetRoot,
+      state,
     });
-    if (!branchDelete.ok) return failAfterCommit(branchDelete.env);
-    transaction.advance("branch-deleted");
-    transactionStore.write(transaction);
-  } else if (!transaction.phase.atLeast("branch-deleted")) {
-    assertFeatureAuthority(transaction, { mainRepoPath: targetRoot, state });
-    assertCommitReachableFromBase(transaction, { mainRepoPath: targetRoot, state });
-    const branchDelete = deleteFeatureBranchForCleanup({
-      mainRepoPath: targetRoot,
-      featureBranch,
-      expectedSha: transaction.commitExpectation.featureRef,
-    });
-    if (!branchDelete.ok) return failAfterCommit(branchDelete.env);
-    transaction.advance("branch-deleted");
-    transactionStore.write(transaction);
+    if (branchFailure) return failAfterCommit(branchFailure);
   }
 
   assertCommitReachableFromBase(transaction, { mainRepoPath: gitAuthorityRoot, state });
@@ -6168,33 +6473,42 @@ async function runTeardownTransactionOwned(
       featureBranch,
       specId,
     });
+    if (!validation.ok && validation.probeFailed) {
+      return attachTransaction(Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "TEARDOWN_VALIDATION_PROBE_FAILED",
+        [
+          "Teardown validation could not establish Git worktree and branch reality.",
+          ...validation.reasons.map((reason) => `- ${reason}`),
+        ],
+      ));
+    }
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "validated");
     if (!validation.ok) {
-      if (validation.probeFailed) {
-        return attachTransaction(Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "TEARDOWN_VALIDATION_PROBE_FAILED",
-          [
-            "Teardown validation could not establish Git worktree and branch reality.",
-            ...validation.reasons.map((reason) => `- ${reason}`),
-          ],
-        ));
-      }
       return failAfterCommit(Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", [
         "Teardown appeared to succeed but resources remain:",
         ...validation.reasons.map((r) => `- ${r}`),
       ]));
     }
-    transaction.advance("validated");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "validated");
   }
 
   // (iv) Publish completion only after strict validation. Each durable authority
   // transition is journaled before the next one begins, so a crash or I/O error
   // cannot remove every recovery route at once.
   if (!transaction.phase.atLeast("pointer-written")) {
+    const checkpointCreated = persistFinalizeTeardownCheckpoint(
+      transactionStore,
+      transaction,
+      "pointer-written",
+    );
     try {
-      writeLastFinalizedPointer(reportRoot, state.spec);
+      publishFinalizePointerBoundary({
+        checkpointCreated,
+        reportRoot,
+        spec: state.spec,
+      });
     } catch (error) {
       return failAfterCommit(Envelope.fail(
         "run",
@@ -6204,15 +6518,21 @@ async function runTeardownTransactionOwned(
         { causeCode: error.code || null },
       ));
     }
-    transaction.advance("pointer-written");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "pointer-written");
   }
 
   if (!transaction.phase.atLeast("active-cleared")) {
+    const checkpointCreated = persistFinalizeTeardownCheckpoint(
+      transactionStore,
+      transaction,
+      "active-cleared",
+    );
     try {
-      deleteRepairBaselineForFlow(gitAuthorityRoot, state);
-      ctx.flowManager.clearFlowState(specId, {
-        operationOwnerToken: ctx.repositoryOperationOwnerToken,
+      clearActiveFlowBoundary({
+        checkpointCreated,
+        ctx,
+        specId,
+        gitRoot: gitAuthorityRoot,
       });
     } catch (error) {
       return failAfterCommit(Envelope.fail(
@@ -6223,8 +6543,7 @@ async function runTeardownTransactionOwned(
         { causeCode: error.code || null },
       ));
     }
-    transaction.advance("active-cleared");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "active-cleared");
   }
   const completion = new FlowCompletion(state);
   const completionReceipt = completion.toJSON();
@@ -6240,13 +6559,16 @@ async function runTeardownTransactionOwned(
       : null,
   };
   if (!transaction.phase.atLeast("completed")) {
+    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "completed");
     if (finalizeAdapter) {
-      finalizeAdapter.complete(targetFm, specId, ctx.repositoryOperationOwnerToken);
+      finalizeAdapter.complete(stateOwner.flowManager, specId, ctx.repositoryOperationOwnerToken);
     } else {
-      completeFinalizeCleanupStep(targetFm, specId, ctx.repositoryOperationOwnerToken);
+      completeFinalizeCleanupStep(
+        stateOwner,
+        ctx.repositoryOperationOwnerToken,
+      );
     }
-    const completionOutbox = new FlowOutboxStore(targetFm, {
-      specId,
+    const completionOutbox = stateOwner.outbox({
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
     });
     const completionIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
@@ -6257,8 +6579,7 @@ async function runTeardownTransactionOwned(
       specId,
       idempotencyKey: completionIdentity.idempotencyKey,
     });
-    transaction.advance("completed");
-    transactionStore.write(transaction);
+    persistFinalizeTeardownCompletion(transactionStore, transaction, "completed");
   }
 
   const env = attachReport(
@@ -6279,40 +6600,23 @@ async function runTeardownTransactionOwned(
  * in the worktree after a retry, and the pending cleanup outbox entry is the
  * durable hand-off that lets cleanup resume from the main repository.
  */
-export function syncMetadataFromWorktreeToMain(worktreeRoot, mainRoot, specId, operationOwnerToken = null) {
+export function syncMetadataFromWorktreeToMain(
+  worktreeRoot,
+  mainRoot,
+  specId,
+  operationOwnerToken = null,
+  stateOwner = null,
+) {
   const wtPath = path.join(worktreeRoot, "specs", specId, "flow.json");
   const mainPath = path.join(mainRoot, "specs", specId, "flow.json");
   if (!fs.existsSync(wtPath) || !fs.existsSync(mainPath)) return;
 
   const wtState = JSON.parse(fs.readFileSync(wtPath, "utf8"));
-  const wtSteps = flattenSteps(wtState.steps || []);
-  const worktreeOutbox = new FlowOutbox(wtState.outbox || []);
-  const flowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId });
-  flowManager.mutate((mainState) => {
-    const mainSteps = flattenSteps(mainState.steps || []);
-    for (const wtStep of wtSteps) {
-      if (!wtStep.runtimeLog) continue;
-      const mainStep = mainSteps.find((s) => s.id === wtStep.id);
-      if (!mainStep) continue;
-
-      const mainSequence = mainStep.runtimeLog?.sequence;
-      const worktreeSequence = wtStep.runtimeLog.sequence;
-      // Preserve a concurrent main writer; only advance to a newer worktree log.
-      if (
-        !mainStep.runtimeLog
-        || (Number.isSafeInteger(worktreeSequence) && worktreeSequence > mainSequence)
-      ) {
-        mainStep.runtimeLog = { ...wtStep.runtimeLog };
-      }
-    }
-    const cleanupIdentity = finalizationOutboxIdentity(wtState, "finalize-cleanup");
-    const cleanupEntry = worktreeOutbox.find(cleanupIdentity);
-    if (cleanupEntry instanceof FlowOutboxEntry) {
-      const mainOutbox = new FlowOutbox(mainState.outbox || []);
-      mainOutbox.merge(cleanupEntry);
-      mainState.outbox = mainOutbox.toJSON();
-    }
-  }, { specId, operationOwnerToken });
+  const owner = stateOwner || FinalizeFlowStateOwner.forMainRepository({
+    mainRepoPath: mainRoot,
+    specId,
+  });
+  owner.mergeWorktreeMetadata(wtState, { operationOwnerToken });
 }
 
 export function validateTeardown({

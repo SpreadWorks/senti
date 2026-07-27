@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/353-finalize-teardown-safety/tasks/T-6.md",
+      "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+      "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+    ],
+    "inputHash": "57909d297d63af3c8298c542666f18781b29695dfa3bcfdf63d732d0db7aa076",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "specs/353-finalize-teardown-safety/tasks/T-6.md",
+    "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+    "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+  ],
+  "inputHash": "57909d297d63af3c8298c542666f18781b29695dfa3bcfdf63d732d0db7aa076",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T11:30:45.022Z",
+  "finishedAt": "2026-07-27T11:30:45.022Z",
+  "rawResponse": "### 1. Split The Combined Spec Header Into Per-Requirement Headers\n**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R7  \n**Issue:** The file has one broad `// spec: R1 R2 R3 R4 R5 R6 R7` header at the top, while individual tests are requirement-specific. This weakens traceability because any test in the file appears to cover every requirement.  \n**Suggestion:** Move requirement headers next to the relevant test groups, for example `// spec: R1` before the checkpoint matrix tests, `// spec: R2` before retry target rejection tests, and so on. Keep the final meta-test aligned with that structure.\n\n### 2. Extract Duplicate Finalize Rejection Capture Logic\n**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R2  \n**Issue:** `assertForeignTargetRejected` and `assertMissingTargetRejected` duplicate the same run/catch/rejection serialization and journal snapshot comparison flow.  \n**Suggestion:** Introduce a shared helper such as `assertRetryRejected(fixture, expectedPattern, extraAssertions)` that captures the result or thrown error once, checks the journal is unchanged, and lets callers add target-specific assertions.\n\n### 3. Add An Explicit Upper Bound When Reading Recovery Journals\n**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** `readRecoveryJournal` reads all filenames in `.senti/recovery/finalize-cleanup` and filters them without an explicit bound. The fixture should normally contain one file, but the helper does not enforce bounded directory processing before loading the list. This touches the `bounded-resource-usage` guardrail.  \n**Suggestion:** Use a bounded scan or assert a maximum directory size before filtering, e.g. fail if `fs.readdirSync(directory).length > 2`, then assert exactly one `.json` journal. This keeps the test helper consistent with the project guardrail.\n\n### 4. Remove Or Reclassify The Raw Scenario Validity Log\n**File:** `specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log`  \n**Requirement:** R7  \n**Issue:** The committed `.raw/scenario-validity.log` records `invalid_test` for R1 through R7 and includes a large environment-specific invalid path list. As a checked-in artifact, it can make the change set look intentionally invalid or stale.  \n**Suggestion:** Remove this file from the change set if it is transient output, or regenerate it only after the scenario-validity preflight passes. If raw failing evidence is required, rename or document it so it is clearly not consumed as passing test evidence.\n\n### 5. Rename Fixture Helpers To Match Their Specific Domain\n**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** Names like `setupFinalizeFixture`, `runFinalize`, and `captureBoundaryReality` are broad compared with what they actually do: they build a managed-worktree cleanup fixture, run finalize cleanup, and snapshot destructive-boundary state.  \n**Suggestion:** Rename them to more precise names such as `setupManagedWorktreeCleanupFixture`, `runFinalizeCleanup`, and `captureDestructiveBoundarySnapshot`. This makes the large test file easier to scan and reduces ambiguity with finalize sync tests.\n\n### 6. Replace Source-Regex Design Assertions With Behavior-Oriented Checks Where Possible\n**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R6  \n**Issue:** The R6 test asserts implementation details by reading source files and matching regexes such as `class FinalizeFlowStateOwner`, `new FlowManager`, and `hookCtx.flowManager.forRoot(...)`. These checks are brittle and can fail on harmless refactors while missing equivalent behavior implemented differently.  \n**Suggestion:** Prefer behavioral assertions through instrumentation, like the existing `mutationRoots` checks. Keep only minimal source checks if the spec explicitly requires removal of direct writers, and wrap them in a helper with comments explaining why a source-level assertion is intentional.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Split The Combined Spec Header Into Per-Requirement Headers",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R7  \n**Issue:** The file has one broad `// spec: R1 R2 R3 R4 R5 R6 R7` header at the top, while individual tests are requirement-specific. This weakens traceability because any test in the file appears to cover every requirement.  \n**Suggestion:** Move requirement headers next to the relevant test groups, for example `// spec: R1` before the checkpoint matrix tests, `// spec: R2` before retry target rejection tests, and so on. Keep the final meta-test aligned with that structure.",
+        "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Extract Duplicate Finalize Rejection Capture Logic",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R2  \n**Issue:** `assertForeignTargetRejected` and `assertMissingTargetRejected` duplicate the same run/catch/rejection serialization and journal snapshot comparison flow.  \n**Suggestion:** Introduce a shared helper such as `assertRetryRejected(fixture, expectedPattern, extraAssertions)` that captures the result or thrown error once, checks the journal is unchanged, and lets callers add target-specific assertions.",
+        "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "3. Add An Explicit Upper Bound When Reading Recovery Journals",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** `readRecoveryJournal` reads all filenames in `.senti/recovery/finalize-cleanup` and filters them without an explicit bound. The fixture should normally contain one file, but the helper does not enforce bounded directory processing before loading the list. This touches the `bounded-resource-usage` guardrail.  \n**Suggestion:** Use a bounded scan or assert a maximum directory size before filtering, e.g. fail if `fs.readdirSync(directory).length > 2`, then assert exactly one `.json` journal. This keeps the test helper consistent with the project guardrail.",
+        "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Remove Or Reclassify The Raw Scenario Validity Log",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log`  \n**Requirement:** R7  \n**Issue:** The committed `.raw/scenario-validity.log` records `invalid_test` for R1 through R7 and includes a large environment-specific invalid path list. As a checked-in artifact, it can make the change set look intentionally invalid or stale.  \n**Suggestion:** Remove this file from the change set if it is transient output, or regenerate it only after the scenario-validity preflight passes. If raw failing evidence is required, rename or document it so it is clearly not consumed as passing test evidence.",
+        "file": "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Rename Fixture Helpers To Match Their Specific Domain",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R1  \n**Issue:** Names like `setupFinalizeFixture`, `runFinalize`, and `captureBoundaryReality` are broad compared with what they actually do: they build a managed-worktree cleanup fixture, run finalize cleanup, and snapshot destructive-boundary state.  \n**Suggestion:** Rename them to more precise names such as `setupManagedWorktreeCleanupFixture`, `runFinalizeCleanup`, and `captureDestructiveBoundarySnapshot`. This makes the large test file easier to scan and reduces ambiguity with finalize sync tests.",
+        "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "6. Replace Source-Regex Design Assertions With Behavior-Oriented Checks Where Possible",
+        "body": "**File:** `specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js`  \n**Requirement:** R6  \n**Issue:** The R6 test asserts implementation details by reading source files and matching regexes such as `class FinalizeFlowStateOwner`, `new FlowManager`, and `hookCtx.flowManager.forRoot(...)`. These checks are brittle and can fail on harmless refactors while missing equivalent behavior implemented differently.  \n**Suggestion:** Prefer behavioral assertions through instrumentation, like the existing `mutationRoots` checks. Keep only minimal source checks if the spec explicitly requires removal of direct writers, and wrap them in a helper with comments explaining why a source-level assertion is intentional.",
+        "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

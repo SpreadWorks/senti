@@ -1,0 +1,357 @@
+{
+  "goal": "Make finalize persist an explicit transaction at every destructive boundary, perform at most one retry per invocation against the recorded target, keep sync output outside the removable worktree, and complete without accessing a removed worktree.",
+  "scope": {
+    "in": [
+      "Journaled persistence for merge outcome, finalize metadata, authority deletion, worktree removal, branch deletion, validation, pointer publication, and active-flow clearing.",
+      "At most one exact retry per invocation and foreign-target protection after authority deletion.",
+      "Finalize-sync output paths that do not dirty the worktree scheduled for cleanup.",
+      "Teardown-safe completion context for logger, dispatcher, post-hook, filesystem, module resolution, and result-envelope handling.",
+      "Single ownership path for flow.json mutation and fault-matrix or lifecycle coverage for retained finalize behavior."
+    ],
+    "out": [
+      "Unrelated flow lifecycle changes, new external dependencies, and unrelated CLI behavior changes.",
+      "Removal or renaming of existing finalize commands, options, result-envelope fields, or exit-code contracts."
+    ]
+  },
+  "constraints": [
+    "Use Node.js built-in modules only.",
+    "Represent new structured transaction, authority, and completion values with classes that enforce constructor invariants.",
+    "Do not retain compatibility aliases for replaced state-write paths during alpha development.",
+    "Migration parity inventory: retain user-facing commands `finalize-commit`, `finalize-merge`, `finalize-sync`, and `finalize-cleanup`; their options; orphan recovery; JSON envelopes; and exit codes. Retain the finalize command APIs, registry lifecycle hooks, and main-repository authority routing. Retain no config entry changes. Retain generated docs, analysis output, flow.json, outbox, report pointer, and runtime-log artifacts. Retain commit, sync, worktree removal, branch removal, pointer publication, and active-flow-release side effects. The journal transaction owns checkpoints and retry identity; the main-repository FlowManager mutation path owns lifecycle state; the sync root owns generated output; and the completion snapshot owns post-cleanup reporting. Tests verify each retained command, hook/state update, artifact, and side effect through the replacement owner.",
+    "Keep all active-flow work inside the managed worktree until finalize-cleanup releases it."
+  ],
+  "design_principles": [
+    "Persist the next replay point before beginning its destructive operation.",
+    "Resolve cleanup identity from durable metadata rather than rescanning an ephemeral worktree.",
+    "Snapshot every post-cleanup value before deletion and make completion depend only on the snapshot and durable main-repository state.",
+    "Use one mutation owner for flow.json so concurrent paths and at-most-one-retry paths cannot select conflicting state transitions."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-finalize-cleanup.js owns cleanup transaction execution, durable replay, teardown validation, pointer publication, and active-flow release."
+      },
+      {
+        "text": "src/flow/lib/run-finalize.js provides shared finalize persistence and commit helpers."
+      },
+      {
+        "text": "src/flow/lib/run-finalize-sync.js builds generated output and commits it during finalize-sync."
+      },
+      {
+        "text": "src/flow/registry.js routes finalize lifecycle hooks and switches merge-onward mutations to main-repository flow authority."
+      },
+      {
+        "text": "FinalizeTeardownCheckpoint in run-finalize-cleanup.js represents the single durable next boundary while FinalizeTeardownTransaction enforces phase order.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "FinalizeCommitExpectation and FinalizeTeardownTransaction jointly own durable cleanup target identity, including transaction, repository, branch, worktree path, and object IDs.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "RunFinalizeSyncCommand owns injectable build, Git staging, and commit boundaries while retaining its existing command surface.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Dispatcher finalize-cleanup handling owns retained runtime logging and post-return metadata persistence through the main-repository FlowManager.",
+        "added_by_task": "T-4"
+      },
+      {
+        "text": "Main-repository FlowManager and its FlowOutboxStore are the sole production mutation path for finalize lifecycle flow.json state.",
+        "added_by_task": "T-5"
+      },
+      {
+        "text": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js provides the requirement-tagged finalize fault matrix for R1 through R7.",
+        "added_by_task": "T-6"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Finalize records transaction identity and the next checkpoint before each commit, authority, worktree, branch, validation, pointer, and active-flow transition."
+      },
+      {
+        "text": "At most one retry per invocation reads the persisted transaction and validates its recorded target before resuming only unfinished checkpoints."
+      },
+      {
+        "text": "Finalize-sync generates output in the retained repository path, then cleanup removes the recorded worktree and returns a completion envelope assembled from retained values."
+      },
+      {
+        "text": "Finalize persists a checkpoint before each lifecycle boundary, performs the boundary once, then durably advances the completed phase; recovery adopts or resumes only that recorded checkpoint.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Checkpoint replay loads the identity-keyed journal, validates it against current Flow state, and rechecks worktree, feature ref, base reachability, and binding authority before deletion.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "For managed worktrees, finalize-sync resolves the retained main repository once and uses it as the cwd for build, stage, diff inspection, and commit; the removable worktree receives no generated output.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Before teardown, cleanup snapshots FlowCompletion, plugin results, report root, main manager, and metadata; after worktree removal, dispatcher output, warnings, runtime logs, and metadata use only those retained values.",
+        "added_by_task": "T-4"
+      },
+      {
+        "text": "Registry and cleanup resolve main authority before lifecycle transitions; checkpoint journals retain retry identity separately while all step, outbox, and active-flow state changes use the main FlowManager.",
+        "added_by_task": "T-5"
+      },
+      {
+        "text": "The spec-local suite injects each durable checkpoint boundary, replays the single recorded unfinished phase, rejects changed cleanup identities, and verifies retained-root sync, teardown-safe reporting, success envelopes, and centralized state ownership.",
+        "added_by_task": "T-6"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Checked cleanup lifecycle state; result=match.",
+        "evidence": "src/flow/lib/run-finalize-cleanup.js defines ordered teardown phases, persists transaction updates, validates worktree and branch removal, then publishes the pointer and clears active flow."
+      },
+      {
+        "text": "[VERIFY] Checked sync execution root; result=match.",
+        "evidence": "src/flow/lib/run-finalize-sync.js selects mainRepoPath for worktree flows before running the documentation build and generated-artifact commit."
+      },
+      {
+        "text": "[VERIFY] Checked merge-onward hook authority; result=match.",
+        "evidence": "src/flow/registry.js switches merge-onward finalize hooks to a FlowManager rooted at mainRepoPath."
+      },
+      {
+        "text": "Impact on existing features: retained finalize commands, hooks, artifacts, and cleanup side effects keep their public contracts while their internal owner changes.",
+        "evidence": "Issue #473 requires at most one exact retry per invocation, cleanup safety, consistent success envelopes, and a single flow.json writer without requesting a CLI change."
+      },
+      {
+        "text": "Encode the checkpoint in the existing teardown result record so transaction persistence remains one atomic journal write without introducing a second state file.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "Reuse the existing transaction and commit-expectation value classes as the single cleanup target authority instead of adding a parallel recovery identity.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "Treat the retained repository cwd as one execution invariant across every finalize-sync side effect and verify it with an integration-style command-boundary test.",
+        "added_by_task": "T-3"
+      },
+      {
+        "text": "Successful cleanup warnings remain warning entries on an ok:true envelope and do not change exit code 0; no post hook reloads the removed worktree.",
+        "added_by_task": "T-4"
+      },
+      {
+        "text": "Keep journals and metadata sidecars as separate durable artifacts, but prohibit them from directly replacing or rewriting flow.json.",
+        "added_by_task": "T-5"
+      },
+      {
+        "text": "Use one behavior-level spec-local suite to cover every finalize contract while retaining shared regression tests unchanged.",
+        "added_by_task": "T-6"
+      }
+    ]
+  },
+  "background": "Finalize spans persistence, Git state, generated output, worktree deletion, branch deletion, flow authority, and response construction. A failure at any boundary must leave a replayable old or new state with at most one retry per invocation. Impact on existing features: finalize commands, registry hooks, docs and analysis artifacts, flow state, outbox, report pointer, runtime logs, and cleanup side effects retain public contracts while their owner changes. Existing code already has staged cleanup and main-repository sync routing, but Issue #473 requires that every boundary use durable ownership and that no post-cleanup path reopens the removed worktree.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "Finalize cleanup shall persist a validated transaction checkpoint before each destructive persistence, authority, worktree, branch, validation, pointer, and active-flow transition, and at most one retry per invocation shall resume only from the recorded unfinished checkpoint.",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "After authority deletion, at most one retry per invocation shall resolve the recorded worktree, feature branch, base branch, and transaction identity exactly; it shall reject a missing, changed, or foreign target before deletion.",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "Finalize-sync shall generate and commit documentation or analysis output from the retained repository path so the worktree selected for cleanup has no generated or untracked residue before removal.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "After worktree removal, completion paths shall use only pre-deletion snapshots and durable main-repository state; they shall not dynamically import from, read from, validate locks against, or log the removed worktree path.",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "Successful cleanup shall return an ok: true envelope with exit code 0, and later warnings or post-processing shall not change that success result into a failure.",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "Production flow.json updates for finalize lifecycle transitions shall pass through one main-repository FlowManager mutation owner: journal checkpoints retain at-most-one-retry identity, registry hooks retain step transition behavior through that owner, outbox completion retains idempotency state through that owner, and replaced direct writers are removed without removing any user-facing behavior.",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "must",
+      "desc": "Spec-local tests shall cover each requirement with // spec: R<N> headers, including persistence-boundary fault cases, at-most-one exact-target retry per invocation, clean sync, removed-worktree avoidance, success-envelope consistency, and state-write ownership.",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "should",
+      "desc": "If implementation changes documented flow internals, documentation shall be regenerated through finalize-sync; otherwise documentation changes shall be absent.",
+      "status": "pending",
+      "testable": false
+    }
+  ],
+  "acceptance_criteria": [
+    "Fault injection or process termination at every R1 persistence boundary leaves either the prior checkpoint or the next checkpoint, and at most one exact retry per invocation reaches completion without selecting another target.",
+    "A merge-outcome or finalize-metadata persistence failure returns before cleanup begins.",
+    "An altered or foreign worktree, branch, or transaction identity is rejected before deletion.",
+    "After finalize-sync, the recorded cleanup worktree has no generated or untracked residue attributable to sync.",
+    "After cleanup, tests observe no import, filesystem read, lock validation, or logger context using the removed worktree path.",
+    "A successful worktree and branch deletion produces ok: true and exit code 0 despite later non-fatal warnings.",
+    "Source inspection and tests show one production owner for finalize flow.json lifecycle mutations.",
+    "Spec-local tests under specs/353-finalize-teardown-safety/tests/ cover R1 through R7 with required headers."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this spec change finalize CLI commands or recovery options?",
+      "a": "No. Existing commands, options, orphan handling, result envelopes, and exit contracts remain retained surfaces."
+    },
+    {
+      "q": "Can at most one retry per invocation discover a cleanup target by scanning an old worktree path?",
+      "a": "No. At most one retry per invocation uses recorded durable metadata and verifies that identity before destructive work."
+    },
+    {
+      "q": "May post-cleanup diagnostics reload worktree-owned files?",
+      "a": "No. Completion uses values captured before deletion and durable main-repository state only."
+    },
+    {
+      "q": "Does the preimplementation scenario-validity artifact prove R7 runtime coverage?",
+      "a": "No. This Flow used the audited preimplementation-bootstrap transition because implementation-target changes already existed, so scenario-validity and test-review are intentionally skipped while their preflight block remains preserved. R7 source coverage is reviewed during task implementation, and the spec-level test-execute step is the sole runtime execution authority after implementation."
+    },
+    {
+      "q": "What evidence satisfies R8 at impl-gate before finalize-sync runs?",
+      "a": "Impl-gate verifies that the normal finalize-sync step remains configured and that its implementation generates and commits documentation from the retained repository. The generated documentation is not expected before that later step executes; running the build in the removable worktree during implementation would contradict R3. Finalization owns the observable generated-output evidence."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Continue using multiple direct flow.json writers with an ordering convention.",
+      "reason": "Rejected because Issue #473 requires one ownership path and concurrent or at-most-one-retry writers would preserve ambiguous transition authority."
+    },
+    {
+      "option": "Re-rescan the worktree after authority deletion to reconstruct retry state.",
+      "reason": "Rejected because the worktree is ephemeral and at most one retry per invocation must verify the same recorded target without trusting a rescanned path."
+    },
+    {
+      "option": "Perform docs generation in the cleanup worktree then remove its residue.",
+      "reason": "Rejected because cleanup must receive a clean target; retained-repository generation avoids creating cleanup residue."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "finalize cleanup",
+    "teardown transaction",
+    "one retry",
+    "worktree authority",
+    "flow.json ownership",
+    "finalize sync",
+    "post-cleanup",
+    "result envelope",
+    "outbox",
+    "fault matrix",
+    "run-finalize-cleanup",
+    "run-finalize-sync"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Journal finalize checkpoints",
+      "goal": "Record and validate the finalize transaction checkpoint for every destructive lifecycle boundary.",
+      "acceptance": [
+        "Checkpoint persistence precedes each destructive transition.",
+        "At most one retry per invocation resumes only an unfinished recorded checkpoint.",
+        "Persistence failure blocks later cleanup transitions."
+      ],
+      "implementation_notes": "Use dedicated transaction and checkpoint value classes with invariant checks.",
+      "test_strategy": "Unit fault-matrix tests cover R1 checkpoint persistence and replay.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Validate exact cleanup targets",
+      "goal": "Bind at most one retry per invocation and destructive cleanup to the recorded target identity.",
+      "acceptance": [
+        "Recorded worktree, branch, base, and transaction identity are verified before deletion.",
+        "Foreign or changed targets halt without deletion."
+      ],
+      "implementation_notes": "Keep target authority and replay resolution in one module boundary.",
+      "test_strategy": "Unit tests cover R2 authority deletion and foreign-target rejection.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Isolate finalize sync output",
+      "goal": "Generate finalize-sync output outside the removable worktree.",
+      "acceptance": [
+        "Sync output is written and committed from the retained repository path.",
+        "The cleanup worktree remains free of sync-created residue."
+      ],
+      "implementation_notes": "Preserve the existing finalize-sync command surface.",
+      "test_strategy": "Integration tests cover R3 clean-worktree behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Snapshot teardown completion",
+      "goal": "Complete cleanup without accessing a removed worktree.",
+      "acceptance": [
+        "Post-cleanup paths use snapshots and durable main state only.",
+        "The success envelope and exit code remain successful after cleanup."
+      ],
+      "implementation_notes": "Cover logger, dispatcher, hooks, filesystem, lock, and module-resolution contexts.",
+      "test_strategy": "Lifecycle tests cover R4 and R5 after worktree removal.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Centralize finalize state writes",
+      "goal": "Route finalize lifecycle flow.json updates through one owner.",
+      "acceptance": [
+        "Replaced production direct writers are absent.",
+        "The owner applies at-most-one-retry and lifecycle transitions consistently."
+      ],
+      "implementation_notes": "Do not retain alpha compatibility write paths.",
+      "test_strategy": "Static and unit tests cover R6 write ownership.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-6",
+      "title": "Cover finalize fault matrix",
+      "goal": "Add spec-local behavior coverage for the finalize contracts.",
+      "acceptance": [
+        "Tests have // spec: R<N> headers for R1 through R7.",
+        "Tests assert at-most-one exact retry per invocation, clean sync, teardown safety, and envelope consistency."
+      ],
+      "implementation_notes": "Supplement existing shared regression tests without weakening them.",
+      "test_strategy": "Run the spec-local suite and relevant shared finalize tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-27T09:31:43.174Z",
+    "notes": "Auto approval selected during flow setup."
+  }
+}

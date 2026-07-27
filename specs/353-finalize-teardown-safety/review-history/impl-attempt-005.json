@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T10:17:08.247Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r2-foreign-target-behavior-untested",
+      "title": "R2 foreign-target rejection is not behaviorally tested",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+      "requirementId": "R2",
+      "issue": "The R2 test only asserts that run-finalize-cleanup.js contains assertWorktreeAuthority and assertFeatureAuthority. It does not construct a recorded cleanup transaction, mutate the recorded worktree/branch/base/transaction identity to a foreign or changed target, run retry/cleanup, and assert that deletion is halted.",
+      "suggestion": "Replace or supplement the R2 source-string assertions with unit cases that create a durable recorded target, alter each of worktree, branch, base, and transaction identity before retry, execute RunFinalizeCleanupCommand, and assert the command fails before deleting the foreign target.",
+      "disposition": "must-fix",
+      "rationale": "R2 is a must requirement and T-2 acceptance explicitly requires recorded target verification and foreign/changed targets halting without deletion. Static source presence checks do not prove the mandatory behavior.",
+      "findingId": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "fingerprint": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "256227c96a458f6ad23490992da6e4ba2d5996debaba276e5f6dd7f628ed6113",
+  "reviewedTree": "256227c96a458f6ad23490992da6e4ba2d5996debaba276e5f6dd7f628ed6113",
+  "reviewedHead": "a92c8a980be055e37de0864110c95d759625bbe9",
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/353-finalize-teardown-safety/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/353-finalize-teardown-safety/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "80ca21f037b025769066c6d5c6d99e37ba7f6c752016fe23bc676004680efabd"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "findingId": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R2 foreign-target rejection is not behaviorally tested",
+      "body": "The R2 test only asserts that run-finalize-cleanup.js contains assertWorktreeAuthority and assertFeatureAuthority. It does not construct a recorded cleanup transaction, mutate the recorded worktree/branch/base/transaction identity to a foreign or changed target, run retry/cleanup, and assert that deletion is halted.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "disposition": "must-fix",
+      "rationale": "R2 is a must requirement and T-2 acceptance explicitly requires recorded target verification and foreign/changed targets halting without deletion. Static source presence checks do not prove the mandatory behavior.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

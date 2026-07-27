@@ -1,0 +1,97 @@
+{
+  "devType": "bugfix",
+  "goal": "finalize の各 persistence boundary で旧状態または新状態のいずれかを保存し、cleanup 後に削除済み worktree を参照せず、失敗後の retry が保存済み transaction identity と同じ target を選ぶようにする。",
+  "analysis": {
+    "problem": "finalize は merge outcome、finalize metadata、authority、worktree cleanup の境界で状態の所有と永続化順序が分散している。authority 削除後の retry が同一 target を再解決できない場合、cleanup 対象が dirty になる場合、cleanup 後に削除済み worktree を参照して成功 envelope が失敗化する場合がある。",
+    "proposedApproach": "must journal で各 persisted checkpoint と replay 点を明示し、cleanup target の再解決を保存済み metadata に固定する。must teardown 前に後処理で必要な値を snapshot し、worktree 外で docs sync を実行して cleanup 対象の git status を clean に保つ。",
+    "validation": "must persistence boundary ごとの fault injection または SIGKILL で旧状態か新状態へ収束し exact retry できることを検証する。must merge outcome の保存失敗時に cleanup を開始しないこと、foreign target を削除しないこと、cleanup 後に削除済み worktree を参照せず ok: true と exit 0 が整合することを検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must finalize-cleanup は commit persistence、index reconciliation、worktree removal、branch deletion、validation、pointer publication、active-flow clear を順に扱う。",
+      "must finalize-sync は worktree flow では main repository で docs build と generated artifact commit を実行する。",
+      "must finalize の post-hook は merge 以後 main repository の flow authority を対象にする必要がある。",
+      "must persistence failure では cleanup を開始せず、checkpoint ごとの retry は保存済み target metadata を使って同一 transaction identity に収束する。",
+      "must cleanup success は削除済み worktree への late lookup を行わず、ok: true と exit 0 を一貫して返す。"
+    ],
+    "decisionPoints": [
+      "must journal の checkpoint と各 phase の replay 条件を定義し、finalize-cleanup の persistence order の owner を journal transaction に移す。",
+      "must retained exact-target retry、outbox、post-hook behavior を保存済み finalize metadata と単一 flow-state mutation owner に対応付け、削除する direct writer は明示的に replacement owner へ移す。",
+      "must cleanup 後に利用可能な snapshot と late lookup を禁止する境界を定義し、logger、lock authority、dispatcher、report post-processing の retained behavior を post-cleanup snapshot context owner に対応付ける。"
+    ],
+    "resolvedByProjectRules": [
+      "must ユーザー定義 Issue #473 を単一 spec として扱い、勝手に分割しない。",
+      "must テーブル、renderable fragment、analysis entry などの値構造はクラスで invariant と振る舞いを表現し、外部依存を追加しない。",
+      "must worktree flow 中の編集・検証は managed worktree 内で行う。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must journal schema、checkpoint の順序、replay API と単一 writer の具体的な責務分割。",
+      "must fault matrix と teardown lifecycle test のケース、fixture、assertion の設計。",
+      "must logger、dispatcher、lock authority、module resolution の削除済み worktree 参照を排除する具体的な変更箇所。",
+      "must retained consumer の behavior-level migration parity tests は、各 CLI command、state artifact、post-cleanup envelope を少なくとも 1 件ずつ検証する配置を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must finalize metadata、merge outcome、authority cleanup、worktree cleanup の persisted checkpoint と exact-target retry。",
+      "must finalize-sync が cleanup 対象 worktree に generated output や untracked residue を残さない経路。",
+      "must cleanup 後の dynamic import、filesystem read、flow state、lock authority、logger context における削除済み worktree 参照の排除。",
+      "must flow.json の direct writer を単一の所有経路に限定し、fault-matrix と cleanup lifecycle tests で契約を検証。"
+    ],
+    "out": [
+      "must unrelated flow lifecycle、外部依存、Issue #473 の finalize 契約と無関係な CLI behavior は変更しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must retained CLI surfaces `senti flow run finalize-commit`、`finalize-merge`、`finalize-sync`、`finalize-cleanup`、retry、orphan recovery は同じ target selection と result contract を維持する。新しい owner は保存済み finalize metadata と journal transaction であり、behavior-level tests は各 command の retry が同一 target に収束し foreign target を削除しないことを確認する。",
+    "must retained lifecycle hooks と flow state updates は `src/flow/registry.js` の main-repository authority routing を維持する。新しい owner は単一 flow-state mutation path であり、behavior-level tests は merge 後の post-hook と active-flow cleanup が worktree copy ではなく保存済み main state を更新することを確認する。",
+    "must retained generated artifacts と side effects は docs output、analysis output、flow.json、outbox、report pointer、runtime logs、worktree と feature branch cleanup を含む。新しい owner は finalize-sync の main-repository output path と cleanup journal であり、behavior-level tests は sync 後の target worktree が clean で cleanup 後に artifact lookup が削除済み path を参照しないことを確認する。",
+    "must retained CLI envelope と exit status は successful cleanup で ok: true と exit 0 を一貫して返し、rerun safety を判断可能にする。新しい owner は post-cleanup completion envelope builder であり、behavior-level tests は cleanup success 後に warning や late post-processing が成功を失敗化しないことを確認する。",
+    "must config entries と user-facing command names は削除しない。意図的に除去する既存 behavior はなく、複数の direct flow.json writer のみを single owner へ置換する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "永続化境界ごとの fault injection または SIGKILL で、must cleanup は merge outcome と finalize metadata の保存に成功するまで開始せず、各 retry は同一 target へ収束することを受入条件とするか。",
+      "answer": "autoApprove により、Issue #473 の Required Contracts と Acceptance Criteria を must 受入条件として採用する。cleanup は merge outcome と finalize metadata の永続化成功前に開始せず、boundary failure 後は exact retry で同一 target に収束する。",
+      "evidence": "Issue #473 Required Contracts と Acceptance Criteria 1-2。autoApprove: true。",
+      "why": "Issue が durability failure、cleanup 開始条件、exact-target retry を明示しており、goal や scope を変更しない保守的な解釈である。",
+      "considered": "境界 failure を warning 扱いで cleanup 継続する案は、Issue の cleanup 未開始契約と矛盾するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "既存の finalize 成功 consumer について、must ok: true と exit 0 が矛盾せず、cleanup 後の logger・lock・filesystem・module resolution が削除済み worktree を参照しないことを維持契約とするか。",
+      "answer": "autoApprove により、must 既存 finalize consumer の成功契約を維持する。cleanup 後の後処理は必要値を事前 snapshot し、削除済み worktree に対する import、read、lock validation、logger context を行わない。",
+      "evidence": "Issue #473 Required Contracts と Acceptance Criteria 4-5、src/flow/lib/run-finalize-cleanup.js の teardown phases。autoApprove: true。",
+      "why": "Issue は success envelope と cleanup 後に削除済み path を参照しない post-processing を明示する。既存の段階的 cleanup はこの契約を維持するための基盤である。",
+      "considered": "cleanup 後に worktree path を再検査して状態を補う案は、削除済み path の late lookup を禁じる契約に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存の finalize state write を単一所有経路へ移す際、must retained retry、outbox、post-hook behavior を behavior-level tests で検証し、意図しない互換性削除を行わない方針とするか。",
+      "answer": "autoApprove により、must flow.json の direct writer を単一 ownership path に集約する。retained finalize command retry は保存済み metadata と journal transaction が owner となり、retry 前後の target path、feature branch、transaction identity が一致する test で検証する。retained outbox は retry 後も同じ idempotency key の entry が complete になる test で検証する。retained post-hook は main repository の flow.json の finalize step が done になり、worktree copy を書き換えない test で検証する。retained docs/report/cleanup side effects は post-cleanup completion context が owner となり、sync 後の git status が clean で、cleanup success envelope が ok: true と exit 0 を返し、削除済み path read が起きない test で検証する。互換性を意図的に削除しない。",
+      "evidence": "Issue #473 Required Contracts、src/flow/registry.js の finalize lifecycle hook authority、src/flow/lib/run-finalize.js の durable finalize helper。autoApprove: true。",
+      "why": "state ownership の曖昧さを解消しつつ、公開されている finalize command の retry と completion behavior を維持するため。",
+      "considered": "複数 writer を残して順序だけを文書化する案は、Issue が要求する単一 ownership path を満たさないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "must journal の各 checkpoint と replay 条件は spec で明文化する。",
+    "must existing state writer の棚卸しと単一 ownership path は spec と source analysis で確定する。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-27T05:59:43.023Z",
+    "notes": ""
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "6950db8fc8eeba4003fe9022",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-d68948db9b371af1",
+    "parentUnitId": null,
+    "targetFiles": [
+      "specs/353-finalize-teardown-safety/draft-review-questions.json",
+      "specs/353-finalize-teardown-safety/issue-log.json",
+      "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+      "specs/353-finalize-teardown-safety/spec-gate-source.json",
+      "specs/353-finalize-teardown-safety/spec.md",
+      "specs/353-finalize-teardown-safety/tasks/T-6.md",
+      "src/flow/commands/review.js",
+      "src/flow/lib/run-finalize-cleanup.js",
+      "src/lib/dispatcher.js"
+    ],
+    "inputHash": "d68948db9b371af1779369c5285e49428e1468b8632feed53ee008f4d364bb8f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "6950db8fc8eeba4003fe9022"
+  },
+  "targetFiles": [
+    "specs/353-finalize-teardown-safety/draft-review-questions.json",
+    "specs/353-finalize-teardown-safety/issue-log.json",
+    "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+    "specs/353-finalize-teardown-safety/spec-gate-source.json",
+    "specs/353-finalize-teardown-safety/spec.md",
+    "specs/353-finalize-teardown-safety/tasks/T-6.md",
+    "src/flow/commands/review.js",
+    "src/flow/lib/run-finalize-cleanup.js",
+    "src/lib/dispatcher.js"
+  ],
+  "inputHash": "d68948db9b371af1779369c5285e49428e1468b8632feed53ee008f4d364bb8f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T11:18:54.215Z",
+  "finishedAt": "2026-07-27T11:18:54.215Z",
+  "rawResponse": "### 1. Unify Bounded-Resource Requirement Mapping\n**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R7  \n**Issue:** Multiple files flag the same bounded-resource-usage concern but attach different requirement IDs: `flow.json` uses R1, `issue-log.json` uses R8, `review.js` uses R7, `run-finalize-cleanup.js` uses R2, and `finalize-teardown-contract.test.js` uses R7. This makes traceability inconsistent across generated artifacts, tests, and implementation reviews.\n**Suggestion:** Pick the canonical requirement ID for bounded-resource behavior in `spec.md`, then update review artifacts and test annotations to use that same ID consistently.\n\n### 2. Consolidate Finalize State Owner Resolution\n**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R6  \n**Issue:** Finalize ownership logic is being introduced in multiple places: `flow-context.js`, `run-finalize-cleanup.js`, `finalize-cleanup-state.js`, and `registry.js`. The summaries show repeated authority resolution and polymorphic state mutation paths, which risks divergent behavior between main-flow ownership, post-merge ownership, and step-status mutation.\n**Suggestion:** Centralize ownership resolution behind one explicit interface, then have cleanup, context resolution, and registry step updates call that interface instead of repeating or shape-checking authority logic.\n\n### 3. Remove Duplicate Recovery Event Storage\n**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R2  \n**Issue:** Recovery data appears in both `issue-log.json` and `retry-recovery.json` with overlapping fields. This creates two sources of truth for the same retry/recovery event and can drift across future retries.\n**Suggestion:** Make `retry-recovery.json` canonical and store only a reference in `issue-log.json`, or generate one artifact from the other.\n\n### 4. Reconcile Spec Phase Verdict Artifacts\n**File:** `specs/353-finalize-teardown-safety/spec-review.json`  \n**Requirement:** R7  \n**Issue:** `spec-review.json` reports PASS/no findings while `spec-gate-source.json` reports a blocking `spec-test-coverage` failure for the same phase. Downstream consumers can receive contradictory review status depending on which artifact they read.\n**Suggestion:** Regenerate the stale artifact or define one canonical phase verdict source and have the other reference it.\n\n### 5. Avoid Maintaining Review Results In Multiple Formats\n**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md`  \n**Requirement:** R7  \n**Issue:** The review history contains equivalent PASS/no-findings results in both Markdown and JSON artifacts. This duplicates the same outcome across formats without a clear ownership rule.\n**Suggestion:** Keep structured JSON as canonical, or document that Markdown is a human-readable projection generated from the JSON.\n\n### 6. Normalize Task Status Ownership\n**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R7  \n**Issue:** Requirement statuses in `spec.json` are marked done while task files and task metadata still report pending work. This is a cross-file state inconsistency between requirement completion and task completion.\n**Suggestion:** Make task files the canonical task-status source and derive summary status from them, or update `spec.json` and `tasks/T-*.md` together through one generation path.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Unify Bounded-Resource Requirement Mapping",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.md`  \n**Requirement:** R7  \n**Issue:** Multiple files flag the same bounded-resource-usage concern but attach different requirement IDs: `flow.json` uses R1, `issue-log.json` uses R8, `review.js` uses R7, `run-finalize-cleanup.js` uses R2, and `finalize-teardown-contract.test.js` uses R7. This makes traceability inconsistent across generated artifacts, tests, and implementation reviews.\n**Suggestion:** Pick the canonical requirement ID for bounded-resource behavior in `spec.md`, then update review artifacts and test annotations to use that same ID consistently.",
+        "file": "specs/353-finalize-teardown-safety/spec.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Consolidate Finalize State Owner Resolution",
+        "body": "**File:** `src/flow/lib/run-finalize-cleanup.js`  \n**Requirement:** R6  \n**Issue:** Finalize ownership logic is being introduced in multiple places: `flow-context.js`, `run-finalize-cleanup.js`, `finalize-cleanup-state.js`, and `registry.js`. The summaries show repeated authority resolution and polymorphic state mutation paths, which risks divergent behavior between main-flow ownership, post-merge ownership, and step-status mutation.\n**Suggestion:** Centralize ownership resolution behind one explicit interface, then have cleanup, context resolution, and registry step updates call that interface instead of repeating or shape-checking authority logic.",
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Remove Duplicate Recovery Event Storage",
+        "body": "**File:** `specs/353-finalize-teardown-safety/issue-log.json`  \n**Requirement:** R2  \n**Issue:** Recovery data appears in both `issue-log.json` and `retry-recovery.json` with overlapping fields. This creates two sources of truth for the same retry/recovery event and can drift across future retries.\n**Suggestion:** Make `retry-recovery.json` canonical and store only a reference in `issue-log.json`, or generate one artifact from the other.",
+        "file": "specs/353-finalize-teardown-safety/issue-log.json",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Reconcile Spec Phase Verdict Artifacts",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec-review.json`  \n**Requirement:** R7  \n**Issue:** `spec-review.json` reports PASS/no findings while `spec-gate-source.json` reports a blocking `spec-test-coverage` failure for the same phase. Downstream consumers can receive contradictory review status depending on which artifact they read.\n**Suggestion:** Regenerate the stale artifact or define one canonical phase verdict source and have the other reference it.",
+        "file": "specs/353-finalize-teardown-safety/spec-review.json",
+        "requirementId": "R7"
+      },
+      {
+        "title": "5. Avoid Maintaining Review Results In Multiple Formats",
+        "body": "**File:** `specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md`  \n**Requirement:** R7  \n**Issue:** The review history contains equivalent PASS/no-findings results in both Markdown and JSON artifacts. This duplicates the same outcome across formats without a clear ownership rule.\n**Suggestion:** Keep structured JSON as canonical, or document that Markdown is a human-readable projection generated from the JSON.",
+        "file": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "6. Normalize Task Status Ownership",
+        "body": "**File:** `specs/353-finalize-teardown-safety/spec.json`  \n**Requirement:** R7  \n**Issue:** Requirement statuses in `spec.json` are marked done while task files and task metadata still report pending work. This is a cross-file state inconsistency between requirement completion and task completion.\n**Suggestion:** Make task files the canonical task-status source and derive summary status from them, or update `spec.json` and `tasks/T-*.md` together through one generation path.",
+        "file": "specs/353-finalize-teardown-safety/spec.json",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

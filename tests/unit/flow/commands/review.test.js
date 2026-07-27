@@ -40,6 +40,7 @@ import {
   buildImplReviewPrompt,
   runImplReview,
   resolveReviewTarget,
+  scopeTaskReviewTarget,
   createReviewExcludeMatcher,
   collectTestFiles,
   filterProposalsByScope,
@@ -2110,6 +2111,49 @@ describe("resolveReviewTarget untracked spec tests", () => {
 
     assert.match(target.diff, /base\.js/);
     assert.doesNotMatch(target.diff, /specs\/demo\/flow\.json/);
+  });
+});
+
+describe("scopeTaskReviewTarget", () => {
+  it("excludes only the active spec scenario-validity preflight evidence", () => {
+    const modified = (file) => [
+      `diff --git a/${file} b/${file}`,
+      `--- a/${file}`,
+      `+++ b/${file}`,
+      "@@ -1 +1 @@",
+      "-old",
+      "+new",
+      "",
+    ].join("\n");
+    const target = {
+      diff: [
+        modified("specs/demo/scenario-validity-result.json"),
+        modified("specs/demo/tests/.raw/scenario-validity.log"),
+        modified("specs/demo/flow.json"),
+        modified("specs/demo/spec.json"),
+        modified("specs/other/scenario-validity-result.json"),
+        modified("specs/demo/tests/finalize.test.js"),
+        modified("src/flow/lib/run-finalize-cleanup.js"),
+      ].join(""),
+      untrackedFiles: new Set([
+        "specs/demo/tests/.raw/scenario-validity.log",
+        "specs/demo/tests/finalize.test.js",
+      ]),
+    };
+
+    const scoped = scopeTaskReviewTarget(target, "specs/demo/spec.json");
+
+    assert.doesNotMatch(scoped.diff, /specs\/demo\/scenario-validity-result\.json/);
+    assert.doesNotMatch(scoped.diff, /specs\/demo\/tests\/\.raw\/scenario-validity\.log/);
+    assert.doesNotMatch(scoped.diff, /specs\/demo\/flow\.json/);
+    assert.doesNotMatch(scoped.diff, /specs\/demo\/spec\.json/);
+    assert.match(scoped.diff, /specs\/other\/scenario-validity-result\.json/);
+    assert.match(scoped.diff, /specs\/demo\/tests\/finalize\.test\.js/);
+    assert.match(scoped.diff, /src\/flow\/lib\/run-finalize-cleanup\.js/);
+    assert.deepEqual(
+      [...scoped.untrackedFiles],
+      ["specs/demo/tests/finalize.test.js"],
+    );
   });
 });
 

@@ -1,0 +1,2671 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Migration parity is deferred to the spec instead of being defined in this draft; retained existing consumer behavior lacks the required inventory, owner mapping, and behavior-level verification details here.; The draft lists impacts on finalize retry/post-hook, docs generation, and CLI envelope behavior, but does not inventory the full existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The draft says durable metadata and authority ownership boundaries will be defined, but does not map each retained existing behavior to its new owner or to an explicit removal decision.; The draft says retry, outbox, and post-hook behavior will be verified by fault-matrix and lifecycle tests, but does not define at least one behavior-level verification for each retained public surface through the new path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:01:00.352Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.deferredToSpec[3]"
+          },
+          "observed": "Migration parity is deferred to the spec instead of being defined in this draft; retained existing consumer behavior lacks the required inventory, owner mapping, and behavior-level verification details here.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft lists impacts on finalize retry/post-hook, docs generation, and CLI envelope behavior, but does not inventory the full existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "decisionMap.decisionPoints[1]"
+          },
+          "observed": "The draft says durable metadata and authority ownership boundaries will be defined, but does not map each retained existing behavior to its new owner or to an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "content",
+            "locator": "qa[2].answer"
+          },
+          "observed": "The draft says retry, outbox, and post-hook behavior will be verified by fault-matrix and lifecycle tests, but does not define at least one behavior-level verification for each retained public surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "Migration parity is deferred to the spec instead of being defined in this draft; retained existing consumer behavior lacks the required inventory, owner mapping, and behavior-level verification details here."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists impacts on finalize retry/post-hook, docs generation, and CLI envelope behavior, but does not inventory the full existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says durable metadata and authority ownership boundaries will be defined, but does not map each retained existing behavior to its new owner or to an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says retry, outbox, and post-hook behavior will be verified by fault-matrix and lifecycle tests, but does not define at least one behavior-level verification for each retained public surface through the new path."
+        }
+      ],
+      "issueLogId": "issue-log-65a84e25-e027-4e20-9029-72e54c5cd6ba"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found missing migration parity inventory, ownership mapping, and behavior-level verification coverage.",
+      "trigger": "Draft gate migration-parity guardrail evaluation returned four blocking observations.",
+      "resolution": "Expand draft impacts with retained-surface inventory, new ownership mapping, and per-surface behavior verification.",
+      "guardrailCandidate": "When moving lifecycle ownership, define parity inventory, owner mapping, and behavior tests before spec writing.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:01:07.408Z",
+      "issueLogId": "issue-log-d9348cbf-f2b2-4acd-835d-6d44c246d2d4"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the subjective term \"粒度\" for test design without measurable criteria, so two independent reviewers may not agree on what implementation satisfies it.; Requirement says behavior-level tests must verify retained retry, outbox, and post-hook behavior, but the referenced \"state update test\" does not specify observable assertions for outbox/post-hook behavior, so reviewers may not agree on satisfaction.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:02:02.276Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "decisionMap.deferredToSpec[1]"
+          },
+          "observed": "Requirement uses the subjective term \"粒度\" for test design without measurable criteria, so two independent reviewers may not agree on what implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[3].answer"
+          },
+          "observed": "Requirement says behavior-level tests must verify retained retry, outbox, and post-hook behavior, but the referenced \"state update test\" does not specify observable assertions for outbox/post-hook behavior, so reviewers may not agree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement uses the subjective term \"粒度\" for test design without measurable criteria, so two independent reviewers may not agree on what implementation satisfies it."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement says behavior-level tests must verify retained retry, outbox, and post-hook behavior, but the referenced \"state update test\" does not specify observable assertions for outbox/post-hook behavior, so reviewers may not agree on satisfaction."
+        }
+      ],
+      "issueLogId": "issue-log-0069e921-ec20-46f8-ad07-a00c0f6933c3"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found an unmeasurable test-design term and missing observable outbox and post-hook assertions.",
+      "trigger": "Draft gate complete-context evaluation returned two blocking observations.",
+      "resolution": "Replace vague test wording and state explicit retry, outbox, and post-hook observable assertions.",
+      "guardrailCandidate": "Every retained-surface verification must name an observable state or envelope assertion.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:02:11.938Z",
+      "issueLogId": "issue-log-1e30a9a6-1421-4ab3-92b4-134de55bfc54"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses vague adjectives/terms: \"durable\", \"teardown-safe\", and \"安全に再試行\" without stating verifiable conditions in this passage.; The requirement uses the vague adjective \"meaningful\" in \"meaningful な構造\" without a verifiable condition for which structures qualify.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:03:16.103Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "goal"
+          },
+          "observed": "The requirement uses vague adjectives/terms: \"durable\", \"teardown-safe\", and \"安全に再試行\" without stating verifiable conditions in this passage.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content.json",
+            "locator": "decisionMap.resolvedByProjectRules[1]"
+          },
+          "observed": "The requirement uses the vague adjective \"meaningful\" in \"meaningful な構造\" without a verifiable condition for which structures qualify.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses vague adjectives/terms: \"durable\", \"teardown-safe\", and \"安全に再試行\" without stating verifiable conditions in this passage."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague adjective \"meaningful\" in \"meaningful な構造\" without a verifiable condition for which structures qualify."
+        }
+      ],
+      "issueLogId": "issue-log-3572af1d-782a-49f5-bb09-e55fcd9f0637"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate found vague goal language and an undefined meaningful-structure rule.",
+      "trigger": "Draft gate unambiguous-requirements evaluation returned two blocking observations.",
+      "resolution": "Replace generic durability wording with checkpoint and retry conditions and name structural invariants explicitly.",
+      "guardrailCandidate": "Draft requirements must define observable outcomes instead of subjective reliability labels.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:04:07.081Z",
+      "issueLogId": "issue-log-c0d05f79-2a37-43d0-b244-b0f37eb478ea"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec states that existing finalize command names, options, orphan recovery behavior, JSON envelope contracts, and exit-code behavior are preserved, but it does not inventory the existing public behavior being moved or replaced across all required categories: user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; R6 replaces production flow.json update ownership with one ownership path, but the spec does not map each retained behavior from the replaced direct writers to its new owner or to an explicit removal decision.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:09:36.489Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[3]"
+          },
+          "observed": "The spec states that existing finalize command names, options, orphan recovery behavior, JSON envelope contracts, and exit-code behavior are preserved, but it does not inventory the existing public behavior being moved or replaced across all required categories: user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5]"
+          },
+          "observed": "R6 replaces production flow.json update ownership with one ownership path, but the spec does not map each retained behavior from the replaced direct writers to its new owner or to an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec states that existing finalize command names, options, orphan recovery behavior, JSON envelope contracts, and exit-code behavior are preserved, but it does not inventory the existing public behavior being moved or replaced across all required categories: user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "R6 replaces production flow.json update ownership with one ownership path, but the spec does not map each retained behavior from the replaced direct writers to its new owner or to an explicit removal decision."
+        }
+      ],
+      "issueLogId": "issue-log-ab00c3b0-94a0-4744-887a-b2041a09b826"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate found incomplete migration parity inventory and missing retained-writer ownership mapping.",
+      "trigger": "Spec gate migration-parity evaluation returned two blocking observations.",
+      "resolution": "Add explicit inventory of commands, APIs, hooks, config, artifacts, side effects, and map each retained state behavior to the replacement owner.",
+      "guardrailCandidate": "Every internal ownership replacement must document retained surfaces, new owner, removal decision, and behavior-level verification.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:21:52.554Z",
+      "issueLogId": "issue-log-5df32aa1-3403-4b6c-abad-3e694d6eaac6"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The goal requires retry behavior but does not state an explicit retry count or other upper bound.; The scope includes exact-target retry but does not state an explicit retry count or other upper bound.; The data flow describes retry resuming unfinished checkpoints but does not state an explicit retry count or other upper bound.; R1 requires retry to resume from a recorded unfinished checkpoint but does not state an explicit retry count or other upper bound.; R2 requires retry after authority deletion but does not state an explicit retry count or other upper bound.; R6 references retry identity in journal checkpoints but does not state an explicit retry count or other upper bound.; The acceptance criterion requires exact retry to reach completion but does not state an explicit retry count or other upper bound.; The clarification asks about retry target discovery but does not state an explicit retry count or other upper bound.; The clarification describes retry using durable metadata but does not state an explicit retry count or other upper bound.; The alternative rationale requires retry to verify the same recorded target but does not state an explicit retry count or other upper bound.; The keyword 'exact retry' references retry behavior but the spec does not state an explicit retry count or other upper bound.; T-2 binds retry to recorded target identity but does not state an explicit retry count or other upper bound.; T-5 requires the owner to apply retry transitions consistently but does not state an explicit retry count or other upper bound.; T-6 requires tests to assert exact retry but does not state an explicit retry count or other upper bound.; The spec does not list the impact of the changes on existing features or explicitly state that no existing features are affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:22:46.686Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "goal"
+          },
+          "observed": "The goal requires retry behavior but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[1]"
+          },
+          "observed": "The scope includes exact-target retry but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.data_flow[1].text"
+          },
+          "observed": "The data flow describes retry resuming unfinished checkpoints but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "R1 requires retry to resume from a recorded unfinished checkpoint but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "R2 requires retry after authority deletion but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[5].desc"
+          },
+          "observed": "R6 references retry identity in journal checkpoints but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[0]"
+          },
+          "observed": "The acceptance criterion requires exact retry to reach completion but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "clarifications[1].q"
+          },
+          "observed": "The clarification asks about retry target discovery but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "clarifications[1].a"
+          },
+          "observed": "The clarification describes retry using durable metadata but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "alternatives_considered[1].reason"
+          },
+          "observed": "The alternative rationale requires retry to verify the same recorded target but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "keywords[2]"
+          },
+          "observed": "The keyword 'exact retry' references retry behavior but the spec does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[1].goal"
+          },
+          "observed": "T-2 binds retry to recorded target identity but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[4].acceptance[1]"
+          },
+          "observed": "T-5 requires the owner to apply retry transitions consistently but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[5].acceptance[1]"
+          },
+          "observed": "T-6 requires tests to assert exact retry but does not state an explicit retry count or other upper bound.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec does not list the impact of the changes on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The goal requires retry behavior but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The scope includes exact-target retry but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The data flow describes retry resuming unfinished checkpoints but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R1 requires retry to resume from a recorded unfinished checkpoint but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R2 requires retry after authority deletion but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "R6 references retry identity in journal checkpoints but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The acceptance criterion requires exact retry to reach completion but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The clarification asks about retry target discovery but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The clarification describes retry using durable metadata but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The alternative rationale requires retry to verify the same recorded target but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The keyword 'exact retry' references retry behavior but the spec does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-2 binds retry to recorded target identity but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-5 requires the owner to apply retry transitions consistently but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "T-6 requires tests to assert exact retry but does not state an explicit retry count or other upper bound."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the impact of the changes on existing features or explicitly state that no existing features are affected."
+        }
+      ],
+      "issueLogId": "issue-log-01dbb7a9-b5fb-4b62-9e15-a14d0a0ed19e"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:25:23.793Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R7]"
+          },
+          "observed": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`."
+        }
+      ],
+      "issueLogId": "issue-log-96ce1fff-f1be-4e37-9e75-4fbc149326b7"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate requires concrete spec-local coverage files before it will accept the test strategy requirement.",
+      "trigger": "Spec gate spec-test-coverage evaluation found no tests under the spec tests directory.",
+      "resolution": "Add a spec-local Node test file with R1 through R7 headers and planned contract assertions.",
+      "guardrailCandidate": "A testability requirement must include its spec-local test artifact before spec approval.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:25:33.801Z",
+      "issueLogId": "issue-log-94fb1592-28b3-4cfc-b0d7-81e423d94384"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:26:14.379Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R7]"
+          },
+          "observed": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`."
+        }
+      ],
+      "issueLogId": "issue-log-bd6fc490-1b76-4bdd-86ab-9ca4329e88b3"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T06:26:52.877Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "spec-test-coverage",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[R7]"
+          },
+          "observed": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`.",
+          "severity": "blocking",
+          "refs": [
+            "spec-test-coverage"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The content requires spec-local tests with `// spec: R<N>` headers, but the provided artifact does not include the required coverage files under `specs/353-finalize-teardown-safety/tests/`."
+        }
+      ],
+      "issueLogId": "issue-log-42fd7d39-b18b-42d9-ab4b-8236245522b0"
+    },
+    {
+      "step": "spec-gate",
+      "reason": "Spec gate did not recognize the staged R1-R7 spec-local coverage file and exhausted its semantic retry budget.",
+      "trigger": "Repeated spec-test-coverage finding reported the test directory missing despite staged evidence.",
+      "resolution": "External flow gate evidence discovery must be repaired before a guarded gate retry can proceed.",
+      "guardrailCandidate": "Spec gates must evaluate staged spec-local coverage paths before rejecting test coverage.",
+      "taskId": null,
+      "timestamp": "2026-07-27T06:26:59.985Z",
+      "issueLogId": "issue-log-3b12bedb-9349-4277-b0fb-66e2d69e0db1"
+    },
+    {
+      "step": "retry-recovery",
+      "grantId": "recovery-e867c95d-7236-4654-aba2-467e742e19d3",
+      "id": "recovery-e867c95d-7236-4654-aba2-467e742e19d3",
+      "kind": "gate",
+      "phase": "spec",
+      "canonicalPhase": "spec",
+      "reason": "Rebased onto main; the current spec artifact differs from the pre-rebase gate evidence and now includes the spec-local coverage record.",
+      "changedEvidence": {
+        "sourceKind": "spec-artifact",
+        "baselineHash": "6939dd58716695b854032d0630b1f06c8ce0cf9c5bed77d633f406348fbfee71",
+        "currentHash": "dd68038baf67a756756bd34509035118b6cfe4d931b30c0e0d9c4e77f0ab645b",
+        "changedPaths": [
+          "specs/353-finalize-teardown-safety/spec.json"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate spec --reason \"Rebased onto main; the current spec artifact differs from the pre-rebase gate evidence and now includes the spec-local coverage record.\" --yes",
+      "createdAt": "2026-07-27T09:03:13.530Z",
+      "timestamp": "2026-07-27T09:03:13.530Z",
+      "issueLogId": "recovery-e867c95d-7236-4654-aba2-467e742e19d3"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Rebase replay introduced Flow recovery source changes before the plan-phase scenario check.",
+      "trigger": "scenario-validity rejected implementation-target paths before #473 implementation began",
+      "resolution": "Compare the feature diff with the new base and remove unrelated replayed recovery changes.",
+      "guardrailCandidate": "Keep plan-phase feature branches free of unrelated source changes after rebases.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T09:32:34.783Z",
+      "issueLogId": "issue-log-19a5f6a1-4da1-4bb5-bef1-c35932d3d088"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "Dispatcher repeated scenario-validity after an audited preimplementation bootstrap became available.",
+      "trigger": "Rebased Flow retained its immutable baseline and preflight detected existing implementation-target changes.",
+      "resolution": "Main commit 58b991da dispatches the persisted preimplementation bootstrap as the sole guarded next action.",
+      "guardrailCandidate": "Every deterministic recovery command must be returned by the typed next-action authority before retrying the failed step.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T09:56:02.062Z",
+      "issueLogId": "issue-log-23eb8bc6-1cee-4142-a355-5b7bd1a5be68"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added fault-injection coverage proving checkpoint persistence failure blocks branch deletion and retry adopts the single persisted unfinished branch checkpoint.",
+      "normalizedFindingId": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T10:07:53.480Z",
+      "issueLogId": "issue-log-75eba996-fb6c-46c2-8603-24708d9de573"
+    },
+    {
+      "step": "task-review",
+      "reason": "Expanded R1 coverage to a table-driven fault matrix for every commit, index, worktree, branch, validation, pointer, active-flow, and completion checkpoint, including persisted-checkpoint replay.",
+      "normalizedFindingId": "8e8e8bfaeabdba2882fe67b390ecfc6a8fc96db222c8aa86d5489f9c93c92619",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T10:09:54.068Z",
+      "issueLogId": "issue-log-7c950d8a-a163-4bab-affc-3fbe55575b50"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added per-phase external-state probes proving failed checkpoint persistence leaves HEAD, index, worktree, branch, pointer, active-flow, and completion state unchanged at the guarded boundary.",
+      "normalizedFindingId": "b2737ad32286ad2f232a12b82884ecaa58a380de11fd6e0e4780fecadbb29a19",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T10:12:12.008Z",
+      "issueLogId": "issue-log-5ee8563d-88f7-4193-bd24-bdbd0a40d2c9"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the non-worktree branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership.; The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the worktree/mainRepoPath branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T10:13:23.727Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runTeardownTransactionOwned branch-deleted block for worktree/mainRepoPath"
+          },
+          "observed": "The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the non-worktree branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runTeardownTransactionOwned branch-deleted block for targetRoot"
+          },
+          "observed": "The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the worktree/mainRepoPath branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the non-worktree branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added branch-deletion checkpoint/retry block duplicates the same production control-flow shape as the worktree/mainRepoPath branch-deletion block: persist checkpoint, conditionally assert feature authority/reachability, delete the feature branch, then persist completion. A local helper could remove the duplicated behavior without changing ownership."
+        }
+      ],
+      "issueLogId": "issue-log-c6972270-4516-4295-be95-efdd26d30296"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: extracted the duplicated branch checkpoint, authority validation, deletion, and completion sequence into deleteFeatureBranchAtCheckpoint.",
+      "resolution": "Both worktree and non-worktree routes now use one transaction-owned branch deletion implementation and differ only in the selected Git authority root.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T10:13:51.902Z",
+      "issueLogId": "issue-log-ec779d6a-501b-461e-b92d-6bb3c9dda881"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove.; The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove.; The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove.; The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T10:14:15.076Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runSpecOnlyCompletion pointer-written branch"
+          },
+          "observed": "The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runTeardownTransactionOwned pointer-written branch"
+          },
+          "observed": "The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runSpecOnlyCompletion active-cleared branch"
+          },
+          "observed": "The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runTeardownTransactionOwned active-cleared branch"
+          },
+          "observed": "The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces pointer publication checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create pointer-written checkpoint, check existing pointer reality, otherwise write the pointer, then persist pointer-written completion. This is duplicate production behavior that a local helper could remove."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape later added in runTeardownTransactionOwned: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff introduces active-flow cleanup checkpoint/retry handling here with the same control-flow shape added in runSpecOnlyCompletion: create active-cleared checkpoint, skip if already cleared, otherwise delete repair baseline and clear flow state, then persist active-cleared completion. This is duplicate production behavior that a local helper could remove."
+        }
+      ],
+      "issueLogId": "issue-log-9763d5cc-8536-4b73-bb97-ce3ad61b678c"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: centralized pointer publication and active-flow clearing checkpoint sequences shared by spec-only and regular teardown.",
+      "resolution": "publishFinalizePointerAtCheckpoint and clearActiveFlowAtCheckpoint now own checkpoint persistence, replay adoption, the boundary operation, and completion persistence for both routes.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-27T10:15:06.411Z",
+      "issueLogId": "issue-log-e1255902-8f40-48c9-a6bc-f233c71639c4"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added durable-target behavioral cases for changed worktree HEAD, feature ref, base identity, and transaction identity; conflicting identity-keyed journals now reject new transactions before deletion.",
+      "normalizedFindingId": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-finalize-cleanup.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-27T10:19:33.870Z",
+      "issueLogId": "issue-log-ba5e234d-53af-4fa9-bcac-f1d0d57a8053"
+    },
+    {
+      "step": "task-review",
+      "reason": "The R2 spec-local suite now executes all four foreign-target mutations and asserts the recorded journal, worktree, and feature branch are preserved.",
+      "normalizedFindingId": "9c75b4df9748d62fb110c79e0894711c41fbe781c47c0daa953a12020aa98cab",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-27T10:19:45.609Z",
+      "issueLogId": "issue-log-3b33a7c0-8198-400f-a07b-e06b0b14b4fd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The added catch block catches any error from runFinalize and discards the error object without logging or rethrowing it, silently treating all thrown errors as rejection.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T10:20:49.130Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+            "locator": "assertForeignTargetRejected catch block"
+          },
+          "observed": "The added catch block catches any error from runFinalize and discards the error object without logging or rethrowing it, silently treating all thrown errors as rejection.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "The added catch block catches any error from runFinalize and discards the error object without logging or rethrowing it, silently treating all thrown errors as rejection."
+        }
+      ],
+      "issueLogId": "issue-log-3abd431a-7210-403f-8b89-e79d648385ec"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserved and asserted the foreign-target rejection error instead of treating every thrown error as success.",
+      "resolution": "The behavioral test now verifies a target/identity/authority-specific rejection message and cannot silently swallow an unrelated exception.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-27T10:21:08.586Z",
+      "issueLogId": "issue-log-aa372374-e1b4-4fa6-ae5f-bad3c1565f79"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds `pointerExists(reportRoot)`, a single-caller production helper that only wraps `pathExistsStrict(path.join(reportRoot, \".senti\", \"last-finalized-spec\"))`; it does not hide meaningful complexity or enforce an invariant.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T10:24:38.823Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "function pointerExists(reportRoot)"
+          },
+          "observed": "The diff adds `pointerExists(reportRoot)`, a single-caller production helper that only wraps `pathExistsStrict(path.join(reportRoot, \".senti\", \"last-finalized-spec\"))`; it does not hide meaningful complexity or enforce an invariant.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds `pointerExists(reportRoot)`, a single-caller production helper that only wraps `pathExistsStrict(path.join(reportRoot, \".senti\", \"last-finalized-spec\"))`; it does not hide meaningful complexity or enforce an invariant."
+        }
+      ],
+      "issueLogId": "issue-log-51df9cee-6f22-4b91-81dc-82fb1077a2c3"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed the single-caller pointerExists wrapper and inlined the path existence probe in the checkpoint owner.",
+      "resolution": "The pointer checkpoint helper still owns the invariant, while the trivial path wrapper no longer expands production API surface.",
+      "taskId": "T-3",
+      "timestamp": "2026-07-27T10:25:02.590Z",
+      "issueLogId": "issue-log-0ec0eadd-7887-442e-ba7e-b0f9bc41dba1"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added fail-fast removed-worktree filesystem probes, command-module load counting, lock trap, cleanup post-hook absence assertion, retained logger path, main metadata authority, and success-warning exit checks.",
+      "normalizedFindingId": "74e748b4ce2be47fc654ace7e6c254b09f6cb90e37475b7e7547b9740f709c27",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-27T10:30:00.229Z",
+      "issueLogId": "issue-log-14534a2d-d3dd-4ac5-8696-61bb7a7583c2"
+    },
+    {
+      "step": "task-review",
+      "reason": "Asserted that the serialized completion envelope, retained runtime-log metadata, and main-repository log contents contain no removed worktree path.",
+      "normalizedFindingId": "4584eb446071880eec54e3349a2ea751465fbeb1cb6c937059c674945140d8c3",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-27T10:31:09.923Z",
+      "issueLogId": "issue-log-700aee90-d0ad-4a20-aa02-ba8b6ec496fd"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added a real RunFinalizeCleanupCommand dispatcher lifecycle over a managed worktree and asserted its production envelope and retained runtime log omit the removed path while returning exit 0.",
+      "normalizedFindingId": "e4ba9d2722a45f7feb20dfc41ca36ac2beeb0462a2fc333858bd6d2f0a6dc5cc",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-4",
+      "timestamp": "2026-07-27T10:33:06.932Z",
+      "issueLogId": "issue-log-6826fbce-3362-4d79-b7c1-c94113a25e51"
+    },
+    {
+      "step": "task-review",
+      "reason": "Implemented FinalizeFlowStateOwner as the single main-repository authority resolver and routed registry hooks, cleanup step/outbox/active-flow transitions, metadata synchronization, restoration, and dispatcher post-command metadata through that owner.",
+      "normalizedFindingId": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/finalize-flow-state-owner.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-27T10:43:33.419Z",
+      "issueLogId": "issue-log-acd95c12-038f-46cd-be61-498144f04873"
+    },
+    {
+      "step": "task-review",
+      "reason": "Replaced the undefined repoRoot references with the file's existing ROOT repository constant so the R6 ownership assertions execute.",
+      "normalizedFindingId": "dd03f5c2f7abc2ab08609d7c4ae867e9f566ad6d74b5a42e135e89bb68ff339b",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-27T10:44:43.442Z",
+      "issueLogId": "issue-log-71254b84-4adb-449f-8709-a5013117cdbc"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed registry direct-writer fallbacks: finalize outbox, merge outcome, finalize step transitions, skip/reset transitions now resolve and mutate only through FinalizeFlowStateOwner, which owns the worktree authority before merge and is promoted to main authority afterward.",
+      "normalizedFindingId": "5fd43ddf2347aa6e0ef102bf8d4c1a377a56be5e548d9aec6eb712ccf07800a3",
+      "repairRef": {
+        "files": [
+          "src/flow/registry.js"
+        ]
+      },
+      "taskId": "T-5",
+      "timestamp": "2026-07-27T10:47:15.909Z",
+      "issueLogId": "issue-log-418516c4-c541-4fe8-830b-39d365d5b71b"
+    },
+    {
+      "step": "task-review",
+      "reason": "Clarified the audited preimplementation-bootstrap boundary: scenario-validity and test-review were intentionally skipped after the preflight block, while task review owns source coverage and the later spec-level test-execute step exclusively owns R7 runtime evidence.",
+      "normalizedFindingId": "10918be2ffdcef56fda50a7a2095a5e5505baf3d063775d6c054acebdfa79bca",
+      "repairRef": {
+        "files": [
+          "specs/353-finalize-teardown-safety/spec.json"
+        ]
+      },
+      "taskId": "T-6",
+      "timestamp": "2026-07-27T10:52:18.348Z",
+      "issueLogId": "issue-log-d63b698c-c280-4005-96eb-7d80e0daa4df"
+    },
+    {
+      "step": "task.impl",
+      "reason": "Pre-existing Flow review-scope bug: task-review includes the preserved scenario-validity preflight block even when preimplementation-bootstrap has audited the scenario-validity step as skipped, allowing stale invalid_test evidence to block a post-implementation source review.",
+      "resolution": "Scope task-review input with the existing scenario-validity evidence exclusion used by task-gate; retain product and spec-test diffs while removing only the active spec's preimplementation result and raw log.",
+      "taskId": "T-6",
+      "timestamp": "2026-07-27T10:55:00.892Z",
+      "issueLogId": "issue-log-5a3db6ff-b799-4ea7-8e97-ba520d1172f3"
+    },
+    {
+      "step": "task-review",
+      "reason": "Fixed task-review target scoping to reuse the task-gate scenario-validity evidence exclusion. The preserved preimplementation invalid_test result and raw log are no longer presented as current task implementation evidence, while product changes, spec-local tests, and other-spec evidence remain reviewable.",
+      "normalizedFindingId": "10918be2ffdcef56fda50a7a2095a5e5505baf3d063775d6c054acebdfa79bca",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": "T-6",
+      "timestamp": "2026-07-27T10:55:59.545Z",
+      "issueLogId": "issue-log-f47502b9-32cf-4b0a-9f74-a0244ceadd1b"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed active-spec generated and Flow lifecycle artifacts from task-review using the shared task-gate diff filters, and made the static-review/runtime-execution boundary explicit: task Test Strategy is fulfilled later by spec-level test-execute, not during task-review.",
+      "normalizedFindingId": "cbd43b0cda313f0d5ab3b22d84722c98552d710dffbe82cdd5939ababc4f3f0d",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": "T-6",
+      "timestamp": "2026-07-27T10:58:01.671Z",
+      "issueLogId": "issue-log-04f753c8-9ddd-4227-a2d4-8ee14b18dc10"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test-execute prerequisite failed before normal v2 artifact creation: R4: test name not found in specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js: R4: requirement verification",
+      "failureKind": "prerequisite",
+      "message": "R4: test name not found in specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js: R4: requirement verification",
+      "commandSource": null,
+      "commandCandidates": [],
+      "changedFileCount": 111,
+      "trigger": "senti flow run test-execute",
+      "resolution": "fix the prerequisite failure and rerun test-execute",
+      "taskId": null,
+      "timestamp": "2026-07-27T11:00:17.310Z",
+      "issueLogId": "issue-log-6a674d57-25f3-469f-84be-cc0700cf8b63"
+    },
+    {
+      "step": "test-execute",
+      "reason": "fix: renamed the two combined R4/R5 lifecycle tests to distinct R4 and R5 requirement-prefixed test names without changing their assertions.",
+      "resolution": "run-test-execute can now bind one executable test name to each requirement before starting the spec-local command.",
+      "taskId": null,
+      "timestamp": "2026-07-27T11:00:52.518Z",
+      "issueLogId": "issue-log-e9d014c9-4a02-4754-9dff-8ad411d1dc12"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R2] explicitly requires retry target validation to reject a missing, changed, or foreign recorded worktree, feature branch, base branch, and transaction identity before deletion. The mapped evidence covers changed/foreign cases in tests, but omits missing-target coverage, and the implementation conditionally skips authority assertions when the worktree or branch is already absent (`if (worktreeExists) assertWorktreeAuthority(...)`, `if (branchExists) assertFeatureAuthority(...)`) rather than showing a required missing-target rejection before deletion [EVIDENCE:R2] [TEST:R2].; [REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or no documentation changes if internals are unchanged. [EVIDENCE:R8] shows substantial flow-internal implementation changes in src/flow/lib/run-finalize-cleanup.js, src/flow/lib/run-finalize-sync.js, src/flow/registry.js, src/lib/dispatcher.js, and new src/flow/lib/finalize-flow-state-owner.js, but the mapped diff contains no generated documentation or analysis-output updates attributable to finalize-sync. [TEST-REVIEW] and [REGRESSION] do not supply finalize-sync documentation regeneration evidence, so the required integration is omitted.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T11:20:44.456Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "[REQ:R2] explicitly requires retry target validation to reject a missing, changed, or foreign recorded worktree, feature branch, base branch, and transaction identity before deletion. The mapped evidence covers changed/foreign cases in tests, but omits missing-target coverage, and the implementation conditionally skips authority assertions when the worktree or branch is already absent (`if (worktreeExists) assertWorktreeAuthority(...)`, `if (branchExists) assertFeatureAuthority(...)`) rather than showing a required missing-target rejection before deletion [EVIDENCE:R2] [TEST:R2].",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or no documentation changes if internals are unchanged. [EVIDENCE:R8] shows substantial flow-internal implementation changes in src/flow/lib/run-finalize-cleanup.js, src/flow/lib/run-finalize-sync.js, src/flow/registry.js, src/lib/dispatcher.js, and new src/flow/lib/finalize-flow-state-owner.js, but the mapped diff contains no generated documentation or analysis-output updates attributable to finalize-sync. [TEST-REVIEW] and [REGRESSION] do not supply finalize-sync documentation regeneration evidence, so the required integration is omitted.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "[REQ:R2] explicitly requires retry target validation to reject a missing, changed, or foreign recorded worktree, feature branch, base branch, and transaction identity before deletion. The mapped evidence covers changed/foreign cases in tests, but omits missing-target coverage, and the implementation conditionally skips authority assertions when the worktree or branch is already absent (`if (worktreeExists) assertWorktreeAuthority(...)`, `if (branchExists) assertFeatureAuthority(...)`) rather than showing a required missing-target rejection before deletion [EVIDENCE:R2] [TEST:R2]."
+        },
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or no documentation changes if internals are unchanged. [EVIDENCE:R8] shows substantial flow-internal implementation changes in src/flow/lib/run-finalize-cleanup.js, src/flow/lib/run-finalize-sync.js, src/flow/registry.js, src/lib/dispatcher.js, and new src/flow/lib/finalize-flow-state-owner.js, but the mapped diff contains no generated documentation or analysis-output updates attributable to finalize-sync. [TEST-REVIEW] and [REGRESSION] do not supply finalize-sync documentation regeneration evidence, so the required integration is omitted."
+        }
+      ],
+      "issueLogId": "issue-log-fb357ceb-5943-483c-971e-fc9e2d0f3d98"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: distinguish pre-deletion missing targets from checkpointed deletion recovery and respect later-step output ownership",
+      "resolution": "Missing worktree or branch authorities now fail before the journal changes unless the matching deletion checkpoint is already durable; R2 coverage includes both missing cases. Integration gate instructions now evaluate finalize-sync readiness without demanding generated output before finalize-sync runs.",
+      "taskId": null,
+      "timestamp": "2026-07-27T11:24:44.867Z",
+      "issueLogId": "issue-log-a7856c02-9f91-4036-8ad5-c06f74e0255d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or otherwise no documentation changes. The diff changes finalize flow internals substantially, including checkpoint/transaction behavior in src/flow/lib/run-finalize-cleanup.js, main-repository state ownership via new src/flow/lib/finalize-flow-state-owner.js, registry lifecycle routing in src/flow/registry.js, dispatcher post-cleanup metadata handling in src/lib/dispatcher.js, and finalize-sync execution wiring in src/flow/lib/run-finalize-sync.js. The provided diff/evidence contains no generated documentation updates attributable to finalize-sync, so the required documentation regeneration is omitted. Sources: [REQ:R8], [EVIDENCE:R8], Git Diff files src/flow/lib/run-finalize-cleanup.js, src/flow/lib/finalize-flow-state-owner.js, src/flow/registry.js, src/lib/dispatcher.js, src/flow/lib/run-finalize-sync.js.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T11:27:21.968Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R8",
+          "where": null,
+          "observed": "[REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or otherwise no documentation changes. The diff changes finalize flow internals substantially, including checkpoint/transaction behavior in src/flow/lib/run-finalize-cleanup.js, main-repository state ownership via new src/flow/lib/finalize-flow-state-owner.js, registry lifecycle routing in src/flow/registry.js, dispatcher post-cleanup metadata handling in src/lib/dispatcher.js, and finalize-sync execution wiring in src/flow/lib/run-finalize-sync.js. The provided diff/evidence contains no generated documentation updates attributable to finalize-sync, so the required documentation regeneration is omitted. Sources: [REQ:R8], [EVIDENCE:R8], Git Diff files src/flow/lib/run-finalize-cleanup.js, src/flow/lib/finalize-flow-state-owner.js, src/flow/registry.js, src/lib/dispatcher.js, src/flow/lib/run-finalize-sync.js.",
+          "severity": "blocking",
+          "refs": [
+            "R8"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R2"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "[REQ:R8] requires regenerated documentation through finalize-sync when documented flow internals change, or otherwise no documentation changes. The diff changes finalize flow internals substantially, including checkpoint/transaction behavior in src/flow/lib/run-finalize-cleanup.js, main-repository state ownership via new src/flow/lib/finalize-flow-state-owner.js, registry lifecycle routing in src/flow/registry.js, dispatcher post-cleanup metadata handling in src/lib/dispatcher.js, and finalize-sync execution wiring in src/flow/lib/run-finalize-sync.js. The provided diff/evidence contains no generated documentation updates attributable to finalize-sync, so the required documentation regeneration is omitted. Sources: [REQ:R8], [EVIDENCE:R8], Git Diff files src/flow/lib/run-finalize-cleanup.js, src/flow/lib/finalize-flow-state-owner.js, src/flow/registry.js, src/lib/dispatcher.js, src/flow/lib/run-finalize-sync.js."
+        }
+      ],
+      "issueLogId": "issue-log-171dd4c3-95a2-45af-9572-f3667e8582e5"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: define the R8 later-step evidence boundary",
+      "resolution": "Impl-gate now has authoritative spec context to verify finalize-sync configuration without requiring generated documentation before the later finalize-sync step executes; finalization retains ownership of the observable output.",
+      "taskId": null,
+      "timestamp": "2026-07-27T11:27:57.809Z",
+      "issueLogId": "issue-log-bb5636c2-79a5-4898-b784-d76e01b697e9"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/353-finalize-teardown-safety/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/acceptance-review.json",
+          "fingerprint": "e99e61bb22661e1b6e8c588bb5d0a90038f916486c3f8c57f335761b6ae3c589"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-coverage-repair.json",
+          "fingerprint": "8eb00d2cb8780d03c21f4f6795e1fc61bbf24282ea5f9aad8bb58ad2a891c2a9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-coverage-triage.json",
+          "fingerprint": "b8d5f90b8ff4e1cf47276437c47543d02233b10116b16a139b19f7102254ee60"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-questions-repair.json",
+          "fingerprint": "e4347e27e054722b44fd0f0031a5e515bab2b4a2b8ddde19e7b58b28261e85f9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-questions-triage.json",
+          "fingerprint": "4d1971a46e86c0a842bfb7525150fa4d9ca573edb752fd31f7050920f831a5ad"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-review-coverage.json",
+          "fingerprint": "357958912090eab7970f1384e80be659439f45823affb3c7826ba39fc25be0db"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-review-questions.json",
+          "fingerprint": "856d4f1a78daf2d9e34b60a032d359f393155bdc8ad241dc4a69c38650934a97"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft.json",
+          "fingerprint": "8d63131f17a179108c392f86d05a0c41feaaa9330e633fe042eaa617635f9ba5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/file-map.json",
+          "fingerprint": "d4c7404c5446d33a09e5444f80c29670a9f71fd8210e9f8852b6f3d135dffe02"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/flow-findings.json",
+          "fingerprint": "f1b516a6cc77d804cd0768c1e8d37e4db5bb701e9127749bedc6fceea8ee6e4a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-gate-result.json",
+          "fingerprint": "4646e8f839f71d0d0634d4ec49ca09d3825f7aa9560f242c6cea4823a4251705"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-repair.json",
+          "fingerprint": "feb55900dd00a936d333d469a84ef725c97c335fa7d48d5d2abef8f2a1d95cd3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-review.json",
+          "fingerprint": "2447f3c6ebf4184bd808522503458da7b03b141494d2c3c250f8274d0fa00f69"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-triage.json",
+          "fingerprint": "dbb7dcab57d812f1a6a89df4daa1bc9fdc9fa220ebbafcd25935ed97c72035c3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "53e4381bf67896c0f334e54a6bb248d259f49b5ef9198c1beadb7c2f849baeec"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-001.json",
+          "fingerprint": "ed92a40431998129703977e33c59cf74799d448cdceddb96f94a9f2a28665a16"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-fingerprint.json",
+          "fingerprint": "9e438376609c72c7680f23068312827b4ccb98719d88a2d65e327181d0595535"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/retro.json",
+          "fingerprint": "a12980baf311a47eb58e41719446e07566c5558f0d91fe73c227066d4fa0d3f8"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/retry-recovery.json",
+          "fingerprint": "0c0dc9123e29f96f64d39c08666437bce83769e28a9680a06f0c09961bac80e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/04742d84de85f00c54751b43ffb90e46f75dc3fe52ce189c64bebf3cf0521d76.json",
+          "fingerprint": "d561e2def98cd7fa8c7275bcb22970e3037643e83a5d3d42685e2545e5b8e1fb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/13328656a522aa1f00a7b1e054c4c31f9e0dc76324b7ad26dd125d9d1b5c9754.json",
+          "fingerprint": "d2754cd8cb2fa1ad137246068d3ea49f51597da58a83a5fa3794cf79fa2602b2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/1486290a7435f4783c4ec7d0e2fddcebbae4c99333d15bf49175ceda9e5c754f.json",
+          "fingerprint": "a9c10903e88c6ac056961996f48782814fe362c55db55591eb973828f074e47b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/1492713416cbc1c360146a6edc4691704f16361c95f1f76b840ca24e85107578.json",
+          "fingerprint": "02c3c987354b1d49e29f736c09d5cdaddf96d18457ed079c4df922d7903ca24b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/2684ef7d80b3e048d7e062f835d11782d8bb0cd2e74493df374d1532301713e1.json",
+          "fingerprint": "29c9b3d3224e653d6d67d5c1f52f95942372aa8f6e52d8398ac0d338861e8c7a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/34fa3a47fc398ab234e086d10e80082093d00b5929f81c63861b1f452128df31.json",
+          "fingerprint": "5515151af877bc70a5326a78bd3c988b0b03cdaf1934bb70221a8d92425b1526"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/3aacf288c1c5aab509cff8cd5ec6650f82b61b6ca1aa182a6f67d05b68eaab37.json",
+          "fingerprint": "8321fc1a33982216d10678703fd1aedfe56401a5013d2c3eff4f2fe97a7f89d8"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/4cc5760570d6bc26e29053260b5c395af89eaae7fd25567ce7e336632942fb76.json",
+          "fingerprint": "e53fe254acbfe9c0a818139af406dacea687eddc8a73bfa209b630e7691c5b93"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/508a5243fdb77e3b8b47f2a8c8e483f0247929c226e2deed7eca302ea2e6e644.json",
+          "fingerprint": "3b68d7b911ddde44b7a76d5480abd2480a4c019a497ed520d29fbb1edfb7721c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/531dbfe40ee05a45a1f295b6622a015bbf7acfc65131d1cffdc1ad50b628deda.json",
+          "fingerprint": "145153b76487081d9d7a53f1ec7296f03b73165539986b7e472bd166e7afc3fa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/689ed16b36887f4a06ffa05233000abbc6f442c7917dc67ef435a84ae84c5a06.json",
+          "fingerprint": "183dc4c5407f7460f8ef85434e5810ea14d481f8e2cd56391d134e0512f8c2ef"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/6ae618c13fe80c4aa2e784c15542425b52323e81fd0a7001eaa2d2c251cd293c.json",
+          "fingerprint": "1de725979b3daac026a361932f419052d6fc51ffe495d3f6a283e2dc0b7ec822"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/7b2c29b2175f6269f0c531b2cae326f358dad5aece48bdab53f5a46e16713f2e.json",
+          "fingerprint": "36ef20130447cd753f987d2e463ad5e1acaa46ac0fb528fe35ec466e8c8948a0"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/7ef11c8ad1325ce443095cb245db7664b2ccb8310198abd1e2314d4b19907f74.json",
+          "fingerprint": "ba42750ced934ebe8677789336542f7f665a99c29b399c4c9b4c0b903558c1c9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/86be2dd890514cb26dec5a2645e90afcd3d84c3e10c356f9c83f1b70970d71e3.json",
+          "fingerprint": "20351fc7fa5d8a703b2103649208bee692b3c6e1187e909a6f7da55b3f32c828"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/9472fa44eb03b0129e45ebd88c70cbd9a636417b28a7c95a63cf9500988c1836.json",
+          "fingerprint": "59d73b1274f7f97f6266b394cf3084cb76e13fd5e7b49c3e2b2cbc97a67ec184"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/9e7949eab6a795514b18911265fa4a1cc213ef11bf1e0c083f79bf482e64d65a.json",
+          "fingerprint": "8c66221383d3e03d1540e38f090db0d8a4375fd30fdd52c24cd8ca776e36c9d5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/a08bac679ca39733059bc06890032d5eb7ba786c3b4ddd5258d30a81fc8596d7.json",
+          "fingerprint": "6549b96e1e197ab49f2f0e7bb2346b422374a3414eaae31f2a6759ad0a72a4fd"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/b009fe2de25404e282091a345bedc181c0fc6c4a575851c2bd6c77ff7dd114bc.json",
+          "fingerprint": "0e66fb22aafcc397c30a772d6e7f6740150559ca1eee461bfe93463a30760fd9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/b2055378819658df8f685598d9c4f47a3c80c72356cf330e1eb7c9cf5d894c31.json",
+          "fingerprint": "edfdf4abdc365828ce0da91d98243aec972aa62a555a3c1b88426aa2fc2ff616"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e1d031f58988149568c0e593a65af30cae83300b9e60f9a271a88713ddfe25bd.json",
+          "fingerprint": "14456f7915829986affc54dbfb7fe2621dc437e4c27f3649ff0e13ed4daa560c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e90200123c1ab9ea884c525daae667eec205cbc8496d9c5729ee97dd293ff823.json",
+          "fingerprint": "176670e5d259794d9427b23dcade606a8b45b151588ff4e115d212fd8472e9cf"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e947e55540fbf3fa6a52ed03f348da310f1b0509673db29f24dd73953c6cc657.json",
+          "fingerprint": "359d968cc6ee2a83a645641fdb123ab34f0444b251ac282964ac6530764e502a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/ececc746d50160e47a38dc2d1d42e3f2951803073b4cab461770559fa46795a9.json",
+          "fingerprint": "0b9835e863b6ef35126120a359408e0f330c9baee2f1a844407d357084743aaa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "782a29ff640dd4161a2cae89615ad944e576b8b3e673f1364c7da0461aafdfb9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "64b608468b276862da77f55cc9b9f7ed0fc3826d1c9adbc9c6c6f289b1d1fffd"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.json",
+          "fingerprint": "71969300ad5ae99b55d1103efb247cd43c7b163e099dffdf41ed2a7b5c44b484"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.md",
+          "fingerprint": "637b780b65d0ee12ca2f09419f39c147652c8d157cf4e79b8228a3435199ec8a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.json",
+          "fingerprint": "734566083d17d1c56ca98266f4e98048a3518688e50f5d137f398765230f271c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.md",
+          "fingerprint": "5d672a06928344ed1857c3594e3db760ee04f88297da4ffb70cb2fb23d9345b0"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.json",
+          "fingerprint": "45f2078559c89835df6874d21bba5f55e8929330b531fe176ff79f73cda3d8fa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.md",
+          "fingerprint": "c36a38a65a26253190ec50c097902ee460fe6aa8959f8888c67c2b17c2149756"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.json",
+          "fingerprint": "671eeb6e70d7d33ff77d1940f29ae9d99c38f2fafb1f683343849395b82c8695"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.md",
+          "fingerprint": "bceb3f252eba4446694896d8b5fc1a6a75f41aa35df6a0437bee090173d1da27"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.json",
+          "fingerprint": "736a4a8dc07b9f64d0b6a195dc0efefcb5489a5bd6c6974d488d69faa7283297"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.md",
+          "fingerprint": "27267361d33c37bdb83742c0e88850cad0e6318f652ac109d4b41fa50fccdd50"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.json",
+          "fingerprint": "2d156e6cbd2da09ed2105bbc3d3eda032daa663b2fe6f57088350bcd6bd08f6e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.json",
+          "fingerprint": "fc3aa812ef99356872055362e5d473be851d2dc8c0f6c52c56e27de6a3ad6d32"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.json",
+          "fingerprint": "4d7a338ea04ee598e1e85dc23706f2f861980f73d4dbd0caaad775d7d4ee4d04"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.md",
+          "fingerprint": "f79167eeb10b9de66b87634491cba8ef77130532c39e02a117847c51daf612a3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.json",
+          "fingerprint": "540172da741a2ae24af4af5182c9847514b9449f9551d68582b26dd6f41d4d3b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.md",
+          "fingerprint": "94609b02bcd407371f8aad13dcca538fcc06ea6a0e015c75a7f358d0548ce156"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.json",
+          "fingerprint": "5b316e97f2bacb53dbe0aa464134616b1a61094469451a061d91296d5563c4dc"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.md",
+          "fingerprint": "baa8d7cff81529cfc6fc512340bfc6dc2e7625528d1bebb1835438c26a7796c3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.json",
+          "fingerprint": "7d7ebb49aa6b4ccc0f7566f27963f8060cc576346f4cec1e89db74d113a0a41f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.json",
+          "fingerprint": "c5504516a83d547c3fa3a414ffb49aac39781c763d13fdd50013cace9ced3030"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.md",
+          "fingerprint": "df7085f963474edf9bc48ab4b46f0c82bf423df0696d7564b90135cf9276fa77"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.json",
+          "fingerprint": "1999abe98bd6094bd9d911dab9760da5c4b19f072534237a1a875113e2bf5b54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.md",
+          "fingerprint": "d39a2d8fa7327791044b4f5dffd40fff35c736bc5ad75bc623bc574a6321343c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.json",
+          "fingerprint": "f77b4bc5704e8ae1fe1c9b932d9b9808f52fece76537de10bfe88524c6206439"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.md",
+          "fingerprint": "59f88ac5c0d95d4eccfef73cbc970ba3c2064d6873e01b17d2fec9eedc0c47bc"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.json",
+          "fingerprint": "8ee5fb74f383b9e59c543d730f7ff7ba0cca97600868cfd1c8e65a835c8e3051"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.json",
+          "fingerprint": "105e943fcb8163a99dfa193819b01385b8e5907dde5c7e6fd2fbe89dd6a81aea"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.md",
+          "fingerprint": "6ae60b0eaebf6b595c9662ab7d95e89d150712e9454364b793b3d96a964ff8b4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.json",
+          "fingerprint": "e8edb9c4e5846b79cbca6cca9b6a0ef05352f96e96c897c4e5edca1a5e83c5d3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.md",
+          "fingerprint": "41472692282731dc46f17154b089cf260d686557a7c7fce17a21e7f9057c312d"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.json",
+          "fingerprint": "08dba62001c1de57907ede1aac84da02112d8dfc380fc918e54d194d2e2071af"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.md",
+          "fingerprint": "98d30c86484a7d51c858ab25daa959db32c9c8c179a78e52789bc3528dc8e5e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.json",
+          "fingerprint": "b26567e3ac211853907ad6b02b3846694871ad59c2e4ca01b8316da55f8eafb4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.md",
+          "fingerprint": "ad9f4d8b772464a72f7a3230b5d7c38c200a485c2aa0f67b2839047d02b32315"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.json",
+          "fingerprint": "0fc0e73b9e8eacd73fefce230b40a9203da222125ff2ded564411324b23d5550"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.md",
+          "fingerprint": "ea72c7a85188b17eb6e9ee4a782baf8c5d0dbf8fd4b0acd75ad908875d1f7e2d"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.json",
+          "fingerprint": "63cdd967c4c7f7913137407831ef29ddc28008503a9e91cf47f895a12d3fac8e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.md",
+          "fingerprint": "223fd3044bad134912aa662d383a7c64153cc43d065e9cf5e2f91ad03e5c4dae"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.json",
+          "fingerprint": "6f0abf3e39aa118e7c205cd0a0f93725cd007f01b3f21e1e9ce3b69270a971e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.json",
+          "fingerprint": "c61017e15a91397710f1ebbd8b7aae735e112354e67156d01cedf03c8d4239cb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "16a03b551b181bb94707dade09befc6b1eed7123ed0ca73b45667e4900c5b548"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "3c6d9b6a28ce31eb5cbbd99a34845e42df6e4c166fc1ee56ba586120ae444ed6"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "c5e71562c9c9ac396b34ec71e11e12ad0f166f4bf2803a411a354c05bc534fa2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "f51479a4303a73959a376cd833c4a37b317a13efc6f263bcd568f0c1e8125456"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "add214c07bf3253892d8dbf849dc0ec8053a1becae53d64e01813b9258b3caa7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "2cb8293bd4f087ac3310ff7510d027439fba03f350805a1deca8a8589de60606"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "3566078b95d4bc50c04fc9aee094e755f50fe9de301dbf7b9d11a6dae17e6842"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "81f7d48659919ec941dfa3faa9a38e5ec20444789d661295ed09d5dfc9a9fe0c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "ab329f20fa9d42bc8b35a31815f59cc00e1fe4cb107ff259ddb37b4b1138676f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/6950db8fc8eeba4003fe9022.json",
+          "fingerprint": "81b0e8c05aca8724cc7da10f74cb43bbfb463866a45df413aa508e1bd9474a33"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "ff7df07b502cd500ae5e1e49df846bad84c6a6b6d3838c19aa5b322601273448"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "7abe30894b4b025792695f5b5ddf35739b85ae63e7333447afa8a6995cca0fae"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "a556c524d42ccbcb97a49e57a1e7ddfc2d5cdd8b22641254eb6571d8f67a333c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "daabd3269178e2f61c344d3cbdcf3433534ca80c6a5919b3633afd4cb54f4e64"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "dbccfb89b891646bdd0bd2461f39312782b193ac92b8f0a52aef9b7dbbaffc1c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/fe7fd3fdf5f7326896487f06.json",
+          "fingerprint": "c67629b65ff8f9fc1766aa1553396ba64cb749364f1245c7dffd051661c6ce40"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review.md",
+          "fingerprint": "223fd3044bad134912aa662d383a7c64153cc43d065e9cf5e2f91ad03e5c4dae"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/scenario-validity-result.json",
+          "fingerprint": "c63954f709cb06456cd7c065e07990710b2e26da0450f0317e5fac08cb523f8e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-gate-source.json",
+          "fingerprint": "11962cc557493241749d54786f05994ea8eed2dfa726a0b28d4fdf74b2fbb4b1"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-review.json",
+          "fingerprint": "c238812c3cee81834d9608475db2354fc004a61b58845c44eaf53b76f007143b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.json",
+          "fingerprint": "93f9748b8941e8f7771cbf1b308a3671c3d6b3543e63d9534b383728443ffe54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.json",
+          "fingerprint": "93f9748b8941e8f7771cbf1b308a3671c3d6b3543e63d9534b383728443ffe54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.md",
+          "fingerprint": "e37c578744fb573baa723571674a492a0646b43096f47ca934da26c7d002dfdb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.md",
+          "fingerprint": "e37c578744fb573baa723571674a492a0646b43096f47ca934da26c7d002dfdb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/task-impl-gate-source.json",
+          "fingerprint": "c9e83c84e4dcbfc5d774efb170b60eed0fe458c905e4212d3204b7cc83aaf095"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-1.md",
+          "fingerprint": "1e1deff7145fc7865e869b4de9f385ab6522225ea67811178e0d2e48c6da45d9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-2.md",
+          "fingerprint": "f13ea053790b45496ed13a24cd36834ebe41e239239fcaca99d3f1d106d2e894"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-3.md",
+          "fingerprint": "a3d6b8a7d338737bd4b331a1479bc4851faf0794116a33a3a73e2defb2811a14"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-4.md",
+          "fingerprint": "b0e7d3ca3b6373e8ef72af0e87163a773d57d2d6e04d083f2734db7eadc50c19"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-5.md",
+          "fingerprint": "12ae8fd0612ce1acdf800bcd74e9d363006be2e0abbd1c6ba898c10622041262"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-6.md",
+          "fingerprint": "0d853318bef12560c2307b80963337f5f8e370dc97962f5bfecf7875cedb012f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-execute-result.json",
+          "fingerprint": "71a9c8d64d3be9d46346e924700a0ec6813e6acbb8ac7ccf968e4b6e723685a5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-result-review.json",
+          "fingerprint": "53348cbda54665c52a60e15629173c922e9b07b66278d9e1fc49f8b6177835b0"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-result-review.md",
+          "fingerprint": "0c390b78085dcda74f696b211912cd43f3ef505540cf76644c3d976c29e873f4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+          "fingerprint": "499fe237ad2a7b9c5aa8972ba0804a276b4e9c5213531cec9ca5a6735cbe41f9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/.raw/test-execution.log",
+          "fingerprint": "a3485c5c8a8579a179b939508a09fcb861676e792ff876ab1f7aa85f09564718"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+          "fingerprint": "9bec6d86c9b85b6f36fcf3d4875472e93522893f05b7ba8c2b5eb99119953b71"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+          "fingerprint": "9bec6d86c9b85b6f36fcf3d4875472e93522893f05b7ba8c2b5eb99119953b71"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "75bb68aad64e0a9c367a3f4c8914e62ed558d8ed86bca418637157b6a2a0c1ef"
+        },
+        {
+          "path": "src/flow/lib/finalize-cleanup-state.js",
+          "fingerprint": "2df7c657febcd3c5d700be8bc00beaadf29bfea81f717246381345caf9928c89"
+        },
+        {
+          "path": "src/flow/lib/finalize-flow-state-owner.js",
+          "fingerprint": "5179e06001872a182a9a29616858222a43f60d78a57df391facc7e96ffe09d25"
+        },
+        {
+          "path": "src/flow/lib/flow-context.js",
+          "fingerprint": "8b2cf430d47d564c784791329b0e94cd009f39a4c7d3c33a118cd13f6e49f016"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-cleanup.js",
+          "fingerprint": "988a8db0461e85b6e1a65f1593ebc376dc52cbaf5cf6a9b98b33cb460d439bf5"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-sync.js",
+          "fingerprint": "ef54f003514ad62f0511d8daa60032f7c8cf2955447b69e8909321aaa17e5529"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "b57f8ba4105edc547f5129580988cb0b95e7909d7bc3f1e7a0905aa5de0a9de3"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "537a4a29117ef20866c2c52f6244bcb868b4076a6d7f36ff1ebfe6d8d4c5ba6a"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "bb3ca61e5758cd7c6d3507312f541fed199f6bcc246f0f662a8a19858b0928df"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "a5d895e45f9338111ec670ee78765e3fa15bbaf325b9f71e90875d60016e540e"
+        }
+      ],
+      "rawOutputPath": "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-001.log",
+      "fixAttempts": 0,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "fix-and-rerun",
+      "timestamp": "2026-07-27T11:44:17.670Z",
+      "issueLogId": "issue-log-3ba9c958-f386-44a6-86e2-b1257ce18129"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: preserve the bound worktree path after authority handoff",
+      "resolution": "Finalize cleanup now uses WorktreeFlowProvenance for the recorded managed-worktree path instead of deriving a path from the feature branch after main becomes state authority; the R5 cleanup envelope and all 27 spec-local tests pass.",
+      "taskId": null,
+      "timestamp": "2026-07-27T11:54:21.470Z",
+      "issueLogId": "issue-log-c49dbf5c-10ce-4e5b-a43d-277a1d898f42"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.; Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.; Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-27T11:57:49.965Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "activeFlowIsCleared"
+          },
+          "observed": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "clearActiveFlowBoundary"
+          },
+          "observed": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-finalize-cleanup.js",
+            "locator": "runSpecOnlyCompletion"
+          },
+          "observed": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Introduces the repeated state-owner fallback shape `ctx.finalizeFlowStateOwner || FinalizeFlowStateOwner.forMainContext({ ...ctx, specId })`; the same production decision appears in multiple changed locations and could be centralized without changing ownership."
+        }
+      ],
+      "issueLogId": "issue-log-f79061d0-e2ed-492c-8a12-bb9a938ced6b"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: centralize finalize owner selection and authorize only snapshotted flow metadata residue",
+      "resolution": "FinalizeFlowStateOwner.forMainContext now reuses and validates the bound owner for every caller. Cleanup force-removes a worktree only when its sole root dirtiness is the exact flow.json snapshot captured at cleanup start; unrelated changes and dirty submodules remain blocking. The transaction suite passes 74/74 and spec-local suite passes 27/27.",
+      "taskId": null,
+      "timestamp": "2026-07-27T12:06:25.853Z",
+      "issueLogId": "issue-log-e780662e-f0ef-4991-b1f5-763e3d7bfbac"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "failureCategory": "existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "node tests/run.js",
+      "commandIdentity": {
+        "command": "node tests/run.js",
+        "commandSource": "config",
+        "argv": [
+          "node",
+          "tests/run.js"
+        ],
+        "env": {},
+        "source": "config",
+        "metadata": {},
+        "resolvedScriptDigest": null,
+        "resolvedConfigDigest": null
+      },
+      "changedFileFingerprints": [
+        {
+          "path": "specs/353-finalize-teardown-safety/.retry-recovery.transaction.json",
+          "fingerprint": "30ab8a875e49513ec429db877e68b55abbed6a59ea57ef875828230ecf582816"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/acceptance-review.json",
+          "fingerprint": "4e3f1cfb4bc1dd31aef95937e97ae0ed4eeeef1582cb051fef6dfffecae5b4ec"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-coverage-repair.json",
+          "fingerprint": "8eb00d2cb8780d03c21f4f6795e1fc61bbf24282ea5f9aad8bb58ad2a891c2a9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-coverage-triage.json",
+          "fingerprint": "b8d5f90b8ff4e1cf47276437c47543d02233b10116b16a139b19f7102254ee60"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-questions-repair.json",
+          "fingerprint": "e4347e27e054722b44fd0f0031a5e515bab2b4a2b8ddde19e7b58b28261e85f9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-questions-triage.json",
+          "fingerprint": "4d1971a46e86c0a842bfb7525150fa4d9ca573edb752fd31f7050920f831a5ad"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-review-coverage.json",
+          "fingerprint": "357958912090eab7970f1384e80be659439f45823affb3c7826ba39fc25be0db"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft-review-questions.json",
+          "fingerprint": "856d4f1a78daf2d9e34b60a032d359f393155bdc8ad241dc4a69c38650934a97"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/draft.json",
+          "fingerprint": "8d63131f17a179108c392f86d05a0c41feaaa9330e633fe042eaa617635f9ba5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/file-map.json",
+          "fingerprint": "d4c7404c5446d33a09e5444f80c29670a9f71fd8210e9f8852b6f3d135dffe02"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/flow-findings.json",
+          "fingerprint": "f1b516a6cc77d804cd0768c1e8d37e4db5bb701e9127749bedc6fceea8ee6e4a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-gate-result.json",
+          "fingerprint": "4d8ac35f24adfbe9550b2ce858da7ff7cf4ef8d241407c9516d5f05eb63a4d14"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-repair.json",
+          "fingerprint": "92177909e480b3ffed8a9bfe571e6cc57a3ac08e02b43d15cc021502a8a0fa40"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-review.json",
+          "fingerprint": "4d00d18abb99ca4b59f0b3df4cf0a513d8e19f1e8853dc33c08a30d7fad10eab"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/impl-triage.json",
+          "fingerprint": "74d8c67ec7ed7cead5ca80cff3aed424854970d9975c277e5d4546c16d2d217c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+          "fingerprint": "53e4381bf67896c0f334e54a6bb248d259f49b5ef9198c1beadb7c2f849baeec"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-001.json",
+          "fingerprint": "ed92a40431998129703977e33c59cf74799d448cdceddb96f94a9f2a28665a16"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-002.json",
+          "fingerprint": "d954c15e30fc6703a991518a5c353488042edc9ea81842ce2f81067401474500"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-003.json",
+          "fingerprint": "1b86bef6a6cc6c6487639a10699ce031f95d2b46e4c3d4f4198ace768bcac7a5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-004.json",
+          "fingerprint": "a96c31d7936d532cb0010a04b89d47dd14a015673658d83bea66adb935e5d809"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/repair-fingerprint.json",
+          "fingerprint": "4d7ec0f11d25ee2f2f0001631ad11f211f62bf669e20545e04c3159042e34829"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/retro.json",
+          "fingerprint": "c630a015d6ea39d94ca10538be8cd43965d694c08ba0ccdc41ef7b402cc9e4e2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/retry-recovery.json",
+          "fingerprint": "0c0dc9123e29f96f64d39c08666437bce83769e28a9680a06f0c09961bac80e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/04742d84de85f00c54751b43ffb90e46f75dc3fe52ce189c64bebf3cf0521d76.json",
+          "fingerprint": "d561e2def98cd7fa8c7275bcb22970e3037643e83a5d3d42685e2545e5b8e1fb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/081127c41f7d93db8c8835bb5bd422a3f9a042bd0cbed9b0cc406b69e3a6a771.json",
+          "fingerprint": "01aa45cd8718d20207a2392948425a99529a6f7b452c188dbde4ead3926b6bd4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/13328656a522aa1f00a7b1e054c4c31f9e0dc76324b7ad26dd125d9d1b5c9754.json",
+          "fingerprint": "d2754cd8cb2fa1ad137246068d3ea49f51597da58a83a5fa3794cf79fa2602b2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/1486290a7435f4783c4ec7d0e2fddcebbae4c99333d15bf49175ceda9e5c754f.json",
+          "fingerprint": "a9c10903e88c6ac056961996f48782814fe362c55db55591eb973828f074e47b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/1492713416cbc1c360146a6edc4691704f16361c95f1f76b840ca24e85107578.json",
+          "fingerprint": "02c3c987354b1d49e29f736c09d5cdaddf96d18457ed079c4df922d7903ca24b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/2684ef7d80b3e048d7e062f835d11782d8bb0cd2e74493df374d1532301713e1.json",
+          "fingerprint": "29c9b3d3224e653d6d67d5c1f52f95942372aa8f6e52d8398ac0d338861e8c7a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/34fa3a47fc398ab234e086d10e80082093d00b5929f81c63861b1f452128df31.json",
+          "fingerprint": "5515151af877bc70a5326a78bd3c988b0b03cdaf1934bb70221a8d92425b1526"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/3aacf288c1c5aab509cff8cd5ec6650f82b61b6ca1aa182a6f67d05b68eaab37.json",
+          "fingerprint": "8321fc1a33982216d10678703fd1aedfe56401a5013d2c3eff4f2fe97a7f89d8"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/451856f4de0d600a62dea595c2fc1bacae7098364b2f27be3db3aaee59a460ad.json",
+          "fingerprint": "1be8b7364589298de18981e4174df3218538e071971da841be1be1855018372f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/4cc5760570d6bc26e29053260b5c395af89eaae7fd25567ce7e336632942fb76.json",
+          "fingerprint": "e53fe254acbfe9c0a818139af406dacea687eddc8a73bfa209b630e7691c5b93"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/508a5243fdb77e3b8b47f2a8c8e483f0247929c226e2deed7eca302ea2e6e644.json",
+          "fingerprint": "3b68d7b911ddde44b7a76d5480abd2480a4c019a497ed520d29fbb1edfb7721c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/531dbfe40ee05a45a1f295b6622a015bbf7acfc65131d1cffdc1ad50b628deda.json",
+          "fingerprint": "145153b76487081d9d7a53f1ec7296f03b73165539986b7e472bd166e7afc3fa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/689ed16b36887f4a06ffa05233000abbc6f442c7917dc67ef435a84ae84c5a06.json",
+          "fingerprint": "183dc4c5407f7460f8ef85434e5810ea14d481f8e2cd56391d134e0512f8c2ef"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/6ae618c13fe80c4aa2e784c15542425b52323e81fd0a7001eaa2d2c251cd293c.json",
+          "fingerprint": "1de725979b3daac026a361932f419052d6fc51ffe495d3f6a283e2dc0b7ec822"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/7b2c29b2175f6269f0c531b2cae326f358dad5aece48bdab53f5a46e16713f2e.json",
+          "fingerprint": "36ef20130447cd753f987d2e463ad5e1acaa46ac0fb528fe35ec466e8c8948a0"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/7ef11c8ad1325ce443095cb245db7664b2ccb8310198abd1e2314d4b19907f74.json",
+          "fingerprint": "ba42750ced934ebe8677789336542f7f665a99c29b399c4c9b4c0b903558c1c9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/86be2dd890514cb26dec5a2645e90afcd3d84c3e10c356f9c83f1b70970d71e3.json",
+          "fingerprint": "20351fc7fa5d8a703b2103649208bee692b3c6e1187e909a6f7da55b3f32c828"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/9472fa44eb03b0129e45ebd88c70cbd9a636417b28a7c95a63cf9500988c1836.json",
+          "fingerprint": "59d73b1274f7f97f6266b394cf3084cb76e13fd5e7b49c3e2b2cbc97a67ec184"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/9e7949eab6a795514b18911265fa4a1cc213ef11bf1e0c083f79bf482e64d65a.json",
+          "fingerprint": "8c66221383d3e03d1540e38f090db0d8a4375fd30fdd52c24cd8ca776e36c9d5"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/a08bac679ca39733059bc06890032d5eb7ba786c3b4ddd5258d30a81fc8596d7.json",
+          "fingerprint": "6549b96e1e197ab49f2f0e7bb2346b422374a3414eaae31f2a6759ad0a72a4fd"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/b009fe2de25404e282091a345bedc181c0fc6c4a575851c2bd6c77ff7dd114bc.json",
+          "fingerprint": "0e66fb22aafcc397c30a772d6e7f6740150559ca1eee461bfe93463a30760fd9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/b2055378819658df8f685598d9c4f47a3c80c72356cf330e1eb7c9cf5d894c31.json",
+          "fingerprint": "edfdf4abdc365828ce0da91d98243aec972aa62a555a3c1b88426aa2fc2ff616"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/b6c38804dc9c998581d95e0081f93e622ec519f99179739db3dfba70d087a234.json",
+          "fingerprint": "b39698d3fd6788a9698f1273353277fc3cf0a76bcbfeab9e90eb473871220c7f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e1d031f58988149568c0e593a65af30cae83300b9e60f9a271a88713ddfe25bd.json",
+          "fingerprint": "14456f7915829986affc54dbfb7fe2621dc437e4c27f3649ff0e13ed4daa560c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e90200123c1ab9ea884c525daae667eec205cbc8496d9c5729ee97dd293ff823.json",
+          "fingerprint": "176670e5d259794d9427b23dcade606a8b45b151588ff4e115d212fd8472e9cf"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/e947e55540fbf3fa6a52ed03f348da310f1b0509673db29f24dd73953c6cc657.json",
+          "fingerprint": "359d968cc6ee2a83a645641fdb123ab34f0444b251ac282964ac6530764e502a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-evidence/ececc746d50160e47a38dc2d1d42e3f2951803073b4cab461770559fa46795a9.json",
+          "fingerprint": "0b9835e863b6ef35126120a359408e0f330c9baee2f1a844407d357084743aaa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/draft-coverage-attempt-001.json",
+          "fingerprint": "782a29ff640dd4161a2cae89615ad944e576b8b3e673f1364c7da0461aafdfb9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/draft-questions-attempt-001.json",
+          "fingerprint": "64b608468b276862da77f55cc9b9f7ed0fc3826d1c9adbc9c6c6f289b1d1fffd"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.json",
+          "fingerprint": "71969300ad5ae99b55d1103efb247cd43c7b163e099dffdf41ed2a7b5c44b484"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.md",
+          "fingerprint": "637b780b65d0ee12ca2f09419f39c147652c8d157cf4e79b8228a3435199ec8a"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.json",
+          "fingerprint": "734566083d17d1c56ca98266f4e98048a3518688e50f5d137f398765230f271c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.md",
+          "fingerprint": "5d672a06928344ed1857c3594e3db760ee04f88297da4ffb70cb2fb23d9345b0"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.json",
+          "fingerprint": "45f2078559c89835df6874d21bba5f55e8929330b531fe176ff79f73cda3d8fa"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.md",
+          "fingerprint": "c36a38a65a26253190ec50c097902ee460fe6aa8959f8888c67c2b17c2149756"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.json",
+          "fingerprint": "671eeb6e70d7d33ff77d1940f29ae9d99c38f2fafb1f683343849395b82c8695"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.md",
+          "fingerprint": "bceb3f252eba4446694896d8b5fc1a6a75f41aa35df6a0437bee090173d1da27"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.json",
+          "fingerprint": "736a4a8dc07b9f64d0b6a195dc0efefcb5489a5bd6c6974d488d69faa7283297"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.md",
+          "fingerprint": "27267361d33c37bdb83742c0e88850cad0e6318f652ac109d4b41fa50fccdd50"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.json",
+          "fingerprint": "2d156e6cbd2da09ed2105bbc3d3eda032daa663b2fe6f57088350bcd6bd08f6e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.json",
+          "fingerprint": "fc3aa812ef99356872055362e5d473be851d2dc8c0f6c52c56e27de6a3ad6d32"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.json",
+          "fingerprint": "4d7a338ea04ee598e1e85dc23706f2f861980f73d4dbd0caaad775d7d4ee4d04"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.md",
+          "fingerprint": "f79167eeb10b9de66b87634491cba8ef77130532c39e02a117847c51daf612a3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.json",
+          "fingerprint": "540172da741a2ae24af4af5182c9847514b9449f9551d68582b26dd6f41d4d3b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.md",
+          "fingerprint": "94609b02bcd407371f8aad13dcca538fcc06ea6a0e015c75a7f358d0548ce156"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.json",
+          "fingerprint": "5b316e97f2bacb53dbe0aa464134616b1a61094469451a061d91296d5563c4dc"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.md",
+          "fingerprint": "baa8d7cff81529cfc6fc512340bfc6dc2e7625528d1bebb1835438c26a7796c3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.json",
+          "fingerprint": "7d7ebb49aa6b4ccc0f7566f27963f8060cc576346f4cec1e89db74d113a0a41f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.json",
+          "fingerprint": "c5504516a83d547c3fa3a414ffb49aac39781c763d13fdd50013cace9ced3030"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.md",
+          "fingerprint": "df7085f963474edf9bc48ab4b46f0c82bf423df0696d7564b90135cf9276fa77"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.json",
+          "fingerprint": "1999abe98bd6094bd9d911dab9760da5c4b19f072534237a1a875113e2bf5b54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.md",
+          "fingerprint": "d39a2d8fa7327791044b4f5dffd40fff35c736bc5ad75bc623bc574a6321343c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.json",
+          "fingerprint": "f77b4bc5704e8ae1fe1c9b932d9b9808f52fece76537de10bfe88524c6206439"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.md",
+          "fingerprint": "59f88ac5c0d95d4eccfef73cbc970ba3c2064d6873e01b17d2fec9eedc0c47bc"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.json",
+          "fingerprint": "8ee5fb74f383b9e59c543d730f7ff7ba0cca97600868cfd1c8e65a835c8e3051"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.md",
+          "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.json",
+          "fingerprint": "105e943fcb8163a99dfa193819b01385b8e5907dde5c7e6fd2fbe89dd6a81aea"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.md",
+          "fingerprint": "6ae60b0eaebf6b595c9662ab7d95e89d150712e9454364b793b3d96a964ff8b4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.json",
+          "fingerprint": "e8edb9c4e5846b79cbca6cca9b6a0ef05352f96e96c897c4e5edca1a5e83c5d3"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.md",
+          "fingerprint": "41472692282731dc46f17154b089cf260d686557a7c7fce17a21e7f9057c312d"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.json",
+          "fingerprint": "08dba62001c1de57907ede1aac84da02112d8dfc380fc918e54d194d2e2071af"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.md",
+          "fingerprint": "98d30c86484a7d51c858ab25daa959db32c9c8c179a78e52789bc3528dc8e5e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.json",
+          "fingerprint": "b26567e3ac211853907ad6b02b3846694871ad59c2e4ca01b8316da55f8eafb4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.md",
+          "fingerprint": "ad9f4d8b772464a72f7a3230b5d7c38c200a485c2aa0f67b2839047d02b32315"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.json",
+          "fingerprint": "0fc0e73b9e8eacd73fefce230b40a9203da222125ff2ded564411324b23d5550"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.md",
+          "fingerprint": "ea72c7a85188b17eb6e9ee4a782baf8c5d0dbf8fd4b0acd75ad908875d1f7e2d"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.json",
+          "fingerprint": "63cdd967c4c7f7913137407831ef29ddc28008503a9e91cf47f895a12d3fac8e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.md",
+          "fingerprint": "223fd3044bad134912aa662d383a7c64153cc43d065e9cf5e2f91ad03e5c4dae"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.json",
+          "fingerprint": "acfbaa6f0668932a21a483f95d4e93e1748621cd510e1ac4c8df2e1c20197ea4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.md",
+          "fingerprint": "9bb35e16816f0685165b5d78e93e1e24c599e7cd2fa84bb516b6aac3f6404895"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.json",
+          "fingerprint": "ceefb39f0e5c89fc01599133595f2303e32304d32d167557d6e611a62a3c9fe1"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.md",
+          "fingerprint": "bc1d657433b747d17529bb7ffb6d17c508596a3d7f497f8d8a5dc6b375d57252"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.json",
+          "fingerprint": "8f76374fc927acc26544fad60e8898092f9710a22c26ac133c0d53fc42e7e1e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.md",
+          "fingerprint": "9c3567e0da8318fe03db6e96411e5e3e5c689fc703d116199ad690bf866628e1"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.json",
+          "fingerprint": "6f0abf3e39aa118e7c205cd0a0f93725cd007f01b3f21e1e9ce3b69270a971e7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.json",
+          "fingerprint": "c61017e15a91397710f1ebbd8b7aae735e112354e67156d01cedf03c8d4239cb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "fingerprint": "16a03b551b181bb94707dade09befc6b1eed7123ed0ca73b45667e4900c5b548"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "fingerprint": "3c6d9b6a28ce31eb5cbbd99a34845e42df6e4c166fc1ee56ba586120ae444ed6"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "fingerprint": "c5e71562c9c9ac396b34ec71e11e12ad0f166f4bf2803a411a354c05bc534fa2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "fingerprint": "b6e0ccfef4309112f55327e116989a01aa337205d6376443341c61e5fa89d03d"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "fingerprint": "add214c07bf3253892d8dbf849dc0ec8053a1becae53d64e01813b9258b3caa7"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/4eb734ddaacc918cd36144b8.json",
+          "fingerprint": "779d26eff0d771a7fdf77e86d04287d8c8c45cd5c76e9e8c2767b3e4752d2c5e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "fingerprint": "b8d2692cabe12372a9d5d46d0f3483bc73fab34b9b84fb4859be8628aa73fc54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "fingerprint": "3566078b95d4bc50c04fc9aee094e755f50fe9de301dbf7b9d11a6dae17e6842"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "fingerprint": "f08b427c329d87b75207e3425053fc645765c95ae64a2af1bb57e8da777b2956"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/60ccf4b4cab0f7d7fbbe02df.json",
+          "fingerprint": "582448a911ea1734c0d5700d9c1e5cc74b8dfe3892ab2d9b8c1f62e3fc4dd341"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "fingerprint": "683f13ebda1888966f968667aa0858b3bea5f747be6f5900666b4a451df5c0fe"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/6950db8fc8eeba4003fe9022.json",
+          "fingerprint": "81b0e8c05aca8724cc7da10f74cb43bbfb463866a45df413aa508e1bd9474a33"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "fingerprint": "ff7df07b502cd500ae5e1e49df846bad84c6a6b6d3838c19aa5b322601273448"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "fingerprint": "7abe30894b4b025792695f5b5ddf35739b85ae63e7333447afa8a6995cca0fae"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "fingerprint": "a556c524d42ccbcb97a49e57a1e7ddfc2d5cdd8b22641254eb6571d8f67a333c"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "fingerprint": "daabd3269178e2f61c344d3cbdcf3433534ca80c6a5919b3633afd4cb54f4e64"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "fingerprint": "2ef140c9a7a6ae0c032952ab320345207dd14ea4bab0deef42416b8d1a6a8b91"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/e077c1190fb20a0449b41853.json",
+          "fingerprint": "cd24e7bb7ab513ca607fe656d6525a96e6b1b27d8926e6e59a53b988583e928e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/fe7fd3fdf5f7326896487f06.json",
+          "fingerprint": "c67629b65ff8f9fc1766aa1553396ba64cb749364f1245c7dffd051661c6ce40"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/review.md",
+          "fingerprint": "9c3567e0da8318fe03db6e96411e5e3e5c689fc703d116199ad690bf866628e1"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/scenario-validity-result.json",
+          "fingerprint": "c63954f709cb06456cd7c065e07990710b2e26da0450f0317e5fac08cb523f8e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-gate-source.json",
+          "fingerprint": "11962cc557493241749d54786f05994ea8eed2dfa726a0b28d4fdf74b2fbb4b1"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-review.json",
+          "fingerprint": "c238812c3cee81834d9608475db2354fc004a61b58845c44eaf53b76f007143b"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec-review.md",
+          "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.json",
+          "fingerprint": "93f9748b8941e8f7771cbf1b308a3671c3d6b3543e63d9534b383728443ffe54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.json",
+          "fingerprint": "93f9748b8941e8f7771cbf1b308a3671c3d6b3543e63d9534b383728443ffe54"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.md",
+          "fingerprint": "e37c578744fb573baa723571674a492a0646b43096f47ca934da26c7d002dfdb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/spec.md",
+          "fingerprint": "e37c578744fb573baa723571674a492a0646b43096f47ca934da26c7d002dfdb"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/task-impl-gate-source.json",
+          "fingerprint": "c9e83c84e4dcbfc5d774efb170b60eed0fe458c905e4212d3204b7cc83aaf095"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-1.md",
+          "fingerprint": "1e1deff7145fc7865e869b4de9f385ab6522225ea67811178e0d2e48c6da45d9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-2.md",
+          "fingerprint": "f13ea053790b45496ed13a24cd36834ebe41e239239fcaca99d3f1d106d2e894"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-3.md",
+          "fingerprint": "a3d6b8a7d338737bd4b331a1479bc4851faf0794116a33a3a73e2defb2811a14"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-4.md",
+          "fingerprint": "b0e7d3ca3b6373e8ef72af0e87163a773d57d2d6e04d083f2734db7eadc50c19"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-5.md",
+          "fingerprint": "12ae8fd0612ce1acdf800bcd74e9d363006be2e0abbd1c6ba898c10622041262"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tasks/T-6.md",
+          "fingerprint": "0d853318bef12560c2307b80963337f5f8e370dc97962f5bfecf7875cedb012f"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-execute-result.json",
+          "fingerprint": "1845f764f11bc6130c261a04f1d05e74c39179481f1e2439faea52f24277fe61"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-result-review.json",
+          "fingerprint": "608964bdff66847e95123f495b192ac6ca52dd91850d7c98d3865a5bc68f1fb2"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/test-result-review.md",
+          "fingerprint": "0c390b78085dcda74f696b211912cd43f3ef505540cf76644c3d976c29e873f4"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+          "fingerprint": "499fe237ad2a7b9c5aa8972ba0804a276b4e9c5213531cec9ca5a6735cbe41f9"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/.raw/test-execution.log",
+          "fingerprint": "9361e276d80cd875462dc374fae45082c80f3edc4bb7ad0693e4653590499c94"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+          "fingerprint": "9bec6d86c9b85b6f36fcf3d4875472e93522893f05b7ba8c2b5eb99119953b71"
+        },
+        {
+          "path": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+          "fingerprint": "9bec6d86c9b85b6f36fcf3d4875472e93522893f05b7ba8c2b5eb99119953b71"
+        },
+        {
+          "path": "src/flow/commands/review.js",
+          "fingerprint": "75bb68aad64e0a9c367a3f4c8914e62ed558d8ed86bca418637157b6a2a0c1ef"
+        },
+        {
+          "path": "src/flow/lib/finalize-cleanup-state.js",
+          "fingerprint": "f785148d673728ad444793ebb3ccffe4f67265999b712fdfd845c53998b79f98"
+        },
+        {
+          "path": "src/flow/lib/finalize-flow-state-owner.js",
+          "fingerprint": "bc4441eff464b1e2e18109179e6da3f9e2473ca54d762e296c56758ef359c6dc"
+        },
+        {
+          "path": "src/flow/lib/flow-context.js",
+          "fingerprint": "a2904eccbc5e27add0991911b0f8fce9448786c6555177d75f2519b5b7b08beb"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-cleanup.js",
+          "fingerprint": "73cfa3710338eb6fc1bc6f3a79111ec985f14b13980ca57ce3aac4f2df70e2e8"
+        },
+        {
+          "path": "src/flow/lib/run-finalize-sync.js",
+          "fingerprint": "ef54f003514ad62f0511d8daa60032f7c8cf2955447b69e8909321aaa17e5529"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "fingerprint": "b57f8ba4105edc547f5129580988cb0b95e7909d7bc3f1e7a0905aa5de0a9de3"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "fingerprint": "537a4a29117ef20866c2c52f6244bcb868b4076a6d7f36ff1ebfe6d8d4c5ba6a"
+        },
+        {
+          "path": "src/lib/dispatcher.js",
+          "fingerprint": "20f59a058c7d6fe02d6995b4a69c046bc90daec732376076ca43695028996d9a"
+        },
+        {
+          "path": "tests/unit/flow/commands/review.test.js",
+          "fingerprint": "a5d895e45f9338111ec670ee78765e3fa15bbaf325b9f71e90875d60016e540e"
+        }
+      ],
+      "rawOutputPath": "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-002.log",
+      "fixAttempts": 1,
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "nextRecommendedAction": "record-and-proceed",
+      "timestamp": "2026-07-27T12:24:48.982Z",
+      "issueLogId": "issue-log-95d399bb-ae03-4806-b0a6-8ce28a327103"
+    },
+    {
+      "step": "final-regression",
+      "reason": "Full regression exposed a cleanup error-code regression: forced removal of a non-submodule locked worktree was misclassified as SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED when an authorized flow-state snapshot existed.",
+      "resolution": "Restricted the submodule-specific failure path to actual submodule removals. Non-submodule forced removal failures now preserve WORKTREE_REMOVE_FAILED; cleanup robustness and transaction tests pass 92/92.",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-finalize-cleanup.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-27T12:27:56.448Z",
+      "issueLogId": "issue-log-e47ad994-3655-41fd-86b2-b186b7792c66"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_FIX",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+      "planId": "direct-plan-bcf6adb15ca291c81c23ca19",
+      "planRevision": 1,
+      "sourceStep": "impl-review",
+      "skippedSteps": [
+        "impl-review",
+        "impl-triage",
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": null,
+      "findings": [
+        {
+          "findingId": "flow-finding:DF-1",
+          "classification": "DISMISSED",
+          "selectedResolution": "Retain the existing final disposition: fixed",
+          "changeTargets": [],
+          "rationale": "The existing final disposition is already non-blocking."
+        },
+        {
+          "findingId": "flow-finding:DF-2",
+          "classification": "DISMISSED",
+          "selectedResolution": "Retain the existing final disposition: fixed",
+          "changeTargets": [],
+          "rationale": "The existing final disposition is already non-blocking."
+        }
+      ],
+      "timestamp": "2026-07-27T12:31:21.806Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c:direct-plan-bcf6adb15ca291c81c23ca19:r1"
+    }
+  ]
+}

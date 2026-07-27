@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d85e17476af5711ba3ad8791",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0013",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/registry.js",
+      "src/lib/dispatcher.js",
+      "tests/unit/flow/commands/review.test.js"
+    ],
+    "inputHash": "374e795e2e08ba80e19d83f7028f3cc407182dee2f8ec28300b2dff09f4dc8bb",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d85e17476af5711ba3ad8791"
+  },
+  "targetFiles": [
+    "src/flow/registry.js",
+    "src/lib/dispatcher.js",
+    "tests/unit/flow/commands/review.test.js"
+  ],
+  "inputHash": "374e795e2e08ba80e19d83f7028f3cc407182dee2f8ec28300b2dff09f4dc8bb",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-27T12:09:52.792Z",
+  "finishedAt": "2026-07-27T12:09:52.792Z",
+  "rawResponse": "### 1. Add the required spec header to the new test\n**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R7  \n**Issue:** The added `scopeTaskReviewTarget` test appears to cover spec-local review scoping, but it lacks the mandatory `// spec: R<N>` header required by R7.  \n**Suggestion:** Add an explicit requirement marker immediately before or inside the test, for example `// spec: R7`, so the test is discoverable by the project’s spec-local coverage checks.\n\n### 2. Avoid duplicate finalize state owner initialization paths\n**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `switchToMainRepoFlowAuthority()` uses `FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx)`, while `RegistryLifecycleAdapter.finalizeStateOwner()` uses `FinalizeFlowStateOwner.fromContext(this.ctx).bindContext(this.ctx)`. These two authority-selection paths are very similar but subtly different, which makes finalize write ownership harder to reason about.  \n**Suggestion:** Consolidate ownership creation behind one helper or make `finalizeStateOwner()` delegate to the same main-context binding path used by `switchToMainRepoFlowAuthority()` when finalization requires durable main-repository state.\n\n### 3. Simplify `tryUpdateStepStatus` target handling\n**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `tryUpdateStepStatus()` now supports three target shapes: hook context, raw `FlowManager`, and `FinalizeFlowStateOwner`. The branching makes mutation ownership less obvious and requires special-case option forwarding for `FinalizeFlowStateOwner`.  \n**Suggestion:** Normalize the target at the start into a small `{ flowManager, updateStepStatus, mutationOpts }` adapter object, then use one mutation call path. This would reduce conditional complexity and make the single-owner finalize mutation behavior clearer.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Add the required spec header to the new test",
+        "body": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R7  \n**Issue:** The added `scopeTaskReviewTarget` test appears to cover spec-local review scoping, but it lacks the mandatory `// spec: R<N>` header required by R7.  \n**Suggestion:** Add an explicit requirement marker immediately before or inside the test, for example `// spec: R7`, so the test is discoverable by the project’s spec-local coverage checks.",
+        "file": "tests/unit/flow/commands/review.test.js",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Avoid duplicate finalize state owner initialization paths",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `switchToMainRepoFlowAuthority()` uses `FinalizeFlowStateOwner.forMainContext(ctx).bindContext(ctx)`, while `RegistryLifecycleAdapter.finalizeStateOwner()` uses `FinalizeFlowStateOwner.fromContext(this.ctx).bindContext(this.ctx)`. These two authority-selection paths are very similar but subtly different, which makes finalize write ownership harder to reason about.  \n**Suggestion:** Consolidate ownership creation behind one helper or make `finalizeStateOwner()` delegate to the same main-context binding path used by `switchToMainRepoFlowAuthority()` when finalization requires durable main-repository state.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Simplify `tryUpdateStepStatus` target handling",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R6  \n**Issue:** `tryUpdateStepStatus()` now supports three target shapes: hook context, raw `FlowManager`, and `FinalizeFlowStateOwner`. The branching makes mutation ownership less obvious and requires special-case option forwarding for `FinalizeFlowStateOwner`.  \n**Suggestion:** Normalize the target at the start into a small `{ flowManager, updateStepStatus, mutationOpts }` adapter object, then use one mutation call path. This would reduce conditional complexity and make the single-owner finalize mutation behavior clearer.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+      "fingerprint": "3a5302c83f6cfd334445710b61045053aa4616f0668e6627a77609db78fa4de4",
+      "disposition": "deferred",
+      "rationale": "R1 is a must requirement and T-1 acceptance explicitly requires at most one retry per invocation to resume only an unfinished recorded checkpoint. Current coverage proves exact-target replay but not the mandatory retry bound.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "task-review",
+      "sourceArtifact": "impl-review.json",
+      "sourceFindingId": "c74821a3c6434c3675cb3062aa9d5a6d361e25b0453b683a67d0b11283d11659",
+      "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+      "fingerprint": "c74821a3c6434c3675cb3062aa9d5a6d361e25b0453b683a67d0b11283d11659",
+      "disposition": "deferred",
+      "rationale": "This is tied directly to T-6's mandatory acceptance criteria for R7 coverage. The current tests cover checkpoint persistence and adoption, but they do not exercise the at-most-one exact retry invariant named by the task.",
+      "retryExhausted": true,
+      "attempts": 4,
+      "round": 4,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-e867c95d-7236-4654-aba2-467e742e19d3",
+      "kind": "gate",
+      "phase": "spec",
+      "canonicalPhase": "spec",
+      "reason": "Rebased onto main; the current spec artifact differs from the pre-rebase gate evidence and now includes the spec-local coverage record.",
+      "changedEvidence": {
+        "sourceKind": "spec-artifact",
+        "baselineHash": "6939dd58716695b854032d0630b1f06c8ce0cf9c5bed77d633f406348fbfee71",
+        "currentHash": "dd68038baf67a756756bd34509035118b6cfe4d931b30c0e0d9c4e77f0ab645b",
+        "changedPaths": [
+          "specs/353-finalize-teardown-safety/spec.json"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "senti flow set retry reset gate spec --reason \"Rebased onto main; the current spec artifact differs from the pre-rebase gate evidence and now includes the spec-local coverage record.\" --yes",
+      "createdAt": "2026-07-27T09:03:13.530Z"
+    }
+  ]
+}

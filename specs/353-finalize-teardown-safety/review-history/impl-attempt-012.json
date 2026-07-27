@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T10:36:15.069Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "r6-centralized-flow-writer-not-implemented",
+      "title": "R6 flow.json write ownership is not centralized",
+      "failureMode": "missing_acceptance_requirement",
+      "requirementId": "R6",
+      "issue": "T-5 requires replaced production direct writers to be absent and finalize lifecycle flow.json updates to pass through one main-repository FlowManager owner. The provided implementation diff only changes finalize cleanup/sync paths and adds a cleanup-focused test; it does not modify or inventory the production finalize lifecycle writer paths needed to prove direct writers were removed or routed through the single owner.",
+      "suggestion": "Implement the R6 ownership change across the finalize lifecycle writer paths, then add static/unit coverage that names the replaced writer branches and asserts registry hooks, outbox completion, active-flow clearing, and step transitions all use the main-repository FlowManager mutation path.",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and T-5's explicit acceptance criteria require both absence of replaced production direct writers and consistent owner behavior. Without code changes or targeted evidence for those writer paths, the implementation can still leave multiple flow.json mutation authorities in production.",
+      "findingId": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "fingerprint": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "21ea465f12c17f75d87d82f29bcb3a23cd46c135b831667bf7ce41a79f645be6",
+  "reviewedTree": "21ea465f12c17f75d87d82f29bcb3a23cd46c135b831667bf7ce41a79f645be6",
+  "reviewedHead": "a92c8a980be055e37de0864110c95d759625bbe9",
+  "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+  "planRewindAt": null,
+  "taskId": "T-5",
+  "target": "specs/353-finalize-teardown-safety/tasks/T-5.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/353-finalize-teardown-safety/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "df9832bb3fce02924610335cc7c39d4f87eb750c1c243ea43502bec73f15b552"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "findingId": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "R6 flow.json write ownership is not centralized",
+      "body": "T-5 requires replaced production direct writers to be absent and finalize lifecycle flow.json updates to pass through one main-repository FlowManager owner. The provided implementation diff only changes finalize cleanup/sync paths and adds a cleanup-focused test; it does not modify or inventory the production finalize lifecycle writer paths needed to prove direct writers were removed or routed through the single owner.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "bfc5b0b7ab8ff420249d034b2641da16a54c44a320222234bb32bddf838a8234",
+      "disposition": "must-fix",
+      "rationale": "R6 is a mandatory requirement and T-5's explicit acceptance criteria require both absence of replaced production direct writers and consistent owner behavior. Without code changes or targeted evidence for those writer paths, the implementation can still leave multiple flow.json mutation authorities in production.",
+      "requirementId": "R6",
+      "repeatCount": 1
+    }
+  ]
+}

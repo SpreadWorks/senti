@@ -31,6 +31,7 @@ import {
   FlowContinuation,
   guardFlagsForState,
 } from "../flow/lib/user-action-prompt.js";
+import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
 
 function attachNonblockingContinuation(envelope, state, reason) {
   if (!(envelope instanceof Envelope) || state?.nonblocking?.enabled !== true) return envelope;
@@ -217,9 +218,12 @@ async function persistFinalizeCleanupPostReturnMetadata({
   if (typeof recordFinalizeCleanupPostCommandMetadata !== "function") {
     throw new Error("finalize-cleanup command module has no post-command metadata recorder");
   }
-  const mainFlowManager = hookCtx.flowManager.forRoot(mainRepoPath);
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({
+    ...hookCtx,
+    mainRoot: mainRepoPath,
+  });
   recordFinalizeCleanupPostCommandMetadata({
-    flowManager: mainFlowManager,
+    flowManager: stateOwner.flowManager,
     specId: hookCtx.specId,
     runtimeLog: metadata.toStepMetadata(),
   });
