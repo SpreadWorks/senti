@@ -427,6 +427,15 @@ describe("flow skill liveness contract", () => {
     assert.match(skill, /do not expose action IDs/);
   });
 
+  it("forbids ending a turn at an ordinary intermediate step", () => {
+    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    assert.match(skill, /One invocation owns the whole Flow continuation/);
+    assert.match(skill, /MUST NOT be used as the final response/);
+    assert.match(skill, /Do not ask the user to invoke `\$senti\.flow` again/);
+    assert.match(skill, /Context compaction, elapsed time, or the amount of work/);
+    assert.match(skill, /A final response is allowed only after/);
+  });
+
   it("repairs recoverable evidence from an external block before stopping", () => {
     const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
     assert.match(skill, /Before following a generic `continuation`/);

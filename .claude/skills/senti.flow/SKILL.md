@@ -372,6 +372,24 @@ Placeholder artifact permission:
 
 Repeat until the loop exit condition is met. The loop is bounded by the finite flow schema and the returned `maxAttempts`; stop if the dispatcher cannot make progress within the remaining step count.
 
+#### Turn completion contract
+
+- One invocation owns the whole Flow continuation, not only the current step.
+  An `ok: true` next action with `requires_approval: false` MUST be executed in
+  the same turn.
+- `autoApprove: true` also satisfies ordinary `requires_approval: true`
+  boundaries as defined below. Continue fetching and executing actions after
+  that boundary.
+- A progress summary such as “draft gate passed” or “current step: spec” is
+  commentary only. It MUST NOT be used as the final response and MUST NOT end
+  the turn.
+- Do not ask the user to invoke `$senti.flow` again merely to advance to the
+  next normal step. Context compaction, elapsed time, or the amount of work
+  remaining are not loop exit conditions.
+- A final response is allowed only after the documented loop exit condition:
+  Flow completion, a real user decision, a concrete non-recoverable blocker,
+  state corruption, or target mismatch.
+
 C.1. **Ask the CLI for the next action**
    - If `targetRunId` is known, run `senti flow get next-action <targetGuardArgs>`.
    - If `targetRunId` is not known, first establish an exact target from the user's intent using target-aware status. Bare `senti flow get next-action` is allowed only when the current context has been verified as the intended single active flow; if another active flow exists or the target is ambiguous, STOP and ask for the Issue/spec/runId.
