@@ -1148,13 +1148,16 @@ function buildPluginApi() {
   };
 }
 
-function validateHookClass(HookClass, label) {
+function validateHookClass(HookClass, label, { persistedFailurePolicy = null } = {}) {
   if (typeof HookClass !== "function" || !HookClass.name) throw new Error(`plugin hook ${label} must return a named hook class`);
   if (!(HookClass.prototype instanceof FlowCommandHook)) throw new Error(`plugin hook ${label} must extend FlowCommandHook`);
   if (!FLOW_COMMANDS.has(HookClass.command)) throw new Error(`plugin hook ${label} has unknown command: ${HookClass.command}`);
   if (!FLOW_COMMAND_HOOKS.has(HookClass.hook)) throw new Error(`plugin hook ${label} has unknown hook: ${HookClass.hook}`);
   if (!Number.isInteger(Number(HookClass.priority || 0))) throw new Error(`plugin hook ${label} priority must be an integer`);
-  return new FlowCommandHookFailurePolicy(HookClass.failurePolicy, `plugin hook ${label} failure policy`);
+  return new FlowCommandHookFailurePolicy(
+    HookClass.failurePolicy ?? persistedFailurePolicy,
+    `plugin hook ${label} failure policy`,
+  );
 }
 
 function normalizeHookSnapshot(snapshot) {
@@ -1355,7 +1358,9 @@ async function loadHookClass(root, plan) {
     throw new Error(`plugin hook ${plan.pluginId}/${rel} must export named default function register(api)`);
   }
   const HookClass = mod.default(buildPluginApi());
-  validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`);
+  validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`, {
+    persistedFailurePolicy: plan.failurePolicy,
+  });
   assertSnapshotMetadata({ ...plan, module: rel }, HookClass);
   return { HookClass, pluginRoot };
 }
