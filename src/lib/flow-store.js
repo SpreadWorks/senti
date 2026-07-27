@@ -33,7 +33,7 @@ import {
   TASK_STATUSES,
   TASK_STEP_STATUSES,
   TASK_REQUIREMENT_STATUSES,
-  isTaskTerminalStatus,
+  completeTaskInState,
 } from "./flow-helpers.js";
 import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
@@ -969,51 +969,7 @@ export class FlowStore {
 
   completeTask(taskId, opts) {
     this.mutate((state) => {
-      const task = (state.tasks || []).find((t) => t.id === taskId);
-      if (!task) throw new Error(`unknown task id: ${taskId}`);
-      const finishedAt = new Date().toISOString();
-      for (const step of task.steps || []) {
-        if (step.status !== "in_progress") continue;
-        step.status = "done";
-        step.finishedAt = finishedAt;
-      }
-      task.status = "done";
-      if (state.currentTaskId === taskId) state.currentTaskId = null;
-
-      // Spec 226: forest propagation. When all children of a parent are
-      // done/skipped, the parent becomes done as well. Walk upward from this
-      // task's parent chain. Bounded by tasks.length to guard against cycles
-      // (schema prevents cycles; defensive bound).
-      //
-      // Build lookup maps once and reuse during the upward walk to avoid
-      // O(n) find/filter on each hop.
-      const tasks = state.tasks || [];
-      const byId = new Map();
-      const childrenByParent = new Map();
-      for (const t of tasks) {
-        byId.set(t.id, t);
-        if (t.parent != null) {
-          if (!childrenByParent.has(t.parent)) childrenByParent.set(t.parent, []);
-          childrenByParent.get(t.parent).push(t);
-        }
-      }
-
-      let parentId = task.parent;
-      let hops = 0;
-      while (parentId != null && hops <= tasks.length) {
-        const parent = byId.get(parentId);
-        if (!parent) break;
-        const siblings = childrenByParent.get(parentId) || [];
-        const allDone = siblings.every((s) => isTaskTerminalStatus(s.status));
-        if (allDone && parent.status !== "done") {
-          parent.status = "done";
-          if (state.currentTaskId === parent.id) state.currentTaskId = null;
-        } else {
-          break;
-        }
-        parentId = parent.parent;
-        hops++;
-      }
+      completeTaskInState(state, taskId);
       // NOTE: promoteNextPending is intentionally NOT called here.
       // Callers (impl-gate post-hook, CLI) must invoke it explicitly.
     }, opts);

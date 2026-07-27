@@ -19,6 +19,7 @@ import {
   findFirstPendingLeaf,
   findStepById,
 } from "./lib/step-tree.js";
+import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 
 const MAX_DEPTH = 3;
 
@@ -376,11 +377,16 @@ function resolvePlanReviewLifecycle(input) {
   const verdict = input.result?.artifacts?.verdict;
   const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
+    const route = nonblockingRouteFor(draftReviewRouteForInput(input).reviewStepId);
+    if (input.flowState?.nonblocking?.enabled === true && route && (verdict === "REJECTED" || toolingOutcome)) {
+      return [];
+    }
     return resolveDraftReviewLifecycle(input);
   }
   const actions = [];
   const recordRetry = !toolingOutcome;
   if (phase === "spec") {
+    if (input.flowState?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) return [];
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
         new SetStepStatus({ step: "spec-review", status: "done" }),
@@ -394,6 +400,11 @@ function resolvePlanReviewLifecycle(input) {
     return actions;
   }
   if (phase === "test") {
+    if (input.flowState?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) {
+      // A test-review advisory decision must create the same durable
+      // acceptance handoff as retry exhaustion before it can advance.
+      return actions;
+    }
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(new SetStepStatus({ step: "test-review", status: "done" }));
     } else if (toolingOutcome) {
@@ -474,12 +485,13 @@ function resolveReviewLifecycle(input) {
 
 function resolveGateLifecycle(input) {
   const phase = input.result?.artifacts?.phase || input.phase;
-  const step = gateStepIdForPhase(phase);
+  const active = findActiveNode(input.flowState || {});
+  const step = active?.stepId === "task-gate" ? "task-gate" : gateStepIdForPhase(phase);
   if (input.event === "gate:pre") {
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
   if (input.result?.artifacts?.deferred === true) return [];
-  if (input.flowState?.nonblocking?.enabled === true && input.result?.result !== "pass" && step === "impl-gate") {
+  if (input.flowState?.nonblocking?.enabled === true && input.result?.result !== "pass" && nonblockingRouteFor(step)) {
     return [];
   }
   const actions = [];

@@ -1,5 +1,5 @@
 /**
- * Advisory post-implementation Flow policy.
+ * Advisory Flow policy for eligible acceptance-backed checks.
  *
  * This closed module owns the nonblocking vocabulary. It reads authoritative
  * result artifacts, stores only their identity in flow.json, and deliberately
@@ -13,7 +13,9 @@ import {
   RepositoryFlowOperationLock,
   resolveRepositoryLockRoot,
 } from "../../lib/repository-maintenance-lock.js";
-import { flattenSteps } from "./step-tree.js";
+import { findStepById } from "./step-tree.js";
+import { findActiveNode } from "../definition.js";
+import { completeTaskInState, promoteNextPending } from "../../lib/flow-helpers.js";
 import {
   NonBlockingDecisionOutcome,
   NONBLOCKING_SOURCE_STEPS,
@@ -35,15 +37,16 @@ import {
   fromFinalRegressionResult,
   fromGateResult,
   fromReviewResult,
+  fromVerificationResult,
 } from "./nonblocking-evidence.js";
+import {
+  materializeReviewRetryExhaustionDeferral,
+} from "./run-review.js";
+import { materializeGateRetryExhaustionDeferral } from "./run-gate.js";
+import { materializeNonblockingAcceptanceHandoff } from "./nonblocking-handoff.js";
+import { nonblockingRouteFor } from "./nonblocking-route.js";
 
 const SUPPORTED_STEPS = NONBLOCKING_SOURCE_STEPS;
-const CONTINUE_TARGET = Object.freeze({
-  "impl-review": "impl-gate",
-  "impl-gate": "retro",
-  "acceptance-review": "final-regression",
-  "final-regression": "report",
-});
 const MAX_TEXT = 2_000;
 const ACTIONS = Object.freeze(["repair", "retry", "continue"]);
 const RESULT_KINDS = Object.freeze(["quality", "tooling", "unavailable"]);
@@ -79,18 +82,25 @@ function assertSupportedStep(step) {
   return step;
 }
 
-function activeStep(state) {
-  return flattenSteps(state?.steps || []).find((step) => step.status === "in_progress")?.id || null;
+function activeNode(state) {
+  return findActiveNode(state);
 }
 
-function activationStep(state) {
+function activeStep(state) {
+  return activeNode(state)?.stepId || null;
+}
+
+function activationStep(root, state) {
   if (!state?.runId) throw new Error("an active normal flow is required");
   if (state.directFlowSession) throw new NonBlockingRouteOwnershipError("a direct session already owns this Flow route", state);
   const step = assertSupportedStep(activeStep(state));
-  const approval = flattenSteps(state.steps || []).find((entry) => entry.id === "approval");
-  if (approval?.status !== "done") throw new Error("nonblocking requires an approved spec");
-  const implement = flattenSteps(state.steps || []).find((entry) => entry.id === "implement");
-  if (!implement || implement.status === "pending") throw new Error("nonblocking requires implementation to have started");
+  let evidence;
+  try {
+    evidence = evidenceForStep(root, state, step);
+  } catch (error) {
+    throw new Error(`nonblocking requires a durable non-pass artifact for ${step}: ${error.message}`);
+  }
+  if (!evidence) throw new Error(`nonblocking requires eligible non-pass evidence for ${step}`);
   return step;
 }
 
@@ -108,10 +118,14 @@ function continuationFor(state, actionId, instruction, reason) {
 }
 
 function resultForStep(root, state, step) {
-  if (step === "impl-review") return fromReviewResult(artifact(root, state, "impl-review.json"));
-  if (step === "impl-gate") return fromGateResult(artifact(root, state, "impl-gate-result.json"));
-  if (step === "acceptance-review") return fromAcceptanceResult(artifact(root, state, "acceptance-review.json"));
-  if (step === "final-regression") return fromFinalRegressionResult(artifact(root, state, "final-regression-result.json"));
+  const route = nonblockingRouteFor(step);
+  if (!route) return null;
+  const source = artifact(root, state, route.artifact);
+  if (route.kind === "review") return fromReviewResult(source);
+  if (route.kind === "gate") return fromGateResult(source);
+  if (route.kind === "verification") return fromVerificationResult(source, step);
+  if (route.kind === "acceptance") return fromAcceptanceResult(source);
+  if (route.kind === "regression") return fromFinalRegressionResult(source);
   return null;
 }
 
@@ -127,17 +141,17 @@ function hasSameEvidence(outcome, identity) {
     && outcome?.evidenceDigest === identity.evidenceDigest;
 }
 
-function latestObservedEvidence(log, state, identity) {
+function latestObservedEvidence(log, state, identity, taskId = null) {
   return log.entries.findLast((entry) => (
     entry.runId === state.runId
-    && entry.taskId === null
+    && entry.taskId === taskId
     && entry.stepId === identity.sourceStep
     && entry.outcome instanceof ObservedNonPassOutcome
     && hasSameEvidence(entry.outcome, identity)
   )) || null;
 }
 
-function sourceAttemptFromResult(result, state, stepId) {
+function sourceAttemptFromResult(result, state, stepId, taskId = null) {
   const stored = result?.stepAttempt || result?.data?.stepAttempt;
   if (!stored) return null;
   let attempt;
@@ -147,16 +161,16 @@ function sourceAttemptFromResult(result, state, stepId) {
     return null;
   }
   return attempt.runId === state.runId
-    && attempt.taskId === null
+    && attempt.taskId === taskId
     && attempt.stepId === stepId
     ? attempt.attempt
     : null;
 }
 
-function latestSourceAttempt(log, state, stepId) {
+function latestSourceAttempt(log, state, stepId, taskId = null) {
   return log.entries.findLast((entry) => (
     entry.runId === state.runId
-    && entry.taskId === null
+    && entry.taskId === taskId
     && entry.stepId === stepId
   ))?.attempt || null;
 }
@@ -196,8 +210,10 @@ function resultReferencesEvidence(result, evidence) {
   );
 }
 
-function decisionForIdentity(log, identity) {
+function decisionForIdentity(log, identity, taskId = null) {
   return log.entries.findLast((entry) => (
+    entry.taskId === taskId
+    &&
     entry.outcome instanceof NonBlockingDecisionOutcome
     && NonBlockingDecisionIdentity.fromOutcome(entry.outcome).equals(identity)
   )) || null;
@@ -206,7 +222,6 @@ function decisionForIdentity(log, identity) {
 function uniquelyAddressableDecision(log, state, evidenceDigest) {
   const candidates = log.entries.filter((entry) => (
     entry.runId === state.runId
-    && entry.taskId === null
     && entry.outcome instanceof NonBlockingDecisionOutcome
     && entry.outcome.evidenceDigest === evidenceDigest
   ));
@@ -214,10 +229,10 @@ function uniquelyAddressableDecision(log, state, evidenceDigest) {
   return candidates[0];
 }
 
-function latestRecoveryDecision(log, state, step) {
+function latestRecoveryDecision(log, state, step, taskId = null) {
   return log.entries.findLast((entry) => (
     entry.runId === state.runId
-    && entry.taskId === null
+    && entry.taskId === taskId
     && entry.stepId === step
     && entry.outcome instanceof NonBlockingDecisionOutcome
     && ["repair", "retry"].includes(entry.outcome.action)
@@ -228,23 +243,30 @@ function allowedActionsFor(resultKind) {
   return resultKind === "quality" ? ["repair", "continue"] : ["retry", "continue"];
 }
 
-function mark(state, id, status) {
-  const step = flattenSteps(state.steps || []).find((entry) => entry.id === id);
+function mark(state, id, status, taskId = null) {
+  const scope = taskId == null
+    ? state
+    : state.tasks?.find((task) => task.id === taskId);
+  const step = findStepById(scope?.steps || [], id);
   if (!step) throw new Error(`flow step is missing: ${id}`);
   step.status = status;
 }
 
-function decisionIssueLogId(identity) {
-  return `nonblocking-decision-${sha256(identity.key())}`;
+function decisionIssueLogId(identity, taskId = null) {
+  // Task steps reuse the same step IDs and may even produce identical
+  // artifact bytes. Scope the immutable decision key so a completed task
+  // cannot suppress an independently required decision for another task.
+  return `nonblocking-decision-${sha256(JSON.stringify({ taskId, identity: identity.toJSON() }))}`;
 }
 
-function issueLogEntry(outcome) {
+function issueLogEntry(outcome, taskId = null) {
   return {
     step: outcome.sourceStep,
+    taskId,
     reason: `Nonblocking ${outcome.action} decision: ${outcome.rationale}`,
     trigger: "flow set nonblocking-decision",
     resolution: outcome.action === "continue"
-      ? `continue to ${CONTINUE_TARGET[outcome.sourceStep]}`
+      ? `continue from ${outcome.sourceStep} through the acceptance-backed route`
       : `${outcome.action} and rerun ${outcome.sourceStep}`,
     evidenceRef: outcome.evidenceRef,
     evidenceDigest: outcome.evidenceDigest,
@@ -365,12 +387,14 @@ export class NonBlockingRecoveryState {
 }
 
 export class NonBlockingDecisionContext {
-  constructor({ sourceStep, sourceAttempt, evidenceRef, evidenceDigest, resultKind, recoveryState = new NonBlockingRecoveryState(), allowedActions }) {
+  constructor({ sourceStep, sourceAttempt, evidenceRef, evidenceDigest, taskId = null, resultKind, recoveryState = new NonBlockingRecoveryState(), allowedActions }) {
     const identity = new NonBlockingDecisionIdentity({ sourceStep, sourceAttempt, evidenceRef, evidenceDigest });
     this.sourceStep = identity.sourceStep;
     this.sourceAttempt = identity.sourceAttempt;
     this.evidenceRef = identity.evidenceRef;
     this.evidenceDigest = identity.evidenceDigest;
+    if (taskId != null) text(taskId, "taskId");
+    this.taskId = taskId;
     if (!RESULT_KINDS.includes(resultKind)) throw new Error("invalid nonblocking resultKind");
     if (!Array.isArray(allowedActions) || allowedActions.some((action) => !ACTIONS.includes(action))) {
       throw new Error("invalid nonblocking allowedActions");
@@ -391,6 +415,7 @@ export class NonBlockingDecisionContext {
   toJSON() {
     return {
       ...this.identity().toJSON(),
+      taskId: this.taskId,
       resultKind: this.resultKind,
       recoveryState: this.recoveryState.toJSON(),
       allowedActions: this.allowedActions,
@@ -405,20 +430,20 @@ export class NonBlockingActivationOffer {
     this.resultKind = resultKind;
     this.blocker = text(blocker, "nonblocking activation blocker");
     this.prompt = new UserActionPrompt({
-      question: "Strict recovery is exhausted for an eligible post-implementation check. Continue with advisory handling?",
+      question: "Strict recovery is exhausted for an eligible acceptance-backed check. Continue with advisory handling?",
       choices: [
         new UserActionChoice({
           actionId: "KEEP_STRICT_FLOW",
           label: "Keep strict recovery",
           stateTransition: "retain-strict-flow-block",
-          impact: new UserActionImpact({ retains: ["strict post-implementation quality gate"] }),
+          impact: new UserActionImpact({ retains: ["strict quality gate"] }),
           reason: this.blocker,
         }),
         new UserActionChoice({
           actionId: "ENABLE_NONBLOCKING",
           label: "Enable advisory continuation",
           stateTransition: "activate-nonblocking-policy",
-          impact: new UserActionImpact({ changes: ["eligible post-implementation non-pass handling"] }),
+          impact: new UserActionImpact({ changes: ["eligible non-pass handling with acceptance disposition"] }),
           reason: "Normal Flow ownership and finalization remain unchanged.",
         }),
       ],
@@ -494,7 +519,9 @@ function staleEvidenceError(state, context = null) {
 }
 
 function contextForState(root, state) {
-  const step = assertSupportedStep(activeStep(state));
+  const node = activeNode(state);
+  const step = assertSupportedStep(node?.stepId);
+  const taskId = node?.taskId ?? null;
   let evidence;
   try {
     evidence = evidenceForStep(root, state, step);
@@ -519,7 +546,7 @@ function contextForState(root, state) {
     sourceStep: step,
     evidenceRef: evidence.ref,
     evidenceDigest: evidence.evidenceDigest,
-  });
+  }, taskId);
   if (!observed) {
     throw new NonBlockingEvidenceError({
       code: "NONBLOCKING_EVIDENCE_NOT_RECORDED",
@@ -533,10 +560,11 @@ function contextForState(root, state) {
     evidenceRef: evidence.ref,
     evidenceDigest: evidence.evidenceDigest,
   });
-  const recovery = latestRecoveryDecision(log, state, step);
+  const recovery = latestRecoveryDecision(log, state, step, taskId);
   if (!recovery) {
     return new NonBlockingDecisionContext({
       ...identity.toJSON(),
+      taskId,
       resultKind: evidence.resultKind,
       recoveryState: new NonBlockingRecoveryState(),
       allowedActions: allowedActionsFor(evidence.resultKind),
@@ -549,6 +577,7 @@ function contextForState(root, state) {
   if (recoveryOutcome.sourceAttempt === identity.sourceAttempt) {
     return new NonBlockingDecisionContext({
       ...identity.toJSON(),
+      taskId,
       resultKind: evidence.resultKind,
       recoveryState: new NonBlockingRecoveryState({ status: "awaiting-result", decision: recoveryOutcome }),
       allowedActions: [],
@@ -556,6 +585,7 @@ function contextForState(root, state) {
   }
   return new NonBlockingDecisionContext({
     ...identity.toJSON(),
+    taskId,
     resultKind: evidence.resultKind,
     recoveryState: new NonBlockingRecoveryState({ status: "consumed", decision: recoveryOutcome }),
     allowedActions: ["continue"],
@@ -575,7 +605,7 @@ export function nonblockingActivationOfferForStrictStop(root, state, directive) 
   if (state?.nonblocking?.enabled === true || directive?.kind !== "blocked") return null;
   let step;
   try {
-    step = activationStep(state);
+    step = activationStep(root, state);
   } catch {
     return null;
   }
@@ -603,7 +633,9 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null, { h
   assertSupportedStep(stepId);
   let record = null;
   ctx.flowManager.mutate((current) => {
-    if (!current.nonblocking?.enabled || !current.runId || activeStep(current) !== stepId) return;
+    const node = activeNode(current);
+    if (!current.nonblocking?.enabled || !current.runId || node?.stepId !== stepId) return;
+    const taskId = node.taskId ?? null;
     const evidence = evidenceForStep(ctx.root, current, stepId);
     if (!evidence) return;
     const log = new StepAttemptLog(current.stepAttempts || []);
@@ -612,13 +644,13 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null, { h
         sourceStep: stepId,
         evidenceRef: evidence.ref,
         evidenceDigest: evidence.evidenceDigest,
-      });
+      }, taskId);
       if (existing) {
         record = existing;
         return;
       }
     }
-    const recordedAttempt = sourceAttemptFromResult(result, current, stepId);
+    const recordedAttempt = sourceAttemptFromResult(result, current, stepId, taskId);
     // A StepAttempt proves only that a command reached a flow boundary. It
     // does not prove which artifact the command wrote.  A new observation is
     // therefore valid only when the command explicitly names the current
@@ -626,11 +658,11 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null, { h
     // the strict result present at the moment policy is first activated.
     if (!hydrate && !resultReferencesEvidence(result, evidence)) return;
     const sourceAttempt = recordedAttempt
-      || (hydrate && latestSourceAttempt(log, current, stepId))
+      || (hydrate && latestSourceAttempt(log, current, stepId, taskId))
       || nextStepAttemptNumber(current, stepId);
     record = new StepAttempt({
       runId: current.runId,
-      taskId: null,
+      taskId,
       stepId,
       attempt: sourceAttempt,
       outcome: new ObservedNonPassOutcome({
@@ -661,7 +693,7 @@ export function activateNonBlockingPolicy({ root, flowManager, reason }) {
     }
     return NonBlockingPolicy.fromStored(state.nonblocking).toJSON();
   }
-  const step = activationStep(state);
+  const step = activationStep(root, state);
   const policy = new NonBlockingPolicy({ activatedStep: step, reason });
   let activated = false;
   let durablePolicy = policy;
@@ -687,9 +719,9 @@ export function activateNonBlockingPolicy({ root, flowManager, reason }) {
     try {
       recordEligibleNonblockingAttempt({ root, flowManager, flowState: flowManager.load() }, step, null, { hydrate: true });
     } catch (error) {
-      // Explicit activation may happen before the current check has produced
-      // an artifact. That is not a quality result and therefore cannot be
-      // turned into a decision; all other artifact failures remain blocking.
+      // Activation already verified the artifact. Only a concurrent removal
+      // between the policy write and this indexing pass is recoverable; all
+      // other evidence failures remain strict-flow blockers.
       if (error?.code !== "ENOENT") throw error;
     }
   }
@@ -707,8 +739,9 @@ function assertDecisionChoice(context, choice) {
 }
 
 function outcomeFor({ context, choice, reason, remainingRisk }) {
+  const route = nonblockingRouteFor(context.sourceStep);
   const nextAction = choice === "continue"
-    ? `run-${CONTINUE_TARGET[context.sourceStep]}`
+    ? route.continueAction
     : `run-${context.sourceStep}`;
   return new NonBlockingDecisionOutcome({
     action: choice,
@@ -717,6 +750,56 @@ function outcomeFor({ context, choice, reason, remainingRisk }) {
     remainingRisk: remainingRisk == null ? null : text(remainingRisk, "remainingRisk"),
     nextAction,
   });
+}
+
+function materializeAcceptanceHandoff({ root, flowState, context }) {
+  const route = nonblockingRouteFor(context.sourceStep);
+  if (route.kind === "review") {
+    const deferred = materializeReviewRetryExhaustionDeferral({
+      root,
+      flowState,
+      phase: route.phase,
+      attempts: context.sourceAttempt,
+      sourceStep: context.sourceStep,
+    });
+    if (deferred) return deferred;
+  }
+  if (route.kind === "gate") {
+    const deferred = materializeGateRetryExhaustionDeferral({
+      root,
+      flowState,
+      phase: route.phase,
+      attempts: context.sourceAttempt,
+      sourceStep: context.sourceStep,
+    });
+    if (deferred) return deferred;
+  }
+  if (route.kind === "acceptance" || route.kind === "regression") return null;
+  return materializeNonblockingAcceptanceHandoff({
+    root,
+    flowState,
+    sourceStep: context.sourceStep,
+    evidenceRef: context.evidenceRef,
+    evidenceDigest: context.evidenceDigest,
+    resultKind: context.resultKind,
+    attempts: context.sourceAttempt,
+  });
+}
+
+function advanceContinuation(state, context) {
+  const route = nonblockingRouteFor(context.sourceStep);
+  const node = activeNode(state);
+  if (!node || node.stepId !== route.sourceStep || node.taskId !== context.taskId) {
+    throw staleEvidenceError(state, context);
+  }
+  if (route.sourceStep === "task-gate") {
+    completeTaskInState(state, context.taskId);
+    promoteNextPending(state);
+    return;
+  }
+  mark(state, route.sourceStep, "done", context.taskId);
+  for (const stepId of route.skippedSteps) mark(state, stepId, "done", context.taskId);
+  if (route.targetStep) mark(state, route.targetStep, "in_progress", context.taskId);
 }
 
 export function recordNonBlockingDecision({
@@ -751,14 +834,14 @@ export function recordNonBlockingDecision({
   if (expectEvidenceDigest !== context.evidenceDigest) throw staleEvidenceError(initial, context);
   const identity = context.identity();
   const initialLog = new StepAttemptLog(initial.stepAttempts || []);
-  const existing = decisionForIdentity(initialLog, identity);
+  const existing = decisionForIdentity(initialLog, identity, context.taskId);
   if (existing) {
     if (existing.outcome.action !== choice) throw new NonBlockingDecisionConflictError(existing.outcome, initial);
     return existing.outcome.toJSON();
   }
   assertDecisionChoice(context, choice);
   const outcome = outcomeFor({ context, choice, reason, remainingRisk });
-  const issueLogId = decisionIssueLogId(identity);
+  const issueLogId = decisionIssueLogId(identity, context.taskId);
 
   return withOperationLock(root, (operationOwnerToken) => {
     const issueLog = issueLogStoreFactory({
@@ -767,7 +850,7 @@ export function recordNonBlockingDecision({
       mainRoot: resolveRepositoryLockRoot(root),
       operationOwnerToken,
     });
-    const appended = issueLog.append(issueLogEntry(outcome), issueLogId);
+    const appended = issueLog.append(issueLogEntry(outcome, context.taskId), issueLogId);
     let durableOutcome = null;
     try {
       flowManager.mutate((current) => {
@@ -778,7 +861,7 @@ export function recordNonBlockingDecision({
           throw staleEvidenceError(current, currentContext);
         }
         const log = new StepAttemptLog(current.stepAttempts || []);
-        const currentExisting = decisionForIdentity(log, identity);
+        const currentExisting = decisionForIdentity(log, identity, currentContext.taskId);
         if (currentExisting) {
           if (currentExisting.outcome.action !== choice) {
             throw new NonBlockingDecisionConflictError(currentExisting.outcome, current);
@@ -789,16 +872,15 @@ export function recordNonBlockingDecision({
         assertDecisionChoice(currentContext, choice);
         log.record(new StepAttempt({
           runId: current.runId,
-          taskId: null,
+          taskId: currentContext.taskId,
           stepId: currentContext.sourceStep,
           attempt: currentContext.sourceAttempt,
           outcome,
         }));
         current.stepAttempts = log.toJSON();
         if (choice === "continue") {
-          if (activeStep(current) !== currentContext.sourceStep) throw staleEvidenceError(current, currentContext);
-          mark(current, currentContext.sourceStep, "done");
-          mark(current, CONTINUE_TARGET[currentContext.sourceStep], "in_progress");
+          materializeAcceptanceHandoff({ root, flowState: current, context: currentContext });
+          advanceContinuation(current, currentContext);
         }
         durableOutcome = outcome;
       }, { operationOwnerToken });

@@ -145,6 +145,49 @@ export function isTaskTerminalStatus(status) {
 }
 
 /**
+ * Complete one task and propagate terminal state through its parent chain.
+ * Callers own any subsequent task promotion; keeping that separate preserves
+ * the existing completion/promotion boundary.
+ */
+export function completeTaskInState(state, taskId) {
+  if (!state || typeof state !== "object") throw new Error("flow state is required");
+  const task = (state.tasks || []).find((candidate) => candidate.id === taskId);
+  if (!task) throw new Error(`unknown task id: ${taskId}`);
+  const finishedAt = new Date().toISOString();
+  for (const step of task.steps || []) {
+    if (step.status !== "in_progress") continue;
+    step.status = "done";
+    step.finishedAt = finishedAt;
+  }
+  task.status = "done";
+  if (state.currentTaskId === taskId) state.currentTaskId = null;
+
+  const tasks = state.tasks || [];
+  const byId = new Map();
+  const childrenByParent = new Map();
+  for (const candidate of tasks) {
+    byId.set(candidate.id, candidate);
+    if (candidate.parent != null) {
+      if (!childrenByParent.has(candidate.parent)) childrenByParent.set(candidate.parent, []);
+      childrenByParent.get(candidate.parent).push(candidate);
+    }
+  }
+  let parentId = task.parent;
+  let hops = 0;
+  while (parentId != null && hops <= tasks.length) {
+    const parent = byId.get(parentId);
+    if (!parent) break;
+    const siblings = childrenByParent.get(parentId) || [];
+    if (!siblings.every((candidate) => isTaskTerminalStatus(candidate.status)) || parent.status === "done") break;
+    parent.status = "done";
+    if (state.currentTaskId === parent.id) state.currentTaskId = null;
+    parentId = parent.parent;
+    hops += 1;
+  }
+  return task;
+}
+
+/**
  * Forest-aware lookup of the next task to run.
  *
  * Spec 226: Walks `tasks[]` in DFS pre-order, respecting the array order for

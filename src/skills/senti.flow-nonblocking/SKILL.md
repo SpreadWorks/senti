@@ -1,6 +1,6 @@
 ---
 name: senti.flow-nonblocking
-description: Enable advisory handling for eligible post-implementation Flow checks and continue the normal Flow.
+description: Enable advisory handling for eligible acceptance-backed Flow checks and continue the normal Flow.
 ---
 
 # Flow Nonblocking
@@ -8,12 +8,12 @@ description: Enable advisory handling for eligible post-implementation Flow chec
 Use this skill only when the user explicitly requests advisory continuation of a normal active Flow. It does not start a Flow, bypass prerequisites, or invoke `flow-direct`.
 
 1. Read the guarded `senti flow get status` and `senti flow get next-action`.
-2. If the policy is not enabled, enable it once with `senti flow set policy nonblocking --reason "<bounded reason>"` and the same target guards. The command is valid only after implementation starts and at `impl-review`, `impl-gate`, `acceptance-review`, or `final-regression`. Re-read guarded `next-action`.
+2. If the policy is not enabled, enable it once with `senti flow set policy nonblocking --reason "<bounded reason>"` and the same target guards, but only after the active checkpoint has persisted an eligible non-pass artifact. Eligible checkpoints are the draft/spec/test/implementation reviews and gates, scenario validity, test-result review, task review/gate, retro, acceptance review, and final regression. Re-read guarded `next-action`.
 3. If `nonblockingDecision` is absent, run the returned normal check action. Never alter, delete, or rewrite its evidence, then re-read guarded `next-action`.
 4. If `nonblockingDecision` is present, inspect the named evidence reference and decide without asking the user:
    - `repair` only for quality evidence, then perform the repair and rerun the same check;
    - `retry` only for tooling/unavailable evidence, then rerun the same check;
-   - `continue` only when the remaining risk is concrete and bounded.
+   - `continue` only when the remaining risk is concrete and bounded. Before acceptance, it creates a durable handoff that acceptance must disposition: semantic review/gate findings retain their original source; verification/tooling stops receive a typed `nonblocking-handoffs.json` source instead.
 5. Record exactly one guarded decision:
 
    `senti flow set nonblocking-decision --choice <repair|retry|continue> --reason "<reason>" --expect-evidence-digest <sha256> [--remaining-risk "<risk>"]`

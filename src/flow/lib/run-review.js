@@ -407,16 +407,17 @@ function reviewExternalBlock(failure) {
   });
 }
 
-function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
-  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+function reviewRetryExhaustionDeferralPlan({ root, flowState, phase }) {
+  if (!root || !flowState?.spec) return null;
   const sourceArtifact = REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase];
   if (!sourceArtifact) return null;
-  const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
-  let artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+  const specDir = specDirFromFlowState(root, flowState);
+  const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
   if (!artifact) return null;
   if (artifact.toolingOutcome) return null;
+  if (phase === "test" && artifact.verdict !== "REJECTED") return null;
   if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
-  let findings = reviewFindingsFromArtifact(artifact);
+  const findings = reviewFindingsFromArtifact(artifact);
   if (findings.length === 0 || !findings.every(isReviewSemanticFinding)) return null;
   const requireDisposition = phase === "test" || phase === "impl";
   if (requireDisposition) findings.forEach(assertDispositionedReviewFinding);
@@ -424,10 +425,66 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
     ? findings.filter((finding) => finding.disposition === "must-fix" || finding.disposition === "deferred")
     : findings;
   if (repairFindings.length === 0) return null;
-  const repairFingerprints = requireDisposition
+  return {
+    specDir,
+    sourceArtifact,
+    artifact,
+    findings,
+    requireDisposition,
+    repairFingerprints: requireDisposition
     ? new Set(repairFindings.map((finding) => finding.fingerprint))
-    : null;
+    : null,
+  };
+}
+
+export function canMaterializeReviewRetryExhaustionDeferral({ root, flowState, phase } = {}) {
+  try {
+    return reviewRetryExhaustionDeferralPlan({ root, flowState, phase }) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function materializeReviewRetryExhaustionDeferral({
+  root,
+  flowState,
+  phase,
+  attempts,
+  sourceStep = null,
+  rewriteSourceDisposition = false,
+} = {}) {
+  const plan = reviewRetryExhaustionDeferralPlan({ root, flowState, phase });
+  if (!plan) return null;
+  const { sourceArtifact, artifact, requireDisposition, repairFingerprints } = plan;
+  const { findings } = persistReviewSourceFindingIds(plan.specDir, sourceArtifact, artifact, {
+    defer: rewriteSourceDisposition,
+    requireDisposition,
+  });
+  deferExhaustedSemanticFindings({
+    root,
+    flowState,
+    sourceStep: sourceStep || REVIEW_NODE_ID_BY_PHASE[phase] || "impl-review",
+    sourceArtifact,
+    attempts,
+    ...(repairFingerprints && { fingerprints: repairFingerprints }),
+  });
+  return {
+    findingCount: repairFingerprints ? repairFingerprints.size : findings.length,
+  };
+}
+
+function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
+  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
   const stepId = reviewStepId(ctx, phase);
+  const deferred = materializeReviewRetryExhaustionDeferral({
+    root: ctx.root,
+    flowState: ctx.flowState,
+    phase,
+    attempts,
+    sourceStep: stepId,
+    rewriteSourceDisposition: true,
+  });
+  if (!deferred) return null;
   const transition = createLifecycleStepTransition({
     flowState: ctx.flowState,
     stepId,
@@ -435,22 +492,7 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
     event: "review:defer",
   });
   if (transition) ctx.flowManager.updateStepStatus(transition);
-  ({ artifact, findings } = persistReviewSourceFindingIds(specDir, sourceArtifact, artifact, {
-    defer: requireDisposition,
-    requireDisposition,
-  }));
-  deferExhaustedSemanticFindings({
-    root: ctx.root,
-    flowState: ctx.flowState,
-    sourceStep: reviewStepId(ctx, phase),
-    sourceArtifact,
-    attempts,
-    ...(repairFingerprints && { fingerprints: repairFingerprints }),
-  });
-  const findingCount = requireDisposition
-    ? repairFingerprints.size
-    : findings.length;
-  return reviewDeferredResult(phase, attempts, findingCount);
+  return reviewDeferredResult(phase, attempts, deferred.findingCount);
 }
 
 /**
@@ -664,6 +706,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
   const toolingOutcome = parseToolingOutcome(stderr);
   const countMatch = stderr.match(countPattern);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+  const jsonPathMatch = stderr.match(/JSON saved to (\S+)/);
   const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
   const retryPhase = retryPhaseMatch ? retryPhaseMatch[1] : null;
 
@@ -672,6 +715,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
 
   const changed = [];
   if (reviewPathMatch) changed.push(reviewPathMatch[1]);
+  if (jsonPathMatch) changed.push(jsonPathMatch[1]);
 
   if (toolingOutcome) {
     const artifacts = { phase, toolingOutcome: toolingOutcome.toJSON(), [countKey]: count ?? 0 };

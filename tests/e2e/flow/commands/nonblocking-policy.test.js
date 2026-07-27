@@ -107,3 +107,139 @@ test("nonblocking policy keeps normal Flow ownership and excludes direct mode", 
     removeTmpDir(root);
   }
 });
+
+test("nonblocking test-review continuation creates an acceptance disposition handoff", () => {
+  const root = createTmpDir("senti-nonblocking-test-review-e2e-");
+  try {
+    const specId = "477-test-review-nonblocking-e2e";
+    const spec = `specs/${specId}/spec.json`;
+    const evidence = JSON.stringify({
+      verdict: "REJECTED",
+      blockingFindings: [{
+        findingId: "missing-test-behavior",
+        fingerprint: "a".repeat(64),
+        disposition: "must-fix",
+        rationale: "The test design omits a required acceptance behavior.",
+        category: "semantic",
+        title: "Missing acceptance behavior test",
+      }],
+    }, null, 2) + "\n";
+    writeJson(root, ".senti/config.json", {
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+      commands: { gh: "disable" },
+    });
+    writeJson(root, spec, { requirements: [] });
+    fs.writeFileSync(path.join(root, `specs/${specId}/test-review.json`), evidence);
+
+    const state = moveFlowToStep(makeFlowState({
+      spec,
+      runId: "run-477-test-review-nonblocking-e2e",
+      baseBranch: "main",
+      featureBranch: "main",
+    }), "test-review");
+    writeJson(root, `specs/${specId}/flow.json`, state);
+    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    initGitRepo(root);
+    commitAll(root, "initial test-review flow fixture");
+
+    const policy = invoke(root, [
+      "set", "policy", "nonblocking",
+      "--reason", "The strict test review reached a bounded continuation decision.",
+      ...guards(state),
+    ]);
+    assert.equal(policy.status, 0, policy.stderr || policy.stdout);
+    assert.equal(policy.envelope.data.activatedStep, "test-review");
+
+    const next = invoke(root, ["get", "next-action", ...guards(state)]);
+    assert.equal(next.status, 0, next.stderr || next.stdout);
+    assert.deepEqual(next.envelope.data.nonblockingDecision.allowedActions, ["repair", "continue"]);
+    const digest = next.envelope.data.nonblockingDecision.evidenceDigest;
+    assert.equal(digest, crypto.createHash("sha256").update(evidence).digest("hex"));
+
+    const continued = invoke(root, [
+      "set", "nonblocking-decision",
+      "--choice", "continue",
+      "--reason", "Implementation can proceed while acceptance retains the finding.",
+      "--remaining-risk", "Acceptance review must disposition the deferred test-review finding.",
+      "--expect-evidence-digest", digest,
+      ...guards(state),
+    ]);
+    assert.equal(continued.status, 0, continued.stderr || continued.stdout);
+    assert.equal(continued.envelope.data.sourceStep, "test-review");
+
+    const specDir = path.join(root, `specs/${specId}`);
+    const persisted = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
+    assert.equal(findStepById(persisted.steps, "test-review").status, "done");
+    assert.equal(findStepById(persisted.steps, "implement").status, "in_progress");
+    const deferred = JSON.parse(fs.readFileSync(path.join(specDir, "flow-findings.json"), "utf8"));
+    assert.deepEqual(deferred.entries.map((entry) => ({
+      sourceStep: entry.sourceStep,
+      sourceArtifact: entry.sourceArtifact,
+      sourceFindingId: entry.sourceFindingId,
+      finalDisposition: entry.finalDisposition,
+    })), [{
+      sourceStep: "test-review",
+      sourceArtifact: "test-review.json",
+      sourceFindingId: "missing-test-behavior",
+      finalDisposition: "still_open",
+    }]);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("scenario-validity block records refreshed evidence after nonblocking activation", () => {
+  const root = createTmpDir("senti-nonblocking-scenario-validity-e2e-");
+  try {
+    const specId = "477-scenario-validity-nonblocking-e2e";
+    const spec = `specs/${specId}/spec.json`;
+    writeJson(root, ".senti/config.json", {
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+      commands: { gh: "disable" },
+    });
+    writeJson(root, spec, { requirements: [] });
+    const state = moveFlowToStep(makeFlowState({
+      spec,
+      runId: "run-477-scenario-validity-nonblocking-e2e",
+      baseBranch: "main",
+      featureBranch: "main",
+    }), "scenario-validity");
+    writeJson(root, `specs/${specId}/flow.json`, state);
+    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    initGitRepo(root);
+    commitAll(root, "initial flow fixture");
+
+    fs.mkdirSync(path.join(root, "src"));
+    fs.writeFileSync(path.join(root, "src", "blocked.js"), "export const blocked = true;\n");
+    const strictBlock = invoke(root, ["run", "scenario-validity", ...guards(state)]);
+    assert.notEqual(strictBlock.status, 0);
+    assert.equal(strictBlock.envelope.errors[0].code, "SCENARIO_VALIDITY_BLOCKED");
+    assert.equal(strictBlock.envelope.data.artifacts.result_path.endsWith("scenario-validity-result.json"), true);
+
+    const policy = invoke(root, [
+      "set", "policy", "nonblocking",
+      "--reason", "The durable pre-implementation block needs explicit acceptance disposition.",
+      ...guards(state),
+    ]);
+    assert.equal(policy.status, 0, policy.stderr || policy.stdout);
+    assert.equal(policy.envelope.data.activatedStep, "scenario-validity");
+
+    // Alter the authoritative artifact on the next run. The failed Envelope
+    // must still reach the nonblocking hook; otherwise next-action would see
+    // changed evidence with no durable observation.
+    fs.writeFileSync(path.join(root, "src", "another-blocked.js"), "export const anotherBlocked = true;\n");
+    const advisoryBlock = invoke(root, ["run", "scenario-validity", ...guards(state)]);
+    assert.notEqual(advisoryBlock.status, 0);
+    assert.equal(advisoryBlock.envelope.errors[0].code, "SCENARIO_VALIDITY_BLOCKED");
+
+    const next = invoke(root, ["get", "next-action", ...guards(state)]);
+    assert.equal(next.status, 0, next.stderr || next.stdout);
+    assert.deepEqual(next.envelope.data.nonblockingDecision.allowedActions, ["retry", "continue"]);
+  } finally {
+    removeTmpDir(root);
+  }
+});

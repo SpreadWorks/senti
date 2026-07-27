@@ -17,6 +17,10 @@ import {
   validateFinalDisposition,
 } from "./flow-findings.js";
 import {
+  NONBLOCKING_HANDOFF_FILE,
+  verifyNonblockingHandoffSource,
+} from "./nonblocking-handoff.js";
+import {
   buildReviewHandoffFindings,
   ReviewDisposition,
   ReviewEvidence,
@@ -1087,6 +1091,13 @@ function inspectDeferredSources(specDir, deferredFindings, flowState) {
       addMissing(finding);
       continue;
     }
+    if (
+      finding.sourceArtifact === NONBLOCKING_HANDOFF_FILE
+      && !verifyNonblockingHandoffSource(specDir, sourceFinding)
+    ) {
+      addMissing(finding);
+      continue;
+    }
     evidence.push(new DeferredFindingEvidenceProjection({ finding, sourceFinding }).toJSON());
   }
   return { blockers, evidence };
@@ -1178,7 +1189,11 @@ function validateRetroEvidence(artifact, requirements) {
   }
 }
 
-function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flowState }) {
+function deferredCheckpointSteps(deferredFindings) {
+  return new Set((deferredFindings || []).map((finding) => finding?.sourceStep).filter(Boolean));
+}
+
+function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flowState, deferredFindings = [] }) {
   const missing = [];
   const invalidSchemas = [];
   const artifacts = {};
@@ -1301,13 +1316,16 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
     }
   }
   const testSummary = artifacts["test-execute-result.json"]?.summary || [];
+  const deferredSteps = deferredCheckpointSteps(deferredFindings);
   const scenarioValiditySkipped = findStepById(flowState.steps || [], "scenario-validity")?.status === "skipped";
-  const failed = (!scenarioValiditySkipped && artifacts["scenario-validity-result.json"]?.result !== "pass")
+  const failed = (!scenarioValiditySkipped
+    && artifacts["scenario-validity-result.json"]?.result !== "pass"
+    && !deferredSteps.has("scenario-validity"))
     || testSummary.some((entry) => entry.result === "fail")
-    || artifacts["test-result-review.json"]?.verdict !== "pass"
-    || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(implReviewVerdict))
-    || artifacts["impl-gate-result.json"]?.verdict !== "pass"
-    || Number(artifacts["retro.json"]?.summary?.not_done || 0) > 0;
+    || (artifacts["test-result-review.json"]?.verdict !== "pass" && !deferredSteps.has("test-result-review"))
+    || (!rejectedReviewTriage && !["PASS", "ADVISORY"].includes(implReviewVerdict) && !deferredSteps.has("impl-review"))
+    || (artifacts["impl-gate-result.json"]?.verdict !== "pass" && !deferredSteps.has("impl-gate"))
+    || (Number(artifacts["retro.json"]?.summary?.not_done || 0) > 0 && !deferredSteps.has("retro"));
   return {
     artifacts,
     canonicalImplReviewEvidence,
@@ -1327,15 +1345,16 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
   const specDir = resolveSpecDir(path.resolve(root, state.spec));
   const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
   const requirements = requirementList(specDir);
+  const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
+  const deferredSources = inspectDeferredSources(specDir, deferredFindings, state);
   const mechanical = mechanicalArtifactState({
     root,
     specDir,
     fingerprint,
     requirements,
     flowState: state,
+    deferredFindings,
   });
-  const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
-  const deferredSources = inspectDeferredSources(specDir, deferredFindings, state);
   const mechanicalBlockers = [
     ...mechanical.blockers,
     ...deferredSources.blockers,

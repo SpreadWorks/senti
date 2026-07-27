@@ -31,9 +31,28 @@ export function fromAcceptanceResult({ ref, source: body }) {
   // rejected and inconclusive branches as repair_required and
   // user_decision_required.  Keep the artifact authoritative rather than
   // inventing a second result representation for nonblocking.
-  return ["repair_required", "user_decision_required", "rejected", "inconclusive", "aborted"].includes(found.value.verdict)
+  return ["repair_required", "user_decision_required", "rejected", "inconclusive", "aborted", "blocked"].includes(found.value.verdict)
     ? { ...found, resultKind: "quality" }
     : null;
+}
+
+/**
+ * Verification checkpoints have a durable result but no semantic finding
+ * schema shared with reviews and gates.  A continuation records a typed
+ * handoff for acceptance instead of pretending that the verification passed.
+ */
+export function fromVerificationResult({ ref, source: body }, step) {
+  const found = source(ref, body);
+  if (step === "scenario-validity" && found.value.result !== "pass") {
+    return { ...found, resultKind: "unavailable" };
+  }
+  if (step === "test-result-review" && found.value.verdict !== "pass") {
+    return { ...found, resultKind: "quality" };
+  }
+  if (step === "retro" && Number(found.value?.summary?.not_done || 0) > 0) {
+    return { ...found, resultKind: "quality" };
+  }
+  return null;
 }
 
 export function fromFinalRegressionResult({ ref, source: body }) {

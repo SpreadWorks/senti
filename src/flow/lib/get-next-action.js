@@ -32,6 +32,7 @@ import {
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
 import {
+  NONBLOCKING_SOURCE_STEPS,
   retryResetTimestampForStep,
   ObservedNonPassOutcome,
   StepAttemptLog,
@@ -413,7 +414,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
       })
     : strictDirective;
   result.directive = directive.toJSON();
-  if (state.nonblocking?.enabled === true && ["impl-review", "impl-gate", "acceptance-review", "final-regression"].includes(target.stepId)) {
+  if (state.nonblocking?.enabled === true && NONBLOCKING_SOURCE_STEPS.includes(target.stepId)) {
     try {
       const nonblockingDecision = decisionContextForActiveFlow(ctx.root, state);
       // A repair/retry decision is already durable while its subsequent check
@@ -427,7 +428,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
       const attempts = new StepAttemptLog(state.stepAttempts || []);
       const observed = attempts.entries.some((entry) => (
         entry.runId === state.runId
-        && entry.taskId === null
+        && entry.taskId === (target.taskId ?? null)
         && entry.stepId === target.stepId
         && entry.outcome instanceof ObservedNonPassOutcome
       ));

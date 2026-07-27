@@ -38,6 +38,7 @@ import {
   readFlowFindingsArtifact,
   writeFlowFindingsArtifact,
 } from "../../../src/flow/lib/flow-findings.js";
+import { materializeNonblockingAcceptanceHandoff } from "../../../src/flow/lib/nonblocking-handoff.js";
 import {
   applyReviewEvidenceTransition,
   ReviewDisposition,
@@ -237,7 +238,7 @@ test("review retry exhaustion defers semantic findings without prose keyword blo
     }),
     flowManager: {
       updateStepStatus(transition) {
-        assert.equal(fs.existsSync(flowFindingsPath), false, "deferred artifact starts after the step commit");
+        assert.equal(fs.existsSync(flowFindingsPath), true, "deferred artifact must exist before the step commit");
         updates.push({ id: transition.stepId, status: transition.requestedStatus });
       },
     },
@@ -443,7 +444,7 @@ test("gate retry exhaustion defers typed informational findings and blocks struc
     }),
     flowManager: {
       updateStepStatus(transition) {
-        assert.equal(fs.existsSync(flowFindingsPath), false, "deferred artifact starts after the step commit");
+        assert.equal(fs.existsSync(flowFindingsPath), true, "deferred artifact must exist before the step commit");
         const source = JSON.parse(fs.readFileSync(path.join(fixture.specDir, "impl-gate-result.json"), "utf8"));
         assert.equal(source.evaluations[0].findingId, "integration-semantic");
         updates.push({ id: transition.stepId, status: transition.requestedStatus });
@@ -811,6 +812,161 @@ test("acceptance-review accepts an audited skipped scenario-validity preconditio
   assert.equal(
     context.mechanicalBlockers.some((blocker) => blocker.kind === "failed_tests"),
     false,
+  );
+});
+
+test("acceptance-review turns a continued impl-gate failure into an explicit risk decision", () => {
+  const fixture = prepareSpecRoot();
+  const fingerprint = prepareAcceptanceEvidence(fixture);
+  writeRepairEvidenceArtifact({
+    specDir: fixture.specDir,
+    stepId: "impl-gate",
+    fingerprint,
+    artifact: {
+      verdict: "fail",
+      issues: [],
+      nextAction: "retro",
+      level: "integration",
+      phase: "integration",
+      evaluations: [{
+        findingId: "continued-gate-finding",
+        fingerprint: SEMANTIC_FINDING_FINGERPRINT,
+        result: "fail",
+        category: "semantic",
+        reason: "A bounded implementation gate observation remains open.",
+      }],
+      reasons: [],
+    },
+  });
+  writeFlowFindingsArtifact(fixture.specDir, {
+    entries: [{
+      findingId: "DF-continued-gate",
+      sourceStep: "impl-gate",
+      sourceArtifact: "impl-gate-result.json",
+      sourceFindingId: "continued-gate-finding",
+      runId: "run-test",
+      fingerprint: SEMANTIC_FINDING_FINGERPRINT,
+      disposition: "deferred",
+      rationale: "The explicit nonblocking decision retained this gate observation for acceptance.",
+      retryExhausted: true,
+      attempts: 1,
+      round: 1,
+      completionKind: "deferred",
+      finalDisposition: "still_open",
+    }],
+  });
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify that the continued gate risk is explicitly decided.",
+  };
+  const diff = [
+    "diff --git a/src/demo.js b/src/demo.js",
+    "--- a/src/demo.js",
+    "+++ b/src/demo.js",
+    "@@ -1 +1 @@",
+    "-export const demo = false;",
+    "+export const demo = true;",
+    "",
+  ].join("\n");
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+  assert.equal(context.mechanicalBlockers.some((blocker) => blocker.kind === "failed_tests"), false);
+  assert.equal(context.deferredFindings[0].sourceStep, "impl-gate");
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R1"],
+      diffRefs: ["diff:src/demo.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R1"],
+      missingEvidence: [],
+    }],
+    deferredFindingDispositions: [{
+      findingId: "DF-continued-gate",
+      finalDisposition: "still_open",
+      evidenceRefs: ["impl-gate-result.json#continued-gate-finding"],
+    }],
+  });
+  assert.equal(artifact.verdict, "user_decision_required");
+  assert.equal(artifact.mechanicalBlockers.length, 0);
+});
+
+test("acceptance-review verifies a typed nonblocking handoff without reclassifying it as a mechanical pass", () => {
+  const fixture = prepareSpecRoot();
+  const fingerprint = prepareAcceptanceEvidence(fixture);
+  writeRepairEvidenceArtifact({
+    specDir: fixture.specDir,
+    stepId: "test-result-review",
+    fingerprint,
+    artifact: {
+      verdict: "fail",
+      checked_items: [
+        { check: "summary_evidence", result: "fail", detail: "The raw test evidence could not be verified." },
+        { check: "project_regression_verification", result: "pass", detail: "verified" },
+      ],
+      invalid_reason: "The raw test evidence could not be verified.",
+      result_file_path: "specs/demo/test-execute-result.json",
+      raw_output_path: "specs/demo/tests/.raw/test-execution.log",
+    },
+  });
+  const source = fs.readFileSync(path.join(fixture.specDir, "test-result-review.json"), "utf8");
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify that unavailable test evidence stays an explicit acceptance risk.",
+  };
+  materializeNonblockingAcceptanceHandoff({
+    root: fixture.root,
+    flowState: state,
+    sourceStep: "test-result-review",
+    evidenceRef: "specs/demo/test-result-review.json",
+    evidenceDigest: crypto.createHash("sha256").update(source).digest("hex"),
+    resultKind: "quality",
+    attempts: 1,
+  });
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: "diff --git a/src/demo.js b/src/demo.js\n",
+  });
+  assert.equal(context.mechanicalBlockers.some((blocker) => blocker.kind === "failed_tests"), false);
+  assert.equal(context.evidence.deferredFindingEvidence[0].sourceRef.startsWith("nonblocking-handoffs.json#NB-"), true);
+  const finding = context.deferredFindings[0];
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R1"],
+      diffRefs: ["diff:src/demo.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R1"],
+      missingEvidence: [],
+    }],
+    deferredFindingDispositions: [{
+      findingId: finding.findingId,
+      finalDisposition: "still_open",
+      evidenceRefs: [`${finding.sourceArtifact}#${finding.sourceFindingId}`],
+    }],
+  });
+  assert.equal(artifact.verdict, "user_decision_required");
+  assert.equal(artifact.mechanicalBlockers.length, 0);
+
+  fs.appendFileSync(path.join(fixture.specDir, "test-result-review.json"), " ");
+  const staleSourceContext = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: "diff --git a/src/demo.js b/src/demo.js\n",
+  });
+  assert.equal(
+    staleSourceContext.mechanicalBlockers.some((blocker) => blocker.kind === "missing_deferred_source"),
+    true,
   );
 });
 
