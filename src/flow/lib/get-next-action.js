@@ -33,15 +33,20 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
 import {
   retryResetTimestampForStep,
+  ObservedNonPassOutcome,
   StepAttemptLog,
 } from "./step-outcome.js";
 import { resolveReviewOperationForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 import { getDirectFlowAction } from "./direct-flow-controller.js";
-import { decisionContextForActiveFlow } from "./nonblocking.js";
+import {
+  decisionContextForActiveFlow,
+  nonblockingActivationOfferForStrictStop,
+} from "./nonblocking.js";
 import {
   AbortedDirective,
+  AwaitUserDecisionDirective,
   CompletedDirective,
   ExecuteStepDirective,
   IdleDirective,
@@ -390,7 +395,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
   const gateRecovery = gateRecoveryDisplay
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
-  const directive = new NextActionDirectiveResolver({
+  const strictDirective = new NextActionDirectiveResolver({
     state,
     action: derived.action,
     reviewPhase,
@@ -400,12 +405,44 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     reviewOperation,
     gateRecovery,
   }).resolve();
+  const activationOffer = nonblockingActivationOfferForStrictStop(ctx.root, state, strictDirective);
+  const directive = activationOffer
+    ? new AwaitUserDecisionDirective({
+        prompt: activationOffer.prompt,
+        reason: activationOffer.blocker,
+      })
+    : strictDirective;
   result.directive = directive.toJSON();
   if (state.nonblocking?.enabled === true && ["impl-review", "impl-gate", "acceptance-review", "final-regression"].includes(target.stepId)) {
     try {
-      result.nonblockingDecision = decisionContextForActiveFlow(ctx.root, state).toJSON();
-    } catch {
-      // A pass has no advisory decision. The normal step action remains authoritative.
+      const nonblockingDecision = decisionContextForActiveFlow(ctx.root, state);
+      // A repair/retry decision is already durable while its subsequent check
+      // runs. Keep the normal directive authoritative until that check writes
+      // a new result; exposing an empty decision context would invite a second
+      // decision for the same evidence.
+      if (nonblockingDecision.allowedActions.length > 0) {
+        result.nonblockingDecision = nonblockingDecision.toJSON();
+      }
+    } catch (error) {
+      const attempts = new StepAttemptLog(state.stepAttempts || []);
+      const observed = attempts.entries.some((entry) => (
+        entry.runId === state.runId
+        && entry.taskId === null
+        && entry.stepId === target.stepId
+        && entry.outcome instanceof ObservedNonPassOutcome
+      ));
+      if (error.code === "NONBLOCKING_NO_ELIGIBLE_EVIDENCE" && !observed) {
+        // The policy may be enabled before this check has produced any result.
+        // The normal step remains authoritative until a non-pass is durably
+        // observed.
+      } else if (error.code === "NONBLOCKING_EVIDENCE_UNAVAILABLE" && !observed) {
+        // No non-pass has been persisted. Re-running the current check is the
+        // bounded mechanical recovery for an absent pre-decision artifact.
+      } else {
+        // Do not silently fall back to the normal command: the dispatcher
+        // serializes this error's FlowContinuation as a guarded retry route.
+        throw error;
+      }
     }
   }
   return result;

@@ -1,6 +1,6 @@
 import { FlowCommand } from "./base-command.js";
 import { recordNonBlockingDecision } from "./nonblocking.js";
-import { Envelope } from "../../lib/flow-envelope.js";
+import { nonblockingFailureEnvelope } from "./nonblocking-command-failure.js";
 
 export default class SetNonBlockingDecisionCommand extends FlowCommand {
   execute(ctx) {
@@ -14,14 +14,12 @@ export default class SetNonBlockingDecisionCommand extends FlowCommand {
         remainingRisk: ctx.remainingRisk,
       });
     } catch (error) {
-      if (error.code !== "NONBLOCKING_STALE_EVIDENCE") throw error;
-      return Envelope.fail(
-        "set",
-        "nonblocking-decision",
-        error.code,
-        error.message,
-        { nonblockingDecision: error.context, continuation: error.continuation },
-      );
+      return nonblockingFailureEnvelope({
+        type: "set",
+        key: "nonblocking-decision",
+        error,
+        state: ctx.flowState,
+      });
     }
   }
 }

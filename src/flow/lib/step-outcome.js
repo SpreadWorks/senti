@@ -8,6 +8,14 @@
 
 import { UserActionPrompt } from "./user-action-prompt.js";
 
+export const NONBLOCKING_SOURCE_STEPS = Object.freeze([
+  "impl-review",
+  "impl-gate",
+  "acceptance-review",
+  "final-regression",
+]);
+export const NONBLOCKING_TEXT_MAX_LENGTH = 2_000;
+
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`${field} must be a non-empty string`);
@@ -20,6 +28,22 @@ function requireAttempt(value) {
     throw new Error("step attempt must be a positive integer");
   }
   return value;
+}
+
+function requireNonblockingText(value, field) {
+  const normalized = requireString(value, field).trim();
+  if (normalized.length > NONBLOCKING_TEXT_MAX_LENGTH) {
+    throw new Error(`${field} must be no longer than ${NONBLOCKING_TEXT_MAX_LENGTH} characters`);
+  }
+  return normalized;
+}
+
+function requireNonblockingStep(value, field) {
+  const step = requireString(value, field).trim();
+  if (!NONBLOCKING_SOURCE_STEPS.includes(step)) {
+    throw new Error(`${field} is not an eligible nonblocking step`);
+  }
+  return step;
 }
 
 export class StepOutcome {
@@ -114,14 +138,13 @@ export class DecisionOutcome extends StepOutcome {
 export class NonBlockingDecisionOutcome extends StepOutcome {
   constructor({ action, sourceStep, sourceAttempt, evidenceRef, evidenceDigest, rationale, remainingRisk = null, nextAction }) {
     if (!["repair", "retry", "continue"].includes(action)) throw new Error("invalid nonblocking decision action");
-    if (typeof sourceStep !== "string" || sourceStep.trim() === "") throw new Error("sourceStep is required");
+    sourceStep = requireNonblockingStep(sourceStep, "sourceStep");
     if (!Number.isSafeInteger(sourceAttempt) || sourceAttempt < 1) throw new Error("sourceAttempt must be a positive integer");
     if (typeof evidenceRef !== "string" || evidenceRef.trim() === "") throw new Error("evidenceRef is required");
     if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) throw new Error("evidenceDigest must be SHA-256");
-    if (typeof rationale !== "string" || rationale.trim() === "") throw new Error("rationale is required");
-    if (action === "continue" && (typeof remainingRisk !== "string" || remainingRisk.trim() === "")) {
-      throw new Error("remainingRisk is required for advisory continue");
-    }
+    rationale = requireNonblockingText(rationale, "rationale");
+    if (action === "continue") remainingRisk = requireNonblockingText(remainingRisk, "remainingRisk");
+    else if (remainingRisk != null) remainingRisk = requireNonblockingText(remainingRisk, "remainingRisk");
     super({ terminal: action === "continue", nextAction: requireString(nextAction, "nextAction") });
     this.kind = "nonblocking-decision";
     this.action = action;
@@ -141,7 +164,7 @@ export class NonBlockingDecisionOutcome extends StepOutcome {
 
 export class ObservedNonPassOutcome extends StepOutcome {
   constructor({ sourceStep, evidenceRef, evidenceDigest, resultKind, nextAction = "refresh-next-action" }) {
-    if (typeof sourceStep !== "string" || sourceStep.trim() === "") throw new Error("sourceStep is required");
+    sourceStep = requireNonblockingStep(sourceStep, "sourceStep");
     if (typeof evidenceRef !== "string" || evidenceRef.trim() === "") throw new Error("evidenceRef is required");
     if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) throw new Error("evidenceDigest must be SHA-256");
     if (!["quality", "tooling", "unavailable"].includes(resultKind)) throw new Error("observed non-pass resultKind is invalid");
@@ -226,11 +249,19 @@ export class StepAttempt {
   }
 
   sameIdentity(other) {
-    return other instanceof StepAttempt
+    const sameAttempt = other instanceof StepAttempt
       && this.runId === other.runId
       && this.taskId === other.taskId
       && this.stepId === other.stepId
       && this.attempt === other.attempt;
+    if (!sameAttempt) return false;
+    // A check observation and its evidence-bound nonblocking decision are
+    // separate durable facts from the check's ordinary outcome. All ordinary
+    // outcome writes, including two decisions, retain the original
+    // one-outcome-per-attempt replacement semantics.
+    const pair = new Set([this.outcome.kind, other.outcome.kind]);
+    if (this.outcome.kind === other.outcome.kind) return true;
+    return !pair.has("observed-nonpass") && !pair.has("nonblocking-decision");
   }
 
   toJSON() {

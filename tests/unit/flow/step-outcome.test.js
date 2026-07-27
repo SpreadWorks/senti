@@ -484,4 +484,12 @@ describe("flow skill liveness contract", () => {
     assert.match(skill, /execute a sole read-only `INSPECT_\*` choice once without asking/);
     assert.match(skill, /Never show raw action IDs/);
   });
+
+  it("prioritizes an agent-owned nonblocking decision over the strict directive", () => {
+    const flowSkill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    const nonblockingSkill = fs.readFileSync("src/skills/senti.flow-nonblocking/SKILL.md", "utf8");
+    assert.match(flowSkill, /When `nonblockingDecision` is present, invoke `\/senti\.flow-nonblocking` before dispatching the normal directive/);
+    assert.match(nonblockingSkill, /If `nonblockingDecision` is absent, run the returned normal check action/);
+    assert.match(nonblockingSkill, /at most one agent-recoverable guarded recovery\/re-run/);
+  });
 });

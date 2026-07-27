@@ -182,6 +182,7 @@ C.1. **Ask the CLI for the next action**
    - Otherwise, consume `directive` as the sole execution authority. Fields
      such as step outcomes and recovery diagnostics explain state only; they
      MUST NOT be interpreted as competing next actions.
+   - When `nonblockingDecision` is present, invoke `/senti.flow-nonblocking` before dispatching the normal directive. The decision is agent-owned: inspect the returned evidence, then record the single digest-guarded repair, retry, or continue command without a user-facing choice. The ordinary directive describes the strict route and is not an additional decision while this evidence is pending. Do not offer or start direct mode after nonblocking is enabled.
    - Dispatch the directive by its typed kind:
      1. `execute_step`: execute `instructions.content`, then re-fetch guarded
         `next-action`.
@@ -195,7 +196,7 @@ C.1. **Ask the CLI for the next action**
         `nextAction`, which refreshes authority before any retry. If the repair
         requires a product decision not established by the request, project
         rules, or persisted evidence, stop and ask only that concrete decision.
-     4. `await_user_decision`: explain the concrete situation and materially
+    4. `await_user_decision`: explain the concrete situation and materially
         different outcomes in the user's language. Translate and reword text
         for clarity; do not expose raw action IDs, commands, impact arrays,
         state-transition names, or internal class names unless diagnostics
@@ -203,6 +204,19 @@ C.1. **Ask the CLI for the next action**
         standard numbered format, put the recommendation first, and wait for
         the user's number or localized label. Map the answer to the current
         choice's exact action and re-fetch afterward.
+        - A prompt with the two choices `KEEP_STRICT_FLOW` and
+          `ENABLE_NONBLOCKING` appears only after normal strict recovery has
+          stopped on an eligible post-implementation check. It is the only
+          manual mode-selection point: do not offer advisory continuation
+          earlier and do not offer direct mode here.
+        - If the user chooses advisory continuation, record a concise bounded
+          reason and run `senti flow set policy nonblocking --reason "<reason>"
+          <targetGuardArgs>`, then re-fetch guarded `next-action`. The policy
+          is one-way; a failed policy command or stale target is blocking and
+          must follow its returned continuation.
+        - If the user keeps strict recovery, leave the Flow unchanged, report
+          the original strict blocker, and exit the loop. Do not synthesize a
+          retry, a no-op refresh loop, or a mode-selection prompt.
      5. `blocked`: report `reason` and `resumeInstruction` as the concrete
         non-recoverable blocker. Do not offer status inspection, normal/direct
         mode selection, retry, keep-state, or another `$senti.flow` invocation
@@ -212,11 +226,6 @@ C.1. **Ask the CLI for the next action**
    - A missing or invalid `directive` is a CLI contract failure. STOP instead
      of reconstructing recovery from `reviewAction`, `retryRecovery`,
      `gateStop`, `continuation`, `actionPrompt`, process exit status, or prose.
-   - When `nonblockingDecision` is present, invoke `/senti.flow-nonblocking`.
-     The decision is agent-owned: inspect the returned evidence, then record
-     the single digest-guarded repair, retry, or continue command without a
-     user-facing choice. Do not offer or start direct mode after nonblocking
-     is enabled.
    - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
 
 C.1.5. **Auto-upgrade check (spec 232)**

@@ -575,17 +575,6 @@ class RegistryLifecycleAdapter {
 }
 
 async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err = null) {
-  if (ctx.flowState?.nonblocking?.enabled === true && result) {
-    const stepId = input?.event === "review:post" && result?.artifacts?.phase === "impl"
-      ? "impl-review"
-      : input?.event === "gate:post" && (result?.artifacts?.phase || ctx.phase) === "integration"
-        ? "impl-gate"
-        : null;
-    if (stepId) {
-      const nonblocking = await import("./lib/nonblocking.js");
-      nonblocking.recordEligibleNonblockingAttempt(ctx, stepId, result);
-    }
-  }
   const attempt = result?.stepAttempt ? StepAttempt.fromStored(result.stepAttempt) : null;
   const plan = resolveLifecyclePlan({
     ...input,
@@ -1231,6 +1220,12 @@ export const FLOW_COMMANDS = {
           phase: result?.artifacts?.phase || ctx.phase,
         }, result);
       },
+      async nonblockingPost(ctx, result) {
+        const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
+        if (phase !== "integration") return;
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "impl-gate", result);
+      },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
         const phase = err?.data?.effectivePhase
@@ -1304,6 +1299,12 @@ export const FLOW_COMMANDS = {
           }
           throw persistenceFailure || error;
         }
+      },
+      async nonblockingPost(ctx, result) {
+        const phase = result?.artifacts?.phase || result?.data?.phase || ctx.phase;
+        if (phase !== "impl" || ctx.flowState?.currentTaskId != null) return;
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "impl-review", result);
       },
     },
     "auto-check": {

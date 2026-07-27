@@ -77,8 +77,8 @@ export class FlowCompletion {
       mergeDisposition: this.mergeDisposition,
       ...(this.directReceipt && { receiptId: this.directReceipt.receiptId }),
       ...(this.abortReceipt && { receiptId: this.abortReceipt.receiptId }),
+      assurance: this.assurance,
       ...(advisory.length > 0 && { advisorySummary: advisory }),
-      ...(this.assurance === "advisory" && { assurance: this.assurance }),
     };
   }
 }

@@ -7,19 +7,31 @@ function source(ref, source) {
 export function fromReviewResult({ ref, source: body }) {
   const found = source(ref, body);
   if (found.value.verdict === "REJECTED") return { ...found, resultKind: "quality" };
-  if (found.value.toolingOutcome) return { ...found, resultKind: "tooling" };
+  if (found.value.toolingOutcome != null) return { ...found, resultKind: "tooling" };
   return null;
 }
 
 export function fromGateResult({ ref, source: body }) {
   const found = source(ref, body);
   if (found.value.verdict !== "fail" && found.value.result !== "fail") return null;
-  return { ...found, resultKind: found.value.failureKind || found.value.toolingFailure ? "tooling" : "quality" };
+  // Gate writes an explicit semantic failure kind.  Every other explicit
+  // failure record is an execution/schema/prerequisite condition and must use
+  // the retry branch rather than being presented as a repairable finding.
+  return {
+    ...found,
+    resultKind: found.value.failureKind == null || found.value.failureKind === "ai_semantic_fail"
+      ? "quality"
+      : "tooling",
+  };
 }
 
 export function fromAcceptanceResult({ ref, source: body }) {
   const found = source(ref, body);
-  return ["repair_required", "user_decision_required", "inconclusive", "aborted"].includes(found.value.verdict)
+  // The acceptance artifact's current canonical vocabulary expresses the
+  // rejected and inconclusive branches as repair_required and
+  // user_decision_required.  Keep the artifact authoritative rather than
+  // inventing a second result representation for nonblocking.
+  return ["repair_required", "user_decision_required", "rejected", "inconclusive", "aborted"].includes(found.value.verdict)
     ? { ...found, resultKind: "quality" }
     : null;
 }
@@ -27,5 +39,11 @@ export function fromAcceptanceResult({ ref, source: body }) {
 export function fromFinalRegressionResult({ ref, source: body }) {
   const found = source(ref, body);
   if (!["fail", "unavailable", "not-run"].includes(found.value.result)) return null;
-  return { ...found, resultKind: found.value.failureKind ? "tooling" : "unavailable" };
+  if (found.value.result === "unavailable" || found.value.result === "not-run") {
+    return { ...found, resultKind: "unavailable" };
+  }
+  return {
+    ...found,
+    resultKind: found.value.failureKind === "caused_by_current_change" ? "quality" : "tooling",
+  };
 }
