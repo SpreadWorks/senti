@@ -448,6 +448,15 @@ describe("flow skill liveness contract", () => {
     );
   });
 
+  it("uses reviewAction before generic blocked recovery", () => {
+    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    assert.match(skill, /Before generic blocked-step recovery, obey a returned `reviewAction`/);
+    assert.match(skill, /`requiresChangedEvidence: false`/);
+    assert.match(skill, /Do not run `flow set retry reset`/);
+    assert.match(skill, /Only `stop_as_blocker` is a terminal review blocker/);
+    assert.match(skill, /generic `continuation`[\s\S]*MUST NOT override/);
+  });
+
   it("keeps mechanical direct recovery out of user choice prompts", () => {
     const skill = fs.readFileSync("src/skills/senti.flow-direct/SKILL.md", "utf8");
     assert.match(skill, /DIRECT_MODE_UNSUPPORTED/);

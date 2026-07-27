@@ -396,6 +396,22 @@ C.1. **Ask the CLI for the next action**
    - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
+   - Before generic blocked-step recovery, obey a returned `reviewAction` as
+     the review authority:
+     1. `kind: "retry_review"` with `requiresChangedEvidence: false` and a
+        remaining budget means rerun the current review command from
+        `instructions.content` immediately. Do not run `flow set retry reset`;
+        a tooling retry neither requires nor benefits from that reset.
+     2. `kind: "retry_review"` with `requiresChangedEvidence: true` means
+        repair the review target first. Re-fetch guarded `next-action` after
+        the edit and rerun the current review only after its target identity
+        changes. Do not substitute a retry reset unless the refreshed CLI
+        explicitly returns one as the executable recovery command.
+     3. Follow `register_alternative_evidence` using the CLI-provided evidence
+        registration action. Follow `move_to_acceptance` through the refreshed
+        normal action. Only `stop_as_blocker` is a terminal review blocker.
+     4. A generic `continuation` such as status inspection MUST NOT override a
+        more specific executable `reviewAction`.
    - Before following a generic `continuation`, handle a typed
      `STEP_EXTERNAL_BLOCKED` / `ExternalBlockedOutcome` recovery:
      1. This is not automatically a terminal Flow state and is not a reason to
