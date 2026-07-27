@@ -118,7 +118,11 @@ Note: `senti flow get context` automatically records these metrics via hooks —
 
 ## Choice Format
 
-Present choices in the following format:
+Use this format only for two or more materially different choices that require
+new user authority. Never display a single operation as a choice, and never add
+“inspect” or “keep the current state” merely to manufacture a second option.
+
+Present real choices in the following format:
 ```
 ──────────────────────────────────────────────────────────
   Description (question or situation)
@@ -211,7 +215,19 @@ regardless of which model renders it.
 
 Although these rules are written in English, perform reasoning AND user-facing output in the user's response language. The only tokens that may remain in the source language are: code identifiers (function/class/variable names, file paths, command names, CLI flags, error codes), library/package names, and proper product/brand names. Every other token MUST be translated into the response language.
 
-Every turn that asks the user to choose, decide, or confirm MUST contain all five sections below in order:
+A user decision exists only when at least two materially different executable
+outcomes need new user authority. Do not present a choice block when:
+
+- only one operation is available;
+- the only alternatives are read-only inspection or keeping the current state;
+- the user already asked to continue and the remaining path is a deterministic,
+  non-destructive continuation;
+- the operation merely reads state needed for the agent's next judgment.
+
+Execute those mechanical operations directly. If they cannot make progress,
+explain the concrete blocker without asking the user to approve an inspection.
+
+Every turn that asks the user to choose between two or more real outcomes MUST contain all five sections below in order:
 
 1. **Decision statement** (REQUIRED, 1 sentence): explicitly state what is being decided.
 2. **Recommendation + rationale** (REQUIRED, 1-3 sentences): name the recommended option and give the reason. If no recommendation is possible, REQUIRED to explicitly state that no recommendation is possible, with the reason — do not skip this section.
@@ -362,17 +378,44 @@ C.1. **Ask the CLI for the next action**
    - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
+   - If the result contains `continuation` with `requiresUserAction: false`, execute
+     its exact guarded `nextAction` immediately and re-fetch guarded
+     `next-action`. This is a mechanical continuation, not a user decision.
+     Never display it as a numbered choice. If the same read-only continuation
+     returns unchanged after one execution, report the concrete blocker in the
+     user's language and stop without asking the user to select the same
+     inspection again.
    - If the result has `yieldsControl: true`, treat `actionPrompt` as the complete recovery contract before evaluating any normal action:
-     1. Render `actionPrompt.question`, every choice, each `actionId`, label, impact, reason, state transition, and `recommendationReason` exactly as returned.
-     2. Do not omit, reword, replace, reorder, merge, or invent choices.
-     3. Wait for an explicit user selection. A recommendation is not permission.
-     4. Execute only the selected choice's exact `nextAction`. Substitute placeholders only with values the user explicitly supplied.
-     5. Re-fetch guarded `senti flow get next-action` after the command, including after failure. Never reuse the old prompt.
-   - An incomplete result without a valid `actionPrompt`, or a prompt choice without an executable `nextAction` or state transition, is a CLI contract failure. STOP instead of generating free-form recovery guidance.
+     1. Classify choices before presenting anything. A read-only choice whose
+        action ID starts with `INSPECT_` or `KEEP_` and whose impact changes and
+        deletes nothing is passive.
+     2. When only one read-only choice exists, execute it once immediately and
+        re-fetch. Do not ask the user to choose the only available operation.
+     3. When the recommended choice only fetches the normal next action and all
+        alternatives are passive, execute the recommendation immediately. The
+        user's invocation of this Flow already means “continue”; “do nothing”
+        is not a separate product decision.
+     4. Otherwise this is a real decision. Explain the concrete situation and
+        materially different outcomes in the user's language. Translate and
+        reword user-facing text for clarity; do not expose action IDs, exact
+        commands, raw impact arrays, state-transition names, or internal class
+        names unless the user asks for diagnostics.
+     5. Present every materially different choice in the standard numbered
+        format, place the recommendation first, and wait for the user's number
+        or localized label. A recommendation is not permission.
+     6. Map the selection back to the current choice's exact `nextAction`.
+        Substitute placeholders only with values the user explicitly supplied.
+     7. Re-fetch guarded `senti flow get next-action` after the command,
+        including after failure. Never reuse the old prompt.
+   - An incomplete result without either a valid mechanical `continuation` or a
+     valid `actionPrompt`, or a prompt choice without an executable
+     `nextAction` or state transition, is a CLI contract failure. STOP instead
+     of generating free-form recovery guidance.
    - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
 
 C.1.5. **Auto-upgrade check (spec 232)**
-   - Skip this check for a response with `yieldsControl: true`; resolve its typed `actionPrompt` first.
+   - Skip this check for a response with a mechanical `continuation` or
+     `yieldsControl: true`; resolve that recovery contract first.
    - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
      ```
      ──────────────────────────────────────────────────────────
@@ -419,7 +462,11 @@ C.2. **Execute instructions**
       - `awaiting-decision` (`AwaitingDecisionOutcome`): STOP and present the decision and resume instruction.
       - `external-blocked` (`ExternalBlockedOutcome`): STOP and present the external blocker and resume instruction.
       - State corruption or target mismatch: STOP without issuing another mutating command.
-   - Every incomplete control return, including the stopped outcomes above, must be presented through its CLI-provided `actionPrompt`. Do not reconstruct a resume choice from `lastStepOutcome`, errors, exit status, or prose instructions.
+   - Every incomplete control return, including the stopped outcomes above,
+     must use its CLI-provided mechanical `continuation` or `actionPrompt`. Do
+     not reconstruct a resume choice from `lastStepOutcome`, errors, exit
+     status, or prose instructions. Never turn a mechanical continuation into
+     a user question.
 
 C.3. **Loop**
    - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.

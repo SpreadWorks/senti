@@ -408,6 +408,10 @@ describe("typed dispatcher settlement", () => {
     const envelope = JSON.parse(stdout);
     assert.equal(envelope.ok, false);
     assert.equal(envelope.errors[0].code, "STEP_EXTERNAL_BLOCKED");
+    assert.equal(envelope.data.yieldsControl, false);
+    assert.equal(envelope.data.requiresUserAction, false);
+    assert.equal(envelope.data.continuation.actionId, "INSPECT_FLOW_STATUS");
+    assert.equal(Object.hasOwn(envelope.data, "actionPrompt"), false);
     assert.equal(exitCode, 1);
   });
 });
@@ -419,5 +423,14 @@ describe("flow skill liveness contract", () => {
     assert.doesNotMatch(skill, /On budget exhaustion, STOP/);
     assert.match(skill, /re-fetch[^\n]*next-action[^\n]*targetGuardArgs/i);
     assert.match(skill, /AwaitingDecisionOutcome|ExternalBlockedOutcome|state corruption/);
+    assert.match(skill, /only one read-only choice exists/);
+    assert.match(skill, /do not expose action IDs/);
+  });
+
+  it("keeps mechanical direct recovery out of user choice prompts", () => {
+    const skill = fs.readFileSync("src/skills/senti.flow-direct/SKILL.md", "utf8");
+    assert.match(skill, /DIRECT_MODE_UNSUPPORTED/);
+    assert.match(skill, /execute a sole read-only `INSPECT_\*` choice once without asking/);
+    assert.match(skill, /Never show raw action IDs/);
   });
 });

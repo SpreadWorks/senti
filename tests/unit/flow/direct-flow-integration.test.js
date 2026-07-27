@@ -950,7 +950,10 @@ test("direct inspection is repeatable and a parked Flow remains unchanged and un
     const parked = snapshot();
     const inspected = getDirectFlowAction(fixture.context());
     assert.equal(inspected.code, "DIRECT_MODE_UNSUPPORTED");
-    assert.equal(inspected.yieldsControl, true);
+    assert.equal(inspected.yieldsControl, false);
+    assert.equal(inspected.requiresUserAction, false);
+    assert.equal(inspected.continuation.actionId, "CONTINUE_NORMAL_FLOW");
+    assert.equal(Object.hasOwn(inspected, "actionPrompt"), false);
     assert.deepEqual(snapshot(), parked);
 
     const rejected = await runDirectFlowAction(fixture.context(), {

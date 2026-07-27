@@ -141,6 +141,37 @@ export class UserActionPrompt {
   }
 }
 
+export class FlowContinuation {
+  constructor({
+    actionId,
+    nextAction,
+    instruction,
+    reason,
+  }) {
+    this.actionId = requireString(actionId, "continuation.actionId", 80);
+    if (!ACTION_ID.test(this.actionId)) {
+      throw new Error("continuation.actionId must be a stable uppercase action token");
+    }
+    this.nextAction = requireString(nextAction, "continuation.nextAction");
+    this.instruction = requireString(instruction, "continuation.instruction");
+    this.reason = requireString(reason, "continuation.reason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      actionId: this.actionId,
+      nextAction: this.nextAction,
+      instruction: this.instruction,
+      reason: this.reason,
+    };
+  }
+
+  static fromStored(value) {
+    return value instanceof FlowContinuation ? value : new FlowContinuation(value);
+  }
+}
+
 export function guardFlagsForState(state) {
   if (!state) return "";
   const shellToken = (value) => `'${String(value).replaceAll("'", "'\"'\"'")}'`;
@@ -151,6 +182,23 @@ export function guardFlagsForState(state) {
       ? [state.issue == null ? "--expect-no-issue" : `--expect-issue ${state.issue}`]
       : []),
   ].join(" ");
+}
+
+export function genericFlowStopContinuation({
+  state,
+  code,
+  message,
+}) {
+  const guards = guardFlagsForState(state);
+  return new FlowContinuation({
+    actionId: "INSPECT_FLOW_STATUS",
+    nextAction: `senti flow get status --details${guards ? ` ${guards}` : ""}`,
+    instruction: "Inspect the preserved Flow state once and use the result to determine whether recovery can continue.",
+    reason: `${requireString(code || "FLOW_STOPPED", "stop code", 200)}: ${requireString(
+      message || "Flow stopped before completion.",
+      "stop message",
+    )}`,
+  });
 }
 
 export function genericFlowStopPrompt({
@@ -208,8 +256,28 @@ export function attachUserActionPrompt(target, prompt) {
   return target;
 }
 
+export function attachFlowContinuation(target, continuation) {
+  const validated = FlowContinuation.fromStored(continuation);
+  const data = target?.data && typeof target.data === "object" && !Array.isArray(target.data)
+    ? target.data
+    : {};
+  target.data = {
+    ...data,
+    yieldsControl: false,
+    requiresUserAction: false,
+    continuation: validated.toJSON(),
+  };
+  return target;
+}
+
 export function assertUserActionResultContract(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return;
+  if (data.continuation != null) {
+    if (data.yieldsControl === true || data.requiresUserAction === true) {
+      throw new Error("INTERNAL_USER_ACTION_CONTRACT: continuation cannot require user action");
+    }
+    FlowContinuation.fromStored(data.continuation);
+  }
   if (data.yieldsControl !== true) return;
   if (data.requiresUserAction !== true) {
     throw new Error("INTERNAL_USER_ACTION_CONTRACT: yieldsControl requires requiresUserAction");

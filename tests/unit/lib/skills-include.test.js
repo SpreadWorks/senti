@@ -57,8 +57,8 @@ describe("deploySkills include resolution", () => {
         "flow SKILL.md should contain expanded Choice Format content",
       );
       assert.ok(
-        content.includes("Every turn that asks the user to choose, decide, or confirm MUST contain all five sections"),
-        "flow SKILL.md should enforce Choice Format for confirmation questions",
+        content.includes("Every turn that asks the user to choose between two or more real outcomes MUST contain all five sections"),
+        "flow SKILL.md should enforce Choice Format for real user decisions",
       );
       assert.ok(
         content.includes("ABSOLUTELY PROHIBITED"),
@@ -76,8 +76,8 @@ describe("deploySkills include resolution", () => {
     if (fs.existsSync(directPath)) {
       const content = fs.readFileSync(directPath, "utf8");
       assert.ok(
-        content.includes("Present choices in the following format"),
-        "direct flow skill should contain the numbered Choice Format",
+        content.includes("Present real choices in the following format"),
+        "direct flow skill should reserve the numbered Choice Format for real decisions",
       );
       assert.ok(
         content.includes("Do not show the entry choices"),

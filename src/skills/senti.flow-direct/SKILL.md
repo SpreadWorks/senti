@@ -32,6 +32,31 @@ unintegrated work, or override a target/evidence conflict.
 Never select a target from the current directory, branch name, parked pointer, or
 an unguarded active-flow lookup.
 
+## Follow Mechanical Continuations Without Asking
+
+When guarded inspection returns `requiresUserAction: false` with a
+`continuation`, execute its exact guarded `nextAction` immediately. Do not render
+the continuation as a numbered choice.
+
+If the result is `DIRECT_MODE_UNSUPPORTED` and the continuation returns to the
+normal Flow, execute it and continue under the `senti.flow` dispatcher rules.
+An unapproved spec or a Flow that has not reached implementation is still normal
+Flow work; it is not a direct-recovery decision. The user's request to continue
+the same Flow already rules out a passive “keep everything stopped” alternative.
+
+For older CLI responses that still contain an `actionPrompt`:
+
+- execute a sole read-only `INSPECT_*` choice once without asking;
+- execute `CONTINUE_NORMAL_FLOW` without asking when every other choice only
+  keeps or inspects unchanged state;
+- if the identical inspection response recurs, explain the concrete blocker in
+  the user's language and stop instead of asking the user to select inspection
+  again.
+
+Never show raw action IDs, transition names, impact arrays, commands, or English
+CLI prose as the user-facing explanation. Keep them internal and explain actual
+effects in the user's language.
+
 ## Enter Direct Repair Without an Entry Menu
 
 When the user explicitly invokes this skill and the inspected result offers

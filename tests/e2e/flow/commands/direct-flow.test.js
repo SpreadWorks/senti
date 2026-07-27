@@ -111,8 +111,13 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
     ]);
     assert.notEqual(mismatch.status, 0);
     assert.equal(mismatch.envelope.errors[0].code, "ACTIVE_FLOW_MISMATCH");
-    assert.equal(mismatch.envelope.data.yieldsControl, true);
-    assert.ok(mismatch.envelope.data.actionPrompt.choices.length > 0);
+    assert.equal(mismatch.envelope.data.yieldsControl, false);
+    assert.equal(mismatch.envelope.data.requiresUserAction, false);
+    assert.equal(
+      mismatch.envelope.data.continuation.actionId,
+      "INSPECT_FLOW_STATUS",
+    );
+    assert.equal(Object.hasOwn(mismatch.envelope.data, "actionPrompt"), false);
     assert.equal(fixture.context().flowState.directFlowSession, undefined);
 
     const inspected = invoke(fixture, ["get", "direct", ...targetGuards(fixture)]);

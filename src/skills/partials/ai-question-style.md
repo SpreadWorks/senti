@@ -75,7 +75,19 @@ regardless of which model renders it.
 
 Although these rules are written in English, perform reasoning AND user-facing output in the user's response language. The only tokens that may remain in the source language are: code identifiers (function/class/variable names, file paths, command names, CLI flags, error codes), library/package names, and proper product/brand names. Every other token MUST be translated into the response language.
 
-Every turn that asks the user to choose, decide, or confirm MUST contain all five sections below in order:
+A user decision exists only when at least two materially different executable
+outcomes need new user authority. Do not present a choice block when:
+
+- only one operation is available;
+- the only alternatives are read-only inspection or keeping the current state;
+- the user already asked to continue and the remaining path is a deterministic,
+  non-destructive continuation;
+- the operation merely reads state needed for the agent's next judgment.
+
+Execute those mechanical operations directly. If they cannot make progress,
+explain the concrete blocker without asking the user to approve an inspection.
+
+Every turn that asks the user to choose between two or more real outcomes MUST contain all five sections below in order:
 
 1. **Decision statement** (REQUIRED, 1 sentence): explicitly state what is being decided.
 2. **Recommendation + rationale** (REQUIRED, 1-3 sentences): name the recommended option and give the reason. If no recommendation is possible, REQUIRED to explicitly state that no recommendation is possible, with the reason — do not skip this section.

@@ -33,7 +33,9 @@ import { DirectPreparedCleanupContinuation } from "./direct-finalize-adapter.js"
 import { inspectPersistedIntegrationReceipt } from "./direct-integration-evidence.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import {
+  attachFlowContinuation,
   attachUserActionPrompt,
+  FlowContinuation,
   guardFlagsForState,
   UserActionChoice,
   UserActionImpact,
@@ -133,16 +135,20 @@ function mechanicalContinuationResult({
   instruction,
   details = {},
 }) {
+  const continuation = new FlowContinuation({
+    actionId,
+    nextAction,
+    instruction,
+    reason: typeof details.reason === "string" && details.reason.trim() !== ""
+      ? details.reason
+      : instruction,
+  });
   return {
     code,
     ...details,
     yieldsControl: false,
     requiresUserAction: false,
-    continuation: {
-      actionId,
-      nextAction,
-      instruction,
-    },
+    continuation: continuation.toJSON(),
     ...(state?.directFlowSession && {
       directFlowSession: DirectFlowSession.fromStored(state.directFlowSession).toJSON(),
     }),
@@ -153,6 +159,13 @@ function stoppedEnvelope(type, key, code, messages, state, prompt) {
   return attachUserActionPrompt(
     Envelope.fail(type, key, code, messages),
     prompt,
+  );
+}
+
+function stoppedContinuationEnvelope(type, key, code, messages, continuation) {
+  return attachFlowContinuation(
+    Envelope.fail(type, key, code, messages),
+    continuation,
   );
 }
 
@@ -528,29 +541,12 @@ function eligibility(ctx, state) {
 
 function unsupportedResult(state, detail) {
   const normalAction = commandFor(state, "get next-action");
-  return promptResult({
+  return mechanicalContinuationResult({
     code: "DIRECT_MODE_UNSUPPORTED",
     state,
-    question: "Direct mode cannot change this Flow. What should happen next?",
-    choices: [
-      choice({
-        actionId: "CONTINUE_NORMAL_FLOW",
-        label: "Continue through the normal Flow path",
-        nextAction: normalAction,
-        impact: {
-          retains: ["Flow state", "worktree or branch", "artifacts"],
-          changes: ["Only normal Flow state when the returned action is executed"],
-        },
-      }),
-      choice({
-        actionId: "KEEP_FLOW_STATE",
-        label: "Keep the Flow exactly as it is",
-        nextAction: commandFor(state, "get status --details"),
-        impact: { retains: ["Flow state", "Git state", "all artifacts"] },
-      }),
-    ],
-    recommendedActionId: "CONTINUE_NORMAL_FLOW",
-    recommendationReason: detail || "The target is outside the state-changing scope of direct mode.",
+    actionId: "CONTINUE_NORMAL_FLOW",
+    nextAction: normalAction,
+    instruction: "Continue the same target through its normal Flow path; direct repair is not available at the current step.",
     details: { reason: detail || "unsupported target" },
   });
 }
@@ -1652,22 +1648,12 @@ function activeDirectPrompt(ctx, state) {
   }
   if (session.phase === "ABORTED") {
     if (state.directIntegrationReceipt) {
-      return promptResult({
+      return mechanicalContinuationResult({
         code: "DIRECT_ABORTED_AFTER_INTEGRATION",
         state,
-        question: "Integration evidence exists, so implementation repair cannot be reopened or repeated.",
-        choices: [
-          choice({
-            actionId: "KEEP_FLOW_STATE",
-            label: "Keep the exact records for finalization diagnosis",
-            nextAction: commandFor(state, "get status --details"),
-            impact: {
-              retains: ["Flow state", "integration receipt", "Git history", "artifacts"],
-            },
-          }),
-        ],
-        recommendedActionId: "KEEP_FLOW_STATE",
-        recommendationReason: "The integration record must be reconciled before any further mutation.",
+        actionId: "INSPECT_FLOW_STATUS",
+        nextAction: commandFor(state, "get status --details"),
+        instruction: "Inspect the retained integration record and completion state without reopening implementation repair.",
       });
     }
     return promptResult({
@@ -2402,13 +2388,12 @@ async function runDirectFlowActionOwned(ctx, input) {
   const eligible = eligibility(authority, state);
   if (!eligible.supported) {
     const result = unsupportedResult(state, eligible.detail);
-    return stoppedEnvelope(
+    return stoppedContinuationEnvelope(
       "run",
       "direct",
       "DIRECT_MODE_UNSUPPORTED",
       eligible.detail || "direct mode is unsupported for this target",
-      state,
-      result.actionPrompt,
+      result.continuation,
     );
   }
 

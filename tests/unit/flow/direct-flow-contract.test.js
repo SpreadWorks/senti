@@ -31,6 +31,8 @@ import {
   StepOutcome,
 } from "../../../src/flow/lib/step-outcome.js";
 import {
+  attachFlowContinuation,
+  genericFlowStopContinuation,
   UserActionChoice,
   UserActionImpact,
   UserActionPrompt,
@@ -218,6 +220,31 @@ describe("typed user-action stop contract", () => {
     assert.throws(() => missing.toJSON(), /prompt\.question|stored|destructur/i);
     assert.throws(() => invalid.toJSON(), /requires requiresUserAction/);
   });
+
+  it("represents lock inspection as a mechanical continuation", () => {
+    const envelope = Envelope.fail(
+      "get",
+      "status",
+      "PROCESS_OWNED_LOCK_LIVE",
+      "lock owner is active",
+    );
+    attachFlowContinuation(envelope, genericFlowStopContinuation({
+      state: {
+        runId: "run-lock",
+        issue: null,
+        spec: "specs/001-lock/spec.json",
+      },
+      code: "PROCESS_OWNED_LOCK_LIVE",
+      message: "lock owner is active",
+    }));
+
+    const json = envelope.toJSON();
+    assert.equal(json.data.yieldsControl, false);
+    assert.equal(json.data.requiresUserAction, false);
+    assert.equal(json.data.continuation.actionId, "INSPECT_FLOW_STATUS");
+    assert.match(json.data.continuation.nextAction, /--expect-run-id 'run-lock'/);
+    assert.equal(Object.hasOwn(json.data, "actionPrompt"), false);
+  });
 });
 
 describe("direct session and plan authority", () => {
@@ -291,7 +318,7 @@ describe("direct session and plan authority", () => {
     assert.equal(eligibility({}, { ...state, worktree: false }).supported, false);
   });
 
-  it("returns a typed unsupported prompt without mutating branch-mode state", async () => {
+  it("returns to the normal Flow without asking when direct mode is unsupported", async () => {
     const state = {
       runId: "run-direct-476",
       issue: 476,
@@ -317,7 +344,11 @@ describe("direct session and plan authority", () => {
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "DIRECT_MODE_UNSUPPORTED");
-    assert.equal(result.data.yieldsControl, true);
+    assert.equal(result.data.yieldsControl, false);
+    assert.equal(result.data.requiresUserAction, false);
+    assert.equal(result.data.continuation.actionId, "CONTINUE_NORMAL_FLOW");
+    assert.match(result.data.continuation.nextAction, /flow get next-action/);
+    assert.equal(Object.hasOwn(result.data, "actionPrompt"), false);
     assert.deepEqual(state, before);
   });
 

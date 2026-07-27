@@ -27,8 +27,9 @@ import {
 } from "../flow/lib/step-outcome.js";
 import { FlowCompletion } from "../flow/lib/flow-completion.js";
 import {
+  attachFlowContinuation,
   attachUserActionPrompt,
-  genericFlowStopPrompt,
+  genericFlowStopContinuation,
 } from "../flow/lib/user-action-prompt.js";
 
 function throwUnexpected(extras) {
@@ -246,7 +247,7 @@ function emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr }) {
   if (text) writeErr(text);
 }
 
-function settleTypedStepOutcome(envelope, result) {
+function settleTypedStepOutcome(envelope, result, hookCtx) {
   if (!(envelope instanceof Envelope) || !result?.stepAttempt) return;
   const attempt = StepAttempt.fromStored(result.stepAttempt);
   if (!(attempt.outcome instanceof ExternalBlockedOutcome)
@@ -259,12 +260,20 @@ function settleTypedStepOutcome(envelope, result) {
       : "STEP_EXTERNAL_BLOCKED",
     messages: [attempt.outcome.resumeInstruction],
   });
+  if (attempt.outcome instanceof ExternalBlockedOutcome) {
+    attachFlowContinuation(envelope, genericFlowStopContinuation({
+      state: hookCtx?.flowState || null,
+      code: "STEP_EXTERNAL_BLOCKED",
+      message: attempt.outcome.resumeInstruction,
+    }));
+    return;
+  }
   attachUserActionPrompt(envelope, attempt.outcome.prompt);
 }
 
 function ensureIncompleteFailurePrompt(envelope, hookCtx) {
   if (!(envelope instanceof Envelope) || envelope.ok !== false) return envelope;
-  if (envelope.data?.yieldsControl === true) return envelope;
+  if (envelope.data?.yieldsControl === true || envelope.data?.continuation != null) return envelope;
   const error = envelope.errors?.find((entry) => entry?.level === "fatal") || envelope.errors?.[0];
   const targetStop = new Set([
     "ACTIVE_FLOW_MISMATCH",
@@ -293,7 +302,7 @@ function ensureIncompleteFailurePrompt(envelope, hookCtx) {
         : (hookCtx?.expectIssue ?? envelope.data?.expectedIssue ?? null),
     }),
   };
-  return attachUserActionPrompt(envelope, genericFlowStopPrompt({
+  return attachFlowContinuation(envelope, genericFlowStopContinuation({
     state: promptState,
     code: error?.code || "FLOW_STOPPED",
     message,
@@ -631,7 +640,7 @@ export async function dispatch({
       }
     }
     if (mode === "envelope") {
-      settleTypedStepOutcome(envelope, result);
+      settleTypedStepOutcome(envelope, result, hookCtx);
       ensureIncompleteFailurePrompt(envelope, hookCtx);
       if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");

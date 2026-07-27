@@ -1,4 +1,8 @@
-Present choices in the following format:
+Use this format only for two or more materially different choices that require
+new user authority. Never display a single operation as a choice, and never add
+“inspect” or “keep the current state” merely to manufacture a second option.
+
+Present real choices in the following format:
 ```
 ──────────────────────────────────────────────────────────
   Description (question or situation)
