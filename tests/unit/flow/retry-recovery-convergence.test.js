@@ -21,6 +21,10 @@ import { checkReviewRetryBelowMax } from "../../../src/flow/lib/run-review.js";
 import GetStatusCommand from "../../../src/flow/lib/get-status.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import { resolveGateRecoveryDisplayPhase } from "../../../src/flow/lib/gate-recovery-display.js";
+import {
+  ExternalBlockedOutcome,
+  StepAttempt,
+} from "../../../src/flow/lib/step-outcome.js";
 
 function setOnlyInProgress(state, targetId) {
   const visit = (steps) => {
@@ -157,6 +161,85 @@ describe("retry recovery authority convergence", () => {
     assert.equal(display.phase, "integration");
     assert.equal(display.attempts, 0);
     assert.equal(display.max, 5);
+  });
+
+  it("returns a granted spec gate retry to normal Flow execution", async () => {
+    const root = createTmpDir("retry-convergence-spec-gate-");
+    roots.push(root);
+    const spec = "specs/spec-gate/spec.json";
+    const specDir = path.join(root, path.dirname(spec));
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(root, spec), '{"revision":1}\n');
+    const state = makeFlowState({
+      spec,
+      runId: "run-spec-gate",
+      metrics: [{ phase: "spec", counter: "gateRetry", delta: 1 }],
+      stepAttempts: [new StepAttempt({
+        runId: "run-spec-gate",
+        stepId: "spec-gate",
+        attempt: 1,
+        outcome: new ExternalBlockedOutcome({
+          reason: "missing_repair_evidence",
+          resumeInstruction: "Repair the evidence and retry the gate.",
+        }),
+        recordedAt: "2020-01-01T00:00:00.000Z",
+      }).toJSON()],
+    });
+    setOnlyInProgress(state, "spec-gate");
+    const baseline = buildCurrentRecoveryFingerprint({
+      root,
+      flowState: state,
+      kind: "gate",
+      canonicalPhase: "spec",
+      baseline: null,
+    });
+    persistRecoveryBaseline(state, {
+      kind: "gate",
+      phase: "spec",
+      fingerprint: baseline,
+      createdAt: "2026-07-27T00:00:00.000Z",
+    });
+    const flowManager = makeFlowManager(root);
+    flowManager.create(state);
+    fs.writeFileSync(path.join(root, spec), '{"revision":2}\n');
+
+    applyRetryReset({
+      root,
+      spec,
+      flowManager,
+      input: {
+        action: "reset",
+        kind: "gate",
+        phase: "spec",
+        reason: "The spec gate evidence changed after the recorded failure.",
+        yes: true,
+      },
+      expectedAttempts: 1,
+      expectedMaxAttempts: 1,
+      expectedRunId: state.runId,
+      expectedHasIssue: false,
+      createdAt: "2026-07-27T00:01:00.000Z",
+      resolveConfiguredMaxAttempts: () => 1,
+    });
+
+    const recovered = flowManager.load();
+    assert.equal(buildStateRetryRecoveryView({
+      root,
+      flowState: recovered,
+      kind: "gate",
+      phase: "spec",
+      attempts: 0,
+      max: 1,
+    }), null);
+
+    const next = await new GetNextActionCommand().execute({
+      root,
+      flowState: recovered,
+      flowManager,
+    });
+    assert.equal(next.directive.kind, "execute_step");
+    assert.equal(next.directive.action, "run-gate");
+    assert.equal(next.stepAttempt, undefined);
   });
 
   it("commits a changed-tree review grant and tooling reset in one flow mutation", () => {

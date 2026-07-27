@@ -16,6 +16,7 @@ import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
+import { RetryTargetRoute } from "./retry-target-route.js";
 
 export const RECOVERY_REASON_MIN_LENGTH = 20;
 export const RECOVERY_REASON_MAX_LENGTH = 500;
@@ -969,20 +970,6 @@ export function buildStateRetryRecoveryView({ root, flowState, kind, phase, atte
       reason: transaction.request.reason,
     });
   }
-  const latest = artifact.latestCommitted(kind, target.canonicalPhase);
-  if (latest && attempts < max) {
-    return buildRetryRecoveryView({
-      kind,
-      phase,
-      canonicalPhase: target.canonicalPhase,
-      attempts: latest.attemptsBefore,
-      max: latest.maxAttempts,
-      recoveryPossible: true,
-      recoveryReason: "changed-evidence",
-      changedEvidence: latest.changedEvidence,
-      reason: latest.reason,
-    });
-  }
   if (attempts < max) return null;
   if (!target.recoverable) {
     return buildRetryRecoveryView({
@@ -1582,17 +1569,9 @@ function inProgressStepIds(steps, out = []) {
 }
 
 function expectedActiveStep(kind, canonicalPhase, flowState) {
-  if (kind === "gate") {
-    if (canonicalPhase === "draft") return "draft-gate";
-    return canonicalPhase === "task-impl" ? "task-gate" : "impl-gate";
-  }
-  return {
-    "draft-questions": "draft-questions-review",
-    "draft-coverage": "draft-coverage-review",
-    spec: "spec-review",
-    test: "test-review",
-    impl: flowState.currentTaskId == null ? "impl-review" : "task-review",
-  }[canonicalPhase] || null;
+  return RetryTargetRoute.forRecovery(kind, canonicalPhase, {
+    currentTaskId: flowState.currentTaskId,
+  })?.stepId || null;
 }
 
 function assertFreshRecoveryTarget(flowState, input, expected) {

@@ -12,6 +12,7 @@ import {
   StepAttempt,
   StepAttemptLog,
   StepOutcome,
+  retryResetTimestampForStep,
 } from "../../../src/flow/lib/step-outcome.js";
 import {
   DependencyRegressionFailure,
@@ -160,6 +161,28 @@ describe("typed step outcomes", () => {
     assert.equal(log.entries.length, 1);
     assert.ok(log.entries[0].outcome instanceof DeferOutcome);
     assert.ok(log.latestForRun("run-419").outcome instanceof DeferOutcome);
+  });
+
+  it("invalidates stopped attempts for every recoverable retry target", () => {
+    const resetAt = "2026-07-27T00:00:00.000Z";
+    const routes = [
+      ["draft-gate", "draft", "gateRetry"],
+      ["spec-gate", "spec", "gateRetry"],
+      ["task-gate", "task-impl", "gateRetry"],
+      ["impl-gate", "integration", "gateRetry"],
+      ["draft-questions-review", "draft-questions", "reviewRetry"],
+      ["draft-coverage-review", "draft-coverage", "reviewRetry"],
+      ["spec-review", "spec", "reviewRetry"],
+      ["test-review", "test", "reviewRetry"],
+      ["impl-review", "impl", "reviewRetry"],
+      ["task-review", "impl", "reviewRetry"],
+    ];
+
+    for (const [stepId, phase, counter] of routes) {
+      assert.equal(retryResetTimestampForStep({
+        metrics: [{ phase, counter, reset: true, ts: resetAt }],
+      }, stepId), Date.parse(resetAt), stepId);
+    }
   });
 
   it("persists review and gate deferral on the final command attempt", () => {

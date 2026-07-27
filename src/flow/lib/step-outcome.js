@@ -7,6 +7,7 @@
  */
 
 import { UserActionPrompt } from "./user-action-prompt.js";
+import { RetryTargetRoute } from "./retry-target-route.js";
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -267,20 +268,13 @@ export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null
   return record;
 }
 
-const RETRY_RESET_METRIC_BY_STEP = Object.freeze({
-  "task-review": { phase: "impl", counter: "reviewRetry" },
-  "task-gate": { phase: "task-impl", counter: "gateRetry" },
-  "impl-review": { phase: "impl", counter: "reviewRetry" },
-  "impl-gate": { phase: "integration", counter: "gateRetry" },
-});
-
 export function retryResetTimestampForStep(flowState, stepId) {
-  const metric = RETRY_RESET_METRIC_BY_STEP[stepId];
-  if (!metric) return -Infinity;
+  const route = RetryTargetRoute.forStep(stepId);
+  if (!route) return -Infinity;
   return (flowState.metrics || [])
     .filter((entry) => (
-      entry?.phase === metric.phase
-      && entry?.counter === metric.counter
+      entry?.phase === route.phase
+      && entry?.counter === route.counter
       && entry?.reset === true
     ))
     .map((entry) => Date.parse(entry.ts))
