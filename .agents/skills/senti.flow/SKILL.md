@@ -23,7 +23,28 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
-- If any target-aware status call returns `ACTIVE_FLOW_MISMATCH`, STOP before `next-action`, `repair`, `run`, `finalize`, or `cleanup`. Target mismatch is a safety guard and MUST NOT be bypassed by `autoApprove` or `requires_approval`.
+- Treat `ACTIVE_FLOW_MISMATCH` as a no-mutation boundary, then distinguish a
+  locally generated runId transcription error from a true target mismatch:
+  - A transcription error is recoverable only for the same read-only
+    `senti flow get status <selectedRunId> ...` command when all of the
+    following hold: `<selectedRunId>` equals the exact `targetRunId` previously
+    returned by a successful CLI response; `data.activeRunId` also equals that
+    value; the only unequal expected/active identity pair is
+    `expectedRunId`/`activeRunId`; and every supplied Issue/spec guard pair
+    matches.
+  - For that case, rebuild both the positional selector and
+    `--expect-run-id` from the stored `targetRunId`, preserve the matching
+    Issue/spec guards, and retry the same read-only status command once in the
+    same turn. Do not ask the user, enter direct mode, or run any mutating
+    command before this retry passes.
+  - If the corrected status passes, continue the existing Flow in the same
+    turn. If it fails again, or any Issue/spec/selected-run identity differs,
+    STOP before `next-action`, `repair`, `run`, `finalize`, `cleanup`, or file
+    edits. `autoApprove` and `requires_approval` never bypass a true mismatch.
+- Store runId values returned by the CLI as opaque tokens. Build
+  `targetGuardArgs` once from those stored tokens and reuse them verbatim;
+  never retype, shorten, reconstruct, or infer a runId from a branch, path, or
+  prose.
 - A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
 - Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.
 - If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.
@@ -267,7 +288,11 @@ Run bare `senti flow get status` first. This is a display and branch-decision ch
 - Use target-aware status for required prelude verification and for explicit existing-target continuation. Do not treat bare active status as target selection.
 - If an existing target `runId` is known, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions. Add every known `--expect-issue <n>` and `--expect-spec <spec>` guard.
 - If an existing target spec is known and no runId is available, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
-- If target-aware status returns `ACTIVE_FLOW_MISMATCH`, STOP. Do not run `senti flow get next-action`, `senti flow run repair`, any `senti flow run ...`, `senti flow run finalize-*`, or cleanup.
+- If target-aware status returns `ACTIVE_FLOW_MISMATCH`, apply the Core
+  Principle transcription-recovery contract. Only the narrowly verified
+  read-only runId transcription case may retry once; every true target
+  mismatch stops before `next-action`, repair, run, finalize, cleanup, or file
+  edits.
 - After the explicit existing-target guard passes, continue to the autoApprove checks and `requires_approval` handling.
 - Evaluate target mismatch before autoApprove or `requires_approval` for existing-flow continuation; neither can bypass `ACTIVE_FLOW_MISMATCH`.
 
@@ -282,7 +307,12 @@ Use this path when no active flow exists, or when starting an additional flow wi
 
 Parallel-flow rules:
 - `senti flow set init [--issue N] [--request ...]` may be run even when another flow is active; it only creates a preparing state.
-- After `set init`, immediately record `data.runId`. Before `prepare`, run `senti flow get status <runId> --expect-run-id <runId>` plus every known `--expect-issue <n>` and `--expect-spec <spec>` guard. If this does not report the intended preparing flow, STOP.
+- After `set init`, immediately record `data.runId` as the opaque
+  `targetRunId`. Before `prepare`, run `senti flow get status <runId> --expect-run-id <runId>`
+  plus every known `--expect-issue <n>` and `--expect-spec <spec>` guard,
+  substituting both `<runId>` occurrences from that same stored value. If this
+  does not report the intended preparing flow, apply the Core Principle
+  transcription-recovery contract; otherwise STOP.
 - Run prepare only as `senti flow prepare ... --run-id <runId>`. Never run bare `senti flow prepare` while an unrelated flow is active.
 - Never run bare `senti flow get next-action`, bare `senti flow run ...`, repair, finalize, cleanup, or file edits for a target while another unrelated flow is active; use explicit runId/Issue/spec target guards first.
 
@@ -293,7 +323,8 @@ B.0. **Initialize flow state**
      - `spec <number>` or `specs/<number>-...` → treat as a local spec reference (do not pass as `--issue`).
      - A bare number (e.g., `133`) → ambiguous input. Do not pass as `--issue`; include in the request text so prelude Q1 can disambiguate.
    - Run `senti flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
-   - Save the returned `runId` from `data.runId` for use in B.4.
+   - Save the returned `runId` from `data.runId` as the opaque `targetRunId`
+     for use in B.4. Reuse it verbatim rather than copying the UUID again.
 
 B.0.5. **Preflight summary and auto-mode eligibility check** (spec 208, phase-aware input per spec 220, ba40)
    - If an Issue is linked, ensure its body is reflected into `--request` at `flow set init` (fetch with `senti flow get issue <n>` if needed). The CLI derives the input statically from the preparing flow state (`issue + request`) — `--input` is no longer accepted.
@@ -344,12 +375,19 @@ B.4. **Prepare spec (silent)**
      - If an Issue number was captured and the prepared spec is known from the prepare response: `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n> --expect-spec <spec>`.
      - If an Issue number was captured but the prepared spec is not known: `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>`.
      - If no Issue number was captured but the prepared spec is known from the prepare response: `senti flow get status <runId> --expect-run-id <runId> --expect-spec <spec>`.
-   - If the verification response has `ok: false`, returns `ACTIVE_FLOW_MISMATCH`, or its `data.runId` / `data.issue` / `data.spec` / branch / worktree does not match the prepared target, STOP immediately. Do not run `next-action`, `run`, `repair`, `finalize`, `cleanup`, or file edits.
+   - If verification returns `ACTIVE_FLOW_MISMATCH`, apply the Core Principle
+     transcription-recovery contract before classifying it as terminal. For
+     any other `ok: false`, repeated mismatch, or mismatching `data.runId` /
+     `data.issue` / `data.spec` / branch / worktree, STOP immediately. Do not
+     run `next-action`, `run`, `repair`, `finalize`, `cleanup`, or file edits.
    - After verification succeeds, bind the dispatcher target for the rest of this flow:
-     - Set `targetRunId = <runId>`.
+     - Keep `targetRunId` equal to the exact opaque runId returned by the CLI.
      - Set `targetIssue = <n>` when an Issue was captured.
      - Set `targetSpec = <spec>` from the prepare/status response when known.
-     - Build `targetGuardArgs` from all known target fields: always `--expect-run-id <targetRunId>`, plus `--expect-issue <targetIssue>` when known, plus `--expect-spec <targetSpec>` when known.
+     - Build `targetGuardArgs` once from all known target fields: always
+       `--expect-run-id <targetRunId>`, plus `--expect-issue <targetIssue>` when
+       known, plus `--expect-spec <targetSpec>` when known. Reuse this argument
+       list verbatim instead of reconstructing UUID text for each command.
    - All subsequent target-sensitive dispatcher commands for this flow MUST include `targetGuardArgs` until `finalize-cleanup` completes and releases the flow. This includes `senti flow get next-action`, target-bound `senti flow get context` reads, target-bound `senti flow get prompt ...` reads such as `plan.approval`, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
 
 Proceed to **C. Dispatcher loop**.
@@ -388,7 +426,8 @@ Repeat until the loop exit condition is met. The loop is bounded by the finite f
   remaining are not loop exit conditions.
 - A final response is allowed only after the documented loop exit condition:
   Flow completion, a real user decision, a concrete non-recoverable blocker,
-  state corruption, or target mismatch.
+  state corruption, or a true/unrecovered target mismatch. A corrected
+  read-only runId transcription error is not a loop exit condition.
 
 C.1. **Ask the CLI for the next action**
    - If `targetRunId` is known, run `senti flow get next-action <targetGuardArgs>`.
@@ -476,8 +515,10 @@ C.2. **Execute instructions**
      `directive` has already reconciled that outcome with review, gate, and
      recovery authority. Never route directly from the outcome kind, command
      exit status, errors, or prose.
-   - State corruption or target mismatch stops the loop without another
-     mutating command.
+   - State corruption or a true/unrecovered target mismatch stops the loop
+     without another mutating command. A narrowly recoverable status runId
+     transcription error follows the Core Principle contract and retries only
+     that read-only status command.
 
 C.3. **Loop**
    - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.
@@ -486,7 +527,8 @@ C.3. **Loop**
 
 The loop exits when the guarded refreshed next-action returns a terminal
 `directive` (`completed`, `aborted`, `idle`, or `blocked`), a real
-`await_user_decision`, state corruption, or target mismatch. If `targetRunId`
+`await_user_decision`, state corruption, or a true/unrecovered target mismatch.
+If `targetRunId`
 is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for final
 readback; the positional runId selects the flow, and `--expect-run-id` validates
 that the resolved flow still matches the dispatcher target. Retry exhaustion

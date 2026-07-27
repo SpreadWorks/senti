@@ -12,7 +12,28 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
-- If any target-aware status call returns `ACTIVE_FLOW_MISMATCH`, STOP before `next-action`, `repair`, `run`, `finalize`, or `cleanup`. Target mismatch is a safety guard and MUST NOT be bypassed by `autoApprove` or `requires_approval`.
+- Treat `ACTIVE_FLOW_MISMATCH` as a no-mutation boundary, then distinguish a
+  locally generated runId transcription error from a true target mismatch:
+  - A transcription error is recoverable only for the same read-only
+    `senti flow get status <selectedRunId> ...` command when all of the
+    following hold: `<selectedRunId>` equals the exact `targetRunId` previously
+    returned by a successful CLI response; `data.activeRunId` also equals that
+    value; the only unequal expected/active identity pair is
+    `expectedRunId`/`activeRunId`; and every supplied Issue/spec guard pair
+    matches.
+  - For that case, rebuild both the positional selector and
+    `--expect-run-id` from the stored `targetRunId`, preserve the matching
+    Issue/spec guards, and retry the same read-only status command once in the
+    same turn. Do not ask the user, enter direct mode, or run any mutating
+    command before this retry passes.
+  - If the corrected status passes, continue the existing Flow in the same
+    turn. If it fails again, or any Issue/spec/selected-run identity differs,
+    STOP before `next-action`, `repair`, `run`, `finalize`, `cleanup`, or file
+    edits. `autoApprove` and `requires_approval` never bypass a true mismatch.
+- Store runId values returned by the CLI as opaque tokens. Build
+  `targetGuardArgs` once from those stored tokens and reuse them verbatim;
+  never retype, shorten, reconstruct, or infer a runId from a branch, path, or
+  prose.
 - A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
 - Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.
 - If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.

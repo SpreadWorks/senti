@@ -4,9 +4,17 @@ import fs from "node:fs";
 import path from "node:path";
 
 const SKILL_PATH = path.join(process.cwd(), "src/skills/senti.flow/SKILL.md");
+const CORE_PRINCIPLE_PATH = path.join(
+  process.cwd(),
+  "src/skills/partials/core-principle.md",
+);
 
 function readSkill() {
   return fs.readFileSync(SKILL_PATH, "utf8");
+}
+
+function readCorePrinciple() {
+  return fs.readFileSync(CORE_PRINCIPLE_PATH, "utf8");
 }
 
 describe("senti.flow skill prelude auto flow", () => {
@@ -86,6 +94,22 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(text, /Do not proceed past a step whose `requires_approval` is `true`/);
     assert.match(text, /Do not start `finalize-commit` without its required user confirmation/);
     assert.doesNotMatch(text, /Do not finalize without user confirmation\./);
+  });
+
+  it("recovers only a verified read-only runId transcription error", () => {
+    const text = readSkill();
+    const core = readCorePrinciple();
+
+    assert.match(core, /locally generated runId transcription error/);
+    assert.match(core, /same read-only\s+`senti flow get status <selectedRunId>/s);
+    assert.match(core, /only unequal expected\/active identity pair is\s+`expectedRunId`\/`activeRunId`/s);
+    assert.match(core, /every supplied Issue\/spec guard pair\s+matches/s);
+    assert.match(core, /retry the same read-only status command once in the\s+same turn/s);
+    assert.match(core, /Do not ask the user, enter direct mode, or run any mutating\s+command/s);
+    assert.match(core, /If it fails again, or any Issue\/spec\/selected-run identity differs,\s+STOP/s);
+    assert.match(core, /Store runId values returned by the CLI as opaque tokens/);
+    assert.match(text, /corrected\s+read-only runId transcription error is not a loop exit condition/s);
+    assert.match(text, /Reuse this argument\s+list verbatim instead of reconstructing UUID text/s);
   });
 
   it("does not include automatic route choice for non-explicit requests", () => {
