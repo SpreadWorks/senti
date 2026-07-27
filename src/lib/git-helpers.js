@@ -7,6 +7,7 @@
 
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { runCmd, formatError, assertOk } from "./process.js";
 import { container } from "./container.js";
 
@@ -30,6 +31,73 @@ export function runGit(args, opts = {}) {
     container.get("logger").git({ cmd: ["git", ...args], exitCode: result.status, stderr: result.stderr });
   }
   return result;
+}
+
+export class GitCommitPathProbeError extends Error {
+  constructor(result) {
+    super(`git commit path probe failed: ${result.stderr || result.stdout || "unknown git error"}`);
+    this.code = "GIT_COMMIT_PATH_PROBE_FAILED";
+    this.result = result;
+  }
+}
+
+export class GitCommitPathSet {
+  constructor(paths) {
+    if (
+      !Array.isArray(paths)
+      || paths.some((entry) => (
+        typeof entry !== "string"
+        || entry === ""
+        || entry.includes("\0")
+        || path.isAbsolute(entry)
+        || path.normalize(entry) !== entry
+        || entry === ".."
+        || entry.startsWith(`..${path.sep}`)
+      ))
+      || new Set(paths).size !== paths.length
+    ) {
+      throw new Error("git commit path set is invalid");
+    }
+    this.paths = Object.freeze([...paths]);
+    Object.freeze(this);
+  }
+
+  static resolve({ root, treeish, candidates }) {
+    if (typeof root !== "string" || path.resolve(root) !== root) {
+      throw new Error("git commit path root is invalid");
+    }
+    if (typeof treeish !== "string" || treeish === "") {
+      throw new Error("git commit path treeish is invalid");
+    }
+    const candidateSet = new GitCommitPathSet(candidates);
+    if (candidateSet.size === 0) return candidateSet;
+    const tracked = runGit([
+      "-C",
+      root,
+      "ls-tree",
+      "-r",
+      "-z",
+      "--full-tree",
+      "--name-only",
+      treeish,
+      "--",
+      ...candidateSet.paths,
+    ]);
+    if (!tracked.ok) throw new GitCommitPathProbeError(tracked);
+    const treePaths = new Set(tracked.stdout.split("\0").filter(Boolean));
+    return new GitCommitPathSet(candidateSet.paths.filter((relativePath) => (
+      treePaths.has(relativePath)
+      || fs.existsSync(path.join(root, relativePath))
+    )));
+  }
+
+  get size() {
+    return this.paths.length;
+  }
+
+  toArray() {
+    return [...this.paths];
+  }
 }
 
 /**

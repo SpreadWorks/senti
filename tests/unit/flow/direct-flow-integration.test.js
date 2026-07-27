@@ -325,6 +325,51 @@ test("direct fix persists its plan before changes and completes through shared t
   }
 });
 
+test("direct finalize ignores a deletion already committed on the feature branch", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-committed-deletion" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    const deletedRel = "src/retired-direct.js";
+    const deletedMainPath = path.join(fixture.root, deletedRel);
+    fs.mkdirSync(path.dirname(deletedMainPath), { recursive: true });
+    fs.writeFileSync(deletedMainPath, "export const retired = true;\n");
+    git(fixture.root, ["add", deletedRel]);
+    git(fixture.root, ["commit", "--quiet", "-m", "add file retired by direct fix"]);
+    git(fixture.worktreePath, ["rebase", "master"]);
+
+    fs.unlinkSync(path.join(fixture.worktreePath, deletedRel));
+    git(fixture.worktreePath, ["add", "-A", "--", deletedRel]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "remove retired direct file"]);
+
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Finalize a bounded deletion that is already committed on the feature branch.",
+      scope: [deletedRel],
+      source: "manual",
+    });
+    await confirmDirectImplementation(fixture);
+    const verified = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(verified.code, "DIRECT_VERIFY_PASSED", JSON.stringify(verified));
+
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(finalized.data.status, "done");
+    assert.equal(git(fixture.root, ["ls-tree", "--name-only", "HEAD", deletedRel]), "");
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
 test("passing tests cannot be run or finalized before implementation completion is recorded", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-implementation-proof" });
   try {

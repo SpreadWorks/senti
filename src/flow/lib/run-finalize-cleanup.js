@@ -36,7 +36,11 @@ import path from "path";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { FinalizeCleanupPathResolver } from "../../lib/finalize-cleanup-paths.js";
-import { runGit } from "../../lib/git-helpers.js";
+import {
+  GitCommitPathProbeError,
+  GitCommitPathSet,
+  runGit,
+} from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import {
   commitFinalizeCompletion,
@@ -284,60 +288,6 @@ class FinalizeTeardownAuthorization {
   }
 }
 
-class FinalizeCommitPathSet {
-  constructor(paths) {
-    if (
-      !Array.isArray(paths)
-      || paths.length === 0
-      || paths.some((entry) => {
-        try {
-          assertFinalizeRelativePath(entry, "finalize commit path");
-          return false;
-        } catch {
-          return true;
-        }
-      })
-      || new Set(paths).size !== paths.length
-    ) {
-      throw new Error("finalize commit path set is invalid");
-    }
-    this.paths = Object.freeze([...paths]);
-    Object.freeze(this);
-  }
-
-  static resolve(targetRoot, expectedParent, candidates) {
-    const candidateSet = new FinalizeCommitPathSet(candidates);
-    const tracked = runGit([
-      "-C",
-      targetRoot,
-      "ls-tree",
-      "-r",
-      "-z",
-      "--full-tree",
-      "--name-only",
-      expectedParent,
-      "--",
-      ...candidateSet.paths,
-    ]);
-    if (!tracked.ok) {
-      throw gitFailure(
-        "FINALIZE_TREE_BUILD_FAILED",
-        "finalize parent path probe failed",
-        tracked,
-      );
-    }
-    const parentPaths = new Set(tracked.stdout.split("\0").filter(Boolean));
-    return new FinalizeCommitPathSet(candidateSet.paths.filter((relativePath) => (
-      parentPaths.has(relativePath)
-      || fs.existsSync(path.join(targetRoot, relativePath))
-    )));
-  }
-
-  toArray() {
-    return [...this.paths];
-  }
-}
-
 class FinalizeCommitExpectation {
   constructor({
     transactionId,
@@ -367,7 +317,10 @@ class FinalizeCommitExpectation {
     if (!SHA256.test(String(messageHash))) {
       throw new Error("finalize commit expectation.messageHash is invalid");
     }
-    const commitPathSet = new FinalizeCommitPathSet(commitPaths);
+    const commitPathSet = new GitCommitPathSet(commitPaths);
+    if (commitPathSet.size === 0) {
+      throw new Error("finalize commit expectation.commitPaths is invalid");
+    }
     if ((worktreePath == null) !== (worktreeHead == null)) {
       throw new Error("finalize commit expectation worktree authority is incomplete");
     }
@@ -2190,11 +2143,21 @@ function buildCommitExpectation({
   const resolvedWorktreePath = worktreePath == null ? null : fs.realpathSync(worktreePath);
   const headRef = gitValue(resolvedTargetRoot, ["symbolic-ref", "-q", "HEAD"], "finalize HEAD ref");
   const expectedParent = gitValue(resolvedTargetRoot, ["rev-parse", "HEAD"], "finalize parent");
-  const resolvedCommitPaths = FinalizeCommitPathSet.resolve(
-    resolvedTargetRoot,
-    expectedParent,
-    commitPaths,
-  ).toArray();
+  let resolvedCommitPaths;
+  try {
+    resolvedCommitPaths = GitCommitPathSet.resolve({
+      root: resolvedTargetRoot,
+      treeish: expectedParent,
+      candidates: commitPaths,
+    }).toArray();
+  } catch (error) {
+    if (!(error instanceof GitCommitPathProbeError)) throw error;
+    throw gitFailure(
+      "FINALIZE_TREE_BUILD_FAILED",
+      "finalize parent path probe failed",
+      error.result,
+    );
+  }
   const expectation = new FinalizeCommitExpectation({
     transactionId: transaction.transactionId,
     targetRoot: resolvedTargetRoot,

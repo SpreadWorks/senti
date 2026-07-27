@@ -4,7 +4,11 @@ import path from "node:path";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
-import { runGit } from "../../lib/git-helpers.js";
+import {
+  GitCommitPathProbeError,
+  GitCommitPathSet,
+  runGit,
+} from "../../lib/git-helpers.js";
 import {
   DirectAbortArchive,
   DirectCompletionReceipt,
@@ -125,8 +129,21 @@ function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } =
 
 function commitOrSkip(root, message, paths = null) {
   if (paths && paths.length > 0) {
-    const add = runGit(["-C", root, "add", "-A", "--", ...paths]);
-    if (!add.ok) throw new Error(`direct commit staging failed: ${add.stderr || add.stdout}`);
+    let commitPaths;
+    try {
+      commitPaths = GitCommitPathSet.resolve({
+        root: path.resolve(root),
+        treeish: "HEAD",
+        candidates: paths,
+      }).toArray();
+    } catch (error) {
+      if (!(error instanceof GitCommitPathProbeError)) throw error;
+      throw new Error(`direct commit path probe failed: ${error.result.stderr || error.result.stdout}`);
+    }
+    if (commitPaths.length > 0) {
+      const add = runGit(["-C", root, "add", "-A", "--", ...commitPaths]);
+      if (!add.ok) throw new Error(`direct commit staging failed: ${add.stderr || add.stdout}`);
+    }
   }
   const commit = runGit(["-C", root, "commit", "-m", message]);
   if (commit.ok) {

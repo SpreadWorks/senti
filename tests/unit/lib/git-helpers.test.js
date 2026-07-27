@@ -16,7 +16,10 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-import { runGit } from "../../../src/lib/git-helpers.js";
+import {
+  GitCommitPathSet,
+  runGit,
+} from "../../../src/lib/git-helpers.js";
 import { runCmd } from "../../../src/lib/process.js";
 import { Logger } from "../../../src/lib/log.js";
 import { container } from "../../../src/lib/container.js";
@@ -85,6 +88,34 @@ describe("runGit — basic logging", () => {
     assert.equal(gitLines.length, 1);
     assert.notEqual(gitLines[0].exitCode, 0);
     assert.ok(String(gitLines[0].stderr).length > 0);
+  });
+
+  it("resolves current and tracked-deleted paths while excluding committed deletions", () => {
+    const committedDeletion = "committed-deletion.txt";
+    const trackedDeletion = "tracked-deletion.txt";
+    const untracked = "untracked.txt";
+    fs.writeFileSync(path.join(tmpDir, committedDeletion), "committed deletion\n");
+    fs.writeFileSync(path.join(tmpDir, trackedDeletion), "tracked deletion\n");
+    runCmd("git", ["-C", tmpDir, "add", committedDeletion, trackedDeletion]);
+    runCmd("git", ["-C", tmpDir, "commit", "-q", "-m", "add deletion fixtures"]);
+    fs.unlinkSync(path.join(tmpDir, committedDeletion));
+    runCmd("git", ["-C", tmpDir, "add", "-A", "--", committedDeletion]);
+    runCmd("git", ["-C", tmpDir, "commit", "-q", "-m", "commit one deletion"]);
+    fs.unlinkSync(path.join(tmpDir, trackedDeletion));
+    fs.writeFileSync(path.join(tmpDir, untracked), "untracked\n");
+
+    const resolved = GitCommitPathSet.resolve({
+      root: tmpDir,
+      treeish: "HEAD",
+      candidates: [
+        committedDeletion,
+        trackedDeletion,
+        untracked,
+        "transient-removed.txt",
+      ],
+    });
+
+    assert.deepEqual(resolved.toArray(), [trackedDeletion, untracked]);
   });
 });
 
