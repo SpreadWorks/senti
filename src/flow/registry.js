@@ -46,6 +46,7 @@ import {
   DefinitionLifecycleTransition,
   ExplicitRecoveryTransition,
 } from "./lib/step-transition-policy.js";
+import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -958,7 +959,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.policy",
       command: () => import("./lib/set-policy.js"),
       args: { positional: ["value"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--reason"]) },
-      help: "Usage: senti flow set policy nonblocking --reason <text>\n\nOne-way opt-in that keeps eligible post-implementation quality results advisory.",
+      help: "Usage: senti flow set policy nonblocking --reason <text>\n\nOne-way opt-in that keeps eligible quality results advisory while preserving acceptance disposition.",
     },
     "nonblocking-decision": {
       helpKey: "flow.set.nonblocking-decision",
@@ -1222,9 +1223,19 @@ export const FLOW_COMMANDS = {
       },
       async nonblockingPost(ctx, result) {
         const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
-        if (phase !== "integration") return;
+        const active = findActiveNode(ctx.flowState || {});
+        const stepId = active?.stepId === "task-gate"
+          ? "task-gate"
+          : phase === "draft"
+            ? "draft-gate"
+            : phase === "spec"
+              ? "spec-gate"
+              : phase === "integration"
+                ? "impl-gate"
+                : null;
+        if (!stepId || !nonblockingRouteFor(stepId)) return;
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "impl-gate", result);
+        recordEligibleNonblockingAttempt(ctx, stepId, result);
       },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
@@ -1302,9 +1313,21 @@ export const FLOW_COMMANDS = {
       },
       async nonblockingPost(ctx, result) {
         const phase = result?.artifacts?.phase || result?.data?.phase || ctx.phase;
-        if (phase !== "impl" || ctx.flowState?.currentTaskId != null) return;
+        const active = findActiveNode(ctx.flowState || {});
+        const stepId = phase === "draft-questions"
+          ? "draft-questions-review"
+          : phase === "draft-coverage"
+            ? "draft-coverage-review"
+            : phase === "spec"
+              ? "spec-review"
+              : phase === "test"
+                ? "test-review"
+                : phase === "impl"
+                  ? active?.stepId === "task-review" ? "task-review" : "impl-review"
+                  : null;
+        if (!stepId || !nonblockingRouteFor(stepId)) return;
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
-        recordEligibleNonblockingAttempt(ctx, "impl-review", result);
+        recordEligibleNonblockingAttempt(ctx, stepId, result);
       },
     },
     "auto-check": {
@@ -1631,6 +1654,10 @@ export const FLOW_COMMANDS = {
           tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, { event: "scenario-validity:post" });
         }
       },
+      async nonblockingPost(ctx, result) {
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "scenario-validity", result);
+      },
     },
     "test-result-review": {
       helpKey: "flow.run.test-result-review",
@@ -1651,6 +1678,10 @@ export const FLOW_COMMANDS = {
         if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
         tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post" });
       },
+      async nonblockingPost(ctx, result) {
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "test-result-review", result);
+      },
     },
     // retro is a mainline impl-phase step that aggregates test-execute results.
     retro: {
@@ -1670,7 +1701,16 @@ export const FLOW_COMMANDS = {
         "  --dry-run   Preview only, do not write retro.json",
       ].join("\n"),
       post(ctx) {
+        if (ctx.flowState?.nonblocking?.enabled === true) {
+          const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+          const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "retro.json"), "utf8"));
+          if (Number(artifact?.summary?.not_done || 0) > 0) return;
+        }
         tryUpdateStepStatus(ctx, "retro", "done", undefined, { event: "retro:post" });
+      },
+      async nonblockingPost(ctx, result) {
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "retro", result);
       },
     },
     "final-regression": {
@@ -1714,6 +1754,10 @@ export const FLOW_COMMANDS = {
           throw new Error("final-regression result is not pass, skipped, or failed-recorded");
         }
         tryUpdateStepStatus(ctx, "final-regression", "done", undefined, { event: "final-regression:post" });
+      },
+      async nonblockingPost(ctx, result) {
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "final-regression", result);
       },
     },
     "acceptance-review": {

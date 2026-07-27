@@ -409,6 +409,7 @@ describe("repair state identity", () => {
     assert.equal(registry.owns(".senti/agent-cache/other-flow.json"), true);
     assert.equal(registry.owns(".senti/recovery/finalize-cleanup/other.json"), true);
     assert.equal(registry.owns("specs/demo/upgrade-result.json"), true);
+    assert.equal(registry.owns("specs/demo/nonblocking-handoffs.json"), true);
     assert.equal(registry.owns("specs/demo/review-evidence/evidence-digest.json"), true);
     assert.equal(registry.owns("specs/demo/.flow.json.writer.lock"), true);
     assert.equal(registry.owns("specs/demo/.flow.json.writer.owner.tmp"), true);

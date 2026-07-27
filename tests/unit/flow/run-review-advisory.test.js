@@ -279,12 +279,12 @@ describe("test-review one-shot verdict routing", () => {
     const result = parseTestReviewOutput(
       { ok: true },
       "Test review ADVISORY. 2 non-blocking finding(s) recorded; implementation may proceed.",
-      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] verdict=ADVISORY blocking=0 advisory=2",
+      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] JSON saved to specs/demo/test-review.json\n  [test-review] verdict=ADVISORY blocking=0 advisory=2",
     );
 
     assert.equal(result.result, "ok");
     assert.equal(result.next, "implement");
-    assert.deepEqual(result.changed, ["specs/demo/test-review.md"]);
+    assert.deepEqual(result.changed, ["specs/demo/test-review.md", "specs/demo/test-review.json"]);
     assert.deepEqual(result.artifacts, {
       phase: "test",
       verdict: "ADVISORY",

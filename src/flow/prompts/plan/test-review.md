@@ -23,7 +23,8 @@
      - For `stop_as_blocker`, stop and report the persisted blocker. Completion overrides do not substitute for canonical review evidence.
    - `test-review` uses flow-level repair between separate `senti flow run review --phase test` invocations. Fix tests only after the review command returns and rerun review only after requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
    - Each semantic `REJECTED` invocation consumes `reviewRetry`. At semantic retry exhaustion, unresolved findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition.
-   - `TOOLING_ERROR` is non-semantic. It must be recovered or explicitly overridden and does not complete through semantic deferral.
+   - After the ordinary route has stopped with durable non-pass evidence, explicit nonblocking continuation is available. It never skips acceptance disposition: `continue` advances to implementation with canonical semantic findings, or with a typed verification/tooling handoff, still open until acceptance resolves it.
+   - `TOOLING_ERROR` is non-semantic. It must normally be recovered; an explicit nonblocking continuation records it as an acceptance risk rather than treating it as a passing review.
    - Recovery reason is required for manual retry reset, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - Quality gates after implementation (`test-execute`, `test-result-review`, `impl-review`, `impl-gate`, `acceptance-review`, `final-regression`) remain mandatory and are not weakened by deferred semantic review findings.
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.

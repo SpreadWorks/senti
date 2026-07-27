@@ -352,6 +352,7 @@ export class RepairArtifactRegistry {
       "issue.md",
       "issue-log.json",
       "flow-findings.json",
+      "nonblocking-handoffs.json",
       "acceptance-review-evidence.json",
       "qa.md",
       "spec.md",

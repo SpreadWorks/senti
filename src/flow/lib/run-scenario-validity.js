@@ -4,6 +4,7 @@ import { resolveSpecDir } from "../../lib/spec-json.js";
 import { runCmdAsync } from "../../lib/process.js";
 import { listChangedFilesDetailed, runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 import { DEFAULT_TEST_TIMEOUT_SECONDS } from "./test-regression.js";
 import {
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
@@ -284,6 +285,27 @@ export default class RunScenarioValidityCommand extends FlowCommand {
     const specId = path.basename(specDir);
     const resultPath = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
     const rawOutputPath = path.join(specDir, SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE);
+    const blockedResult = (message) => Envelope.fail(
+      "run",
+      "scenario-validity",
+      "SCENARIO_VALIDITY_BLOCKED",
+      message,
+      {
+        result: "block",
+        changed: [
+          normalizePath(path.relative(root, resultPath)),
+          normalizePath(path.relative(root, rawOutputPath)),
+        ],
+        artifacts: {
+          result_path: normalizePath(path.relative(root, resultPath)),
+          raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
+          completed: false,
+          artifact_version: "1",
+          result: "block",
+        },
+        next: null,
+      },
+    );
     await fs.promises.mkdir(path.dirname(rawOutputPath), { recursive: true });
     await fs.promises.rm(resultPath, { force: true });
     await fs.promises.rm(rawOutputPath, { force: true });
@@ -341,9 +363,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       await fs.promises.writeFile(rawOutputPath, rawLines.join("\n") + "\n");
       validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText: rawLines.join("\n"), rawLines, testFileSources });
       await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
-      const err = new Error(`scenario-validity blocked by implementation-target changes: ${preflight.invalidPaths.join(", ")}`);
-      err.code = "SCENARIO_VALIDITY_BLOCKED";
-      throw err;
+      return blockedResult(`scenario-validity blocked by implementation-target changes: ${preflight.invalidPaths.join(", ")}`);
     }
 
     const timeoutMs = (config?.test?.timeoutSeconds
@@ -417,9 +437,13 @@ export default class RunScenarioValidityCommand extends FlowCommand {
         next: result === "pass" ? "test-review" : null,
       };
       if (result !== "pass") {
-        const err = new Error(`scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`);
-        err.code = "SCENARIO_VALIDITY_BLOCKED";
-        throw err;
+        return Envelope.fail(
+          "run",
+          "scenario-validity",
+          "SCENARIO_VALIDITY_BLOCKED",
+          `scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`,
+          output,
+        );
       }
       return output;
     } catch (err) {

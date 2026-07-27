@@ -2744,30 +2744,63 @@ function resolveGateSourceForDefer({ root, flowState, phase }) {
   return null;
 }
 
-function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
-  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
-  const source = resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase });
+function gateRetryExhaustionDeferralPlan({ root, flowState, phase } = {}) {
+  if (!root || !flowState?.spec) return null;
+  const source = resolveGateSourceForDefer({ root, flowState, phase });
   if (!source?.artifact) return null;
   const outcome = gateExhaustionOutcome(source.artifact, gateRetryClassificationContext({
-    root: ctx.root,
-    flowState: ctx.flowState,
+    root,
+    flowState,
     phase,
   }));
   if (!(outcome instanceof DeferOutcome)) return null;
+  return source;
+}
+
+export function canMaterializeGateRetryExhaustionDeferral(options = {}) {
+  try {
+    return gateRetryExhaustionDeferralPlan(options) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function materializeGateRetryExhaustionDeferral({
+  root,
+  flowState,
+  phase,
+  attempts,
+  sourceStep = null,
+} = {}) {
+  const source = gateRetryExhaustionDeferralPlan({ root, flowState, phase });
+  if (!source) return null;
+  const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
+  if (findings.length === 0) return null;
+  deferExhaustedSemanticFindings({
+    root,
+    flowState,
+    sourceStep: sourceStep || resolveGateStepId(phase),
+    sourceArtifact: source.sourceArtifact,
+    attempts,
+  });
+  return { findingCount: findings.length };
+}
+
+function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
+  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+  const deferred = materializeGateRetryExhaustionDeferral({
+    root: ctx.root,
+    flowState: ctx.flowState,
+    phase,
+    attempts,
+  });
+  if (!deferred) return null;
   const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
   owner.updateStepStatus(ctx.flowManager, {
     status: "done",
     event: "gate:defer",
   });
-  const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
-  deferExhaustedSemanticFindings({
-    root: ctx.root,
-    flowState: ctx.flowState,
-    sourceStep: resolveGateStepId(phase),
-    sourceArtifact: source.sourceArtifact,
-    attempts,
-  });
-  return gateDeferredResult(phase, attempts, findings.length);
+  return gateDeferredResult(phase, attempts, deferred.findingCount);
 }
 
 function persistGateSourceFromResult(ctx, result, phase) {

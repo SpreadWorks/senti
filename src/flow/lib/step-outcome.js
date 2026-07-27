@@ -8,13 +8,8 @@
 
 import { UserActionPrompt } from "./user-action-prompt.js";
 import { RetryTargetRoute } from "./retry-target-route.js";
-
-export const NONBLOCKING_SOURCE_STEPS = Object.freeze([
-  "impl-review",
-  "impl-gate",
-  "acceptance-review",
-  "final-regression",
-]);
+import { NONBLOCKING_SOURCE_STEPS } from "./nonblocking-route.js";
+export { NONBLOCKING_SOURCE_STEPS };
 export const NONBLOCKING_TEXT_MAX_LENGTH = 2_000;
 
 function requireString(value, field) {

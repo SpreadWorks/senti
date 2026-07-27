@@ -25,16 +25,18 @@ import {
 import SetPolicyCommand from "../../../src/flow/lib/set-policy.js";
 import SetNonBlockingDecisionCommand from "../../../src/flow/lib/set-nonblocking-decision.js";
 import { NextActionPlanner } from "../../../src/flow/lib/get-next-action.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { makeDefaultTask, makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { FlowCompletion } from "../../../src/flow/lib/flow-completion.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { resolveLifecyclePlan } from "../../../src/flow/definition.js";
 import {
   fromAcceptanceResult,
   fromFinalRegressionResult,
   fromGateResult,
   fromReviewResult,
 } from "../../../src/flow/lib/nonblocking-evidence.js";
+import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
 
 const DIGEST = "a".repeat(64);
 
@@ -97,20 +99,197 @@ describe("nonblocking flow policy", () => {
     }), /no longer than 2000 characters/);
   });
 
-  it("requires approved implementation work and excludes direct ownership", () => {
-    const state = moveFlowToStep(makeFlowState(), "impl-review");
-    const manager = { load: () => state, mutate: (fn) => fn(state) };
-    const enabled = activateNonBlockingPolicy({
-      root: process.cwd(), flowManager: manager,
-      reason: "Normal review recovery has already been exhausted for this work.",
+  it("requires durable non-pass evidence and excludes direct ownership", () => {
+    const root = createTmpDir("nonblocking-durable-evidence-");
+    try {
+      const spec = "specs/477-durable-evidence/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      fs.writeFileSync(path.join(root, "specs/477-durable-evidence/impl-review.json"), '{"verdict":"REJECTED"}\n');
+      const state = moveFlowToStep(makeFlowState({ spec }), "impl-review");
+      const manager = { load: () => state, mutate: (fn) => fn(state) };
+      const enabled = activateNonBlockingPolicy({
+        root, flowManager: manager,
+        reason: "Normal review recovery has already been exhausted for this work.",
+      });
+      assert.equal(enabled.enabled, true);
+      assert.equal(state.nonblocking.activatedStep, "impl-review");
+      state.directFlowSession = { phase: "DIRECT_FIX" };
+      assert.throws(() => activateNonBlockingPolicy({
+        root, flowManager: manager,
+        reason: "This must not take ownership from a direct session.",
+      }), /direct session/);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("continues a rejected test review only through a durable acceptance handoff", () => {
+    const root = createTmpDir("nonblocking-test-review-");
+    try {
+      const spec = "specs/477-test-review/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      const evidence = JSON.stringify({
+        verdict: "REJECTED",
+        blockingFindings: [{
+          findingId: "test-semantic",
+          fingerprint: DIGEST,
+          disposition: "must-fix",
+          rationale: "The test design omits a required acceptance behavior.",
+          category: "semantic",
+          title: "Missing acceptance behavior test",
+        }],
+      }, null, 2) + "\n";
+      fs.writeFileSync(path.join(root, "specs/477-test-review/test-review.json"), evidence);
+      const state = moveFlowToStep(makeFlowState({ spec, stepAttempts: [] }), "test-review");
+      const manager = { load: () => state, mutate: (fn) => fn(state) };
+      const policy = activateNonBlockingPolicy({
+        root,
+        flowManager: manager,
+        reason: "The strict test-review cycle reached a bounded continuation decision.",
+      });
+      assert.equal(policy.activatedStep, "test-review");
+      const observed = recordEligibleNonblockingAttempt(
+        { root, flowState: state, flowManager: manager },
+        "test-review",
+        null,
+        { hydrate: true },
+      );
+      assert.ok(observed);
+      const digest = crypto.createHash("sha256").update(evidence).digest("hex");
+      const continued = recordNonBlockingDecision({
+        root,
+        flowManager: manager,
+        choice: "continue",
+        reason: "Implementation can proceed while acceptance keeps the test-design finding open.",
+        remainingRisk: "Acceptance review must disposition the deferred test-review finding.",
+        expectEvidenceDigest: digest,
+      });
+      assert.equal(continued.sourceStep, "test-review");
+      assert.equal(findStepById(state.steps, "test-review").status, "done");
+      assert.equal(findStepById(state.steps, "implement").status, "in_progress");
+      const findings = readFlowFindingsArtifact(path.join(root, "specs/477-test-review")).toJSON().entries;
+      assert.deepEqual(findings.map((finding) => ({
+        sourceStep: finding.sourceStep,
+        sourceArtifact: finding.sourceArtifact,
+        sourceFindingId: finding.sourceFindingId,
+        finalDisposition: finding.finalDisposition,
+      })), [{
+        sourceStep: "test-review",
+        sourceArtifact: "test-review.json",
+        sourceFindingId: "test-semantic",
+        finalDisposition: "still_open",
+      }]);
+      assert.equal(
+        JSON.parse(fs.readFileSync(path.join(root, "specs/477-test-review/test-review.json"), "utf8"))
+          .blockingFindings[0].disposition,
+        "must-fix",
+      );
+      assert.deepEqual(recordNonBlockingDecision({
+        root,
+        flowManager: manager,
+        choice: "continue",
+        reason: "Implementation can proceed while acceptance keeps the test-design finding open.",
+        remainingRisk: "Acceptance review must disposition the deferred test-review finding.",
+        expectEvidenceDigest: digest,
+      }), continued);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("hands a tooling test-review stop to acceptance without inventing a semantic finding", () => {
+    const root = createTmpDir("nonblocking-test-review-ineligible-");
+    try {
+      const spec = "specs/477-test-review-ineligible/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      fs.writeFileSync(path.join(root, "specs/477-test-review-ineligible/test-review.json"), JSON.stringify({
+        toolingOutcome: { reason: "review provider unavailable" },
+        blockingFindings: [],
+      }, null, 2) + "\n");
+      const state = moveFlowToStep(makeFlowState({ spec }), "test-review");
+      const manager = { load: () => state, mutate: (fn) => fn(state) };
+      activateNonBlockingPolicy({
+        root,
+        flowManager: manager,
+        reason: "The provider failure must remain an explicit acceptance risk.",
+      });
+      const source = fs.readFileSync(path.join(root, "specs/477-test-review-ineligible/test-review.json"), "utf8");
+      recordNonBlockingDecision({
+        root,
+        flowManager: manager,
+        choice: "continue",
+        reason: "The provider failure is documented for acceptance review.",
+        remainingRisk: "The static test review was unavailable.",
+        expectEvidenceDigest: crypto.createHash("sha256").update(source).digest("hex"),
+      });
+      const findings = readFlowFindingsArtifact(path.join(root, "specs/477-test-review-ineligible")).toJSON().entries;
+      assert.equal(findings[0].sourceArtifact, "nonblocking-handoffs.json");
+      assert.equal(findings[0].sourceStep, "test-review");
+      const handoff = JSON.parse(fs.readFileSync(
+        path.join(root, "specs/477-test-review-ineligible/nonblocking-handoffs.json"),
+        "utf8",
+      ));
+      assert.deepEqual(handoff.findings.map((finding) => ({
+        sourceStep: finding.sourceStep,
+        sourceArtifact: finding.sourceArtifact,
+        evidenceDigest: finding.evidenceDigest,
+        resultKind: finding.resultKind,
+      })), [{
+        sourceStep: "test-review",
+        sourceArtifact: "test-review.json",
+        evidenceDigest: crypto.createHash("sha256").update(source).digest("hex"),
+        resultKind: "tooling",
+      }]);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("does not activate test-review advisory handling from non-rejected evidence", () => {
+    const root = createTmpDir("nonblocking-test-review-pass-");
+    try {
+      const spec = "specs/477-test-review-pass/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      fs.writeFileSync(path.join(root, "specs/477-test-review-pass/test-review.json"), JSON.stringify({
+        verdict: "PASS",
+        blockingFindings: [{
+          findingId: "inconsistent-pass",
+          fingerprint: DIGEST,
+          disposition: "must-fix",
+          rationale: "An inconsistent artifact must not create an advisory route.",
+          category: "semantic",
+          title: "Inconsistent test-review artifact",
+        }],
+      }, null, 2) + "\n");
+      const state = moveFlowToStep(makeFlowState({ spec }), "test-review");
+      assert.throws(() => activateNonBlockingPolicy({
+        root,
+        flowManager: { load: () => state, mutate: (fn) => fn(state) },
+        reason: "Only a rejected review may become a deferred acceptance finding.",
+      }), /eligible non-pass evidence/);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("keeps a nonblocking rejected test review active until its decision writes the handoff", () => {
+    const state = moveFlowToStep(makeFlowState({
+      nonblocking: {
+        enabled: true,
+        activatedAt: "2026-07-27T00:00:00.000Z",
+        activatedStep: "test-review",
+        reason: "The review exhausted its strict recovery.",
+      },
+    }), "test-review");
+    const plan = resolveLifecyclePlan({
+      event: "review:post",
+      command: "run-review",
+      phase: "test",
+      currentStepId: "test-review",
+      flowState: state,
+      result: { artifacts: { phase: "test", verdict: "REJECTED" } },
     });
-    assert.equal(enabled.enabled, true);
-    assert.equal(state.nonblocking.activatedStep, "impl-review");
-    state.directFlowSession = { phase: "DIRECT_FIX" };
-    assert.throws(() => activateNonBlockingPolicy({
-      root: process.cwd(), flowManager: manager,
-      reason: "This must not take ownership from a direct session.",
-    }), /direct session/);
+    assert.deepEqual(plan.actions, []);
   });
 
   it("treats an already enabled policy as a no-write idempotent operation", () => {
@@ -150,37 +329,45 @@ describe("nonblocking flow policy", () => {
   });
 
   it("yields policy activation to a direct session that becomes durable in the mutation", () => {
-    const state = moveFlowToStep(makeFlowState(), "impl-review");
-    let injectDirectOwner = true;
-    const manager = {
-      load: () => state,
-      mutate: (fn) => {
-        if (injectDirectOwner) {
-          injectDirectOwner = false;
-          state.directFlowSession = { phase: "DIRECT_FIX" };
-        }
-        fn(state);
-      },
-    };
-    assert.throws(() => activateNonBlockingPolicy({
-      root: process.cwd(),
-      flowManager: manager,
-      reason: "The direct owner won the route-selection race.",
-    }), (error) => (
-      error.code === "NONBLOCKING_ROUTE_OWNED"
-      && error.continuation?.actionId === "CONTINUE_CURRENT_FLOW_OWNER"
-    ));
-    assert.equal(state.nonblocking, undefined);
+    const root = createTmpDir("nonblocking-direct-owner-");
+    try {
+      const spec = "specs/477-direct-owner/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      fs.writeFileSync(path.join(root, "specs/477-direct-owner/impl-review.json"), '{"verdict":"REJECTED"}\n');
+      const state = moveFlowToStep(makeFlowState({ spec }), "impl-review");
+      let injectDirectOwner = true;
+      const manager = {
+        load: () => state,
+        mutate: (fn) => {
+          if (injectDirectOwner) {
+            injectDirectOwner = false;
+            state.directFlowSession = { phase: "DIRECT_FIX" };
+          }
+          fn(state);
+        },
+      };
+      assert.throws(() => activateNonBlockingPolicy({
+        root,
+        flowManager: manager,
+        reason: "The direct owner won the route-selection race.",
+      }), (error) => (
+        error.code === "NONBLOCKING_ROUTE_OWNED"
+        && error.continuation?.actionId === "CONTINUE_CURRENT_FLOW_OWNER"
+      ));
+      assert.equal(state.nonblocking, undefined);
+    } finally {
+      removeTmpDir(root);
+    }
   });
 
-  it("uses only the four canonical artifact result fields for eligibility", () => {
+  it("uses canonical result fields for every acceptance-backed checkpoint", () => {
     assert.equal(fromReviewResult({ ref: "review", source: '{"verdict":"REJECTED"}' }).resultKind, "quality");
     assert.equal(fromReviewResult({ ref: "review", source: '{"toolingOutcome":{"kind":"parser"}}' }).resultKind, "tooling");
     assert.equal(fromGateResult({ ref: "gate", source: '{"verdict":"fail"}' }).resultKind, "quality");
     assert.equal(fromGateResult({ ref: "gate", source: '{"result":"fail","failureKind":"schema"}' }).resultKind, "tooling");
     assert.equal(fromAcceptanceResult({ ref: "acceptance", source: '{"verdict":"repair_required"}' }).resultKind, "quality");
     assert.equal(fromAcceptanceResult({ ref: "acceptance", source: '{"verdict":"user_decision_required"}' }).resultKind, "quality");
-    assert.equal(fromAcceptanceResult({ ref: "acceptance", source: '{"verdict":"blocked"}' }), null);
+    assert.equal(fromAcceptanceResult({ ref: "acceptance", source: '{"verdict":"blocked"}' }).resultKind, "quality");
     assert.equal(fromFinalRegressionResult({ ref: "regression", source: '{"result":"unavailable"}' }).resultKind, "unavailable");
     assert.equal(fromFinalRegressionResult({ ref: "regression", source: '{"result":"fail","failureKind":"caused_by_current_change"}' }).resultKind, "quality");
     assert.equal(fromFinalRegressionResult({ ref: "regression", source: '{"result":"fail","failureKind":"infra_failure"}' }).resultKind, "tooling");
@@ -447,6 +634,9 @@ describe("nonblocking flow policy", () => {
     const root = createTmpDir("nonblocking-runner-artifacts-");
     try {
       const cases = [
+        ["scenario-validity", "scenario-validity-result.json", { result: "block" }, () => ({ data: { changed: ["scenario-validity-result.json"] } })],
+        ["test-review", "test-review.json", { verdict: "REJECTED" }, () => ({ changed: ["test-review.json"] })],
+        ["test-result-review", "test-result-review.json", { verdict: "fail" }, () => ({ changed: ["test-result-review.json"] })],
         ["impl-review", "impl-review.json", { verdict: "REJECTED" }, () => ({ changed: ["impl-review.json"] })],
         ["impl-gate", "impl-gate-result.json", { verdict: "fail" }, () => ({ changed: ["impl-gate-result.json"] })],
         ["acceptance-review", "acceptance-review.json", { verdict: "repair_required" }, (ref) => ({ artifact_path: ref })],
@@ -614,16 +804,25 @@ describe("nonblocking flow policy", () => {
     }
   });
 
-  it("continues each eligible post-implementation step on the normal route", () => {
+  it("continues every flow-level acceptance-backed checkpoint on its declared route", () => {
     const root = createTmpDir("nonblocking-routes-");
     try {
       const cases = [
+        ["draft-questions-review", "draft-review-questions.json", { verdict: "REJECTED" }, "draft-refine", ["draft-questions-triage", "draft-questions-repair"]],
+        ["draft-coverage-review", "draft-review-coverage.json", { verdict: "REJECTED" }, "draft-gate", ["draft-coverage-triage", "draft-coverage-repair"]],
+        ["draft-gate", "draft-gate-result.json", { verdict: "fail" }, "spec"],
+        ["spec-review", "spec-review.json", { verdict: "REJECTED" }, "spec-gate", ["spec-triage", "spec-repair"]],
+        ["spec-gate", "spec-gate-result.json", { verdict: "fail" }, "approval"],
+        ["scenario-validity", "scenario-validity-result.json", { result: "block" }, "test-review"],
+        ["test-review", "test-review.json", { verdict: "REJECTED" }, "implement"],
+        ["test-result-review", "test-result-review.json", { verdict: "fail" }, "impl-review"],
         ["impl-review", "impl-review.json", { verdict: "REJECTED" }, "impl-gate"],
         ["impl-gate", "impl-gate-result.json", { verdict: "fail" }, "retro"],
+        ["retro", "retro.json", { summary: { not_done: 1 } }, "acceptance-review"],
         ["acceptance-review", "acceptance-review.json", { verdict: "repair_required" }, "final-regression"],
         ["final-regression", "final-regression-result.json", { result: "unavailable" }, "report"],
       ];
-      for (const [step, file, artifact, next] of cases) {
+      for (const [step, file, artifact, next, skipped = []] of cases) {
         const spec = `specs/477-${step}/spec.json`;
         writeJson(root, spec, { requirements: [] });
         const bytes = JSON.stringify(artifact, null, 2) + "\n";
@@ -639,12 +838,138 @@ describe("nonblocking flow policy", () => {
           root, flowManager: manager, choice: "continue", reason: "The requested behavior is otherwise complete.",
           remainingRisk: "The original non-pass artifact remains available for review.",
           expectEvidenceDigest: crypto.createHash("sha256").update(bytes).digest("hex"),
+          issueLogStoreFactory: () => ({ append: () => ({ appended: false }) }),
         });
         assert.equal(findStepById(state.steps, step).status, "done");
         assert.equal(findStepById(state.steps, next).status, "in_progress");
+        for (const skippedStep of skipped) {
+          assert.equal(findStepById(state.steps, skippedStep).status, "done");
+        }
       }
     } finally {
       removeTmpDir(root);
+    }
+  });
+
+  it("continues task review and task gate in task scope without advancing parent impl steps", () => {
+    const root = createTmpDir("nonblocking-task-routes-");
+    try {
+      const spec = "specs/477-task-routes/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      fs.writeFileSync(path.join(root, "specs/477-task-routes/impl-review.json"), '{"verdict":"REJECTED"}\n');
+      const reviewState = moveFlowToStep(makeFlowState({
+        spec,
+        currentTaskId: "T-1",
+        tasks: [makeDefaultTask({
+          id: "T-1",
+          status: "in_progress",
+          steps: [
+            { id: "task-impl", status: "done" },
+            { id: "task-review", status: "in_progress" },
+            { id: "task-gate", status: "pending" },
+          ],
+        })],
+        nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "task-review", reason: "Task review is bounded." },
+      }), "implement");
+      const reviewManager = { load: () => reviewState, mutate: (fn) => fn(reviewState) };
+      recordEligibleNonblockingAttempt({ root, flowState: reviewState, flowManager: reviewManager }, "task-review", null, { hydrate: true });
+      const reviewDigest = crypto.createHash("sha256")
+        .update(fs.readFileSync(path.join(root, "specs/477-task-routes/impl-review.json"), "utf8"))
+        .digest("hex");
+      recordNonBlockingDecision({
+        root,
+        flowManager: reviewManager,
+        choice: "continue",
+        reason: "The task review finding is retained for acceptance.",
+        remainingRisk: "The task review did not reach a passing disposition.",
+        expectEvidenceDigest: reviewDigest,
+        issueLogStoreFactory: () => ({ append: () => ({ appended: false }) }),
+      });
+      assert.equal(reviewState.tasks[0].steps[1].status, "done");
+      assert.equal(reviewState.tasks[0].steps[2].status, "in_progress");
+      assert.equal(findStepById(reviewState.steps, "impl-gate").status, "pending");
+
+      fs.writeFileSync(path.join(root, "specs/477-task-routes/task-impl-gate-result.json"), '{"verdict":"fail"}\n');
+      const gateState = moveFlowToStep(makeFlowState({
+        spec,
+        currentTaskId: "T-1",
+        tasks: [
+          makeDefaultTask({
+            id: "T-1",
+            status: "in_progress",
+            steps: [
+              { id: "task-impl", status: "done" },
+              { id: "task-review", status: "done" },
+              { id: "task-gate", status: "in_progress" },
+            ],
+          }),
+          makeDefaultTask({ id: "T-2", status: "pending" }),
+        ],
+        nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "task-gate", reason: "Task gate is bounded." },
+      }), "implement");
+      const gateManager = { load: () => gateState, mutate: (fn) => fn(gateState) };
+      recordEligibleNonblockingAttempt({ root, flowState: gateState, flowManager: gateManager }, "task-gate", null, { hydrate: true });
+      const gateDigest = crypto.createHash("sha256")
+        .update(fs.readFileSync(path.join(root, "specs/477-task-routes/task-impl-gate-result.json"), "utf8"))
+        .digest("hex");
+      recordNonBlockingDecision({
+        root,
+        flowManager: gateManager,
+        choice: "continue",
+        reason: "The task gate result remains an acceptance risk.",
+        remainingRisk: "Task-level gate observations were not fully resolved.",
+        expectEvidenceDigest: gateDigest,
+        issueLogStoreFactory: () => ({ append: () => ({ appended: false }) }),
+      });
+      assert.equal(gateState.tasks[0].status, "done");
+      assert.equal(gateState.tasks[0].steps[2].status, "done");
+      assert.equal(gateState.currentTaskId, "T-2");
+      assert.equal(findStepById(gateState.steps, "impl-gate").status, "pending");
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("holds review and gate lifecycle ownership for every policy-covered route", () => {
+    const reviewCases = [
+      ["draft-questions-review", "draft", "draft-questions"],
+      ["draft-coverage-review", "draft", "draft-coverage"],
+      ["spec-review", "spec", "spec"],
+      ["test-review", "test", "test"],
+      ["impl-review", "impl", "impl"],
+    ];
+    for (const [stepId, phase, artifactPhase] of reviewCases) {
+      const state = moveFlowToStep(makeFlowState({
+        nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: stepId, reason: "The route is explicitly advisory." },
+      }), stepId);
+      const plan = resolveLifecyclePlan({
+        event: "review:post",
+        command: "run-review",
+        phase,
+        currentStepId: stepId,
+        flowState: state,
+        result: { artifacts: { phase: artifactPhase, verdict: "REJECTED" } },
+      });
+      assert.deepEqual(plan.actions, [], stepId);
+    }
+    const gateCases = [
+      ["draft-gate", "draft"],
+      ["spec-gate", "spec"],
+      ["impl-gate", "integration"],
+    ];
+    for (const [stepId, phase] of gateCases) {
+      const state = moveFlowToStep(makeFlowState({
+        nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: stepId, reason: "The route is explicitly advisory." },
+      }), stepId);
+      const plan = resolveLifecyclePlan({
+        event: "gate:post",
+        command: "run-gate",
+        phase,
+        currentStepId: stepId,
+        flowState: state,
+        result: { result: "fail", artifacts: { phase } },
+      });
+      assert.deepEqual(plan.actions, [], stepId);
     }
   });
 

@@ -224,7 +224,10 @@ C.1. **Ask the CLI for the next action**
         choice's exact action and re-fetch afterward.
         - A prompt with the two choices `KEEP_STRICT_FLOW` and
           `ENABLE_NONBLOCKING` appears only after normal strict recovery has
-          stopped on an eligible post-implementation check. It is the only
+          stopped on an eligible acceptance-backed checkpoint with a durable
+          non-pass artifact. This includes review/gate checkpoints throughout
+          planning and implementation, scenario/test verification, task
+          review/gate, retro, acceptance, and final regression. It is the only
           manual mode-selection point: do not offer advisory continuation
           earlier and do not offer direct mode here.
         - If the user chooses advisory continuation, record a concise bounded
@@ -283,7 +286,7 @@ C.2. **Execute instructions**
 
         - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / REJECTED enter the route's triage step. Triage records disposition, repair records mutation audit, and draft-gate performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
         - `spec-review` records detection output via post hook. PASS / ADVISORY complete review, while REJECTED completes review and advances to `spec-triage`.
-        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; REJECTED leaves it open for a test-design fix; TOOLING_ERROR leaves it open without consuming semantic review retry. Follow the single returned `directive`; register finalized independent evidence only when its repair instruction requires it, and never substitute a completion override for canonical review evidence.
+        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; REJECTED leaves it open for a test-design fix; TOOLING_ERROR leaves it open without consuming semantic review retry. After explicit nonblocking activation, a continued stop always leaves an acceptance handoff: semantic findings retain their canonical source, while a verification/tooling stop receives a typed handoff source. It remains unresolved until acceptance records its final disposition. Follow the single returned `directive`; register finalized independent evidence only when its repair instruction requires it, and never substitute a completion override for canonical review evidence.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
       - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `senti flow set step <current-step> done <targetGuardArgs>`.
