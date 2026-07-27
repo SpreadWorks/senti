@@ -25,7 +25,24 @@ import {
   ExternalBlockedOutcome,
   StepAttempt,
 } from "../flow/lib/step-outcome.js";
-import { attachUserActionPrompt } from "../flow/lib/user-action-prompt.js";
+import {
+  attachFlowContinuation,
+  attachUserActionPrompt,
+  FlowContinuation,
+  guardFlagsForState,
+} from "../flow/lib/user-action-prompt.js";
+
+function attachNonblockingContinuation(envelope, state, reason) {
+  if (!(envelope instanceof Envelope) || state?.nonblocking?.enabled !== true) return envelope;
+  if (envelope.data?.actionPrompt || envelope.data?.continuation) return envelope;
+  const guards = guardFlagsForState(state);
+  return attachFlowContinuation(envelope, new FlowContinuation({
+    actionId: "REFRESH_NONBLOCKING_FLOW",
+    nextAction: `senti flow get next-action ${guards}`.trim(),
+    instruction: "Refresh the guarded next action and continue the normal Flow route.",
+    reason,
+  }));
+}
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -585,8 +602,34 @@ export async function dispatch({
         }
       }
     }
+    // Nonblocking evidence is an audit record, not a lifecycle transition.
+    // Record it after the ordinary hook has durably recorded the check
+    // attempt.  Failed Envelopes still reach this hook, but a stale artifact
+    // alone is never accepted as a newly completed attempt.
+    if (entry.nonblockingPost && !hookCtx.flowOutboxResumed) {
+      try {
+        await entry.nonblockingPost(hookCtx, result);
+      } catch (nonblockingError) {
+        postFailed = true;
+        if (mode === "envelope") {
+          envelope.addWarning("NONBLOCKING_EVIDENCE_RECORD_FAILED", nonblockingError.message || String(nonblockingError));
+          envelope.ok = false;
+          envelope.errors.push({
+            level: "fatal",
+            code: "NONBLOCKING_EVIDENCE_RECORD_FAILED",
+            messages: [nonblockingError.message || String(nonblockingError)],
+          });
+          attachNonblockingContinuation(envelope, hookCtx.flowState, "The nonblocking evidence record was not durably saved.");
+        } else {
+          writeErr(`[nonblocking evidence] ${nonblockingError.message || nonblockingError}\n`);
+        }
+      }
+    }
     if (mode === "envelope") {
       settleTypedStepOutcome(envelope, result);
+      if (envelope.ok === false) {
+        attachNonblockingContinuation(envelope, hookCtx.flowState, "The normal Flow operation did not complete.");
+      }
       if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
       emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr });
@@ -623,6 +666,7 @@ export async function dispatch({
     writeErr,
     setExit,
     runtimeLogMetadata: runtimeLog?.metadata,
+    flowState: hookCtx.flowState,
   });
   closeRuntimeLog();
   await persistFinalizeCleanupPostReturnMetadata({
@@ -653,11 +697,21 @@ function emitFailure({
   writeErr,
   setExit,
   runtimeLogMetadata,
+  flowState,
 }) {
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, String(err?.message || err));
     if (err?.data !== undefined) env.data = err.data;
+    if (err?.continuation) {
+      try {
+        attachFlowContinuation(env, FlowContinuation.fromStored(err.continuation));
+      } catch {
+        attachNonblockingContinuation(env, flowState, "The normal Flow operation did not complete.");
+      }
+    } else {
+      attachNonblockingContinuation(env, flowState, "The normal Flow operation did not complete.");
+    }
     attachRuntimeLog(env, runtimeLogMetadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
   } else {

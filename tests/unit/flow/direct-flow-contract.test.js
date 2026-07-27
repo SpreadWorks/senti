@@ -427,6 +427,7 @@ describe("shared completion read model", () => {
       success: true,
       completionMode: "normal",
       mergeDisposition: "squash",
+      assurance: "strict",
     });
 
     const preparedReceipt = completionReceipt("prepared");

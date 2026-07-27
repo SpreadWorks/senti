@@ -27,6 +27,7 @@ import { buildBoundedBroadModeHistory } from "./task-scope.js";
 import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
 import { FlowCompletion } from "./flow-completion.js";
+import { advisorySummary } from "./nonblocking.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
@@ -279,6 +280,7 @@ function buildStatusOutput(state, root, options = {}) {
     : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
   const finalRegression = buildFinalRegressionStatus(root, state);
   const completion = new FlowCompletion(state);
+  const advisory = advisorySummary(state);
 
   const output = {
     active: completion.active,
@@ -299,6 +301,9 @@ function buildStatusOutput(state, root, options = {}) {
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
     completion: completion.toJSON(),
+    assurance: advisory.length > 0 ? "advisory" : "strict",
+    ...(state.nonblocking?.enabled === true && { nonblocking: state.nonblocking }),
+    ...(advisory.length > 0 && { advisorySummary: advisory }),
     ...(state.directFlowSession && { directFlowSession: state.directFlowSession }),
     ...(state.directResolutionPlan && { directResolutionPlan: state.directResolutionPlan }),
     ...(state.directCompletionReceipt && { directCompletionReceipt: state.directCompletionReceipt }),

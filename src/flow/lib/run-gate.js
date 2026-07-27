@@ -4899,6 +4899,10 @@ function persistIntegrationGateResult({ root, state, result }) {
     evaluations,
     observations,
     reasons: Array.isArray(sourceArtifacts.reasons) ? sourceArtifacts.reasons : [],
+    // Preserve the execution classification from the authoritative gate
+    // result so nonblocking can distinguish a repairable semantic non-pass
+    // from tool, schema, and prerequisite failures without inferring it.
+    failureKind: sourceArtifacts.failureKind || null,
   };
   artifact.contractSummary = contractFromGateArtifact(artifact, {
     phase: "integration",

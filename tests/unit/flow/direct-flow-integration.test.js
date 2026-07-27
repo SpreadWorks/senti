@@ -1132,6 +1132,37 @@ test("autoApprove and non-manual provenance never select direct mode", async () 
   }
 });
 
+test("nonblocking policy owns both direct offer and direct start boundaries", async () => {
+  const fixture = createDirectFlowFixture({ specId: "477-nonblocking-direct" });
+  try {
+    fixture.context().flowManager.mutate((state) => {
+      state.nonblocking = {
+        enabled: true,
+        activatedAt: "2026-07-27T00:00:00.000Z",
+        activatedStep: "impl-review",
+        reason: "The normal Flow now owns advisory post-implementation handling.",
+      };
+    });
+
+    const offer = getDirectFlowAction(fixture.context());
+    assert.equal(offer.code, "NONBLOCKING_POLICY_ACTIVE");
+    assert.equal(offer.yieldsControl, false);
+    assert.equal(offer.continuation.actionId, "CONTINUE_NONBLOCKING_FLOW");
+
+    const rejected = await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "This must not replace the durable nonblocking owner.",
+      source: "manual",
+    });
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.errors[0].code, "NONBLOCKING_POLICY_ACTIVE");
+    assert.equal(rejected.data.continuation.actionId, "CONTINUE_NONBLOCKING_FLOW");
+    assert.equal(fixture.context().flowState.directFlowSession, undefined);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test("a blocked impl target preserves its stop reason through direct preflight", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-blocked" });
   try {

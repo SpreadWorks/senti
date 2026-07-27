@@ -954,6 +954,18 @@ export const FLOW_COMMANDS = {
         "and currentTaskId at the time of opt-in.",
       ].join("\n"),
     },
+    policy: {
+      helpKey: "flow.set.policy",
+      command: () => import("./lib/set-policy.js"),
+      args: { positional: ["value"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--reason"]) },
+      help: "Usage: senti flow set policy nonblocking --reason <text>\n\nOne-way opt-in that keeps eligible post-implementation quality results advisory.",
+    },
+    "nonblocking-decision": {
+      helpKey: "flow.set.nonblocking-decision",
+      command: () => import("./lib/set-nonblocking-decision.js"),
+      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--choice", "--reason", "--expect-evidence-digest", "--remaining-risk"]) },
+      help: "Usage: senti flow set nonblocking-decision --choice <repair|retry|continue> --reason <text> --expect-evidence-digest <sha256> [--remaining-risk <text>]\n\nBind an agent-owned advisory decision to the active step's latest evidence.",
+    },
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
@@ -1208,6 +1220,12 @@ export const FLOW_COMMANDS = {
           phase: result?.artifacts?.phase || ctx.phase,
         }, result);
       },
+      async nonblockingPost(ctx, result) {
+        const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
+        if (phase !== "integration") return;
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "impl-gate", result);
+      },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
         const phase = err?.data?.effectivePhase
@@ -1281,6 +1299,12 @@ export const FLOW_COMMANDS = {
           }
           throw persistenceFailure || error;
         }
+      },
+      async nonblockingPost(ctx, result) {
+        const phase = result?.artifacts?.phase || result?.data?.phase || ctx.phase;
+        if (phase !== "impl" || ctx.flowState?.currentTaskId != null) return;
+        const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
+        recordEligibleNonblockingAttempt(ctx, "impl-review", result);
       },
     },
     "auto-check": {
@@ -1683,6 +1707,9 @@ export const FLOW_COMMANDS = {
         const completed = (artifact.result === "pass" && result?.result === "pass")
           || (artifact.result === "skipped" && result?.result === "skipped")
           || failedRecorded;
+        if (!completed && ctx.flowState?.nonblocking?.enabled === true && artifact.result === "fail") {
+          return;
+        }
         if (!completed) {
           throw new Error("final-regression result is not pass, skipped, or failed-recorded");
         }

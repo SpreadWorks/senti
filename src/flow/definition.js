@@ -420,6 +420,13 @@ function resolveImplReviewLifecycle(input) {
   const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
+  if (input.flowState?.nonblocking?.enabled === true && input.result?.artifacts?.phase === "impl" && (
+    verdict === "REJECTED" || toolingOutcome
+  )) {
+    // Evidence stays authoritative; the agent records repair/retry/continue
+    // through the guarded nonblocking decision command.
+    return actions;
+  }
   if (input.result?.artifacts?.phase === "impl") {
     if (toolingOutcome) return actions;
     if (!flowScoped) {
@@ -472,6 +479,9 @@ function resolveGateLifecycle(input) {
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
   if (input.result?.artifacts?.deferred === true) return [];
+  if (input.flowState?.nonblocking?.enabled === true && input.result?.result !== "pass" && step === "impl-gate") {
+    return [];
+  }
   const actions = [];
   if (input.result?.result === "pass") {
     actions.push(new SetStepStatus({ step, status: "done" }));

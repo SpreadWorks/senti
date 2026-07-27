@@ -48,6 +48,7 @@ import {
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
+import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -1562,7 +1563,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
         next: "report",
       };
     }
-    return {
+    const failureResult = {
       ...Envelope.fail(
       "run",
       "final-regression",
@@ -1572,6 +1573,8 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       ),
       result: "fail",
     };
+    recordEligibleNonblockingAttempt(ctx, "final-regression", failureResult);
+    return failureResult;
   }
 
   recordAndProceed(ctx, { specDir, resultPath, resultPathRelative }) {

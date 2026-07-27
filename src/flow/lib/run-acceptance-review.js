@@ -15,6 +15,7 @@ import {
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
+import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
 
 export const MAX_ACCEPTANCE_REQUEST_CHARS = 900_000;
@@ -452,7 +453,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       artifact,
       evidenceRefresh: context.evidenceRefresh,
     });
-    return {
+    const response = {
       result: "ok",
       verdict: result.verdict,
       artifact_path: result.artifactPath,
@@ -470,7 +471,9 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
           ? "impl-triage"
           : result.verdict === "user_decision_required"
             ? "acceptance-decision"
-            : null,
+      : null,
     };
+    recordEligibleNonblockingAttempt(ctx, "acceptance-review", response);
+    return response;
   }
 }
