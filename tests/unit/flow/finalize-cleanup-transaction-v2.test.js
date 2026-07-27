@@ -2071,6 +2071,81 @@ test("successful isolated commit preserves a genuine preexisting staged blob", a
   }
 });
 
+test("isolated finalize commit records tracked deletions and ignores removed untracked files", async () => {
+  const root = createTmpDir("finalize-isolated-index-deletion-");
+  try {
+    initGitRepo(root);
+    const specId = "189";
+    const fixture = setupFinalizeFlow(root, specId);
+    const specRoot = path.join(root, "specs", specId);
+    const deletedRel = `specs/${specId}/obsolete.json`;
+    const transientRel = `specs/${specId}/transient.json`;
+    const unrelatedRel = `specs/${specId}/unrelated.json`;
+    const untrackedRel = `specs/${specId}/untracked.json`;
+    fs.writeFileSync(path.join(root, deletedRel), "obsolete\n");
+    fs.writeFileSync(path.join(root, transientRel), "transient\n");
+    fs.writeFileSync(path.join(root, unrelatedRel), "original\n");
+    git(root, ["add", deletedRel, unrelatedRel]);
+    git(root, ["commit", "--quiet", "-m", "add finalize deletion fixture"]);
+
+    const pluginId = "finalize-delete";
+    const pluginRoot = path.join(root, ".senti", "plugins", pluginId);
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+      plugin: { packages: [{ id: pluginId }] },
+    }, null, 2)}\n`);
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize.js"), `
+      import fs from "node:fs";
+      import path from "node:path";
+
+      export default function register(api) {
+        return class FinalizeDeleteHook extends api.FlowCommandHook {
+          static command = "finalize-cleanup";
+          static hook = "post";
+          static failurePolicy = "required";
+          async run(context) {
+            fs.unlinkSync(path.join(context.project.root, ${JSON.stringify(deletedRel)}));
+            fs.unlinkSync(path.join(context.project.root, ${JSON.stringify(transientRel)}));
+            return context.envelope.ok("plugin-hook", "finalize-cleanup", {});
+          }
+        };
+      }
+    `);
+    fixture.state.plugins = { flowCommandHooks: [{
+      apiVersion: 1,
+      pluginId,
+      module: "hooks/finalize.js",
+      className: "FinalizeDeleteHook",
+      command: "finalize-cleanup",
+      hook: "post",
+      priority: 0,
+      failurePolicy: "required",
+    }] };
+    replaceFlowState(root, fixture.state, { specId });
+    git(root, ["add", `specs/${specId}/flow.json`]);
+    git(root, ["commit", "--quiet", "-m", "record finalize deletion hook"]);
+    git(root, ["branch", "-f", fixture.featureBranch, "HEAD"]);
+
+    fs.writeFileSync(path.join(root, unrelatedRel), "caller change\n");
+    fs.writeFileSync(path.join(root, untrackedRel), "caller untracked\n");
+
+    const completed = await runFinalize(root, specId, { flowState: fixture.state });
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    assert.equal(git(root, ["ls-tree", "--name-only", "HEAD", deletedRel]), "");
+    assert.equal(git(root, ["show", `HEAD:${unrelatedRel}`]), "original");
+    assert.equal(git(root, ["ls-tree", "--name-only", "HEAD", untrackedRel]), "");
+    assert.equal(fs.readFileSync(path.join(root, unrelatedRel), "utf8"), "caller change\n");
+    assert.equal(fs.readFileSync(path.join(root, untrackedRel), "utf8"), "caller untracked\n");
+    assert.equal(
+      git(root, ["status", "--short", "--", path.relative(root, specRoot)]),
+      `M ${unrelatedRel}\n?? ${untrackedRel}`,
+    );
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("post-commit isolated-index cleanup failure retains commit authority for retry", async () => {
   const root = createTmpDir("finalize-post-commit-index-cleanup-");
   try {

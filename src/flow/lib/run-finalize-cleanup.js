@@ -284,6 +284,60 @@ class FinalizeTeardownAuthorization {
   }
 }
 
+class FinalizeCommitPathSet {
+  constructor(paths) {
+    if (
+      !Array.isArray(paths)
+      || paths.length === 0
+      || paths.some((entry) => {
+        try {
+          assertFinalizeRelativePath(entry, "finalize commit path");
+          return false;
+        } catch {
+          return true;
+        }
+      })
+      || new Set(paths).size !== paths.length
+    ) {
+      throw new Error("finalize commit path set is invalid");
+    }
+    this.paths = Object.freeze([...paths]);
+    Object.freeze(this);
+  }
+
+  static resolve(targetRoot, expectedParent, candidates) {
+    const candidateSet = new FinalizeCommitPathSet(candidates);
+    const tracked = runGit([
+      "-C",
+      targetRoot,
+      "ls-tree",
+      "-r",
+      "-z",
+      "--full-tree",
+      "--name-only",
+      expectedParent,
+      "--",
+      ...candidateSet.paths,
+    ]);
+    if (!tracked.ok) {
+      throw gitFailure(
+        "FINALIZE_TREE_BUILD_FAILED",
+        "finalize parent path probe failed",
+        tracked,
+      );
+    }
+    const parentPaths = new Set(tracked.stdout.split("\0").filter(Boolean));
+    return new FinalizeCommitPathSet(candidateSet.paths.filter((relativePath) => (
+      parentPaths.has(relativePath)
+      || fs.existsSync(path.join(targetRoot, relativePath))
+    )));
+  }
+
+  toArray() {
+    return [...this.paths];
+  }
+}
+
 class FinalizeCommitExpectation {
   constructor({
     transactionId,
@@ -313,21 +367,7 @@ class FinalizeCommitExpectation {
     if (!SHA256.test(String(messageHash))) {
       throw new Error("finalize commit expectation.messageHash is invalid");
     }
-    if (
-      !Array.isArray(commitPaths)
-      || commitPaths.length === 0
-      || commitPaths.some((entry) => {
-        try {
-          assertFinalizeRelativePath(entry, "finalize commit path");
-          return false;
-        } catch {
-          return true;
-        }
-      })
-      || new Set(commitPaths).size !== commitPaths.length
-    ) {
-      throw new Error("finalize commit expectation.commitPaths is invalid");
-    }
+    const commitPathSet = new FinalizeCommitPathSet(commitPaths);
     if ((worktreePath == null) !== (worktreeHead == null)) {
       throw new Error("finalize commit expectation worktree authority is incomplete");
     }
@@ -345,7 +385,7 @@ class FinalizeCommitExpectation {
     this.messageHash = messageHash;
     this.baseRef = baseRef;
     this.featureRef = featureRef;
-    this.commitPaths = Object.freeze([...commitPaths]);
+    this.commitPaths = Object.freeze(commitPathSet.toArray());
     this.worktreePath = worktreePath;
     this.worktreeHead = worktreeHead;
     Object.freeze(this);
@@ -1873,7 +1913,7 @@ function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths, work
     const read = runGit(["-C", targetRoot, "read-tree", expectedParent], { env });
     if (!read.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index read-tree failed", read);
     fs.chmodSync(tempIndex, 0o600);
-    const add = runGit(["-C", targetRoot, "add", "--", ...commitPaths], { env });
+    const add = runGit(["-C", targetRoot, "add", "-A", "--", ...commitPaths], { env });
     if (!add.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index git add failed", add);
     tree = gitValueWithOptions(targetRoot, ["write-tree"], "finalize staged tree", { env });
   } catch (error) {
@@ -1913,7 +1953,7 @@ function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, 
       result = { stage: "read-tree", result: readTree };
     } else {
       fs.chmodSync(tempIndex, 0o600);
-      const add = runGit(["-C", targetRoot, "add", "--", ...commitPaths], { env });
+      const add = runGit(["-C", targetRoot, "add", "-A", "--", ...commitPaths], { env });
       if (!add.ok) {
         result = { stage: "add", result: add };
       } else {
@@ -2150,16 +2190,26 @@ function buildCommitExpectation({
   const resolvedWorktreePath = worktreePath == null ? null : fs.realpathSync(worktreePath);
   const headRef = gitValue(resolvedTargetRoot, ["symbolic-ref", "-q", "HEAD"], "finalize HEAD ref");
   const expectedParent = gitValue(resolvedTargetRoot, ["rev-parse", "HEAD"], "finalize parent");
+  const resolvedCommitPaths = FinalizeCommitPathSet.resolve(
+    resolvedTargetRoot,
+    expectedParent,
+    commitPaths,
+  ).toArray();
   const expectation = new FinalizeCommitExpectation({
     transactionId: transaction.transactionId,
     targetRoot: resolvedTargetRoot,
     headRef,
     expectedParent,
-    stagedTree: buildExpectedPathspecTree(resolvedTargetRoot, expectedParent, commitPaths, workspace),
+    stagedTree: buildExpectedPathspecTree(
+      resolvedTargetRoot,
+      expectedParent,
+      resolvedCommitPaths,
+      workspace,
+    ),
     messageHash: hashCommitMessage(commitMessage),
     baseRef: gitValue(resolvedTargetRoot, ["rev-parse", state.baseBranch], "finalize base ref"),
     featureRef: gitValue(resolvedTargetRoot, ["rev-parse", state.featureBranch], "finalize feature ref"),
-    commitPaths,
+    commitPaths: resolvedCommitPaths,
     worktreePath: resolvedWorktreePath,
     worktreeHead: resolvedWorktreePath == null
       ? null
@@ -5919,7 +5969,7 @@ async function runTeardownTransactionOwned(
       targetRoot,
       expectedParent: commitExpectation.expectedParent,
       commitMessage: commitMsg,
-      commitPaths,
+      commitPaths: commitExpectation.commitPaths,
       workspace: tempIndexWorkspace,
     });
     if (isolatedCommit.stage === "read-tree" && !isolatedCommit.result.ok) {
