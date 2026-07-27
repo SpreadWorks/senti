@@ -48,10 +48,13 @@ import {
   AbortedDirective,
   AwaitUserDecisionDirective,
   CompletedDirective,
+  ExecuteCommandDirective,
   ExecuteStepDirective,
   IdleDirective,
   NextActionDirectiveResolver,
 } from "./next-action-directive.js";
+import { guardFlagsForState } from "./user-action-prompt.js";
+import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -242,6 +245,19 @@ function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
     || existingRecovery();
 }
 
+function buildPreimplementationBootstrapDirective(ctx, state, target) {
+  if (target.stepId !== "scenario-validity") return null;
+  const plan = inspectPreimplementationBootstrap({ root: ctx.root, state });
+  if (!plan) return null;
+  const guards = guardFlagsForState(state);
+  return new ExecuteCommandDirective({
+    actionId: "RECOVER_PREIMPLEMENTATION_BOOTSTRAP",
+    nextAction: `senti flow run preimplementation-bootstrap${guards ? ` ${guards}` : ""}`,
+    instruction: "Use the persisted scenario-validity preflight evidence to enter implementation without reclassifying existing implementation-target changes as test design.",
+    reason: `scenario-validity detected ${plan.invalidPaths.length} existing implementation-target change(s) against the immutable Flow baseline`,
+  });
+}
+
 function promoteNextAvailableTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
@@ -395,16 +411,17 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
   const gateRecovery = gateRecoveryDisplay
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
-  const strictDirective = new NextActionDirectiveResolver({
-    state,
-    action: derived.action,
-    reviewPhase,
-    reviewTargetChanged,
-    gatePhase: gateRecoveryDisplay?.phase ?? null,
-    stepAttempt,
-    reviewOperation,
-    gateRecovery,
-  }).resolve();
+  const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
+    || new NextActionDirectiveResolver({
+      state,
+      action: derived.action,
+      reviewPhase,
+      reviewTargetChanged,
+      gatePhase: gateRecoveryDisplay?.phase ?? null,
+      stepAttempt,
+      reviewOperation,
+      gateRecovery,
+    }).resolve();
   const activationOffer = nonblockingActivationOfferForStrictStop(ctx.root, state, strictDirective);
   const directive = activationOffer
     ? new AwaitUserDecisionDirective({

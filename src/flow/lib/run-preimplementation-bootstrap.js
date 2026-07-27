@@ -18,6 +18,20 @@ class PreimplementationBootstrapError extends Error {
   }
 }
 
+export class PreimplementationBootstrapPlan {
+  constructor({ invalidPaths, transition }) {
+    if (!Array.isArray(invalidPaths) || invalidPaths.length === 0) {
+      throw new Error("preimplementation bootstrap plan requires invalid paths");
+    }
+    if (!(transition instanceof ExplicitRecoveryTransition)) {
+      throw new Error("preimplementation bootstrap plan requires an explicit recovery transition");
+    }
+    this.invalidPaths = Object.freeze([...invalidPaths]);
+    this.transition = transition;
+    Object.freeze(this);
+  }
+}
+
 function reject(code, message) {
   throw new PreimplementationBootstrapError(code, message);
 }
@@ -102,16 +116,31 @@ function buildRecoveryTransition(state) {
   });
 }
 
+function buildPreimplementationBootstrapPlan({ root, state }) {
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  return new PreimplementationBootstrapPlan({
+    invalidPaths: readPreflightInvalidPaths(specDir),
+    transition: buildRecoveryTransition(state),
+  });
+}
+
+export function inspectPreimplementationBootstrap({ root, state }) {
+  try {
+    return buildPreimplementationBootstrapPlan({ root, state });
+  } catch (error) {
+    if (error instanceof PreimplementationBootstrapError) return null;
+    throw error;
+  }
+}
+
 export default class RunPreimplementationBootstrapCommand extends FlowCommand {
   execute(ctx) {
     const state = ctx.flowState;
     const guardFailure = requireExactGuards(ctx, state);
     if (guardFailure) return guardFailure;
     try {
-      const specDir = path.dirname(path.resolve(ctx.root, state.spec));
-      const invalidPaths = readPreflightInvalidPaths(specDir);
-      const transition = buildRecoveryTransition(state);
-      ctx.flowManager.updateStepStatus(transition, {
+      const plan = buildPreimplementationBootstrapPlan({ root: ctx.root, state });
+      ctx.flowManager.updateStepStatus(plan.transition, {
         taskId: null,
         expectedOriginal: state,
       });
@@ -119,7 +148,7 @@ export default class RunPreimplementationBootstrapCommand extends FlowCommand {
         recovered: true,
         skipped: ["scenario-validity", "test-review"],
         activeStep: "implement",
-        preflightInvalidPaths: invalidPaths,
+        preflightInvalidPaths: plan.invalidPaths,
       });
     } catch (error) {
       if (error instanceof PreimplementationBootstrapError) {

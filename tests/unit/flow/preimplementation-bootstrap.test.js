@@ -5,6 +5,7 @@ import { afterEach, test } from "node:test";
 
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { findActiveNode } from "../../../src/flow/definition.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunPreimplementationBootstrapCommand from "../../../src/flow/lib/run-preimplementation-bootstrap.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
@@ -58,6 +59,39 @@ test("preimplementation bootstrap records the preflight recovery and resumes imp
   assert.equal(findStepById(refreshed.steps, "scenario-validity")?.status, "skipped");
   assert.equal(findStepById(refreshed.steps, "test-review")?.status, "skipped");
   assert.equal(findStepById(refreshed.steps, "implement")?.status, "in_progress");
+});
+
+test("next action dispatches persisted preimplementation bootstrap recovery", async () => {
+  tmp = createTmpDir("preimplementation-bootstrap-next-action-");
+  const spec = "specs/001-bootstrap/spec.json";
+  writeJson(tmp, spec, { goal: "Recover existing bootstrap work.", requirements: [] });
+  writeJson(tmp, "specs/001-bootstrap/scenario-validity-result.json", {
+    version: "1",
+    result: "block",
+    preflight: { invalid_paths: ["src/flow/lib/run-scenario-validity.js"] },
+  });
+  const state = moveFlowToStep(makeFlowState({
+    runId: "bootstrap-run",
+    issue: 473,
+    spec,
+    repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
+  }), "scenario-validity");
+  const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+  manager.create(state);
+  manager.addActiveFlow("001-bootstrap", "branch");
+
+  const result = await new GetNextActionCommand().execute({
+    root: tmp,
+    flowState: manager.loadReadOnly(),
+    flowManager: manager,
+  });
+
+  assert.equal(result.directive.kind, "execute_command");
+  assert.equal(result.directive.actionId, "RECOVER_PREIMPLEMENTATION_BOOTSTRAP");
+  assert.match(result.directive.nextAction, /^senti flow run preimplementation-bootstrap /);
+  assert.match(result.directive.nextAction, /--expect-run-id 'bootstrap-run'/);
+  assert.match(result.directive.nextAction, /--expect-spec 'specs\/001-bootstrap\/spec.json'/);
+  assert.match(result.directive.nextAction, /--expect-issue 473/);
 });
 
 test("preimplementation bootstrap rejects a missing preflight block", () => {
