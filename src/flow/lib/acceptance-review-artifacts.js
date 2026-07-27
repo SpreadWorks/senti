@@ -1516,6 +1516,12 @@ export function applyAcceptanceReviewResult({
       markStep(current, "acceptance-review", "done");
       markStep(current, "acceptance-decision", "done");
       markStep(current, "final-regression", "in_progress");
+    } else if (current.nonblocking?.enabled === true && ["repair_required", "user_decision_required", "inconclusive", "aborted"].includes(next.verdict)) {
+      // Do not reinterpret the review result.  Keep the source step active
+      // until the evidence-bound agent decision selects recovery or continue.
+      markStep(current, "acceptance-review", "in_progress");
+      markStep(current, "acceptance-decision", "pending");
+      markStep(current, "final-regression", "pending");
     } else if (next.verdict === "repair_required") {
       resetSteps(current, flowLeafIdsBetween("impl-triage", "finalize-cleanup"), "impl-triage");
       markStep(current, "acceptance-review", "done");

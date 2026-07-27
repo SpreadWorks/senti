@@ -34,6 +34,18 @@ import {
   assertCurrentRepairEvidenceFiles,
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
+import { advisorySummary } from "./nonblocking.js";
+
+function withAdvisorySummary(report, state) {
+  const advisory = advisorySummary(state);
+  if (advisory.length === 0) return report;
+  const lines = advisory.map((entry) => `- ${entry.stepId}: ${entry.evidenceRef}; risk: ${entry.remainingRisk}; rationale: ${entry.rationale}`);
+  return {
+    ...report,
+    text: `${report.text}\n\n## Advisory continuations\n${lines.join("\n")}`,
+    data: { ...report.data, assurance: "advisory", advisorySummary: advisory },
+  };
+}
 
 export function buildUpgradeReportDataFromArtifacts(specDir) {
   const resultPath = path.join(specDir, UPGRADE_RESULT_FILE);
@@ -223,13 +235,13 @@ export class RunReportCommand extends FlowCommand {
     const upgrade = buildUpgradeReportDataFromArtifacts(specDir);
     if (upgrade) results.upgrade = upgrade;
 
-    const report = generateReport({
+    const report = withAdvisorySummary(generateReport({
       state,
       results,
       redolog,
       implDiffStat,
       commitMessages,
-    });
+    }), state);
     const binding = ReportBinding.fromSourcePaths({ root, sourcePaths: reportSourcePaths(root, specDir) });
     const boundReport = {
       ...report,

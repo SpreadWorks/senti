@@ -428,6 +428,11 @@ C.1. **Ask the CLI for the next action**
    - A missing or invalid `directive` is a CLI contract failure. STOP instead
      of reconstructing recovery from `reviewAction`, `retryRecovery`,
      `gateStop`, `continuation`, `actionPrompt`, process exit status, or prose.
+   - When `nonblockingDecision` is present, invoke `/senti.flow-nonblocking`.
+     The decision is agent-owned: inspect the returned evidence, then record
+     the single digest-guarded repair, retry, or continue command without a
+     user-facing choice. Do not offer or start direct mode after nonblocking
+     is enabled.
    - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
 
 C.1.5. **Auto-upgrade check (spec 232)**

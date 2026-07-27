@@ -75,6 +75,8 @@ export class StepOutcome {
     if (value.kind === "decision") {
       return new DecisionOutcome({ decision: value.decision, nextAction: value.nextAction });
     }
+    if (value.kind === "nonblocking-decision") return new NonBlockingDecisionOutcome(value);
+    if (value.kind === "observed-nonpass") return new ObservedNonPassOutcome(value);
     if (value.kind === "defer") {
       return new DeferOutcome({ nextAction: value.nextAction, findingCount: value.findingCount });
     }
@@ -106,6 +108,54 @@ export class DecisionOutcome extends StepOutcome {
 
   toJSON() {
     return { ...super.toJSON(), decision: this.decision };
+  }
+}
+
+export class NonBlockingDecisionOutcome extends StepOutcome {
+  constructor({ action, sourceStep, sourceAttempt, evidenceRef, evidenceDigest, rationale, remainingRisk = null, nextAction }) {
+    if (!["repair", "retry", "continue"].includes(action)) throw new Error("invalid nonblocking decision action");
+    if (typeof sourceStep !== "string" || sourceStep.trim() === "") throw new Error("sourceStep is required");
+    if (!Number.isSafeInteger(sourceAttempt) || sourceAttempt < 1) throw new Error("sourceAttempt must be a positive integer");
+    if (typeof evidenceRef !== "string" || evidenceRef.trim() === "") throw new Error("evidenceRef is required");
+    if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) throw new Error("evidenceDigest must be SHA-256");
+    if (typeof rationale !== "string" || rationale.trim() === "") throw new Error("rationale is required");
+    if (action === "continue" && (typeof remainingRisk !== "string" || remainingRisk.trim() === "")) {
+      throw new Error("remainingRisk is required for advisory continue");
+    }
+    super({ terminal: action === "continue", nextAction: requireString(nextAction, "nextAction") });
+    this.kind = "nonblocking-decision";
+    this.action = action;
+    this.sourceStep = sourceStep;
+    this.sourceAttempt = sourceAttempt;
+    this.evidenceRef = evidenceRef;
+    this.evidenceDigest = evidenceDigest;
+    this.rationale = rationale;
+    this.remainingRisk = remainingRisk;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { ...super.toJSON(), action: this.action, sourceStep: this.sourceStep, sourceAttempt: this.sourceAttempt, evidenceRef: this.evidenceRef, evidenceDigest: this.evidenceDigest, rationale: this.rationale, ...(this.remainingRisk && { remainingRisk: this.remainingRisk }) };
+  }
+}
+
+export class ObservedNonPassOutcome extends StepOutcome {
+  constructor({ sourceStep, evidenceRef, evidenceDigest, resultKind, nextAction = "refresh-next-action" }) {
+    if (typeof sourceStep !== "string" || sourceStep.trim() === "") throw new Error("sourceStep is required");
+    if (typeof evidenceRef !== "string" || evidenceRef.trim() === "") throw new Error("evidenceRef is required");
+    if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) throw new Error("evidenceDigest must be SHA-256");
+    if (!["quality", "tooling", "unavailable"].includes(resultKind)) throw new Error("observed non-pass resultKind is invalid");
+    super({ terminal: false, nextAction });
+    this.kind = "observed-nonpass";
+    this.sourceStep = sourceStep;
+    this.evidenceRef = evidenceRef;
+    this.evidenceDigest = evidenceDigest;
+    this.resultKind = resultKind;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { ...super.toJSON(), sourceStep: this.sourceStep, evidenceRef: this.evidenceRef, evidenceDigest: this.evidenceDigest, resultKind: this.resultKind };
   }
 }
 

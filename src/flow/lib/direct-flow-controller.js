@@ -878,6 +878,11 @@ function persistSelectedSession(authority, state, input, actionId) {
     selectedAt,
   });
   authority.flowManager.mutate((current) => {
+    if (current.nonblocking?.enabled === true) {
+      throw Object.assign(new Error("nonblocking policy became active before direct selection"), {
+        code: "NONBLOCKING_POLICY_ACTIVE",
+      });
+    }
     if (current.directFlowSession) return;
     current.directFlowSession = session.toJSON();
   }, directMutationOptions(authority, { expectedOriginal: state }));
@@ -1712,6 +1717,14 @@ export function getDirectFlowAction(ctx) {
       yieldsControl: false,
     };
   }
+  if (state.nonblocking?.enabled === true) {
+    return {
+      code: "NONBLOCKING_POLICY_ACTIVE",
+      directMode: false,
+      message: "Nonblocking policy owns this normal Flow route; direct mode is unavailable.",
+      yieldsControl: false,
+    };
+  }
   const completion = new FlowCompletion(state);
   if (completion.complete && !state.directFlowSession) {
     return {
@@ -2370,6 +2383,9 @@ async function runDirectFlowActionOwned(ctx, input) {
   const state = authority.state;
   if (!state) {
     return Envelope.fail("run", "direct", "NO_FLOW", "No Flow exists; use an ordinary direct fix.");
+  }
+  if (state.nonblocking?.enabled === true) {
+    return Envelope.fail("run", "direct", "NONBLOCKING_POLICY_ACTIVE", "Nonblocking policy owns this normal Flow route; direct mode did not mutate it.");
   }
   const action = String(input.action || "").trim();
   if (!action) {

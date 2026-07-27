@@ -5168,7 +5168,14 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
       }
     }
     if (!result) {
-      const completionData = { status: "done", message: "spec-only mode" };
+      const completion = new FlowCompletion(ctx.flowState);
+      const receipt = completion.toJSON();
+      const completionData = {
+        status: "done",
+        message: "spec-only mode",
+        assurance: completion.assurance,
+        ...(receipt.advisorySummary && { advisorySummary: receipt.advisorySummary }),
+      };
       if (!transaction.phase.atLeast("completed")) {
         completeFinalizeCleanupStep(
           ctx.flowManager,
@@ -6219,8 +6226,12 @@ async function runTeardownTransactionOwned(
     transaction.advance("active-cleared");
     transactionStore.write(transaction);
   }
+  const completion = new FlowCompletion(state);
+  const completionReceipt = completion.toJSON();
   const completionData = {
     status: "done",
+    assurance: completion.assurance,
+    ...(completionReceipt.advisorySummary && { advisorySummary: completionReceipt.advisorySummary }),
     ...(finalizeAdapter?.completionData || {}),
     pluginHooks: pluginLifecycle.data?.pluginHooks || [],
     followUps: pluginLifecycle.data?.followUps || [],

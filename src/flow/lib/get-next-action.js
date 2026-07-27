@@ -39,6 +39,7 @@ import { resolveReviewOperationForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 import { getDirectFlowAction } from "./direct-flow-controller.js";
+import { decisionContextForActiveFlow } from "./nonblocking.js";
 import {
   AbortedDirective,
   CompletedDirective,
@@ -400,6 +401,13 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     gateRecovery,
   }).resolve();
   result.directive = directive.toJSON();
+  if (state.nonblocking?.enabled === true && ["impl-review", "impl-gate", "acceptance-review", "final-regression"].includes(target.stepId)) {
+    try {
+      result.nonblockingDecision = decisionContextForActiveFlow(ctx.root, state).toJSON();
+    } catch {
+      // A pass has no advisory decision. The normal step action remains authoritative.
+    }
+  }
   return result;
 }
 
