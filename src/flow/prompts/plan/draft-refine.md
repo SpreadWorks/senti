@@ -1,7 +1,8 @@
    - Refine the existing `draft.json` into a spec-ready draft before coverage review.
    - This step owns resolving existing `pending` / `approved` `draft.json.qa[]` entries. Do not create a new question list and do not append review-style follow-up questions.
    - For each existing `pending` / `approved` entry:
-     - If user judgment is required, ask the user the existing question using Choice Format, then update that same entry to `status: "answered"` with non-empty `answer`, `evidence`, and `why`.
+     - When `autoApprove: true`, do not ask the user or stop for a draft question. Resolve non-destructive requirement and API choices from the request, Issue, project rules, source context, and the conservative recommended outcome. Record `autoApprove` and the supporting source as the evidence; never describe an automatic resolution as a user selection. Only an irreversible action or a choice that changes the user-requested goal or scope may remain blocked.
+     - When `autoApprove` is not true and user judgment is required, ask the user the existing question using Choice Format, then update that same entry to `status: "answered"` with non-empty `answer`, `evidence`, and `why`.
      - If the answer is available from the request, issue, docs, project rules, source context, or prior conversation, update that same entry to `status: "answered"` without asking the user.
      - If the question is no longer necessary, redundant, or should be decided by project rules/spec writing, update that same entry to `status: "dropped"` with a concrete `droppedReason`.
    - Keep the work finite: process the existing question list once. Do not loop looking for more questions.

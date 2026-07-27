@@ -325,6 +325,120 @@ test("direct fix persists its plan before changes and completes through shared t
   }
 });
 
+test("direct finalize revalidates a rebased pending receipt and resumes integration", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-rebased-pending-receipt" });
+  try {
+    container.register("config", {
+      commands: { gh: "disable" },
+      flow: { push: { remote: "missing-direct-remote" } },
+    });
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/rebased-direct.js",
+      contents: "export const rebasedDirect = true;\n",
+      reason: "Verify pending integration recovery after a feature rebase.",
+    });
+
+    const interrupted = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(interrupted.ok, false, JSON.stringify(interrupted));
+    assert.equal(interrupted.errors[0].code, "DIRECT_MERGE_FAILED");
+    const pending = fixture.context().flowState;
+    const originalPlanRevision = pending.directResolutionPlan.revision;
+    assert.equal(pending.directFlowSession.phase, "MERGE_ONLY_FINALIZE");
+    assert.equal(pending.directIntegrationReceipt.status, "pending");
+    assert.equal(pending.directCompletionReceipt, undefined);
+
+    fs.writeFileSync(path.join(fixture.root, "base-after-verification.txt"), "new base\n");
+    git(fixture.root, ["add", "base-after-verification.txt"]);
+    git(fixture.root, ["commit", "--quiet", "-m", "advance base before direct retry"]);
+    git(fixture.root, ["push", "--quiet", "origin", "master"]);
+    git(fixture.worktreePath, ["rebase", "master"]);
+    fs.writeFileSync(
+      path.join(fixture.worktreePath, "src", "rebased-direct.js"),
+      "export const rebasedDirect = \"resolved-after-rebase\";\n",
+    );
+    git(fixture.worktreePath, ["add", "src/rebased-direct.js"]);
+    git(fixture.worktreePath, [
+      "commit",
+      "--quiet",
+      "-m",
+      "resolve direct content after rebase",
+    ]);
+    const rebasedHead = git(fixture.worktreePath, ["rev-parse", "HEAD"]);
+    assert.notEqual(rebasedHead, pending.directIntegrationReceipt.featureHead);
+
+    container.register("config", {
+      commands: { gh: "disable" },
+      flow: { push: { remote: "origin" } },
+    });
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(finalized.data.status, "done");
+
+    const completed = fixture.context({ fromMain: true }).flowState;
+    assert.equal(completed.directFlowSession.phase, "COMPLETED_DIRECT");
+    assert.equal(
+      completed.directResolutionPlan.revision,
+      originalPlanRevision + 1,
+    );
+    assert.equal(completed.directCompletionReceipt.minimalValidation.status, "passed");
+    assert.equal(
+      completed.directCompletionReceipt.minimalValidation.testCommand,
+      "node -e \"process.exit(0)\"",
+    );
+    assert.equal(
+      git(fixture.root, ["show", "master:src/rebased-direct.js"]),
+      "export const rebasedDirect = \"resolved-after-rebase\";",
+    );
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
+test("direct finalize revalidates an internal pre-merge rebase before integrating", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-premerge-revalidation" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/premerge-revalidation.js",
+      contents: "export const premergeRevalidation = true;\n",
+      reason: "Revalidate a feature after finalize synchronizes an advanced base.",
+    });
+    const beforeFinalize = fixture.context().flowState;
+    const originalVerifiedAt = beforeFinalize.directFlowSession.verification.verifiedAt;
+
+    fs.writeFileSync(path.join(fixture.root, "base-before-finalize.txt"), "advanced base\n");
+    git(fixture.root, ["add", "base-before-finalize.txt"]);
+    git(fixture.root, ["commit", "--quiet", "-m", "advance base before finalize"]);
+    git(fixture.root, ["push", "--quiet", "origin", "master"]);
+
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    const completed = fixture.context({ fromMain: true }).flowState;
+    assert.equal(completed.directFlowSession.phase, "COMPLETED_DIRECT");
+    assert.equal(completed.directResolutionPlan.revision, 2);
+    assert.equal(completed.directCompletionReceipt.minimalValidation.status, "passed");
+    assert.notEqual(
+      completed.directCompletionReceipt.minimalValidation.verifiedAt,
+      originalVerifiedAt,
+    );
+    assert.equal(
+      git(fixture.root, ["show", "master:base-before-finalize.txt"]),
+      "advanced base",
+    );
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
 test("direct finalize ignores a deletion already committed on the feature branch", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-committed-deletion" });
   try {

@@ -18,10 +18,12 @@ import {
 } from "./direct-completion.js";
 import {
   DirectFlowSession,
+  DirectFlowTarget,
   DirectVerificationResult,
 } from "./direct-flow-session.js";
 import { revalidatePersistedIntegrationReceipt } from "./direct-integration-evidence.js";
 import { DirectResolutionPlan } from "./direct-resolution-plan.js";
+import { hasOutboxCommit } from "./run-finalize.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import {
   readPersistedFinalizeTeardownTransaction,
@@ -58,6 +60,135 @@ function hasOnlyTargetFlowArtifacts(statusOutput, specId) {
   return entries.length > 0 && entries.every((entry) => (
     entry.length > 3 && entry.slice(3).startsWith(artifactRoot)
   ));
+}
+
+const PENDING_RECOVERY_REFRESHABLE_CHECKS = new Set([
+  "worktree-binding",
+  "active-registry-cas",
+  "feature-history",
+]);
+
+class PendingIntegrationRecovery {
+  constructor({
+    mainRoot,
+    state,
+    session,
+    plan,
+    receipt,
+    snapshot,
+    force = false,
+  }) {
+    this.session = DirectFlowSession.fromStored(session);
+    this.plan = DirectResolutionPlan.fromStored(plan);
+    this.receipt = DirectIntegrationReceipt.fromStored(receipt);
+    this.snapshot = snapshot;
+    if (
+      this.session.phase !== "MERGE_ONLY_FINALIZE"
+      || this.receipt.status !== "pending"
+      || this.session.completion?.status !== "pending-merge"
+      || this.session.completion?.integrationReceiptId !== this.receipt.receiptId
+      || state.directCompletionReceipt != null
+    ) {
+      throw Object.assign(new Error(
+        "pending integration recovery requires an unmerged receipt and pending-merge session",
+      ), { code: "DIRECT_INTEGRATION_RECOVERY_INVALID" });
+    }
+    if (
+      this.receipt.runId !== state.runId
+      || this.receipt.spec !== state.spec
+      || this.receipt.planId !== this.plan.planId
+      || this.receipt.planRevision !== this.plan.revision
+    ) {
+      throw Object.assign(new Error(
+        "pending integration receipt does not match the active direct plan",
+      ), { code: "DIRECT_INTEGRATION_RECEIPT_INVALID" });
+    }
+    if (
+      hasOutboxCommit({
+        root: mainRoot,
+        ref: state.baseBranch,
+        idempotencyKey: this.receipt.idempotencyKey,
+      })
+    ) {
+      this.needed = false;
+      this.integrationRecorded = true;
+      Object.freeze(this);
+      return;
+    }
+    const hardFailure = snapshot.checks.find((check) => (
+      !check.passed && !PENDING_RECOVERY_REFRESHABLE_CHECKS.has(check.id)
+    ));
+    if (hardFailure) {
+      throw Object.assign(new Error(
+        `pending integration recovery failed ${hardFailure.id}: ${hardFailure.detail}`,
+      ), { code: "DIRECT_SAFETY_REVALIDATION_FAILED" });
+    }
+    if (
+      snapshot.target.worktreePath !== this.session.target.worktreePath
+      || snapshot.currentHead !== snapshot.worktreeHead
+      || snapshot.branch !== state.featureBranch
+    ) {
+      throw Object.assign(new Error(
+        "pending integration recovery target no longer identifies the managed feature worktree",
+      ), { code: "DIRECT_RECOVERY_TARGET_CHANGED" });
+    }
+    const baseAncestry = runGit([
+      "-C",
+      mainRoot,
+      "merge-base",
+      "--is-ancestor",
+      `refs/heads/${state.baseBranch}`,
+      snapshot.currentHead,
+    ]);
+    if (!baseAncestry.ok) {
+      this.needed = false;
+      this.integrationRecorded = false;
+      Object.freeze(this);
+      return;
+    }
+    const implementationProof = this.session.implementationProof;
+    const verification = this.session.verification;
+    if (
+      implementationProof == null
+      || verification?.status !== "passed"
+      || !implementationProof.matchesVerification(verification)
+    ) {
+      throw Object.assign(new Error(
+        "pending integration recovery requires the previously verified implementation evidence",
+      ), { code: "DIRECT_REBASE_CONTENT_CHANGED" });
+    }
+    const receiptAncestry = runGit([
+      "-C",
+      mainRoot,
+      "merge-base",
+      "--is-ancestor",
+      this.receipt.featureHead,
+      snapshot.currentHead,
+    ]).ok;
+    this.needed = force === true
+      || !receiptAncestry
+      || snapshot.target.binding.revision !== this.plan.target.bindingRevision
+      || snapshot.target.registry.revision !== this.plan.target.activeRegistryRevision;
+    this.integrationRecorded = false;
+    Object.freeze(this);
+  }
+
+  refresh() {
+    if (!this.needed || this.integrationRecorded) {
+      throw new Error("pending integration recovery refresh is not required");
+    }
+    const target = new DirectFlowTarget({
+      ...this.plan.target.toJSON(),
+      bindingRevision: this.snapshot.target.binding.revision,
+      activeRegistryRevision: this.snapshot.target.registry.revision,
+      featureHead: this.snapshot.currentHead,
+    });
+    const plan = this.plan.withRecoveryTarget(target);
+    const implementationProof = this.session.implementationProof
+      .rebindToRecoverySnapshot(plan, this.snapshot);
+    const session = this.session.recoverPendingIntegration(plan, implementationProof);
+    return { plan, session };
+  }
 }
 
 function directStop(state, code, messages, { retryAction = "FINALIZE_DIRECT" } = {}) {
@@ -698,6 +829,90 @@ async function finalizeReconcile(authority, state, session, plan, options) {
   );
 }
 
+async function recoverPendingIntegration(
+  authority,
+  state,
+  session,
+  plan,
+  pendingReceipt,
+  options,
+  { force = false } = {},
+) {
+  if ((options.pendingRecoveryDepth || 0) >= 2) {
+    return directStop(state, "DIRECT_INTEGRATION_RECOVERY_LIMIT", [
+      "The feature HEAD changed repeatedly while direct integration was being revalidated.",
+      "No merge or cleanup was attempted after the second change.",
+    ]);
+  }
+  const snapshot = options.directSafetySnapshot(authority, state, plan);
+  let recovery;
+  try {
+    recovery = new PendingIntegrationRecovery({
+      mainRoot: authority.mainRoot,
+      state,
+      session,
+      plan,
+      receipt: pendingReceipt,
+      snapshot,
+      force,
+    });
+  } catch (error) {
+    return directStop(state, error.code || "DIRECT_INTEGRATION_RECOVERY_FAILED", [
+      error.message,
+      "The pending receipt, branch, worktree, and Flow state were retained.",
+    ]);
+  }
+  if (!recovery.needed || recovery.integrationRecorded) return null;
+  const refreshed = recovery.refresh();
+  authority.flowManager.mutate((current) => {
+    const durableSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const durablePlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    const durableReceipt = DirectIntegrationReceipt.fromStored(
+      current.directIntegrationReceipt,
+    );
+    if (
+      durableSession.revision !== session.revision
+      || durablePlan.planId !== plan.planId
+      || durablePlan.revision !== plan.revision
+      || durableReceipt.receiptId !== pendingReceipt.receiptId
+      || current.directCompletionReceipt != null
+    ) {
+      throw Object.assign(new Error(
+        "pending direct integration state changed before recovery",
+      ), { code: "DIRECT_CAS_CONFLICT" });
+    }
+    current.directResolutionPlan = refreshed.plan.toJSON();
+    current.directFlowSession = refreshed.session.toJSON();
+    delete current.directIntegrationReceipt;
+    if (current.state) delete current.state.featureBranchSquashedSha;
+  }, directMutationOptions(authority, { expectedOriginal: state }));
+
+  const verificationCommand = session.verification?.testCommand ?? null;
+  const verified = options.runDirectVerification(authority, {
+    testCommand: verificationCommand,
+    timeoutMs: options.timeoutMs,
+  });
+  const verifiedSession = DirectFlowSession.fromStored(verified.directFlowSession);
+  if (verifiedSession.verification?.status !== "passed") {
+    return directStop(verified, "DIRECT_REBASE_REVALIDATION_FAILED", [
+      "The feature history was refreshed, but deterministic verification did not pass.",
+      ...verifiedSession.verification.checks
+        .filter((check) => !check.passed)
+        .map((check) => `${check.id}: ${check.detail}`),
+    ], { retryAction: "VERIFY_DIRECT" });
+  }
+  return finalizeMerge(
+    authority,
+    verified,
+    verifiedSession,
+    refreshed.plan,
+    {
+      ...options,
+      pendingRecoveryDepth: (options.pendingRecoveryDepth || 0) + 1,
+    },
+  );
+}
+
 async function finalizeMerge(authority, state, session, plan, options) {
   const targetRoot = session.target.worktreePath;
   const mainRoot = authority.mainRoot;
@@ -815,6 +1030,15 @@ async function finalizeMerge(authority, state, session, plan, options) {
         "No merge or cleanup was attempted.",
       ]);
     }
+    const recovered = await recoverPendingIntegration(
+      authority,
+      state,
+      session,
+      plan,
+      pendingReceipt,
+      options,
+    );
+    if (recovered != null) return recovered;
     const snapshot = options.directSafetySnapshot(authority, state, plan);
     const failedSafety = snapshot.checks.find((check) => !check.passed);
     if (failedSafety) {
@@ -845,8 +1069,27 @@ async function finalizeMerge(authority, state, session, plan, options) {
       worktreePath: targetRoot,
       mainRepoPath: mainRoot,
       idempotencyKey: pendingReceipt.idempotencyKey,
+      requireRevalidationAfterSync: true,
     });
   } catch (error) {
+    if (error.code === "MERGE_REVALIDATION_REQUIRED") {
+      const refreshedState = authority.flowManager.load(specId);
+      const refreshedSession = DirectFlowSession.fromStored(
+        refreshedState.directFlowSession,
+      );
+      const refreshedPlan = DirectResolutionPlan.fromStored(
+        refreshedState.directResolutionPlan,
+      );
+      return recoverPendingIntegration(
+        authority,
+        refreshedState,
+        refreshedSession,
+        refreshedPlan,
+        DirectIntegrationReceipt.fromStored(refreshedState.directIntegrationReceipt),
+        options,
+        { force: true },
+      );
+    }
     return directStop(mergeState, error.code || "DIRECT_MERGE_FAILED", [
       error.message,
       "The direct plan, branch, worktree, and pending integration receipt were retained.",

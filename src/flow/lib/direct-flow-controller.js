@@ -1968,6 +1968,8 @@ function directSafetySnapshot(authority, state, plan) {
   return {
     target,
     currentHead,
+    worktreeHead,
+    branch,
     changedPaths,
     pathFingerprints: directPathFingerprints(
       target.worktreePath,
@@ -2062,7 +2064,7 @@ function confirmDirectImplementation(authority, input) {
   return authority.flowManager.load(authority.specId);
 }
 
-function runDirectVerification(authority, input) {
+export function runDirectVerification(authority, input) {
   let state = authority.flowManager.load(authority.specId);
   let session = DirectFlowSession.fromStored(state.directFlowSession);
   const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
@@ -2642,6 +2644,7 @@ async function runDirectFlowActionOwned(ctx, input) {
       testCommand: verificationCommand?.command || input.testCommand,
       timeoutMs: input.timeoutMs,
       runTestCommand,
+      runDirectVerification,
       directSafetySnapshot,
     });
   }

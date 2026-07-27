@@ -28,6 +28,16 @@ const SQUASH_MESSAGE_IGNORED_SUBJECTS = new Set([
   "chore: add finalization artifacts",
 ]);
 
+export class MergeRevalidationRequiredError extends Error {
+  constructor({ beforeHead, afterHead }) {
+    super("pre-merge synchronization changed the feature HEAD; verification must be refreshed");
+    this.name = "MergeRevalidationRequiredError";
+    this.code = "MERGE_REVALIDATION_REQUIRED";
+    this.beforeHead = beforeHead;
+    this.afterHead = afterHead;
+  }
+}
+
 /**
  * Resolve push remote from config.
  * @param {Object} cfg - Spec-Driven Development config
@@ -316,6 +326,8 @@ function runMerge(ctx) {
   if (worktree && mainRepoPath) {
     const cfg = container.get("config");
     const remote = resolveRemote(cfg);
+    const beforeSync = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
+    assertOk(beforeSync, "failed to capture feature HEAD before pre-merge synchronization");
     const syncResult = runPreSync({ worktreePath: root, baseBranch, featureBranch, remote });
     if (syncResult.ok === false) {
       if (syncResult.dirty) {
@@ -331,6 +343,18 @@ function runMerge(ctx) {
       err.conflictFiles = syncResult.conflictFiles;
       err.recoveryHint = syncResult.recoveryHint;
       throw err;
+    }
+
+    const afterSync = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
+    assertOk(afterSync, "failed to capture feature HEAD after pre-merge synchronization");
+    if (
+      ctx.requireRevalidationAfterSync === true
+      && beforeSync.stdout.trim() !== afterSync.stdout.trim()
+    ) {
+      throw new MergeRevalidationRequiredError({
+        beforeHead: beforeSync.stdout.trim(),
+        afterHead: afterSync.stdout.trim(),
+      });
     }
 
     // R17: capture squash baseline after runPreSync (which may have rebased feature HEAD)

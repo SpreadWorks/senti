@@ -308,6 +308,11 @@ export class DirectImplementationProof {
 
   matchesSnapshot(snapshot) {
     return snapshot?.currentHead === this.featureHead
+      && this.matchesContentSnapshot(snapshot);
+  }
+
+  matchesContentSnapshot(snapshot) {
+    return snapshot != null
       && JSON.stringify(snapshot.changedPaths) === JSON.stringify([...this.changedPaths])
       && JSON.stringify(snapshot.pathFingerprints.map((entry) => entry.toJSON()))
         === JSON.stringify(this.pathFingerprints.map((entry) => entry.toJSON()));
@@ -335,6 +340,34 @@ export class DirectImplementationProof {
     return new DirectImplementationProof({
       ...this.toJSON(),
       planRevision: plan.revision,
+      recordedAt: new Date().toISOString(),
+    });
+  }
+
+  rebindToRecoverySnapshot(plan, snapshot) {
+    if (
+      plan?.planId !== this.planId
+      || plan?.sourceStep !== this.sourceStep
+      || plan?.target?.runId !== this.runId
+      || (plan?.target?.issue ?? null) !== this.issue
+      || plan?.target?.spec !== this.spec
+    ) {
+      throw new Error("direct implementation proof cannot move to a different recovery plan");
+    }
+    if (
+      snapshot == null
+      || !Array.isArray(snapshot.changedPaths)
+      || !Array.isArray(snapshot.pathFingerprints)
+      || snapshot.pathFingerprints.length === 0
+    ) {
+      throw new Error("direct implementation proof recovery snapshot is incomplete");
+    }
+    return new DirectImplementationProof({
+      ...this.toJSON(),
+      planRevision: plan.revision,
+      changedPaths: snapshot.changedPaths,
+      pathFingerprints: snapshot.pathFingerprints,
+      featureHead: snapshot.currentHead,
       recordedAt: new Date().toISOString(),
     });
   }
@@ -678,6 +711,37 @@ export class DirectFlowSession {
       ...this.toJSON(),
       verification: result.toJSON(),
       verificationAttempts: this.verificationAttempts + 1,
+      revision: this.revision + 1,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  recoverPendingIntegration(plan, implementationProof) {
+    if (
+      this.phase !== "MERGE_ONLY_FINALIZE"
+      || this.completion?.status !== "pending-merge"
+      || this.completion?.integrationReceiptId == null
+    ) {
+      throw new Error("pending direct integration recovery requires merge-only finalization");
+    }
+    const proof = DirectImplementationProof.fromStored(implementationProof);
+    if (
+      plan?.planId !== this.planId
+      || plan?.revision !== this.planRevision + 1
+      || proof.planId !== plan.planId
+      || proof.planRevision !== plan.revision
+    ) {
+      throw new Error("pending direct integration recovery plan is inconsistent");
+    }
+    return new DirectFlowSession({
+      ...this.toJSON(),
+      phase: "DIRECT_VERIFY",
+      target: plan.target.toJSON(),
+      planRevision: plan.revision,
+      implementationProof: proof.toJSON(),
+      verification: null,
+      verificationAttempts: 0,
+      completion: null,
       revision: this.revision + 1,
       updatedAt: new Date().toISOString(),
     });
