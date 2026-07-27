@@ -652,10 +652,39 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-07-27T12:42:54.217Z",
-      "updatedAt": "2026-07-27T12:42:54.299Z"
+      "updatedAt": "2026-07-27T12:42:59.050Z",
+      "result": {
+        "status": "done",
+        "assurance": "strict",
+        "completionMode": "direct",
+        "mergeDisposition": "merged",
+        "receiptId": "direct-completion-dc5a870dc026560dd899c8d601fb8d0b",
+        "externalUpdateKey": "direct-external-update-dc5a870dc026560dd899c8d601fb8d0b",
+        "summary": "Direct completion direct-completion-dc5a870dc026560dd899c8d601fb8d0b; mode=direct; merge=merged; sourceStep=impl-review; verification=passed; skipped=impl-review,impl-triage,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+        "pluginHooks": [
+          {
+            "pluginId": "workflow",
+            "command": "finalize-cleanup",
+            "hook": "post",
+            "data": {
+              "skipped": true,
+              "reason": "retro extraction is available via `senti workflow retro <specid>`"
+            }
+          }
+        ],
+        "followUps": [],
+        "retainedCleanupMetadata": {
+          "surfaces": [
+            "agent-metrics",
+            "notes",
+            "plugin-artifact",
+            "plugin-hook-output"
+          ]
+        }
+      }
     }
   ],
   "issue": 473,
@@ -17058,8 +17087,8 @@
     ]
   },
   "directFlowSession": {
-    "phase": "MERGE_ONLY_FINALIZE",
-    "revision": 12,
+    "phase": "COMPLETED_DIRECT",
+    "revision": 13,
     "target": {
       "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
       "issue": 473,
@@ -17078,7 +17107,7 @@
     "adoptedActionId": "SELECT_DIRECT_FIX",
     "requestedScopePaths": [],
     "selectedAt": "2026-07-27T12:31:21.806Z",
-    "updatedAt": "2026-07-27T12:35:35.730Z",
+    "updatedAt": "2026-07-27T12:42:58.880Z",
     "planId": "direct-plan-bcf6adb15ca291c81c23ca19",
     "planRevision": 2,
     "implementationProof": {
@@ -19013,15 +19042,15 @@
     "verificationAttempts": 1,
     "suspendedFrom": null,
     "completion": {
-      "status": "prepared",
+      "status": "completed",
       "completionMode": "direct",
-      "success": null,
+      "success": true,
       "mergeDisposition": "merged",
       "receiptId": "direct-completion-dc5a870dc026560dd899c8d601fb8d0b",
       "integrationReceiptId": null,
       "reason": null,
       "recordedAt": null,
-      "completedAt": null
+      "completedAt": "2026-07-27T12:42:58.880Z"
     }
   },
   "directResolutionPlan": {
@@ -19266,7 +19295,7 @@
   "directCompletionReceipt": {
     "version": 1,
     "receiptId": "direct-completion-dc5a870dc026560dd899c8d601fb8d0b",
-    "status": "prepared",
+    "status": "completed",
     "completionMode": "direct",
     "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
     "issue": 473,
@@ -20320,7 +20349,7 @@
     },
     "preparedAt": "2026-07-27T12:35:35.629Z",
     "reconciledAt": null,
-    "completedAt": null,
+    "completedAt": "2026-07-27T12:42:58.880Z",
     "externalUpdateKey": "direct-external-update-dc5a870dc026560dd899c8d601fb8d0b",
     "summary": "Direct completion direct-completion-dc5a870dc026560dd899c8d601fb8d0b; mode=direct; merge=merged; sourceStep=impl-review; verification=passed; skipped=impl-review,impl-triage,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup"
   },
