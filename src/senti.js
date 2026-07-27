@@ -17,6 +17,7 @@
 
 import { EXIT_ERROR } from "./lib/constants.js";
 import { initContainer } from "./lib/container.js";
+import { FinalizeCleanupRoute } from "./lib/finalize-cleanup-paths.js";
 import { executeWorktreeLocalCli } from "./lib/worktree-cli-execution.js";
 
 const rawArgs = process.argv.slice(2);
@@ -24,7 +25,9 @@ const worktreeCliExitCode = executeWorktreeLocalCli({ argv: rawArgs });
 if (worktreeCliExitCode != null) process.exit(worktreeCliExitCode);
 const [subCmd, ...rest] = rawArgs;
 let agentWorkDirOverride = null;
-const enableFinalizeCleanupDurablePaths = subCmd === "flow" && rest[0] === "run" && rest[1] === "finalize-cleanup";
+const enableFinalizeCleanupDurablePaths = FinalizeCleanupRoute
+  .fromCliArgs(rawArgs)
+  .removesManagedWorktree;
 if (subCmd === "flow" && rest[0] === "run") {
   for (let i = 2; i < rest.length; i += 1) {
     if (rest[i] === "--agent-work-dir") {

@@ -97,7 +97,7 @@ export const container = new Container();
  * `logDir` is computed once here and reused by Logger.
  */
 function buildPaths(root, config, opts = {}) {
-  const cleanupPaths = new FinalizeCleanupPathResolver({
+  const cleanupPaths = opts.cleanupPaths || new FinalizeCleanupPathResolver({
     enabled: opts.finalizeCleanupDurablePaths,
     worktreeRoot: root,
     mainRoot: opts.mainRoot,
@@ -166,11 +166,15 @@ export function initContainer(opts = {}) {
 
   const inWorktree = isInsideWorktree(root);
   const mainRoot = inWorktree ? getMainRepoPath(root) : root;
+  const cleanupPaths = new FinalizeCleanupPathResolver({
+    enabled: opts.finalizeCleanupDurablePaths,
+    worktreeRoot: root,
+    mainRoot,
+    inWorktree,
+  });
   const paths = buildPaths(root, config, {
     agentWorkDirOverride: opts.agentWorkDirOverride,
-    finalizeCleanupDurablePaths: opts.finalizeCleanupDurablePaths,
-    inWorktree,
-    mainRoot,
+    cleanupPaths,
   });
 
   container.register("root", root);
@@ -180,13 +184,14 @@ export function initContainer(opts = {}) {
   container.register("mainRoot", mainRoot);
   const flowManager = new FlowManager({ root, mainRoot, inWorktree });
   container.register("flowManager", flowManager);
+  const loggerFlowManager = cleanupPaths.flowManager(flowManager);
 
   const logger = new Logger({
     logDir: paths.logDir,
     enabled: configLoaded && config?.logs?.enabled === true,
     entryCommand: opts.entryCommand ?? null,
-    flowManager,
-    cwd: root,
+    flowManager: loggerFlowManager,
+    cwd: cleanupPaths.authorityRoot,
   });
   container.register("logger", logger);
   if (configLoaded) {

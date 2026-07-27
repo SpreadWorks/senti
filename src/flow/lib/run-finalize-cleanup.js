@@ -82,6 +82,7 @@ const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-r
 const FINALIZE_TEARDOWN_VERSION = 7;
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+const FINALIZE_TEARDOWN_TRANSACTION_FILE = /^[a-f0-9]{64}\.json$/;
 const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
 const FINALIZE_BEFORE_IMAGE_MAX_DIRECTORIES = 512;
 const FINALIZE_BEFORE_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
@@ -2837,7 +2838,10 @@ class FinalizeTeardownTransactionStore {
   #assertNoForeignTargetJournal() {
     const expected = finalizeTeardownIdentity(this.state);
     for (const entry of fs.readdirSync(this.directory, { withFileTypes: true })) {
-      if (!entry.name.endsWith(".json") || path.join(this.directory, entry.name) === this.path) continue;
+      if (
+        !FINALIZE_TEARDOWN_TRANSACTION_FILE.test(entry.name)
+        || path.join(this.directory, entry.name) === this.path
+      ) continue;
       const candidate = this.#readSnapshotAt(path.join(this.directory, entry.name)).value;
       const transaction = FinalizeTeardownTransaction.fromStored(candidate);
       if (

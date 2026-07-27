@@ -28,7 +28,10 @@ import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { validateConfiguredPresetChains } from "../../lib/presets.js";
-import { getSpecName } from "../../lib/flow-helpers.js";
+import {
+  getSpecName,
+  promoteNextPending,
+} from "../../lib/flow-helpers.js";
 import {
   enumerateUsableRequirementIds,
   loadSpecJson,
@@ -148,6 +151,10 @@ export async function completeGateArtifactBeforeSemanticEvaluation({
   return evaluateSemanticGuardrail(completed);
 }
 
+export function promoteNextTaskInState(state) {
+  return promoteNextPending(state);
+}
+
 /**
  * Execute gate PASS side effects driven by definition's sideEffects attribute.
  * Looks up sideEffects from the definition for the given phase, then dispatches.
@@ -174,8 +181,7 @@ export async function executeGateSideEffects(ctx, phase) {
           fm.completeTask(invocationState.currentTaskId);
         }
       } else if (effect === "promoteNextTask") {
-        const { promoteNextPending } = await import("../../lib/flow-helpers.js");
-        fm.mutate((s) => { promoteNextPending(s); });
+        fm.mutate(promoteNextTaskInState);
       } else if (effect === "mergeOverview") {
         const { default: RunUpdateOverviewCommand } = await import("./run-update-overview.js");
         const cmd = new RunUpdateOverviewCommand();

@@ -2666,6 +2666,1063 @@
       "timestamp": "2026-07-27T12:31:21.806Z",
       "taskId": null,
       "issueLogId": "direct-plan:d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c:direct-plan-bcf6adb15ca291c81c23ca19:r1"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from impl-review.",
+      "trigger": "MERGE_ONLY_FINALIZE",
+      "resolution": "Direct completion direct-completion-dc5a870dc026560dd899c8d601fb8d0b; mode=direct; merge=merged; sourceStep=impl-review; verification=passed; skipped=impl-review,impl-triage,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+      "runId": "d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c",
+      "planId": "direct-plan-bcf6adb15ca291c81c23ca19",
+      "planRevision": 2,
+      "completionMode": "direct",
+      "mergeDisposition": "merged",
+      "gitEvidence": {
+        "kind": "integration-receipt",
+        "featureHead": "e7ad63ebcddd4017afdc7e837feaddf7025acefa",
+        "mainHead": "e5fbc0301d051f54b6f33709ef9760638c1bf404",
+        "receiptKey": "direct-integration-a04ae8d9e3a8b4aad7370f8e5760ba42",
+        "receiptCommit": "e5fbc0301d051f54b6f33709ef9760638c1bf404",
+        "observedAt": "2026-07-27T12:35:35.629Z"
+      },
+      "skippedSteps": [
+        {
+          "stepId": "impl-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-triage",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-gate",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "retro",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "acceptance-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "final-regression",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "report",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-commit",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-sync",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-cleanup",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "node --test specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "implementation-readiness",
+            "passed": true,
+            "detail": "Implementation completion evidence matches the exact verified change set.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [
+          "specs/353-finalize-teardown-safety/.retry-recovery.transaction.json",
+          "specs/353-finalize-teardown-safety/draft-coverage-repair.json",
+          "specs/353-finalize-teardown-safety/draft-coverage-triage.json",
+          "specs/353-finalize-teardown-safety/draft-questions-repair.json",
+          "specs/353-finalize-teardown-safety/draft-questions-triage.json",
+          "specs/353-finalize-teardown-safety/draft-review-coverage.json",
+          "specs/353-finalize-teardown-safety/draft-review-questions.json",
+          "specs/353-finalize-teardown-safety/draft.json",
+          "specs/353-finalize-teardown-safety/file-map.json",
+          "specs/353-finalize-teardown-safety/flow-findings.json",
+          "specs/353-finalize-teardown-safety/flow.json",
+          "specs/353-finalize-teardown-safety/impl-repair.json",
+          "specs/353-finalize-teardown-safety/impl-triage.json",
+          "specs/353-finalize-teardown-safety/issue-log.json",
+          "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+          "specs/353-finalize-teardown-safety/repair-deltas/repair-001.json",
+          "specs/353-finalize-teardown-safety/repair-deltas/repair-002.json",
+          "specs/353-finalize-teardown-safety/repair-deltas/repair-003.json",
+          "specs/353-finalize-teardown-safety/repair-deltas/repair-004.json",
+          "specs/353-finalize-teardown-safety/repair-deltas/repair-005.json",
+          "specs/353-finalize-teardown-safety/repair-fingerprint.json",
+          "specs/353-finalize-teardown-safety/retry-recovery.json",
+          "specs/353-finalize-teardown-safety/review-evidence/04742d84de85f00c54751b43ffb90e46f75dc3fe52ce189c64bebf3cf0521d76.json",
+          "specs/353-finalize-teardown-safety/review-evidence/081127c41f7d93db8c8835bb5bd422a3f9a042bd0cbed9b0cc406b69e3a6a771.json",
+          "specs/353-finalize-teardown-safety/review-evidence/13328656a522aa1f00a7b1e054c4c31f9e0dc76324b7ad26dd125d9d1b5c9754.json",
+          "specs/353-finalize-teardown-safety/review-evidence/1486290a7435f4783c4ec7d0e2fddcebbae4c99333d15bf49175ceda9e5c754f.json",
+          "specs/353-finalize-teardown-safety/review-evidence/1492713416cbc1c360146a6edc4691704f16361c95f1f76b840ca24e85107578.json",
+          "specs/353-finalize-teardown-safety/review-evidence/2684ef7d80b3e048d7e062f835d11782d8bb0cd2e74493df374d1532301713e1.json",
+          "specs/353-finalize-teardown-safety/review-evidence/34fa3a47fc398ab234e086d10e80082093d00b5929f81c63861b1f452128df31.json",
+          "specs/353-finalize-teardown-safety/review-evidence/3aacf288c1c5aab509cff8cd5ec6650f82b61b6ca1aa182a6f67d05b68eaab37.json",
+          "specs/353-finalize-teardown-safety/review-evidence/451856f4de0d600a62dea595c2fc1bacae7098364b2f27be3db3aaee59a460ad.json",
+          "specs/353-finalize-teardown-safety/review-evidence/4cc5760570d6bc26e29053260b5c395af89eaae7fd25567ce7e336632942fb76.json",
+          "specs/353-finalize-teardown-safety/review-evidence/508a5243fdb77e3b8b47f2a8c8e483f0247929c226e2deed7eca302ea2e6e644.json",
+          "specs/353-finalize-teardown-safety/review-evidence/531dbfe40ee05a45a1f295b6622a015bbf7acfc65131d1cffdc1ad50b628deda.json",
+          "specs/353-finalize-teardown-safety/review-evidence/689ed16b36887f4a06ffa05233000abbc6f442c7917dc67ef435a84ae84c5a06.json",
+          "specs/353-finalize-teardown-safety/review-evidence/6ae618c13fe80c4aa2e784c15542425b52323e81fd0a7001eaa2d2c251cd293c.json",
+          "specs/353-finalize-teardown-safety/review-evidence/7b2c29b2175f6269f0c531b2cae326f358dad5aece48bdab53f5a46e16713f2e.json",
+          "specs/353-finalize-teardown-safety/review-evidence/7ef11c8ad1325ce443095cb245db7664b2ccb8310198abd1e2314d4b19907f74.json",
+          "specs/353-finalize-teardown-safety/review-evidence/86be2dd890514cb26dec5a2645e90afcd3d84c3e10c356f9c83f1b70970d71e3.json",
+          "specs/353-finalize-teardown-safety/review-evidence/9472fa44eb03b0129e45ebd88c70cbd9a636417b28a7c95a63cf9500988c1836.json",
+          "specs/353-finalize-teardown-safety/review-evidence/9e7949eab6a795514b18911265fa4a1cc213ef11bf1e0c083f79bf482e64d65a.json",
+          "specs/353-finalize-teardown-safety/review-evidence/a08bac679ca39733059bc06890032d5eb7ba786c3b4ddd5258d30a81fc8596d7.json",
+          "specs/353-finalize-teardown-safety/review-evidence/b009fe2de25404e282091a345bedc181c0fc6c4a575851c2bd6c77ff7dd114bc.json",
+          "specs/353-finalize-teardown-safety/review-evidence/b2055378819658df8f685598d9c4f47a3c80c72356cf330e1eb7c9cf5d894c31.json",
+          "specs/353-finalize-teardown-safety/review-evidence/b6c38804dc9c998581d95e0081f93e622ec519f99179739db3dfba70d087a234.json",
+          "specs/353-finalize-teardown-safety/review-evidence/e1d031f58988149568c0e593a65af30cae83300b9e60f9a271a88713ddfe25bd.json",
+          "specs/353-finalize-teardown-safety/review-evidence/e90200123c1ab9ea884c525daae667eec205cbc8496d9c5729ee97dd293ff823.json",
+          "specs/353-finalize-teardown-safety/review-evidence/e947e55540fbf3fa6a52ed03f348da310f1b0509673db29f24dd73953c6cc657.json",
+          "specs/353-finalize-teardown-safety/review-evidence/ececc746d50160e47a38dc2d1d42e3f2951803073b4cab461770559fa46795a9.json",
+          "specs/353-finalize-teardown-safety/review-history/draft-coverage-attempt-001.json",
+          "specs/353-finalize-teardown-safety/review-history/draft-questions-attempt-001.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.md",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.json",
+          "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.md",
+          "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.json",
+          "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+          "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.json",
+          "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/4eb734ddaacc918cd36144b8.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/60ccf4b4cab0f7d7fbbe02df.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/6950db8fc8eeba4003fe9022.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/e077c1190fb20a0449b41853.json",
+          "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/fe7fd3fdf5f7326896487f06.json",
+          "specs/353-finalize-teardown-safety/scenario-validity-result.json",
+          "specs/353-finalize-teardown-safety/spec-gate-source.json",
+          "specs/353-finalize-teardown-safety/spec-review.json",
+          "specs/353-finalize-teardown-safety/spec-review.md",
+          "specs/353-finalize-teardown-safety/spec.json",
+          "specs/353-finalize-teardown-safety/spec.md",
+          "specs/353-finalize-teardown-safety/task-impl-gate-source.json",
+          "specs/353-finalize-teardown-safety/tasks/T-1.md",
+          "specs/353-finalize-teardown-safety/tasks/T-2.md",
+          "specs/353-finalize-teardown-safety/tasks/T-3.md",
+          "specs/353-finalize-teardown-safety/tasks/T-4.md",
+          "specs/353-finalize-teardown-safety/tasks/T-5.md",
+          "specs/353-finalize-teardown-safety/tasks/T-6.md",
+          "specs/353-finalize-teardown-safety/test-execute-result.json",
+          "specs/353-finalize-teardown-safety/test-result-review.json",
+          "specs/353-finalize-teardown-safety/test-result-review.md",
+          "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-001.log",
+          "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-002.log",
+          "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+          "specs/353-finalize-teardown-safety/tests/.raw/test-execution.log",
+          "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+          "src/flow/commands/review.js",
+          "src/flow/lib/finalize-cleanup-state.js",
+          "src/flow/lib/finalize-flow-state-owner.js",
+          "src/flow/lib/flow-context.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-sync.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/registry.js",
+          "src/lib/dispatcher.js",
+          "tests/unit/flow/commands/review.test.js"
+        ],
+        "pathFingerprints": [
+          {
+            "path": "specs/353-finalize-teardown-safety/.retry-recovery.transaction.json",
+            "kind": "file",
+            "digest": "ea203d5004ec70f7dd04d81708b2791f9f2b82d65f0b871ab3824b90095bc246"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-coverage-repair.json",
+            "kind": "file",
+            "digest": "cfedcc97e188a33029900a8afae64f8c8683749253cc807f82ab270f201168be"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-coverage-triage.json",
+            "kind": "file",
+            "digest": "f9128f3f63e5711a57bbf9dbcbebdb98d1863559d51fca4bb33da4e181b337a4"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-questions-repair.json",
+            "kind": "file",
+            "digest": "d7fd83a2f31296430303e023fd64ced2bbf1e43c9c6e556d568b74bd76361b1a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-questions-triage.json",
+            "kind": "file",
+            "digest": "5bedc08002d3f8d4c21aea6eaf1bba910deb6c1cdfc11601cddfbf093bc099ef"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-review-coverage.json",
+            "kind": "file",
+            "digest": "267d0713def7f7fd036c2fe629328e3f39eedd5c5ee67eced8376348944dff32"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft-review-questions.json",
+            "kind": "file",
+            "digest": "339fb368c5a335bff410ae82c4335e61005d0f2c076c414685aa17fbabc76479"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/draft.json",
+            "kind": "file",
+            "digest": "42dca33514d66affae347e581bcad45a4160c698a78b13f05bd64a2f9fed9c9d"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/file-map.json",
+            "kind": "file",
+            "digest": "5404def4acfb6118308e8e65b65d4ec8a73992947d52edafc9c642f1cf41e5c7"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/flow-findings.json",
+            "kind": "file",
+            "digest": "469e53c47118074182ad6f70ab17dea2b07d26960ff640b44cc810661eb37a88"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/impl-repair.json",
+            "kind": "file",
+            "digest": "33aa9cfda5ee1a5b03043b7c8042b5eacc45749bb4ec8d21f7ad6933bf0b89d2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/impl-triage.json",
+            "kind": "file",
+            "digest": "4c8f49bf828c1ed0c2fee8842f8fbec879eb97e8cbcf7f78f31c7f5b006e82c0"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/plugin-artifacts/workflow/prepare.json",
+            "kind": "file",
+            "digest": "57cd3ceb49667ec7dd4b78e088f52fa4c650ff1fb1808b479c13d5959350d7b9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-001.json",
+            "kind": "file",
+            "digest": "dcd1a92eb06856cfce17fc7d9f41817098eef63709afd67b3ae7d65215e7a007"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-002.json",
+            "kind": "file",
+            "digest": "cf6420733a2a38112a1e19892fecfb2f2c86012b88bc847ecad951075902985e"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-003.json",
+            "kind": "file",
+            "digest": "551cfb3729f4a2b070707674897b0d74f3c09ba7eae59f0ca2f64eef077bd734"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-004.json",
+            "kind": "file",
+            "digest": "c1d791a540c6e9ea7ab435592df4c4cef1bdc47d75ad9eb7f775ec8c78ef6d6f"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-deltas/repair-005.json",
+            "kind": "file",
+            "digest": "21bcd0dec529b9b8f23dc1b47d1ec0077c6e3d3307cb16471d5f7cf748ac6aa3"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/repair-fingerprint.json",
+            "kind": "file",
+            "digest": "9c1a6dcd278770dfec6be398d791d7b2ad0d312a382b018af44e88b64f18b8c3"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/retry-recovery.json",
+            "kind": "file",
+            "digest": "333b41dc94880289b6021fb161475968ddcf489b301e0a206d816950fffba216"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/04742d84de85f00c54751b43ffb90e46f75dc3fe52ce189c64bebf3cf0521d76.json",
+            "kind": "file",
+            "digest": "e0eff3ffb25692ea2ef80b4aea091db457818ea2d8b63e793dbdcc39b31cdc52"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/081127c41f7d93db8c8835bb5bd422a3f9a042bd0cbed9b0cc406b69e3a6a771.json",
+            "kind": "file",
+            "digest": "e6dc3a4b41738b6918ae9921ad70ad970003e5e4bedeadedad9d5073dbbe1df6"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/13328656a522aa1f00a7b1e054c4c31f9e0dc76324b7ad26dd125d9d1b5c9754.json",
+            "kind": "file",
+            "digest": "0f8ff898982ff8eed92d7450b96b979d62b56ed169c4abe29ae4f1fe6a62d96a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/1486290a7435f4783c4ec7d0e2fddcebbae4c99333d15bf49175ceda9e5c754f.json",
+            "kind": "file",
+            "digest": "7e49583ecf2a465990813bcda9742ba90e7bc2c84d6d2369ef8507a4b9cc0e51"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/1492713416cbc1c360146a6edc4691704f16361c95f1f76b840ca24e85107578.json",
+            "kind": "file",
+            "digest": "b3cd9478e5ad540f144a5ad87a077272b3e91be5b479f0a09984e8d58852ee40"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/2684ef7d80b3e048d7e062f835d11782d8bb0cd2e74493df374d1532301713e1.json",
+            "kind": "file",
+            "digest": "333dd4573b279d499fe6adc62390eedcdef5b6a8f66b084ff2d5e377158a206f"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/34fa3a47fc398ab234e086d10e80082093d00b5929f81c63861b1f452128df31.json",
+            "kind": "file",
+            "digest": "0b93960c63e1736e2b017d6faa649f144fbd7a62843f2e053d51676a48d9be6a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/3aacf288c1c5aab509cff8cd5ec6650f82b61b6ca1aa182a6f67d05b68eaab37.json",
+            "kind": "file",
+            "digest": "ac13890da8fdd3dd8c6b5fe8a52131ef2558de1fba09d8d27dfa0a9cd6edc7e8"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/451856f4de0d600a62dea595c2fc1bacae7098364b2f27be3db3aaee59a460ad.json",
+            "kind": "file",
+            "digest": "0b367e0fa630f3745b8d7f46f58e92b85d077c97a2e8307fdf3eef490b457c72"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/4cc5760570d6bc26e29053260b5c395af89eaae7fd25567ce7e336632942fb76.json",
+            "kind": "file",
+            "digest": "9fea28c9f2a4524c491d89d0d6fd2c29bfff4d83893287f6d9842d2f854da442"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/508a5243fdb77e3b8b47f2a8c8e483f0247929c226e2deed7eca302ea2e6e644.json",
+            "kind": "file",
+            "digest": "a2432c168b9300727484063abbd7a37fed8444464a49b1d23e1a350ac30e834e"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/531dbfe40ee05a45a1f295b6622a015bbf7acfc65131d1cffdc1ad50b628deda.json",
+            "kind": "file",
+            "digest": "fb656f740a61ea47f518b97ab5a4df639d7b86ef724f40069773bd59c401e3b5"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/689ed16b36887f4a06ffa05233000abbc6f442c7917dc67ef435a84ae84c5a06.json",
+            "kind": "file",
+            "digest": "28521b48ce17f51965a83b85ec91bdaf3f7d0ba589fcd260aec0bc60e2e0302b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/6ae618c13fe80c4aa2e784c15542425b52323e81fd0a7001eaa2d2c251cd293c.json",
+            "kind": "file",
+            "digest": "b429df5c194c5ecc8d47be3ac2613296593ebf59cc0c99df66c61c66b52da0e8"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/7b2c29b2175f6269f0c531b2cae326f358dad5aece48bdab53f5a46e16713f2e.json",
+            "kind": "file",
+            "digest": "69591269819b64f4c585b5828332ab5807d9de5c24663c25568e765fb27de2b4"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/7ef11c8ad1325ce443095cb245db7664b2ccb8310198abd1e2314d4b19907f74.json",
+            "kind": "file",
+            "digest": "4e23878ca15e89a41d3dfe9ee78f6fc35abbc0e99f269b533aca949fd912be73"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/86be2dd890514cb26dec5a2645e90afcd3d84c3e10c356f9c83f1b70970d71e3.json",
+            "kind": "file",
+            "digest": "1ae5541cdbb9061b32f0447d82d0c156fc37dda025c3536949c0c13bcb2c3e57"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/9472fa44eb03b0129e45ebd88c70cbd9a636417b28a7c95a63cf9500988c1836.json",
+            "kind": "file",
+            "digest": "12fdb2fb2f31f18e244435a8aca2ada811c6215e02ec7cd14edb24732b057fb2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/9e7949eab6a795514b18911265fa4a1cc213ef11bf1e0c083f79bf482e64d65a.json",
+            "kind": "file",
+            "digest": "ce467cb67724b264324cbd15208a1dd5f148b94c3a846afc70ccffa94c77b16e"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/a08bac679ca39733059bc06890032d5eb7ba786c3b4ddd5258d30a81fc8596d7.json",
+            "kind": "file",
+            "digest": "cbada22c0fa35b62ad73452117fdabbb3d0fe24a5a335f19aba39ae155fb3d02"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/b009fe2de25404e282091a345bedc181c0fc6c4a575851c2bd6c77ff7dd114bc.json",
+            "kind": "file",
+            "digest": "ab49bea35137fcb95ff09c360279cdd9e9190f91269e24f181d21d9681a19d60"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/b2055378819658df8f685598d9c4f47a3c80c72356cf330e1eb7c9cf5d894c31.json",
+            "kind": "file",
+            "digest": "c8168ec44a2514c3eb64fded90416555b53704724c838082a80a10937bbfb331"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/b6c38804dc9c998581d95e0081f93e622ec519f99179739db3dfba70d087a234.json",
+            "kind": "file",
+            "digest": "ae772afb212270fd0b0920e6d71d0850296ce0602d7b78940d59d686e3cdb492"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/e1d031f58988149568c0e593a65af30cae83300b9e60f9a271a88713ddfe25bd.json",
+            "kind": "file",
+            "digest": "2ed84df65046680de00dfab3dd6449c05ed700f2f760665763eb004ed32aa230"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/e90200123c1ab9ea884c525daae667eec205cbc8496d9c5729ee97dd293ff823.json",
+            "kind": "file",
+            "digest": "75c1d09da1014894a1d303e8cadde6bab38e43531564b71988da3510a03414db"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/e947e55540fbf3fa6a52ed03f348da310f1b0509673db29f24dd73953c6cc657.json",
+            "kind": "file",
+            "digest": "8eb7f8931e6b697969b59b3c9195fd11c69805810216ee917a09ebcdb50ecf56"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-evidence/ececc746d50160e47a38dc2d1d42e3f2951803073b4cab461770559fa46795a9.json",
+            "kind": "file",
+            "digest": "c104447532639f0e321dcbb5c62175374c23e9f2af3590408c65686544f023b3"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/draft-coverage-attempt-001.json",
+            "kind": "file",
+            "digest": "4a7ea87d78972723012a314b3f8aeea83e9044f66c3fae913bb0602ff6544b64"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/draft-questions-attempt-001.json",
+            "kind": "file",
+            "digest": "2230bede3f5e1e2bf49978005be037d0db4acf88d397f809eac6646654bd6360"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.json",
+            "kind": "file",
+            "digest": "4ca4fda459af282a74cb4b0c6588d0d180e2897c1cfb1fc2fd0bc5200aae4947"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-001.md",
+            "kind": "file",
+            "digest": "51df63bb86f513bd78603c97f46ec1310c1a353f0df1fad533ce5aad55b11861"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.json",
+            "kind": "file",
+            "digest": "e5ebd65002dc974a914d8ebb57179545c538b47aba68c57b851256f6d2f94fa6"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-002.md",
+            "kind": "file",
+            "digest": "42a77b9aabfc52fec9a8566ef0c4b38e9ce25ad7c09aef8b98370f853e79d326"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.json",
+            "kind": "file",
+            "digest": "4ffc03e2562c4423b67ede499938dc588d25f2746e658a309fef18d1dcad8360"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-003.md",
+            "kind": "file",
+            "digest": "986b287e5ac43d12f8a9d76a8f11a5b7346091cfb057248cebd95bed17b0532a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.json",
+            "kind": "file",
+            "digest": "b66888f150d8b8fc8b5dd76513af76dcfb9b2605a3c7640d03507f803a10a7cd"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-004.md",
+            "kind": "file",
+            "digest": "490a00d8c581440147f10c871cfdeff8b5bc8778248806217378242a2e47fbcd"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.json",
+            "kind": "file",
+            "digest": "9f60fc32f610d7f04c3079251e8234d0f421a2ff8ed3d185c7b4df8751107fa4"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-005.md",
+            "kind": "file",
+            "digest": "2cc34f684a7a8413f64a44a9298ece3660173ad9842261ed2a5c247c32282951"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.json",
+            "kind": "file",
+            "digest": "85532461685777be39595299f366655da17e8f382d1779d1a4a088ff33e528cf"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-006.md",
+            "kind": "file",
+            "digest": "1d360d88538a4a22a46efe55982e9eb30b54d254cba230c0b6bd73d768a25ce5"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.json",
+            "kind": "file",
+            "digest": "29e6abfbf71fce1e196d6b4c5d6275c7ee10029dd391e1ab4a9329b820b84c59"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-007.md",
+            "kind": "file",
+            "digest": "4e6e70f5c83f2caed2c9a3861789f6e2e5ca941338486071536f705ab16e3f4a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.json",
+            "kind": "file",
+            "digest": "a0258d9ef4ad77a866da63bdcc73726ab20459f7321e670a3c5938ded899bf3f"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-008.md",
+            "kind": "file",
+            "digest": "9aefd0c94286910c694edde96cd41ecbf7ef8667b8e51ef6ad952ffdde4a8ec9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.json",
+            "kind": "file",
+            "digest": "a6763c40490ed840c5187fb3a23e504c3d4e6251789910a15eb22e085ceeb662"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-009.md",
+            "kind": "file",
+            "digest": "040b2d5703665ee3631ddcc22505a54f95e57732307209d14f82096c07aee35d"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.json",
+            "kind": "file",
+            "digest": "81f986a7407cbd81aeaa67ff1f05f079b336a968293ed21fa36c0d01de4e2a82"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-010.md",
+            "kind": "file",
+            "digest": "80f28154c90f98235241fee6b339fed0277264ed409f20f4f556a535aeb5f8f4"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.json",
+            "kind": "file",
+            "digest": "5ace38deb62bed40b726a00292fb7f7438ea077df73aa3256e0b6291a2e930d0"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-011.md",
+            "kind": "file",
+            "digest": "8a63eda5df0b15bba02269ff168b2213398930eb03aeb15d4a91304d010adb26"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.json",
+            "kind": "file",
+            "digest": "cca952b140301a4c40443026601ae4c0467ef78b957983e5a30f28a2891eca73"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-012.md",
+            "kind": "file",
+            "digest": "21b3477ed180d417380acb8059b414aa1909b6576dfe73aee2c34398024b7e12"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.json",
+            "kind": "file",
+            "digest": "ca1a01130bd2f2bf4d83390a33dff555363fe251674c02f39d9fc418a08eb6cf"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-013.md",
+            "kind": "file",
+            "digest": "ab4e8bab8b54da002a0177c6b63d4361714b6f46c866860c5ca257cf08f5aa38"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.json",
+            "kind": "file",
+            "digest": "1e18ffaf5426e4ad624d3f11a850716ac2562fb01de370924d88518cd279a46b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-014.md",
+            "kind": "file",
+            "digest": "8839680ef8687d53e0ac0a76a0a5d03b39ddb212da6502d33e3e43ee2daa52a8"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.json",
+            "kind": "file",
+            "digest": "02a990a3613766f065debedeaad7235129c02ea9fdca0d8bb53f045309329756"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-015.md",
+            "kind": "file",
+            "digest": "1a57c0579e62128fd124e126cbbfeaad1dcc31bc8e4f62c4d10b02a1915e8312"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.json",
+            "kind": "file",
+            "digest": "cf988b37046610e0aacfe79264a502952f377ef386e9f96c15e96d24b05bb22a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-016.md",
+            "kind": "file",
+            "digest": "8e76360729b3f1da3027695f44388163d0c4bd347592e34af4440809a2752ec9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.json",
+            "kind": "file",
+            "digest": "4a1a78eeb468d8583fa59ae1006bdef0818d07e5ee479ed2d0d6168aaf477411"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-017.md",
+            "kind": "file",
+            "digest": "69adfd20f67bab8df0fa8e02310e1fd04fe64b4e604e2ef083e515bcb36d03b9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.json",
+            "kind": "file",
+            "digest": "0eb24d26804b57545af99b612e238a1a344f0bb64673eb380131e601c46b3250"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-018.md",
+            "kind": "file",
+            "digest": "890d7d8be8bbf973fa226e6c06ac0ea544076f422b731d78dcb4b60fec967fc2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.json",
+            "kind": "file",
+            "digest": "25945a808df1e35d685e1963e46c6a5c5f776caa7c1ce864ddef6fb3ae6f27d9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-019.md",
+            "kind": "file",
+            "digest": "bb5bd2409ef95bc702b01080ee41605406496549ae4016dd235e3baa5c72898e"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.json",
+            "kind": "file",
+            "digest": "67eed3f44a5b9a722cdb40279ac4e1fe5419fdffa84e042f753f8ac18d998807"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-020.md",
+            "kind": "file",
+            "digest": "29e6fd2a896b6f9ed1c26174805b804601adada8da87c95851e61880aeb1396b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.json",
+            "kind": "file",
+            "digest": "764a342947f32e051d9fe13789094fcbfae3d5b6c41ed3330fa446dd8a1e5204"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-021.md",
+            "kind": "file",
+            "digest": "80a08dd9a7e7f113ec6bd2cbb2960ca412a11d0dadfecf30378b5900bb4b3b7a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.json",
+            "kind": "file",
+            "digest": "e84f3c2c68a12e6ffbdeda69ebe115ff9db0bd83e3302f448bd69263400869d2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-022.md",
+            "kind": "file",
+            "digest": "a82d8eecbcd295728afd1bd00a92a391c2d2e843608b273f90c3de5f95484a86"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.json",
+            "kind": "file",
+            "digest": "200a9584ebaa9619a48fe288c04ab5f5644289bbdd632119ea390429a27ec5b0"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-023.md",
+            "kind": "file",
+            "digest": "f73a8a852f53ae08ee0eba2fdcfc676cf76b55710995c3323540cd2d9964e1c4"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.json",
+            "kind": "file",
+            "digest": "307c8ea6a38cea3758578e87a231bff6526b48d6ca03557548f0d934ef5429ab"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/impl-attempt-024.md",
+            "kind": "file",
+            "digest": "1d89ab985aa0cd5e60351eec39f8c25d1150354cebc7706cd35fcb5d7e28cd58"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.json",
+            "kind": "file",
+            "digest": "b0f3becc6c2698ce92a4ec37808451d8acef43a1c35d65d3b8ce036949b67d05"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-001.md",
+            "kind": "file",
+            "digest": "9a77f0c92c05fb3cc226467e94b1da6ece97fa9b3a55bee1579648cddbcbe53b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.json",
+            "kind": "file",
+            "digest": "aaea3a1defb4b2ced33d02fbd87ca24fe48d7b7159ce6bf1d22e2e0fec8647ad"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/spec-attempt-002.md",
+            "kind": "file",
+            "digest": "1f8263cf7bd5072be4abbb3bf5f64cc648fad0992080c1c9a76ca001889e4622"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "kind": "file",
+            "digest": "15236dba529a6dded00d9a3e19cf2bb60140571909cfe5f11e5733484541704a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "kind": "file",
+            "digest": "ef7ac0a1ad5b12fe95efcb35e81a5b2fe5ce932b4f72ed07050f9f34366a6e63"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "kind": "file",
+            "digest": "399e7445e18f5fe13abeec85425aabd0ab1b522f8957f33f75da4a02e2ea8646"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "kind": "file",
+            "digest": "a31cfad4b5460266703bcc54fa493ae2d566c20a4b58aeed0cfdb67c4cbd31e2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "kind": "file",
+            "digest": "65368e56d1227e557ce3b81a4a82c42132d99a7038851838f1c968797f8bcbba"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/4eb734ddaacc918cd36144b8.json",
+            "kind": "file",
+            "digest": "b32d9a9b0c0c44d28feb16fa74ebad2449330918252576779d68fb3bff51f721"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "kind": "file",
+            "digest": "c4bcc5fc35ce71f59d93fca9ddae67bc8626a6f5f21ee7847a1d0dbb9e957973"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "kind": "file",
+            "digest": "c2c8bfe302828e1b64a374a2373e712b51a0f204cc137241a8219070274d82ff"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "kind": "file",
+            "digest": "4ae3177b5c25c39b6668202d9a484ae2b42acab1a388b91184e8cb0ac4f7bcc3"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/60ccf4b4cab0f7d7fbbe02df.json",
+            "kind": "file",
+            "digest": "87d7466a1274ae11b688d35f18c5fa716451540065b34fbd112ca81471365e6a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "kind": "file",
+            "digest": "6f6873e29cf1ca9e300cd78d9c4b444ff1ec384a699d1ab251808a4ced260c49"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/6950db8fc8eeba4003fe9022.json",
+            "kind": "file",
+            "digest": "fa1a577320185653bb968c9837ac583d0c7c815090a53d205e577cebe088edcb"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "kind": "file",
+            "digest": "e278109997d64aecbc1f7563ef91da27cef225f141b961a9a5ed305779798609"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "kind": "file",
+            "digest": "1a2a3c118568f981d3aa614d63e1797ad3bdbc647aacff89c0e147407f30bdf1"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "kind": "file",
+            "digest": "8f496d1ce51ee3b6904ecf7b5a90b3a4a06de7a698433ade8de360ee07c5bbf7"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "kind": "file",
+            "digest": "8316eee8ff3d2af3dbcae373fc6d1354929987261a7d0b10fd5d81f16efb8133"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "kind": "file",
+            "digest": "065b40731416225cb02742881286b67184bf36bf223ef681ef8d025fa4f250ca"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/e077c1190fb20a0449b41853.json",
+            "kind": "file",
+            "digest": "f8c9128fd6159f51640afebc67914b3905c89565486a8ebfa7ccbf5096808dae"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/review-history/work-units/impl-review/fe7fd3fdf5f7326896487f06.json",
+            "kind": "file",
+            "digest": "428baf41507b2a74dc423cda97bcf1558485f137cd6914fd9216b99fb26f9512"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/scenario-validity-result.json",
+            "kind": "file",
+            "digest": "4c7b502adeec8e40e705b746dd636a4cf6122e54a017f0cd05ddfea2443e0f7a"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/spec-gate-source.json",
+            "kind": "file",
+            "digest": "72650515721088ea14ea1c2d0ed39b5c9b9fe5407c5abcef3820b04f44dcf0d2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/spec-review.json",
+            "kind": "file",
+            "digest": "90acb69a411b9b4a477c5a4280060341a360741ae24b2ed530669b001af3cd44"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/spec-review.md",
+            "kind": "file",
+            "digest": "9df7d9427caea9d70ed6dfbd5cac583f34240f9bab48613b98cf505e977ff9a9"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/spec.json",
+            "kind": "file",
+            "digest": "8bb3fee75f89605dbc9411ebbec687547e614b77cff09d85f83c6decab192380"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/spec.md",
+            "kind": "file",
+            "digest": "a27e90835bf7fe071cdc3061c999df2ada2c25a5d21ded03ef4de19ffb62c9b0"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/task-impl-gate-source.json",
+            "kind": "file",
+            "digest": "2805fa89d84585f03bb641f22fd8eb5177103880df043496b6de9ca433352629"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-1.md",
+            "kind": "file",
+            "digest": "89a86b89c05c9760ab6c4b4be9a3847615822c92011ab3e90f07c86dbd14b5cb"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-2.md",
+            "kind": "file",
+            "digest": "7d14ec94aeba7a2f222bca08ba5da69cf7e1b872f032e96c3f0b3fb72b47a03d"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-3.md",
+            "kind": "file",
+            "digest": "5edef1db913eac9db9ab8e6199f9341f93ffda428903c83a8b269d3d9bb3d23e"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-4.md",
+            "kind": "file",
+            "digest": "8c9d56b5d963298aac681adfd006bc342a8da82cb3796ca6b42d391918f292a2"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-5.md",
+            "kind": "file",
+            "digest": "5e9480804b18acb0e59fce84c9e5e3faeb5ab8d80bb52f7528845c15da99566b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tasks/T-6.md",
+            "kind": "file",
+            "digest": "7ca3f9cfbeb29137e0d09a12be517412c5023af845a79708e4c554518c06aa4d"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/test-execute-result.json",
+            "kind": "file",
+            "digest": "8f727370c76b516800294b263474d68542c4299e4dd5c0766cb0307aabc21f79"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/test-result-review.json",
+            "kind": "file",
+            "digest": "2edc7928ae59f2a441b4c5a7fd34181f9d0e6087ae6650975d1964280f4970be"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/test-result-review.md",
+            "kind": "file",
+            "digest": "94df8bea833bd81a646abcb7e4b4d48f06d5797dd44d1dfbb2d97f19b40981e3"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-001.log",
+            "kind": "file",
+            "digest": "f1a6ecf2d96ff855f886f9aacb0987ac206db1a568f578b88126b79f9c52f21b"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tests/.raw/final-regression-attempt-002.log",
+            "kind": "file",
+            "digest": "d25f6406d2cad08a5f05697a45f87db147869b8194191fbd7e0ba2f08a394127"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tests/.raw/scenario-validity.log",
+            "kind": "file",
+            "digest": "1dec13338d3d8e31ebeb3886372ca58f89eb677233669083ca7d6e8440538590"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tests/.raw/test-execution.log",
+            "kind": "file",
+            "digest": "8b728c3b18736fb35531019aaf0768982a5f58adc1f82cd5e51f9cd7eaed1440"
+          },
+          {
+            "path": "specs/353-finalize-teardown-safety/tests/finalize-teardown-contract.test.js",
+            "kind": "file",
+            "digest": "39260a06472c13f5f24ed86cc55b9c1b81aa0399a896c3cfd2cd140cc6638d6a"
+          },
+          {
+            "path": "src/flow/commands/review.js",
+            "kind": "file",
+            "digest": "1afb0926202016b82fce4b4298dafd1985f2584d142e9a280aec169eca03b16f"
+          },
+          {
+            "path": "src/flow/lib/finalize-cleanup-state.js",
+            "kind": "file",
+            "digest": "73cd3e24b6b9fbdc1495723eeedbaac4b9ae28795833395e2e1390ff3259e589"
+          },
+          {
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "kind": "file",
+            "digest": "7bd1b57e9d18afcb6d744dd8de763fcf0c8c4f65830f7adca1bec196c0616a8e"
+          },
+          {
+            "path": "src/flow/lib/flow-context.js",
+            "kind": "file",
+            "digest": "b63fb9824949b7bce1e9e85295193074dc5ab4afbfbc6a886bdbd29d58a72117"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-cleanup.js",
+            "kind": "file",
+            "digest": "a96e3f6e1bf058a8d57ede3441da58d2845d3cc4b109ce14177d717c970ecb44"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-sync.js",
+            "kind": "file",
+            "digest": "4ad5ccc4866f21ca46eb4ecf253374cf836e4aae6830cf3a0ddf940611bc847e"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "kind": "file",
+            "digest": "7839632deeffcb7719214a1d0611c6ba90e51cb1d8860fb91eba35155eb26b8d"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "kind": "file",
+            "digest": "696a579db8abca6bff844deaa1e97a79051addc9e802b69a3f9a9c81edffafc5"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "kind": "file",
+            "digest": "5ccc27d3d033de9f5f3aa5dc56c9feae143e0987ef99592d1afc940310473624"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "kind": "file",
+            "digest": "7ae6519a415dd0f3e9b4ba9bde633c807e05bd02bd0c26bd72330dc65199ada0"
+          }
+        ],
+        "featureHead": "b4819ca759e8dbc51fc92f5e773d36592e702660",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-27T12:35:31.083Z"
+      },
+      "timestamp": "2026-07-27T12:35:35.629Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:d5d505a3-f06f-41dc-a841-6a0d7a1a2f4c:direct-plan-bcf6adb15ca291c81c23ca19:r2"
     }
   ]
 }

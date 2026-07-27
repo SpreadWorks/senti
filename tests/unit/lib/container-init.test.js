@@ -1,7 +1,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { join } from "path";
-import { mkdirSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { container, initContainer } from "../../../src/lib/container.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 
@@ -89,5 +90,51 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     assert.match(source, /let agentWorkDirOverride = null/, "entrypoint must have early flow-run scanner state");
     assert.match(source, /agentWorkDirOverride,/, "initContainer must receive the override");
     assert.match(source, /subCmd\s*===\s*"flow"\s*&&\s*rest\[0\]\s*===\s*"run"/, "scanner must be scoped to flow run");
+  });
+
+  it("keeps logger flow authority usable after finalize removes the managed worktree", async () => {
+    const git = (...args) => execFileSync("git", ["-C", tmp, ...args], { encoding: "utf8" });
+    git("init", "--quiet");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test User");
+    writeJson(tmp, ".senti/config.json", {
+      lang: "ja",
+      type: "sample-node-command",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+      logs: { enabled: true },
+    });
+    git("add", ".");
+    git("commit", "--quiet", "-m", "fixture");
+    const worktree = join(tmp, ".senti", "worktree", "feature-demo");
+    git("worktree", "add", "--quiet", "-b", "feature/demo", worktree);
+
+    process.env.SENTI_WORK_ROOT = worktree;
+    container.reset();
+    initContainer({
+      entryCommand: "flow run direct --action FINALIZE_DIRECT",
+      finalizeCleanupDurablePaths: true,
+    });
+    const logger = container.get("logger");
+    await logger.flush();
+    git("worktree", "remove", "--force", worktree);
+
+    let stderr = "";
+    const originalWrite = process.stderr.write;
+    process.stderr.write = (chunk) => {
+      stderr += String(chunk);
+      return true;
+    };
+    try {
+      await logger.event("after-cleanup");
+      await logger.flush();
+    } finally {
+      process.stderr.write = originalWrite;
+    }
+
+    assert.equal(stderr, "");
+    assert.equal(
+      existsSync(join(tmp, ".senti", "agent-work", "logs")),
+      true,
+    );
   });
 });

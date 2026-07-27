@@ -334,6 +334,36 @@ async function runFinalize(root, specId, { flowManager = makeFlowManager(root), 
   });
 }
 
+test("ignores non-transaction recovery evidence while creating a teardown journal", async () => {
+  const root = createTmpDir("finalize-foreign-recovery-evidence-");
+  try {
+    initGitRepo(root);
+    const specId = "158";
+    setupFinalizeFlow(root, specId);
+    const recoveryDirectory = path.join(root, ".senti", "recovery", "finalize-cleanup");
+    fs.mkdirSync(recoveryDirectory, { recursive: true });
+    const evidencePath = path.join(recoveryDirectory, "414-example-authority-cas.json");
+    fs.writeFileSync(evidencePath, JSON.stringify({
+      version: 1,
+      kind: "finalize-cleanup-authority-cas",
+      identity: {
+        runId: "another-run",
+        spec: "another-spec",
+        issue: 414,
+        mode: "worktree",
+        entryGeneration: "example",
+      },
+    }, null, 2) + "\n");
+
+    const result = await runFinalize(root, specId);
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(fs.existsSync(evidencePath), true);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 async function seedPointerFailure(root, specId, { mergeStrategy = "pr", force = false } = {}) {
   const fixture = setupFinalizeFlow(root, specId);
   if (mergeStrategy === "squash") {

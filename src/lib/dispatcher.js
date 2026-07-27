@@ -32,6 +32,7 @@ import {
   guardFlagsForState,
 } from "../flow/lib/user-action-prompt.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
+import { FinalizeCleanupRoute } from "./finalize-cleanup-paths.js";
 
 function attachNonblockingContinuation(envelope, state, reason) {
   if (!(envelope instanceof Envelope) || state?.nonblocking?.enabled !== true) return envelope;
@@ -163,11 +164,10 @@ function runtimeLogAllowed(entry, hookCtx) {
 }
 
 function removesManagedWorktree(envelopeKey, hookCtx) {
-  return envelopeKey === "finalize-cleanup"
-    || (
-      envelopeKey === "direct"
-      && ["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"].includes(hookCtx?.action)
-    );
+  return FinalizeCleanupRoute.fromDispatch({
+    envelopeKey,
+    action: hookCtx?.action,
+  }).removesManagedWorktree;
 }
 
 function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
