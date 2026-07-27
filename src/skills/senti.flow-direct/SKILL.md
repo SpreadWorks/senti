@@ -100,6 +100,14 @@ Do not recreate a missing worktree binding merely to finish cleanup. The CLI mus
 use the persisted completion receipt and matching teardown transaction as the
 authority for already-completed phases.
 
+A pending integration receipt may name the feature commit that existed before a
+later rebase. Do not treat that stale commit alone as an unrecoverable conflict
+and do not ask the user to suspend, abort, or rebuild the session. Follow the
+guarded mechanical continuation. The CLI owns refreshing the exact feature
+target, invalidating only the unmerged pending receipt, rerunning the recorded
+verification command, and resuming finalization. Stop only if that continuation
+returns a concrete content, target-identity, or integration-evidence conflict.
+
 ## Reopen a Retained Abort Without an Entry Menu
 
 When the user explicitly invokes this skill, no integration or prepared completion

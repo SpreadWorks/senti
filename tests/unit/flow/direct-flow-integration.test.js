@@ -368,6 +368,22 @@ test("direct finalize revalidates a rebased pending receipt and resumes integrat
     const rebasedHead = git(fixture.worktreePath, ["rev-parse", "HEAD"]);
     assert.notEqual(rebasedHead, pending.directIntegrationReceipt.featureHead);
 
+    const suspended = await runDirectFlowAction(fixture.context(), {
+      action: "SUSPEND_DIRECT",
+      reason: "Exercise recovery after an operator suspended the stale integration receipt.",
+    });
+    assert.equal(suspended.code, "SUSPENDED_PENDING_INTEGRATION");
+    assert.equal(suspended.requiresUserAction, false);
+    assert.equal(suspended.continuation.actionId, "RESUME_DIRECT");
+
+    const resumed = await runDirectFlowAction(fixture.context(), {
+      action: "RESUME_DIRECT",
+    });
+    assert.equal(resumed.code, "MERGE_ONLY_FINALIZE");
+    assert.equal(resumed.requiresUserAction, false);
+    assert.equal(resumed.actionPrompt, undefined);
+    assert.equal(resumed.continuation.actionId, "FINALIZE_DIRECT");
+
     container.register("config", {
       commands: { gh: "disable" },
       flow: { push: { remote: "origin" } },

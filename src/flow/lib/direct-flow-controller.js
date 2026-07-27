@@ -1584,32 +1584,28 @@ function activeDirectPrompt(ctx, state) {
     });
   }
   if (session.phase === "MERGE_ONLY_FINALIZE") {
-    return promptResult({
+    return mechanicalContinuationResult({
       code: "MERGE_ONLY_FINALIZE",
       state,
-      question: "Completion was interrupted after it started. Only the unfinished completion and cleanup work remains.",
-      choices: [
-        choice({
-          actionId: "FINALIZE_DIRECT",
-          label: "Resume the remaining completion work",
-          nextAction: run("FINALIZE_DIRECT"),
-          impact: {
-            retains: ["saved completion progress and records"],
-            changes: ["only unfinished completion work"],
-          },
-        }),
-        choice({
-          actionId: "KEEP_FLOW_STATE",
-          label: "Inspect and keep the current recovery authorities",
-          nextAction: commandFor(state, "get status --details"),
-          impact: { retains: ["all current Flow and Git state"] },
-        }),
-      ],
-      recommendedActionId: "FINALIZE_DIRECT",
-      recommendationReason: "The saved progress allows the unfinished work to resume without repeating completed operations.",
+      actionId: "FINALIZE_DIRECT",
+      nextAction: run("FINALIZE_DIRECT"),
+      instruction: "Resume the authorized completion transaction, refresh stale pre-merge evidence when safe, rerun its recorded verification, and finish integration and cleanup.",
     });
   }
   if (session.phase === "SUSPENDED") {
+    if (
+      session.suspendedFrom === "MERGE_ONLY_FINALIZE"
+      && state.directIntegrationReceipt?.status === "pending"
+      && state.directCompletionReceipt == null
+    ) {
+      return mechanicalContinuationResult({
+        code: "SUSPENDED_PENDING_INTEGRATION",
+        state,
+        actionId: "RESUME_DIRECT",
+        nextAction: run("RESUME_DIRECT"),
+        instruction: "Resume the already-authorized pending integration so its saved evidence can be refreshed and completion can continue.",
+      });
+    }
     return promptResult({
       code: "SUSPENDED",
       state,
