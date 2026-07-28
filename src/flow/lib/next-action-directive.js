@@ -318,6 +318,16 @@ function directDirective(action) {
       reason: action.actionPrompt.recommendationReason,
     });
   }
+  if (action?.scopeReviewRequired === true && action.scopeReview?.recordAction) {
+    return new RepairEvidenceDirective({
+      actionId: action.scopeReview.recordAction.actionId,
+      evidenceKind: "direct-scope",
+      phase: action.phase || "direct-fix",
+      instruction: action.scopeReview.instruction,
+      reason: "Changed paths exist outside the persisted direct repair scope.",
+      nextAction: action.scopeReview.recordAction.nextAction,
+    });
+  }
   if (action?.implementationRequired === true && action.implementation?.completionAction) {
     return new RepairEvidenceDirective({
       actionId: action.implementation.completionAction.actionId,

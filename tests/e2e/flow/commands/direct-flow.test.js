@@ -8,6 +8,7 @@ import {
   createDirectFlowFixture,
   git,
 } from "../../../helpers/direct-flow-fixture.js";
+import { DirectResolutionPlan } from "../../../../src/flow/lib/direct-resolution-plan.js";
 import {
   createTmpDir,
   removeTmpDir,
@@ -201,6 +202,78 @@ test("flow direct CLI preserves prompts and completes a bounded managed-worktree
     assert.equal(completed.envelope.data.code, "COMPLETED_DIRECT");
     assert.equal(completed.envelope.data.yieldsControl, false);
     assert.equal(completed.envelope.data.completion.status, "completed");
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("flow direct CLI requires a current review token for exact scope expansion", () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-scope-cli" });
+  try {
+    const selected = invoke(fixture, [
+      "run", "direct",
+      "--action", "SELECT_DIRECT_FIX",
+      "--reason", "Exercise the guarded CLI scope review contract.",
+      "--scope", "src/planned.js",
+      "--source", "manual",
+      ...targetGuards(fixture),
+    ]);
+    assert.equal(selected.status, 0, selected.stderr || selected.stdout);
+
+    const requiredPath = path.join(fixture.worktreePath, "src", "required-cli.js");
+    fs.mkdirSync(path.dirname(requiredPath), { recursive: true });
+    fs.writeFileSync(requiredPath, "export const requiredCli = true;\n");
+
+    const inspected = invoke(fixture, ["get", "direct", ...targetGuards(fixture)]);
+    assert.equal(inspected.status, 0, inspected.stderr || inspected.stdout);
+    assert.equal(inspected.envelope.data.code, "DIRECT_SCOPE_REVIEW_REQUIRED");
+    assert.deepEqual(
+      inspected.envelope.data.scopeReview.review.paths,
+      ["src/required-cli.js"],
+    );
+    const token = inspected.envelope.data.scopeReview.review.reviewToken;
+
+    const rejected = invoke(fixture, [
+      "run", "direct",
+      "--action", "RECORD_DIRECT_FINDING",
+      "--finding-id", "scope:required-cli",
+      "--finding-source", "approved-spec:R1",
+      "--classification", "FIX_REQUIRED",
+      "--summary", "R1 requires this exact CLI implementation file.",
+      "--recommended-resolution", "Adopt the reviewed implementation file.",
+      "--resolution", "Adopt the reviewed implementation file.",
+      "--change-target", "src/required-cli.js",
+      "--rationale", "The approved requirement and inspected diff require this exact path.",
+      ...targetGuards(fixture),
+    ]);
+    assert.notEqual(rejected.status, 0);
+    assert.equal(rejected.envelope.errors[0].code, "DIRECT_SCOPE_REVIEW_STALE");
+
+    const recorded = invoke(fixture, [
+      "run", "direct",
+      "--action", "RECORD_DIRECT_FINDING",
+      "--finding-id", "scope:required-cli",
+      "--finding-source", "approved-spec:R1",
+      "--classification", "FIX_REQUIRED",
+      "--summary", "R1 requires this exact CLI implementation file.",
+      "--recommended-resolution", "Adopt the reviewed implementation file.",
+      "--resolution", "Adopt the reviewed implementation file.",
+      "--change-target", "src/required-cli.js",
+      "--rationale", "The approved requirement and inspected diff require this exact path.",
+      "--scope-review-token", token,
+      ...targetGuards(fixture),
+    ]);
+    assert.equal(recorded.status, 0, recorded.stderr || recorded.stdout);
+    assert.equal(recorded.envelope.data.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(
+      recorded.envelope.data.directFlowSession.implementationProof,
+      null,
+    );
+    const plan = DirectResolutionPlan.fromStored(
+      fixture.context().flowState.directResolutionPlan,
+    );
+    assert.equal(plan.scopePaths.includes("src/required-cli.js"), true);
+    assert.equal(plan.findings.at(-1).scopeAdoption.reviewToken, token);
   } finally {
     fixture.cleanup();
   }

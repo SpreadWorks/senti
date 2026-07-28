@@ -1008,6 +1008,223 @@ test("direct authority refresh fails closed after lifecycle progression", async 
   }
 });
 
+test("direct scope review adopts only exact current evidence before authority refresh", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-scope-review" });
+  try {
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Exercise evidence-bound expansion of a retained direct repair scope.",
+      scope: ["src/planned.js"],
+      source: "manual",
+    });
+    const requiredPath = path.join(fixture.worktreePath, "src", "required.js");
+    const unrelatedPath = path.join(fixture.worktreePath, "notes.tmp");
+    fs.mkdirSync(path.dirname(requiredPath), { recursive: true });
+    fs.writeFileSync(requiredPath, "export const required = 1;\n");
+    fs.writeFileSync(unrelatedPath, "unrelated local note\n");
+    fixture.context().flowManager.mutate((state) => {
+      state.metrics = [
+        ...(state.metrics || []),
+        {
+          phase: "impl",
+          counter: "srcRead",
+          delta: 1,
+          taskId: null,
+          ts: "2026-07-28T00:00:00.000Z",
+        },
+      ];
+    });
+
+    const reviewRequired = getDirectFlowAction(fixture.context());
+    assert.equal(reviewRequired.code, "DIRECT_SCOPE_REVIEW_REQUIRED");
+    assert.deepEqual(
+      reviewRequired.scopeReview.review.paths,
+      ["notes.tmp", "src/required.js"],
+    );
+    assert.deepEqual(
+      reviewRequired.scopeReview.failedSafetyChecks,
+      ["origin-flow-revision", "change-scope"],
+    );
+    const originalToken = reviewRequired.scopeReview.review.reviewToken;
+    const nextAction = await new GetNextActionCommand().execute(fixture.context());
+    assert.equal(nextAction.directive.kind, "repair_evidence");
+    assert.equal(nextAction.directive.evidenceKind, "direct-scope");
+    assert.equal(nextAction.directive.actionId, "RECORD_DIRECT_FINDING");
+    assert.match(nextAction.directive.nextAction, /--scope-review-token/);
+
+    const findingInput = {
+      action: "RECORD_DIRECT_FINDING",
+      findingId: "scope:required-source",
+      findingSource: "approved-spec:R1",
+      classification: "FIX_REQUIRED",
+      summary: "R1 requires the exact implementation source.",
+      recommendedResolution: "Adopt the reviewed source file.",
+      resolution: "Adopt the reviewed source file.",
+      changeTarget: "src/required.js",
+      rationale: "The approved R1 behavior and inspected diff require this file.",
+    };
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), findingInput),
+      (error) => error.code === "DIRECT_SCOPE_REVIEW_STALE",
+    );
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), {
+        ...findingInput,
+        changeTarget: "src",
+        scopeReviewToken: originalToken,
+      }),
+      (error) => error.code === "DIRECT_SCOPE_REVIEW_PATH_MISMATCH",
+    );
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), {
+        ...findingInput,
+        classification: "PROCESS_ONLY",
+        scopeReviewToken: originalToken,
+      }),
+      (error) => error.code === "DIRECT_SCOPE_REVIEW_INVALID_FINDING",
+    );
+
+    fs.writeFileSync(requiredPath, "export const required = 2;\n");
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), {
+        ...findingInput,
+        scopeReviewToken: originalToken,
+      }),
+      (error) => error.code === "DIRECT_SCOPE_REVIEW_STALE",
+    );
+
+    const refreshedReview = getDirectFlowAction(fixture.context());
+    const refreshedToken = refreshedReview.scopeReview.review.reviewToken;
+    assert.notEqual(refreshedToken, originalToken);
+    const adopted = await runDirectFlowAction(fixture.context(), {
+      ...findingInput,
+      scopeReviewToken: refreshedToken,
+    });
+    assert.equal(adopted.code, "DIRECT_SCOPE_REVIEW_REQUIRED");
+    assert.deepEqual(adopted.scopeReview.review.paths, ["notes.tmp"]);
+
+    const adoptedState = fixture.context().flowState;
+    const adoptedPlan = DirectResolutionPlan.fromStored(adoptedState.directResolutionPlan);
+    const finding = adoptedPlan.findings.find((entry) => (
+      entry.findingId === "scope:required-source"
+    ));
+    assert.ok(finding);
+    assert.deepEqual(finding.scopeAdoption.paths, ["src/required.js"]);
+    assert.equal(finding.scopeAdoption.reviewToken, refreshedToken);
+    assert.equal(adoptedPlan.scopePaths.includes("notes.tmp"), false);
+    assert.equal(adoptedPlan.scopePaths.includes("src"), false);
+    assert.equal(adoptedPlan.scopePaths.includes("src/required.js"), true);
+
+    const decisionRequired = await runDirectFlowAction(fixture.context(), {
+      action: "RECORD_DIRECT_FINDING",
+      findingId: "scope:unrelated-local-note",
+      findingSource: "notes.tmp:inspected-diff",
+      classification: "USER_DECISION_REQUIRED",
+      summary: "The unrelated local note needs an explicit disposition.",
+      recommendedResolution: "Remove only the unrelated untracked note.",
+      rationale: "The path is absent from the approved requirements and product diff.",
+    });
+    assert.equal(decisionRequired.code, "DIRECT_USER_DECISION_REQUIRED");
+    const decisionDirective = await new GetNextActionCommand().execute(fixture.context());
+    assert.equal(decisionDirective.directive.kind, "await_user_decision");
+    assert.equal(
+      DirectResolutionPlan.fromStored(
+        fixture.context().flowState.directResolutionPlan,
+      ).scopePaths.includes("notes.tmp"),
+      false,
+    );
+    const decided = await runDirectFlowAction(fixture.context(), {
+      action: "RESOLVE_DIRECT_DECISION",
+      findingId: "scope:unrelated-local-note",
+      resolution: "Remove only the unrelated untracked note.",
+    });
+    assert.equal(decided.code, "DIRECT_SCOPE_REVIEW_REQUIRED");
+
+    fs.unlinkSync(unrelatedPath);
+    const authorityRefresh = getDirectFlowAction(fixture.context());
+    assert.equal(authorityRefresh.code, "DIRECT_AUTHORITY_REFRESH_REQUIRED");
+    assert.deepEqual(
+      authorityRefresh.authorityRefresh.failedSafetyChecks,
+      ["origin-flow-revision"],
+    );
+    const refreshedAuthority = await runDirectFlowAction(fixture.context(), {
+      action: "REFRESH_DIRECT_AUTHORITY",
+    });
+    assert.equal(refreshedAuthority.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+
+    const issueLog = JSON.parse(fs.readFileSync(
+      path.join(fixture.worktreePath, "specs", fixture.specId, "issue-log.json"),
+      "utf8",
+    ));
+    const adoptedEntry = issueLog.entries.find((entry) => (
+      entry.findings?.some((entryFinding) => (
+        entryFinding.findingId === "scope:required-source"
+      ))
+    ));
+    const loggedFinding = adoptedEntry.findings.find((entry) => (
+      entry.findingId === "scope:required-source"
+    ));
+    assert.equal(loggedFinding.scopeAdoption.reviewToken, refreshedToken);
+    assert.deepEqual(
+      loggedFinding.scopeAdoption.pathFingerprints.map((entry) => entry.path),
+      ["src/required.js"],
+    );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct scope adoption preserves verification retry evidence and invalidates implementation proof", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-scope-retry" });
+  try {
+    const plannedPath = path.join(fixture.worktreePath, "src", "planned.js");
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Preserve the existing bounded verification budget during scope adoption.",
+      scope: ["src/planned.js"],
+      source: "manual",
+    });
+    fs.mkdirSync(path.dirname(plannedPath), { recursive: true });
+    fs.writeFileSync(plannedPath, "export const planned = true;\n");
+    await confirmDirectImplementation(fixture);
+    const failed = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(1)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(failed.code, "DIRECT_VERIFY_STOPPED");
+    await runDirectFlowAction(fixture.context(), {
+      action: "RETURN_TO_DIRECT_FIX",
+    });
+
+    const requiredPath = path.join(fixture.worktreePath, "src", "retry-required.js");
+    fs.writeFileSync(requiredPath, "export const retryRequired = true;\n");
+    const review = getDirectFlowAction(fixture.context());
+    assert.equal(review.code, "DIRECT_SCOPE_REVIEW_REQUIRED");
+    const recorded = await runDirectFlowAction(fixture.context(), {
+      action: "RECORD_DIRECT_FINDING",
+      findingId: "scope:retry-required",
+      findingSource: "approved-spec:R1",
+      classification: "FIX_REQUIRED",
+      summary: "The failed verification exposed another requirement-backed source file.",
+      recommendedResolution: "Adopt and repair the reviewed source file.",
+      resolution: "Adopt and repair the reviewed source file.",
+      changeTarget: "src/retry-required.js",
+      rationale: "R1 and the failed verification evidence require this exact source path.",
+      scopeReviewToken: review.scopeReview.review.reviewToken,
+    });
+    assert.equal(recorded.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    const session = DirectFlowSession.fromStored(
+      fixture.context().flowState.directFlowSession,
+    );
+    assert.equal(session.verificationAttempts, 1);
+    assert.equal(session.verification.status, "failed");
+    assert.equal(session.implementationProof, null);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test("direct suspend resumes the exact phase and abort retains Git state", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-suspend" });
   try {

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { DirectFlowTarget } from "./direct-flow-session.js";
+import { DirectScopeAdoption } from "./direct-scope-review.js";
 
 const CLASSIFICATIONS = Object.freeze([
   "FIX_REQUIRED",
@@ -38,6 +39,7 @@ export class DirectResolutionFinding {
     changeTargets = [],
     rationale,
     selectedResolution = null,
+    scopeAdoption = null,
   }) {
     this.findingId = requireString(findingId, "direct finding findingId", 300);
     if (!FINDING_ID.test(this.findingId)) {
@@ -58,6 +60,15 @@ export class DirectResolutionFinding {
     this.selectedResolution = selectedResolution == null
       ? null
       : requireString(selectedResolution, "direct finding selectedResolution");
+    this.scopeAdoption = scopeAdoption == null
+      ? null
+      : DirectScopeAdoption.fromStored(scopeAdoption);
+    if (
+      this.scopeAdoption != null
+      && this.scopeAdoption.paths.some((reviewedPath) => !this.changeTargets.includes(reviewedPath))
+    ) {
+      throw new Error("direct finding changeTargets must include every adopted scope path");
+    }
     Object.freeze(this);
   }
 
@@ -75,6 +86,7 @@ export class DirectResolutionFinding {
       changeTargets: [...this.changeTargets],
       rationale: this.rationale,
       selectedResolution: this.selectedResolution,
+      scopeAdoption: this.scopeAdoption?.toJSON() || null,
     };
   }
 

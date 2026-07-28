@@ -23,6 +23,7 @@ import {
   DirectResolutionFinding,
   DirectResolutionPlan,
 } from "./direct-resolution-plan.js";
+import { DirectScopeReview } from "./direct-scope-review.js";
 import { DirectVerificationCommandResolver } from "./direct-verification-command.js";
 import {
   DirectAbortArchive,
@@ -842,6 +843,7 @@ function appendPlanIssueLog({ root, state, plan, mainRoot, operationOwnerToken =
     classification: finding.classification,
     selectedResolution: finding.selectedResolution,
     changeTargets: [...finding.changeTargets],
+    scopeAdoption: finding.scopeAdoption?.toJSON() || null,
     rationale: finding.rationale,
   }));
   return new IssueLogStore({
@@ -1165,21 +1167,73 @@ function recordDirectFinding(authority, input) {
     });
   }
   const classification = String(input.classification || "FIX_REQUIRED").trim().toUpperCase();
+  const findingSource = String(input.findingSource || "").trim();
   const recommendedResolution = String(input.recommendedResolution || input.resolution || "").trim();
+  const explicitResolution = String(input.resolution || "").trim();
   const selectedResolution = classification === "USER_DECISION_REQUIRED"
     ? null
-    : (String(input.resolution || recommendedResolution).trim() || null);
+    : (explicitResolution || recommendedResolution || null);
+  const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+  const changeTargets = normalizedScopePaths(input.changeTarget);
+  const expandingTargets = changeTargets.filter((target) => (
+    !pathAllowed(target, plan, authority.specId)
+  ));
+  let scopeAdoption = null;
+  if (expandingTargets.length > 0) {
+    if (
+      new Set([...plan.scopePaths, ...expandingTargets]).size > MAX_SCOPE_PATHS
+    ) {
+      throw Object.assign(new Error(
+        `direct scope expansion exceeds the ${MAX_SCOPE_PATHS}-path safety limit`,
+      ), { code: "DIRECT_SCOPE_REVIEW_LIMIT" });
+    }
+    const assessment = inspectDirectScopeReview(authority, state, session, plan);
+    if (!assessment.available) {
+      throw Object.assign(new Error(
+        `direct scope review is unavailable: ${assessment.blockingReasons.join("; ")}`,
+      ), {
+        code: "DIRECT_SCOPE_REVIEW_UNAVAILABLE",
+        data: assessment.toJSON(),
+      });
+    }
+    if (input.scopeReviewToken !== assessment.review.reviewToken) {
+      throw Object.assign(new Error(
+        "direct scope review token is missing or stale; inspect the exact target again",
+      ), {
+        code: "DIRECT_SCOPE_REVIEW_STALE",
+        data: assessment.toJSON(),
+      });
+    }
+    if (
+      classification !== "FIX_REQUIRED"
+      || explicitResolution === ""
+      || findingSource === ""
+    ) {
+      throw Object.assign(new Error(
+        "direct scope expansion requires a sourced FIX_REQUIRED finding with an explicit resolution",
+      ), { code: "DIRECT_SCOPE_REVIEW_INVALID_FINDING" });
+    }
+    try {
+      scopeAdoption = assessment.review.adopt(expandingTargets);
+    } catch (error) {
+      throw Object.assign(error, { code: "DIRECT_SCOPE_REVIEW_PATH_MISMATCH" });
+    }
+  } else if (input.scopeReviewToken != null) {
+    throw Object.assign(new Error(
+      "direct scope review token does not authorize an already-scoped finding",
+    ), { code: "DIRECT_SCOPE_REVIEW_STALE" });
+  }
   const finding = new DirectResolutionFinding({
     findingId: input.findingId,
-    source: input.findingSource || "direct-fix",
+    source: findingSource || "direct-fix",
     classification,
     summary: input.summary,
     recommendedResolution,
-    changeTargets: normalizedScopePaths(input.changeTarget),
+    changeTargets,
     rationale: input.rationale,
     selectedResolution,
+    scopeAdoption,
   });
-  const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
   const revised = plan.withFinding(finding);
   return persistPlanRevision(authority, state, revised);
 }
@@ -1396,33 +1450,113 @@ function activeDirectPrompt(ctx, state) {
       recommendationReason: "The saved plan is ready; continuing does not recreate or replace it.",
     });
   }
-  if (
-    session.phase === "DIRECT_FIX"
-    && flowStateRevisionDigest(originatingFlowState(state)) !== plan.originFlowStateRevision
-  ) {
-    const refresh = inspectDirectAuthorityRefresh(ctx, state, session, plan);
-    if (refresh.available) {
-      return mechanicalContinuationResult({
-        code: "DIRECT_AUTHORITY_REFRESH_REQUIRED",
-        state,
-        actionId: "REFRESH_DIRECT_AUTHORITY",
-        nextAction: run("REFRESH_DIRECT_AUTHORITY"),
-        instruction: "Refresh the retained direct repair authority, then continue implementation completion.",
-        details: { authorityRefresh: refresh.toJSON() },
-      });
+  if (session.phase === "DIRECT_FIX") {
+    const safetySnapshot = directSafetySnapshot(ctx, state, plan);
+    const scopeReview = inspectDirectScopeReview(
+      ctx,
+      state,
+      session,
+      plan,
+      safetySnapshot,
+    );
+    if (scopeReview.available) {
+      const review = scopeReview.review;
+      return {
+        code: "DIRECT_SCOPE_REVIEW_REQUIRED",
+        phase: session.phase,
+        yieldsControl: false,
+        requiresUserAction: false,
+        scopeReviewRequired: true,
+        scopeReview: {
+          ...scopeReview.toJSON(),
+          instruction: [
+            "Inspect the canonical spec and the diff for every listed path.",
+            "Record only exact requirement-backed paths as a resolved FIX_REQUIRED finding.",
+            "Persist an unresolved decision before asking the user about unrelated paths.",
+            "Do not adopt unrelated paths or a parent directory.",
+          ].join(" "),
+          recordAction: {
+            actionId: "RECORD_DIRECT_FINDING",
+            nextAction: run(
+              "RECORD_DIRECT_FINDING",
+              [
+                '--finding-id "<stable-id>"',
+                '--finding-source "<spec-or-diff-evidence>"',
+                '--classification "FIX_REQUIRED"',
+                '--summary "<why-these-paths-are-required>"',
+                '--recommended-resolution "<required-resolution>"',
+                '--resolution "<adopted-resolution>"',
+                '--change-target "<reviewed-exact-paths>"',
+                '--rationale "<requirement-and-diff-evidence>"',
+                `--scope-review-token "${review.reviewToken}"`,
+              ].join(" "),
+            ),
+          },
+          decisionAction: {
+            actionId: "RECORD_DIRECT_FINDING",
+            nextAction: run(
+              "RECORD_DIRECT_FINDING",
+              [
+                '--finding-id "<stable-id>"',
+                '--finding-source "<path-and-diff-evidence>"',
+                '--classification "USER_DECISION_REQUIRED"',
+                '--summary "<unrelated-path-and-required-disposition>"',
+                '--recommended-resolution "<safest-disposition>"',
+                '--rationale "<why-the-path-is-not-requirement-backed>"',
+              ].join(" "),
+            ),
+          },
+        },
+        directFlowSession: session.toJSON(),
+      };
     }
-    return {
-      code: "DIRECT_AUTHORITY_REFRESH_BLOCKED",
-      phase: session.phase,
-      yieldsControl: false,
-      requiresUserAction: false,
-      message: [
-        "The direct repair authority cannot be refreshed because more than non-lifecycle metadata changed.",
-        ...refresh.blockingReasons,
-      ].join(" "),
-      authorityRefresh: refresh.toJSON(),
-      directFlowSession: session.toJSON(),
-    };
+    if (scopeReview.failedSafetyChecks.includes("change-scope")) {
+      return {
+        code: "DIRECT_SCOPE_REVIEW_BLOCKED",
+        phase: session.phase,
+        yieldsControl: false,
+        requiresUserAction: false,
+        message: [
+          "The out-of-scope changes cannot be reviewed while another direct safety condition is unresolved.",
+          ...scopeReview.blockingReasons,
+        ].join(" "),
+        scopeReview: scopeReview.toJSON(),
+        directFlowSession: session.toJSON(),
+      };
+    }
+    const originChanged = flowStateRevisionDigest(originatingFlowState(state))
+      !== plan.originFlowStateRevision;
+    if (originChanged) {
+      const refresh = inspectDirectAuthorityRefresh(
+        ctx,
+        state,
+        session,
+        plan,
+        safetySnapshot,
+      );
+      if (refresh.available) {
+        return mechanicalContinuationResult({
+          code: "DIRECT_AUTHORITY_REFRESH_REQUIRED",
+          state,
+          actionId: "REFRESH_DIRECT_AUTHORITY",
+          nextAction: run("REFRESH_DIRECT_AUTHORITY"),
+          instruction: "Refresh the retained direct repair authority, then continue implementation completion.",
+          details: { authorityRefresh: refresh.toJSON() },
+        });
+      }
+      return {
+        code: "DIRECT_AUTHORITY_REFRESH_BLOCKED",
+        phase: session.phase,
+        yieldsControl: false,
+        requiresUserAction: false,
+        message: [
+          "The direct repair authority cannot be refreshed because more than non-lifecycle metadata changed.",
+          ...refresh.blockingReasons,
+        ].join(" "),
+        authorityRefresh: refresh.toJSON(),
+        directFlowSession: session.toJSON(),
+      };
+    }
   }
   if (
     ["DIRECT_FIX", "DIRECT_VERIFY"].includes(session.phase)
@@ -2088,6 +2222,8 @@ function directSafetySnapshot(authority, state, plan) {
     worktreeHead,
     branch,
     changedPaths,
+    outOfScope,
+    originFlowStateRevision: flowStateRevisionDigest(originatingFlowState(state)),
     pathFingerprints: directPathFingerprints(
       target.worktreePath,
       changedPaths,
@@ -2097,19 +2233,20 @@ function directSafetySnapshot(authority, state, plan) {
   };
 }
 
-class DirectAuthorityRefreshAssessment {
-  constructor({ state, session, plan, snapshot }) {
-    const failedSafetyChecks = snapshot.checks
-      .filter((check) => !check.passed)
-      .map((check) => check.id);
+class DirectRecoveryStabilityAssessment {
+  constructor({ state, session, plan, requirePristineEvidence }) {
     const sourceStep = findActiveNode(state)?.stepId ?? null;
     const skippedSteps = directSkippedSteps(state);
     const routingFailure = latestRoutingFailure(state);
     const blockingReasons = [
       ...(session.phase !== "DIRECT_FIX" ? [`direct phase is ${session.phase}`] : []),
       ...(session.completion != null ? ["direct completion evidence already exists"] : []),
-      ...(session.implementationProof != null ? ["implementation completion evidence already exists"] : []),
-      ...(session.verification != null || session.verificationAttempts !== 0
+      ...(requirePristineEvidence && session.implementationProof != null
+        ? ["implementation completion evidence already exists"]
+        : []),
+      ...(requirePristineEvidence && (
+        session.verification != null || session.verificationAttempts !== 0
+      )
         ? ["direct verification evidence already exists"]
         : []),
       ...(plan.unresolvedDecisions.length > 0 ? ["direct decisions remain unresolved"] : []),
@@ -2117,9 +2254,6 @@ class DirectAuthorityRefreshAssessment {
       ...(state.directCompletionReceipt ? ["direct completion receipt already exists"] : []),
       ...(state.directAbortReceipt ? ["direct abort evidence already exists"] : []),
       ...(state.directReconcileEvidence ? ["direct reconcile evidence already exists"] : []),
-      ...(failedSafetyChecks.length !== 1 || failedSafetyChecks[0] !== "origin-flow-revision"
-        ? [`safety failures are ${failedSafetyChecks.join(", ") || "absent"}`]
-        : []),
       ...(sourceStep !== plan.sourceStep
         ? [`active step changed from ${plan.sourceStep} to ${sourceStep || "none"}`]
         : []),
@@ -2128,11 +2262,36 @@ class DirectAuthorityRefreshAssessment {
         : []),
       ...(routingFailure !== plan.routingFailure ? ["routing failure authority changed"] : []),
     ];
-    this.available = blockingReasons.length === 0;
-    this.failedSafetyChecks = Object.freeze(failedSafetyChecks);
     this.sourceStep = sourceStep;
     this.skippedSteps = Object.freeze(skippedSteps);
     this.routingFailure = routingFailure;
+    this.blockingReasons = Object.freeze(blockingReasons);
+    Object.freeze(this);
+  }
+}
+
+class DirectAuthorityRefreshAssessment {
+  constructor({ state, session, plan, snapshot }) {
+    const failedSafetyChecks = snapshot.checks
+      .filter((check) => !check.passed)
+      .map((check) => check.id);
+    const stability = new DirectRecoveryStabilityAssessment({
+      state,
+      session,
+      plan,
+      requirePristineEvidence: true,
+    });
+    const blockingReasons = [
+      ...stability.blockingReasons,
+      ...(failedSafetyChecks.length !== 1 || failedSafetyChecks[0] !== "origin-flow-revision"
+        ? [`safety failures are ${failedSafetyChecks.join(", ") || "absent"}`]
+        : []),
+    ];
+    this.available = blockingReasons.length === 0;
+    this.failedSafetyChecks = Object.freeze(failedSafetyChecks);
+    this.sourceStep = stability.sourceStep;
+    this.skippedSteps = stability.skippedSteps;
+    this.routingFailure = stability.routingFailure;
     this.blockingReasons = Object.freeze(blockingReasons);
     this.snapshot = snapshot;
     Object.freeze(this);
@@ -2150,12 +2309,77 @@ class DirectAuthorityRefreshAssessment {
   }
 }
 
-function inspectDirectAuthorityRefresh(authority, state, session, plan) {
+class DirectScopeReviewAssessment {
+  constructor({ state, session, plan, snapshot }) {
+    const failedSafetyChecks = snapshot.checks
+      .filter((check) => !check.passed)
+      .map((check) => check.id);
+    const unexpectedSafetyChecks = failedSafetyChecks.filter((check) => (
+      !["origin-flow-revision", "change-scope"].includes(check)
+    ));
+    const stability = new DirectRecoveryStabilityAssessment({
+      state,
+      session,
+      plan,
+      requirePristineEvidence: failedSafetyChecks.includes("origin-flow-revision"),
+    });
+    const blockingReasons = [
+      ...stability.blockingReasons,
+      ...(!failedSafetyChecks.includes("change-scope")
+        ? ["change-scope safety failure is absent"]
+        : []),
+      ...(snapshot.outOfScope.length > MAX_SCOPE_PATHS
+        ? [`out-of-scope review exceeds ${MAX_SCOPE_PATHS} paths`]
+        : []),
+      ...(unexpectedSafetyChecks.length > 0
+        ? [`additional safety failures are ${unexpectedSafetyChecks.join(", ")}`]
+        : []),
+    ];
+    this.available = blockingReasons.length === 0;
+    this.failedSafetyChecks = Object.freeze(failedSafetyChecks);
+    this.blockingReasons = Object.freeze(blockingReasons);
+    this.review = this.available
+      ? new DirectScopeReview({
+        target: plan.target,
+        planId: plan.planId,
+        planRevision: plan.revision,
+        sessionRevision: session.revision,
+        sourceStep: stability.sourceStep,
+        currentFlowStateRevision: snapshot.originFlowStateRevision,
+        featureHead: snapshot.currentHead,
+        pathFingerprints: snapshot.pathFingerprints.filter((fingerprint) => (
+          snapshot.outOfScope.includes(fingerprint.path)
+        )),
+      })
+      : null;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      available: this.available,
+      failedSafetyChecks: [...this.failedSafetyChecks],
+      blockingReasons: [...this.blockingReasons],
+      review: this.review?.toJSON() || null,
+    };
+  }
+}
+
+function inspectDirectScopeReview(authority, state, session, plan, snapshot = null) {
+  return new DirectScopeReviewAssessment({
+    state,
+    session,
+    plan,
+    snapshot: snapshot || directSafetySnapshot(authority, state, plan),
+  });
+}
+
+function inspectDirectAuthorityRefresh(authority, state, session, plan, snapshot = null) {
   return new DirectAuthorityRefreshAssessment({
     state,
     session,
     plan,
-    snapshot: directSafetySnapshot(authority, state, plan),
+    snapshot: snapshot || directSafetySnapshot(authority, state, plan),
   });
 }
 

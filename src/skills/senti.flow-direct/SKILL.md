@@ -149,6 +149,40 @@ Only edit source, tests, spec files, or issue-log entries after the CLI has
 persisted the direct plan and entered direct fix. Stay inside the persisted scope.
 Record newly discovered findings through the CLI action before expanding the plan.
 
+## Review Out-of-Scope Evidence Before Expanding the Plan
+
+`DIRECT_SCOPE_REVIEW_REQUIRED` is a bounded evidence-review instruction, not
+permission to add every changed path to the repair plan.
+
+1. Read the canonical spec, the current diff, and each exact path returned in
+   `scopeReview.review.paths`.
+2. Separate paths that are necessary to satisfy an approved requirement from
+   unrelated, generated, accidental, or otherwise unexplained changes.
+3. For requirement-backed paths, execute the returned `RECORD_DIRECT_FINDING`
+   action with:
+   - a stable finding ID and concrete spec/diff source;
+   - `FIX_REQUIRED` classification and an explicit selected resolution;
+   - only exact reviewed file paths in `--change-target`;
+   - a rationale connecting those paths to the approved requirement;
+   - the exact current `--scope-review-token`.
+4. Re-run guarded `senti flow get direct`. Review any remaining paths under the
+   newly returned token. When only Flow revision authority remains stale, follow
+   the CLI-provided `REFRESH_DIRECT_AUTHORITY` continuation.
+
+Never replace exact file paths with a parent directory, automatically adopt all
+listed paths, reuse a token after the plan, Flow state, HEAD, path set, or file
+content changes, or edit Flow state files by hand. The CLI records the reviewed
+path fingerprints in the finding and rejects stale or broader adoption.
+
+If a listed path is unrelated, do not delete, move, revert, or adopt it merely to
+pass the safety check. First execute the returned decision-recording action as a
+`USER_DECISION_REQUIRED` finding without `--change-target` or
+`--scope-review-token`. Re-run guarded inspection so the CLI returns the durable
+user-decision directive, then explain the concrete path and ask for its real
+disposition under the Choice Format. Preserve all work while waiting. After the
+decision is recorded, carry out only the selected disposition and obtain a new
+scope review; never reuse the earlier token.
+
 ## Complete the Implementation Before Verification
 
 `DIRECT_IMPLEMENTATION_REQUIRED` is a work instruction for the agent, not a user

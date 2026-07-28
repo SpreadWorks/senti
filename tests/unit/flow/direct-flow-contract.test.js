@@ -15,6 +15,7 @@ import {
   runDirectFlowAction,
 } from "../../../src/flow/lib/direct-flow-controller.js";
 import {
+  DirectChangedPathFingerprint,
   DirectFlowSession,
   DirectFlowTarget,
   DirectVerificationCheck,
@@ -25,6 +26,10 @@ import {
   DirectResolutionFinding,
   DirectResolutionPlan,
 } from "../../../src/flow/lib/direct-resolution-plan.js";
+import {
+  DirectScopeAdoption,
+  DirectScopeReview,
+} from "../../../src/flow/lib/direct-scope-review.js";
 import {
   AwaitingDecisionOutcome,
   ExternalBlockedOutcome,
@@ -359,6 +364,66 @@ describe("direct session and plan authority", () => {
       ...refreshedTarget.toJSON(),
       featureHead: MAIN_HEAD,
     }), "Attempt to move Git authority."), /may update only the Flow state revision/);
+  });
+
+  it("binds direct scope adoption to the exact target, revisions, and path fingerprints", () => {
+    const review = new DirectScopeReview({
+      target: target(),
+      planId: plan().planId,
+      planRevision: 2,
+      sessionRevision: 3,
+      sourceStep: "impl-gate",
+      currentFlowStateRevision: "d".repeat(64),
+      featureHead: FEATURE_HEAD,
+      pathFingerprints: [
+        new DirectChangedPathFingerprint({
+          path: "src/required.js",
+          kind: "file",
+          digest: "e".repeat(64),
+        }),
+        new DirectChangedPathFingerprint({
+          path: "src/also-required.js",
+          kind: "file",
+          digest: "f".repeat(64),
+        }),
+      ],
+    });
+    const adoption = review.adopt(["src/required.js"]);
+    const finding = new DirectResolutionFinding({
+      findingId: "scope:required-source",
+      source: "approved-spec:R1",
+      classification: "FIX_REQUIRED",
+      summary: "The approved behavior requires this exact source file.",
+      recommendedResolution: "Adopt the exact file into the repair scope.",
+      changeTargets: ["src/required.js"],
+      rationale: "R1 and the inspected diff require the implementation.",
+      selectedResolution: "Adopt the exact file into the repair scope.",
+      scopeAdoption: adoption,
+    });
+
+    assert.equal(review.reviewToken.length, 64);
+    assert.deepEqual(review.paths, ["src/also-required.js", "src/required.js"]);
+    assert.deepEqual(adoption.paths, ["src/required.js"]);
+    assert.deepEqual(
+      DirectScopeAdoption.fromStored(adoption.toJSON()).toJSON(),
+      adoption.toJSON(),
+    );
+    assert.deepEqual(
+      DirectResolutionFinding.fromStored(finding.toJSON()).toJSON(),
+      finding.toJSON(),
+    );
+    assert.throws(
+      () => review.adopt(["src"]),
+      /must name an exact reviewed path/,
+    );
+    assert.throws(
+      () => new DirectScopeReview({
+        ...review.toJSON(),
+        target: target(),
+        featureHead: MAIN_HEAD,
+      }),
+      /token does not match its evidence/,
+    );
   });
 
   it("does not treat pre-implementation, branch, local, or parked state as eligible", () => {

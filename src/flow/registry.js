@@ -1166,6 +1166,7 @@ export const FLOW_COMMANDS = {
           "--resolution",
           "--change-target",
           "--rationale",
+          "--scope-review-token",
         ]),
       },
       help: [
@@ -1191,6 +1192,7 @@ export const FLOW_COMMANDS = {
         "  --resolution <text>    Explicit adopted finding resolution.",
         "  --change-target <paths>  Comma-separated repository-relative targets.",
         "  --rationale <text>     Evidence-backed finding rationale.",
+        "  --scope-review-token <sha256>  Exact token returned for the current out-of-scope evidence.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
