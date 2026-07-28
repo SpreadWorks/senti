@@ -1529,6 +1529,7 @@ export const FLOW_COMMANDS = {
         }, result);
       },
       async onError(ctx, err) {
+        if (["REPOSITORY_FLOW_OPERATION_BUSY", "REPOSITORY_MAINTENANCE_BUSY"].includes(err?.code)) return;
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:onError",
           command: finalizeCommand("sync"),

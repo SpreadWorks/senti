@@ -7,6 +7,7 @@ import {
   BeginOutboxEffect,
   CompleteOutboxEffect,
   ExecuteSideEffects,
+  FailOutboxEffect,
   SetStepStatus,
   buildInitialNestedSteps,
   resolveLifecycle,
@@ -256,6 +257,22 @@ describe("resumable finalization outbox", () => {
       assert.ok(completeIndex > doneIndex);
     });
   }
+
+  it("settles a failed finalize-sync as skipped after recording its failed outbox", () => {
+    const actions = resolveLifecycle({
+      event: "finalize:onError",
+      command: "finalize-sync",
+      currentStepId: "finalize-sync",
+    });
+    const failureIndex = actions.findIndex((action) => action instanceof FailOutboxEffect);
+    const skippedIndex = actions.findIndex((action) => (
+      action instanceof SetStepStatus
+      && action.step === "finalize-sync"
+      && action.status === "skipped"
+    ));
+    assert.ok(failureIndex >= 0);
+    assert.ok(skippedIndex > failureIndex);
+  });
 
   it("recognizes an envelope-wrapped cleanup result as successful", () => {
     const actions = resolveLifecycle({

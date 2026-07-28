@@ -172,6 +172,10 @@ function removesManagedWorktree(envelopeKey, hookCtx) {
 
 function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
   const fallbackRoot = hookCtx.root || container.get("paths").root;
+  if (envelopeKey === "finalize-sync" && hookCtx?.flowManager && hookCtx?.flowState?.worktree) {
+    const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(hookCtx.flowState);
+    return mainRepoPath || fallbackRoot;
+  }
   if (
     !removesManagedWorktree(envelopeKey, hookCtx)
     || !hookCtx?.flowManager

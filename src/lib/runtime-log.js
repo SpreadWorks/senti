@@ -71,8 +71,9 @@ export class RuntimeLogBlock {
     this.command = start.match(/\bcommand="([^"]*)"/)?.[1] || "";
     this.startedAt = start.match(/\bstartedAt="([^"]*)"/)?.[1] || null;
     const end = this.text.trimEnd().split("\n").at(-1) || "";
+    this.complete = /^===== end /.test(end);
     this.endedAt = end.match(/\bendedAt="([^"]*)"/)?.[1] || null;
-    this.exitCode = Number(end.match(/\bexitCode=(\d+)/)?.[1] || 0);
+    this.exitCode = this.complete ? Number(end.match(/\bexitCode=(\d+)/)?.[1] || 0) : null;
   }
 
   toJSON() {
@@ -84,6 +85,7 @@ export class RuntimeLogBlock {
       startedAt: this.startedAt,
       endedAt: this.endedAt,
       exitCode: this.exitCode,
+      complete: this.complete,
     };
   }
 }
@@ -145,8 +147,13 @@ export class RuntimeLogFile {
   }
 
   blocks() {
-    return [...this.read().matchAll(/^===== start [^\n]*\n[\s\S]*?^===== end [^\n]*$/gm)]
-      .map((match) => new RuntimeLogBlock(match[0]));
+    const text = this.read();
+    const starts = [...text.matchAll(/^===== start [^\n]*$/gm)];
+    return starts.map((match, index) => {
+      const start = match.index;
+      const end = starts[index + 1]?.index ?? text.length;
+      return new RuntimeLogBlock(text.slice(start, end).trimEnd());
+    });
   }
 
   select(input = {}) {

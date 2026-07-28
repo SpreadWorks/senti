@@ -54,6 +54,7 @@ import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandHooks } from "../../lib/plugin-registry.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import {
+  FlowOutbox,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
 import { FlowCompletion } from "./flow-completion.js";
@@ -5245,6 +5246,20 @@ function cherryPickRange(repoPath, range, runGitFn = runGit) {
   return { ok: true };
 }
 
+function finalizeSyncWarning(state) {
+  const entry = new FlowOutbox(state.outbox || []).find(
+    finalizationOutboxIdentity(state, "finalize-sync"),
+  );
+  if (entry?.status !== "failed") return null;
+  const failure = entry.latestFailure;
+  return {
+    code: failure?.code || "FINALIZE_SYNC_FAILED",
+    message: entry.failure,
+    recordedAt: failure?.recordedAt || entry.updatedAt,
+    ...(failure?.code === "FINALIZE_SYNC_INTERRUPTED" ? { interrupted: true } : {}),
+  };
+}
+
 export class RunFinalizeCleanupCommand extends FlowCommand {
   constructor() {
     super({ explicitTargetResolution: true });
@@ -5900,9 +5915,11 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
     if (!result) {
       const completion = new FlowCompletion(ctx.flowState);
       const receipt = completion.toJSON();
+      const syncWarning = finalizeSyncWarning(ctx.flowState);
       const completionData = {
         status: "done",
         message: "spec-only mode",
+        ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
         assurance: completion.assurance,
         ...(receipt.advisorySummary && { advisorySummary: receipt.advisorySummary }),
       };
@@ -5920,10 +5937,17 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
         outbox.complete(identity, completionData);
         persistFinalizeTeardownCompletion(store, transaction, "completed", { commitSha: null });
       }
-      result = attachTransaction(attachReport(
+      const env = attachReport(
         Envelope.ok("run", "finalize-cleanup", completionData),
         reportRoot,
-      ));
+      );
+      if (syncWarning) {
+        env.addWarning(
+          "FINALIZE_SYNC_FAILED",
+          `Documentation sync did not complete: ${syncWarning.message}. Run 'senti flow run sync' after inspecting the recorded diagnostics.`,
+        );
+      }
+      result = attachTransaction(env);
     }
     return result;
   });
@@ -7031,8 +7055,10 @@ async function runTeardownTransactionOwned(
   }
   const completion = new FlowCompletion(state);
   const completionReceipt = completion.toJSON();
+  const syncWarning = finalizeSyncWarning(state);
   const completionData = {
     status: "done",
+    ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
     assurance: completion.assurance,
     ...(completionReceipt.advisorySummary && { advisorySummary: completionReceipt.advisorySummary }),
     ...(finalizeAdapter?.completionData || {}),
@@ -7073,6 +7099,12 @@ async function runTeardownTransactionOwned(
   );
   for (const warning of pluginLifecycle.warnings || []) {
     env.addWarning(warning.code || "PLUGIN_HOOK_WARNING", warning.message || JSON.stringify(warning));
+  }
+  if (syncWarning) {
+    env.addWarning(
+      "FINALIZE_SYNC_FAILED",
+      `Documentation sync did not complete: ${syncWarning.message}. Run 'senti flow run sync' after inspecting the recorded diagnostics.`,
+    );
   }
   if (worktree && mainRepoPath) {
     attachOtherFlowMetadataWarning(env, mainRepoPath, specId);

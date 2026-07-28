@@ -25,6 +25,7 @@ import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { makeFlowState, makeFlowManager, replaceFlowState, setupFlow } from "../../../helpers/flow-setup.js";
 import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.js";
+import { FlowOutbox, finalizationOutboxIdentity } from "../../../../src/flow/lib/flow-outbox.js";
 import { WorktreeFlowBindingStore, WorktreeFlowIdentity } from "../../../../src/lib/worktree-flow-binding.js";
 
 const FLOW_CMD = path.join(process.cwd(), "src/senti.js");
@@ -214,6 +215,28 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
 
     assert.equal(env.ok, true);
     assert.equal(env.data.active, false, "flow get status must report active:false post-cleanup");
+  });
+
+  it("completes cleanup with an explicit warning when docs sync previously failed", () => {
+    tmp = createTmpDir("senti-finalize-sync-warning-");
+    setupSpecOnlyFlow(tmp);
+    const flowManager = makeFlowManager(tmp);
+    flowManager.mutate((state) => {
+      findStepById(state.steps, "finalize-sync").status = "skipped";
+      const identity = finalizationOutboxIdentity(state, "finalize-sync");
+      const outbox = new FlowOutbox(state.outbox || []);
+      outbox.begin(identity);
+      outbox.fail(identity, Object.assign(new Error("docs build failed"), { code: "FINALIZE_SYNC_FAILED" }));
+      state.outbox = outbox.toJSON();
+    });
+    assert.equal(flowManager.load().outbox.find((entry) => entry.stepId === "finalize-sync").status, "failed");
+
+    const env = JSON.parse(runCli(["run", "finalize-cleanup"], tmp));
+
+    assert.equal(env.ok, true);
+    assert.equal(env.data.outcome, "completed_with_warnings", JSON.stringify(env));
+    assert.equal(env.data.finalizeWarnings[0].code, "FINALIZE_SYNC_FAILED");
+    assert.ok(env.errors.some((error) => error.code === "FINALIZE_SYNC_FAILED"));
   });
 });
 

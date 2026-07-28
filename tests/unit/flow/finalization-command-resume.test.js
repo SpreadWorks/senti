@@ -192,4 +192,47 @@ describe("finalization command crash resumption", () => {
       removeTmpDir(root);
     }
   });
+
+  it("preserves docs build stdout, stderr, and exit code in a structured sync failure", async () => {
+    const root = createTmpDir("finalize-sync-diagnostics-");
+    try {
+      const { state, flowManager } = setupFinalizationRepo(root);
+      const command = new RunFinalizeSyncCommand({
+        runCommand: () => ({
+          ok: false,
+          status: 23,
+          stdout: "build output\n",
+          stderr: "build error\n",
+          signal: null,
+          killed: false,
+        }),
+        hasCommit: () => false,
+      });
+
+      await assert.rejects(
+        () => command.execute({
+          root,
+          flowState: state,
+          flowManager,
+          flowOutboxEntry: pendingEntry(state, "finalize-sync"),
+        }),
+        (error) => {
+          assert.equal(error.code, "FINALIZE_SYNC_FAILED");
+          assert.deepEqual(error.data.diagnostics[0], {
+            phase: "docs-build",
+            exitCode: 23,
+            signal: null,
+            killed: false,
+            errorCode: null,
+            stdout: "build output\n",
+            stderr: "build error\n",
+          });
+          assert.equal(error.data.diagnostics[1].phase, "git-status-after-failure");
+          return true;
+        },
+      );
+    } finally {
+      removeTmpDir(root);
+    }
+  });
 });

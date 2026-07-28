@@ -523,7 +523,10 @@ function finalizeMergeMetadataPreflightAction() {
 }
 
 function resolveFinalizeLifecycle(input) {
-  const command = input.command;
+  const command = input.command || input.currentStepId || input.targetStepId;
+  if (input.event === "finalize:interrupted" && command === "finalize-sync") {
+    return [new SetStepStatus({ step: command, status: "skipped" })];
+  }
   if (input.event === "finalize:pre") {
     const actions = [];
     if (command === "finalize-merge") {
@@ -561,6 +564,9 @@ function resolveFinalizeLifecycle(input) {
       actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
     } else {
       actions.push(new FailOutboxEffect({ step: command }));
+      if (command === "finalize-sync") {
+        actions.push(new SetStepStatus({ step: command, status: "skipped" }));
+      }
     }
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }));
     if (command === "finalize-merge") {

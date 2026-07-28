@@ -58,6 +58,7 @@ import {
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
+import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -668,6 +669,12 @@ export default class GetNextActionCommand extends FlowCommand {
         requires_approval: false,
         directive: new IdleDirective().toJSON(),
       };
+    }
+
+    const interruptedSync = recoverInterruptedFinalizeSync(ctx);
+    if (interruptedSync.recovered) {
+      interruptedSync.stateOwner.bindContext(ctx);
+      ctx.flowState = interruptedSync.stateOwner.loadReadOnly();
     }
 
     const candidate = this.planner.build(ctx);

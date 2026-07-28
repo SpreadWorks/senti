@@ -36,6 +36,8 @@ export function finalizeOnError(stepName, trigger) {
         timestamp: new Date().toISOString(),
       };
       if (trigger) entry.trigger = trigger;
+      if (err?.data?.diagnostics) entry.diagnostics = err.data.diagnostics;
+      if (err?.data?.runtimeLog) entry.runtimeLog = err.data.runtimeLog;
       if (stepName === "finalize-merge") {
         const state = ctx.flowManager.loadReadOnly(ctx.specId);
         entry.downstream = Object.fromEntries(

@@ -31,7 +31,7 @@ function buildProcessOptions(opts) {
  * @param {number}   [opts.timeout]   - Timeout in ms
  * @param {number}   [opts.maxBuffer] - Max stdout/stderr buffer size in bytes
  * @param {Object}   [opts.env]       - Environment variables
- * @returns {{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }}
+ * @returns {{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean, errorCode: string|null }}
  */
 export function runCmd(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, buildProcessOptions(opts));
@@ -39,9 +39,10 @@ export function runCmd(cmd, args, opts = {}) {
     ok: res.status === 0 && !res.signal,
     status: res.status ?? 1,
     stdout: String(res.stdout || ""),
-    stderr: String(res.stderr || ""),
+    stderr: String(res.stderr || res.error?.message || ""),
     signal: res.signal ?? null,
     killed: Boolean(res.error && res.error.code === "ETIMEDOUT"),
+    errorCode: typeof res.error?.code === "string" ? res.error.code : null,
   };
 }
 

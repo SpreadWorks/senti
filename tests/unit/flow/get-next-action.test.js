@@ -395,6 +395,46 @@ describe("flow get next-action", () => {
       assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
       assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });
+
+    it("records an interrupted pending finalize sync and continues to cleanup", () => {
+      tmp = createTmpDir();
+      initGitRepo(tmp);
+      fs.writeFileSync(join(tmp, "README.md"), "baseline\n");
+      commitAll(tmp, "test: baseline");
+
+      const state = setupActiveFlow(tmp);
+      const leaves = flattenSteps(state.steps);
+      const syncIndex = leaves.findIndex((step) => step.id === "finalize-sync");
+      for (const [index, step] of leaves.entries()) {
+        step.status = index < syncIndex ? "done" : "pending";
+      }
+      leaves[syncIndex].status = "in_progress";
+      const identity = finalizationOutboxIdentity(state, "finalize-sync");
+      const outbox = new FlowOutbox();
+      outbox.begin(identity, "2026-07-28T00:00:00.000Z");
+      state.outbox = outbox.toJSON();
+      replaceFlowState(tmp, state);
+      const logDir = join(tmp, ".tmp", "logs");
+      fs.mkdirSync(logDir, { recursive: true });
+      fs.writeFileSync(join(logDir, "001-test.log"), [
+        '===== start runId=run-001-test sequence=1 attempt=1 command="flow run finalize-sync" startedAt="2026-07-28T00:00:00.000Z" exitCode="" endedAt="" =====',
+        "[stderr] interrupted",
+        "",
+      ].join("\n"));
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0, JSON.stringify(envelope));
+      assert.equal(envelope.data.step, "finalize-cleanup");
+      const persisted = makeFlowManager(tmp).load();
+      assert.equal(findStepById(persisted.steps, "finalize-sync").status, "skipped");
+      assert.equal(persisted.outbox.find((entry) => entry.stepId === "finalize-sync").status, "failed");
+      assert.equal(persisted.outbox.find((entry) => entry.stepId === "finalize-sync").failureHistory.at(-1).code, "FINALIZE_SYNC_INTERRUPTED");
+      assert.equal(
+        persisted.outbox.find((entry) => entry.stepId === "finalize-sync").failureHistory.at(-1).failure,
+        "finalize-sync was interrupted before it returned a result",
+      );
+    });
   });
 
   describe("context descriptor (REQ-7)", () => {
