@@ -80,6 +80,7 @@ const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submod
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
 const FINALIZE_TEARDOWN_VERSION = 7;
+const FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION = 1;
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const FINALIZE_TEARDOWN_TRANSACTION_FILE = /^[a-f0-9]{64}\.json$/;
@@ -455,6 +456,110 @@ class FinalizeCommitExpectation {
       commitPaths: [...this.commitPaths],
       worktreePath: this.worktreePath,
       worktreeHead: this.worktreeHead,
+    };
+  }
+}
+
+class FinalizeRebasedWorktreeAuthority {
+  constructor({
+    version,
+    transactionId,
+    sourceExpectationDigest,
+    worktreePath,
+    baseHead,
+    featureHead,
+    worktreeHead,
+    reconciledAt,
+  }) {
+    if (version !== FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION) {
+      throw new Error("unsupported rebased worktree teardown authority version");
+    }
+    if (typeof transactionId !== "string" || transactionId === "") {
+      throw new Error("rebased worktree teardown authority transactionId is invalid");
+    }
+    if (!SHA256.test(String(sourceExpectationDigest))) {
+      throw new Error("rebased worktree teardown authority source expectation is invalid");
+    }
+    if (typeof worktreePath !== "string" || path.resolve(worktreePath) !== worktreePath) {
+      throw new Error("rebased worktree teardown authority worktree path is invalid");
+    }
+    for (const [label, value] of Object.entries({ baseHead, featureHead, worktreeHead })) {
+      if (!GIT_OBJECT_ID.test(String(value))) {
+        throw new Error(`rebased worktree teardown authority ${label} is invalid`);
+      }
+    }
+    if (featureHead !== worktreeHead || featureHead !== baseHead) {
+      throw new Error("rebased worktree teardown authority must bind one rebased HEAD");
+    }
+    if (typeof reconciledAt !== "string" || Number.isNaN(Date.parse(reconciledAt))) {
+      throw new Error("rebased worktree teardown authority reconciliation time is invalid");
+    }
+    this.version = version;
+    this.transactionId = transactionId;
+    this.sourceExpectationDigest = sourceExpectationDigest;
+    this.worktreePath = worktreePath;
+    this.baseHead = baseHead;
+    this.featureHead = featureHead;
+    this.worktreeHead = worktreeHead;
+    this.reconciledAt = reconciledAt;
+    Object.freeze(this);
+  }
+
+  static create({ transaction, expectation, baseHead }) {
+    return new FinalizeRebasedWorktreeAuthority({
+      version: FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION,
+      transactionId: transaction.transactionId,
+      sourceExpectationDigest: finalizeCommitExpectationDigest(expectation),
+      worktreePath: expectation.worktreePath,
+      baseHead,
+      featureHead: baseHead,
+      worktreeHead: baseHead,
+      reconciledAt: new Date().toISOString(),
+    });
+  }
+
+  static fromStored(value) {
+    assertExactObjectKeys(value, [
+      "version",
+      "transactionId",
+      "sourceExpectationDigest",
+      "worktreePath",
+      "baseHead",
+      "featureHead",
+      "worktreeHead",
+      "reconciledAt",
+    ], "rebased worktree teardown authority");
+    return new FinalizeRebasedWorktreeAuthority(value);
+  }
+
+  effectiveExpectation(expectation) {
+    if (!(expectation instanceof FinalizeCommitExpectation)) {
+      throw new Error("rebased worktree teardown authority requires a commit expectation");
+    }
+    if (
+      this.transactionId !== expectation.transactionId
+      || this.sourceExpectationDigest !== finalizeCommitExpectationDigest(expectation)
+      || this.worktreePath !== expectation.worktreePath
+    ) {
+      throw new Error("rebased worktree teardown authority does not match the durable transaction");
+    }
+    return new FinalizeCommitExpectation({
+      ...expectation.toJSON(),
+      featureRef: this.featureHead,
+      worktreeHead: this.worktreeHead,
+    });
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      transactionId: this.transactionId,
+      sourceExpectationDigest: this.sourceExpectationDigest,
+      worktreePath: this.worktreePath,
+      baseHead: this.baseHead,
+      featureHead: this.featureHead,
+      worktreeHead: this.worktreeHead,
+      reconciledAt: this.reconciledAt,
     };
   }
 }
@@ -1277,6 +1382,13 @@ function gitValue(root, args, label) {
 
 function hashCommitMessage(message) {
   return crypto.createHash("sha256").update(message).digest("hex");
+}
+
+function finalizeCommitExpectationDigest(expectation) {
+  if (!(expectation instanceof FinalizeCommitExpectation)) {
+    throw new Error("finalize commit expectation digest requires an expectation");
+  }
+  return crypto.createHash("sha256").update(JSON.stringify(expectation.toJSON())).digest("hex");
 }
 
 const FINALIZE_TEMP_INDEX_BASE_NAMES = new Set(["expected.index", "commit.index", "reconcile.index"]);
@@ -2351,15 +2463,18 @@ function inspectExpectedCommit(expectation, { targetRoot, state }) {
   return { adopted: true, head };
 }
 
-function assertFeatureAuthority(transaction, { mainRepoPath, state }) {
+function assertFeatureAuthority(transaction, { mainRepoPath, state, expectation = transaction.commitExpectation }) {
   const current = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize feature ref");
-  if (current !== transaction.commitExpectation.featureRef) {
+  if (current !== expectation.featureRef) {
     throw new Error("finalize feature ref diverged from durable teardown authority");
   }
 }
 
-function assertWorktreeAuthority(transaction, { mainRepoPath, state }) {
-  const expectation = transaction.commitExpectation;
+function assertWorktreeAuthority(transaction, {
+  mainRepoPath,
+  state,
+  expectation = transaction.commitExpectation,
+}) {
   if (expectation.worktreePath == null) return;
   if (!fs.existsSync(expectation.worktreePath) || fs.realpathSync(expectation.worktreePath) !== expectation.worktreePath) {
     throw new Error("finalize worktree path diverged from durable teardown authority");
@@ -2368,7 +2483,178 @@ function assertWorktreeAuthority(transaction, { mainRepoPath, state }) {
   if (worktreeHead !== expectation.worktreeHead || worktreeHead !== expectation.featureRef) {
     throw new Error("finalize worktree HEAD diverged from durable teardown authority");
   }
-  assertFeatureAuthority(transaction, { mainRepoPath, state });
+  assertFeatureAuthority(transaction, { mainRepoPath, state, expectation });
+}
+
+function rebasedWorktreeOrphanEnvelope({
+  baseHead,
+  featureHead,
+  orphan,
+  state,
+}) {
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    "ORPHAN_COMMITS_DETECTED",
+    [
+      `Rebased feature commits detected on ${state.featureBranch} (${orphan.count} commit(s) beyond the rebased base).`,
+      "These commits are not reachable from the current base branch and would be dropped by branch deletion.",
+      "Recovery options:",
+      "  - cherry-pick: re-run with --auto-rescue to preserve the commits on the base branch",
+      "  - abort: leave the worktree and feature branch as-is and inspect/handle manually",
+      "  - force-continue: re-run with --force to delete the branch (commits will be lost; recorded to issue-log)",
+    ],
+    {
+      recordedSha: baseHead,
+      currentSha: featureHead,
+      count: orphan.count,
+      truncated: orphan.truncated,
+      orphanCommits: orphan.commits,
+      baseBranch: state.baseBranch,
+      featureBranch: state.featureBranch,
+      recoveryOptions: RECOVERY_OPTIONS_DETECT,
+    },
+  );
+}
+
+function rebasedWorktreeAutoRescueFailure({ rescue, state, baseHead, featureHead }) {
+  const messages = rescue.code === "CHERRY_PICK_CONFLICT"
+    ? [
+      "Cherry-pick of rebased feature commits produced a conflict.",
+      "The worktree and feature branch were retained for manual recovery.",
+    ]
+    : [
+      "Preserving rebased feature commits before teardown did not complete.",
+      rescue.message || `Auto-rescue stopped with ${rescue.code || "an unknown error"}.`,
+    ];
+  return Envelope.fail(
+    "run",
+    "finalize-cleanup",
+    rescue.code || "REBASED_WORKTREE_AUTO_RESCUE_FAILED",
+    messages,
+    {
+      recordedSha: baseHead,
+      currentSha: featureHead,
+      baseBranch: state.baseBranch,
+      featureBranch: state.featureBranch,
+      recoveryOptions: RECOVERY_OPTIONS_RESCUE_FAIL,
+      conflictFiles: rescue.conflictFiles || [],
+      dirtyFiles: rescue.dirtyFiles || [],
+    },
+  );
+}
+
+function reconcileRebasedWorktreeAuthority({
+  ctx,
+  transaction,
+  authorityStore,
+  mainRepoPath,
+  state,
+  specId,
+}) {
+  const expectation = transaction.commitExpectation;
+  if (expectation?.worktreePath == null) return { expectation };
+  if (transaction.phase.atLeast("worktree-removed")) return { expectation };
+
+  const persisted = authorityStore.read();
+  if (persisted != null) {
+    return { expectation: persisted.effectiveExpectation(expectation) };
+  }
+
+  const featureHead = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize feature ref");
+  const worktreeHead = gitValue(expectation.worktreePath, ["rev-parse", "HEAD"], "finalize worktree HEAD");
+  if (featureHead === expectation.featureRef && worktreeHead === expectation.worktreeHead) {
+    return { expectation };
+  }
+  if (!transaction.phase.atLeast("index-reconciled") || transaction.phase.atLeast("worktree-removed")) {
+    throw new Error("finalize worktree authority changed outside the recoverable teardown phase");
+  }
+  if (featureHead !== worktreeHead) {
+    throw new Error("finalize feature and worktree HEAD diverged during rebased teardown recovery");
+  }
+  assertCommitReachableFromBase(transaction, { mainRepoPath, state });
+  let baseHead = gitValue(mainRepoPath, ["rev-parse", state.baseBranch], "finalize base ref");
+  if (featureHead === baseHead) {
+    const authority = FinalizeRebasedWorktreeAuthority.create({
+      transaction,
+      expectation,
+      baseHead,
+    });
+    authorityStore.write(authority);
+    return { expectation: authority.effectiveExpectation(expectation) };
+  }
+
+  const featureExtendsBase = runGit([
+    "-C",
+    mainRepoPath,
+    "merge-base",
+    "--is-ancestor",
+    baseHead,
+    state.featureBranch,
+  ]);
+  if (!featureExtendsBase.ok) {
+    throw new Error("finalize rebased worktree is not based on the current base branch");
+  }
+  const orphan = readOrphanCommits(mainRepoPath, baseHead, state.featureBranch);
+  if (!orphan.ok) {
+    return {
+      env: Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "ORPHAN_LISTING_FAILED",
+        `Failed to list rebased feature commits: ${orphan.reason}`,
+      ),
+    };
+  }
+  if (orphan.count === 0) {
+    throw new Error("rebased worktree authority could not prove the feature branch is at base HEAD");
+  }
+  if (ctx.autoRescue !== true) {
+    return {
+      env: rebasedWorktreeOrphanEnvelope({ baseHead, featureHead, orphan, state }),
+    };
+  }
+  const rescue = runAutoRescue({
+    mainRepoPath,
+    baseBranch: state.baseBranch,
+    baseline: baseHead,
+    featureBranch: state.featureBranch,
+    specId,
+  });
+  if (!rescue.ok) {
+    return { env: rebasedWorktreeAutoRescueFailure({ rescue, state, baseHead, featureHead }) };
+  }
+  const rebase = runGit(["-C", expectation.worktreePath, "rebase", state.baseBranch]);
+  if (!rebase.ok) {
+    return {
+      env: Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "REBASED_WORKTREE_REBASE_FAILED",
+        [
+          "Preserved feature commits were applied to the base branch, but the managed worktree could not be rebased onto that base.",
+          rebase.stderr || rebase.stdout || "git rebase failed",
+          "The worktree and feature branch were retained for recovery.",
+        ],
+      ),
+    };
+  }
+  baseHead = gitValue(mainRepoPath, ["rev-parse", state.baseBranch], "finalize rescued base ref");
+  const rebasedFeatureHead = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize rescued feature ref");
+  const rebasedWorktreeHead = gitValue(expectation.worktreePath, ["rev-parse", "HEAD"], "finalize rescued worktree HEAD");
+  if (rebasedFeatureHead !== baseHead || rebasedWorktreeHead !== baseHead) {
+    throw new Error("finalize auto-rescue did not restore the rebased worktree to base HEAD");
+  }
+  const authority = FinalizeRebasedWorktreeAuthority.create({
+    transaction,
+    expectation,
+    baseHead,
+  });
+  authorityStore.write(authority);
+  return {
+    expectation: authority.effectiveExpectation(expectation),
+    rescued: orphan.commits,
+  };
 }
 
 function assertCommitReachableFromBase(transaction, { mainRepoPath, state }) {
@@ -2883,6 +3169,47 @@ class FinalizeTeardownTransactionStore {
     } finally {
       fs.closeSync(descriptor);
     }
+  }
+}
+
+class FinalizeRebasedWorktreeAuthorityStore {
+  constructor(transactionStore) {
+    if (!(transactionStore instanceof FinalizeTeardownTransactionStore)) {
+      throw new Error("rebased worktree authority requires a teardown transaction store");
+    }
+    this.transactionStore = transactionStore;
+    this.path = `${transactionStore.path}.rebind.json`;
+    this.file = new AtomicJsonFile(this.path);
+  }
+
+  read() {
+    let stat;
+    try {
+      stat = fs.lstatSync(this.path);
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      throw new Error("rebased worktree teardown authority must be one real non-hardlinked file");
+    }
+    const descriptor = fs.openSync(this.path, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink !== 1 || !opened.isFile()) {
+        throw new Error("rebased worktree teardown authority identity changed while reading");
+      }
+      return FinalizeRebasedWorktreeAuthority.fromStored(JSON.parse(fs.readFileSync(descriptor, "utf8")));
+    } finally {
+      fs.closeSync(descriptor);
+    }
+  }
+
+  write(authority) {
+    if (!(authority instanceof FinalizeRebasedWorktreeAuthority)) {
+      throw new Error("rebased worktree authority is invalid");
+    }
+    this.file.write(authority.toJSON());
   }
 }
 
@@ -5301,6 +5628,7 @@ function deleteFeatureBranchAtCheckpoint({
   transaction,
   mainRepoPath,
   state,
+  expectation = transaction.commitExpectation,
 }) {
   const branchExists = featureBranchExists(mainRepoPath, state.featureBranch);
   if (
@@ -5314,7 +5642,7 @@ function deleteFeatureBranchAtCheckpoint({
     throw error;
   }
   if (branchExists) {
-    assertFeatureAuthority(transaction, { mainRepoPath, state });
+    assertFeatureAuthority(transaction, { mainRepoPath, state, expectation });
     assertCommitReachableFromBase(transaction, { mainRepoPath, state });
   }
   const checkpointCreated = persistFinalizeTeardownCheckpoint(
@@ -5326,7 +5654,7 @@ function deleteFeatureBranchAtCheckpoint({
     const result = deleteFeatureBranchForCleanup({
       mainRepoPath,
       featureBranch: state.featureBranch,
-      expectedSha: transaction.commitExpectation.featureRef,
+      expectedSha: expectation.featureRef,
     });
     if (!result.ok) return result.env;
   }
@@ -5929,6 +6257,7 @@ async function runTeardownTransactionOwned(
   const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
   const transactionExisted = transactionStore.hasExisting();
   const transaction = transactionStore.loadOrCreate();
+  const rebasedWorktreeAuthorityStore = new FinalizeRebasedWorktreeAuthorityStore(transactionStore);
   let callerIndexLease = null;
   let tempIndexWorkspace = null;
   if (!transactionExisted) transactionStore.write(transaction);
@@ -6373,6 +6702,17 @@ async function runTeardownTransactionOwned(
     );
   }
 
+  const rebasedWorktreeRecovery = reconcileRebasedWorktreeAuthority({
+    ctx,
+    transaction,
+    authorityStore: rebasedWorktreeAuthorityStore,
+    mainRepoPath: gitAuthorityRoot,
+    state,
+    specId,
+  });
+  if (rebasedWorktreeRecovery.env) return attachTransaction(rebasedWorktreeRecovery.env);
+  const effectiveCommitExpectation = rebasedWorktreeRecovery.expectation;
+
   // (iii) Commit is durable. Resume destructive phases without revisiting the commit.
   if (!transaction.phase.atLeast("worktree-removed") && worktree && mainRepoPath) {
     const wtPath = worktreePath || ctx.root;
@@ -6395,7 +6735,11 @@ async function runTeardownTransactionOwned(
         error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
         throw error;
       }
-      assertWorktreeAuthority(transaction, { mainRepoPath, state });
+      assertWorktreeAuthority(transaction, {
+        mainRepoPath,
+        state,
+        expectation: effectiveCommitExpectation,
+      });
     }
     const checkpointCreated = persistFinalizeTeardownCheckpoint(
       transactionStore,
@@ -6461,6 +6805,7 @@ async function runTeardownTransactionOwned(
       transaction,
       mainRepoPath: worktree && mainRepoPath ? mainRepoPath : targetRoot,
       state,
+      expectation: effectiveCommitExpectation,
     });
     if (branchFailure) return failAfterCommit(branchFailure);
   }

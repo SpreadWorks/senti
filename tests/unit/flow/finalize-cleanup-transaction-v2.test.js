@@ -43,6 +43,11 @@ function git(root, args) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 }
 
+function ignoreSentiMetadata(root) {
+  const excludePath = path.join(root, git(root, ["rev-parse", "--git-path", "info/exclude"]));
+  fs.appendFileSync(excludePath, "/.senti/\n");
+}
+
 test("before-image policy reserves shared flow and issue authorities for their CAS writers", () => {
   const policy = new FinalizeBeforeImageRestorePolicy("specs/441");
   assert.equal(policy.usesSharedWriter("specs/441/flow.json"), true);
@@ -323,13 +328,18 @@ function assertCompletedJournal(root) {
   return journalPath;
 }
 
-async function runFinalize(root, specId, { flowManager = makeFlowManager(root), flowState = null, force = false } = {}) {
+async function runFinalize(root, specId, {
+  flowManager = makeFlowManager(root),
+  flowState = null,
+  autoRescue = false,
+  force = false,
+} = {}) {
   return new RunFinalizeCleanupCommand().execute({
     root: flowManager._root,
     mainRoot: root,
     flowManager,
     flowState: flowState || flowManager.loadReadOnly(specId),
-    autoRescue: false,
+    autoRescue,
     force,
   });
 }
@@ -1018,6 +1028,83 @@ test("rejects a changed worktree HEAD before removing the worktree", async () =>
 
     assert.equal(fs.existsSync(fixture.worktreePath), true);
     assert.equal(git(root, ["rev-parse", fixture.featureBranch]), featureSha);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("reconciles a rebased worktree authority only after the feature exactly reaches base", async () => {
+  const root = createTmpDir("finalize-worktree-rebase-reconciliation-");
+  try {
+    initGitRepo(root);
+    const specId = "143-rebased";
+    const fixture = setupWorktreeFinalizeFlow(root, specId);
+    git(root, ["worktree", "lock", fixture.worktreePath]);
+    const failed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+    assert.equal(failed.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    git(root, ["worktree", "unlock", fixture.worktreePath]);
+    ignoreSentiMetadata(root);
+    git(fixture.worktreePath, ["rebase", "master"]);
+    const baseHead = git(root, ["rev-parse", "master"]);
+    assert.equal(git(root, ["rev-parse", fixture.featureBranch]), baseHead);
+    assert.equal(git(fixture.worktreePath, ["rev-parse", "HEAD"]), baseHead);
+
+    const completed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(root, ["branch", "--list", fixture.featureBranch]), "");
+    const rebindEntries = fs.readdirSync(path.join(root, ".senti", "recovery", "finalize-cleanup"))
+      .filter((entry) => entry.endsWith(".rebind.json"));
+    assert.equal(rebindEntries.length, 1);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("preserves rebased feature commits through explicit auto-rescue before teardown", async () => {
+  const root = createTmpDir("finalize-worktree-rebase-auto-rescue-");
+  try {
+    initGitRepo(root);
+    const specId = "143-rebased-rescue";
+    const fixture = setupWorktreeFinalizeFlow(root, specId);
+    git(root, ["worktree", "lock", fixture.worktreePath]);
+    const failed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+    assert.equal(failed.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    git(root, ["worktree", "unlock", fixture.worktreePath]);
+    ignoreSentiMetadata(root);
+    git(fixture.worktreePath, ["rebase", "master"]);
+    fs.writeFileSync(path.join(fixture.worktreePath, "preserved-after-rebase.txt"), "keep\n");
+    git(fixture.worktreePath, ["add", "preserved-after-rebase.txt"]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "preserve rebased worktree commit"]);
+
+    const detected = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+    assert.equal(detected.ok, false);
+    assert.equal(detected.errors[0].code, "ORPHAN_COMMITS_DETECTED");
+    assert.equal(fs.existsSync(fixture.worktreePath), true);
+
+    const completed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+      autoRescue: true,
+    });
+
+    assert.equal(completed.ok, true, JSON.stringify(completed));
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+    assert.equal(git(root, ["branch", "--list", fixture.featureBranch]), "");
+    assert.equal(git(root, ["show", "master:preserved-after-rebase.txt"]), "keep");
   } finally {
     removeTmpDir(root);
   }
