@@ -403,12 +403,14 @@ class FinalizeCompletionCommit {
 
   #reconcileCallerIndex(commit) {
     const parent = this.#gitValue(["rev-parse", `${commit}^`], "finalize completion commit parent");
-    const caller = GitPathEntry.fromIndex(this.root, this.stateFile);
-    const before = GitPathEntry.fromTree(this.root, parent, this.stateFile);
-    const after = GitPathEntry.fromTree(this.root, commit, this.stateFile);
-    if (!caller.equals(before) || caller.equals(after)) return;
-    const result = runGit(["-C", this.root, "reset", "--quiet", commit, "--", this.stateFile]);
-    assertOk(result, "failed to reconcile finalize completion index entry");
+    for (const commitPath of this.commitPaths) {
+      const caller = GitPathEntry.fromIndex(this.root, commitPath);
+      const before = GitPathEntry.fromTree(this.root, parent, commitPath);
+      const after = GitPathEntry.fromTree(this.root, commit, commitPath);
+      if (!caller.equals(before) || caller.equals(after)) continue;
+      const result = runGit(["-C", this.root, "reset", "--quiet", commit, "--", commitPath]);
+      assertOk(result, `failed to reconcile finalize completion index entry: ${commitPath}`);
+    }
   }
 
   #gitValue(args, label) {

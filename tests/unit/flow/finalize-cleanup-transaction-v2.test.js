@@ -1119,6 +1119,7 @@ test("preserves rebased feature commits through explicit auto-rescue before tear
       JSON.parse(git(root, ["show", `master:specs/${specId}/issue-log.json`])).entries.at(-1).issueLogId,
       "retained-cleanup-metadata",
     );
+    assert.equal(git(root, ["status", "--porcelain"]), "");
   } finally {
     removeTmpDir(root);
   }
