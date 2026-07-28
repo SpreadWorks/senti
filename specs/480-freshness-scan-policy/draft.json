@@ -1,0 +1,52 @@
+{
+  "devType": "bugfix",
+  "goal": "must classify documentation freshness from the source surface that can affect documentation builds without consuming the scan budget on generated or runtime artifacts.",
+  "analysis": {
+    "problem": "The freshness command walks the repository root with the default file budget, so generated evidence can exhaust the budget before relevant source and documentation are evaluated. The resulting indeterminate verdict prevents automated freshness classification.",
+    "proposedApproach": "must define a generic source-surface scan policy for freshness evaluation, reuse the existing directory-entry filtering contract where sufficient, and retain bounded traversal diagnostics for every evaluated surface.",
+    "validation": "must prove that generated or runtime artifacts do not affect the verdict, that relevant source and documentation timestamps still produce fresh or stale, and that incomplete traversal of a relevant surface remains indeterminate."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "The current freshness command passes the repository source root to FileTreeWalker with the default policy, while FileTreeWalker already supports shouldEnterDirectory filtering.",
+      "The existing check scan command excludes generic generated and dependency directory boundaries before consuming its file budget.",
+      "must preserve fail-closed behavior when a source or documentation surface required for freshness evaluation exceeds traversal limits or is unreadable."
+    ],
+    "decisionPoints": [
+      "must separate documentation-build inputs from generated and runtime surfaces during freshness source traversal.",
+      "must return structured scan target, exclusion-policy, and limit-path details so an indeterminate verdict remains diagnosable.",
+      "must avoid a file-limit increase as the remediation."
+    ],
+    "resolvedByProjectRules": [
+      "must use Node.js built-in modules only and represent meaningful structured values with dedicated classes when new value types are needed.",
+      "must not embed repository-specific spec identifiers or artifact filenames in product code."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must determine the shared generic boundary owner and the smallest FileTreeWalker contract extension after verifying adjacent docs-build and source-resolver code.",
+      "must define focused fixture coverage for excluded artifacts, relevant traversal limits, and timestamp-based fresh or stale results."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must add a freshness-specific source scan policy that excludes generated and runtime surfaces from the source file budget.",
+      "must preserve structured freshness diagnostics for scan targets, applied exclusions, and traversal limits.",
+      "must add regression coverage for generated evidence beyond the file budget and incomplete relevant source traversal."
+    ],
+    "out": [
+      "must not raise the traversal file limit to mask generated-artifact growth.",
+      "must not change documentation build output or generated flow artifact storage policy."
+    ]
+  },
+  "impactOnExisting": [
+    "must keep the existing fresh, stale, never-built, and indeterminate result contract while changing only the source surface counted by freshness traversal.",
+    "must ensure generated artifact timestamp changes alone do not make documentation freshness stale or indeterminate."
+  ],
+  "qa": [],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-28T10:40:24.895Z",
+    "notes": ""
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T11:06:29.343Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "unreadable-stat-limit-kind-crash",
+      "title": "Unreadable stat diagnostics can crash freshness checks",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/check/commands/freshness.js",
+      "requirementId": "R2",
+      "issue": "`newestMtime()` converts `fs.promises.stat()` failures into `new TraversalLimit(\"unreadable\", relativePath, null)`, but the touched walker only admits supported traversal limit kinds through `TraversalLimit`'s constructor. If `unreadable` is not in `LIMIT_KINDS`, an unreadable file during stat throws instead of returning an `indeterminate` `FreshnessResult` with structured limits.",
+      "suggestion": "Add `unreadable` to the supported `LIMIT_KINDS` in `src/lib/file-tree-walker.js`, or represent stat failures with an existing typed limit class/kind that `TraversalLimit` accepts, then ensure `FreshnessResult(\"indeterminate\")` is returned for those failures.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires relevant source or documentation limits to still produce `indeterminate`; throwing from the diagnostic path prevents the typed disposition policy from receiving the required verdict and structured limit evidence.",
+      "findingId": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "fingerprint": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "3154df1766642f2d4c275f1b8e8e6262810205d969b45ea780d72609e221ed8b",
+  "reviewedTree": "3154df1766642f2d4c275f1b8e8e6262810205d969b45ea780d72609e221ed8b",
+  "reviewedHead": "1d23417a7c22eefd648e78a4996942702912f286",
+  "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/480-freshness-scan-policy/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/480-freshness-scan-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "aca3e176a72583a4bfb1e1259a714337af52d9997c2b2f417df4e1eef9214e5d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "findingId": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Unreadable stat diagnostics can crash freshness checks",
+      "body": "`newestMtime()` converts `fs.promises.stat()` failures into `new TraversalLimit(\"unreadable\", relativePath, null)`, but the touched walker only admits supported traversal limit kinds through `TraversalLimit`'s constructor. If `unreadable` is not in `LIMIT_KINDS`, an unreadable file during stat throws instead of returning an `indeterminate` `FreshnessResult` with structured limits.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "disposition": "must-fix",
+      "rationale": "R2 requires relevant source or documentation limits to still produce `indeterminate`; throwing from the diagnostic path prevents the typed disposition policy from receiving the required verdict and structured limit evidence.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

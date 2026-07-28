@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+// "unreadable" represents both directory reads and file metadata reads.
 const LIMIT_KINDS = new Set(["depth", "directory-entries", "files", "unreadable"]);
 
 export class ScanPolicy {
@@ -22,6 +23,46 @@ export class ScanPolicy {
 }
 
 export const DEFAULT_SCAN_POLICY = new ScanPolicy();
+
+const FRESHNESS_EXCLUDED_DIRECTORY_NAMES = new Set([
+  ".git",
+  ".senti",
+  "node_modules",
+  "vendor",
+]);
+
+/**
+ * Defines the repository paths that cannot affect generated documentation.
+ */
+export class FreshnessSourcePolicy {
+  constructor(name = "freshness-source", rootRelativePath = "") {
+    if (typeof name !== "string" || name.trim() === "") {
+      throw new Error("FreshnessSourcePolicy name must be a non-empty string");
+    }
+    this.name = name;
+    this.rootRelativePath = normalizeRelative(rootRelativePath).replace(/^\.\/$/, "");
+    Object.freeze(this);
+  }
+
+  forRelativeRoot(rootRelativePath) {
+    return new FreshnessSourcePolicy(this.name, rootRelativePath);
+  }
+
+  shouldEnterDirectory(relativePath) {
+    const repositoryRelativePath = [this.rootRelativePath, normalizeRelative(relativePath)]
+      .filter(Boolean)
+      .join("/");
+    const segments = repositoryRelativePath.split("/");
+    if (segments.some((segment) => FRESHNESS_EXCLUDED_DIRECTORY_NAMES.has(segment))) return false;
+    if (segments[0] !== "specs") return true;
+
+    const [, , third, fourth] = segments;
+    if (segments.length === 3 && ["review-history", "review-evidence"].includes(third)) return false;
+    return !(segments.length === 4 && third === "tests" && fourth === ".raw");
+  }
+}
+
+export const FRESHNESS_SOURCE_POLICY = new FreshnessSourcePolicy();
 
 export class TraversalLimit {
   constructor(kind, relativePath, maximum) {

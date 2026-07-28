@@ -1,0 +1,74 @@
+[senti] spec-local tests start
+command: node --test specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js
+process.kind: passed
+process.command: node --test specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 1706
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 1546.871886
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R1: excludes every named generated and runtime source boundary before the file budget
+ok 1 - R1: excludes every named generated and runtime source boundary before the file budget
+  ---
+  duration_ms: 1429.037741
+  type: 'test'
+  ...
+# Subtest: R2: fails closed when a non-excluded source or documentation surface reaches a limit
+ok 2 - R2: fails closed when a non-excluded source or documentation surface reaches a limit
+  ---
+  duration_ms: 17.269492
+  type: 'test'
+  ...
+# Subtest: R2: fails closed when documentation traversal reaches a limit
+ok 3 - R2: fails closed when documentation traversal reaches a limit
+  ---
+  duration_ms: 3.429179
+  type: 'test'
+  ...
+# Subtest: R2: applies no source exclusions to documentation traversal
+ok 4 - R2: applies no source exclusions to documentation traversal
+  ---
+  duration_ms: 2.583014
+  type: 'test'
+  ...
+# Subtest: R2: fails closed when source depth, directory-entry, or read access limits are reached
+ok 5 - R2: fails closed when source depth, directory-entry, or read access limits are reached
+  ---
+  duration_ms: 4.495624
+  type: 'test'
+  ...
+# Subtest: R3: exposes source and documentation scan details without changing result labels
+ok 6 - R3: exposes source and documentation scan details without changing result labels
+  ---
+  duration_ms: 3.80278
+  type: 'test'
+  ...
+# Subtest: R4: ignores generated-only timestamp changes while retaining relevant traversal evidence
+ok 7 - R4: ignores generated-only timestamp changes while retaining relevant traversal evidence
+  ---
+  duration_ms: 5.489589
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1546.871886
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] spec-local tests end

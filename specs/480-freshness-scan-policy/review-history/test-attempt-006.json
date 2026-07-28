@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T10:55:48.707Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/480-freshness-scan-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Docs traversal exclusion scope is not tested",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js",
+      "findingId": "41ec3b351b7af06cf70fa11135c72651c874ab31e3aec62ed5efee1dc9d038ed",
+      "fingerprint": "41ec3b351b7af06cf70fa11135c72651c874ab31e3aec62ed5efee1dc9d038ed",
+      "disposition": "must-fix",
+      "rationale": "This is a must requirement with no corresponding test coverage for the policy-scope behavior.",
+      "issue": "R2 requires the `freshness-source` exclusions to apply only to sourceRoot traversal and docs/ to be traversed without source exclusions. The tests prove docs/ can hit a normal file limit, but they never place a source-excluded path such as `docs/.senti`, `docs/node_modules`, or `docs/specs/.../review-evidence` under docs/. An implementation that incorrectly applies `freshness-source` to docsScan would still pass these tests.",
+      "requiredChange": "Add a spec-local unit test where an otherwise source-excluded directory under docs/ contains more than the maxFiles budget and assert the result is `indeterminate` with `docsScan.policy === \"default\"`.",
+      "whyBlocking": "This is a must requirement with no corresponding test coverage for the policy-scope behavior.",
+      "origin": "R2",
+      "failureKind": "missing-coverage"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/480-freshness-scan-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "6c6a94a89dfb9167bcdc976f9c640f937f1b132bc78de538c1129262e9c66a22"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 6,
+  "findings": [
+    {
+      "id": "41ec3b351b7af06cf70fa11135c72651c874ab31e3aec62ed5efee1dc9d038ed",
+      "findingId": "41ec3b351b7af06cf70fa11135c72651c874ab31e3aec62ed5efee1dc9d038ed",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 6,
+      "severity": "blocking",
+      "title": "Docs traversal exclusion scope is not tested",
+      "body": "R2 requires the `freshness-source` exclusions to apply only to sourceRoot traversal and docs/ to be traversed without source exclusions. The tests prove docs/ can hit a normal file limit, but they never place a source-excluded path such as `docs/.senti`, `docs/node_modules`, or `docs/specs/.../review-evidence` under docs/. An implementation that incorrectly applies `freshness-source` to docsScan would still pass these tests.",
+      "category": "unknown",
+      "fingerprint": "41ec3b351b7af06cf70fa11135c72651c874ab31e3aec62ed5efee1dc9d038ed",
+      "disposition": "must-fix",
+      "rationale": "This is a must requirement with no corresponding test coverage for the policy-scope behavior."
+    }
+  ]
+}

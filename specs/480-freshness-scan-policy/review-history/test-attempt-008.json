@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T10:58:25.720Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 1,
+    "total": 3
+  },
+  "coverageArtifact": "specs/480-freshness-scan-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 file-budget scenario does not exceed maxFiles per excluded boundary",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js:28",
+      "findingId": "4b4d9b36c87f36babf41f0c0a313a27bc73cefdf58340f119489cffd61892cd3",
+      "fingerprint": "4b4d9b36c87f36babf41f0c0a313a27bc73cefdf58340f119489cffd61892cd3",
+      "disposition": "must-fix",
+      "rationale": "R4 specifically requires unit tests in which .senti, node_modules, vendor, .git, and generated specs evidence contain more than maxFiles files; the current tests do not prove that behavior against the real limit premise.",
+      "issue": "The R1/R4 excluded-boundary tests create only 3 files in each excluded directory while configuring maxFiles to 2. That exceeds the configured test override, but it does not cover the requirement that each excluded area can contain more than the production maxFiles limit. An implementation could incorrectly use the default 10,000-file budget for excluded directories and still pass these tests.",
+      "requiredChange": "Make the excluded-directory fixture exceed the actual maxFiles policy limit being asserted, or explicitly set the policy limit to the production maximum and create more than that many files in the excluded areas.",
+      "whyBlocking": "R4 specifically requires unit tests in which .senti, node_modules, vendor, .git, and generated specs evidence contain more than maxFiles files; the current tests do not prove that behavior against the real limit premise.",
+      "origin": "R4",
+      "failureKind": "acceptance requirement has no corresponding spec-local test coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 omits stale result coverage with oversized excluded content",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js:128",
+      "findingId": "75b2f599fbb1ea76034bd4f938ac54f8988d34a4c473b9bb50b755b12bb2954c",
+      "fingerprint": "75b2f599fbb1ea76034bd4f938ac54f8988d34a4c473b9bb50b755b12bb2954c",
+      "disposition": "must-fix",
+      "rationale": "R4 requires tests where excluded areas contain more than maxFiles files but source and docs still return fresh or stale. Current oversized-exclusion coverage is only fresh, and stale coverage is not tied to the required oversized excluded-content condition.",
+      "issue": "The R4 test proves excluded timestamp changes keep a fresh result fresh, while the R1 test separately returns stale with small excluded directories. There is no test in which the required oversized excluded directories coexist with a stale source/docs comparison and still return stale instead of indeterminate.",
+      "requiredChange": "Add or adjust one test so oversized excluded .git, .senti, node_modules, vendor, and generated specs evidence are present while a non-excluded source file is newer than docs and the result remains stale.",
+      "whyBlocking": "R4 requires tests where excluded areas contain more than maxFiles files but source and docs still return fresh or stale. Current oversized-exclusion coverage is only fresh, and stale coverage is not tied to the required oversized excluded-content condition.",
+      "origin": "R4",
+      "failureKind": "acceptance requirement has no corresponding spec-local test coverage"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Depth and directory-entry checks are grouped",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js:80",
+      "findingId": "f572c2f7efcb0a7533f11b8eea2f0d8bd0d8f7ef12b4f906b6f28ad685013e04",
+      "fingerprint": "f572c2f7efcb0a7533f11b8eea2f0d8bd0d8f7ef12b4f906b6f28ad685013e04",
+      "disposition": "informational",
+      "rationale": "The grouped test is still executable and covers the required limit kinds; this is only a diagnosability improvement.",
+      "improvement": "Consider splitting depth, directory-entry, and unreadable-path assertions into separate test cases so a first failure does not hide later limit coverage.",
+      "whyNonBlocking": "The grouped test is still executable and covers the required limit kinds; this is only a diagnosability improvement."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/480-freshness-scan-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "16bdd8f05451f0d461e4e54b756f1f9757d12c1af9b6c08180b6b322fa02391c"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "4b4d9b36c87f36babf41f0c0a313a27bc73cefdf58340f119489cffd61892cd3",
+      "findingId": "4b4d9b36c87f36babf41f0c0a313a27bc73cefdf58340f119489cffd61892cd3",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R4 file-budget scenario does not exceed maxFiles per excluded boundary",
+      "body": "The R1/R4 excluded-boundary tests create only 3 files in each excluded directory while configuring maxFiles to 2. That exceeds the configured test override, but it does not cover the requirement that each excluded area can contain more than the production maxFiles limit. An implementation could incorrectly use the default 10,000-file budget for excluded directories and still pass these tests.",
+      "category": "unknown",
+      "fingerprint": "4b4d9b36c87f36babf41f0c0a313a27bc73cefdf58340f119489cffd61892cd3",
+      "disposition": "must-fix",
+      "rationale": "R4 specifically requires unit tests in which .senti, node_modules, vendor, .git, and generated specs evidence contain more than maxFiles files; the current tests do not prove that behavior against the real limit premise."
+    },
+    {
+      "id": "75b2f599fbb1ea76034bd4f938ac54f8988d34a4c473b9bb50b755b12bb2954c",
+      "findingId": "75b2f599fbb1ea76034bd4f938ac54f8988d34a4c473b9bb50b755b12bb2954c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "R4 omits stale result coverage with oversized excluded content",
+      "body": "The R4 test proves excluded timestamp changes keep a fresh result fresh, while the R1 test separately returns stale with small excluded directories. There is no test in which the required oversized excluded directories coexist with a stale source/docs comparison and still return stale instead of indeterminate.",
+      "category": "unknown",
+      "fingerprint": "75b2f599fbb1ea76034bd4f938ac54f8988d34a4c473b9bb50b755b12bb2954c",
+      "disposition": "must-fix",
+      "rationale": "R4 requires tests where excluded areas contain more than maxFiles files but source and docs still return fresh or stale. Current oversized-exclusion coverage is only fresh, and stale coverage is not tied to the required oversized excluded-content condition."
+    },
+    {
+      "id": "f572c2f7efcb0a7533f11b8eea2f0d8bd0d8f7ef12b4f906b6f28ad685013e04",
+      "findingId": "f572c2f7efcb0a7533f11b8eea2f0d8bd0d8f7ef12b4f906b6f28ad685013e04",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 8,
+      "severity": "non-blocking",
+      "title": "Depth and directory-entry checks are grouped",
+      "body": "The grouped test is still executable and covers the required limit kinds; this is only a diagnosability improvement.",
+      "category": "unknown",
+      "fingerprint": "f572c2f7efcb0a7533f11b8eea2f0d8bd0d8f7ef12b4f906b6f28ad685013e04",
+      "disposition": "informational",
+      "rationale": "The grouped test is still executable and covers the required limit kinds; this is only a diagnosability improvement."
+    }
+  ]
+}

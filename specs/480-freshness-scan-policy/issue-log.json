@@ -1,0 +1,439 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R1 uses the vague qualifier \"generic\" for the freshness source-surface policy without stating verifiable conditions for what qualifies as generic.; Requirement R1 uses the vague qualifier \"reusable\" without stating verifiable conditions for reuse.; Requirement R2 uses \"included source or documentation traversal\" without defining which paths are included, leaving the condition ambiguous.; Requirement R3 uses \"structured freshness scan details\" without specifying the structure or fields beyond general categories.; Requirement R3 says to retain \"text output behavior\" without specifying the observable text output contract to preserve.; Requirement R4 uses \"excluded generated artifacts\" without defining which generated artifacts are excluded in verifiable terms.; Requirement R1 says to exclude \"generated, dependency, metadata, and runtime directory boundaries\" but does not identify the boundaries or a measurable classification rule, so reviewers could disagree on satisfaction.; Requirement R3 says to retain \"existing result names and text output behavior\" without enumerating the existing text behavior, so reviewers could disagree on whether it was preserved.; The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.; The spec changes the freshness source traversal behavior but lacks an inventory of the existing public behavior being replaced.; The spec changes the freshness source traversal behavior but lacks a mapping from each retained behavior to its new owner or an explicit removal decision.; The spec changes freshness command behavior but does not include behavior-level verification for each retained public surface through the new path.; The spec describes bounded recursive file traversal but does not state explicit upper bounds for depth, count, or size.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-28T10:46:15.446Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement R1 uses the vague qualifier \"generic\" for the freshness source-surface policy without stating verifiable conditions for what qualifies as generic.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement R1 uses the vague qualifier \"reusable\" without stating verifiable conditions for reuse.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[1].desc"
+          },
+          "observed": "Requirement R2 uses \"included source or documentation traversal\" without defining which paths are included, leaving the condition ambiguous.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[2].desc"
+          },
+          "observed": "Requirement R3 uses \"structured freshness scan details\" without specifying the structure or fields beyond general categories.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[2].desc"
+          },
+          "observed": "Requirement R3 says to retain \"text output behavior\" without specifying the observable text output contract to preserve.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[3].desc"
+          },
+          "observed": "Requirement R4 uses \"excluded generated artifacts\" without defining which generated artifacts are excluded in verifiable terms.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "Requirement R1 says to exclude \"generated, dependency, metadata, and runtime directory boundaries\" but does not identify the boundaries or a measurable classification rule, so reviewers could disagree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[2].desc"
+          },
+          "observed": "Requirement R3 says to retain \"existing result names and text output behavior\" without enumerating the existing text behavior, so reviewers could disagree on whether it was preserved.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec changes the freshness source traversal behavior but lacks an inventory of the existing public behavior being replaced.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec changes the freshness source traversal behavior but lacks a mapping from each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec changes freshness command behavior but does not include behavior-level verification for each retained public surface through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec describes bounded recursive file traversal but does not state explicit upper bounds for depth, count, or size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R1 uses the vague qualifier \"generic\" for the freshness source-surface policy without stating verifiable conditions for what qualifies as generic."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R1 uses the vague qualifier \"reusable\" without stating verifiable conditions for reuse."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R2 uses \"included source or documentation traversal\" without defining which paths are included, leaving the condition ambiguous."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R3 uses \"structured freshness scan details\" without specifying the structure or fields beyond general categories."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R3 says to retain \"text output behavior\" without specifying the observable text output contract to preserve."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R4 uses \"excluded generated artifacts\" without defining which generated artifacts are excluded in verifiable terms."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R1 says to exclude \"generated, dependency, metadata, and runtime directory boundaries\" but does not identify the boundaries or a measurable classification rule, so reviewers could disagree on satisfaction."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R3 says to retain \"existing result names and text output behavior\" without enumerating the existing text behavior, so reviewers could disagree on whether it was preserved."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec changes the freshness source traversal behavior but lacks an inventory of the existing public behavior being replaced."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec changes the freshness source traversal behavior but lacks a mapping from each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec changes freshness command behavior but does not include behavior-level verification for each retained public surface through the new path."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "The spec describes bounded recursive file traversal but does not state explicit upper bounds for depth, count, or size."
+        }
+      ],
+      "issueLogId": "issue-log-8b4f9f4c-a7f9-43e4-a248-9222a3f7712a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The requirement excludes “a specs subtree used only for flow-generated review or raw-test evidence” without defining how to identify that subtree, so independent reviewers could disagree on which specs paths satisfy the exclusion.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-28T10:47:23.357Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[0].desc"
+          },
+          "observed": "The requirement excludes “a specs subtree used only for flow-generated review or raw-test evidence” without defining how to identify that subtree, so independent reviewers could disagree on which specs paths satisfy the exclusion.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement excludes “a specs subtree used only for flow-generated review or raw-test evidence” without defining how to identify that subtree, so independent reviewers could disagree on which specs paths satisfy the exclusion."
+        }
+      ],
+      "issueLogId": "issue-log-c09997e8-d78e-45c9-a517-8ce8bcb14c0f"
+    },
+    {
+      "step": "test-review",
+      "taskId": null,
+      "reason": "Nonblocking repair decision: Added a deterministic docs/.senti over-budget case proving source exclusions do not apply to docs traversal.",
+      "trigger": "flow set nonblocking-decision",
+      "resolution": "repair and rerun test-review",
+      "evidenceRef": "specs/480-freshness-scan-policy/test-review.json",
+      "evidenceDigest": "a36920c0763717270a0744ca1450ef15396e9c5163592f1a3f59d2a914e6fc55",
+      "timestamp": "2026-07-28T10:57:15.017Z",
+      "issueLogId": "nonblocking-decision-aef5a0cc69efe6c8c1d606537a8eb8c68aeca65abee49a1917d4168dfeaf1f03"
+    },
+    {
+      "step": "task-review",
+      "reason": "Applied FRESHNESS_SOURCE_POLICY only to the source freshness traversal; docs retains default traversal behavior.",
+      "normalizedFindingId": "668a77684fd2acc449711b334b02c939962469f495c89665f78a551092dc1af3",
+      "repairRef": {
+        "files": [
+          "src/check/commands/freshness.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-28T11:03:43.891Z",
+      "issueLogId": "issue-log-c6fb6788-3395-497c-8e98-88082caa068d"
+    },
+    {
+      "step": "task-review",
+      "reason": "Confirmed TraversalLimit already supports unreadable and documented that it is shared by directory and stat failures, so both paths produce structured indeterminate evidence.",
+      "normalizedFindingId": "375d5f2a4457ef09142785c6a81d43f35c136210944782c938c521b2ef9eaad7",
+      "repairRef": {
+        "files": [
+          "src/lib/file-tree-walker.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-28T11:07:02.136Z",
+      "issueLogId": "issue-log-0d874550-e5f7-4615-ab70-bc0075a1d9ae"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: documented that stat failures are converted into user-visible unreadable traversal limits.",
+      "resolution": "R2 requires a fail-closed indeterminate result; preserving the failure in FreshnessResult is explicit handling without corrupting command JSON or text output.",
+      "taskId": "T-2",
+      "timestamp": "2026-07-28T11:08:14.787Z",
+      "issueLogId": "issue-log-34e4524a-2309-442c-a3ce-f80e65a0f4e7"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Excluded docs from the source walk only when it is contained by srcRoot, preserving source/docs separation without changing configured source-only scans.",
+      "normalizedFindingId": "70fec97b25f45d7edb4d1c2d22579212e9aadad114effd6a9c5287be7d0d67ba",
+      "repairRef": {
+        "files": [
+          "src/check/commands/freshness.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:13:00.322Z",
+      "issueLogId": "issue-log-f680f468-76b5-4540-bdf9-a315bf728368"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Encapsulated newest mtime as internal FreshnessScan comparison state; R3's public JSON detail remains limited to its four specified diagnostic fields.",
+      "normalizedFindingId": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "repairRef": {
+        "files": [
+          "src/check/commands/freshness.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:14:35.813Z",
+      "issueLogId": "issue-log-be8db588-31ac-46c7-aec9-13b49e4b1ffb"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Added nested src/node_modules fixture coverage; FreshnessSourcePolicy already rejects excluded basenames at every relative path segment before traversal.",
+      "normalizedFindingId": "d867630988a8f6c510227e3c856ef23ec557dc627c241dbb3722eaf1218a60c8",
+      "repairRef": {
+        "files": [
+          "tests/unit/check/scan-freshness.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:15:40.536Z",
+      "issueLogId": "issue-log-77693192-6205-4b24-925e-58be85073d94"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Spec-local fixtures exceed filesystem hard-link limits, assume an incorrect locale sort order, and leave the R3 docs mtime at wall-clock time. Repairing these invalid scenarios without weakening requirement coverage.",
+      "taskId": null,
+      "timestamp": "2026-07-28T11:17:02.582Z",
+      "issueLogId": "issue-log-178ce94f-4016-42ca-a115-2a98d604ad46"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Aligned text limit assertions with the structured first-rejected paths reported by the deterministic FileTreeWalker order.",
+      "normalizedFindingId": "e1b059d3a69df2d40cac1ca8a133dba6d63de8316fd384f1b528ed7992f2f693",
+      "repairRef": {
+        "files": [
+          "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:18:30.571Z",
+      "issueLogId": "issue-log-93d263e8-51b6-494d-8031-330806756fd6"
+    },
+    {
+      "step": "impl-review",
+      "reason": "FreshnessSourcePolicy now retains a work-root-relative source prefix so specs exclusions apply when scanning a nested source root.",
+      "normalizedFindingId": "750761769e8921e5092da8b1f098962d4a007d8350d0483fc510c52dd08727c5",
+      "repairRef": {
+        "files": [
+          "src/lib/file-tree-walker.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:20:05.543Z",
+      "issueLogId": "issue-log-e5d43918-7117-4dca-bd84-a85c5f8cf290"
+    },
+    {
+      "step": "impl-review",
+      "reason": "The source docs predicate explicitly rejects the docs directory and its descendants before FileTreeWalker can recurse.",
+      "normalizedFindingId": "d294e7880d6b29e396f99d2fe4f80ecb4a64550793bf00b45818a03c5002df37",
+      "repairRef": {
+        "files": [
+          "src/check/commands/freshness.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T11:20:11.384Z",
+      "issueLogId": "issue-log-f15c00c0-be5f-435e-8775-12e9d1da0826"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: restored the Flow-generated analysis artifact to its tracked base state.",
+      "resolution": "The generated analysis output is outside Issue #480 scope and is not part of the implementation; removing its incidental diff satisfies the scope check without changing product behavior.",
+      "taskId": null,
+      "timestamp": "2026-07-28T11:23:53.926Z",
+      "issueLogId": "issue-log-7408ad4b-a1a8-43f4-9632-a428358768b9"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: added explicit incomplete source and docs scan details to the never-built result.",
+      "resolution": "R3 now has the same serializable diagnostic shape for every verdict while preserving the never-built label and guidance.",
+      "normalizedFindingId": "5a62577cbeace7085a3679c0eb878fac0ea5427a69a308d8cd95b2b3dfa83cb3",
+      "taskId": null,
+      "timestamp": "2026-07-28T11:25:56.207Z",
+      "issueLogId": "issue-log-1061544e-f639-443c-8f9a-a219c08a4045"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: recorded the project OOP value-model rule as the required no-overengineering exception for FreshnessScan.",
+      "resolution": "FreshnessScan owns invariant-enforced structured diagnostics and serialization required by the approved spec; removing it would violate the project coding rule.",
+      "normalizedFindingId": "6ab0881dcb876749554492623111632f9f8de23524ae1de882d9757530b12d74",
+      "taskId": null,
+      "timestamp": "2026-07-28T11:28:40.396Z",
+      "issueLogId": "issue-log-1b97829e-f5df-4459-aafc-d79de6757663"
+    }
+  ]
+}

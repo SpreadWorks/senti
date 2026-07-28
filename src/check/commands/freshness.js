@@ -22,12 +22,74 @@ import { EXIT_ERROR } from "../../lib/constants.js";
 import {
   DEFAULT_SCAN_POLICY,
   FileTreeWalker,
+  FRESHNESS_SOURCE_POLICY,
+  TraversalLimit,
 } from "../../lib/file-tree-walker.js";
 
 const FRESHNESS_RESULTS = new Set(["fresh", "stale", "never-built", "indeterminate"]);
 
+export class FreshnessScan {
+  #newestMs;
+
+  constructor({ target, policy, newestMs = null, limits = [], complete = limits.length === 0 }) {
+    if (typeof target !== "string" || target === "") {
+      throw new Error("FreshnessScan target must be a non-empty string");
+    }
+    if (typeof policy !== "string" || policy === "") {
+      throw new Error("FreshnessScan policy must be a non-empty string");
+    }
+    if (!limits.every((limit) => limit instanceof TraversalLimit)) {
+      throw new Error("FreshnessScan limits must be TraversalLimit instances");
+    }
+    this.target = target;
+    this.policy = policy;
+    this.#newestMs = newestMs;
+    this.limits = Object.freeze([...limits]);
+    this.complete = complete;
+    Object.freeze(this);
+  }
+
+  get hasFiles() {
+    return this.#newestMs !== null;
+  }
+
+  newestTimestamp() {
+    return this.#newestMs === null ? null : new Date(this.#newestMs).toISOString();
+  }
+
+  isNewerThan(other) {
+    if (!(other instanceof FreshnessScan)) {
+      throw new Error("FreshnessScan can only compare another FreshnessScan");
+    }
+    return this.#newestMs > other.#newestMs;
+  }
+
+  toJSON() {
+    return {
+      target: this.target,
+      policy: this.policy,
+      complete: this.complete,
+      limits: this.limits.map(({ kind, relativePath, maximum }) => ({
+        kind,
+        relativePath,
+        maximum,
+      })),
+    };
+  }
+
+  describeLimits() {
+    return this.limits.map((limit) => limit.toString());
+  }
+}
+
 export class FreshnessResult {
-  constructor(result, { srcNewest = null, docsNewest = null, limits = [] } = {}) {
+  constructor(result, {
+    srcNewest = null,
+    docsNewest = null,
+    limits = [],
+    sourceScan = null,
+    docsScan = null,
+  } = {}) {
     if (!FRESHNESS_RESULTS.has(result)) {
       throw new Error(`unsupported freshness result: ${result}`);
     }
@@ -35,6 +97,8 @@ export class FreshnessResult {
     this.srcNewest = srcNewest;
     this.docsNewest = docsNewest;
     this.limits = Object.freeze([...limits]);
+    this.sourceScan = sourceScan;
+    this.docsScan = docsScan;
     Object.freeze(this);
   }
 
@@ -49,6 +113,8 @@ export class FreshnessResult {
       srcNewest: this.srcNewest,
       docsNewest: this.docsNewest,
       limits: this.limits,
+      sourceScan: this.sourceScan?.toJSON() ?? null,
+      docsScan: this.docsScan?.toJSON() ?? null,
     };
   }
 
@@ -96,28 +162,44 @@ function printHelp() {
  *
  * @param {string} dir
  * @param {import("../../lib/file-tree-walker.js").ScanPolicy} policy
- * @returns {Promise<{ newestMs: number|null, complete: boolean, limits: string[] }>}
+ * @param {import("../../lib/file-tree-walker.js").FreshnessSourcePolicy|null} sourcePolicy
+ * @returns {Promise<FreshnessScan>}
  */
-async function newestMtime(dir, policy = DEFAULT_SCAN_POLICY) {
-  const traversal = new FileTreeWalker(policy).walk(dir);
+async function newestMtime(
+  dir,
+  policy = DEFAULT_SCAN_POLICY,
+  sourcePolicy = null,
+  excludedDirectory = null
+) {
+  const traversal = new FileTreeWalker(policy).walk(
+    dir,
+    sourcePolicy === null
+      ? undefined
+      : {
+        shouldEnterDirectory: (relativePath) => (
+          relativePath !== excludedDirectory
+          && !relativePath.startsWith(`${excludedDirectory}/`)
+          && sourcePolicy.shouldEnterDirectory(relativePath)
+        ),
+      }
+  );
   let newestMs = null;
-  const statFailures = [];
+  const limits = [...traversal.limits];
   for (const relativePath of traversal.files) {
     try {
       const ms = (await fs.promises.stat(path.join(dir, relativePath))).mtimeMs;
       if (newestMs === null || ms > newestMs) newestMs = ms;
-    } catch (err) {
-      statFailures.push(`unreadable file ${relativePath}: ${err.code || err.message}`);
+    } catch {
+      // Preserve stat failures as a user-visible indeterminate scan result.
+      limits.push(new TraversalLimit("unreadable", relativePath, null));
     }
   }
-  return {
+  return new FreshnessScan({
+    target: dir,
+    policy: sourcePolicy?.name ?? "default",
     newestMs,
-    complete: traversal.complete && statFailures.length === 0,
-    limits: [
-      ...traversal.limits.map((limit) => limit.toString()),
-      ...statFailures,
-    ],
-  };
+    limits,
+  });
 }
 
 /**
@@ -130,47 +212,83 @@ async function newestMtime(dir, policy = DEFAULT_SCAN_POLICY) {
  */
 async function checkFreshness(workRoot, srcRoot, { policy = DEFAULT_SCAN_POLICY } = {}) {
   const docsDir = path.join(workRoot, "docs");
+  const sourceRelativeToWork = path.relative(workRoot, srcRoot);
+  const sourcePolicy = (
+    !sourceRelativeToWork.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(sourceRelativeToWork)
+  ) ? FRESHNESS_SOURCE_POLICY.forRelativeRoot(sourceRelativeToWork) : FRESHNESS_SOURCE_POLICY;
 
   try {
     await fs.promises.access(docsDir);
   } catch {
-    return new FreshnessResult("never-built");
+    return new FreshnessResult("never-built", {
+      sourceScan: new FreshnessScan({
+        target: srcRoot,
+        policy: sourcePolicy.name,
+        complete: false,
+      }),
+      docsScan: new FreshnessScan({
+        target: docsDir,
+        policy: "default",
+        complete: false,
+      }),
+    });
   }
 
+  const docsRelativeToSource = path.relative(srcRoot, docsDir);
+  const sourceDocsDirectory = (
+    docsRelativeToSource !== ""
+    && !docsRelativeToSource.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(docsRelativeToSource)
+  ) ? docsRelativeToSource : null;
   const [srcResult, docsResult] = await Promise.all([
-    newestMtime(srcRoot, policy),
+    newestMtime(srcRoot, policy, sourcePolicy, sourceDocsDirectory),
     newestMtime(docsDir, policy),
   ]);
 
-  const { newestMs: srcMs } = srcResult;
-  const { newestMs: docsMs } = docsResult;
-
-  const srcNewest = srcMs !== null ? new Date(srcMs).toISOString() : null;
-  const docsNewest = docsMs !== null ? new Date(docsMs).toISOString() : null;
+  const srcNewest = srcResult.newestTimestamp();
+  const docsNewest = docsResult.newestTimestamp();
 
   if (!srcResult.complete || !docsResult.complete) {
     return new FreshnessResult("indeterminate", {
       srcNewest,
       docsNewest,
       limits: [
-        ...srcResult.limits.map((limit) => `source: ${limit}`),
-        ...docsResult.limits.map((limit) => `docs: ${limit}`),
+        ...srcResult.describeLimits().map((limit) => `source: ${limit}`),
+        ...docsResult.describeLimits().map((limit) => `docs: ${limit}`),
       ],
+      sourceScan: srcResult,
+      docsScan: docsResult,
     });
   }
 
   // If source has no files, treat as fresh (nothing to build from)
-  if (srcMs === null) {
-    return new FreshnessResult("fresh", { srcNewest, docsNewest });
+  if (!srcResult.hasFiles) {
+    return new FreshnessResult("fresh", {
+      srcNewest,
+      docsNewest,
+      sourceScan: srcResult,
+      docsScan: docsResult,
+    });
   }
 
   // If docs has no files but dir exists, treat as stale
-  if (docsMs === null) {
-    return new FreshnessResult("stale", { srcNewest, docsNewest });
+  if (!docsResult.hasFiles) {
+    return new FreshnessResult("stale", {
+      srcNewest,
+      docsNewest,
+      sourceScan: srcResult,
+      docsScan: docsResult,
+    });
   }
 
-  const result = srcMs > docsMs ? "stale" : "fresh";
-  return new FreshnessResult(result, { srcNewest, docsNewest });
+  const result = srcResult.isNewerThan(docsResult) ? "stale" : "fresh";
+  return new FreshnessResult(result, {
+    srcNewest,
+    docsNewest,
+    sourceScan: srcResult,
+    docsScan: docsResult,
+  });
 }
 
 async function runFreshnessCheck(rawArgs, container) {

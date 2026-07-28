@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T10:50:53.408Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/480-freshness-scan-policy/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Missing docs limit regression coverage",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js",
+      "findingId": "e5839388e85d51672a72ff7daa99bd1a237030528f8417e869795503d6bf3e1c",
+      "fingerprint": "e5839388e85d51672a72ff7daa99bd1a237030528f8417e869795503d6bf3e1c",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the docs-side limit behavior.",
+      "issue": "R2 requires indeterminate when either the source scan or docs scan reaches limits. The executable test only forces a non-excluded source maxFiles limit and never proves a docs/ limit fails closed without source exclusions.",
+      "requiredChange": "Add a spec-local unit test that exceeds a scan limit under docs/ and asserts result is indeterminate with docsScan.complete false and the docs limit recorded.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local test coverage for the docs-side limit behavior.",
+      "origin": "R2",
+      "failureKind": "missing-test-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Incomplete JSON detail assertions",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js",
+      "findingId": "3bfade5615145f65d7b455c0a7c59c08367ecbc380cc033426f563e06f9e9f93",
+      "fingerprint": "3bfade5615145f65d7b455c0a7c59c08367ecbc380cc033426f563e06f9e9f93",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R3 covered, but the actual tests do not cover required JSON fields and limit metadata.",
+      "issue": "R3 requires sourceScan and docsScan details containing target, policy name, complete, and limits with kind, relativePath, and maximum. The tests only assert top-level keys and one source limit kind; they do not verify policy name values or limit relativePath/maximum shape for both scan details.",
+      "requiredChange": "Extend tests to assert the named policy value and that recorded limits include kind, relativePath, and maximum, including docsScan when docs reaches a limit.",
+      "whyBlocking": "The requirement coverage artifact marks R3 covered, but the actual tests do not cover required JSON fields and limit metadata.",
+      "origin": "R3",
+      "failureKind": "coverage-artifact-contradiction"
+    },
+    {
+      "kind": "blocking",
+      "title": "Result text labels and guidance are under-specified",
+      "target": "specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js",
+      "findingId": "93f4a7724539cc79dc6df832ffc69c704e6a98fd0e94ee29e5b7e54a912fa863",
+      "fingerprint": "93f4a7724539cc79dc6df832ffc69c704e6a98fd0e94ee29e5b7e54a912fa863",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that would pass without exercising the required production behavior.",
+      "issue": "R3 requires retaining toText labels for fresh, stale with docs-build guidance, never-built with docs-build guidance, and indeterminate with limits. The current regex only checks that one returned string starts with any result name, so it would pass if stale/never-built guidance or indeterminate limit text were removed.",
+      "requiredChange": "Add assertions for toText output in stale, never-built, and indeterminate cases that verify the required docs-build guidance and limit text.",
+      "whyBlocking": "The test has a static anti-pattern that would pass without exercising the required production behavior.",
+      "origin": "R3",
+      "failureKind": "static-anti-pattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/480-freshness-scan-policy/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "16277d1cda9fc50c23f5186071d9aa3269d37e9ccd28a8d782d71591bb65101b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "e5839388e85d51672a72ff7daa99bd1a237030528f8417e869795503d6bf3e1c",
+      "findingId": "e5839388e85d51672a72ff7daa99bd1a237030528f8417e869795503d6bf3e1c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Missing docs limit regression coverage",
+      "body": "R2 requires indeterminate when either the source scan or docs scan reaches limits. The executable test only forces a non-excluded source maxFiles limit and never proves a docs/ limit fails closed without source exclusions.",
+      "category": "unknown",
+      "fingerprint": "e5839388e85d51672a72ff7daa99bd1a237030528f8417e869795503d6bf3e1c",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local test coverage for the docs-side limit behavior."
+    },
+    {
+      "id": "3bfade5615145f65d7b455c0a7c59c08367ecbc380cc033426f563e06f9e9f93",
+      "findingId": "3bfade5615145f65d7b455c0a7c59c08367ecbc380cc033426f563e06f9e9f93",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Incomplete JSON detail assertions",
+      "body": "R3 requires sourceScan and docsScan details containing target, policy name, complete, and limits with kind, relativePath, and maximum. The tests only assert top-level keys and one source limit kind; they do not verify policy name values or limit relativePath/maximum shape for both scan details.",
+      "category": "unknown",
+      "fingerprint": "3bfade5615145f65d7b455c0a7c59c08367ecbc380cc033426f563e06f9e9f93",
+      "disposition": "must-fix",
+      "rationale": "The requirement coverage artifact marks R3 covered, but the actual tests do not cover required JSON fields and limit metadata."
+    },
+    {
+      "id": "93f4a7724539cc79dc6df832ffc69c704e6a98fd0e94ee29e5b7e54a912fa863",
+      "findingId": "93f4a7724539cc79dc6df832ffc69c704e6a98fd0e94ee29e5b7e54a912fa863",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Result text labels and guidance are under-specified",
+      "body": "R3 requires retaining toText labels for fresh, stale with docs-build guidance, never-built with docs-build guidance, and indeterminate with limits. The current regex only checks that one returned string starts with any result name, so it would pass if stale/never-built guidance or indeterminate limit text were removed.",
+      "category": "unknown",
+      "fingerprint": "93f4a7724539cc79dc6df832ffc69c704e6a98fd0e94ee29e5b7e54a912fa863",
+      "disposition": "must-fix",
+      "rationale": "The test has a static anti-pattern that would pass without exercising the required production behavior."
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T11:13:56.295Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-newest-in-scan-json",
+      "title": "Scan JSON Omits Newest Timestamp Evidence",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/check/commands/freshness.js",
+      "requirementId": "R3",
+      "issue": "FreshnessScan stores newestMs, but FreshnessScan.toJSON() does not serialize it. The new JSON detail only exposes target, policy, complete, and limits, so callers cannot inspect the per-surface newest timestamp that the scan computed.",
+      "suggestion": "Add newestMs, or the existing ISO-formatted equivalent expected by the requirement, to FreshnessScan.toJSON(), and update the R3 assertions in specs/480-freshness-scan-policy/tests/freshness-source-surface.test.js to require that field for both sourceScan and docsScan.",
+      "disposition": "must-fix",
+      "rationale": "R3 is mapped to src/check/commands/freshness.js and requires exposing source and documentation scan details. The implementation computes newestMs specifically as scan detail but drops it at the JSON boundary, which is a missing acceptance requirement rather than a cosmetic omission.",
+      "findingId": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "fingerprint": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "5735d9bc2d4221525ddacb1cee9c0127996d136c9d72f6ed2470034be3162f68",
+  "reviewedTree": "5735d9bc2d4221525ddacb1cee9c0127996d136c9d72f6ed2470034be3162f68",
+  "reviewedHead": "1d23417a7c22eefd648e78a4996942702912f286",
+  "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/480-freshness-scan-policy/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "830c81c079a089e76ab2baafbcf6df456c0d0483757d04a72e8020726ba3d437"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "findingId": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Scan JSON Omits Newest Timestamp Evidence",
+      "body": "FreshnessScan stores newestMs, but FreshnessScan.toJSON() does not serialize it. The new JSON detail only exposes target, policy, complete, and limits, so callers cannot inspect the per-surface newest timestamp that the scan computed.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "0954377eb777cec2a697002d36971d90abe719369e9000c41e0383a12de3b943",
+      "disposition": "must-fix",
+      "rationale": "R3 is mapped to src/check/commands/freshness.js and requires exposing source and documentation scan details. The implementation computes newestMs specifically as scan detail but drops it at the JSON boundary, which is a missing acceptance requirement rather than a cosmetic omission.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}
