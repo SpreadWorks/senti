@@ -770,6 +770,40 @@ export class DirectFlowSession {
     });
   }
 
+  refreshAuthority(plan, reason) {
+    if (this.phase !== "DIRECT_FIX" || this.completion != null) {
+      throw new Error("direct authority refresh requires an incomplete direct fix session");
+    }
+    if (!plan?.planId || !plan?.revision) {
+      throw new Error("direct authority refresh requires a replacement plan");
+    }
+    if (
+      plan.sourceStep !== this.sourceStep
+      || plan.target.runId !== this.target.runId
+      || plan.target.issue !== this.target.issue
+      || plan.target.spec !== this.target.spec
+      || plan.target.worktreePath !== this.target.worktreePath
+      || plan.target.featureBranch !== this.target.featureBranch
+      || plan.target.baseBranch !== this.target.baseBranch
+    ) {
+      throw new Error("direct authority refresh must preserve the session target");
+    }
+    return new DirectFlowSession({
+      ...this.toJSON(),
+      revision: this.revision + 1,
+      target: plan.target.toJSON(),
+      transitionReason: requireString(reason, "direct authority refresh reason"),
+      adoptedActionId: "REFRESH_DIRECT_AUTHORITY",
+      updatedAt: new Date().toISOString(),
+      planId: plan.planId,
+      planRevision: plan.revision,
+      implementationProof: null,
+      verification: null,
+      verificationAttempts: 0,
+      completion: null,
+    });
+  }
+
   toJSON() {
     return {
       phase: this.phase,

@@ -330,6 +330,37 @@ describe("direct session and plan authority", () => {
     }), /does not match its target guard/);
   });
 
+  it("refreshes only the Flow revision while preserving direct target authority", () => {
+    const initial = plan();
+    const fixing = selectedSession()
+      .withPlan(initial)
+      .transition("DIRECT_HANDOFF_PREFLIGHT")
+      .transition("DIRECT_FIX");
+    const refreshedTarget = new DirectFlowTarget({
+      ...initial.target.toJSON(),
+      flowStateRevision: "d".repeat(64),
+    });
+    const refreshedPlan = initial.withRefreshedAuthority(
+      refreshedTarget,
+      "Refresh only non-lifecycle Flow metadata authority.",
+    );
+    const refreshedSession = fixing.refreshAuthority(
+      refreshedPlan,
+      "Refresh only non-lifecycle Flow metadata authority.",
+    );
+
+    assert.notEqual(refreshedPlan.planId, initial.planId);
+    assert.equal(refreshedPlan.revision, 1);
+    assert.equal(refreshedPlan.adoptedActionId, "REFRESH_DIRECT_AUTHORITY");
+    assert.equal(refreshedSession.planId, refreshedPlan.planId);
+    assert.equal(refreshedSession.planRevision, refreshedPlan.revision);
+    assert.equal(refreshedSession.implementationProof, null);
+    assert.throws(() => initial.withRefreshedAuthority(new DirectFlowTarget({
+      ...refreshedTarget.toJSON(),
+      featureHead: MAIN_HEAD,
+    }), "Attempt to move Git authority."), /may update only the Flow state revision/);
+  });
+
   it("does not treat pre-implementation, branch, local, or parked state as eligible", () => {
     const steps = buildInitialSteps();
     const state = {

@@ -18,6 +18,7 @@ import {
   finalizationOutboxIdentity,
 } from "../../../src/flow/lib/flow-outbox.js";
 import { FinalizeCleanupStateResolution } from "../../../src/flow/lib/finalize-cleanup-state.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 import {
   ExternalBlockedOutcome,
@@ -868,6 +869,140 @@ test("direct fix derives its scope and verification command from Flow evidence",
       fixture.context().flowState.directFlowSession.verification.testCommand,
       "node -e \"process.exit(0)\"",
     );
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct fix refreshes a stale origin revision only when lifecycle and safety authority match", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-authority-refresh" });
+  try {
+    const initialSteps = stepStatuses(fixture.context().flowState);
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Exercise recovery from non-lifecycle Flow metadata drift.",
+      scope: ["src/direct-authority-refresh.js"],
+      source: "manual",
+    });
+    const sourcePath = path.join(
+      fixture.worktreePath,
+      "src",
+      "direct-authority-refresh.js",
+    );
+    fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+    fs.writeFileSync(sourcePath, "export const directAuthorityRefresh = true;\n");
+
+    const planned = fixture.context().flowState;
+    const originalPlan = DirectResolutionPlan.fromStored(planned.directResolutionPlan);
+    fixture.context().flowManager.mutate((state) => {
+      state.metrics = [
+        ...(state.metrics || []),
+        {
+          phase: "impl",
+          counter: "srcRead",
+          delta: 1,
+          taskId: null,
+          ts: "2026-07-28T00:00:00.000Z",
+        },
+      ];
+    });
+
+    const stale = getDirectFlowAction(fixture.context());
+    assert.equal(stale.code, "DIRECT_AUTHORITY_REFRESH_REQUIRED");
+    assert.equal(stale.requiresUserAction, false);
+    assert.equal(stale.continuation.actionId, "REFRESH_DIRECT_AUTHORITY");
+    assert.deepEqual(stale.authorityRefresh.failedSafetyChecks, ["origin-flow-revision"]);
+    const nextAction = await new GetNextActionCommand().execute(fixture.context());
+    assert.equal(nextAction.directive.kind, "execute_command");
+    assert.equal(nextAction.directive.actionId, "REFRESH_DIRECT_AUTHORITY");
+
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), {
+        action: "CONFIRM_DIRECT_IMPLEMENTATION",
+        summary: "Completed the bounded direct implementation and inspected the product diff.",
+      }),
+      (error) => error.code === "DIRECT_IMPLEMENTATION_SAFETY_FAILED",
+    );
+
+    const refreshed = await runDirectFlowAction(fixture.context(), {
+      action: "REFRESH_DIRECT_AUTHORITY",
+    });
+    assert.equal(refreshed.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    const recovered = fixture.context().flowState;
+    const recoveredPlan = DirectResolutionPlan.fromStored(recovered.directResolutionPlan);
+    const recoveredSession = DirectFlowSession.fromStored(recovered.directFlowSession);
+    assert.notEqual(recoveredPlan.planId, originalPlan.planId);
+    assert.equal(recoveredPlan.revision, 1);
+    assert.equal(recoveredPlan.adoptedActionId, "REFRESH_DIRECT_AUTHORITY");
+    assert.equal(recoveredPlan.originFlowStateRevision, recoveredPlan.target.flowStateRevision);
+    assert.equal(recoveredSession.planId, recoveredPlan.planId);
+    assert.equal(recoveredSession.planRevision, recoveredPlan.revision);
+    assert.equal(recovered.metrics.at(-1).counter, "srcRead");
+    assert.deepEqual(stepStatuses(recovered), initialSteps);
+    assert.equal(
+      fs.readFileSync(sourcePath, "utf8"),
+      "export const directAuthorityRefresh = true;\n",
+    );
+
+    await confirmDirectImplementation(fixture);
+    const verified = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(verified.code, "DIRECT_VERIFY_PASSED");
+
+    const issueLog = JSON.parse(fs.readFileSync(
+      path.join(fixture.worktreePath, "specs", fixture.specId, "issue-log.json"),
+      "utf8",
+    ));
+    const refreshEntry = issueLog.entries.find((entry) => (
+      entry.step === "direct-authority-refresh"
+    ));
+    assert.equal(refreshEntry.previousPlanId, originalPlan.planId);
+    assert.equal(refreshEntry.planId, recoveredPlan.planId);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("direct authority refresh fails closed after lifecycle progression", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-authority-lifecycle-change" });
+  try {
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Preserve lifecycle authority while exercising stale revision recovery.",
+      scope: ["src/direct-authority-lifecycle-change.js"],
+      source: "manual",
+    });
+    const planned = fixture.context().flowState;
+    const originalPlan = DirectResolutionPlan.fromStored(planned.directResolutionPlan);
+    fixture.context().flowManager.mutate((state) => {
+      const leaves = flattenSteps(state.steps);
+      leaves.find((step) => step.id === "implement").status = "done";
+      leaves.find((step) => step.id === "impl-review").status = "in_progress";
+    });
+
+    const blocked = getDirectFlowAction(fixture.context());
+    assert.equal(blocked.code, "DIRECT_AUTHORITY_REFRESH_BLOCKED");
+    assert.equal(
+      blocked.authorityRefresh.blockingReasons.some((reason) => (
+        reason.includes("active step changed")
+      )),
+      true,
+    );
+    const nextAction = await new GetNextActionCommand().execute(fixture.context());
+    assert.equal(nextAction.directive.kind, "blocked");
+    assert.equal(nextAction.directive.code, "DIRECT_AUTHORITY_REFRESH_BLOCKED");
+    await assert.rejects(
+      runDirectFlowAction(fixture.context(), {
+        action: "REFRESH_DIRECT_AUTHORITY",
+      }),
+      (error) => error.code === "DIRECT_AUTHORITY_REFRESH_UNAVAILABLE",
+    );
+    const retained = fixture.context().flowState;
+    assert.equal(retained.directResolutionPlan.planId, originalPlan.planId);
+    assert.equal(retained.directFlowSession.planId, originalPlan.planId);
   } finally {
     fixture.cleanup();
   }

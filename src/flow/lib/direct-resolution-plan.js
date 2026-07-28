@@ -226,6 +226,33 @@ export class DirectResolutionPlan {
     });
   }
 
+  withRefreshedAuthority(target, reason) {
+    const refreshed = DirectFlowTarget.fromStored(target);
+    if (
+      refreshed.runId !== this.target.runId
+      || refreshed.issue !== this.target.issue
+      || refreshed.spec !== this.target.spec
+      || refreshed.worktreePath !== this.target.worktreePath
+      || refreshed.featureBranch !== this.target.featureBranch
+      || refreshed.baseBranch !== this.target.baseBranch
+      || refreshed.bindingRevision !== this.target.bindingRevision
+      || refreshed.activeRegistryRevision !== this.target.activeRegistryRevision
+      || refreshed.featureHead !== this.target.featureHead
+    ) {
+      throw new Error("direct authority refresh may update only the Flow state revision");
+    }
+    return new DirectResolutionPlan({
+      ...this.toJSON(),
+      planId: null,
+      revision: 1,
+      target: refreshed,
+      transitionReason: requireString(reason, "direct authority refresh reason"),
+      transitionAt: new Date().toISOString(),
+      originFlowStateRevision: refreshed.flowStateRevision,
+      adoptedActionId: "REFRESH_DIRECT_AUTHORITY",
+    });
+  }
+
   toJSON() {
     return {
       planId: this.planId,
