@@ -192,6 +192,27 @@ function directIdentityExpectation(state) {
   });
 }
 
+function resolveWorktreeDirectSession(ctx, state, { mainRoot, specId }) {
+  if (!state?.worktree) return null;
+  const { worktreePath } = ctx.flowManager.resolveWorktreePaths(state);
+  if (!worktreePath || !fs.existsSync(worktreePath)) return null;
+
+  const flowManager = ctx.flowManager.forRoot(worktreePath, { specId });
+  const flowState = flowManager.loadReadOnly(specId);
+  const mismatch = flowState && new FlowTargetExpectation(ctx).mismatchAgainst(flowState);
+  if (!flowState?.directFlowSession || mismatch) return null;
+
+  return {
+    ...ctx,
+    root: worktreePath,
+    mainRoot,
+    flowManager,
+    flowState,
+    state: flowState,
+    specId,
+  };
+}
+
 function resolveStateFallback(ctx) {
   const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
   const specId = ctx.expectSpec ? specIdFromPath(ctx.expectSpec) : null;
@@ -209,6 +230,8 @@ function resolveStateFallback(ctx) {
         specId,
       };
     }
+    const worktreeSession = resolveWorktreeDirectSession(ctx, state, { mainRoot, specId });
+    if (worktreeSession) return worktreeSession;
   }
   if (ctx.flowState) return { ...ctx, state: ctx.flowState };
   if (!ctx.expectSpec) return { ...ctx, state: null };

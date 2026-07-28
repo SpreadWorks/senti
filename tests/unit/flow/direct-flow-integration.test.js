@@ -329,6 +329,37 @@ test("direct fix persists its plan before changes and completes through shared t
   }
 });
 
+test("direct inspection and continuation prefer a retained worktree session over stale main state", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-worktree-session" });
+  try {
+    const worktree = fixture.context();
+    const main = fixture.context({ fromMain: true });
+    main.flowManager.create(structuredClone(worktree.flowState));
+
+    await runDirectFlowAction(worktree, {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Persist direct recovery in the managed worktree.",
+      scope: ["src/worktree-session.js"],
+      source: "manual",
+    });
+
+    const inspected = getDirectFlowAction(fixture.context({ fromMain: true }));
+    assert.equal(inspected.code, "DIRECT_IMPLEMENTATION_REQUIRED");
+    assert.equal(inspected.directFlowSession.phase, "DIRECT_FIX");
+
+    const confirmed = await runDirectFlowAction(fixture.context({ fromMain: true }), {
+      action: "CONFIRM_DIRECT_IMPLEMENTATION",
+      summary: "Completed the bounded direct implementation. R1: the retained worktree session is resolved before stale main state.",
+    });
+    assert.equal(confirmed.code, "DIRECT_FIX");
+    assert.ok(confirmed.directFlowSession.implementationProof);
+    assert.ok(fixture.context().flowState.directFlowSession.implementationProof);
+    assert.equal(fixture.context({ fromMain: true }).flowState.directFlowSession, undefined);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test("direct finalize revalidates a rebased pending receipt and resumes integration", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-rebased-pending-receipt" });
   try {
