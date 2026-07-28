@@ -24,6 +24,7 @@ import {
   DirectResolutionPlan,
 } from "./direct-resolution-plan.js";
 import { DirectScopeReview } from "./direct-scope-review.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { DirectVerificationCommandResolver } from "./direct-verification-command.js";
 import {
   DirectAbortArchive,
@@ -346,12 +347,16 @@ function readFeatureDiffPaths(root, baseBranch, featureBranch) {
 }
 
 function combinedChangedPaths(root, state, ignoredPrefixes = []) {
+  const artifactRegistry = new RepairArtifactRegistry(state.spec);
   return [...new Set([
     ...readFeatureDiffPaths(root, state.baseBranch, state.featureBranch),
     ...readWorkingTreePaths(root),
-  ])].filter((relativePath) => !ignoredPrefixes.some((prefix) => (
-    relativePath === prefix || relativePath.startsWith(`${prefix}/`)
-  ))).sort();
+  ])].filter((relativePath) => (
+    !artifactRegistry.owns(relativePath)
+    && !ignoredPrefixes.some((prefix) => (
+      relativePath === prefix || relativePath.startsWith(`${prefix}/`)
+    ))
+  )).sort();
 }
 
 function directIgnoredPathPrefixes(authority, root) {
@@ -425,13 +430,8 @@ function fingerprintChangedPath(root, relativePath) {
   });
 }
 
-function directPathFingerprints(root, changedPaths, specId) {
-  const directMetadata = new Set([
-    `specs/${specId}/flow.json`,
-    `specs/${specId}/issue-log.json`,
-  ]);
+function directPathFingerprints(root, changedPaths) {
   return changedPaths
-    .filter((relativePath) => !directMetadata.has(relativePath))
     .map((relativePath) => fingerprintChangedPath(root, relativePath));
 }
 
@@ -2224,11 +2224,7 @@ function directSafetySnapshot(authority, state, plan) {
     changedPaths,
     outOfScope,
     originFlowStateRevision: flowStateRevisionDigest(originatingFlowState(state)),
-    pathFingerprints: directPathFingerprints(
-      target.worktreePath,
-      changedPaths,
-      target.specId,
-    ),
+    pathFingerprints: directPathFingerprints(target.worktreePath, changedPaths),
     checks,
   };
 }

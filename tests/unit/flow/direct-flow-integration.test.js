@@ -1019,9 +1019,36 @@ test("direct scope review adopts only exact current evidence before authority re
     });
     const requiredPath = path.join(fixture.worktreePath, "src", "required.js");
     const unrelatedPath = path.join(fixture.worktreePath, "notes.tmp");
+    const triagePath = path.join(
+      fixture.worktreePath,
+      "specs",
+      fixture.specId,
+      "impl-triage.json",
+    );
+    const reviewHistoryPath = path.join(
+      fixture.worktreePath,
+      "specs",
+      fixture.specId,
+      "review-history",
+      "impl-attempt-021.json",
+    );
+    const workUnitPath = path.join(
+      fixture.worktreePath,
+      "specs",
+      fixture.specId,
+      "review-history",
+      "work-units",
+      "impl-review",
+      "unit-r4.json",
+    );
     fs.mkdirSync(path.dirname(requiredPath), { recursive: true });
+    fs.mkdirSync(path.dirname(reviewHistoryPath), { recursive: true });
+    fs.mkdirSync(path.dirname(workUnitPath), { recursive: true });
     fs.writeFileSync(requiredPath, "export const required = 1;\n");
     fs.writeFileSync(unrelatedPath, "unrelated local note\n");
+    fs.writeFileSync(triagePath, "{\"generated\":true}\n");
+    fs.writeFileSync(reviewHistoryPath, "{\"generated\":true}\n");
+    fs.writeFileSync(workUnitPath, "{\"generated\":true}\n");
     fixture.context().flowManager.mutate((state) => {
       state.metrics = [
         ...(state.metrics || []),
@@ -1143,6 +1170,9 @@ test("direct scope review adopts only exact current evidence before authority re
     fs.unlinkSync(unrelatedPath);
     const authorityRefresh = getDirectFlowAction(fixture.context());
     assert.equal(authorityRefresh.code, "DIRECT_AUTHORITY_REFRESH_REQUIRED");
+    assert.equal(fs.existsSync(triagePath), true);
+    assert.equal(fs.existsSync(reviewHistoryPath), true);
+    assert.equal(fs.existsSync(workUnitPath), true);
     assert.deepEqual(
       authorityRefresh.authorityRefresh.failedSafetyChecks,
       ["origin-flow-revision"],
