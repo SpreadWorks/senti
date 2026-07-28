@@ -1819,6 +1819,43 @@
       "reason": "finalize worktree HEAD diverged from durable teardown authority",
       "timestamp": "2026-07-28T07:54:06.632Z",
       "issueLogId": "issue-log-82156a98-10a5-42e3-ac94-4eb1be0b8a83"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "finalize worktree HEAD diverged from durable teardown authority",
+      "timestamp": "2026-07-28T08:47:23.967Z",
+      "issueLogId": "issue-log-d552987b-69b4-4314-aba7-8de7ca9fc848"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Rebasing after main advanced changed the worktree HEAD beyond durable teardown authority, so cleanup cannot safely delete the feature branch.",
+      "trigger": "The user requested rebasing the feature branch onto the current main branch during finalization.",
+      "guardrailCandidate": "Finalize cleanup must offer a typed recovery when a user-authorized rebase changes the feature HEAD after teardown authority is persisted.",
+      "taskId": null,
+      "timestamp": "2026-07-28T08:48:04.052Z",
+      "issueLogId": "issue-log-e445c7fb-12a8-499b-a18f-6016579a9b1d"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Cleanup rejected a rebase-aligned worktree because its immutable teardown authority had no safe reconciliation route.",
+      "trigger": "A retained cleanup retry observed a feature and worktree HEAD changed by rebase after the finalization commit reached main.",
+      "resolution": "Added a durable rebased-worktree authority that is issued only at exact base alignment and routes retained commits through explicit auto-rescue.",
+      "guardrailCandidate": "Rebase recovery must preserve original teardown authority and require either exact base alignment or explicit commit preservation before deletion.",
+      "taskId": null,
+      "timestamp": "2026-07-28T09:09:46.477Z",
+      "issueLogId": "issue-log-6933553f-5fd2-47f1-a11e-7c898fecfddc"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Rebased feature commits detected on feature/479-scenario-validity-baseline (2 commit(s) beyond the rebased base).; These commits are not reachable from the current base branch and would be dropped by branch deletion.; Recovery options:;   - cherry-pick: re-run with --auto-rescue to preserve the commits on the base branch;   - abort: leave the worktree and feature branch as-is and inspect/handle manually;   - force-continue: re-run with --force to delete the branch (commits will be lost; recorded to issue-log)",
+      "timestamp": "2026-07-28T09:11:43.140Z",
+      "issueLogId": "issue-log-1b42632f-0dbd-4e1d-986e-70ed1e313515"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Preserving rebased feature commits before teardown did not complete.; Auto-rescue stopped with MAIN_REPO_DIRTY.",
+      "timestamp": "2026-07-28T09:13:51.321Z",
+      "issueLogId": "issue-log-8231064c-cd6c-40bc-a3db-f25f644b1d8c"
     }
   ]
 }

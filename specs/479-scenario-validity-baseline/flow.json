@@ -473,8 +473,9 @@
             },
             {
               "id": "finalize-cleanup",
-              "status": "in_progress",
-              "startedAt": "2026-07-28T06:04:34.088Z"
+              "status": "done",
+              "startedAt": "2026-07-28T06:04:34.088Z",
+              "finishedAt": "2026-07-28T09:19:34.053Z"
             }
           ]
         }
@@ -2215,11 +2216,17 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "failed",
-      "attempt": 2,
-      "startedAt": "2026-07-28T07:54:06.411Z",
-      "updatedAt": "2026-07-28T07:54:06.614Z",
-      "failure": "finalize worktree HEAD diverged from durable teardown authority",
+      "status": "done",
+      "attempt": 6,
+      "startedAt": "2026-07-28T09:19:30.537Z",
+      "updatedAt": "2026-07-28T09:19:34.187Z",
+      "result": {
+        "status": "done",
+        "assurance": "strict",
+        "pluginHooks": [],
+        "followUps": [],
+        "retainedCleanupMetadata": null
+      },
       "failureHistory": [
         {
           "attempt": 1,
@@ -2230,6 +2237,21 @@
           "attempt": 2,
           "failure": "finalize worktree HEAD diverged from durable teardown authority",
           "recordedAt": "2026-07-28T07:54:06.614Z"
+        },
+        {
+          "attempt": 3,
+          "failure": "finalize worktree HEAD diverged from durable teardown authority",
+          "recordedAt": "2026-07-28T08:47:23.949Z"
+        },
+        {
+          "attempt": 4,
+          "failure": "Rebased feature commits detected on feature/479-scenario-validity-baseline (2 commit(s) beyond the rebased base).; These commits are not reachable from the current base branch and would be dropped by branch deletion.; Recovery options:;   - cherry-pick: re-run with --auto-rescue to preserve the commits on the base branch;   - abort: leave the worktree and feature branch as-is and inspect/handle manually;   - force-continue: re-run with --force to delete the branch (commits will be lost; recorded to issue-log)",
+          "recordedAt": "2026-07-28T09:11:43.119Z"
+        },
+        {
+          "attempt": 5,
+          "failure": "Preserving rebased feature commits before teardown did not complete.; Auto-rescue stopped with MAIN_REPO_DIRTY.",
+          "recordedAt": "2026-07-28T09:13:51.301Z"
         }
       ]
     }
@@ -3607,6 +3629,20 @@
       },
       "taskId": null,
       "ts": "2026-07-28T05:52:50.716Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-28T08:48:04.127Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-28T09:09:46.554Z"
     }
   ],
   "reviewConvergence": {
