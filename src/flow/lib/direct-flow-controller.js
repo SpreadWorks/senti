@@ -70,6 +70,10 @@ const MAX_SCOPE_PATHS = 200;
 const DEFAULT_TEST_TIMEOUT_MS = 120_000;
 const MAX_TEST_TIMEOUT_MS = 900_000;
 const MAX_DIRECT_VERIFICATION_ATTEMPTS = 3;
+const DIRECT_AUTHORITY_REFRESH_REASON = [
+  "Refresh the direct repair authority after non-lifecycle Flow metadata changed.",
+  "The target identity, lifecycle position, Git safety checks, and repair scope remain unchanged.",
+].join(" ");
 
 function directMutationOptions(authority, options = {}) {
   return {
@@ -891,6 +895,35 @@ function appendAbortRecoveryIssueLog({
   }, `direct-recovery:${state.runId}:${abortReceipt.receiptId}:r${plan.revision}`);
 }
 
+function appendAuthorityRefreshIssueLog({
+  root,
+  state,
+  previousPlan,
+  plan,
+  mainRoot,
+  operationOwnerToken = null,
+}) {
+  return new IssueLogStore({
+    root,
+    mainRoot,
+    spec: state.spec,
+    operationOwnerToken,
+  }).append({
+    step: "direct-authority-refresh",
+    reason: DIRECT_AUTHORITY_REFRESH_REASON,
+    trigger: "REFRESH_DIRECT_AUTHORITY",
+    resolution: "Rebound the retained direct repair to the current non-lifecycle Flow revision.",
+    runId: state.runId,
+    previousPlanId: previousPlan.planId,
+    previousPlanRevision: previousPlan.revision,
+    planId: plan.planId,
+    planRevision: plan.revision,
+    sourceStep: plan.sourceStep,
+    timestamp: plan.transitionAt,
+    taskId: null,
+  }, `direct-authority-refresh:${state.runId}:${plan.planId}`);
+}
+
 function explicitSelectionSource(input) {
   const source = String(input.source || "manual").trim().toLowerCase();
   if (source === "manual") return source;
@@ -955,10 +988,7 @@ function buildPlan(authority, state, session, input) {
     sourceStep: session.sourceStep,
     transitionReason: session.transitionReason,
     transitionAt: session.selectedAt,
-    skippedSteps: DIRECT_SKIPPED_STEPS.filter((stepId) => {
-      const step = findStepById(state.steps || [], stepId);
-      return step == null || !["done", "skipped"].includes(step.status);
-    }),
+    skippedSteps: directSkippedSteps(state),
     validationItems: DIRECT_VALIDATION_ITEMS,
     findings,
     routingFailure: latestRoutingFailure(state),
@@ -966,6 +996,13 @@ function buildPlan(authority, state, session, input) {
     selectionSource: session.selectionSource,
     adoptedActionId: session.adoptedActionId,
     scopePaths: normalizedScopePaths([...initialPaths, ...explicitPaths, ...findingTargets]),
+  });
+}
+
+function directSkippedSteps(state) {
+  return DIRECT_SKIPPED_STEPS.filter((stepId) => {
+    const step = findStepById(state.steps || [], stepId);
+    return step == null || !["done", "skipped"].includes(step.status);
   });
 }
 
@@ -1358,6 +1395,34 @@ function activeDirectPrompt(ctx, state) {
       recommendedActionId: "RESUME_DIRECT_PREFLIGHT",
       recommendationReason: "The saved plan is ready; continuing does not recreate or replace it.",
     });
+  }
+  if (
+    session.phase === "DIRECT_FIX"
+    && flowStateRevisionDigest(originatingFlowState(state)) !== plan.originFlowStateRevision
+  ) {
+    const refresh = inspectDirectAuthorityRefresh(ctx, state, session, plan);
+    if (refresh.available) {
+      return mechanicalContinuationResult({
+        code: "DIRECT_AUTHORITY_REFRESH_REQUIRED",
+        state,
+        actionId: "REFRESH_DIRECT_AUTHORITY",
+        nextAction: run("REFRESH_DIRECT_AUTHORITY"),
+        instruction: "Refresh the retained direct repair authority, then continue implementation completion.",
+        details: { authorityRefresh: refresh.toJSON() },
+      });
+    }
+    return {
+      code: "DIRECT_AUTHORITY_REFRESH_BLOCKED",
+      phase: session.phase,
+      yieldsControl: false,
+      requiresUserAction: false,
+      message: [
+        "The direct repair authority cannot be refreshed because more than non-lifecycle metadata changed.",
+        ...refresh.blockingReasons,
+      ].join(" "),
+      authorityRefresh: refresh.toJSON(),
+      directFlowSession: session.toJSON(),
+    };
   }
   if (
     ["DIRECT_FIX", "DIRECT_VERIFY"].includes(session.phase)
@@ -2032,6 +2097,122 @@ function directSafetySnapshot(authority, state, plan) {
   };
 }
 
+class DirectAuthorityRefreshAssessment {
+  constructor({ state, session, plan, snapshot }) {
+    const failedSafetyChecks = snapshot.checks
+      .filter((check) => !check.passed)
+      .map((check) => check.id);
+    const sourceStep = findActiveNode(state)?.stepId ?? null;
+    const skippedSteps = directSkippedSteps(state);
+    const routingFailure = latestRoutingFailure(state);
+    const blockingReasons = [
+      ...(session.phase !== "DIRECT_FIX" ? [`direct phase is ${session.phase}`] : []),
+      ...(session.completion != null ? ["direct completion evidence already exists"] : []),
+      ...(session.implementationProof != null ? ["implementation completion evidence already exists"] : []),
+      ...(session.verification != null || session.verificationAttempts !== 0
+        ? ["direct verification evidence already exists"]
+        : []),
+      ...(plan.unresolvedDecisions.length > 0 ? ["direct decisions remain unresolved"] : []),
+      ...(state.directIntegrationReceipt ? ["direct integration evidence already exists"] : []),
+      ...(state.directCompletionReceipt ? ["direct completion receipt already exists"] : []),
+      ...(state.directAbortReceipt ? ["direct abort evidence already exists"] : []),
+      ...(state.directReconcileEvidence ? ["direct reconcile evidence already exists"] : []),
+      ...(failedSafetyChecks.length !== 1 || failedSafetyChecks[0] !== "origin-flow-revision"
+        ? [`safety failures are ${failedSafetyChecks.join(", ") || "absent"}`]
+        : []),
+      ...(sourceStep !== plan.sourceStep
+        ? [`active step changed from ${plan.sourceStep} to ${sourceStep || "none"}`]
+        : []),
+      ...(JSON.stringify(skippedSteps) !== JSON.stringify([...plan.skippedSteps])
+        ? ["normal post-implementation step status changed"]
+        : []),
+      ...(routingFailure !== plan.routingFailure ? ["routing failure authority changed"] : []),
+    ];
+    this.available = blockingReasons.length === 0;
+    this.failedSafetyChecks = Object.freeze(failedSafetyChecks);
+    this.sourceStep = sourceStep;
+    this.skippedSteps = Object.freeze(skippedSteps);
+    this.routingFailure = routingFailure;
+    this.blockingReasons = Object.freeze(blockingReasons);
+    this.snapshot = snapshot;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      available: this.available,
+      failedSafetyChecks: [...this.failedSafetyChecks],
+      sourceStep: this.sourceStep,
+      skippedSteps: [...this.skippedSteps],
+      routingFailure: this.routingFailure,
+      blockingReasons: [...this.blockingReasons],
+    };
+  }
+}
+
+function inspectDirectAuthorityRefresh(authority, state, session, plan) {
+  return new DirectAuthorityRefreshAssessment({
+    state,
+    session,
+    plan,
+    snapshot: directSafetySnapshot(authority, state, plan),
+  });
+}
+
+function refreshDirectAuthority(authority) {
+  const state = authority.flowManager.load(authority.specId);
+  const session = DirectFlowSession.fromStored(state.directFlowSession);
+  const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
+  const assessment = inspectDirectAuthorityRefresh(authority, state, session, plan);
+  if (!assessment.available) {
+    throw Object.assign(new Error(
+      `direct authority refresh is unavailable: ${assessment.blockingReasons.join("; ")}`,
+    ), {
+      code: "DIRECT_AUTHORITY_REFRESH_UNAVAILABLE",
+      data: assessment.toJSON(),
+    });
+  }
+  const target = new DirectFlowTarget({
+    ...plan.target.toJSON(),
+    flowStateRevision: flowStateRevisionDigest(originatingFlowState(state)),
+  });
+  const refreshedPlan = plan.withRefreshedAuthority(
+    target,
+    DIRECT_AUTHORITY_REFRESH_REASON,
+  );
+  const refreshedSession = session.refreshAuthority(
+    refreshedPlan,
+    DIRECT_AUTHORITY_REFRESH_REASON,
+  );
+  authority.flowManager.mutate((current) => {
+    const durableSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const durablePlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    if (
+      durableSession.revision !== session.revision
+      || durableSession.planId !== plan.planId
+      || durableSession.planRevision !== plan.revision
+      || durablePlan.planId !== plan.planId
+      || durablePlan.revision !== plan.revision
+    ) {
+      throw Object.assign(new Error("direct authority changed before refresh"), {
+        code: "DIRECT_CAS_CONFLICT",
+      });
+    }
+    current.directResolutionPlan = refreshedPlan.toJSON();
+    current.directFlowSession = refreshedSession.toJSON();
+  }, directMutationOptions(authority, { expectedOriginal: state }));
+  const persisted = authority.flowManager.load(authority.specId);
+  appendAuthorityRefreshIssueLog({
+    root: assessment.snapshot.target.worktreePath,
+    mainRoot: authority.mainRoot,
+    state: persisted,
+    previousPlan: plan,
+    plan: refreshedPlan,
+    operationOwnerToken: authority.repositoryOperationOwnerToken,
+  });
+  return authority.flowManager.load(authority.specId);
+}
+
 function confirmDirectImplementation(authority, input) {
   const state = authority.flowManager.load(authority.specId);
   const session = DirectFlowSession.fromStored(state.directFlowSession);
@@ -2638,6 +2819,10 @@ async function runDirectFlowActionOwned(ctx, input) {
     const recorded = recordDirectFinding(authority, input);
     return activeDirectPrompt(authority, recorded);
   }
+  if (action === "REFRESH_DIRECT_AUTHORITY") {
+    const refreshed = refreshDirectAuthority(authority);
+    return activeDirectPrompt(authority, refreshed);
+  }
   if (action === "CONFIRM_DIRECT_IMPLEMENTATION") {
     const confirmed = confirmDirectImplementation(authority, input);
     return activeDirectPrompt(authority, confirmed);
@@ -2696,7 +2881,12 @@ async function runDirectFlowActionOwned(ctx, input) {
   }
   if (action === "RESUME_DIRECT") {
     const resumed = resumeDirectSession(authority);
-    return activeDirectPrompt(authority, resumed);
+    const continuation = activeDirectPrompt(authority, resumed);
+    if (continuation.continuation?.actionId === "REFRESH_DIRECT_AUTHORITY") {
+      const refreshed = refreshDirectAuthority(authority);
+      return activeDirectPrompt(authority, refreshed);
+    }
+    return continuation;
   }
   if (action === "ABORT_DIRECT") {
     const aborted = transitionTerminal(authority, "ABORTED", input);
