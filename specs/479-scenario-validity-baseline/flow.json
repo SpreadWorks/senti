@@ -2216,15 +2216,20 @@
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
       "status": "failed",
-      "attempt": 1,
-      "startedAt": "2026-07-28T06:04:43.977Z",
-      "updatedAt": "2026-07-28T06:04:47.969Z",
-      "failure": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+      "attempt": 2,
+      "startedAt": "2026-07-28T07:54:06.411Z",
+      "updatedAt": "2026-07-28T07:54:06.614Z",
+      "failure": "finalize worktree HEAD diverged from durable teardown authority",
       "failureHistory": [
         {
           "attempt": 1,
           "failure": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
           "recordedAt": "2026-07-28T06:04:47.969Z"
+        },
+        {
+          "attempt": 2,
+          "failure": "finalize worktree HEAD diverged from durable teardown authority",
+          "recordedAt": "2026-07-28T07:54:06.614Z"
         }
       ]
     }
