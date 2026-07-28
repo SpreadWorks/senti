@@ -1,4 +1,6 @@
 const OUTBOX_STATUSES = new Set(["pending", "done", "failed"]);
+const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const FAILURE_CODE = /^[A-Z][A-Z0-9_]{2,199}$/;
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -16,6 +18,38 @@ function requireTimestamp(value, field) {
 function cloneJson(value) {
   if (value === undefined) return null;
   return structuredClone(value);
+}
+
+function optionalFailureCode(value) {
+  if (value == null) return null;
+  const code = requireString(value, "outbox failure code");
+  if (!FAILURE_CODE.test(code)) throw new Error("outbox failure code is invalid");
+  return code;
+}
+
+export class PreSyncRebaseRecovery {
+  constructor({ baseRef, baseHead }) {
+    this.baseRef = requireString(baseRef, "pre-sync recovery baseRef");
+    this.baseHead = requireString(baseHead, "pre-sync recovery baseHead");
+    if (!GIT_OBJECT_ID.test(this.baseHead)) throw new Error("pre-sync recovery baseHead is invalid");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { baseRef: this.baseRef, baseHead: this.baseHead };
+  }
+
+  static fromStored(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("stored pre-sync recovery must be an object");
+    }
+    return new PreSyncRebaseRecovery(value);
+  }
+
+  static fromError(error) {
+    if (error?.code !== "MERGE_PRE_SYNC_CONFLICT" || error?.data?.recovery == null) return null;
+    return PreSyncRebaseRecovery.fromStored(error.data.recovery);
+  }
 }
 
 export class FlowOutboxIdentity {
@@ -57,13 +91,14 @@ export class FlowOutboxIdentity {
 }
 
 export class FlowOutboxRecoveryReceipt {
-  constructor({ idempotencyKey, attempt, failure }) {
+  constructor({ idempotencyKey, attempt, failure, recoveryKey = null }) {
     this.idempotencyKey = requireString(idempotencyKey, "exact recovery receipt idempotencyKey");
     if (!Number.isSafeInteger(attempt) || attempt < 1) {
       throw new Error("exact recovery receipt attempt must be a positive integer");
     }
     this.attempt = attempt;
     this.failure = requireString(failure, "exact recovery receipt failure");
+    this.recoveryKey = recoveryKey == null ? null : requireString(recoveryKey, "exact recovery receipt recoveryKey");
     Object.freeze(this);
   }
 
@@ -72,6 +107,7 @@ export class FlowOutboxRecoveryReceipt {
       idempotencyKey: this.idempotencyKey,
       attempt: this.attempt,
       failure: this.failure,
+      ...(this.recoveryKey != null ? { recoveryKey: this.recoveryKey } : {}),
     };
   }
 
@@ -84,18 +120,31 @@ export class FlowOutboxRecoveryReceipt {
 }
 
 export class FlowOutboxFailure {
-  constructor({ attempt, failure, recordedAt }) {
+  constructor({ attempt, failure, recordedAt, code = null, recovery = null }) {
     if (!Number.isSafeInteger(attempt) || attempt < 1) {
       throw new Error("outbox failure attempt must be a positive integer");
     }
     this.attempt = attempt;
     this.failure = requireString(failure, "outbox failure history message");
     this.recordedAt = requireTimestamp(recordedAt, "outbox failure history timestamp");
+    this.code = optionalFailureCode(code);
+    this.recovery = recovery == null ? null : (
+      recovery instanceof PreSyncRebaseRecovery ? recovery : PreSyncRebaseRecovery.fromStored(recovery)
+    );
+    if (this.recovery != null && this.code !== "MERGE_PRE_SYNC_CONFLICT") {
+      throw new Error("pre-sync recovery is reserved for merge pre-sync conflicts");
+    }
     Object.freeze(this);
   }
 
   toJSON() {
-    return { attempt: this.attempt, failure: this.failure, recordedAt: this.recordedAt };
+    return {
+      attempt: this.attempt,
+      failure: this.failure,
+      recordedAt: this.recordedAt,
+      ...(this.code != null ? { code: this.code } : {}),
+      ...(this.recovery != null ? { recovery: this.recovery.toJSON() } : {}),
+    };
   }
 
   static fromStored(value) {
@@ -103,6 +152,19 @@ export class FlowOutboxFailure {
       throw new Error("stored outbox failure history must be an object");
     }
     return new FlowOutboxFailure(value);
+  }
+
+  static fromError({ attempt, error, recordedAt }) {
+    const code = typeof error?.code === "string" && FAILURE_CODE.test(error.code)
+      ? error.code
+      : null;
+    return new FlowOutboxFailure({
+      attempt,
+      failure: error instanceof Error ? error.message : String(error || "side effect failed"),
+      recordedAt,
+      code,
+      recovery: PreSyncRebaseRecovery.fromError(error),
+    });
   }
 }
 
@@ -148,6 +210,10 @@ export class FlowOutboxEntry {
 
   get idempotencyKey() {
     return this.identity.idempotencyKey;
+  }
+
+  get latestFailure() {
+    return this.failureHistory.at(-1) || null;
   }
 
   retry(at) {
@@ -197,17 +263,16 @@ export class FlowOutboxEntry {
 
   fail(error, at) {
     if (this.status === "done") return this;
-    const message = error instanceof Error ? error.message : String(error || "side effect failed");
     return new FlowOutboxEntry({
       identity: this.identity,
       status: "failed",
       attempt: this.attempt,
       startedAt: this.startedAt,
       updatedAt: requireTimestamp(at, "outbox failure timestamp"),
-      failure: message,
-      failureHistory: [...this.failureHistory, new FlowOutboxFailure({
+      failure: error instanceof Error ? error.message : String(error || "side effect failed"),
+      failureHistory: [...this.failureHistory, FlowOutboxFailure.fromError({
         attempt: this.attempt,
-        failure: message,
+        error,
         recordedAt: at,
       })],
       exactRecoveryReceipt: this.exactRecoveryReceipt,
@@ -243,7 +308,7 @@ export class FlowOutboxEntry {
 }
 
 export class FlowOutboxRecoveryClaim {
-  constructor({ identity, attempt, failure }) {
+  constructor({ identity, attempt, failure, recoveryKey = null }) {
     if (!(identity instanceof FlowOutboxIdentity)) throw new Error("exact recovery identity is required");
     if (!Number.isSafeInteger(attempt) || attempt < 1) {
       throw new Error("exact recovery attempt must be a positive integer");
@@ -251,6 +316,7 @@ export class FlowOutboxRecoveryClaim {
     this.identity = identity;
     this.attempt = attempt;
     this.failure = requireString(failure, "exact recovery failure");
+    this.recoveryKey = recoveryKey == null ? null : requireString(recoveryKey, "exact recovery recoveryKey");
     Object.freeze(this);
   }
 
@@ -259,7 +325,15 @@ export class FlowOutboxRecoveryClaim {
       throw new Error("exact recovery target does not match the outbox entry");
     }
     if (entry.status !== "failed") throw new Error("exact recovery requires a failed outbox entry");
-    if (entry.exactRecoveryReceipt) throw new Error("exact recovery was already consumed for this outbox entry");
+    if (
+      entry.exactRecoveryReceipt
+      && (
+        this.recoveryKey == null
+        || entry.exactRecoveryReceipt.recoveryKey === this.recoveryKey
+      )
+    ) {
+      throw new Error("exact recovery was already consumed for this outbox entry");
+    }
     if (entry.attempt !== this.attempt) throw new Error("exact recovery attempt does not match the outbox entry");
     if (entry.failure !== this.failure) throw new Error("exact recovery failure does not match the outbox entry");
     const updatedAt = requireTimestamp(at, "exact recovery timestamp");
@@ -273,6 +347,7 @@ export class FlowOutboxRecoveryClaim {
         idempotencyKey: this.identity.idempotencyKey,
         attempt: this.attempt,
         failure: this.failure,
+        recoveryKey: this.recoveryKey,
       }),
     });
   }

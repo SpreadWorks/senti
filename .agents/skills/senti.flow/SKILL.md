@@ -451,6 +451,12 @@ C.1. **Ask the CLI for the next action**
         `nextAction`, which refreshes authority before any retry. If the repair
         requires a product decision not established by the request, project
         rules, or persisted evidence, stop and ask only that concrete decision.
+        - For `REPAIR_FINALIZE_MERGE_REBASE`, resolve the managed-worktree
+          rebase named by the directive, complete it, and refresh
+          `next-action`. Do not consume a `finalize-merge` recovery by rerunning
+          it before that rebase target is an ancestor of the feature HEAD. This
+          is an agent-owned Git repair, never a user instruction and never a
+          reason to enable/disable nonblocking or start Direct Flow.
     4. `await_user_decision`: explain the concrete situation and materially
         different outcomes in the user's language. Translate and reword text
         for clarity; do not expose raw action IDs, commands, impact arrays,

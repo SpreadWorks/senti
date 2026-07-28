@@ -139,6 +139,12 @@ function setupConflictWorktree(root, origin) {
     featureBranch: "feature/478",
     worktree: true,
     issue: 478,
+    nonblocking: {
+      enabled: true,
+      activatedAt: "2026-07-28T00:00:00.000Z",
+      activatedStep: "impl-review",
+      reason: "Acceptance-backed quality handling was selected earlier in this Flow.",
+    },
   }));
   const specDir = path.join(worktree, "specs", "478-test");
   fs.mkdirSync(specDir, { recursive: true });
@@ -239,7 +245,7 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     assert.equal(env.data.strategy, "skip");
   });
 
-  it("records conflict evidence, leaves a clean worktree, and accepts a manual-rebase retry", () => {
+  it("requires rebase repair before granting a finalize-merge retry, then accepts it", () => {
     tmp = createTmpDir("senti-finalize-merge-worktree-");
     origin = createTmpDir("senti-finalize-merge-origin-");
     const { worktree } = setupConflictWorktree(tmp, origin);
@@ -254,6 +260,38 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     );
     assert.equal(gitFile(["status", "--porcelain"], worktree).trim(), "");
 
+    const persistedEntry = makeFlowManager(worktree).load().outbox
+      .find((entry) => entry.stepId === "finalize-merge");
+    assert.equal(persistedEntry.failureHistory.at(-1).code, "MERGE_PRE_SYNC_CONFLICT");
+    assert.ok(persistedEntry.failureHistory.at(-1).recovery?.baseHead);
+
+    // A Flow paused by the previous implementation has only the prose
+    // failure and an already-consumed generic exact-recovery receipt. Keep
+    // this fixture so upgrades recover a live stranded Flow, not only new
+    // failures written by the revised CLI.
+    makeFlowManager(worktree).mutate((flow) => {
+      const entry = flow.outbox.find((candidate) => candidate.stepId === "finalize-merge");
+      const failure = entry.failureHistory.at(-1);
+      delete failure.code;
+      delete failure.recovery;
+      entry.exactRecoveryReceipt = {
+        idempotencyKey: entry.idempotencyKey,
+        attempt: entry.attempt,
+        failure: entry.failure,
+      };
+    });
+    gitFile(["add", "specs/478-test/flow.json"], worktree);
+    gitFile(["commit", "--quiet", "-m", "test: retain legacy finalize recovery"], worktree);
+
+    const repair = runCliResult(["get", "next-action"], worktree);
+    assert.equal(repair.status, 0, `${repair.stdout}\n${repair.stderr}`);
+    const repairEnvelope = JSON.parse(repair.stdout);
+    assert.equal(repairEnvelope.data.directive.kind, "repair_evidence");
+    assert.equal(repairEnvelope.data.directive.actionId, "REPAIR_FINALIZE_MERGE_REBASE");
+    const failedEntry = makeFlowManager(worktree).load().outbox
+      .find((entry) => entry.stepId === "finalize-merge");
+    assert.equal(failedEntry.exactRecoveryReceipt.recoveryKey, undefined, "legacy retry receipt remains unaltered before rebase repair");
+
     assert.throws(() => gitFile(["rebase", "main"], worktree));
     fs.writeFileSync(path.join(worktree, "conflict.txt"), "resolved\n");
     gitFile(["add", "conflict.txt"], worktree);
@@ -263,6 +301,15 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
       env: { ...process.env, GIT_EDITOR: "true" },
     });
     assert.equal(gitFile(["status", "--porcelain"], worktree).trim(), "");
+
+    const recovery = runCliResult(["get", "next-action"], worktree);
+    assert.equal(recovery.status, 0, `${recovery.stdout}\n${recovery.stderr}`);
+    const recoveryEnvelope = JSON.parse(recovery.stdout);
+    assert.equal(recoveryEnvelope.data.directive.kind, "execute_command");
+    assert.equal(recoveryEnvelope.data.directive.actionId, "RECOVER_FINALIZE_MERGE_OUTBOX");
+    const reopenedEntry = makeFlowManager(worktree).load().outbox
+      .find((entry) => entry.stepId === "finalize-merge");
+    assert.ok(reopenedEntry.exactRecoveryReceipt, "resolved rebase grants the exact retry");
 
     const retried = runCliResult(["run", "finalize-merge"], worktree);
     assert.equal(retried.status, 0, `${retried.stdout}\n${retried.stderr}`);

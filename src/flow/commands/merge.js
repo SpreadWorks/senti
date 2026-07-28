@@ -307,7 +307,11 @@ function runMerge(ctx) {
       throw new FinalizeMergeTransactionError({
         code: "MERGE_PRE_SYNC_CONFLICT",
         message: `Pre-merge rebase detected conflicts in ${syncResult.conflictFiles.join(", ")}. Worktree has been restored. ${syncResult.recoveryHint}`,
-        data: { conflictFiles: syncResult.conflictFiles, recoveryHint: syncResult.recoveryHint },
+        data: {
+          conflictFiles: syncResult.conflictFiles,
+          recoveryHint: syncResult.recoveryHint,
+          recovery: syncResult.recovery,
+        },
       });
     }
 
@@ -374,6 +378,18 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
     throw err;
   }
   const rebaseRef = `${remote}/${baseBranch}`;
+  const baseHeadRes = runGit(["-C", worktreePath, "rev-parse", rebaseRef]);
+  if (!baseHeadRes.ok) {
+    const err = new Error(
+      `pre-merge base resolution failed: git rev-parse ${rebaseRef} exited ${baseHeadRes.status}: ${baseHeadRes.stderr || baseHeadRes.stdout}`,
+    );
+    err.code = "MERGE_PRE_SYNC_BASE_UNAVAILABLE";
+    throw err;
+  }
+  const recovery = {
+    baseRef: rebaseRef,
+    baseHead: baseHeadRes.stdout.trim(),
+  };
 
   // finalize-merge records its pending outbox before this side effect. Keep
   // that Flow-owned change through pre-merge synchronization without masking
@@ -393,8 +409,8 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
 
   abortRebase({ cwd: worktreePath });
   const recoveryHint =
-    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize-merge'.`;
-  return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
+    `Run 'git rebase ${rebaseRef}' in the worktree, resolve conflicts, then 'git rebase --continue' and refresh the Flow directive.`;
+  return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint, recovery };
 }
 
 export {
