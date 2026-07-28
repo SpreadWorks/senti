@@ -377,7 +377,7 @@ test("direct finalize revalidates a rebased pending receipt and resumes integrat
       action: "FINALIZE_DIRECT",
     });
     assert.equal(interrupted.ok, false, JSON.stringify(interrupted));
-    assert.equal(interrupted.errors[0].code, "DIRECT_MERGE_FAILED");
+    assert.equal(interrupted.errors[0].code, "MERGE_PRE_SYNC_FETCH_FAILED");
     const pending = fixture.context().flowState;
     const originalPlanRevision = pending.directResolutionPlan.revision;
     assert.equal(pending.directFlowSession.phase, "MERGE_ONLY_FINALIZE");
