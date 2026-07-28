@@ -6,6 +6,7 @@ const MERGE_DISPOSITIONS = new Set(["merged", "already-merged"]);
 const INTEGRATION_STATUSES = new Set(["pending", "merged"]);
 const COMPLETION_STATUSES = new Set(["prepared", "completed"]);
 const EVIDENCE_KINDS = new Set(["integration-receipt", "exact-ancestry"]);
+const CLEANUP_DISPOSITIONS = new Set(["remove", "retain"]);
 
 function requireString(value, field, max = 4000) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -338,6 +339,36 @@ export class DirectIntegrationReceipt {
   }
 }
 
+export class DirectRetainedWorktree {
+  constructor({
+    worktreePath,
+    featureBranch,
+    featureHead,
+    reason,
+  }) {
+    this.worktreePath = requireString(worktreePath, "retained worktree path", 4000);
+    this.featureBranch = requireString(featureBranch, "retained worktree featureBranch", 500);
+    this.featureHead = requireGitObject(featureHead, "retained worktree featureHead");
+    this.reason = requireString(reason, "retained worktree reason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      worktreePath: this.worktreePath,
+      featureBranch: this.featureBranch,
+      featureHead: this.featureHead,
+      reason: this.reason,
+    };
+  }
+
+  static fromStored(value) {
+    return value instanceof DirectRetainedWorktree
+      ? value
+      : new DirectRetainedWorktree(value);
+  }
+}
+
 export class DirectSkippedStep {
   constructor({ stepId, reason }) {
     this.stepId = requireString(stepId, "direct skipped stepId", 200);
@@ -368,6 +399,8 @@ export class DirectCompletionReceipt {
     gitEvidence,
     skippedSteps,
     minimalValidation,
+    cleanupDisposition = "remove",
+    retainedWorktree = null,
     preparedAt = new Date().toISOString(),
     reconciledAt = null,
     completedAt = null,
@@ -399,6 +432,20 @@ export class DirectCompletionReceipt {
     this.minimalValidation = DirectVerificationResult.fromStored(minimalValidation);
     if (this.minimalValidation.status !== "passed") {
       throw new Error("direct completion requires passed minimal validation");
+    }
+    this.cleanupDisposition = requireString(
+      cleanupDisposition,
+      "direct completion cleanupDisposition",
+      50,
+    );
+    if (!CLEANUP_DISPOSITIONS.has(this.cleanupDisposition)) {
+      throw new Error("invalid direct completion cleanupDisposition");
+    }
+    this.retainedWorktree = retainedWorktree == null
+      ? null
+      : DirectRetainedWorktree.fromStored(retainedWorktree);
+    if ((this.cleanupDisposition === "retain") !== (this.retainedWorktree != null)) {
+      throw new Error("retained direct completion requires exactly one retained worktree record");
     }
     this.preparedAt = requireIso(preparedAt, "direct completion preparedAt");
     this.reconciledAt = reconciledAt == null
@@ -446,6 +493,7 @@ export class DirectCompletionReceipt {
       `mode=${this.completionMode}`,
       `merge=${this.mergeDisposition}`,
       `sourceStep=${this.sourceStep}`,
+      `cleanup=${this.cleanupDisposition}`,
       `verification=${this.minimalValidation.status}`,
       `skipped=${this.skippedSteps.map((step) => step.stepId).join(",")}`,
     ].join("; ");
@@ -467,6 +515,8 @@ export class DirectCompletionReceipt {
       gitEvidence: this.gitEvidence.toJSON(),
       skippedSteps: this.skippedSteps.map((step) => step.toJSON()),
       minimalValidation: this.minimalValidation.toJSON(),
+      cleanupDisposition: this.cleanupDisposition,
+      retainedWorktree: this.retainedWorktree?.toJSON() || null,
       preparedAt: this.preparedAt,
       reconciledAt: this.reconciledAt,
       completedAt: this.completedAt,

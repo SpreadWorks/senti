@@ -8,6 +8,27 @@ import {
 } from "./direct-completion.js";
 import { runGit } from "../../lib/git-helpers.js";
 
+export class DirectNormalFinalizeAncestorEvidence {
+  constructor({
+    normalFeatureHead,
+    featureHead,
+    mainHead,
+    receiptKey,
+    receiptCommit,
+  }) {
+    this.normalFeatureHead = normalFeatureHead;
+    this.featureHead = featureHead;
+    this.mainHead = mainHead;
+    this.receiptKey = receiptKey;
+    this.receiptCommit = receiptCommit;
+    Object.freeze(this);
+  }
+
+  get hasPostNormalFeatureCommits() {
+    return this.normalFeatureHead !== this.featureHead;
+  }
+}
+
 function gitValue(args, label) {
   const result = runGit(args);
   if (!result.ok) {
@@ -86,15 +107,49 @@ function normalFinalizeReceiptEvidence(mainRoot, state, currentFeatureHead, curr
   const valid = result.mergedFromSha === currentFeatureHead
     && receiptCommit != null
     && isAncestor(mainRoot, receiptCommit, currentMainHead);
-  if (!valid) {
-    throw Object.assign(new Error(
-      "finalize-merge outbox does not provide a complete matching integration receipt",
-    ), { code: "DIRECT_INTEGRATION_RECEIPT_INVALID" });
-  }
+  if (!valid) return null;
   return new DirectGitEvidence({
     kind: "integration-receipt",
     featureHead: currentFeatureHead,
     mainHead: currentMainHead,
+    receiptKey: identity.idempotencyKey,
+    receiptCommit,
+  });
+}
+
+export function inspectNormalFinalizeAncestorEvidence(mainRoot, state, currentFeatureHead = null) {
+  const featureHead = currentFeatureHead || gitValue(
+    ["-C", mainRoot, "rev-parse", `refs/heads/${state.featureBranch}`],
+    "normal finalize ancestor feature HEAD could not be resolved",
+  );
+  const mainHead = gitValue(
+    ["-C", mainRoot, "rev-parse", `refs/heads/${state.baseBranch}`],
+    "normal finalize ancestor main HEAD could not be resolved",
+  );
+  const identity = finalizationOutboxIdentity(state, "finalize-merge");
+  const entry = new FlowOutbox(state.outbox || []).find(identity);
+  const result = entry?.result;
+  if (
+    entry?.status !== "done"
+    || result?.status !== "done"
+    || result.strategy !== "squash"
+    || typeof result.mergedFromSha !== "string"
+    || result.mergedFromSha === featureHead
+  ) return null;
+  const receiptCommit = findOutboxReceiptCommit(
+    mainRoot,
+    state.baseBranch,
+    identity.idempotencyKey,
+  );
+  if (
+    receiptCommit == null
+    || !isAncestor(mainRoot, receiptCommit, mainHead)
+    || !isAncestor(mainRoot, result.mergedFromSha, featureHead)
+  ) return null;
+  return new DirectNormalFinalizeAncestorEvidence({
+    normalFeatureHead: result.mergedFromSha,
+    featureHead,
+    mainHead,
     receiptKey: identity.idempotencyKey,
     receiptCommit,
   });

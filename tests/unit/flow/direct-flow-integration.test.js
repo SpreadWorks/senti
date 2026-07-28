@@ -1470,6 +1470,93 @@ test("direct reconcile prioritizes a normal finalize integration receipt over sq
   }
 });
 
+test("direct completion retains post-normal feature commits instead of re-merging them", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-retained-post-normal" });
+  try {
+    container.register("config", { commands: { gh: "disable" } });
+    const originalFeatureHead = git(fixture.root, ["rev-parse", fixture.featureBranch]);
+    const identity = finalizationOutboxIdentity(fixture.context().flowState, "finalize-merge");
+
+    git(fixture.root, ["merge", "--squash", fixture.featureBranch]);
+    git(fixture.root, [
+      "commit",
+      "--quiet",
+      "-m",
+      `integrate normal finalize result\n\nsenti-outbox: ${identity.idempotencyKey}`,
+    ]);
+    const normalMainHead = git(fixture.root, ["rev-parse", "master"]);
+    for (const context of [fixture.context(), fixture.context({ fromMain: true })]) {
+      context.flowManager.mutate((state) => {
+        const outbox = new FlowOutbox(state.outbox || []);
+        outbox.begin(identity);
+        outbox.complete(identity, {
+          status: "done",
+          strategy: "squash",
+          mergedFromSha: originalFeatureHead,
+        });
+        state.outbox = outbox.toJSON();
+      });
+    }
+
+    const retainedPath = path.join(fixture.worktreePath, "notes", "user-change.txt");
+    fs.mkdirSync(path.dirname(retainedPath), { recursive: true });
+    fs.writeFileSync(retainedPath, "keep this post-normal user change\n");
+    git(fixture.worktreePath, ["add", "notes/user-change.txt"]);
+    git(fixture.worktreePath, ["commit", "--quiet", "-m", "keep post-normal user change"]);
+
+    await prepareVerifiedDirectChange(fixture, {
+      relativePath: "src/direct-retained-change.js",
+      contents: "export const retained = true;\n",
+      reason: "Exercise safe completion after normal squash integration.",
+    });
+
+    const finalized = await runDirectFlowAction(fixture.context(), {
+      action: "FINALIZE_DIRECT",
+    });
+    assert.equal(finalized.ok, true, JSON.stringify(finalized));
+    assert.equal(finalized.data.mergeDisposition, "already-merged");
+    assert.equal(finalized.data.cleanup.status, "retained");
+    assert.equal(finalized.data.cleanup.featureBranch, fixture.featureBranch);
+
+    const completed = fixture.context().flowState;
+    assert.equal(completed.directFlowSession.phase, "COMPLETED_DIRECT");
+    assert.equal(completed.directCompletionReceipt.status, "completed");
+    assert.equal(completed.directCompletionReceipt.cleanupDisposition, "retain");
+    assert.equal(
+      completed.directCompletionReceipt.gitEvidence.featureHead,
+      originalFeatureHead,
+    );
+    assert.equal(
+      completed.directCompletionReceipt.gitEvidence.mainHead,
+      normalMainHead,
+    );
+    assert.equal(
+      git(fixture.root, [
+        "merge-base",
+        completed.directCompletionReceipt.retainedWorktree.featureHead,
+        fixture.featureBranch,
+      ]),
+      completed.directCompletionReceipt.retainedWorktree.featureHead,
+    );
+    assert.equal(fs.existsSync(fixture.worktreePath), true);
+    assert.notEqual(git(fixture.root, ["branch", "--list", fixture.featureBranch]), "");
+    assert.equal(fs.readFileSync(retainedPath, "utf8"), "keep this post-normal user change\n");
+    assert.equal(
+      fs.existsSync(path.join(fixture.root, "src", "direct-retained-change.js")),
+      false,
+    );
+    assert.equal(
+      fixture.context().flowManager.snapshotActiveFlows().entries.some((entry) => (
+        entry.spec === fixture.specId
+      )),
+      false,
+    );
+  } finally {
+    container.reset();
+    fixture.cleanup();
+  }
+});
+
 test("direct reconcile accepts exact ancestry and completes without a second merge", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-reconcile" });
   try {

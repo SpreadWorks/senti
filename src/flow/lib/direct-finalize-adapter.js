@@ -14,6 +14,7 @@ import {
   DirectCompletionReceipt,
   DirectGitEvidence,
   DirectIntegrationReceipt,
+  DirectRetainedWorktree,
   DirectSkippedStep,
 } from "./direct-completion.js";
 import {
@@ -21,7 +22,10 @@ import {
   DirectFlowTarget,
   DirectVerificationResult,
 } from "./direct-flow-session.js";
-import { revalidatePersistedIntegrationReceipt } from "./direct-integration-evidence.js";
+import {
+  inspectNormalFinalizeAncestorEvidence,
+  revalidatePersistedIntegrationReceipt,
+} from "./direct-integration-evidence.js";
 import { DirectResolutionPlan } from "./direct-resolution-plan.js";
 import { hasOutboxCommit } from "./run-finalize.js";
 import { IssueLogStore } from "./issue-log-store.js";
@@ -293,6 +297,48 @@ function commitOrSkip(root, message, paths = null) {
   throw new Error(`direct commit failed: ${commit.stderr || commit.stdout}`);
 }
 
+function pendingReceiptMatchesFeatureHead({
+  mainRoot,
+  pendingReceipt,
+  currentFeatureHead,
+  specId,
+}) {
+  if (pendingReceipt.featureHead === currentFeatureHead) return true;
+  const receiptAncestry = runGit([
+    "-C",
+    mainRoot,
+    "merge-base",
+    "--is-ancestor",
+    pendingReceipt.featureHead,
+    currentFeatureHead,
+  ]);
+  if (!receiptAncestry.ok) return false;
+  const paths = runGit([
+    "-C",
+    mainRoot,
+    "diff",
+    "--name-only",
+    `${pendingReceipt.featureHead}..${currentFeatureHead}`,
+  ]);
+  if (!paths.ok) return false;
+  const allowed = new Set([
+    path.posix.join("specs", specId, "flow.json"),
+    path.posix.join("specs", specId, "issue-log.json"),
+  ]);
+  const changedPaths = paths.stdout.split(/\r?\n/).filter(Boolean);
+  return changedPaths.length > 0 && changedPaths.every((entry) => allowed.has(entry));
+}
+
+function normalFinalizeState(mainManager, specId, fallback) {
+  const mainState = mainManager.loadReadOnly(specId);
+  if (
+    mainState?.runId === fallback.runId
+    && mainState.spec === fallback.spec
+    && (mainState.issue ?? null) === (fallback.issue ?? null)
+  ) return mainState;
+  return fallback;
+}
+
 function completionIssueLogId(receipt) {
   return `direct-completion:${receipt.runId}:${receipt.planId}:r${receipt.planRevision}`;
 }
@@ -322,11 +368,126 @@ function appendCompletionIssueLog({
     completionMode: receipt.completionMode,
     mergeDisposition: receipt.mergeDisposition,
     gitEvidence: receipt.gitEvidence.toJSON(),
+    cleanupDisposition: receipt.cleanupDisposition,
+    retainedWorktree: receipt.retainedWorktree?.toJSON() || null,
     skippedSteps: receipt.skippedSteps.map((step) => step.toJSON()),
     minimalValidation: receipt.minimalValidation.toJSON(),
     timestamp: receipt.preparedAt,
     taskId: null,
   }, completionIssueLogId(receipt));
+}
+
+function retainedCompletionResult(receipt) {
+  return Envelope.ok("run", "direct", {
+    status: "done",
+    completionMode: receipt.completionMode,
+    mergeDisposition: receipt.mergeDisposition,
+    receiptId: receipt.receiptId,
+    cleanup: {
+      status: "retained",
+      ...receipt.retainedWorktree.toJSON(),
+    },
+  });
+}
+
+function completeWithRetainedWorktree(
+  authority,
+  state,
+  session,
+  plan,
+  pendingReceipt,
+  evidence,
+) {
+  if (session.verification?.status !== "passed") {
+    return directStop(state, "DIRECT_VERIFY_REQUIRED", [
+      "Safe retained completion requires the previously passed direct verification.",
+      "No merge, cleanup, pointer, branch, worktree, or active-registry mutation was attempted.",
+    ]);
+  }
+  const retainedWorktree = new DirectRetainedWorktree({
+    worktreePath: session.target.worktreePath,
+    featureBranch: state.featureBranch,
+    featureHead: evidence.featureHead,
+    reason: "Normal squash integration already contains the original feature head; post-normal feature commits are retained without merging.",
+  });
+  const integrationReceipt = new DirectIntegrationReceipt({
+    ...pendingReceipt.toJSON(),
+    status: "merged",
+    strategy: "already-merged",
+    mergeDisposition: "already-merged",
+    featureHead: evidence.normalFeatureHead,
+    mainHead: evidence.mainHead,
+    integratedAt: new Date().toISOString(),
+  });
+  const completionReceipt = new DirectCompletionReceipt({
+    status: "completed",
+    runId: state.runId,
+    issue: state.issue ?? null,
+    spec: state.spec,
+    planId: plan.planId,
+    planRevision: plan.revision,
+    mergeDisposition: "already-merged",
+    sourceStep: plan.sourceStep,
+    gitEvidence: new DirectGitEvidence({
+      kind: "integration-receipt",
+      featureHead: evidence.normalFeatureHead,
+      mainHead: evidence.mainHead,
+      receiptKey: evidence.receiptKey,
+      receiptCommit: evidence.receiptCommit,
+    }),
+    skippedSteps: skippedStepsForReceipt(plan),
+    minimalValidation: session.verification,
+    cleanupDisposition: "retain",
+    retainedWorktree,
+    completedAt: new Date().toISOString(),
+  });
+  authority.flowManager.mutate((current) => {
+    const currentSession = DirectFlowSession.fromStored(current.directFlowSession);
+    const currentPlan = DirectResolutionPlan.fromStored(current.directResolutionPlan);
+    const currentPending = DirectIntegrationReceipt.fromStored(current.directIntegrationReceipt);
+    if (
+      currentSession.revision !== session.revision
+      || currentSession.phase !== "MERGE_ONLY_FINALIZE"
+      || currentPlan.planId !== plan.planId
+      || currentPlan.revision !== plan.revision
+      || currentPending.receiptId !== pendingReceipt.receiptId
+      || currentPending.status !== "pending"
+      || current.directCompletionReceipt != null
+    ) {
+      throw Object.assign(new Error(
+        "direct retained completion authority changed before completion recording",
+      ), { code: "DIRECT_CAS_CONFLICT" });
+    }
+    current.directIntegrationReceipt = integrationReceipt.toJSON();
+    current.directCompletionReceipt = completionReceipt.toJSON();
+    current.directFlowSession = currentSession.completePreparedCleanup({
+      success: true,
+      completionMode: "direct",
+      mergeDisposition: "already-merged",
+      receiptId: completionReceipt.receiptId,
+      completedAt: completionReceipt.completedAt,
+    }).toJSON();
+  }, directMutationOptions(authority, { expectedOriginal: state }));
+  const completed = authority.flowManager.load(authority.specId);
+  appendCompletionIssueLog({
+    root: session.target.worktreePath,
+    mainRoot: authority.mainRoot,
+    state: completed,
+    receipt: completionReceipt,
+    operationOwnerToken: authority.repositoryOperationOwnerToken,
+  });
+  commitOrSkip(
+    session.target.worktreePath,
+    "chore: record retained direct completion",
+    [
+      path.posix.join("specs", authority.specId, "flow.json"),
+      path.posix.join("specs", authority.specId, "issue-log.json"),
+    ],
+  );
+  authority.flowManager.removeActiveFlow(authority.specId, {
+    operationOwnerToken: authority.repositoryOperationOwnerToken,
+  });
+  return retainedCompletionResult(completionReceipt);
 }
 
 function skippedStepsForReceipt(plan) {
@@ -1030,6 +1191,32 @@ async function finalizeMerge(authority, state, session, plan, options) {
         "No merge or cleanup was attempted.",
       ]);
     }
+    const currentFeatureHead = gitValue(
+      ["-C", mainRoot, "rev-parse", `refs/heads/${state.featureBranch}`],
+      "direct feature HEAD could not be resolved during retained completion inspection",
+    );
+    if (pendingReceiptMatchesFeatureHead({
+      mainRoot,
+      pendingReceipt,
+      currentFeatureHead,
+      specId,
+    })) {
+      const normalAncestor = inspectNormalFinalizeAncestorEvidence(
+        mainRoot,
+        normalFinalizeState(mainManager, specId, state),
+        currentFeatureHead,
+      );
+      if (normalAncestor?.hasPostNormalFeatureCommits) {
+        return completeWithRetainedWorktree(
+          authority,
+          state,
+          session,
+          plan,
+          pendingReceipt,
+          normalAncestor,
+        );
+      }
+    }
     const recovered = await recoverPendingIntegration(
       authority,
       state,
@@ -1051,6 +1238,37 @@ async function finalizeMerge(authority, state, session, plan, options) {
     return directStop(state, "DIRECT_PHASE_MISMATCH", [
       `Limited finalize is unavailable from ${session.phase}.`,
     ]);
+  }
+  const finalizingSession = DirectFlowSession.fromStored(mergeState.directFlowSession);
+  const currentFeatureHead = gitValue(
+    ["-C", mainRoot, "rev-parse", `refs/heads/${state.featureBranch}`],
+    "direct feature HEAD could not be resolved during retained completion inspection",
+  );
+  if (
+    finalizingSession.phase === "MERGE_ONLY_FINALIZE"
+    && pendingReceipt?.status === "pending"
+    && pendingReceiptMatchesFeatureHead({
+      mainRoot,
+      pendingReceipt,
+      currentFeatureHead,
+      specId,
+    })
+  ) {
+    const normalAncestor = inspectNormalFinalizeAncestorEvidence(
+      mainRoot,
+      normalFinalizeState(mainManager, specId, mergeState),
+      currentFeatureHead,
+    );
+    if (normalAncestor?.hasPostNormalFeatureCommits) {
+      return completeWithRetainedWorktree(
+        authority,
+        mergeState,
+        finalizingSession,
+        plan,
+        pendingReceipt,
+        normalAncestor,
+      );
+    }
   }
   const { runMerge, resolveMergeStrategy } = await import("../commands/merge.js");
   const config = authority.config || {};
