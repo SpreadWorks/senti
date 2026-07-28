@@ -24,7 +24,7 @@ import {
 } from "../../../src/flow/lib/step-outcome.js";
 import SetPolicyCommand from "../../../src/flow/lib/set-policy.js";
 import SetNonBlockingDecisionCommand from "../../../src/flow/lib/set-nonblocking-decision.js";
-import { NextActionPlanner } from "../../../src/flow/lib/get-next-action.js";
+import GetNextActionCommand, { NextActionPlanner } from "../../../src/flow/lib/get-next-action.js";
 import { makeDefaultTask, makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { FlowCompletion } from "../../../src/flow/lib/flow-completion.js";
@@ -819,7 +819,7 @@ describe("nonblocking flow policy", () => {
         ["impl-review", "impl-review.json", { verdict: "REJECTED" }, "impl-gate"],
         ["impl-gate", "impl-gate-result.json", { verdict: "fail" }, "retro"],
         ["retro", "retro.json", { summary: { not_done: 1 } }, "acceptance-review"],
-        ["acceptance-review", "acceptance-review.json", { verdict: "repair_required" }, "final-regression"],
+        ["acceptance-review", "acceptance-review.json", { verdict: "repair_required" }, "final-regression", ["acceptance-decision"]],
         ["final-regression", "final-regression-result.json", { result: "unavailable" }, "report"],
       ];
       for (const [step, file, artifact, next, skipped = []] of cases) {
@@ -846,6 +846,67 @@ describe("nonblocking flow policy", () => {
           assert.equal(findStepById(state.steps, skippedStep).status, "done");
         }
       }
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("consumes a durable acceptance continuation before promoting finalization", async () => {
+    const root = createTmpDir("nonblocking-acceptance-reconcile-");
+    try {
+      const spec = "specs/477-acceptance-reconcile/spec.json";
+      writeJson(root, spec, { requirements: [] });
+      const artifact = JSON.stringify({ verdict: "blocked" }, null, 2) + "\n";
+      fs.writeFileSync(path.join(root, "specs/477-acceptance-reconcile/acceptance-review.json"), artifact);
+      const state = makeFlowState({
+        spec,
+        nonblocking: {
+          enabled: true,
+          activatedAt: "2026-07-27T00:00:00.000Z",
+          activatedStep: "acceptance-review",
+          reason: "The acceptance result has a bounded advisory continuation.",
+        },
+      });
+      for (const step of state.steps.flatMap((entry) => entry.children || [entry])) {
+        step.status = step.id.startsWith("finalize-") ? "pending" : "done";
+      }
+      findStepById(state.steps, "acceptance-decision").status = "in_progress";
+      const digest = crypto.createHash("sha256").update(artifact).digest("hex");
+      const outcome = new NonBlockingDecisionOutcome({
+        action: "continue",
+        sourceStep: "acceptance-review",
+        sourceAttempt: 1,
+        evidenceRef: "specs/477-acceptance-reconcile/acceptance-review.json",
+        evidenceDigest: digest,
+        rationale: "The blocked acceptance evidence is retained as an advisory risk.",
+        remainingRisk: "The acceptance artifact remains blocked and is recorded for follow-up.",
+        nextAction: "run-final-regression",
+      });
+      state.stepAttempts = [new StepAttempt({
+        runId: state.runId,
+        taskId: null,
+        stepId: "acceptance-review",
+        attempt: 1,
+        outcome,
+      }).toJSON()];
+
+      let persisted = null;
+      const result = await new GetNextActionCommand().execute({
+        root,
+        flowState: state,
+        flowManager: {
+          mutate(mutator, { expectedOriginal }) {
+            assert.equal(expectedOriginal, state);
+            mutator(state);
+            persisted = structuredClone(state);
+          },
+        },
+      });
+      assert.equal(result.step, "finalize-commit");
+      assert.equal(result.action, "run-finalize-commit");
+      assert.equal(persisted.steps.flatMap((entry) => entry.children || [entry])
+        .find((entry) => entry.id === "acceptance-decision").status, "done");
+      assert.equal(findStepById(persisted.steps, "finalize-commit").status, "in_progress");
     } finally {
       removeTmpDir(root);
     }

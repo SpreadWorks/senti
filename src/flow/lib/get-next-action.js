@@ -44,6 +44,7 @@ import { getDirectFlowAction } from "./direct-flow-controller.js";
 import {
   decisionContextForActiveFlow,
   nonblockingActivationOfferForStrictStop,
+  reconcileNonblockingAcceptanceContinuation,
 } from "./nonblocking.js";
 import {
   AbortedDirective,
@@ -493,6 +494,7 @@ export class NextActionPlanner {
     }
 
     const state = structuredClone(original);
+    const reconciledNonblockingAcceptance = reconcileNonblockingAcceptanceContinuation(ctx.root, state);
     assertNoUnresolvedInProgressTarget(state);
     let promoted = false;
     let target = findActiveNode(state);
@@ -547,7 +549,7 @@ export class NextActionPlanner {
       maxAttempts: derived.maxAttempts,
       nextState: state,
       result,
-      commitRequired: promoted,
+      commitRequired: promoted || reconciledNonblockingAcceptance,
     });
   }
 }

@@ -70,7 +70,16 @@ const ROUTES = [
   new NonBlockingRoute({ sourceStep: "impl-review", artifact: "impl-review.json", kind: "review", phase: "impl", targetStep: "impl-gate", skippedSteps: ["impl-triage", "impl-repair"] }),
   new NonBlockingRoute({ sourceStep: "impl-gate", artifact: "impl-gate-result.json", kind: "gate", phase: "integration", targetStep: "retro" }),
   new NonBlockingRoute({ sourceStep: "retro", artifact: "retro.json", kind: "verification", targetStep: "acceptance-review" }),
-  new NonBlockingRoute({ sourceStep: "acceptance-review", artifact: "acceptance-review.json", kind: "acceptance", targetStep: "final-regression" }),
+  // A durable nonblocking decision is the acceptance disposition for this
+  // route. Leaving the explicit user-decision leaf pending would let the
+  // generic next-action promoter resurrect it after report/finalization.
+  new NonBlockingRoute({
+    sourceStep: "acceptance-review",
+    artifact: "acceptance-review.json",
+    kind: "acceptance",
+    targetStep: "final-regression",
+    skippedSteps: ["acceptance-decision"],
+  }),
   new NonBlockingRoute({ sourceStep: "final-regression", artifact: "final-regression-result.json", kind: "regression", targetStep: "report" }),
 ];
 

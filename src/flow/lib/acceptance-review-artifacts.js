@@ -57,11 +57,21 @@ const REQUIRED_MECHANICAL_ARTIFACTS = Object.freeze([
 ]);
 const FINGERPRINTED_INPUT_ARTIFACTS = Object.freeze(REQUIRED_MECHANICAL_ARTIFACTS.slice(1));
 const MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES = 20 * 1024 * 1024;
+const MAX_MECHANICAL_BLOCKER_DETAIL_CHARS = 2_000;
 const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
   return value.trim();
+}
+
+function requireOptionalString(value, field) {
+  if (value == null) return null;
+  const normalized = requireString(value, field);
+  if (normalized.length > MAX_MECHANICAL_BLOCKER_DETAIL_CHARS) {
+    throw new Error(`${field} must not exceed ${MAX_MECHANICAL_BLOCKER_DETAIL_CHARS} characters`);
+  }
+  return normalized;
 }
 
 function requireNullableIssue(value, field) {
@@ -335,11 +345,17 @@ export class MechanicalBlocker {
     this.blockerId = requireString(input.blockerId, "blockerId");
     this.kind = requireString(input.kind, "kind");
     this.summary = requireString(input.summary, "summary");
+    this.detail = requireOptionalString(input.detail, "detail");
     Object.freeze(this);
   }
 
   toJSON() {
-    return { blockerId: this.blockerId, kind: this.kind, summary: this.summary };
+    return {
+      blockerId: this.blockerId,
+      kind: this.kind,
+      summary: this.summary,
+      ...(this.detail != null && { detail: this.detail }),
+    };
   }
 }
 
@@ -1105,16 +1121,23 @@ function inspectDeferredSources(specDir, deferredFindings, flowState) {
 
 export function classifyMechanicalBlockers(input = {}) {
   const blockers = [];
-  const add = (kind, summary) => blockers.push(new MechanicalBlocker({
+  const add = (kind, summary, detail = null) => blockers.push(new MechanicalBlocker({
     blockerId: `M-${blockers.length + 1}`,
     kind,
     summary,
+    detail,
   }).toJSON());
   if (input.tests?.missing) add("missing_tests", "Test evidence is missing.");
   if (input.tests?.failed) add("failed_tests", "Test evidence contains failures.");
   for (const id of input.tests?.missingRequired || []) add("missing_required_tests", `Required test coverage is missing for ${id}.`);
   for (const file of input.artifacts?.missing || []) add("missing_artifact", `Required artifact is missing: ${file}.`);
-  for (const file of input.artifacts?.invalidSchemas || []) add("invalid_schema", `Required artifact is invalid: ${file}.`);
+  for (const file of input.artifacts?.invalidSchemas || []) {
+    add(
+      "invalid_schema",
+      `Required artifact is invalid: ${file}.`,
+      input.artifacts?.invalidSchemaDetails?.[file] || null,
+    );
+  }
   return blockers;
 }
 
@@ -1196,6 +1219,13 @@ function deferredCheckpointSteps(deferredFindings) {
 function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flowState, deferredFindings = [] }) {
   const missing = [];
   const invalidSchemas = [];
+  const invalidSchemaDetails = {};
+  const recordInvalidSchema = (file, error) => {
+    invalidSchemas.push(file);
+    if (invalidSchemaDetails[file] == null && error instanceof Error && error.message.trim() !== "") {
+      invalidSchemaDetails[file] = error.message.trim().slice(0, MAX_MECHANICAL_BLOCKER_DETAIL_CHARS);
+    }
+  };
   const artifacts = {};
   let repairEvidenceProjection = null;
   let canonicalImplReviewEvidence = null;
@@ -1204,8 +1234,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
       const value = readBoundedSourceArtifact(specDir, file);
       if (!value) missing.push(file);
       else artifacts[file] = value;
-    } catch (_) {
-      invalidSchemas.push(file);
+    } catch (error) {
+      recordInvalidSchema(file, error);
     }
   }
   if (artifacts["scenario-validity-result.json"]) {
@@ -1217,8 +1247,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
         requirements,
         rawText,
       });
-    } catch (_) {
-      invalidSchemas.push("scenario-validity-result.json");
+    } catch (error) {
+      recordInvalidSchema("scenario-validity-result.json", error);
     }
   }
   let missingRequired = [];
@@ -1229,8 +1259,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
         artifacts["test-execute-result.json"].summary,
         requirements,
       );
-    } catch (_) {
-      invalidSchemas.push("test-execute-result.json");
+    } catch (error) {
+      recordInvalidSchema("test-execute-result.json", error);
       const present = new Set((artifacts["test-execute-result.json"].summary || []).map((entry) => entry?.id));
       missingRequired = requirements
         .filter((entry) => entry.testable !== false && !present.has(entry.id))
@@ -1240,15 +1270,15 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
   if (artifacts["test-result-review.json"]) {
     try {
       validateTestResultReview(artifacts["test-result-review.json"]);
-    } catch (_) {
-      invalidSchemas.push("test-result-review.json");
+    } catch (error) {
+      recordInvalidSchema("test-result-review.json", error);
     }
   }
   if (latestImplReviewRecord(flowState)) {
     try {
       canonicalImplReviewEvidence = readCanonicalImplReviewEvidence(specDir, flowState);
-    } catch (_) {
-      invalidSchemas.push("impl-review.json");
+    } catch (error) {
+      recordInvalidSchema("impl-review.json", error);
     }
   }
   const implReviewVerdict = canonicalImplReviewEvidence?.evidence.disposition.value
@@ -1256,8 +1286,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
   let rejectedReviewTriage = null;
   try {
     rejectedReviewTriage = readRejectedImplReviewTriageForVerdict(specDir, implReviewVerdict);
-  } catch (_) {
-    invalidSchemas.push("impl-triage.json");
+  } catch (error) {
+    recordInvalidSchema("impl-triage.json", error);
   }
   if (artifacts["impl-review.json"]) {
     try {
@@ -1276,22 +1306,22 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
           throw new Error("impl-review phase artifact does not match canonical typed evidence");
         }
       }
-    } catch (_) {
-      invalidSchemas.push("impl-review.json");
+    } catch (error) {
+      recordInvalidSchema("impl-review.json", error);
     }
   }
   if (artifacts["impl-gate-result.json"]) {
     try {
       validateImplGateEvidence(artifacts["impl-gate-result.json"]);
-    } catch (_) {
-      invalidSchemas.push("impl-gate-result.json");
+    } catch (error) {
+      recordInvalidSchema("impl-gate-result.json", error);
     }
   }
   if (artifacts["retro.json"]) {
     try {
       validateRetroEvidence(artifacts["retro.json"], requirements);
-    } catch (_) {
-      invalidSchemas.push("retro.json");
+    } catch (error) {
+      recordInvalidSchema("retro.json", error);
     }
   }
   if (fs.existsSync(path.join(specDir, "impl-repair.json"))) {
@@ -1302,8 +1332,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
       if (!repairEvidenceProjection.currentFingerprintMatched) {
         throw new Error("impl-repair ledger does not end at the current fingerprint");
       }
-    } catch (_) {
-      invalidSchemas.push("impl-repair.json");
+    } catch (error) {
+      recordInvalidSchema("impl-repair.json", error);
     }
   }
   for (const file of FINGERPRINTED_INPUT_ARTIFACTS) {
@@ -1311,8 +1341,8 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
     if (file === "impl-review.json" && canonicalImplReviewEvidence) continue;
     try {
       assertRepairFingerprint({ artifact: artifacts[file], fingerprint, label: file });
-    } catch (_) {
-      invalidSchemas.push(file);
+    } catch (error) {
+      recordInvalidSchema(file, error);
     }
   }
   const testSummary = artifacts["test-execute-result.json"]?.summary || [];
@@ -1336,7 +1366,11 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
         failed,
         missingRequired,
       },
-      artifacts: { missing, invalidSchemas: [...new Set(invalidSchemas)] },
+      artifacts: {
+        missing,
+        invalidSchemas: [...new Set(invalidSchemas)],
+        invalidSchemaDetails,
+      },
     }),
   };
 }

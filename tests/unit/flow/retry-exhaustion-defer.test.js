@@ -1048,6 +1048,28 @@ test("acceptance-review resolves still-open findings after mechanical source ver
   assert.deepEqual(artifact.hardBlockers, []);
 });
 
+test("acceptance-review preserves the invalid artifact validation detail", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  const reviewPath = path.join(fixture.specDir, "impl-review.json");
+  const review = JSON.parse(fs.readFileSync(reviewPath, "utf8"));
+  review.summary.nonBlocking += 1;
+  fs.writeFileSync(reviewPath, `${JSON.stringify(review, null, 2)}\n`);
+
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state: makeFlowState({
+      spec: fixture.specPath,
+      request: "Verify the persisted acceptance evidence.",
+    }),
+    diff: "diff --git a/src/demo.js b/src/demo.js\n",
+  });
+  const blocker = context.mechanicalBlockers.find((entry) => (
+    entry.kind === "invalid_schema" && entry.summary === "Required artifact is invalid: impl-review.json."
+  ));
+  assert.equal(blocker.detail, "impl-review non-blocking summary is inconsistent");
+});
+
 test("unresolved deferred findings route to acceptance decision without masking mechanical blockers", () => {
   const unresolved = {
     hardBlockers: [{ findingId: "deferred-1", kind: "unresolved_deferred_finding" }],

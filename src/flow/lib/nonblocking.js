@@ -255,6 +255,44 @@ function mark(state, id, status, taskId = null) {
   step.status = status;
 }
 
+/**
+ * Normalize a state written before the acceptance route consumed its explicit
+ * user-decision leaf. The matching durable nonblocking decision is the only
+ * authority that may close this leaf; no acceptance artifact is rewritten.
+ */
+export function reconcileNonblockingAcceptanceContinuation(root, state) {
+  if (!root || state?.nonblocking?.enabled !== true || state.directFlowSession) return false;
+  const acceptanceReview = findStepById(state.steps || [], "acceptance-review");
+  const acceptanceDecision = findStepById(state.steps || [], "acceptance-decision");
+  if (
+    acceptanceReview?.status !== "done"
+    || !["pending", "in_progress"].includes(acceptanceDecision?.status)
+  ) return false;
+  let evidence;
+  try {
+    evidence = evidenceForStep(root, state, "acceptance-review");
+  } catch {
+    return false;
+  }
+  if (!evidence) return false;
+  const log = new StepAttemptLog(state.stepAttempts || []);
+  const continuation = log.entries.findLast((entry) => (
+    entry.runId === state.runId
+    && entry.taskId === null
+    && entry.stepId === "acceptance-review"
+    && entry.outcome instanceof NonBlockingDecisionOutcome
+    && entry.outcome.action === "continue"
+    && hasSameEvidence(entry.outcome, {
+      sourceStep: "acceptance-review",
+      evidenceRef: evidence.ref,
+      evidenceDigest: evidence.evidenceDigest,
+    })
+  ));
+  if (!continuation) return false;
+  mark(state, "acceptance-decision", "done");
+  return true;
+}
+
 function decisionIssueLogId(identity, taskId = null) {
   // Task steps reuse the same step IDs and may even produce identical
   // artifact bytes. Scope the immutable decision key so a completed task
