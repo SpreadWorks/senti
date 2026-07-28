@@ -262,23 +262,53 @@ function buildPreimplementationBootstrapDirective(ctx, state, target) {
   });
 }
 
-function buildFinalizeCommitOutboxReplayDirective(ctx, state, target) {
-  if (target.scope !== "flow" || target.stepId !== "finalize-commit") return null;
-  const identity = finalizationOutboxIdentity(state, "finalize-commit");
+function buildFinalizeOutboxReplayDirective(ctx, state, target) {
+  if (target.scope !== "flow") return null;
+  const commandByStep = {
+    "finalize-commit": "finalize-commit",
+    "finalize-merge": "finalize-merge",
+    "finalize-sync": "finalize-sync",
+  };
+  const command = commandByStep[target.stepId];
+  if (!command) return null;
+
+  const identity = finalizationOutboxIdentity(state, target.stepId);
   const entry = new FlowOutbox(state.outbox || []).find(identity);
   if (entry?.status !== "failed") return null;
-  if (!hasOutboxCommit({
-    root: ctx.root,
-    ref: "HEAD",
-    idempotencyKey: entry.idempotencyKey,
-  })) return null;
+  if (entry.attempt !== 1 || entry.exactRecoveryReceipt != null) return null;
+
+  const { mainRepoPath } = state.worktree === true
+    ? ctx.flowManager.resolveWorktreePaths(state)
+    : { mainRepoPath: null };
+  const integrationRoot = mainRepoPath || ctx.root;
+  const durableCommit = target.stepId === "finalize-merge"
+    ? hasOutboxCommit({
+        root: integrationRoot,
+        ref: state.baseBranch,
+        idempotencyKey: entry.idempotencyKey,
+      })
+    : hasOutboxCommit({
+        root: target.stepId === "finalize-sync" ? integrationRoot : ctx.root,
+        ref: "HEAD",
+        idempotencyKey: entry.idempotencyKey,
+      });
+  if (target.stepId !== "finalize-merge" && !durableCommit) return null;
+  // A merge can fail before it creates its durable marker. Permit exactly one
+  // dispatcher-owned replay for that case; subsequent failures remain a
+  // concrete blocker rather than becoming an unbounded retry loop.
 
   const guards = guardFlagsForState(state);
   return new ExecuteCommandDirective({
-    actionId: "REPLAY_FINALIZE_COMMIT_OUTBOX",
-    nextAction: `senti flow run finalize-commit${guards ? ` ${guards}` : ""}`,
-    instruction: "Replay the idempotent finalize-commit lifecycle to finish durable artifacts after the implementation commit succeeded.",
-    reason: "The implementation commit is durable, but its finalize post-hook did not complete.",
+    actionId: `REPLAY_${target.stepId.replaceAll("-", "_").toUpperCase()}_OUTBOX`,
+    nextAction: `senti flow run ${command}${guards ? ` ${guards}` : ""}`,
+    instruction: target.stepId === "finalize-commit"
+      ? "Replay the idempotent finalize-commit lifecycle to finish durable artifacts after the implementation commit succeeded."
+      : `Replay the first incomplete ${target.stepId} lifecycle once. The durable outbox identity prevents duplicate integration effects.`,
+    reason: target.stepId === "finalize-commit"
+      ? "The implementation commit is durable, but its finalize post-hook did not complete."
+      : target.stepId === "finalize-merge" && !durableCommit
+        ? "The first finalize-merge attempt failed before its completion state could be confirmed."
+        : `The ${target.stepId} side effect is durable, but its post-hook did not complete.`,
   });
 }
 
@@ -436,7 +466,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
-    || buildFinalizeCommitOutboxReplayDirective(ctx, state, target)
+    || buildFinalizeOutboxReplayDirective(ctx, state, target)
     || new NextActionDirectiveResolver({
       state,
       action: derived.action,

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseSpec, buildPrTitle, buildPrBody } from "../../../../src/flow/commands/merge.js";
+import { parseSpec, buildPrTitle, buildPrBody, squashMergeFailure } from "../../../../src/flow/commands/merge.js";
 
 const SAMPLE_SPEC_JSON = {
   goal: "flow-finalize の PR ルートで PR description を自動生成する。",
@@ -136,5 +136,28 @@ describe("buildPrBody", () => {
     const body = buildPrBody(state, spec);
     assert.ok(!body.includes("fixes"));
     assert.ok(body.includes("## Goal"));
+  });
+});
+
+describe("squashMergeFailure", () => {
+  it("reports an actual unmerged path as a conflict", () => {
+    const error = squashMergeFailure({
+      mergeResult: { stdout: "", stderr: "CONFLICT" },
+      unmerged: ["src/example.js"],
+    });
+
+    assert.equal(error.code, "MERGE_CONFLICT");
+    assert.match(error.message, /src\/example\.js/);
+  });
+
+  it("preserves non-conflict git failures instead of labeling them as conflicts", () => {
+    const error = squashMergeFailure({
+      mergeResult: { stdout: "", stderr: "Your local changes would be overwritten" },
+      unmerged: [],
+    });
+
+    assert.equal(error.code, "MERGE_SQUASH_FAILED");
+    assert.match(error.message, /local changes would be overwritten/);
+    assert.doesNotMatch(error.message, /Merge conflict detected/);
   });
 });

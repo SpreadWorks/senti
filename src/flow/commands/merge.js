@@ -207,6 +207,28 @@ function completedSquashMerge({ root, baseBranch, featureBranch, idempotencyKey 
   return { strategy: "squash", mergedFromSha: baseline.stdout.trim(), resumed: true };
 }
 
+function unmergedPaths(gitPrefix) {
+  const result = runGit([...gitPrefix, "diff", "--name-only", "--diff-filter=U"]);
+  if (!result.ok) return [];
+  return String(result.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function squashMergeFailure({ mergeResult, unmerged }) {
+  if (unmerged.length > 0) {
+    const error = new Error(`Merge conflict detected in ${unmerged.join(", ")}.`);
+    error.code = "MERGE_CONFLICT";
+    error.conflictFiles = unmerged;
+    return error;
+  }
+  const output = String(mergeResult.stderr || mergeResult.stdout || "unknown git merge failure").trim();
+  const error = new Error(`Squash merge failed before conflict resolution: ${output}`);
+  error.code = "MERGE_SQUASH_FAILED";
+  return error;
+}
+
 /**
  * Resolve the merge strategy from flow state and config alone. Pure function —
  * used by both the live merge path and finalize's dry-run reporting so that
@@ -303,8 +325,12 @@ function runMerge(ctx) {
     const resetArgs = [...gitPrefix, "reset", "--merge"];
     const mergeRes = runGit(mergeArgs);
     if (!mergeRes.ok) {
+      const unmerged = unmergedPaths(gitPrefix);
       runGit(resetArgs);
-      throw new Error(`Merge conflict detected. ${hint}`);
+      const failure = squashMergeFailure({ mergeResult: mergeRes, unmerged });
+      failure.recoveryHint = hint;
+      failure.message = `${failure.message} ${hint}`;
+      throw failure;
     }
     const repoRoot = gitPrefix[0] === "-C" ? gitPrefix[1] : root;
     const implementationSubjects = collectImplementationSubjects({
@@ -452,4 +478,5 @@ export {
   buildSquashCommitMessage,
   collectImplementationSubjects,
   runPreSync,
+  squashMergeFailure,
 };

@@ -307,6 +307,52 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_COMMIT_OUTBOX");
       assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-commit /);
     });
+
+    it("replays one failed finalize merge through the dispatcher", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "finalize-merge");
+      const identity = finalizationOutboxIdentity(state, "finalize-merge");
+      const outbox = new FlowOutbox();
+      outbox.begin(identity, "2026-07-28T00:00:00.000Z");
+      outbox.fail(identity, new Error("Merge conflict detected."), "2026-07-28T00:00:01.000Z");
+      state.outbox = outbox.toJSON();
+      replaceFlowState(tmp, state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.directive.kind, "execute_command");
+      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_MERGE_OUTBOX");
+      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-merge /);
+    });
+
+    it("replays a durable finalize sync whose post-hook failed", () => {
+      tmp = createTmpDir();
+      initGitRepo(tmp);
+      fs.writeFileSync(join(tmp, "README.md"), "baseline\n");
+      commitAll(tmp, "test: baseline");
+
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "finalize-sync");
+      const identity = finalizationOutboxIdentity(state, "finalize-sync");
+      const outbox = new FlowOutbox();
+      outbox.begin(identity, "2026-07-28T00:00:00.000Z");
+      outbox.fail(identity, new Error("post-hook failed"), "2026-07-28T00:00:01.000Z");
+      state.outbox = outbox.toJSON();
+      replaceFlowState(tmp, state);
+      execFileSync("git", ["commit", "--allow-empty", "-m", "docs: sync", "-m", outboxCommitMarker(identity.idempotencyKey)], {
+        cwd: tmp,
+        stdio: "ignore",
+      });
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.directive.kind, "execute_command");
+      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_SYNC_OUTBOX");
+      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-sync /);
+    });
   });
 
   describe("context descriptor (REQ-7)", () => {
