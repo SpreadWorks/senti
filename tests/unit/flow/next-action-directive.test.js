@@ -7,6 +7,7 @@ import {
   NextActionDirectiveResolver,
 } from "../../../src/flow/lib/next-action-directive.js";
 import {
+  MoveToAcceptance,
   ReviewConvergenceState,
   RetryReview,
 } from "../../../src/flow/lib/review-convergence.js";
@@ -147,6 +148,34 @@ describe("single next-action directive authority", () => {
     assert.equal(directive.phase, "spec");
     assert.doesNotMatch(directive.nextAction, /retry reset/);
     assert.match(directive.nextAction, /flow get next-action/);
+  });
+
+  it("completes a canonical review handoff through one guarded command", () => {
+    const state = new ReviewConvergenceState({
+      ...convergenceState().toJSON(),
+      semanticAttempts: 4,
+      evidence: {
+        evidenceId: "b".repeat(64),
+        disposition: "REJECTED",
+      },
+      handoffFindings: [{ findingId: "missing-required-test" }],
+    });
+    const operation = new MoveToAcceptance({
+      state,
+      handoffFindings: state.handoffFindings,
+    });
+
+    const directive = new NextActionDirectiveResolver({
+      state: flowState(),
+      action: "run-review-test",
+      reviewPhase: "test",
+      reviewOperation: operation,
+    }).resolve().toJSON();
+
+    assert.equal(directive.kind, "execute_command");
+    assert.equal(directive.actionId, "COMPLETE_REVIEW_LIFECYCLE");
+    assert.match(directive.nextAction, /^senti flow run review --phase test /);
+    assert.match(directive.nextAction, /--expect-run-id 'run-473'/);
   });
 
   it("routes an exhausted gate with unchanged evidence through one repair pass", () => {

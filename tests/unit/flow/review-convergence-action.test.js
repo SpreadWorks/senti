@@ -99,6 +99,38 @@ describe("review convergence action target identity", () => {
     assert.equal(action.remainingToolingAttempts, 0);
   });
 
+  it("keeps an exhausted semantic handoff authoritative over a later tooling outcome", () => {
+    const flowState = {
+      reviewConvergence: {
+        version: 1,
+        records: [{
+          ...toolingRecord({
+            treeSha: CURRENT_TREE_SHA,
+            attempt: 2,
+            toolingAttempts: 1,
+            reason: "result recording ran after semantic exhaustion",
+          }),
+          semanticAttempts: 5,
+          semanticMaxAttempts: 5,
+          evidence: {
+            evidenceId: "c".repeat(64),
+            disposition: "REJECTED",
+          },
+          handoffFindings: [{ findingId: "missing-required-test" }],
+        }],
+      },
+    };
+
+    const action = resolveReviewActionForFlowState(flowState, {
+      phase: "test",
+      resolveTreeSha: () => CURRENT_TREE_SHA,
+    });
+
+    assert.equal(action.kind, "move_to_acceptance");
+    assert.deepEqual(action.handoffFindings, [{ findingId: "missing-required-test" }]);
+    assert.equal(action.remainingSemanticAttempts, 0);
+  });
+
   it("selects the current tree even when a stale record was appended later", () => {
     const flowState = {
       reviewConvergence: {

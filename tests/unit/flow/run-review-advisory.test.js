@@ -318,7 +318,7 @@ describe("test-review one-shot verdict routing", () => {
     });
   });
 
-  it("post-hook completes test-review for ADVISORY and skips task/tooling retry metrics", async () => {
+  it("post-hook completes flow-level test-review for ADVISORY without task-scope metric leakage", async () => {
     const updates = [];
     const metrics = [];
     const flowState = {
@@ -352,7 +352,15 @@ describe("test-review one-shot verdict routing", () => {
       status: "done",
       opts: { taskId: null },
     }]);
-    assert.deepEqual(metrics, []);
+    assert.deepEqual(metrics, [{
+      payload: {
+        phase: "test",
+        counter: "reviewRetry",
+        delta: 0,
+        reset: true,
+      },
+      opts: { taskId: null },
+    }]);
 
     const tmp = createTmpDir();
     try {

@@ -7,8 +7,10 @@ import { test } from "node:test";
 
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
-import { makeFlowState, moveFlowToStep } from "../../../helpers/flow-setup.js";
+import { makeDefaultTask, makeFlowState, moveFlowToStep } from "../../../helpers/flow-setup.js";
 import { findStepById } from "../../../../src/flow/lib/step-tree.js";
+import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-artifacts.js";
+import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
 
 const SENTI = path.resolve("src/senti.js");
 
@@ -185,6 +187,116 @@ test("nonblocking test-review continuation creates an acceptance disposition han
       sourceFindingId: "missing-test-behavior",
       finalDisposition: "still_open",
     }]);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("strict semantic exhaustion completes its acceptance handoff without advisory activation", () => {
+  const root = createTmpDir("senti-strict-review-exhaustion-e2e-");
+  try {
+    const specId = "481-strict-review-exhaustion-e2e";
+    const spec = `specs/${specId}/spec.json`;
+    const finding = {
+      findingId: "missing-test-behavior",
+      fingerprint: "a".repeat(64),
+      disposition: "must-fix",
+      rationale: "The test design omits a required acceptance behavior.",
+      category: "semantic",
+      title: "Missing acceptance behavior test",
+    };
+    writeJson(root, ".senti/config.json", {
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+      commands: { gh: "disable" },
+    });
+    writeJson(root, spec, { requirements: [] });
+    writeJson(root, `specs/${specId}/test-review.json`, {
+      verdict: "REJECTED",
+      blockingFindings: [finding],
+    });
+    const state = moveFlowToStep(makeFlowState({
+      spec,
+      runId: "run-481-strict-review-exhaustion-e2e",
+      baseBranch: "main",
+      featureBranch: "main",
+      currentTaskId: "T-1",
+      tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+    }), "test-review");
+    writeJson(root, `specs/${specId}/flow.json`, state);
+    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    initGitRepo(root);
+    commitAll(root, "initial exhausted review fixture");
+
+    const treeSha = resolveCurrentReviewTreeSha(root, spec);
+    const targetStateDigest = buildRepairFingerprint({
+      root,
+      specPath: spec,
+      state,
+    }).hash;
+    state.reviewConvergence = {
+      version: 1,
+      records: [{
+        phase: "test",
+        taskId: null,
+        treeSha,
+        semanticAttempts: 5,
+        semanticMaxAttempts: 5,
+        toolingAttempts: 1,
+        toolingMaxAttempts: 1,
+        evidence: {
+          evidenceId: "b".repeat(64),
+          disposition: "REJECTED",
+        },
+        finalizedEvidenceAvailable: false,
+        handoffFindings: [{ findingId: finding.findingId }],
+        blocker: {
+          kind: "tooling_attempts_exhausted",
+          reason: "A later review invocation could not record another result.",
+        },
+        toolingOutcome: {
+          kind: "TOOLING_ERROR",
+          stage: "result_recording",
+          attempt: 2,
+          maxAttempts: 2,
+          remainingAttempts: 0,
+          reason: "A later review invocation could not record another result.",
+          permissionRelated: false,
+        },
+        targetStateDigest,
+      }],
+    };
+    writeJson(root, `specs/${specId}/flow.json`, state);
+
+    const next = invoke(root, ["get", "next-action", ...guards(state)]);
+    assert.equal(next.status, 0, next.stderr || next.stdout);
+    assert.equal(next.envelope.data.directive.kind, "execute_command");
+    assert.equal(next.envelope.data.directive.actionId, "COMPLETE_REVIEW_LIFECYCLE");
+    assert.equal(next.envelope.data.directive.requiresUserAction, false);
+    assert.equal(next.envelope.data.directive.actionPrompt, undefined);
+
+    const completed = invoke(root, ["run", "review", "--phase", "test", ...guards(state)]);
+    assert.equal(completed.status, 0, completed.stderr || completed.stdout);
+    assert.equal(completed.envelope.data.result, "deferred");
+    assert.equal(completed.envelope.data.artifacts.attempts, 5);
+
+    const persisted = JSON.parse(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"));
+    assert.equal(persisted.nonblocking, undefined);
+    assert.equal(findStepById(persisted.steps, "test-review").status, "done");
+    assert.equal(findStepById(persisted.steps, "implement").status, "in_progress");
+    assert.equal(
+      persisted.stepAttempts.filter((entry) => (
+        entry.stepId === "test-review" && entry.outcome?.kind === "defer"
+      )).length,
+      1,
+    );
+    const deferred = JSON.parse(fs.readFileSync(
+      path.join(root, `specs/${specId}/flow-findings.json`),
+      "utf8",
+    ));
+    assert.equal(deferred.entries[0].sourceFindingId, finding.findingId);
+    assert.equal(deferred.entries[0].finalDisposition, "still_open");
   } finally {
     removeTmpDir(root);
   }

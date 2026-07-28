@@ -251,6 +251,115 @@ test("review retry exhaustion defers semantic findings without prose keyword blo
   assert.equal(finding.sourceFindingId, "test-semantic");
 });
 
+test("canonical semantic exhaustion recovers a flow-level review with an active task cursor", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "test-review.json", {
+    verdict: "REJECTED",
+    blockingFindings: [semanticFinding("canonical-semantic")],
+  });
+  const treeSha = "b".repeat(40);
+  const targetStateDigest = "c".repeat(64);
+  const flowState = flowStateAt("test-review", {
+    spec: fixture.specPath,
+    metrics: [],
+    currentTaskId: "T-1",
+    tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+    reviewConvergence: {
+      version: 1,
+      records: [{
+        phase: "test",
+        taskId: null,
+        treeSha,
+        semanticAttempts: 5,
+        semanticMaxAttempts: 5,
+        toolingAttempts: 1,
+        toolingMaxAttempts: 1,
+        evidence: {
+          evidenceId: "d".repeat(64),
+          disposition: "REJECTED",
+        },
+        finalizedEvidenceAvailable: false,
+        handoffFindings: [{ findingId: "canonical-semantic" }],
+        blocker: {
+          kind: "tooling_attempts_exhausted",
+          reason: "A later review invocation could not record another result.",
+        },
+        toolingOutcome: {
+          kind: "TOOLING_ERROR",
+          stage: "result_recording",
+          attempt: 2,
+          maxAttempts: 2,
+          remainingAttempts: 0,
+          reason: "A later review invocation could not record another result.",
+          permissionRelated: false,
+        },
+        targetStateDigest,
+      }],
+    },
+  });
+  const updates = [];
+
+  const result = checkReviewRetryBelowMax({
+    root: fixture.root,
+    flowState,
+    flowManager: fakeFlowManager(updates),
+  }, "test", { treeSha, targetStateDigest });
+
+  assert.equal(result.result, "deferred");
+  assert.equal(result.artifacts.attempts, 5);
+  assert.deepEqual(updates, [{ id: "test-review", status: "done" }]);
+  assert.equal(
+    readFlowFindingsArtifact(fixture.specDir).toJSON().entries[0].sourceFindingId,
+    "canonical-semantic",
+  );
+});
+
+test("flow-level review post hook counts exhaustion despite an active task cursor", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "test-review.json", {
+    verdict: "REJECTED",
+    blockingFindings: [semanticFinding("post-hook-semantic")],
+  });
+  const flowState = flowStateAt("test-review", {
+    spec: fixture.specPath,
+    metrics: retryMetrics("reviewRetry", "test", 4),
+    currentTaskId: "T-1",
+    tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+  });
+  const updates = [];
+  const flowManager = {
+    appendMetric(payload, options) {
+      flowState.metrics.push({ ...payload, taskId: options.taskId });
+    },
+    updateStepStatus(transition) {
+      updates.push({ id: transition.stepId, status: transition.requestedStatus });
+    },
+  };
+  const result = {
+    result: "ok",
+    artifacts: {
+      phase: "test",
+      verdict: "REJECTED",
+    },
+    next: null,
+  };
+
+  updateReviewRetryCounter({
+    root: fixture.root,
+    phase: "test",
+    flowState,
+    flowManager,
+  }, result);
+
+  assert.equal(result.result, "deferred");
+  assert.equal(result.artifacts.attempts, 5);
+  assert.deepEqual(updates, [{ id: "test-review", status: "done" }]);
+  assert.equal(
+    flowState.metrics.filter((entry) => entry.phase === "test" && entry.counter === "reviewRetry").length,
+    5,
+  );
+});
+
 for (const missingField of ["disposition", "rationale"]) {
   test(`review retry exhaustion rejects a semantic finding without ${missingField}`, () => {
     const fixture = prepareSpecRoot();

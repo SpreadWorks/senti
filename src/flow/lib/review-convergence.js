@@ -518,6 +518,12 @@ export class ReviewConvergenceState {
     return this.toolingMaxAttempts - this.toolingAttempts;
   }
 
+  get semanticHandoffReady() {
+    return this.disposition === "REJECTED"
+      && this.remainingSemanticAttempts === 0
+      && this.evidence != null;
+  }
+
   toJSON() {
     return {
       phase: this.phase,
@@ -637,6 +643,13 @@ function alternativeEvidenceBlocker(state) {
 export function resolveReviewPermittedOperation(state) {
   if (!(state instanceof ReviewConvergenceState)) {
     throw new Error("state must be a ReviewConvergenceState");
+  }
+  // Once canonical REJECTED evidence has exhausted the semantic budget, its
+  // acceptance handoff remains authoritative. A later provider invocation is
+  // invalid and any tooling outcome from that invocation must not replace the
+  // already-complete semantic route with tooling recovery.
+  if (state.semanticHandoffReady) {
+    return new MoveToAcceptance({ state, handoffFindings: state.handoffFindings });
   }
   if (state.toolingOutcome) {
     if (state.finalizedEvidenceAvailable) {

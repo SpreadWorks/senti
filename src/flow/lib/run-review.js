@@ -476,6 +476,9 @@ export function materializeReviewRetryExhaustionDeferral({
 function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
   if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
   const stepId = reviewStepId(ctx, phase);
+  const taskId = phase === IMPL_REVIEW_PHASE
+    ? ctx.flowState.currentTaskId ?? null
+    : null;
   const deferred = materializeReviewRetryExhaustionDeferral({
     root: ctx.root,
     flowState: ctx.flowState,
@@ -490,8 +493,9 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
     stepId,
     status: "done",
     event: "review:defer",
+    taskId,
   });
-  if (transition) ctx.flowManager.updateStepStatus(transition);
+  if (transition) ctx.flowManager.updateStepStatus(transition, { taskId });
   return reviewDeferredResult(phase, attempts, deferred.findingCount);
 }
 
@@ -501,14 +505,28 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
  *  - Envelope.fail(REVIEW_MAX_ATTEMPTS_EXCEEDED) when count >= max
  *  - Envelope.fail(UNKNOWN_REVIEW_PHASE) when phase is not mapped
  */
-export function checkReviewRetryBelowMax(ctx, phase) {
+export function checkReviewRetryBelowMax(
+  ctx,
+  phase,
+  { treeSha = null, targetStateDigest = null } = {},
+) {
   const flowState = ctx?.flowState || {};
   const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
   const taskScoped = persistedPhase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null;
   const stepId = taskScoped ? "task-review" : REVIEW_NODE_ID_BY_PHASE[persistedPhase];
-  const count = taskScoped
+  const legacyCount = taskScoped
     ? nextStepAttemptNumber(flowState, stepId) - 1
     : countReviewRetry(flowState.metrics, persistedPhase);
+  const canonicalCount = treeSha != null && targetStateDigest != null
+    ? (flowState.reviewConvergence?.records || []).findLast((record) => (
+        record?.phase === persistedPhase
+        && (record?.taskId ?? null) === (taskScoped ? flowState.currentTaskId : null)
+        && record.treeSha === treeSha
+        && record.targetStateDigest === targetStateDigest
+        && Number.isSafeInteger(record.semanticAttempts)
+      ))?.semanticAttempts ?? 0
+    : 0;
+  const count = Math.max(legacyCount, canonicalCount);
   let resolvedMax;
   try {
     resolvedMax = taskScoped
@@ -564,8 +582,10 @@ function isImplPass(result) {
  * Errors propagate to the dispatcher (R22 — do NOT swallow internally).
  */
 export function updateReviewRetryCounter(ctx, result) {
+  if (result?.result === "deferred" && result?.artifacts?.completionKind === "deferred") {
+    return;
+  }
   const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
-  if (persistedPhase !== IMPL_REVIEW_PHASE && ctx?.flowState?.currentTaskId != null) return;
   const completionScope = ReviewCompletionScope.forPostHook({
     result,
     phase: persistedPhase,
@@ -2067,7 +2087,13 @@ export class RunReviewCommand extends FlowCommand {
     const reviewCtx = completionScope.context(ctx);
 
     // Enforce review maxAttempts after scope resolution and before durable mutation.
-    const preCheck = checkReviewRetryBelowMax(reviewCtx, phase);
+    const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
+    const reviewTargetTreeSha = this.resolveTreeSha(reviewCtx);
+    const reviewTargetRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
+    const preCheck = checkReviewRetryBelowMax(reviewCtx, phase, {
+      treeSha: reviewTargetTreeSha,
+      targetStateDigest: reviewTargetRepairFingerprint,
+    });
     if (preCheck) return preCheck;
     if (scopeDecision?.kind === "task") {
       taskReviewSpec = resolveCurrentTaskSpec({
@@ -2076,9 +2102,6 @@ export class RunReviewCommand extends FlowCommand {
         decision: scopeDecision,
       });
     }
-    const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
-    const reviewTargetTreeSha = this.resolveTreeSha(reviewCtx);
-    const reviewTargetRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
     const canonicalBlock = canonicalReviewExecutionBlock(
       reviewCtx,
       persistedPhase,

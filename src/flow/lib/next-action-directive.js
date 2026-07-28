@@ -242,7 +242,14 @@ export class IdleDirective extends NextActionDirective {
 }
 
 function reviewDirective({ state, phase, operation }) {
-  if (operation instanceof MoveToAcceptance) return null;
+  if (operation instanceof MoveToAcceptance) {
+    return new ExecuteCommandDirective({
+      actionId: "COMPLETE_REVIEW_LIFECYCLE",
+      nextAction: guardedCommand(reviewCommand(phase), state),
+      instruction: "Complete the current canonical review outcome without invoking the reviewer again, persist any exhausted semantic findings for acceptance disposition, then refresh next-action.",
+      reason: "The canonical review outcome is ready for its normal lifecycle transition.",
+    });
+  }
   if (operation instanceof RetryReview) {
     if (!operation.requiresChangedEvidence) {
       return new ExecuteCommandDirective({
