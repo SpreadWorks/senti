@@ -27,6 +27,7 @@ import {
 import { resolveWorkDir } from "./lib/config.js";
 import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
+import { deployCodexFlowGuardHook } from "./lib/codex-flow-guard-hook.js";
 import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
 import { SENTI_ANALYSIS_GITATTRIBUTE, normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
@@ -856,6 +857,7 @@ async function main() {
 
     try {
       deploySkills(workRoot);
+      deployCodexFlowGuardHook(workRoot);
       console.log(t("setup.messages.skillsDeployed"));
     } catch (e) {
       console.error(`skill deployment failed: ${e.message}`);

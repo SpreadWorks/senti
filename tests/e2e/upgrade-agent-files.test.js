@@ -70,6 +70,10 @@ describe("upgrade agent instruction files", () => {
     assert.match(output, /CLAUDE\.md/);
     assertRefreshed(fs.readFileSync(join(tmp, "AGENTS.md"), "utf8"));
     assertRefreshed(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"));
+    const hooks = JSON.parse(fs.readFileSync(join(tmp, ".codex/hooks.json"), "utf8"));
+    assert.equal(hooks.hooks.Stop.length, 1);
+    assert.match(hooks.hooks.Stop[0].hooks[0].command, /senti-flow-final-response-guard\.mjs/);
+    assert.ok(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")));
   });
 
   it("reports pending agent file refreshes in dry-run without writing", () => {

@@ -428,6 +428,12 @@ Repeat until the loop exit condition is met. The loop is bounded by the finite f
   Flow completion, a real user decision, a concrete non-recoverable blocker,
   state corruption, or a true/unrecovered target mismatch. A corrected
   read-only runId transcription error is not a loop exit condition.
+- **Final-response guard:** immediately before returning a final response, run
+  `senti flow get final-response-guard <targetGuardArgs>`. A
+  `FLOW_CONTINUATION_REQUIRED` result rejects the final attempt; dispatch its
+  returned directive in this invocation. Only a successful guard result may
+  end the turn. Do not treat target-resolution errors other than the guard's
+  explicit `target_mismatch` result as permission to end the turn.
 
 C.1. **Ask the CLI for the next action**
    - If `targetRunId` is known, run `senti flow get next-action <targetGuardArgs>`.

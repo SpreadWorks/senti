@@ -878,6 +878,22 @@ export const FLOW_COMMANDS = {
         "is defined by the command itself and verified by its unit tests.",
       ].join("\n"),
     },
+    "final-response-guard": {
+      helpKey: "flow.get.final-response-guard",
+      requiresFlow: false,
+      explicitTargetResolution: true,
+      targetNotFoundAsMismatch: true,
+      targetMismatchResolution: "execute",
+      command: () => import("./lib/final-response-guard.js"),
+      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
+      help: [
+        "Usage: senti flow get final-response-guard [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "",
+        "Host integration boundary: call immediately before emitting an agent final response.",
+        "A non-terminal directive returns FLOW_CONTINUATION_REQUIRED with the exact continuation.",
+        "A user decision, terminal Flow state, idle state, or true target mismatch permits final output.",
+      ].join("\n"),
+    },
     context: {
       helpKey: "flow.get.context",
       command: () => import("./lib/get-context.js"),
