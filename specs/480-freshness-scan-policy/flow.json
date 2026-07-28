@@ -426,18 +426,19 @@
               "finishedAt": "2026-07-28T12:13:39.337Z",
               "runtimeLog": {
                 "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
-                "sequence": 2,
+                "sequence": 6,
                 "attempt": 1,
                 "command": "flow run finalize-sync",
-                "startedAt": "2026-07-28T12:12:16.420Z",
-                "endedAt": "2026-07-28T12:13:39.405Z",
+                "startedAt": "2026-07-28T12:15:35.910Z",
+                "endedAt": "2026-07-28T12:15:36.028Z",
                 "exitCode": 0
               }
             },
             {
               "id": "finalize-cleanup",
-              "status": "in_progress",
-              "startedAt": "2026-07-28T12:13:39.337Z"
+              "status": "done",
+              "startedAt": "2026-07-28T12:13:39.337Z",
+              "finishedAt": "2026-07-28T12:15:57.110Z"
             }
           ]
         }
@@ -2025,10 +2026,24 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
-      "attempt": 1,
-      "startedAt": "2026-07-28T12:14:52.530Z",
-      "updatedAt": "2026-07-28T12:14:53.031Z"
+      "status": "done",
+      "attempt": 2,
+      "startedAt": "2026-07-28T12:15:56.037Z",
+      "updatedAt": "2026-07-28T12:15:57.211Z",
+      "result": {
+        "status": "done",
+        "assurance": "strict",
+        "pluginHooks": [],
+        "followUps": [],
+        "retainedCleanupMetadata": null
+      },
+      "failureHistory": [
+        {
+          "attempt": 1,
+          "failure": "Worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+          "recordedAt": "2026-07-28T12:14:55.713Z"
+        }
+      ]
     }
   ],
   "issue": 480,
