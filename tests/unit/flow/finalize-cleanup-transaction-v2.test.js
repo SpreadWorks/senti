@@ -504,7 +504,7 @@ test("finalize lifecycle advances commit, merge, sync, and cleanup through their
     });
     let mainState = ctx.flowManager.loadReadOnly(specId);
     assert.equal(findStepById(mainState.steps, "finalize-merge").status, "done");
-    assert.equal(findStepById(mainState.steps, "finalize-sync").status, "in_progress");
+    assert.equal(findStepById(mainState.steps, "finalize-sync").status, "pending");
     git(fixture.worktreePath, ["add", `specs/${specId}/flow.json`]);
     git(fixture.worktreePath, ["commit", "--quiet", "-m", "record finalize merge lifecycle"]);
     replaceFlowState(root, mainState, { specId });
@@ -677,6 +677,12 @@ test("guard-targeted cleanup resumes from main after worktree removal without re
     assert.equal(envelope.ok, true, resumed.stdout);
     assert.equal(envelope.data.status, "done");
     assert.equal(fs.existsSync(fixture.worktreePath), false, "deleted worktree path must not be recreated");
+    // The resumed command is rooted at main: completion state and the
+    // persisted teardown journal remain readable without consulting the
+    // deleted worktree path.
+    const completedMainState = makeFlowManager(root).loadReadOnly(specId);
+    assert.equal(findStepById(completedMainState.steps, "finalize-cleanup").status, "done");
+    assert.equal(JSON.parse(fs.readFileSync(recoveryJournal(root), "utf8")).phase, "completed");
     assert.equal(fs.existsSync(path.join(root, ".senti", ".active-flow")), false);
     assert.equal(fs.readFileSync(pointerPath, "utf8").trim(), fixture.spec);
     assert.equal(git(root, ["status", "--porcelain", "--", `specs/${specId}`]), "");

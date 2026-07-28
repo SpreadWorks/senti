@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/registry.js"
+    ],
+    "inputHash": "3272969e9c5871ee1f8648bed10380488746a6ddf639c6df5f83e0145db79f7b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/registry.js"
+  ],
+  "inputHash": "3272969e9c5871ee1f8648bed10380488746a6ddf639c6df5f83e0145db79f7b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T01:41:23.968Z",
+  "finishedAt": "2026-07-28T01:41:23.968Z",
+  "rawResponse": "I’ll review only `src/flow/registry.js` against the supplied diff and requirements, with a code-quality lens rather than proposing broader changes.### 1. Replace brittle outbox “not found” detection\n**File:** `src/flow/registry.js`  \n**Requirement:** R2  \n**Issue:** `recordFailedOutboxEntry` detects a missing outbox entry by matching `String(error.message).startsWith(\"outbox entry not found:\")`. This is fragile and duplicates the `fail` call.  \n**Suggestion:** Add/use an outbox-store helper such as `failOrBeginAndFail(identity, reason)`, or catch a typed error/code if available. That keeps missing-entry recovery explicit and avoids depending on message text.\n\n### 2. Guard missing step lookups in finalize-merge rehydration\n**File:** `src/flow/registry.js`  \n**Requirement:** R4  \n**Issue:** `ensureFinalizeMergeInProgress` assumes several `findStepById(...)` calls always return a step. In particular, `findStepById(state.steps || [], active.stepId).status = \"done\"` can throw if the active step is stale or absent.  \n**Suggestion:** Store lookup results in named locals and null-check them before mutation. This also makes the state transition easier to audit.\n\n### 3. Extract finalize hook handler names\n**File:** `src/flow/registry.js`  \n**Requirement:** R1  \n**Issue:** `runFinalizeHook` now has several string-literal handler names, including new finalize-merge metadata handlers. The growing `if` chain makes typos hard to catch and weakens consistency.  \n**Suggestion:** Define local constants or a small handler dispatch table for finalize hook names, then route through that. This reduces duplication and makes the finalize-merge metadata flow easier to maintain.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Replace brittle outbox “not found” detection",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R2  \n**Issue:** `recordFailedOutboxEntry` detects a missing outbox entry by matching `String(error.message).startsWith(\"outbox entry not found:\")`. This is fragile and duplicates the `fail` call.  \n**Suggestion:** Add/use an outbox-store helper such as `failOrBeginAndFail(identity, reason)`, or catch a typed error/code if available. That keeps missing-entry recovery explicit and avoids depending on message text.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Guard missing step lookups in finalize-merge rehydration",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R4  \n**Issue:** `ensureFinalizeMergeInProgress` assumes several `findStepById(...)` calls always return a step. In particular, `findStepById(state.steps || [], active.stepId).status = \"done\"` can throw if the active step is stale or absent.  \n**Suggestion:** Store lookup results in named locals and null-check them before mutation. This also makes the state transition easier to audit.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Extract finalize hook handler names",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R1  \n**Issue:** `runFinalizeHook` now has several string-literal handler names, including new finalize-merge metadata handlers. The growing `if` chain makes typos hard to catch and weakens consistency.  \n**Suggestion:** Define local constants or a small handler dispatch table for finalize hook names, then route through that. This reduces duplication and makes the finalize-merge metadata flow easier to maintain.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

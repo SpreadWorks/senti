@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "findingId": "DF-1",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "fingerprint": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "disposition": "deferred",
+      "rationale": "The current tests can pass even if the integrated finalize-merge conflict path never creates the required evidence commit after a real conflict.",
+      "retryExhausted": true,
+      "attempts": 1,
+      "round": 1,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-2",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "fingerprint": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "disposition": "deferred",
+      "rationale": "An acceptance requirement has no corresponding spec-local coverage despite the artifact marking R5 covered.",
+      "retryExhausted": true,
+      "attempts": 1,
+      "round": 1,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    },
+    {
+      "findingId": "DF-3",
+      "sourceStep": "test-review",
+      "sourceArtifact": "test-review.json",
+      "sourceFindingId": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "fingerprint": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "disposition": "deferred",
+      "rationale": "The tests could pass if outbox idempotency works while the merge side effect is skipped or executed more than once.",
+      "retryExhausted": true,
+      "attempts": 1,
+      "round": 1,
+      "completionKind": "deferred",
+      "finalDisposition": "fixed"
+    }
+  ]
+}

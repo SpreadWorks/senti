@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "8cb4cdf48cb013f8a7892f58",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-8afcce2611e098eb",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/merge.js",
+      "src/flow/definition.js",
+      "src/flow/lib/finalize-flow-state-owner.js",
+      "src/flow/lib/flow-outbox.js",
+      "src/flow/lib/run-finalize-merge.js",
+      "src/flow/lib/run-finalize.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js",
+      "src/lib/git-helpers.js",
+      "tests/e2e/flow/commands/worktree-finalize.test.js",
+      "tests/unit/flow/finalization-outbox.test.js"
+    ],
+    "inputHash": "8afcce2611e098eb38cdaedc8272e7670703f394fc18a1aad4f4c710395a6ea0",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "8cb4cdf48cb013f8a7892f58"
+  },
+  "targetFiles": [
+    "src/flow/commands/merge.js",
+    "src/flow/definition.js",
+    "src/flow/lib/finalize-flow-state-owner.js",
+    "src/flow/lib/flow-outbox.js",
+    "src/flow/lib/run-finalize-merge.js",
+    "src/flow/lib/run-finalize.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js",
+    "src/lib/git-helpers.js",
+    "tests/e2e/flow/commands/worktree-finalize.test.js",
+    "tests/unit/flow/finalization-outbox.test.js"
+  ],
+  "inputHash": "8afcce2611e098eb38cdaedc8272e7670703f394fc18a1aad4f4c710395a6ea0",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T01:41:59.416Z",
+  "finishedAt": "2026-07-28T01:41:59.416Z",
+  "rawResponse": "### 1. Standardize Finalize-Merge Retry Terminology\n**File:** `src/flow/commands/merge.js`  \n**Requirement:** R4  \n**Issue:** Retry guidance and command naming appear in multiple files as `finalize`, `finalize-merge`, and `senti flow run finalize-merge`, while lifecycle and outbox code also encode finalize-merge-specific behavior. This creates a cross-file naming consistency risk for the recovery path.\n**Suggestion:** Introduce shared constants/helpers for the finalize-merge command name and retry hint text, then use them from command output, lifecycle resolution, registry hook handling, and tests.\n\n### 2. Align Auto-Promotion Naming Across Lifecycle And Policy\n**File:** `src/flow/definition.js`  \n**Requirement:** R4  \n**Issue:** `suppressAutoPromotion` in `definition.js` and `hasExplicitInProgressTarget` in `step-transition-policy.js` describe the same promotion-control behavior with mismatched names. One is broad, the other implies only `\"in_progress\"` status, so the interface between the files is unclear.\n**Suggestion:** Rename both sides around a shared concept such as `suppressNextStepPromotion` / `hasExplicitPromotionControl`, and keep the action field and policy variable semantically aligned.\n\n### 3. Consolidate Finalize-Merge Step Activation In Tests And Runtime\n**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The e2e test manually mutates nested finalize step statuses while runtime code in `registry.js` has finalize-merge rehydration logic that also mutates step state. This duplicates lifecycle setup across files and risks tests passing with a shape that diverges from production transitions.\n**Suggestion:** Use shared test helpers like `activateFinalizeMerge()` and `findStepById()` consistently, and mirror the production finalize-merge activation semantics rather than open-coding tree traversal.\n\n### 4. Use Shared Finalize Hook Identifiers\n**File:** `src/flow/registry.js`  \n**Requirement:** R1  \n**Issue:** Finalize hook names are represented as string literals in `registry.js`, while `definition.js` constructs finalize lifecycle phases that depend on matching command-specific hooks. This cross-file string interface is brittle.\n**Suggestion:** Define shared constants or a dispatch map for finalize hook identifiers, especially the finalize-merge metadata hooks, and import them wherever lifecycle actions and hook handlers are registered.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Finalize-Merge Retry Terminology",
+        "body": "**File:** `src/flow/commands/merge.js`  \n**Requirement:** R4  \n**Issue:** Retry guidance and command naming appear in multiple files as `finalize`, `finalize-merge`, and `senti flow run finalize-merge`, while lifecycle and outbox code also encode finalize-merge-specific behavior. This creates a cross-file naming consistency risk for the recovery path.\n**Suggestion:** Introduce shared constants/helpers for the finalize-merge command name and retry hint text, then use them from command output, lifecycle resolution, registry hook handling, and tests.",
+        "file": "src/flow/commands/merge.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Align Auto-Promotion Naming Across Lifecycle And Policy",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R4  \n**Issue:** `suppressAutoPromotion` in `definition.js` and `hasExplicitInProgressTarget` in `step-transition-policy.js` describe the same promotion-control behavior with mismatched names. One is broad, the other implies only `\"in_progress\"` status, so the interface between the files is unclear.\n**Suggestion:** Rename both sides around a shared concept such as `suppressNextStepPromotion` / `hasExplicitPromotionControl`, and keep the action field and policy variable semantically aligned.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Consolidate Finalize-Merge Step Activation In Tests And Runtime",
+        "body": "**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The e2e test manually mutates nested finalize step statuses while runtime code in `registry.js` has finalize-merge rehydration logic that also mutates step state. This duplicates lifecycle setup across files and risks tests passing with a shape that diverges from production transitions.\n**Suggestion:** Use shared test helpers like `activateFinalizeMerge()` and `findStepById()` consistently, and mirror the production finalize-merge activation semantics rather than open-coding tree traversal.",
+        "file": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "4. Use Shared Finalize Hook Identifiers",
+        "body": "**File:** `src/flow/registry.js`  \n**Requirement:** R1  \n**Issue:** Finalize hook names are represented as string literals in `registry.js`, while `definition.js` constructs finalize lifecycle phases that depend on matching command-specific hooks. This cross-file string interface is brittle.\n**Suggestion:** Define shared constants or a dispatch map for finalize hook identifiers, especially the finalize-merge metadata hooks, and import them wherever lifecycle actions and hook handlers are registered.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

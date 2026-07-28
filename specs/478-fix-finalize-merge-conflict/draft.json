@@ -1,0 +1,65 @@
+{
+  "devType": "bugfix",
+  "goal": "[must] Keep the normal finalize-merge conflict recovery procedure executable without requiring a user-created metadata commit.",
+  "analysis": {
+    "problem": "A normal finalize-merge conflict returns a rebase instruction, but Flow-owned error handling subsequently writes the failed outbox, downstream step state, runtime metadata, and issue log into the worktree. Those writes can make the instructed rebase impossible to begin.",
+    "proposedApproach": "[must] After a normal finalize-merge conflict, commit only the active spec's flow.json and issue-log.json before returning the rebase instruction. Reviewers verify that this commit records the conflict reason, failed finalize-merge outbox, and skipped finalize-sync/finalize-cleanup states, and that git status --porcelain in the worktree is empty. If any other path is dirty, return that exact path with the command git status --short -- <path>, instruct the user to resolve it, and require a later senti flow run finalize-merge retry before any Git or Flow mutation.",
+    "validation": "This addresses the root boundary between the displayed recovery instruction and the later Flow-owned mutations, rather than only retrying after the worktree has already become dirty. [must] On retry, finalize-sync and finalize-cleanup change from skipped to pending before the merge attempt; after a successful retry, finalize-merge is done, merge/outbox side effects execute exactly once, and finalize-sync/finalize-cleanup remain pending for their normal execution."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "[must] Normal finalize-merge conflict handling aborts its internal rebase, restores the worktree, and tells the user to rebase manually before retrying.",
+      "[must] finalize:onError then records failed outbox state, an issue-log entry, and skipped finalize-sync/finalize-cleanup states; these Flow-owned writes can dirty the worktree after the instruction is returned.",
+      "[must] Existing retry behavior resets skipped finalize-sync and finalize-cleanup steps to pending and completes merge/outbox side effects exactly once after success.",
+      "[must] The user selected automatic metadata-only commit for normal finalize-merge conflicts; it is limited to the active spec's flow.json and issue-log.json before the rebase instruction is returned."
+    ],
+    "decisionPoints": [
+      "[must] The selected recovery interface automatically commits only the active spec's flow.json and issue-log.json after failure state is recorded; before the rebase instruction is returned, those files contain the conflict reason, failed outbox, and skipped downstream states, and git status --porcelain is empty. No separate CLI-owned preparation command is introduced.",
+      "[must] Define the externally observable stop behavior when any dirty path outside the active spec's flow.json and issue-log.json is present."
+    ],
+    "resolvedByProjectRules": [
+      "[must] Keep this work within one Issue/spec; do not redesign direct finalize or durable teardown completed by Issue #473.",
+      "[must] Treat source code as authoritative where documentation differs, and retain the existing retry behavior: finalize-sync/finalize-cleanup reset from skipped to pending before retry, then a successful finalize-merge completes its outbox and leaves each downstream step pending exactly once."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "[must] Specify the exact Flow lifecycle integration, data persistence sequence, error envelope, and unit/CLI/E2E verification matrix after the recovery interface is chosen."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] Normal worktree finalize-merge conflict detection, evidence preservation, rebase readiness, retry state restoration, and idempotent merge/outbox completion.",
+      "[must] Metadata-only commit safety limited to specs/<active-spec>/flow.json and specs/<active-spec>/issue-log.json.",
+      "[must] Unit and worktree CLI/E2E coverage using an actual conflicting base branch and feature worktree."
+    ],
+    "out": [
+      "[must] Automatically resolving conflict contents or committing user-owned source, test, documentation, or other external changes.",
+      "[must] Changing squash/PR strategy, skipping rebase, or redesigning direct finalize and durable teardown behavior."
+    ]
+  },
+  "impactOnExisting": [
+    "[must] Preserve the existing normal finalize-merge success path without creating extra metadata commits.",
+    "[must] Preserve pre-merge metadata behavior by committing only the active spec's flow.json and issue-log.json when no other path is dirty, and by creating no metadata-only commit on the normal merge path. Preserve direct-finalize/cleanup behavior by allowing post-rebase verification and integration records to use main-side flow authority, resuming an interrupted direct completion from its saved transaction, completing teardown journal/receipt/cleanup from that authority, and never re-reading a deleted worktree after cleanup.",
+    "[must] Migration-parity inventory: the public senti flow run finalize-merge command continues to return a conflict recovery instruction and uses the same command for retry; no public API or configuration changes. Conflict detection retains ownership of detecting/returning the hint, error lifecycle retains ownership of recording failure/outbox/step state and gains ownership of the scoped automatic commit, and retry lifecycle retains ownership of restoring downstream state. flow.json, issue-log.json, runtime log, and outbox evidence remain generated artifacts; only their persistence moves from a user-created commit to the scoped automatic commit. Behavior-level worktree E2E verifies conflict response, committed evidence, clean status, manual rebase, retry, one merge/outbox completion, then sync and cleanup.",
+    "[must] When an out-of-scope dirty path exists, return the exact path and git status --short -- <path>; after the user resolves the path, the concrete retry command is senti flow run finalize-merge. Do not mutate Flow state, start the outbox, or create any commit before that retry."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "When a normal finalize-merge conflict occurs, which recovery interface must Flow provide: automatically commit only the active spec's flow.json and issue-log.json before returning the rebase instruction, or return one CLI-owned command that preserves evidence and makes the worktree rebase-ready?",
+      "answer": "[must] Use an automatic metadata-only commit before returning the rebase instruction.",
+      "evidence": "The user selected option [1]. Issue #478 permits automatic commits only for the target spec's flow.json and issue-log.json; src/flow/lib/run-finalize.js already defines this same two-path metadata boundary for finalize-merge preflight commits.",
+      "why": "It preserves Flow-owned evidence at the failure boundary and lets the user begin the instructed rebase without an additional recovery command or manual metadata commit.",
+      "considered": "A separate CLI-owned recovery command was considered but rejected because it adds a required action before the user can rebase.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-27T14:31:38.083Z",
+    "notes": ""
+  }
+}

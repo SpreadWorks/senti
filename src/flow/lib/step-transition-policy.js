@@ -130,7 +130,8 @@ export class DefinitionLifecycleTransition {
     this.requestedStatus = requiredStatus(action.status, "requestedStatus");
     this.event = requiredString(plan.event, "event");
     this.hasExplicitInProgressTarget = plan.actions.some((candidate) => (
-      candidate instanceof SetStepStatus && candidate.status === "in_progress"
+      candidate instanceof SetStepStatus
+      && (candidate.status === "in_progress" || candidate.suppressAutoPromotion)
     ));
     if (!LIFECYCLE_STATUSES.has(this.requestedStatus)) {
       transitionError(`definition lifecycle requested status is invalid: ${this.requestedStatus}`);
@@ -188,6 +189,15 @@ export class ExplicitRecoveryTransition {
       if (recoveryChanges.length === 0) transitionError("impl-repair invalidation requires step changes");
       if (recoveryChanges.some((change) => !["pending", "in_progress"].includes(change.requestedStatus))) {
         transitionError("impl-repair invalidation may only reset steps to pending or in_progress");
+      }
+    } else if (this.entrypoint === "restore-branch-merge-post-state") {
+      if (
+        recoveryChanges.length !== 1
+        || recoveryChanges[0].stepId !== "finalize-merge"
+        || recoveryChanges[0].currentStatus !== "pending"
+        || recoveryChanges[0].requestedStatus !== "in_progress"
+      ) {
+        transitionError("branch merge restore requires finalize-merge pending to in_progress");
       }
     } else if (this.entrypoint === EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT) {
       const expected = new Map([

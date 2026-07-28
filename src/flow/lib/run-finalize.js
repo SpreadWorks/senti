@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "path";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   runGit,
@@ -35,6 +36,15 @@ export function finalizeOnError(stepName, trigger) {
         timestamp: new Date().toISOString(),
       };
       if (trigger) entry.trigger = trigger;
+      if (stepName === "finalize-merge") {
+        const state = ctx.flowManager.loadReadOnly(ctx.specId);
+        entry.downstream = Object.fromEntries(
+          ["finalize-sync", "finalize-cleanup"].map((stepId) => [
+            stepId,
+            findStepById(state.steps, stepId)?.status ?? null,
+          ]),
+        );
+      }
       appendIssueLogEntry(ctx.root, ctx.flowState.spec, entry);
     } catch (e) { console.error("[issue-log hook]", e.message); }
   };
@@ -146,7 +156,7 @@ function walkPorcelainStatusPaths(output, visit) {
 }
 
 function readFinalizeMergeStatusOutput(root) {
-  const res = runGit(["status", "--porcelain=v1", "-z"], { cwd: root });
+  const res = runGit(["status", "--porcelain=v1", "-z", "--untracked-files=all"], { cwd: root });
   assertOk(res, "finalize-merge metadata preflight failed: git status failed");
   return res.stdout || "";
 }
@@ -198,12 +208,32 @@ export function hasFinalizeMergeTargetExternalDirty({ root, specId, dirtyPaths, 
   return getFinalizeMergeTargetExternalDirtyPaths({ root, specId, dirtyPaths, preflight }).length > 0;
 }
 
+export function assertFinalizeMergeMetadataMutationSafe({ root, specId }) {
+  const preflight = readFinalizeMergeMetadataPreflight({ root, specId });
+  if (preflight.externalDirtyPaths.length === 0) return preflight;
+
+  const details = preflight.externalDirtyPaths.map((dirtyPath) => {
+    const status = runGit(["status", "--short", "--", dirtyPath], { cwd: root });
+    assertOk(status, `finalize-merge metadata preflight failed: git status failed for ${dirtyPath}`);
+    return status.stdout.trim() || dirtyPath;
+  });
+  const error = new Error([
+    "finalize-merge cannot mutate Flow metadata while external paths are dirty:",
+    ...details,
+    "Resolve the listed paths, then retry 'senti flow run finalize-merge'.",
+  ].join("\n"));
+  error.code = "FINALIZE_MERGE_EXTERNAL_DIRTY";
+  error.preflight = preflight;
+  throw error;
+}
+
 export function commitFinalizeMergeMetadataIfSafe({
   root,
   specId,
   dirtyPaths,
   preflight,
   includeFlowJson = false,
+  includeIssueLog = false,
   message = "chore: record finalize metadata before merge",
 }) {
   const metadataPreflight = preflight
@@ -220,6 +250,7 @@ export function commitFinalizeMergeMetadataIfSafe({
 
   const dirtySet = new Set(metadataPreflight.metadataDirtyPaths);
   if (includeFlowJson) dirtySet.add(metadataPreflight.allowedMetadataPaths[0]);
+  if (includeIssueLog) dirtySet.add(metadataPreflight.allowedMetadataPaths[1]);
   const metadataPaths = metadataPreflight.allowedMetadataPaths.filter((relPath) => dirtySet.has(relPath));
   if (metadataPaths.length === 0) {
     return { status: "skipped", reason: "no-metadata-dirty" };
@@ -231,6 +262,23 @@ export function commitFinalizeMergeMetadataIfSafe({
     ...commitOrSkip(["-m", message], { cwd: root }),
     paths: metadataPaths,
   };
+}
+
+/**
+ * Persist the complete Flow-owned evidence emitted by a failed normal
+ * finalize-merge attempt.  The error lifecycle has already written the
+ * failed outbox, issue-log entry, and downstream skip states when this runs;
+ * this boundary deliberately stages no path outside the active spec.
+ */
+export function commitFinalizeMergeConflictMetadata({ root, specId, preflight }) {
+  return commitFinalizeMergeMetadataIfSafe({
+    root,
+    specId,
+    preflight,
+    includeFlowJson: true,
+    includeIssueLog: true,
+    message: "chore: record finalize metadata after conflict",
+  });
 }
 
 class GitPathEntry {

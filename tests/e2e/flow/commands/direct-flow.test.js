@@ -31,7 +31,7 @@ function invokeAt(cwd, args) {
   const result = spawnSync(process.execPath, [SENTI, "flow", ...args], {
     cwd,
     encoding: "utf8",
-    env: process.env,
+    env: { ...process.env, SENTI_WORK_ROOT: cwd },
   });
   let envelope = null;
   try {

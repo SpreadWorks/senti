@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-27T15:03:37.553Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/478-fix-finalize-merge-conflict/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Actual finalize-merge conflict path is not exercised for evidence commit",
+      "target": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+      "findingId": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "fingerprint": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "disposition": "must-fix",
+      "rationale": "The current tests can pass even if the integrated finalize-merge conflict path never creates the required evidence commit after a real conflict.",
+      "issue": "R1/R6 require coverage of normal worktree finalize-merge conflict handling with actual conflict detection, evidence commit, clean rebase preparation, manual rebase, and retry. The tests create the metadata commit by calling `FLOW_COMMANDS.run[\"finalize-merge\"].onError(...)` directly with a synthetic error. The only Git conflict fixture calls `runPreSync(...)` separately, resolves a manual rebase, then creates a new flow and again invokes `onError(...)` synthetically, so the evidence commit is not tied to the actual finalize-merge conflict path.",
+      "requiredChange": "Add or adjust a spec-local executable test so an actual finalize-merge/pre-sync conflict failure drives the production conflict handler that creates the metadata-only commit, then verifies clean status, manual rebase continuation, and retry from that persisted state.",
+      "whyBlocking": "The current tests can pass even if the integrated finalize-merge conflict path never creates the required evidence commit after a real conflict.",
+      "origin": "R1, R6",
+      "failureKind": "static anti-pattern that would pass without exercising production behavior"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 deleted-worktree/main-state behavior is not spec-locally asserted",
+      "target": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+      "findingId": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "fingerprint": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local coverage despite the artifact marking R5 covered.",
+      "issue": "R5 requires direct finalize/cleanup to update verification and integration records through main-repository flow state after rebase, resume an interrupted completion from its saved transaction, complete teardown journal/receipt/cleanup through that main-repository state, and perform no import/filesystem read/lock validation/log access against a deleted worktree. The R5 test only asserts no commit on clean `finalize-merge.pre(...)` and shells out to broad shared suites; it does not contain spec-local assertions for the deleted-worktree/main-repository state requirements.",
+      "requiredChange": "Add spec-local assertions or a focused spec-local fixture covering direct finalize/cleanup after rebase through main-repository flow state, including interrupted transaction resume and no access to the deleted worktree.",
+      "whyBlocking": "An acceptance requirement has no corresponding spec-local coverage despite the artifact marking R5 covered.",
+      "origin": "R5",
+      "failureKind": "missing spec-local test coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "Merge side effect exactly-once requirement is not tested",
+      "target": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+      "findingId": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "fingerprint": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "disposition": "must-fix",
+      "rationale": "The tests could pass if outbox idempotency works while the merge side effect is skipped or executed more than once.",
+      "issue": "R4 requires merge and outbox side effects to execute exactly once after retry success. The tests assert only that one outbox entry is done and that a repeated `post(...)` call does not duplicate the outbox entry; they do not observe or count the merge side effect itself.",
+      "requiredChange": "Add a spec-local assertion using the production merge side effect boundary, transaction artifact, commit state, or an equivalent observable to prove the merge side effect executes exactly once across retry/idempotent completion.",
+      "whyBlocking": "The tests could pass if outbox idempotency works while the merge side effect is skipped or executed more than once.",
+      "origin": "R4",
+      "failureKind": "missing regression test"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "04bd684e2bd0a33786b40d3eacc05fc09997f510591c38730ae339068345aed9"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "findingId": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Actual finalize-merge conflict path is not exercised for evidence commit",
+      "body": "R1/R6 require coverage of normal worktree finalize-merge conflict handling with actual conflict detection, evidence commit, clean rebase preparation, manual rebase, and retry. The tests create the metadata commit by calling `FLOW_COMMANDS.run[\"finalize-merge\"].onError(...)` directly with a synthetic error. The only Git conflict fixture calls `runPreSync(...)` separately, resolves a manual rebase, then creates a new flow and again invokes `onError(...)` synthetically, so the evidence commit is not tied to the actual finalize-merge conflict path.",
+      "category": "unknown",
+      "fingerprint": "b56a01a23ad47b0a5cb83e0f99d11118a1b9c953fbb5bda729e7a049202196b5",
+      "disposition": "must-fix",
+      "rationale": "The current tests can pass even if the integrated finalize-merge conflict path never creates the required evidence commit after a real conflict."
+    },
+    {
+      "id": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "findingId": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "R5 deleted-worktree/main-state behavior is not spec-locally asserted",
+      "body": "R5 requires direct finalize/cleanup to update verification and integration records through main-repository flow state after rebase, resume an interrupted completion from its saved transaction, complete teardown journal/receipt/cleanup through that main-repository state, and perform no import/filesystem read/lock validation/log access against a deleted worktree. The R5 test only asserts no commit on clean `finalize-merge.pre(...)` and shells out to broad shared suites; it does not contain spec-local assertions for the deleted-worktree/main-repository state requirements.",
+      "category": "unknown",
+      "fingerprint": "a9cb46fed14726e933c0f071dc83c3c72043bc4aeb1cb64e3f6d70ecefaf2006",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has no corresponding spec-local coverage despite the artifact marking R5 covered."
+    },
+    {
+      "id": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "findingId": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Merge side effect exactly-once requirement is not tested",
+      "body": "R4 requires merge and outbox side effects to execute exactly once after retry success. The tests assert only that one outbox entry is done and that a repeated `post(...)` call does not duplicate the outbox entry; they do not observe or count the merge side effect itself.",
+      "category": "unknown",
+      "fingerprint": "7cd03fcea19c847d7e55c54c009d6c845460425214a4922ddb0c1c54af764b2c",
+      "disposition": "must-fix",
+      "rationale": "The tests could pass if outbox idempotency works while the merge side effect is skipped or executed more than once."
+    }
+  ]
+}

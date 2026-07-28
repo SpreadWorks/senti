@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "75f4871091a34c2fc78b9a8b",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0001",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/definition.js"
+    ],
+    "inputHash": "ece7bb21f1b7d0df97b49074b10c5e825acc555f052680ab85f08afc3dfa85a3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "75f4871091a34c2fc78b9a8b"
+  },
+  "targetFiles": [
+    "src/flow/definition.js"
+  ],
+  "inputHash": "ece7bb21f1b7d0df97b49074b10c5e825acc555f052680ab85f08afc3dfa85a3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T01:39:56.303Z",
+  "finishedAt": "2026-07-28T01:39:56.303Z",
+  "rawResponse": "### 1. Extract Shared Finalize-Merge Branch Logic\n**File:** `src/flow/definition.js`  \n**Requirement:** R1  \n**Issue:** `resolveFinalizeLifecycle` now repeats `command === \"finalize-merge\"` branching across `finalize:pre`, `finalize:onError`, and normal completion. This makes the conflict path harder to audit, especially because ordering is requirement-critical.  \n**Suggestion:** Introduce small helpers such as `isFinalizeMerge(command)`, `addFinalizeMergePreActions(actions)`, or command-specific lifecycle builders for `finalize-merge`. This would keep the metadata preflight, outbox begin/fail, skipped downstream steps, and metadata commit sequencing in one place.\n\n### 2. Rename `suppressAutoPromotion` To Match Behavior\n**File:** `src/flow/definition.js`  \n**Requirement:** R4  \n**Issue:** `suppressAutoPromotion` is a broad name that does not explain what promotion is being suppressed or why only `finalize-merge` needs it. The comment says the retried merge should not begin `finalize-sync`, so the name should reflect step auto-advancement.  \n**Suggestion:** Rename it to something more domain-specific, such as `suppressNextStepPromotion` or `suppressDownstreamStepPromotion`, and update constructor validation and `forStep` propagation accordingly.\n\n### 3. Deduplicate Outbox Failure Action Construction\n**File:** `src/flow/definition.js`  \n**Requirement:** R2  \n**Issue:** In `finalize:onError`, both branches add `new FailOutboxEffect({ step: command })`; the only finalize-merge-specific behavior is adding `SkipSteps` before `finalizeOnError`.  \n**Suggestion:** Push `FailOutboxEffect` once before the conditional, then conditionally add `SkipSteps`. This makes the required failure-state ordering easier to read and reduces duplicated action construction.\n\n### 4. Consider A Command Lifecycle Strategy Map\n**File:** `src/flow/definition.js`  \n**Requirement:** R5  \n**Issue:** `resolveFinalizeLifecycle` is accumulating command-specific special cases for `finalize-merge`, `finalize-sync`, `finalize-cleanup`, and `finalize-commit`. The current shape increases the chance that future lifecycle changes put hooks on the wrong repository authority or in the wrong phase.  \n**Suggestion:** Use a small command-to-lifecycle map or per-command helper functions for pre, error, and success actions. That would align the design with explicit command strategies and make it easier to verify that the normal no-conflict path does not create the metadata-only commit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Shared Finalize-Merge Branch Logic",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R1  \n**Issue:** `resolveFinalizeLifecycle` now repeats `command === \"finalize-merge\"` branching across `finalize:pre`, `finalize:onError`, and normal completion. This makes the conflict path harder to audit, especially because ordering is requirement-critical.  \n**Suggestion:** Introduce small helpers such as `isFinalizeMerge(command)`, `addFinalizeMergePreActions(actions)`, or command-specific lifecycle builders for `finalize-merge`. This would keep the metadata preflight, outbox begin/fail, skipped downstream steps, and metadata commit sequencing in one place.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Rename `suppressAutoPromotion` To Match Behavior",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R4  \n**Issue:** `suppressAutoPromotion` is a broad name that does not explain what promotion is being suppressed or why only `finalize-merge` needs it. The comment says the retried merge should not begin `finalize-sync`, so the name should reflect step auto-advancement.  \n**Suggestion:** Rename it to something more domain-specific, such as `suppressNextStepPromotion` or `suppressDownstreamStepPromotion`, and update constructor validation and `forStep` propagation accordingly.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Deduplicate Outbox Failure Action Construction",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R2  \n**Issue:** In `finalize:onError`, both branches add `new FailOutboxEffect({ step: command })`; the only finalize-merge-specific behavior is adding `SkipSteps` before `finalizeOnError`.  \n**Suggestion:** Push `FailOutboxEffect` once before the conditional, then conditionally add `SkipSteps`. This makes the required failure-state ordering easier to read and reduces duplicated action construction.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "4. Consider A Command Lifecycle Strategy Map",
+        "body": "**File:** `src/flow/definition.js`  \n**Requirement:** R5  \n**Issue:** `resolveFinalizeLifecycle` is accumulating command-specific special cases for `finalize-merge`, `finalize-sync`, `finalize-cleanup`, and `finalize-commit`. The current shape increases the chance that future lifecycle changes put hooks on the wrong repository authority or in the wrong phase.  \n**Suggestion:** Use a small command-to-lifecycle map or per-command helper functions for pre, error, and success actions. That would align the design with explicit command strategies and make it easier to verify that the normal no-conflict path does not create the metadata-only commit.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R5"
+      }
+    ]
+  }
+}

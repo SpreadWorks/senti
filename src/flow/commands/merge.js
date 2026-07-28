@@ -389,7 +389,7 @@ function runMerge(ctx) {
     assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
     const mergedFromSha = baselineRes.stdout.trim();
 
-    const mergeHint = `Run 'git rebase ${baseBranch}' in the worktree and retry finalize.`;
+    const mergeHint = `Run 'git rebase ${baseBranch}' in the worktree and retry finalize-merge.`;
     const checkoutRes = runGit(["-C", mainRepoPath, "checkout", baseBranch]);
     if (checkoutRes.ok) {
       runSquashMerge(["-C", mainRepoPath], mergeHint);
@@ -421,7 +421,11 @@ function runMerge(ctx) {
   const baselineRes = runGit(["-C", root, "rev-parse", featureBranch]);
   assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
   const mergedFromSha = baselineRes.stdout.trim();
-  const checkoutRes = runGit(["-C", root, "checkout", baseBranch]);
+  // The lifecycle preflight permits only Flow metadata at this point. Switch
+  // to the base branch without adding a metadata-only commit; the post hook
+  // records the completed outbox and merge outcome in the base-side flow
+  // state immediately after the squash succeeds.
+  const checkoutRes = runGit(["-C", root, "checkout", "--force", baseBranch]);
   assertOk(checkoutRes, "git checkout failed");
   runSquashMerge(["-C", root], `Run 'git rebase ${baseBranch}' and retry finalize.`);
   return { strategy: "squash", mergedFromSha };
@@ -450,7 +454,10 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
   }
   const rebaseRef = `${remote}/${baseBranch}`;
 
-  const rebaseRes = rebaseOnto(rebaseRef, { cwd: worktreePath });
+  // finalize-merge records its pending outbox before this side effect. Keep
+  // that Flow-owned change through pre-merge synchronization without masking
+  // unrelated dirty files (which are rejected by the lifecycle preflight).
+  const rebaseRes = rebaseOnto(rebaseRef, { cwd: worktreePath, autostash: true });
   if (rebaseRes.ok) return { ok: true };
 
   if (rebaseRes.reason === "dirty") {
@@ -465,7 +472,7 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
 
   abortRebase({ cwd: worktreePath });
   const recoveryHint =
-    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize'.`;
+    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'senti flow run finalize-merge'.`;
   return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
 }
 

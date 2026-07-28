@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "After normal worktree finalize-merge conflict handling records failure state, Flow shall create one metadata-only commit containing only the active spec's flow.json and issue-log.json before returning the rebase instruction; git status --porcelain in the worktree shall then be empty.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The conflict metadata persisted by R1 shall include the conflict reason, failed finalize-merge outbox state, finalize-sync/finalize-cleanup skipped states, and issue-log evidence, and these records shall remain available in the final main-side snapshot after successful retry.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "If any dirty path exists outside the active spec's flow.json and issue-log.json, Flow shall not create a commit, begin or alter the finalize-merge outbox, or alter step state; it shall return the exact path, `git status --short -- <path>`, and require a later `senti flow run finalize-merge` retry after user resolution.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Before a retry after resolved conflict, finalize-sync and finalize-cleanup shall change from skipped to pending; after retry success, finalize-merge shall be done, merge and outbox side effects shall execute exactly once, and downstream steps shall remain pending for normal execution.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "The normal no-conflict finalize-merge path shall create no metadata-only commit. Direct finalize/cleanup shall update verification and integration records through the main-repository flow state after rebase, resume an interrupted completion from its saved transaction, complete teardown journal/receipt/cleanup through that main-repository state, and perform no import, filesystem read, lock validation, or log access against a deleted worktree.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Spec-local tests with `// spec: R<N>` headers shall cover R1 through R5, and shared unit plus worktree CLI/E2E tests shall exercise actual conflict detection, evidence commit, clean rebase preparation, manual rebase, retry, one merge/outbox completion, sync, and cleanup.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-conflict-recovery.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/finalize-merge-conflict-recovery.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    }
+  ]
+}

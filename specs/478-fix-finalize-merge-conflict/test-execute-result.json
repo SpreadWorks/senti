@@ -1,0 +1,322 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/478-fix-finalize-merge-conflict/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R1: commits conflict metadata before returning a recovery instruction",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R2: records the failed outbox and skipped downstream steps in metadata only",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R3: rejects external dirtiness without mutating Flow recovery metadata",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R4: retry persists the downstream reset in one additional metadata commit",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R5: a clean normal merge preparation does not use a metadata-only commit",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "test_name": "R6: makes the conflict recovery transaction executable in a real feature worktree",
+        "command": "node --test specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 79
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "src/flow/commands/merge.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/definition.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/finalize-flow-state-owner.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/flow-outbox.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-finalize-merge.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-finalize.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/step-transition-policy.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/registry.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/git-helpers.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/flow/commands/direct-flow.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/direct-flow-integration.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finalization-outbox.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/finalize-merge-retry.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/merge.js",
+        "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js",
+        "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/finalize-flow-state-owner.js",
+        "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-outbox.js",
+        "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-merge.js",
+        "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize.js",
+        "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-transition-policy.js",
+        "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/git-helpers.js",
+        "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/direct-flow.test.js",
+        "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/direct-flow-integration.test.js",
+        "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalization-outbox.test.js",
+        "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+        "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-merge-retry.test.js",
+        "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": "src/flow/commands/merge.js",
+        "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/definition.js",
+        "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/finalize-flow-state-owner.js",
+        "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/flow-outbox.js",
+        "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize-merge.js",
+        "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-finalize.js",
+        "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/step-transition-policy.js",
+        "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js",
+        "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/git-helpers.js",
+        "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/direct-flow.test.js",
+        "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/direct-flow-integration.test.js",
+        "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalization-outbox.test.js",
+        "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+        "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+        "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/finalize-merge-retry.test.js",
+        "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+      }
+    ]
+  },
+  "repairFingerprint": "aa4ffea84e68bf3cc4c2576f15410f812dc8acfb73a2c53302b8bcf87038e300"
+}

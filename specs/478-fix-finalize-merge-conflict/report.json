@@ -1,0 +1,1895 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": null,
+      "commits": []
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "not_applicable_count": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "After normal worktree finalize-merge conflict handling records failure state, Flow shall create one metadata-only commit containing only the active spec's flow.json and issue-log.json before returning the rebase instruction; git status --porcelain in the worktree shall then be empty.",
+          "status": "done",
+          "note": "R1: commits conflict metadata before returning a recovery instruction"
+        },
+        {
+          "desc": "The conflict metadata persisted by R1 shall include the conflict reason, failed finalize-merge outbox state, finalize-sync/finalize-cleanup skipped states, and issue-log evidence, and these records shall remain available in the final main-side snapshot after successful retry.",
+          "status": "done",
+          "note": "R2: records the failed outbox and skipped downstream steps in metadata only"
+        },
+        {
+          "desc": "If any dirty path exists outside the active spec's flow.json and issue-log.json, Flow shall not create a commit, begin or alter the finalize-merge outbox, or alter step state; it shall return the exact path, `git status --short -- <path>`, and require a later `senti flow run finalize-merge` retry after user resolution.",
+          "status": "done",
+          "note": "R3: rejects external dirtiness without mutating Flow recovery metadata"
+        },
+        {
+          "desc": "Before a retry after resolved conflict, finalize-sync and finalize-cleanup shall change from skipped to pending; after retry success, finalize-merge shall be done, merge and outbox side effects shall execute exactly once, and downstream steps shall remain pending for normal execution.",
+          "status": "done",
+          "note": "R4: retry persists the downstream reset in one additional metadata commit"
+        },
+        {
+          "desc": "The normal no-conflict finalize-merge path shall create no metadata-only commit. Direct finalize/cleanup shall update verification and integration records through the main-repository flow state after rebase, resume an interrupted completion from its saved transaction, complete teardown journal/receipt/cleanup through that main-repository state, and perform no import, filesystem read, lock validation, or log access against a deleted worktree.",
+          "status": "done",
+          "note": "R5: a clean normal merge preparation does not use a metadata-only commit"
+        },
+        {
+          "desc": "Spec-local tests with `// spec: R<N>` headers shall cover R1 through R5, and shared unit plus worktree CLI/E2E tests shall exercise actual conflict detection, evidence commit, clean rebase preparation, manual rebase, retry, one merge/outbox completion, sync, and cleanup.",
+          "status": "done",
+          "note": "R6: makes the conflict recovery transaction executable in a real feature worktree"
+        }
+      ]
+    },
+    "upgrade": null,
+    "issueLog": {
+      "count": 34,
+      "fullLogPath": "specs/478-fix-finalize-merge-conflict/issue-log.json",
+      "importantTotal": 19,
+      "importantShown": 10,
+      "importantOmitted": 9,
+      "recentOtherTotal": 15,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 10,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement says to return an \"executable next action\" when any other path is dirty, but it does not specify what concrete action must be returned, leaving reviewers without a shared pass/fail condition.; The draft changes existing f...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate required explicit dirty-path recovery and migration parity",
+          "resolution": "Specified stop command and inventory, ownership, artifacts, and E2E parity evidence"
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "The requirement uses the vague phrase \"durably prepares the worktree before rebase\" without stating verifiable conditions for what durable preparation means.; Two independent reviewers may not agree whether a CLI-owned recovery command \"...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "draft-gate",
+          "reason": "Draft gate found an ambiguous unselected recovery-command alternative",
+          "resolution": "Recorded only the selected automatic-commit interface and its observable state"
+        },
+        {
+          "classification": "important",
+          "step": "spec-gate",
+          "reason": "Spec gate found an ambiguous documentation condition outside Issue #478 scope",
+          "resolution": "Removed the optional documentation condition and retained only R1-R6 conflict recovery requirements"
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Wired the conflict metadata commit hook after failed outbox, issue-log, and downstream skip mutations.",
+          "resolution": "Added a definition lifecycle hook and registry dispatch branch for commitFinalizeMergeConflictMetadata."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Moved external-dirty validation before every finalize-merge lifecycle mutation in both pre and error routes.",
+          "resolution": "Added an owner-level mutation safety assertion and invoked it before BeginOutboxEffect and before all error-side effects."
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "Extended the real worktree recovery fixture through finalize-sync completion and finalize-cleanup command preparation, asserting downstream state and outbox effects.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "task-review",
+          "reason": "The real worktree recovery fixture now squash-integrates the resolved feature into main authority and executes finalize-cleanup itself, asserting worktree removal, feature-branch deletion, and cleared active flow.",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "impl-review",
+          "reason": "Captured the external-dirty preflight before finalize-merge error mutations and explicitly stage both allowed conflict-evidence files using that snapshot.",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: add shared finalize-merge CLI execution and preserve the pre-merge outbox through worktree rebase",
+          "resolution": "The CLI route is now exercised in shared E2E coverage, and autostash prevents the required pending outbox record from blocking pre-merge synchronization."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: keep retry downstream steps pending and add an actual worktree CLI conflict/rebase/retry E2E",
+          "resolution": "The lifecycle now suppresses automatic downstream promotion after finalize-merge, and the shared E2E drives the CLI through conflict evidence persistence, manual rebase, and retry completion."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: assert main-side persisted cleanup state and completed teardown journal after deleted-worktree resume",
+          "resolution": "The shared cleanup regression now explicitly proves saved-transaction resume and completion without recreating or reading the removed worktree."
+        },
+        {
+          "classification": "recent-other",
+          "step": "impl-gate",
+          "reason": "fix: assert direct verification and integration receipts are retained in main flow state after worktree removal",
+          "resolution": "The shared direct-finalization regression now explicitly proves the required verification/integration record ownership through main after rebase."
+        },
+        {
+          "classification": "recent-other",
+          "step": "acceptance-review",
+          "reason": "repair: remove stale impl-repair ledger whose terminal fingerprint predates current accepted evidence",
+          "resolution": "Current implementation review and integration gate passed without an active repair transaction; acceptance now uses the explicit no-repair evidence route."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 30,
+      "question": 0,
+      "issueLog": 23
+    },
+    "tokenMetrics": {
+      "input": 3257893,
+      "output": 75454,
+      "cacheRead": 1376512,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 113,
+      "durationMs": 2139771,
+      "phaseDurations": [
+        {
+          "phase": "draft-questions-review",
+          "durationMs": 8801
+        },
+        {
+          "phase": "draft-coverage-review",
+          "durationMs": 7783
+        },
+        {
+          "phase": "draft-gate",
+          "durationMs": 75036
+        },
+        {
+          "phase": "spec-review",
+          "durationMs": 94084
+        },
+        {
+          "phase": "spec-gate",
+          "durationMs": 156735
+        },
+        {
+          "phase": "test-review",
+          "durationMs": 138354
+        },
+        {
+          "phase": "implement",
+          "durationMs": 117153
+        },
+        {
+          "phase": "impl-review",
+          "durationMs": 485444
+        },
+        {
+          "phase": "impl-gate",
+          "durationMs": 750620
+        },
+        {
+          "phase": "acceptance-review",
+          "durationMs": 305761
+        }
+      ]
+    },
+    "tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/478-fix-finalize-merge-conflict/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow/commands/merge.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/flow-outbox.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-merge.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/git-helpers.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/commands/direct-flow.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/direct-flow-integration.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/merge.js",
+            "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-outbox.js",
+            "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-merge.js",
+            "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js",
+            "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/direct-flow.test.js",
+            "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+            "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/direct-flow-integration.test.js",
+            "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+            "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow/commands/merge.js",
+            "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-outbox.js",
+            "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-merge.js",
+            "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js",
+            "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/direct-flow.test.js",
+            "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+            "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/direct-flow-integration.test.js",
+            "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+            "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "failureCategory": null,
+        "failureNature": null,
+        "skipKind": null,
+        "rawOutputPath": "specs/478-fix-finalize-merge-conflict/tests/.raw/final-regression-attempt-004.log",
+        "command": "node tests/run.js",
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "exitCode": 0,
+        "failureSummary": null,
+        "currentDiffRelationship": null,
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "a85fbf818e9e493dcd6aafa723fc60ed8f1c209d5caedbe865fd840419ad3800"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/acceptance-review.json",
+            "fingerprint": "ab88c1d64cbe827386005c850d37daad8abeb6f202a2af9534080f30e436104d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-coverage-repair.json",
+            "fingerprint": "95d4436d77374d02c272562c3efef3dfd9ba151db53c5aaf4aae655f9f3ad594"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-coverage-triage.json",
+            "fingerprint": "75439c40243bdaa2f7de3aeaee90199b1d8bf46b21b6dc3e1f568a69089bb83d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-questions-repair.json",
+            "fingerprint": "dd517148767d52060c5497f969bfeb490a10ecea8fe88b177463a5fa293cd59a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-questions-triage.json",
+            "fingerprint": "d1fafd067d66d9a9b98f18f4d6c16fefae1299696f2a3bf31a97c5c07eb3a334"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-review-coverage.json",
+            "fingerprint": "5e25d3d8e396022a6a2ede05e4129e87c7cfae710a792c887cee4a67b8806a8c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft-review-questions.json",
+            "fingerprint": "42bdaed531c3b737b8be0a385cfe5a1de8d2d8f9a5d1be80db540061ee448db9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/draft.json",
+            "fingerprint": "af79955bde2f8228e8837e91fd54abaa42bd1316ff0e77de89bf4a8a160d202a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/file-map.json",
+            "fingerprint": "ead9d9423ddaf3541b95cf632303872479a26dfdcd92911774aabdcd9c5a26a3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/flow-findings.json",
+            "fingerprint": "2f7bcc77681c16357658e3872d325b2533e176c412e7e88203f8bcdebb32b75e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/impl-gate-result.json",
+            "fingerprint": "cd47c7342bde0e4d77fe283ea77a6d983345f532fded9129256e989a6d9615bc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/impl-repair.json",
+            "fingerprint": "87a6986e2c6950f534ab89495fac2e4b1d3ac499961f26b3780b2d8c620eda40"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+            "fingerprint": "3ea78eb0be3edfd1c911772e74a381ac84d615179eec3cc878a7f3719bbc7209"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/impl-triage.json",
+            "fingerprint": "c8acb1b67a16ca212446eebaacb28c2119c5a8999d4acd40c67f674a51d55058"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/issue.md",
+            "fingerprint": "4fdf873d9ed1ee7fba626f6464bcc21406821d09a48a3ed7bbe7ecd6bc459ce7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "1282c1a914223c6b621ee9ecf9e4ceb624c2433e305ff9bc594a23f42b704554"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-001.json",
+            "fingerprint": "fcdfcae125f68e9ec8162982837ddd3292aa999c81b5737cf539b0dc38d5c366"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-002.json",
+            "fingerprint": "ff639ac5c10b1c1e40f18e7e7741cd879f937dd263af24613ff2fa183a2ccb5e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-003.json",
+            "fingerprint": "09ebc4945ccf80ab8d4e86601550a9ee2393680c1f1cba9abfc2793112ba1cdc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-004.json",
+            "fingerprint": "51259c453808e299a86b4bd9b4e389b352301526bfc23a5a19c3376eb08a3dc2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/repair-fingerprint.json",
+            "fingerprint": "3e317b41a40940c6765d160639484c43f7d88bd88d2ed634983657c141187575"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/retro.json",
+            "fingerprint": "65f444a35455a4adac407e54753b429c7b56d2e5d237979f8baf4243fc69946a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/04c1ba8cc02d6aca3d7e59719f29a658b372a306470e7f549e71da5fe1bef6d6.json",
+            "fingerprint": "534b170dafb4745767a8df432e9df268381af26320909c886054ffb987da4faf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/0c88e1094427dc3d19566f5a36117aeef6568a06b1ea261c1ccbfb3c0eb30673.json",
+            "fingerprint": "6b556d81a81aacf00b2efe45e6ff272c167a6bdb46e920365faf1839269c14ed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/161a33bab18a7a55359b36d5e0c480e9317a86ede70faede0bce56cf0d419eb8.json",
+            "fingerprint": "e8e2af14a01fcbdc4e3ea134e6b6a0e8b03d58c9b7f42b154948ccbc50aa4e0c"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/16fec607e0464800333f2245c1c9ce8f86601bf7dee2a5bf857b1969d1325fc4.json",
+            "fingerprint": "5732d84ae3d53adc4314640aa5e018e87e2662c008ba3bc85d04292c6c2ac31f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/1d74d2c5732e715b7e1c023ce0fa27d152ef41f7e22acc21b42e69fca477932d.json",
+            "fingerprint": "82e9c7032f70572018a3449217bf4cff765983538e1a60bb55aabb1bfd94c9f9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/2a0307acec8bc7d49afab19c61463beb1ca5894fbd0b55ca74b16cb8f7e5c0c1.json",
+            "fingerprint": "e8c1d0c38819b186392662b22933ed46a272cd91a5bac5a67b05fe4345127e28"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/3239567947bc83707046e29711d7c18fbb86c0bf0ca8ac8f6578cba808d94542.json",
+            "fingerprint": "a461ab3c40267b1178b33233e6837181ec07bd81bccf316c2847162611044a51"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/6a61c6c8024ca0e71f3320bde8d757aa5b51eeec3ccb3e6daab78c0390aed69f.json",
+            "fingerprint": "41b1922b613bb8736b047b7a9b294ca7003f6064c48f5ec4b488c966794f9402"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/6cb628a1c3f82f9164f092b1b016b64a8ece823f24ccc9c747e1307ed1fd0e04.json",
+            "fingerprint": "4a4711091265244c7de153c0074a6b51c213366e460874489b254e9ed3a1699f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/70276b6fd2474d16f80bed3c198f488fd71ad13e85607651f1f9acb8731da7c3.json",
+            "fingerprint": "2a8b9c47bf7c0234cd2bb0d0fd182de2b53e36e63cdfe81f87d85686a08d2a26"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/7527d37cf4200259425d7d6f4062a74614a2e43e53f9c4463d23470aa10c5de5.json",
+            "fingerprint": "3057ce539c8f122851e0fa15fb042ec493f58a87d98e6f2dc1ebaf2bdba190de"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/89003a5632a9199cd4af52154e54316f614fe20d8a5496df86c09bba1e43ad03.json",
+            "fingerprint": "af55854697309572bf80c69e74869bcef3448b7b2f3e7fc47edcb4976fc6db0a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/8c4986948b15953048ff63ec82dd006a4e6f81ff35c77ed3a089cb5aeb3696a4.json",
+            "fingerprint": "e3644b4a7d515cef7baa503b1ad1d48a4230709afd86a432e4440f8a326f12b2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/a6269ad04fb4d225215617226da9be5f6839bfb61084f29a77440e5a76900ef4.json",
+            "fingerprint": "ed8f5a03732eb6b0ca55503233c1965e473a4a7286eb9a1c0de6eaf6ba0770e4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/aa8f5f6700b71187662a5b882286acd657684920a9b31c40376110430814e2f2.json",
+            "fingerprint": "428c4c7422bbd7861c3392f490b0d048677b234fdc074a27f32aa11c1d280f3b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/cb191364ad4382b44996d24c1c97a2459c79851300e8fc71ef2cb34bd79a2282.json",
+            "fingerprint": "301dca791ed9f6febde2c54bde007a2944164eb512f55885bdd3a8df5dea9272"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/cdd19ae5e6a1b02ed20e9475ce58da453e6c7dcda3e2b20898ff407bcb5de0e0.json",
+            "fingerprint": "6e6474bcc2d9b5dd1e9117e53f0cd85085645c7bce20d567429bbd9c5921561e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/d54980d58229ca72cdbdcd5d4216b24450f9a12d08ea4bf4290eedf5fb82b7f4.json",
+            "fingerprint": "394d613f3367173bbc281aa65885aab5403142fb25be09af7f6b221e80b1a8d6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/d9d0087688f31a25d081468d0d692b3117c3d67af6601802e1d183e69016911d.json",
+            "fingerprint": "46725308b3749584732e4fa870607e2bd4c03e1b46f5ecd895b787fad6fc3147"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/eaec7cd5201b19b6349174178de857cc5c8020de3550df4f20ed5392ebf558c6.json",
+            "fingerprint": "7042876e46ceffb0f73b6892e4f5783a950296326eebe280dc981436ed2e65fb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/ebaf7f736d3e58737068a6fd3b9600251184731a2a34480beea0d7380a61b138.json",
+            "fingerprint": "c5d27c27e8511ef9900319a739ebf9d1eb6d8f4cab2158b581dcf760e9d2b54b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/ecf7901a3dc623d5649e2f746c24225e54ed64b8cb9575361e2b662d2502238e.json",
+            "fingerprint": "e123acd5887ca727b4fccd1b481de97b0370affe746ebb3932abee68f1e15770"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/f3eeae5689e27952f878a97a171e15498e02e90ce7a4ca5af5cc128b3169da34.json",
+            "fingerprint": "bfcedd26323e9ed03c430e2750752f08c2d8f39bac79c1827f0c14a0d0412b38"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "df87e0d73895261b96a77f06452b8c634091a666aaf3d9928e124ca2ad4c7ecc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "7af2ea6cd53b7571fd7601a81b0200172e7d8722754d780cc9c3fc0aaccd0e0f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-001.json",
+            "fingerprint": "9cff5142e3b44bd935679612cd26471edaf9c0834b80608c0990a04a6d720861"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-001.md",
+            "fingerprint": "f5ef65d51c015fa29adfde4356e75d2ddf6c162b531ade68db0248a3cbeafc26"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-002.json",
+            "fingerprint": "e2261b0a3a0744e9fa88f1b2af44ba51c1484fca97b18c531e16d0ea34a0f0f5"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-002.md",
+            "fingerprint": "c197f1094ae157344031c8f714ffd8925c6953b76f01aceb05c32ceea3de199b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-003.json",
+            "fingerprint": "3b420253804dd94dc798a03c673959668f5cfa834ad2988bfbab9712fdefb54d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-004.json",
+            "fingerprint": "d9c8b0ed8d282d8a83c6faf1e20f9c6bd6706acfab36ae09466a1860b4bc670d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-005.json",
+            "fingerprint": "a03ebde75f97cdf477c8c5a80828a6d2f755dc75515f63953dc2aa9c04e80258"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-005.md",
+            "fingerprint": "01f6b4756a760aff76e11170dca53eddd182bf1d94431220bbec0c28631663f4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-006.json",
+            "fingerprint": "25229a8d7af19fe5878feb58869f7f6f4f6e490a53c06154989e867eb368b9d3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-006.md",
+            "fingerprint": "8af898ab38db8c653190c0f0822c530c3c9c0d44d29456e86642aa5953b58015"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-007.json",
+            "fingerprint": "5170cb14ad2fd52df349827694524ba2b8940bb54fb256ebb046b7213fc5cab3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-007.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-008.json",
+            "fingerprint": "e66b8e37cacbf3f913096c980fc7eec8584a0ab9b9cffaedff86eae0a8ab5379"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-008.md",
+            "fingerprint": "153d82b84f6a36cf143a4b8c53ce67fa04977f105062c631d406dc49962ac596"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-009.json",
+            "fingerprint": "11a06bf61d0b400943001eef4abbd46349522364911d498705a3d0ddf6fcbbbc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-009.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-010.json",
+            "fingerprint": "e1dba1239e64f4a1891291342b474a5b700117f193a02cc66ea59fd357f4c8dc"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-010.md",
+            "fingerprint": "298462610830f852b0d90bf7b68c8a51478628712e356339fa61229c833dfff9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-011.json",
+            "fingerprint": "3f048e8a93bd5f05716290e9300d6c469c2ee50157b8b2bc243e0a8493a447b3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-011.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-012.json",
+            "fingerprint": "9c804d0d725be4fc3c7527840c8e240ab392429a1848e4e79f23367975380a45"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-012.md",
+            "fingerprint": "7110206fde2687b81c14b0d002712dc4dde77bf9c9062ca0a3f95a3adf9a269b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-013.json",
+            "fingerprint": "93ec45604759956e00046ac52c9ac64957b88057b2ffe15b0b68a28f6e4f4542"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-013.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-014.json",
+            "fingerprint": "f1ae832884bc3583cdbc6b06131a826bdfce9ac32b1d48f6a2d9785c3ca25c54"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-014.md",
+            "fingerprint": "572854eeea1ceb0c15c8e38866fa276eb4fccd7e6eae0a26abc756ad70e95317"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-015.json",
+            "fingerprint": "5f1e7dadc6b8b9d6af8586e07eab4517910848ef9b140c67d99a529d8ff923ba"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-015.md",
+            "fingerprint": "7c499065034312c63ec8022abc85f8b92b37f56266bc5b46804be827e2e6d9e9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-001.json",
+            "fingerprint": "93b6c1a9ce373a566581f4453eec0c175dda2bf3e744d6e731d1f24cba1f2e6a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-002.json",
+            "fingerprint": "564103605da3f6542a514e900ef52a8aaaeeb76935275e23354cef4742a8596b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-001.json",
+            "fingerprint": "33e314e1bd378bae4e393c083d2ad7fd57aa7bd81eab80e495e06ebd2865eda2"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-001.md",
+            "fingerprint": "e9e16ccd16b0ba7cd42523adc06d950daf64b5f4b63e08f5dc4b578c7bea43b0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-002.json",
+            "fingerprint": "03392f2900ea52579e29b7738d843ac047ca07403c9e74d912483ab22ce2baac"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-002.md",
+            "fingerprint": "1ee43be05cc20aa31ef35c1b013b7d1a0500f1da6325da794939a93403d29898"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-003.json",
+            "fingerprint": "ab5ac5c1fb633effc3766156f382ea56e20dd8c3f51779fd20924d5ca268f71a"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-003.md",
+            "fingerprint": "45d1ecbd0dbd60268ece87d3f4ace9fe82242ef1fc7a0d9b98d2c5476a672b19"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-004.json",
+            "fingerprint": "799cc479c88fb546d8d59ccfc5153a637bddbaecc592905f9343a603123e5f5e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-004.md",
+            "fingerprint": "6f8c7fa6e8d7312c478f49592ab91b9954fc123893b90e4473073377d754783d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-005.json",
+            "fingerprint": "796593faa3a834fca5dd86073fe38f0db0d60d838ef694de3550cfee417d41da"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-005.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-006.json",
+            "fingerprint": "a921314402eaaa06e028958fcf87f8eb41a14d7c5c93078d1147b144f8bfdbcf"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-006.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-007.json",
+            "fingerprint": "6b4802d310e4341ef17824933f3567a8916d4663136330b03d79e4d4791359ef"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-007.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "d99d54bbe7fa2693278593047b56daf718f40a84df719c2b586375339a52b7ad"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "36db42cbeb63e337dde1637583a22dcacc70059cabd29b3b58d4e29e8d6e0ab6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "20a7966718e798ca4f7a319c9331ae842c5feee9db2c46db992d3f50d1136563"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/223472dc19439f61f63a0f53.json",
+            "fingerprint": "a2924b5f1a1f3bb2589c7ef29da02b471fc5550557fc6f523a4d997cb5e3fb5b"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "08dccf04bc53d217cd24776b143be5dd5961315cfaaf3e64c2f1c847e68b1ef3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "f6c0cac82e5d48415d9b80e2904cae304751dcc93bd8b641b85e9bb249650617"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "23031e0390fadc201034e83290fed03e141fa1e5c8fa67bb1d036eb9df5ab2a1"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "860169cb2217ae026391b8fbc8466d30e700db12751971f058d5d5a6031c5c1f"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "b33d4fda6845d368ba6cd9ce927ebb30e20382fd72103284f603f630ee644509"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "4de1146e4945405b1cc997af52c85aed36afddba7e88e7f73ea8db34e6cf9378"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "7b80c9c36787d62d39b71172d460e005037ba72995ccf65ce9b2b9e70f2d606e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/8cb4cdf48cb013f8a7892f58.json",
+            "fingerprint": "9cd7852d2742d06aad1a6c9e173e93a092046751051bf1841fda845080ec6e3d"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "18ba970a824c825dc678e91eaa8eaa9dc9db1ab228fc0ab2105395a67febef26"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "ee1864ce0be6d9fa26669de9d9d08245b9989361c1b562b55021ade7c69737a8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "12d21d39f0491fe86daf3a4181588f94204f8a2e06f89ad7101cbdf652743da4"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "77c0be096e896a874a3cb41a64a41afae95932d9e59b1145c87707ee92115190"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "80a2ae52047f245ded86664dcba26e92b24fc6d03dbee4a114a8f3d5e5765cd6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/review.md",
+            "fingerprint": "7c499065034312c63ec8022abc85f8b92b37f56266bc5b46804be827e2e6d9e9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/scenario-validity-result.json",
+            "fingerprint": "e4da35cc16a02f922715129a9a47f1a7c5e53ed0229f19051450943381c5e7e6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/spec-gate-source.json",
+            "fingerprint": "c84e70f3356e9739da2bc41b573b9a1616f41ab78a5ad19a46da1ffd02b089f8"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/spec-review.json",
+            "fingerprint": "46f67df8883a78f7b8b68caa94087aec4c6a7ba07b434f3b6620aed291423428"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/spec.json",
+            "fingerprint": "8fa00fad0303cca6247be8295e835c0fa75f53662a6a92ae508c76b007beced9"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/spec.md",
+            "fingerprint": "097780143599508b85401779c0d8c34815d074e3991417dc68e8d6c3e2a9fbd7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-1.md",
+            "fingerprint": "53bd23ad67d2a32290a142be2ecfd62f7afe405d75cd9c9c5beb8dd6f1b85971"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-2.md",
+            "fingerprint": "5b01fa1474b54d145ddd4808971490cc940b11d644d111cfaf9ba6d3856606e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-3.md",
+            "fingerprint": "600f506cdf442f2f7f32fb5ea955bf84a0dac3870c6436864e38ea14a0ad5093"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-coverage.json",
+            "fingerprint": "1486544edf503023c4561e5c6cb301fcb2b3dba3674a4500fe08db2ffa9ee0e3"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-execute-result.json",
+            "fingerprint": "a4271761ae90f9dea31fe2a91c4bd5484a59ea7fe03245ec7147c199a8149893"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-result-review.json",
+            "fingerprint": "9ee31ae77a773c2a6e4458651f11ffae1509e1c7a5d70e7f5f6eacecb33b6a61"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-result-review.md",
+            "fingerprint": "1c2be1064fa20bd22a2544946613d717093cea912e723c4cb5508ccaedc9aff6"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-review.json",
+            "fingerprint": "0d17a02eec280055bb64f3bd0a4183d09d2253eb604d4925b6276745585746f0"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/test-review.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tests/.raw/scenario-validity.log",
+            "fingerprint": "4a8958fd2080027a6a79be74ebde7c633525e4503eae8727f065bfb7dda43eb7"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tests/.raw/test-execution.log",
+            "fingerprint": "389e76d51d7e37c28934f98d578c3e5ea5934364df6648838947d155cd2f8fed"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+            "fingerprint": "d8e7fd10a1a93b465c9e35ffb34c44a8ced487efc83a94d5c49d54fb57fd9346"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/merge.js",
+            "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js",
+            "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/flow-outbox.js",
+            "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize-merge.js",
+            "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js",
+            "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js",
+            "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/direct-flow.test.js",
+            "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+            "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/direct-flow-integration.test.js",
+            "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+            "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+          }
+        ],
+        "changedFileFingerprints": [
+          {
+            "path": ".senti/output/analysis.json",
+            "fingerprint": "a85fbf818e9e493dcd6aafa723fc60ed8f1c209d5caedbe865fd840419ad3800"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/acceptance-review.json",
+            "fingerprint": "ab88c1d64cbe827386005c850d37daad8abeb6f202a2af9534080f30e436104d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-coverage-repair.json",
+            "fingerprint": "95d4436d77374d02c272562c3efef3dfd9ba151db53c5aaf4aae655f9f3ad594"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-coverage-triage.json",
+            "fingerprint": "75439c40243bdaa2f7de3aeaee90199b1d8bf46b21b6dc3e1f568a69089bb83d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-questions-repair.json",
+            "fingerprint": "dd517148767d52060c5497f969bfeb490a10ecea8fe88b177463a5fa293cd59a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-questions-triage.json",
+            "fingerprint": "d1fafd067d66d9a9b98f18f4d6c16fefae1299696f2a3bf31a97c5c07eb3a334"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-review-coverage.json",
+            "fingerprint": "5e25d3d8e396022a6a2ede05e4129e87c7cfae710a792c887cee4a67b8806a8c"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft-review-questions.json",
+            "fingerprint": "42bdaed531c3b737b8be0a385cfe5a1de8d2d8f9a5d1be80db540061ee448db9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/draft.json",
+            "fingerprint": "af79955bde2f8228e8837e91fd54abaa42bd1316ff0e77de89bf4a8a160d202a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/file-map.json",
+            "fingerprint": "ead9d9423ddaf3541b95cf632303872479a26dfdcd92911774aabdcd9c5a26a3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/flow-findings.json",
+            "fingerprint": "2f7bcc77681c16357658e3872d325b2533e176c412e7e88203f8bcdebb32b75e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/impl-gate-result.json",
+            "fingerprint": "cd47c7342bde0e4d77fe283ea77a6d983345f532fded9129256e989a6d9615bc"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/impl-repair.json",
+            "fingerprint": "87a6986e2c6950f534ab89495fac2e4b1d3ac499961f26b3780b2d8c620eda40"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+            "fingerprint": "3ea78eb0be3edfd1c911772e74a381ac84d615179eec3cc878a7f3719bbc7209"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/impl-triage.json",
+            "fingerprint": "c8acb1b67a16ca212446eebaacb28c2119c5a8999d4acd40c67f674a51d55058"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/issue.md",
+            "fingerprint": "4fdf873d9ed1ee7fba626f6464bcc21406821d09a48a3ed7bbe7ecd6bc459ce7"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/plugin-artifacts/workflow/prepare.json",
+            "fingerprint": "1282c1a914223c6b621ee9ecf9e4ceb624c2433e305ff9bc594a23f42b704554"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-001.json",
+            "fingerprint": "fcdfcae125f68e9ec8162982837ddd3292aa999c81b5737cf539b0dc38d5c366"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-002.json",
+            "fingerprint": "ff639ac5c10b1c1e40f18e7e7741cd879f937dd263af24613ff2fa183a2ccb5e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-003.json",
+            "fingerprint": "09ebc4945ccf80ab8d4e86601550a9ee2393680c1f1cba9abfc2793112ba1cdc"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/repair-deltas/repair-004.json",
+            "fingerprint": "51259c453808e299a86b4bd9b4e389b352301526bfc23a5a19c3376eb08a3dc2"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/repair-fingerprint.json",
+            "fingerprint": "3e317b41a40940c6765d160639484c43f7d88bd88d2ed634983657c141187575"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/retro.json",
+            "fingerprint": "65f444a35455a4adac407e54753b429c7b56d2e5d237979f8baf4243fc69946a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/04c1ba8cc02d6aca3d7e59719f29a658b372a306470e7f549e71da5fe1bef6d6.json",
+            "fingerprint": "534b170dafb4745767a8df432e9df268381af26320909c886054ffb987da4faf"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/0c88e1094427dc3d19566f5a36117aeef6568a06b1ea261c1ccbfb3c0eb30673.json",
+            "fingerprint": "6b556d81a81aacf00b2efe45e6ff272c167a6bdb46e920365faf1839269c14ed"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/161a33bab18a7a55359b36d5e0c480e9317a86ede70faede0bce56cf0d419eb8.json",
+            "fingerprint": "e8e2af14a01fcbdc4e3ea134e6b6a0e8b03d58c9b7f42b154948ccbc50aa4e0c"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/16fec607e0464800333f2245c1c9ce8f86601bf7dee2a5bf857b1969d1325fc4.json",
+            "fingerprint": "5732d84ae3d53adc4314640aa5e018e87e2662c008ba3bc85d04292c6c2ac31f"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/1d74d2c5732e715b7e1c023ce0fa27d152ef41f7e22acc21b42e69fca477932d.json",
+            "fingerprint": "82e9c7032f70572018a3449217bf4cff765983538e1a60bb55aabb1bfd94c9f9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/2a0307acec8bc7d49afab19c61463beb1ca5894fbd0b55ca74b16cb8f7e5c0c1.json",
+            "fingerprint": "e8c1d0c38819b186392662b22933ed46a272cd91a5bac5a67b05fe4345127e28"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/3239567947bc83707046e29711d7c18fbb86c0bf0ca8ac8f6578cba808d94542.json",
+            "fingerprint": "a461ab3c40267b1178b33233e6837181ec07bd81bccf316c2847162611044a51"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/6a61c6c8024ca0e71f3320bde8d757aa5b51eeec3ccb3e6daab78c0390aed69f.json",
+            "fingerprint": "41b1922b613bb8736b047b7a9b294ca7003f6064c48f5ec4b488c966794f9402"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/6cb628a1c3f82f9164f092b1b016b64a8ece823f24ccc9c747e1307ed1fd0e04.json",
+            "fingerprint": "4a4711091265244c7de153c0074a6b51c213366e460874489b254e9ed3a1699f"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/70276b6fd2474d16f80bed3c198f488fd71ad13e85607651f1f9acb8731da7c3.json",
+            "fingerprint": "2a8b9c47bf7c0234cd2bb0d0fd182de2b53e36e63cdfe81f87d85686a08d2a26"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/7527d37cf4200259425d7d6f4062a74614a2e43e53f9c4463d23470aa10c5de5.json",
+            "fingerprint": "3057ce539c8f122851e0fa15fb042ec493f58a87d98e6f2dc1ebaf2bdba190de"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/89003a5632a9199cd4af52154e54316f614fe20d8a5496df86c09bba1e43ad03.json",
+            "fingerprint": "af55854697309572bf80c69e74869bcef3448b7b2f3e7fc47edcb4976fc6db0a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/8c4986948b15953048ff63ec82dd006a4e6f81ff35c77ed3a089cb5aeb3696a4.json",
+            "fingerprint": "e3644b4a7d515cef7baa503b1ad1d48a4230709afd86a432e4440f8a326f12b2"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/a6269ad04fb4d225215617226da9be5f6839bfb61084f29a77440e5a76900ef4.json",
+            "fingerprint": "ed8f5a03732eb6b0ca55503233c1965e473a4a7286eb9a1c0de6eaf6ba0770e4"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/aa8f5f6700b71187662a5b882286acd657684920a9b31c40376110430814e2f2.json",
+            "fingerprint": "428c4c7422bbd7861c3392f490b0d048677b234fdc074a27f32aa11c1d280f3b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/cb191364ad4382b44996d24c1c97a2459c79851300e8fc71ef2cb34bd79a2282.json",
+            "fingerprint": "301dca791ed9f6febde2c54bde007a2944164eb512f55885bdd3a8df5dea9272"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/cdd19ae5e6a1b02ed20e9475ce58da453e6c7dcda3e2b20898ff407bcb5de0e0.json",
+            "fingerprint": "6e6474bcc2d9b5dd1e9117e53f0cd85085645c7bce20d567429bbd9c5921561e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/d54980d58229ca72cdbdcd5d4216b24450f9a12d08ea4bf4290eedf5fb82b7f4.json",
+            "fingerprint": "394d613f3367173bbc281aa65885aab5403142fb25be09af7f6b221e80b1a8d6"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/d9d0087688f31a25d081468d0d692b3117c3d67af6601802e1d183e69016911d.json",
+            "fingerprint": "46725308b3749584732e4fa870607e2bd4c03e1b46f5ecd895b787fad6fc3147"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/eaec7cd5201b19b6349174178de857cc5c8020de3550df4f20ed5392ebf558c6.json",
+            "fingerprint": "7042876e46ceffb0f73b6892e4f5783a950296326eebe280dc981436ed2e65fb"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/ebaf7f736d3e58737068a6fd3b9600251184731a2a34480beea0d7380a61b138.json",
+            "fingerprint": "c5d27c27e8511ef9900319a739ebf9d1eb6d8f4cab2158b581dcf760e9d2b54b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/ecf7901a3dc623d5649e2f746c24225e54ed64b8cb9575361e2b662d2502238e.json",
+            "fingerprint": "e123acd5887ca727b4fccd1b481de97b0370affe746ebb3932abee68f1e15770"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-evidence/f3eeae5689e27952f878a97a171e15498e02e90ce7a4ca5af5cc128b3169da34.json",
+            "fingerprint": "bfcedd26323e9ed03c430e2750752f08c2d8f39bac79c1827f0c14a0d0412b38"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/draft-coverage-attempt-001.json",
+            "fingerprint": "df87e0d73895261b96a77f06452b8c634091a666aaf3d9928e124ca2ad4c7ecc"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/draft-questions-attempt-001.json",
+            "fingerprint": "7af2ea6cd53b7571fd7601a81b0200172e7d8722754d780cc9c3fc0aaccd0e0f"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-001.json",
+            "fingerprint": "9cff5142e3b44bd935679612cd26471edaf9c0834b80608c0990a04a6d720861"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-001.md",
+            "fingerprint": "f5ef65d51c015fa29adfde4356e75d2ddf6c162b531ade68db0248a3cbeafc26"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-002.json",
+            "fingerprint": "e2261b0a3a0744e9fa88f1b2af44ba51c1484fca97b18c531e16d0ea34a0f0f5"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-002.md",
+            "fingerprint": "c197f1094ae157344031c8f714ffd8925c6953b76f01aceb05c32ceea3de199b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-003.json",
+            "fingerprint": "3b420253804dd94dc798a03c673959668f5cfa834ad2988bfbab9712fdefb54d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-003.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-004.json",
+            "fingerprint": "d9c8b0ed8d282d8a83c6faf1e20f9c6bd6706acfab36ae09466a1860b4bc670d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-004.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-005.json",
+            "fingerprint": "a03ebde75f97cdf477c8c5a80828a6d2f755dc75515f63953dc2aa9c04e80258"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-005.md",
+            "fingerprint": "01f6b4756a760aff76e11170dca53eddd182bf1d94431220bbec0c28631663f4"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-006.json",
+            "fingerprint": "25229a8d7af19fe5878feb58869f7f6f4f6e490a53c06154989e867eb368b9d3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-006.md",
+            "fingerprint": "8af898ab38db8c653190c0f0822c530c3c9c0d44d29456e86642aa5953b58015"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-007.json",
+            "fingerprint": "5170cb14ad2fd52df349827694524ba2b8940bb54fb256ebb046b7213fc5cab3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-007.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-008.json",
+            "fingerprint": "e66b8e37cacbf3f913096c980fc7eec8584a0ab9b9cffaedff86eae0a8ab5379"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-008.md",
+            "fingerprint": "153d82b84f6a36cf143a4b8c53ce67fa04977f105062c631d406dc49962ac596"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-009.json",
+            "fingerprint": "11a06bf61d0b400943001eef4abbd46349522364911d498705a3d0ddf6fcbbbc"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-009.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-010.json",
+            "fingerprint": "e1dba1239e64f4a1891291342b474a5b700117f193a02cc66ea59fd357f4c8dc"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-010.md",
+            "fingerprint": "298462610830f852b0d90bf7b68c8a51478628712e356339fa61229c833dfff9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-011.json",
+            "fingerprint": "3f048e8a93bd5f05716290e9300d6c469c2ee50157b8b2bc243e0a8493a447b3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-011.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-012.json",
+            "fingerprint": "9c804d0d725be4fc3c7527840c8e240ab392429a1848e4e79f23367975380a45"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-012.md",
+            "fingerprint": "7110206fde2687b81c14b0d002712dc4dde77bf9c9062ca0a3f95a3adf9a269b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-013.json",
+            "fingerprint": "93ec45604759956e00046ac52c9ac64957b88057b2ffe15b0b68a28f6e4f4542"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-013.md",
+            "fingerprint": "7c9036aac7ee506cee49816f6b78abcd1026dcd5d2e848605715451757b63976"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-014.json",
+            "fingerprint": "f1ae832884bc3583cdbc6b06131a826bdfce9ac32b1d48f6a2d9785c3ca25c54"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-014.md",
+            "fingerprint": "572854eeea1ceb0c15c8e38866fa276eb4fccd7e6eae0a26abc756ad70e95317"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-015.json",
+            "fingerprint": "5f1e7dadc6b8b9d6af8586e07eab4517910848ef9b140c67d99a529d8ff923ba"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/impl-attempt-015.md",
+            "fingerprint": "7c499065034312c63ec8022abc85f8b92b37f56266bc5b46804be827e2e6d9e9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-001.json",
+            "fingerprint": "93b6c1a9ce373a566581f4453eec0c175dda2bf3e744d6e731d1f24cba1f2e6a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-001.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-002.json",
+            "fingerprint": "564103605da3f6542a514e900ef52a8aaaeeb76935275e23354cef4742a8596b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/spec-attempt-002.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-001.json",
+            "fingerprint": "33e314e1bd378bae4e393c083d2ad7fd57aa7bd81eab80e495e06ebd2865eda2"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-001.md",
+            "fingerprint": "e9e16ccd16b0ba7cd42523adc06d950daf64b5f4b63e08f5dc4b578c7bea43b0"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-002.json",
+            "fingerprint": "03392f2900ea52579e29b7738d843ac047ca07403c9e74d912483ab22ce2baac"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-002.md",
+            "fingerprint": "1ee43be05cc20aa31ef35c1b013b7d1a0500f1da6325da794939a93403d29898"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-003.json",
+            "fingerprint": "ab5ac5c1fb633effc3766156f382ea56e20dd8c3f51779fd20924d5ca268f71a"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-003.md",
+            "fingerprint": "45d1ecbd0dbd60268ece87d3f4ace9fe82242ef1fc7a0d9b98d2c5476a672b19"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-004.json",
+            "fingerprint": "799cc479c88fb546d8d59ccfc5153a637bddbaecc592905f9343a603123e5f5e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-004.md",
+            "fingerprint": "6f8c7fa6e8d7312c478f49592ab91b9954fc123893b90e4473073377d754783d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-005.json",
+            "fingerprint": "796593faa3a834fca5dd86073fe38f0db0d60d838ef694de3550cfee417d41da"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-005.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-006.json",
+            "fingerprint": "a921314402eaaa06e028958fcf87f8eb41a14d7c5c93078d1147b144f8bfdbcf"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-006.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-007.json",
+            "fingerprint": "6b4802d310e4341ef17824933f3567a8916d4663136330b03d79e4d4791359ef"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/test-attempt-007.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/018870d7c819e46bcb116c71.json",
+            "fingerprint": "d99d54bbe7fa2693278593047b56daf718f40a84df719c2b586375339a52b7ad"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/0bdf3b707356690edf741e13.json",
+            "fingerprint": "36db42cbeb63e337dde1637583a22dcacc70059cabd29b3b58d4e29e8d6e0ab6"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/11401db1d0226f1231be2ae2.json",
+            "fingerprint": "20a7966718e798ca4f7a319c9331ae842c5feee9db2c46db992d3f50d1136563"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/223472dc19439f61f63a0f53.json",
+            "fingerprint": "a2924b5f1a1f3bb2589c7ef29da02b471fc5550557fc6f523a4d997cb5e3fb5b"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/2802ea34b3003a0b446168d0.json",
+            "fingerprint": "08dccf04bc53d217cd24776b143be5dd5961315cfaaf3e64c2f1c847e68b1ef3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/427dfbd203456f4fae825b67.json",
+            "fingerprint": "f6c0cac82e5d48415d9b80e2904cae304751dcc93bd8b641b85e9bb249650617"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/562c706852c82bb0fcee42e9.json",
+            "fingerprint": "23031e0390fadc201034e83290fed03e141fa1e5c8fa67bb1d036eb9df5ab2a1"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/591b4feebb7073ebc2e7b66d.json",
+            "fingerprint": "860169cb2217ae026391b8fbc8466d30e700db12751971f058d5d5a6031c5c1f"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/59fa3a31c681356961cc7bdf.json",
+            "fingerprint": "b33d4fda6845d368ba6cd9ce927ebb30e20382fd72103284f603f630ee644509"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/635b54e59ef6bd709a49df1c.json",
+            "fingerprint": "4de1146e4945405b1cc997af52c85aed36afddba7e88e7f73ea8db34e6cf9378"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/75f4871091a34c2fc78b9a8b.json",
+            "fingerprint": "7b80c9c36787d62d39b71172d460e005037ba72995ccf65ce9b2b9e70f2d606e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/8cb4cdf48cb013f8a7892f58.json",
+            "fingerprint": "9cd7852d2742d06aad1a6c9e173e93a092046751051bf1841fda845080ec6e3d"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/8dd631de9065ac75b1dfdc57.json",
+            "fingerprint": "18ba970a824c825dc678e91eaa8eaa9dc9db1ab228fc0ab2105395a67febef26"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/bd3798396b2128f722503801.json",
+            "fingerprint": "ee1864ce0be6d9fa26669de9d9d08245b9989361c1b562b55021ade7c69737a8"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/c43a47f76d207c075c9f3648.json",
+            "fingerprint": "12d21d39f0491fe86daf3a4181588f94204f8a2e06f89ad7101cbdf652743da4"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/d7e860f04f301bf9cac6a177.json",
+            "fingerprint": "77c0be096e896a874a3cb41a64a41afae95932d9e59b1145c87707ee92115190"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review-history/work-units/impl-review/d85e17476af5711ba3ad8791.json",
+            "fingerprint": "80a2ae52047f245ded86664dcba26e92b24fc6d03dbee4a114a8f3d5e5765cd6"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/review.md",
+            "fingerprint": "7c499065034312c63ec8022abc85f8b92b37f56266bc5b46804be827e2e6d9e9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/scenario-validity-result.json",
+            "fingerprint": "e4da35cc16a02f922715129a9a47f1a7c5e53ed0229f19051450943381c5e7e6"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/spec-gate-source.json",
+            "fingerprint": "c84e70f3356e9739da2bc41b573b9a1616f41ab78a5ad19a46da1ffd02b089f8"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/spec-review.json",
+            "fingerprint": "46f67df8883a78f7b8b68caa94087aec4c6a7ba07b434f3b6620aed291423428"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/spec-review.md",
+            "fingerprint": "f090e0430cb66cf75b909899bf7fe9bf1073d205f0ca5889824d89561801853e"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/spec.json",
+            "fingerprint": "8fa00fad0303cca6247be8295e835c0fa75f53662a6a92ae508c76b007beced9"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/spec.md",
+            "fingerprint": "097780143599508b85401779c0d8c34815d074e3991417dc68e8d6c3e2a9fbd7"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-1.md",
+            "fingerprint": "53bd23ad67d2a32290a142be2ecfd62f7afe405d75cd9c9c5beb8dd6f1b85971"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-2.md",
+            "fingerprint": "5b01fa1474b54d145ddd4808971490cc940b11d644d111cfaf9ba6d3856606e3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tasks/T-3.md",
+            "fingerprint": "600f506cdf442f2f7f32fb5ea955bf84a0dac3870c6436864e38ea14a0ad5093"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-coverage.json",
+            "fingerprint": "1486544edf503023c4561e5c6cb301fcb2b3dba3674a4500fe08db2ffa9ee0e3"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-execute-result.json",
+            "fingerprint": "a4271761ae90f9dea31fe2a91c4bd5484a59ea7fe03245ec7147c199a8149893"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-result-review.json",
+            "fingerprint": "9ee31ae77a773c2a6e4458651f11ffae1509e1c7a5d70e7f5f6eacecb33b6a61"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-result-review.md",
+            "fingerprint": "1c2be1064fa20bd22a2544946613d717093cea912e723c4cb5508ccaedc9aff6"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-review.json",
+            "fingerprint": "0d17a02eec280055bb64f3bd0a4183d09d2253eb604d4925b6276745585746f0"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/test-review.md",
+            "fingerprint": "f0a058f1922cf829ad28c68830f3318326f3df138ac63349bc3c3a5bd62bd3eb"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tests/.raw/scenario-validity.log",
+            "fingerprint": "4a8958fd2080027a6a79be74ebde7c633525e4503eae8727f065bfb7dda43eb7"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tests/.raw/test-execution.log",
+            "fingerprint": "389e76d51d7e37c28934f98d578c3e5ea5934364df6648838947d155cd2f8fed"
+          },
+          {
+            "path": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+            "fingerprint": "d8e7fd10a1a93b465c9e35ffb34c44a8ced487efc83a94d5c49d54fb57fd9346"
+          },
+          {
+            "path": "src/flow/commands/merge.js",
+            "fingerprint": "282007731cd90d68b01a99e51dbc726aeb1d6fc659a889e7b98c7b4ad103f9f4"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "fingerprint": "153522d61b3c0c208f3441ba6ce6fb44a3ecf4129fd2ae3318802a25d0e6c466"
+          },
+          {
+            "path": "src/flow/lib/finalize-flow-state-owner.js",
+            "fingerprint": "3f230455f4aff1e72279aebc4e750ff8338395ea30a235e3eaa304e4734d7e72"
+          },
+          {
+            "path": "src/flow/lib/flow-outbox.js",
+            "fingerprint": "84ae86d7843a23e187dd9cc8685238019da7570e18a93b57ea043d0d35cda27a"
+          },
+          {
+            "path": "src/flow/lib/run-finalize-merge.js",
+            "fingerprint": "5d120b59c0d78043b02b062d83e078eb435bcab847cba510930d30c43f17ba1c"
+          },
+          {
+            "path": "src/flow/lib/run-finalize.js",
+            "fingerprint": "f90acb911ae03819f63efc8388ac1658f203ddfc5b0eedfcb1cd4a61f1e26041"
+          },
+          {
+            "path": "src/flow/lib/step-transition-policy.js",
+            "fingerprint": "7bf9729aa8df2110ffc3562df2f7011bb112ef3c493490969284802aa3bc429f"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "fingerprint": "c31f190879027b07982fe2b8a24e9fc98c33f02eec0e9b0f05fb9a499ac3093e"
+          },
+          {
+            "path": "src/lib/git-helpers.js",
+            "fingerprint": "d51e5a0a45ffe67c8a95f006064ac682a4bbf8810e57c2e3bf114058cdc861cb"
+          },
+          {
+            "path": "tests/e2e/flow/commands/direct-flow.test.js",
+            "fingerprint": "0f53d544a237dc0127d32383c208185e124c173a8618d7ae6cafe2e29c98afd6"
+          },
+          {
+            "path": "tests/e2e/flow/commands/worktree-finalize.test.js",
+            "fingerprint": "f579c76f7a3905b17ffc0041e14a35246a5d6e15ee7685650cc0b41ba8cbf8a5"
+          },
+          {
+            "path": "tests/unit/flow/direct-flow-integration.test.js",
+            "fingerprint": "3fc64ec03ab4ab5f6429e7f8b0c147b9684b065209affc77581def02c2c3b28c"
+          },
+          {
+            "path": "tests/unit/flow/finalization-outbox.test.js",
+            "fingerprint": "fae87747e4c0e39770108978ca2de44d6f51b725c23088cd15de24f2ad0bb2ac"
+          },
+          {
+            "path": "tests/unit/flow/finalize-cleanup-transaction-v2.test.js",
+            "fingerprint": "9d21069eaddcba33c592494506d96035b3088f6b809853fe84b21ed79b9dac45"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-conflict-metadata.test.js",
+            "fingerprint": "7076c6c64110f939391cf1ae9c9d2a4c77033c336ae375018a52ed483da94cf3"
+          },
+          {
+            "path": "tests/unit/flow/finalize-merge-retry.test.js",
+            "fingerprint": "b556a2941565033ebef3f302a7101d98edbd4d880dda5438a81efd58c85035e7"
+          }
+        ],
+        "fixAttempts": null,
+        "selectedAction": null,
+        "remainingRisk": null,
+        "retryable": false,
+        "nextAction": "report",
+        "nextRecommendedAction": null,
+        "recordAndProceed": null,
+        "humanSummary": "result=pass raw_output=specs/478-fix-finalize-merge-conflict/tests/.raw/final-regression-attempt-004.log"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [
+      {
+        "id": "T-1",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-2",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      },
+      {
+        "id": "T-3",
+        "status": "done",
+        "implementationSummary": "missing",
+        "testExecute": "available",
+        "review": "done",
+        "gateImpl": "done"
+      }
+    ],
+    "taskTotal": 3,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0,
+    "assurance": "advisory",
+    "advisorySummary": [
+      {
+        "stepId": "test-review",
+        "evidenceRef": "specs/478-fix-finalize-merge-conflict/test-review.json",
+        "rationale": "User authorized advisory continuation; implementation proceeds with canonical test-review findings retained for acceptance disposition.",
+        "remainingRisk": "Acceptance review must resolve the recorded coverage gaps for integrated conflict recovery, main-side cleanup safety, and merge exactly-once evidence."
+      }
+    ],
+    "binding": {
+      "headOid": "c3087ef30551bc088d81f8b6fe9557ac4a8f8a3f",
+      "treeSha": "c3c512981e6d83fa1e1d19d607a2883967e77d9d",
+      "sourceArtifacts": [
+        {
+          "path": "specs/478-fix-finalize-merge-conflict/issue-log.json",
+          "sha256": "ebf5655cad550a5552425470b0c956b14bb195d76ad2b8b62b12e01ad8596046"
+        },
+        {
+          "path": "specs/478-fix-finalize-merge-conflict/retro.json",
+          "sha256": "65f444a35455a4adac407e54753b429c7b56d2e5d237979f8baf4243fc69946a"
+        },
+        {
+          "path": "specs/478-fix-finalize-merge-conflict/test-execute-result.json",
+          "sha256": "a4271761ae90f9dea31fe2a91c4bd5484a59ea7fe03245ec7147c199a8149893"
+        },
+        {
+          "path": "specs/478-fix-finalize-merge-conflict/test-result-review.json",
+          "sha256": "9ee31ae77a773c2a6e4458651f11ffae1509e1c7a5d70e7f5f6eacecb33b6a61"
+        },
+        {
+          "path": "specs/478-fix-finalize-merge-conflict/final-regression-result.json",
+          "sha256": "f6a9dd6b93bdd3d701ee7624b98ab939e91272a5a3922e640bf315bc71bf7a23"
+        }
+      ]
+    },
+    "delivery": {
+      "status": "done",
+      "idempotencyKey": "flow-outbox-v1:7883a5ce-5978-4501-ae94-876f71228a1f:flow:report:report"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    -\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 30\n    Q&A ......................... 0\n    issue-log ................... 23\n    agent calls ................. 113\n    input tokens ................ 3,257,893\n    output tokens ............... 75,454\n    cache-read tokens ........... 1,376,512\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2139.8s\n      draft-questions-review .... 8.8s\n      draft-coverage-review ..... 7.8s\n      draft-gate ................ 75.0s\n      spec-review ............... 94.1s\n      spec-gate ................. 156.7s\n      test-review ............... 138.4s\n      implement ................. 117.2s\n      impl-review ............... 485.4s\n      impl-gate ................. 750.6s\n      acceptance-review ......... 305.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/478-fix-finalize-merge-conflict/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass raw_output=specs/478-fix-finalize-merge-conflict/tests/.raw/final-regression-attempt-004.log\n\n  Tasks (3/3)\n  ────────────────────────────────────────────────\n    T-1 status=done impl=missing test=available review=done gate=done\n    T-2 status=done impl=missing test=available review=done gate=done\n    T-3 status=done impl=missing test=available review=done gate=done\n\n  Issue Log Summary (34 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/478-fix-finalize-merge-conflict/issue-log.json\n\n    Important (10 of 19)\n    - [draft-gate] The requirement says to return an \"executable next action\" when any other path is dirty, but it does not specify what concrete action must be returned, leaving reviewers without a shared pass/fail condition.; The draft changes existing f...\n    - [draft-gate] Draft gate required explicit dirty-path recovery and migration parity\n    - [draft-gate] The requirement uses the vague phrase \"durably prepares the worktree before rebase\" without stating verifiable conditions for what durable preparation means.; Two independent reviewers may not agree whether a CLI-owned recovery command \"...\n    - [draft-gate] Draft gate found an ambiguous unselected recovery-command alternative\n    - [spec-gate] Spec gate found an ambiguous documentation condition outside Issue #478 scope\n    - [task-review] Wired the conflict metadata commit hook after failed outbox, issue-log, and downstream skip mutations.\n    - [task-review] Moved external-dirty validation before every finalize-merge lifecycle mutation in both pre and error routes.\n    - [task-review] Extended the real worktree recovery fixture through finalize-sync completion and finalize-cleanup command preparation, asserting downstream state and outbox effects.\n    - [task-review] The real worktree recovery fixture now squash-integrates the resolved feature into main authority and executes finalize-cleanup itself, asserting worktree removal, feature-branch deletion, and cleared active flow.\n    - [impl-review] Captured the external-dirty preflight before finalize-merge error mutations and explicitly stage both allowed conflict-evidence files using that snapshot.\n    ... 9 important issue-log entries omitted\n\n    Recent Other (5 of 15)\n    - [impl-gate] fix: add shared finalize-merge CLI execution and preserve the pre-merge outbox through worktree rebase\n    - [impl-gate] fix: keep retry downstream steps pending and add an actual worktree CLI conflict/rebase/retry E2E\n    - [impl-gate] fix: assert main-side persisted cleanup state and completed teardown journal after deleted-worktree resume\n    - [impl-gate] fix: assert direct verification and integration receipts are retained in main flow state after worktree removal\n    - [acceptance-review] repair: remove stale impl-repair ledger whose terminal fingerprint predates current accepted evidence\n    ... 10 other issue-log entries omitted\n\n## Advisory continuations\n- test-review: specs/478-fix-finalize-merge-conflict/test-review.json; risk: Acceptance review must resolve the recorded coverage gaps for integrated conflict recovery, main-side cleanup safety, and merge exactly-once evidence.; rationale: User authorized advisory continuation; implementation proceeds with canonical test-review findings retained for acceptance disposition."
+}

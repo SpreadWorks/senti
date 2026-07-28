@@ -466,7 +466,15 @@ class RegistryLifecycleAdapter {
     if (this.ctx.dryRun) return null;
     const reason = this.err
       || new Error(this.result?.reason || this.result?.message || `${step} side effect failed`);
-    this.ctx.flowOutboxEntry = this.outboxStore().fail(this.outboxIdentity(step), reason);
+    const identity = this.outboxIdentity(step);
+    const outbox = this.outboxStore();
+    try {
+      this.ctx.flowOutboxEntry = outbox.fail(identity, reason);
+    } catch (error) {
+      if (!String(error.message).startsWith("outbox entry not found:")) throw error;
+      outbox.begin(identity);
+      this.ctx.flowOutboxEntry = outbox.fail(identity, reason);
+    }
     return this.ctx.flowOutboxEntry;
   }
 
@@ -526,6 +534,13 @@ class RegistryLifecycleAdapter {
 
   async runFinalizeHook(handler, args) {
     const finalize = await import("./lib/run-finalize.js");
+    if (handler === "assertFinalizeMergeMetadataMutationSafe") {
+      this.ctx.finalizeMergeMetadataPreflight = finalize.assertFinalizeMergeMetadataMutationSafe({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+      });
+      return;
+    }
     if (handler === "prepareFinalizeMerge") {
       const metadataPreflight = finalize.readFinalizeMergeMetadataPreflight({
         root: this.ctx.root,
@@ -542,15 +557,15 @@ class RegistryLifecycleAdapter {
         this.finalizeStateOwner(),
         args?.steps || [],
       );
-      finalize.commitFinalizeMergeMetadataIfSafe({
-        root: this.ctx.root,
-        specId: this.ctx.specId,
-        preflight: metadataPreflight,
-        includeFlowJson: mutated,
-        message: mutated
-          ? "chore: reset downstream finalize steps for retry"
-          : "chore: record finalize metadata before merge",
-      });
+      if (mutated) {
+        finalize.commitFinalizeMergeMetadataIfSafe({
+          root: this.ctx.root,
+          specId: this.ctx.specId,
+          preflight: metadataPreflight,
+          includeFlowJson: true,
+          message: "chore: reset downstream finalize steps for retry",
+        });
+      }
       return;
     }
     if (handler === "resolveMainRepoFlowManager") {
@@ -586,8 +601,35 @@ class RegistryLifecycleAdapter {
       }
       return;
     }
+    if (handler === "ensureFinalizeMergeInProgress") {
+      const stateOwner = this.finalizeStateOwner();
+      const current = stateOwner.loadReadOnly();
+      if (findStepById(current?.steps || [], "finalize-merge")?.status !== "pending") return;
+      // The base-side snapshot predates the in-memory merge execution. This
+      // is a constrained rehydration, not a user-initiated step transition.
+      // Its formerly active leaf must not coexist with finalize-merge as
+      // another in-progress leaf in the restored main-side state.
+      stateOwner.mutate((state) => {
+        const active = findActiveNode(state);
+        if (active?.stepId && active.stepId !== "finalize-merge") {
+          findStepById(state.steps || [], active.stepId).status = "done";
+        }
+        const commit = findStepById(state.steps || [], "finalize-commit");
+        if (commit?.status === "in_progress") commit.status = "done";
+        findStepById(state.steps || [], "finalize-merge").status = "in_progress";
+      });
+      return;
+    }
     if (handler === "resetSkippedDownstreamSteps") {
       resetSkippedDownstreamSteps(this.finalizeStateOwner(), args?.steps || []);
+      return;
+    }
+    if (handler === "commitFinalizeMergeConflictMetadata") {
+      finalize.commitFinalizeMergeConflictMetadata({
+        root: this.ctx.root,
+        specId: this.ctx.specId,
+        preflight: this.ctx.finalizeMergeMetadataPreflight,
+      });
       return;
     }
     if (handler === "finalizeOnError") {
@@ -1435,7 +1477,9 @@ export const FLOW_COMMANDS = {
     },
     "finalize-merge": {
       helpKey: "flow.run.finalize-merge",
-      runtimeLog: { stepId: "finalize-merge" },
+      // Its failure handler commits the complete Flow metadata transaction.
+      // Do not append a second runtime-log state mutation after that commit.
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-finalize-merge.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [

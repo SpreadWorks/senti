@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T21:45:55.068Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "external-dirty-mutates-before-reject",
+      "title": "External dirtiness is checked after failure metadata mutation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/definition.js",
+      "requirementId": "R3",
+      "issue": "The finalize-merge error lifecycle still runs `finalizeOnError` before invoking `commitFinalizeMergeConflictMetadata`. Because the external-dirty rejection is only enforced inside the later commit helper, an external dirty path can cause `finalizeOnError` to write failed outbox, issue-log, and skipped-step state before the helper rejects.",
+      "suggestion": "Move or add the active-spec metadata preflight before `finalizeOnError` mutates state in the finalize-merge error path, then pass that same preflight into `commitFinalizeMergeConflictMetadata` so external dirty paths prevent all finalize mutation.",
+      "disposition": "must-fix",
+      "rationale": "T-1 explicitly requires that external dirty paths prevent all finalize mutation. With the current action order, the rejection happens after finalize recovery metadata has already been mutated, so the mandatory guard is not satisfied.",
+      "findingId": "bab81a164bcc4f59154d1730bd95a7012e9fb1c31aa316525533d64a9ce56c5e",
+      "fingerprint": "bab81a164bcc4f59154d1730bd95a7012e9fb1c31aa316525533d64a9ce56c5e",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "986349ac6eb660601242420d6269e0c8e2b5f113c39416bb3bb5781561cf3e47",
+  "reviewedTree": "986349ac6eb660601242420d6269e0c8e2b5f113c39416bb3bb5781561cf3e47",
+  "reviewedHead": "c3087ef30551bc088d81f8b6fe9557ac4a8f8a3f",
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/478-fix-finalize-merge-conflict/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "2ca44a9e5739e4cf36a45732a5a99a39e5469ed40635d941840d4c29ed0b1b41"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "bab81a164bcc4f59154d1730bd95a7012e9fb1c31aa316525533d64a9ce56c5e",
+      "findingId": "bab81a164bcc4f59154d1730bd95a7012e9fb1c31aa316525533d64a9ce56c5e",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "External dirtiness is checked after failure metadata mutation",
+      "body": "The finalize-merge error lifecycle still runs `finalizeOnError` before invoking `commitFinalizeMergeConflictMetadata`. Because the external-dirty rejection is only enforced inside the later commit helper, an external dirty path can cause `finalizeOnError` to write failed outbox, issue-log, and skipped-step state before the helper rejects.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "bab81a164bcc4f59154d1730bd95a7012e9fb1c31aa316525533d64a9ce56c5e",
+      "disposition": "must-fix",
+      "rationale": "T-1 explicitly requires that external dirty paths prevent all finalize mutation. With the current action order, the rejection happens after finalize recovery metadata has already been mutated, so the mandatory guard is not satisfied.",
+      "requirementId": "R3",
+      "repeatCount": 1
+    }
+  ]
+}

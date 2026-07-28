@@ -69,7 +69,8 @@ export class FinalizeFlowStateOwner {
       if (existing.specId !== specId) {
         throw new Error("finalize flow-state owner targets a different spec");
       }
-      return existing;
+      const mainRepoPath = ctx.mainRoot || ctx.flowManager._mainRoot || ctx.root;
+      if (existing.authorityRoot === path.resolve(mainRepoPath)) return existing;
     }
     const mainRepoPath = ctx.mainRoot || ctx.flowManager._mainRoot || ctx.root;
     return FinalizeFlowStateOwner.forMainRepository({

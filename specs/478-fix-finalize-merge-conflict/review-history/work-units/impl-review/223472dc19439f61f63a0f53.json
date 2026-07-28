@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "223472dc19439f61f63a0f53",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-493316a9d2e9cbe7",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/merge.js",
+      "src/flow/definition.js",
+      "src/flow/lib/finalize-flow-state-owner.js",
+      "src/flow/lib/flow-outbox.js",
+      "src/flow/lib/run-finalize-merge.js",
+      "src/flow/lib/run-finalize.js",
+      "src/flow/lib/step-transition-policy.js",
+      "src/flow/registry.js",
+      "src/lib/git-helpers.js",
+      "tests/e2e/flow/commands/worktree-finalize.test.js",
+      "tests/unit/flow/finalization-outbox.test.js"
+    ],
+    "inputHash": "493316a9d2e9cbe782cdd4efb85459bb904d9a7aa9adb0711651aae9aee96d8d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "223472dc19439f61f63a0f53"
+  },
+  "targetFiles": [
+    "src/flow/commands/merge.js",
+    "src/flow/definition.js",
+    "src/flow/lib/finalize-flow-state-owner.js",
+    "src/flow/lib/flow-outbox.js",
+    "src/flow/lib/run-finalize-merge.js",
+    "src/flow/lib/run-finalize.js",
+    "src/flow/lib/step-transition-policy.js",
+    "src/flow/registry.js",
+    "src/lib/git-helpers.js",
+    "tests/e2e/flow/commands/worktree-finalize.test.js",
+    "tests/unit/flow/finalization-outbox.test.js"
+  ],
+  "inputHash": "493316a9d2e9cbe782cdd4efb85459bb904d9a7aa9adb0711651aae9aee96d8d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T00:58:20.801Z",
+  "finishedAt": "2026-07-28T00:58:20.801Z",
+  "rawResponse": "### 1. Centralize Downstream Finalize Step IDs\n**File:** `src/flow/definition.js`\n**Requirement:** R1\n**Issue:** The downstream finalize step list `[\"finalize-sync\", \"finalize-cleanup\"]` is duplicated across `src/flow/definition.js` and `src/flow/lib/run-finalize.js`. These files now share the same finalize-merge lifecycle contract, so separate literals can drift.\n**Suggestion:** Define one shared constant, for example `FINALIZE_MERGE_DOWNSTREAM_STEP_IDS`, in a common finalize lifecycle module and import it in both files.\n\n### 2. Use One Name For Auto-Promotion Suppression\n**File:** `src/flow/definition.js`\n**Requirement:** R4\n**Issue:** `suppressAutoPromotion` in `src/flow/definition.js` is interpreted in `src/flow/lib/step-transition-policy.js` through a boolean named `hasExplicitInProgressTarget`. The flag name and consumer name describe different concepts, which makes the cross-file interface misleading.\n**Suggestion:** Rename the action field and policy variable around the same concept, such as `suppressNextStepPromotion` and `shouldSuppressNextStepPromotion`.\n\n### 3. Centralize Finalize-Merge Command/Step Identity\n**File:** `src/flow/commands/merge.js`\n**Requirement:** R4\n**Issue:** The finalize-merge identity appears as user-facing command text in `merge.js` and as lifecycle string comparisons in `definition.js`, `registry.js`, `run-finalize.js`, and `run-finalize-merge.js`. This creates multiple independent sources for the same command/step identity.\n**Suggestion:** Introduce shared constants such as `FINALIZE_MERGE_STEP_ID = \"finalize-merge\"` and `FINALIZE_MERGE_COMMAND = \"senti flow run finalize-merge\"` and use them across command hints, lifecycle checks, registry hooks, and outbox identity generation.\n\n### 4. Align Metadata Path Helper Naming Across Callers\n**File:** `src/flow/lib/run-finalize.js`\n**Requirement:** R1\n**Issue:** `getFinalizeMergeAllowedMetadataPaths()` returns data consumed by `src/flow/registry.js`, but the proposed shape mixes committable metadata paths with tolerated dirty runtime paths. That cross-file interface makes registry behavior harder to audit because callers cannot tell which paths are safe to commit versus merely allowed to exist.\n**Suggestion:** Return named fields such as `committableMetadataPaths`, `allowedDirtyPathSet`, `flowJsonPath`, and `issueLogPath`, then update registry callers to use those names explicitly.\n\n### 5. Unify Finalize-Merge Metadata Commit Entry Points\n**File:** `src/flow/registry.js`\n**Requirement:** R2\n**Issue:** `commitFinalizeMergeMetadataIfSafe()` is called from multiple registry branches while related safety and path logic lives in `run-finalize.js`. The call sites pass overlapping but different option shapes, which can cause lifecycle branches to diverge in what metadata they stage or commit.\n**Suggestion:** Add a single registry adapter helper, for example `commitFinalizeMergeMetadata(options)`, that supplies shared context and delegates to `commitFinalizeMergeMetadataIfSafe()` with a consistent option contract.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Downstream Finalize Step IDs",
+        "body": "**File:** `src/flow/definition.js`\n**Requirement:** R1\n**Issue:** The downstream finalize step list `[\"finalize-sync\", \"finalize-cleanup\"]` is duplicated across `src/flow/definition.js` and `src/flow/lib/run-finalize.js`. These files now share the same finalize-merge lifecycle contract, so separate literals can drift.\n**Suggestion:** Define one shared constant, for example `FINALIZE_MERGE_DOWNSTREAM_STEP_IDS`, in a common finalize lifecycle module and import it in both files.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Use One Name For Auto-Promotion Suppression",
+        "body": "**File:** `src/flow/definition.js`\n**Requirement:** R4\n**Issue:** `suppressAutoPromotion` in `src/flow/definition.js` is interpreted in `src/flow/lib/step-transition-policy.js` through a boolean named `hasExplicitInProgressTarget`. The flag name and consumer name describe different concepts, which makes the cross-file interface misleading.\n**Suggestion:** Rename the action field and policy variable around the same concept, such as `suppressNextStepPromotion` and `shouldSuppressNextStepPromotion`.",
+        "file": "src/flow/definition.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Centralize Finalize-Merge Command/Step Identity",
+        "body": "**File:** `src/flow/commands/merge.js`\n**Requirement:** R4\n**Issue:** The finalize-merge identity appears as user-facing command text in `merge.js` and as lifecycle string comparisons in `definition.js`, `registry.js`, `run-finalize.js`, and `run-finalize-merge.js`. This creates multiple independent sources for the same command/step identity.\n**Suggestion:** Introduce shared constants such as `FINALIZE_MERGE_STEP_ID = \"finalize-merge\"` and `FINALIZE_MERGE_COMMAND = \"senti flow run finalize-merge\"` and use them across command hints, lifecycle checks, registry hooks, and outbox identity generation.",
+        "file": "src/flow/commands/merge.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Align Metadata Path Helper Naming Across Callers",
+        "body": "**File:** `src/flow/lib/run-finalize.js`\n**Requirement:** R1\n**Issue:** `getFinalizeMergeAllowedMetadataPaths()` returns data consumed by `src/flow/registry.js`, but the proposed shape mixes committable metadata paths with tolerated dirty runtime paths. That cross-file interface makes registry behavior harder to audit because callers cannot tell which paths are safe to commit versus merely allowed to exist.\n**Suggestion:** Return named fields such as `committableMetadataPaths`, `allowedDirtyPathSet`, `flowJsonPath`, and `issueLogPath`, then update registry callers to use those names explicitly.",
+        "file": "src/flow/lib/run-finalize.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "5. Unify Finalize-Merge Metadata Commit Entry Points",
+        "body": "**File:** `src/flow/registry.js`\n**Requirement:** R2\n**Issue:** `commitFinalizeMergeMetadataIfSafe()` is called from multiple registry branches while related safety and path logic lives in `run-finalize.js`. The call sites pass overlapping but different option shapes, which can cause lifecycle branches to diverge in what metadata they stage or commit.\n**Suggestion:** Add a single registry adapter helper, for example `commitFinalizeMergeMetadata(options)`, that supplies shared context and delegates to `commitFinalizeMergeMetadataIfSafe()` with a consistent option contract.",
+        "file": "src/flow/registry.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

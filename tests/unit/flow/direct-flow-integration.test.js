@@ -275,6 +275,10 @@ test("direct fix persists its plan before changes and completes through shared t
     const completedState = main.flowState;
     const completion = new FlowCompletion(completedState);
     const completionReceipt = completedState.directCompletionReceipt;
+    // After merge and worktree removal, verification and integration records
+    // are read from main's flow state rather than the retired worktree.
+    assert.equal(completedState.directFlowSession.verification.status, "passed");
+    assert.equal(completedState.directIntegrationReceipt.status, "merged");
     assert.equal(completion.complete, true);
     assert.equal(completion.completionMode, "direct");
     assert.equal(completionReceipt.status, "completed");

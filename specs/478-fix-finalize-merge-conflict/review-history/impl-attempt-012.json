@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T00:10:08.738Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-merge-outbox-begins-after-side-effect",
+      "title": "Finalize-merge begins its outbox entry after the merge command runs",
+      "failureMode": "security_or_data_integrity_bug",
+      "file": "src/flow/definition.js",
+      "requirementId": "R2",
+      "issue": "The finalize-merge lifecycle no longer emits BeginOutboxEffect during finalize:pre; it now begins the outbox only in the normal post path. RunFinalizeMergeCommand can execute the merge side effect before any pending outbox entry exists, so an interruption or thrown error during the command can leave an unrecorded/non-idempotent merge attempt.",
+      "suggestion": "Move BeginOutboxEffect for finalize-merge back into the pre lifecycle, or otherwise ensure the outbox entry is created before RunFinalizeMergeCommand.execute performs merge side effects while preserving the no-extra-clean-metadata-commit behavior.",
+      "disposition": "must-fix",
+      "rationale": "R2 covers finalize-merge outbox recovery behavior in src/flow/definition.js and src/flow/lib/flow-outbox.js. Creating the outbox only after the side effect has already run breaks the mandatory data-integrity guardrail that side effects must be tracked before execution.",
+      "findingId": "bd824e4ea802e486e93a1547458219b29c1e8907fd792de1acbdb6cddea24b6e",
+      "fingerprint": "bd824e4ea802e486e93a1547458219b29c1e8907fd792de1acbdb6cddea24b6e",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "fffcfc5adfb6c091f37c813bcf47bc2e8e9315ac87b92d1ea7a77f60eb8ab880",
+  "reviewedTree": "fffcfc5adfb6c091f37c813bcf47bc2e8e9315ac87b92d1ea7a77f60eb8ab880",
+  "reviewedHead": "c3087ef30551bc088d81f8b6fe9557ac4a8f8a3f",
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "b6a3a1137b1b440833a7579e46172e0f7b7e6c8c9797ffe214e9c336f2ae1b70"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 12,
+  "findings": [
+    {
+      "id": "bd824e4ea802e486e93a1547458219b29c1e8907fd792de1acbdb6cddea24b6e",
+      "findingId": "bd824e4ea802e486e93a1547458219b29c1e8907fd792de1acbdb6cddea24b6e",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 12,
+      "severity": "blocking",
+      "title": "Finalize-merge begins its outbox entry after the merge command runs",
+      "body": "The finalize-merge lifecycle no longer emits BeginOutboxEffect during finalize:pre; it now begins the outbox only in the normal post path. RunFinalizeMergeCommand can execute the merge side effect before any pending outbox entry exists, so an interruption or thrown error during the command can leave an unrecorded/non-idempotent merge attempt.",
+      "category": "security_or_data_integrity_bug",
+      "fingerprint": "bd824e4ea802e486e93a1547458219b29c1e8907fd792de1acbdb6cddea24b6e",
+      "disposition": "must-fix",
+      "rationale": "R2 covers finalize-merge outbox recovery behavior in src/flow/definition.js and src/flow/lib/flow-outbox.js. Creating the outbox only after the side effect has already run breaks the mandatory data-integrity guardrail that side effects must be tracked before execution.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

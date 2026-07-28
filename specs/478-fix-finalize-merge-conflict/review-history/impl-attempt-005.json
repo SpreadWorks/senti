@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-27T21:57:39.438Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-sync-cleanup-coverage",
+      "title": "Retry path stops before sync and cleanup coverage",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js",
+      "requirementId": "R2",
+      "issue": "The spec-local E2E test exercises conflict detection, manual rebase, metadata evidence commit, and finalize-merge retry, but it never runs or asserts the subsequent finalize-sync and finalize-cleanup steps. The task acceptance criteria explicitly require coverage for \"retry, sync, and cleanup.\"",
+      "suggestion": "Extend the real worktree recovery test to execute the downstream finalize-sync and finalize-cleanup commands after the retry succeeds, or add spec-local assertions that drive those branches through FLOW_COMMANDS and verify their expected terminal states/effects.",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to a mandatory acceptance criterion in T-3, so the implementation is incomplete even if the finalize-merge retry assertions pass.",
+      "findingId": "ccc5254e7ebb74481a2c0097ab385cec63b64e0f5a71f7b93fb4b3abd6afe0e7",
+      "fingerprint": "ccc5254e7ebb74481a2c0097ab385cec63b64e0f5a71f7b93fb4b3abd6afe0e7",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "f2abb3547edc419cacc332cb6dc0c641e7fb5697d1b8035b1729ffab154a6492",
+  "reviewedTree": "f2abb3547edc419cacc332cb6dc0c641e7fb5697d1b8035b1729ffab154a6492",
+  "reviewedHead": "c3087ef30551bc088d81f8b6fe9557ac4a8f8a3f",
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "taskId": "T-3",
+  "target": "specs/478-fix-finalize-merge-conflict/tasks/T-3.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "4b63d7e7315775b4090239d877d1755da05b3dc4b427515d4a995df06b4c786d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 5,
+  "findings": [
+    {
+      "id": "ccc5254e7ebb74481a2c0097ab385cec63b64e0f5a71f7b93fb4b3abd6afe0e7",
+      "findingId": "ccc5254e7ebb74481a2c0097ab385cec63b64e0f5a71f7b93fb4b3abd6afe0e7",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 5,
+      "severity": "blocking",
+      "title": "Retry path stops before sync and cleanup coverage",
+      "body": "The spec-local E2E test exercises conflict detection, manual rebase, metadata evidence commit, and finalize-merge retry, but it never runs or asserts the subsequent finalize-sync and finalize-cleanup steps. The task acceptance criteria explicitly require coverage for \"retry, sync, and cleanup.\"",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "ccc5254e7ebb74481a2c0097ab385cec63b64e0f5a71f7b93fb4b3abd6afe0e7",
+      "disposition": "must-fix",
+      "rationale": "This is tied directly to a mandatory acceptance criterion in T-3, so the implementation is incomplete even if the finalize-merge retry assertions pass.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

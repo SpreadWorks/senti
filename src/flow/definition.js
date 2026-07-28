@@ -99,10 +99,14 @@ const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
 
 export class SetStepStatus {
-  constructor({ step, status }) {
+  constructor({ step, status, suppressAutoPromotion = false }) {
     this.step = requireString(step, "step");
     this.status = requireString(status, "status");
     if (!STEP_STATUSES.has(this.status)) throw new Error(`invalid status: ${this.status}`);
+    if (typeof suppressAutoPromotion !== "boolean") {
+      throw new Error("suppressAutoPromotion must be boolean");
+    }
+    this.suppressAutoPromotion = suppressAutoPromotion;
     Object.freeze(this);
   }
 
@@ -113,7 +117,11 @@ export class SetStepStatus {
   forStep(step) {
     const scopedStep = requireString(step, "step");
     if (scopedStep === this.step) return this;
-    return new SetStepStatus({ step: scopedStep, status: this.status });
+    return new SetStepStatus({
+      step: scopedStep,
+      status: this.status,
+      suppressAutoPromotion: this.suppressAutoPromotion,
+    });
   }
 }
 
@@ -507,34 +515,59 @@ function resolveGateLifecycle(input) {
   return actions;
 }
 
+function finalizeMergeMetadataPreflightAction() {
+  return new RunLifecycleHook({
+    module: "finalize",
+    handler: "assertFinalizeMergeMetadataMutationSafe",
+  });
+}
+
 function resolveFinalizeLifecycle(input) {
   const command = input.command;
   if (input.event === "finalize:pre") {
     const actions = [];
-    if (command === "finalize-sync") {
+    if (command === "finalize-merge") {
+      actions.push(finalizeMergeMetadataPreflightAction());
+    } else if (command === "finalize-sync") {
       actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
     }
-    actions.push(new BeginOutboxEffect({ step: command }));
     if (command === "finalize-merge") {
       actions.push(new RunLifecycleHook({
         module: "finalize",
         handler: "prepareFinalizeMerge",
         args: { steps: ["finalize-sync", "finalize-cleanup"] },
       }));
+      // Record the idempotency key before RunFinalizeMergeCommand can start
+      // the merge. The post lifecycle begins the same identity again after
+      // authority switches to main, which is how the pending entry is carried
+      // into main's flow state without a clean-path metadata-only commit.
+      actions.push(new BeginOutboxEffect({ step: command }));
+    } else {
+      actions.push(new BeginOutboxEffect({ step: command }));
     }
     return actions;
   }
   if (input.event === "finalize:onError") {
     const actions = [];
-    if (command === "finalize-sync") {
+    if (command === "finalize-merge") {
+      actions.push(finalizeMergeMetadataPreflightAction());
+    } else if (command === "finalize-sync") {
       actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveMainRepoFlowManager" }));
     } else if (command === "finalize-cleanup") {
       actions.push(new RunLifecycleHook({ module: "finalize", handler: "resolveCleanupOutboxFlowManager" }));
     }
-    actions.push(new FailOutboxEffect({ step: command }));
+    if (command === "finalize-merge") {
+      actions.push(new FailOutboxEffect({ step: command }));
+      actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
+    } else {
+      actions.push(new FailOutboxEffect({ step: command }));
+    }
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "finalizeOnError", args: { command } }));
     if (command === "finalize-merge") {
-      actions.push(new SkipSteps({ steps: ["finalize-sync", "finalize-cleanup"] }));
+      actions.push(new RunLifecycleHook({
+        module: "finalize",
+        handler: "commitFinalizeMergeConflictMetadata",
+      }));
     }
     return actions;
   }
@@ -549,6 +582,8 @@ function resolveFinalizeLifecycle(input) {
   }
   if (command === "finalize-merge") {
     actions.push(
+      new BeginOutboxEffect({ step: command }),
+      new RunLifecycleHook({ module: "finalize", handler: "ensureFinalizeMergeInProgress" }),
       new RunLifecycleHook({ module: "finalize", handler: "recordMergeOutcome" }),
       new RunLifecycleHook({
         module: "finalize",
@@ -560,7 +595,13 @@ function resolveFinalizeLifecycle(input) {
   if (command === "finalize-commit") {
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitDurableArtifacts" }));
   }
-  actions.push(new SetStepStatus({ step: command, status: "done" }));
+  actions.push(new SetStepStatus({
+    step: command,
+    status: "done",
+    // A retried merge restores its downstream leaves for the next normal
+    // command; it does not begin finalize-sync as part of merge completion.
+    suppressAutoPromotion: command === "finalize-merge",
+  }));
   actions.push(new CompleteOutboxEffect({ step: command }));
   if (command === "finalize-cleanup") {
     actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitFinalizeCompletion" }));

@@ -1,0 +1,50 @@
+{
+  "spec": "specs/478-fix-finalize-merge-conflict/spec.json",
+  "date": "2026-07-28T01:44:12.264Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "After normal worktree finalize-merge conflict handling records failure state, Flow shall create one metadata-only commit containing only the active spec's flow.json and issue-log.json before returning the rebase instruction; git status --porcelain in the worktree shall then be empty.",
+      "status": "done",
+      "note": "R1: commits conflict metadata before returning a recovery instruction"
+    },
+    {
+      "desc": "The conflict metadata persisted by R1 shall include the conflict reason, failed finalize-merge outbox state, finalize-sync/finalize-cleanup skipped states, and issue-log evidence, and these records shall remain available in the final main-side snapshot after successful retry.",
+      "status": "done",
+      "note": "R2: records the failed outbox and skipped downstream steps in metadata only"
+    },
+    {
+      "desc": "If any dirty path exists outside the active spec's flow.json and issue-log.json, Flow shall not create a commit, begin or alter the finalize-merge outbox, or alter step state; it shall return the exact path, `git status --short -- <path>`, and require a later `senti flow run finalize-merge` retry after user resolution.",
+      "status": "done",
+      "note": "R3: rejects external dirtiness without mutating Flow recovery metadata"
+    },
+    {
+      "desc": "Before a retry after resolved conflict, finalize-sync and finalize-cleanup shall change from skipped to pending; after retry success, finalize-merge shall be done, merge and outbox side effects shall execute exactly once, and downstream steps shall remain pending for normal execution.",
+      "status": "done",
+      "note": "R4: retry persists the downstream reset in one additional metadata commit"
+    },
+    {
+      "desc": "The normal no-conflict finalize-merge path shall create no metadata-only commit. Direct finalize/cleanup shall update verification and integration records through the main-repository flow state after rebase, resume an interrupted completion from its saved transaction, complete teardown journal/receipt/cleanup through that main-repository state, and perform no import, filesystem read, lock validation, or log access against a deleted worktree.",
+      "status": "done",
+      "note": "R5: a clean normal merge preparation does not use a metadata-only commit"
+    },
+    {
+      "desc": "Spec-local tests with `// spec: R<N>` headers shall cover R1 through R5, and shared unit plus worktree CLI/E2E tests shall exercise actual conflict detection, evidence commit, clean rebase preparation, manual rebase, retry, one merge/outbox completion, sync, and cleanup.",
+      "status": "done",
+      "note": "R6: makes the conflict recovery transaction executable in a real feature worktree"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "aa4ffea84e68bf3cc4c2576f15410f812dc8acfb73a2c53302b8bcf87038e300"
+}

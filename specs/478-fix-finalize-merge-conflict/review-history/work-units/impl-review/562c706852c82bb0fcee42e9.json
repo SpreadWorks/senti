@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "562c706852c82bb0fcee42e9",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0012",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/finalization-outbox.test.js"
+    ],
+    "inputHash": "67097cd3aaaa74d380952d159335df2d3eb8a97c7cdd674629551079ea6b93af",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "562c706852c82bb0fcee42e9"
+  },
+  "targetFiles": [
+    "tests/unit/flow/finalization-outbox.test.js"
+  ],
+  "inputHash": "67097cd3aaaa74d380952d159335df2d3eb8a97c7cdd674629551079ea6b93af",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T00:57:29.078Z",
+  "finishedAt": "2026-07-28T00:57:29.078Z",
+  "rawResponse": "### 1. Name the command-specific expectation\n**File:** `tests/unit/flow/finalization-outbox.test.js`  \n**Requirement:** R4  \n**Issue:** The assertion compares two inline boolean expressions, which makes the changed behavior less self-documenting.  \n**Suggestion:** Extract the expected value into a named constant before the assertion, e.g. `const shouldBeginOutboxEffect = command === \"finalize-merge\";`, then assert against that name. This makes the test intent clearer without changing behavior.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Name the command-specific expectation",
+        "body": "**File:** `tests/unit/flow/finalization-outbox.test.js`  \n**Requirement:** R4  \n**Issue:** The assertion compares two inline boolean expressions, which makes the changed behavior less self-documenting.  \n**Suggestion:** Extract the expected value into a named constant before the assertion, e.g. `const shouldBeginOutboxEffect = command === \"finalize-merge\";`, then assert against that name. This makes the test intent clearer without changing behavior.",
+        "file": "tests/unit/flow/finalization-outbox.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

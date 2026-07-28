@@ -218,17 +218,18 @@ export function fetchBranch(remote, branch, opts = {}) {
  * (rebase never started — no abort needed), or "conflict" for actual
  * merge conflicts (caller must call abortRebase()).
  * @param {string} baseRef
- * @param {{cwd?: string}} [opts]
+ * @param {{cwd?: string, autostash?: boolean}} [opts]
  */
 export function rebaseOnto(baseRef, opts = {}) {
-  const res = runGit(["rebase", baseRef], opts);
+  const { autostash = false, ...runOpts } = opts;
+  const res = runGit(["rebase", ...(autostash ? ["--autostash"] : []), baseRef], runOpts);
   if (res.ok) return { ok: true };
   const stderr = res.stderr || "";
   const isDirty = /unstaged changes|uncommitted changes/.test(stderr);
   if (isDirty) {
     return { ok: false, reason: "dirty", conflictFiles: [], stderr };
   }
-  const statusRes = runGit(["diff", "--name-only", "--diff-filter=U"], opts);
+  const statusRes = runGit(["diff", "--name-only", "--diff-filter=U"], runOpts);
   const conflictFiles = statusRes.ok
     ? statusRes.stdout.trim().split("\n").filter(Boolean)
     : [];

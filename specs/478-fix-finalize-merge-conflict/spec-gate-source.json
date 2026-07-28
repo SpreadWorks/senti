@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-27T14:41:35.833Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "spec phase does not own downstream test-file or runtime evidence",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "authority": "mechanical"
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Requirement R5 requires direct-finalize/cleanup behavior to retain \"main-side authority\" but does not define the observable criteria for that authority, so independent reviewers may not agree whether an implementation satisfies it.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "/requirements/4/desc"
+          },
+          "observed": "Requirement R5 requires direct-finalize/cleanup behavior to retain \"main-side authority\" but does not define the observable criteria for that authority, so independent reviewers may not agree whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "474e6361d1fcb6e520082d2b54031e57a7e7f58c9dddf5513c6ce5ae3f8fe7f1",
+      "fingerprint": "474e6361d1fcb6e520082d2b54031e57a7e7f58c9dddf5513c6ce5ae3f8fe7f1",
+      "disposition": "must-fix",
+      "rationale": "Requirement R5 requires direct-finalize/cleanup behavior to retain \"main-side authority\" but does not define the observable criteria for that authority, so independent reviewers may not agree whether an implementation satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-27T14:40:45.954Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "complete-context",
+      "result": "fail",
+      "reason": "Acceptance criterion relies on \"retained direct-finalize/cleanup behavior passes its existing regression contract\" without identifying the regression contract or measurable criteria in the spec.",
+      "category": "process",
+      "title": "Complete Context",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "/acceptance_criteria/4"
+          },
+          "observed": "Acceptance criterion relies on \"retained direct-finalize/cleanup behavior passes its existing regression contract\" without identifying the regression contract or measurable criteria in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "findingId": "474e6361d1fcb6e520082d2b54031e57a7e7f58c9dddf5513c6ce5ae3f8fe7f1",
+      "fingerprint": "474e6361d1fcb6e520082d2b54031e57a7e7f58c9dddf5513c6ce5ae3f8fe7f1",
+      "disposition": "must-fix",
+      "rationale": "Acceptance criterion relies on \"retained direct-finalize/cleanup behavior passes its existing regression contract\" without identifying the regression contract or measurable criteria in the spec.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-27T14:40:45.954Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "/requirements/4/desc"
+      },
+      "observed": "Requirement R5 requires direct-finalize/cleanup behavior to retain \"main-side authority\" but does not define the observable criteria for that authority, so independent reviewers may not agree whether an implementation satisfies it.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "3ba79e3bb70a548cee042829e5e57cdadf6ee81cda06157f98a49a5d101829e0",
+      "fingerprint": "3ba79e3bb70a548cee042829e5e57cdadf6ee81cda06157f98a49a5d101829e0",
+      "disposition": "must-fix",
+      "rationale": "Requirement R5 requires direct-finalize/cleanup behavior to retain \"main-side authority\" but does not define the observable criteria for that authority, so independent reviewers may not agree whether an implementation satisfies it.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-27T14:41:35.833Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "complete-context",
+      "where": {
+        "file": "spec.json",
+        "locator": "/acceptance_criteria/4"
+      },
+      "observed": "Acceptance criterion relies on \"retained direct-finalize/cleanup behavior passes its existing regression contract\" without identifying the regression contract or measurable criteria in the spec.",
+      "severity": "blocking",
+      "refs": [
+        "complete-context"
+      ],
+      "result": "fail",
+      "guardrail_id": "complete-context",
+      "category": "guardrail",
+      "findingId": "3ba79e3bb70a548cee042829e5e57cdadf6ee81cda06157f98a49a5d101829e0",
+      "fingerprint": "3ba79e3bb70a548cee042829e5e57cdadf6ee81cda06157f98a49a5d101829e0",
+      "disposition": "must-fix",
+      "rationale": "Acceptance criterion relies on \"retained direct-finalize/cleanup behavior passes its existing regression contract\" without identifying the regression contract or measurable criteria in the spec.",
+      "requirementId": null,
+      "guardrailId": "complete-context",
+      "reportedAt": "2026-07-27T14:41:35.833Z",
+      "repeatCount": 1
+    }
+  ]
+}

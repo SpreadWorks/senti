@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "id": "repair-001",
+      "sourceFindingIds": [
+        "test-evidence-refresh:final-regression"
+      ],
+      "reason": "final-regression detected stale fingerprint evidence",
+      "changedPathCount": 1,
+      "changedPathsPreview": [
+        "src/flow/registry.js"
+      ],
+      "changedPathGroups": [
+        {
+          "prefix": "src/flow/",
+          "count": 1
+        }
+      ],
+      "changedPathsRef": "repair-deltas/repair-001.json",
+      "invalidatedArtifacts": [
+        "test-execute-result.json",
+        "tests/.raw/test-execution.log",
+        "impl-review.json",
+        "review.md",
+        "acceptance-review.json",
+        "final-regression-result.json"
+      ],
+      "previousHash": "fa9a3788861f1caee57ae971e13cacfcb486cf42e89c75353b9ca1084e125128",
+      "currentHash": "aa4ffea84e68bf3cc4c2576f15410f812dc8acfb73a2c53302b8bcf87038e300",
+      "createdAt": "2026-07-28T01:38:17.747Z",
+      "changedPathsDigest": "f4e60de2a1ef10cc9a3be1a4aadfb8ef1290250ce56f0ade14c206ec5cc48411",
+      "invalidations": [
+        {
+          "path": "test-execute-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "fa9a3788861f1caee57ae971e13cacfcb486cf42e89c75353b9ca1084e125128"
+        },
+        {
+          "path": "tests/.raw/test-execution.log",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "fa9a3788861f1caee57ae971e13cacfcb486cf42e89c75353b9ca1084e125128"
+        },
+        {
+          "path": "impl-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "257aa12e8a38992358961664b873d3752d95d12528d1c744881049127bac23ac"
+        },
+        {
+          "path": "review.md",
+          "reason": "final-regression detected stale fingerprint evidence (associated_repair_fingerprint_mismatch)",
+          "previousFingerprint": "257aa12e8a38992358961664b873d3752d95d12528d1c744881049127bac23ac"
+        },
+        {
+          "path": "acceptance-review.json",
+          "reason": "final-regression detected stale fingerprint evidence (repair_fingerprint_mismatch)",
+          "previousFingerprint": "1b436e5970e8d0aad9327b05bb2f5dc933fce155258066394ce50d0cfe79946a"
+        },
+        {
+          "path": "final-regression-result.json",
+          "reason": "final-regression detected stale fingerprint evidence (explicit_refresh_artifact)",
+          "previousFingerprint": "fa9a3788861f1caee57ae971e13cacfcb486cf42e89c75353b9ca1084e125128"
+        }
+      ]
+    }
+  ]
+}

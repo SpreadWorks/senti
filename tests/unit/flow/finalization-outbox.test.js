@@ -248,7 +248,10 @@ describe("resumable finalization outbox", () => {
       const doneIndex = actions.findIndex((action) => (
         action instanceof SetStepStatus && action.step === command && action.status === "done"
       ));
-      assert.ok(actions.some((action) => action instanceof BeginOutboxEffect) === false);
+      assert.equal(
+        actions.some((action) => action instanceof BeginOutboxEffect),
+        command === "finalize-merge",
+      );
       assert.ok(completeIndex >= 0);
       assert.ok(completeIndex > doneIndex);
     });

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "c43a47f76d207c075c9f3648",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0010",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/e2e/flow/commands/worktree-finalize.test.js"
+    ],
+    "inputHash": "e5238ba5addbff6c555b0128f849f91ca34c9f19cc73c7aca13629eb24a35d4b",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c43a47f76d207c075c9f3648"
+  },
+  "targetFiles": [
+    "tests/e2e/flow/commands/worktree-finalize.test.js"
+  ],
+  "inputHash": "e5238ba5addbff6c555b0128f849f91ca34c9f19cc73c7aca13629eb24a35d4b",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T01:41:42.973Z",
+  "finishedAt": "2026-07-28T01:41:42.973Z",
+  "rawResponse": "### 1. Remove unused import\n**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** `replaceFlowState` is imported from `../../../helpers/flow-setup.js` but is never used.  \n**Suggestion:** Remove `replaceFlowState` from the import list to eliminate dead code and keep the test dependencies clear.\n\n### 2. Reuse the finalize-merge activation helper\n**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The test manually walks `state.steps -> children -> children` to set `finalize-merge` and `finalize-cleanup` statuses, while the new `activateFinalizeMerge()` helper already centralizes finalize-merge status setup using `flattenSteps()`. This duplicates status-transition setup logic and assumes a fixed tree depth.  \n**Suggestion:** Replace the nested loops in `\"executes the finalize-merge CLI route before the main-side cleanup route\"` with `activateFinalizeMerge(state)`, then explicitly set `finalize-cleanup` to `pending` via `findStepById()` if that status is necessary for the scenario.\n\n### 3. Avoid pre-creating the bare origin directory\n**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The test creates `origin = createTmpDir(...)` and then runs `git init --bare origin` inside `setupConflictWorktree()`. Initializing a bare repo into a pre-existing temp directory works, but it is less direct and creates a lifecycle split between `tmp` and `origin`.  \n**Suggestion:** Let `setupConflictWorktree()` derive an origin path under `root`, or pass a not-yet-created path such as `path.join(tmp, \"origin.git\")`. This simplifies cleanup and keeps the fixture self-contained.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Remove unused import",
+        "body": "**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** `replaceFlowState` is imported from `../../../helpers/flow-setup.js` but is never used.  \n**Suggestion:** Remove `replaceFlowState` from the import list to eliminate dead code and keep the test dependencies clear.",
+        "file": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "2. Reuse the finalize-merge activation helper",
+        "body": "**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The test manually walks `state.steps -> children -> children` to set `finalize-merge` and `finalize-cleanup` statuses, while the new `activateFinalizeMerge()` helper already centralizes finalize-merge status setup using `flattenSteps()`. This duplicates status-transition setup logic and assumes a fixed tree depth.  \n**Suggestion:** Replace the nested loops in `\"executes the finalize-merge CLI route before the main-side cleanup route\"` with `activateFinalizeMerge(state)`, then explicitly set `finalize-cleanup` to `pending` via `findStepById()` if that status is necessary for the scenario.",
+        "file": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Avoid pre-creating the bare origin directory",
+        "body": "**File:** `tests/e2e/flow/commands/worktree-finalize.test.js`  \n**Requirement:** R6  \n**Issue:** The test creates `origin = createTmpDir(...)` and then runs `git init --bare origin` inside `setupConflictWorktree()`. Initializing a bare repo into a pre-existing temp directory works, but it is less direct and creates a lifecycle split between `tmp` and `origin`.  \n**Suggestion:** Let `setupConflictWorktree()` derive an origin path under `root`, or pass a not-yet-created path such as `path.join(tmp, \"origin.git\")`. This simplifies cleanup and keeps the fixture self-contained.",
+        "file": "tests/e2e/flow/commands/worktree-finalize.test.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

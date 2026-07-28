@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-07-27T03:40:49.545Z",
+  "analyzedAt": "2026-07-27T14:25:56.429Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "a2d2b171b720153ad49c1bcb0bb1c448",
+        "hash": "8f5d509d24fb3a9656dc3627bd9208b4",
         "lines": 45,
-        "mtime": "2026-07-26T03:06:25.805Z",
+        "mtime": "2026-07-27T14:25:50.311Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -26,25 +26,7 @@
         "composerDeps": null,
         "composerScripts": null,
         "makefileTest": null,
-        "id": "451a9f25",
-        "summary": "Package metadata for the Senti CLI, including distribution settings, runtime requirements, and test/release scripts. It defines the executable entrypoint and publishes the `src/` tree as an ES module package.",
-        "detail": "The manifest exposes `src/senti.js` as both the CLI binary and the package export, which indicates a single entrypoint for command execution and library-style loading. It targets Node.js 18.19 or newer and uses `pnpm` as the locked package manager for reproducible installs. The `files` field limits published contents to source files while excluding preset test folders from the package tarball. Script definitions group release validation, alpha version synchronization, scoped test runs, and CI execution around custom Node-based tooling rather than third-party task runners.",
-        "chapter": "stack_and_ops",
-        "role": "config",
-        "enrich": {
-          "processedAt": "2026-07-26T03:32:50.366Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "package manifest",
-          "CLI package",
-          "Node.js runtime",
-          "pnpm",
-          "release scripts",
-          "test scripts",
-          "ES module",
-          "distribution config"
-        ]
+        "id": "451a9f25"
       }
     ],
     "summary": {
@@ -2528,11 +2510,12 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "ca77ee09809e15567f4e1c599159ce9e",
-        "lines": 432,
-        "mtime": "2026-07-17T06:15:50.767Z",
+        "hash": "51ae54d876e953afd02609aa2c9bf213",
+        "lines": 456,
+        "mtime": "2026-07-27T14:25:51.243Z",
         "className": "merge",
         "methods": [
+          "MergeRevalidationRequiredError",
           "resolveRemote",
           "parseSpec",
           "formatRequirementsBlock",
@@ -2558,6 +2541,7 @@
           "../lib/run-finalize.js"
         ],
         "exports": [
+          "MergeRevalidationRequiredError",
           "runMerge",
           "resolveMergeStrategy",
           "parseSpec",
@@ -2567,26 +2551,9 @@
           "collectImplementationSubjects",
           "runPreSync"
         ],
-        "extends": null,
+        "extends": "Error",
         "usedBy": null,
-        "id": "3a0db928",
-        "summary": "The flow merge module automates final branch integration through either a pull request or a squash merge. It combines Git operations with spec-aware title, body, and commit-message generation.",
-        "detail": "The implementation parses spec content to extract requirements and scope text that can be embedded into PR descriptions or squash commit messages. It collects implementation commit subjects with bounded size limits so merge messages stay concise and deterministic. Merge strategy selection depends on configuration and GitHub CLI availability, and completed squash merges can be recognized idempotently on retries. Pre-sync logic fetches and rebases branches before merge attempts, and temporary worktree handling is used to isolate some squash operations. Conflict cases return structured recovery hints instead of only low-level Git errors.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-07-18T08:24:04.521Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "branch merge",
-          "squash merge",
-          "pull request",
-          "git automation",
-          "spec-aware message",
-          "rebase recovery",
-          "idempotent merge"
-        ]
+        "id": "3a0db928"
       },
       {
         "file": "src/flow/commands/report.js",
@@ -2662,9 +2629,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "5c491b71b3c38209579ba6c299abc0f9",
-        "lines": 4239,
-        "mtime": "2026-07-26T14:39:19.741Z",
+        "hash": "d7d9550cde622866e1e6d620f49f9350",
+        "lines": 4272,
+        "mtime": "2026-07-27T14:25:51.244Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2674,6 +2641,7 @@
           "resolveDraftReviewStage",
           "resolveReviewTarget",
           "collectDiffFilePaths",
+          "scopeTaskReviewTarget",
           "resolveReviewExcludePaths",
           "createReviewExcludeMatcher",
           "buildReviewPathspec",
@@ -2859,6 +2827,7 @@
           "parseProposals",
           "formatReviewMd",
           "resolveReviewTarget",
+          "scopeTaskReviewTarget",
           "resolveMergeBase",
           "buildDraftSystemPrompt",
           "NO_PROPOSALS_MARKER",
@@ -2925,9 +2894,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "6f46d8dc7e7d34513537d7fc102813e8",
-        "lines": 1494,
-        "mtime": "2026-07-26T14:39:19.742Z",
+        "hash": "c29327218bf6f9107335f747a1b3efcb",
+        "lines": 1516,
+        "mtime": "2026-07-27T14:25:51.245Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -3007,7 +2976,8 @@
           "fs",
           "path",
           "./lib/draft-review-routes.js",
-          "./lib/step-tree.js"
+          "./lib/step-tree.js",
+          "./lib/nonblocking-route.js"
         ],
         "exports": [
           "SetStepStatus",
@@ -3066,9 +3036,9 @@
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "de751e519c206b7cdf8f379cf5ca6415",
-        "lines": 1652,
-        "mtime": "2026-07-26T01:41:09.523Z",
+        "hash": "a3cbb13a0a30317c4fe46c4a8ecfcbc7",
+        "lines": 1677,
+        "mtime": "2026-07-27T14:25:51.245Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "RequirementAcceptanceJudgment",
@@ -3124,6 +3094,7 @@
           "validateImplReviewEvidence",
           "validateImplGateEvidence",
           "validateRetroEvidence",
+          "deferredCheckpointSteps",
           "mechanicalArtifactState",
           "markStep",
           "resetSteps",
@@ -3142,6 +3113,7 @@
           "./step-tree.js",
           "./set-issue-log.js",
           "./flow-findings.js",
+          "./nonblocking-handoff.js",
           "./review-convergence.js",
           "./impl-repair-artifacts.js",
           "./stale-test-evidence-refresh.js",
@@ -3174,25 +3146,7 @@
           "src/flow/lib/run-acceptance-review.js",
           "src/flow/lib/set-acceptance-decision.js"
         ],
-        "id": "aa8dda77",
-        "summary": "Implements the acceptance-review artifact lifecycle for flow runs, including validation, evidence binding, verdict derivation, and persistence. It also coordinates deferred findings, canonical review evidence, and user decision handling for acceptance outcomes.",
-        "detail": "The module defines a large set of value objects and helpers to normalize JSON artifacts, enforce schema and enum constraints, and serialize stable acceptance-review records. It ties acceptance judgments to concrete evidence such as requirements, diffs, repair artifacts, tests, and canonical review projections, while rejecting stale, missing, or out-of-scope references. It builds context from spec files and flow state to classify mechanical blockers, synthesize deferred findings, and compare historical or canonical review evidence against current state. It also applies acceptance results and user decisions with guarded filesystem updates, issue-log snapshots, registry snapshots, and rollback-aware mutation paths.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-26T01:41:56.571Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "acceptance review",
-          "artifact validation",
-          "evidence binding",
-          "deferred findings",
-          "canonical evidence",
-          "verdict resolution",
-          "flow state",
-          "JSON schema"
-        ]
+        "id": "aa8dda77"
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -3413,7 +3367,9 @@
           "src/flow/lib/run-recover-existing-implementation.js",
           "src/flow/lib/get-direct.js",
           "src/flow/lib/run-direct.js",
-          "src/flow/lib/run-preimplementation-bootstrap.js"
+          "src/flow/lib/run-preimplementation-bootstrap.js",
+          "src/flow/lib/set-nonblocking-decision.js",
+          "src/flow/lib/set-policy.js"
         ],
         "id": "83f60bd3",
         "summary": "Abstract base class for flow-oriented CLI commands. It resolves flow context, checks target-selection mismatches, and delegates the real operation to subclasses.",
@@ -3512,9 +3468,9 @@
       },
       {
         "file": "src/flow/lib/direct-finalize-adapter.js",
-        "hash": "5d63a3b82c64ca37120ae71b4b8a6cfe",
-        "lines": 956,
-        "mtime": "2026-07-27T01:28:50.363Z",
+        "hash": "f16ac35daea19759b9ea8a7fc74a20a4",
+        "lines": 1199,
+        "mtime": "2026-07-27T14:25:51.245Z",
         "className": "direct-finalize-adapter",
         "methods": [
           "DirectFinalizeAdapter",
@@ -3533,6 +3489,7 @@
           "persistPreparedCompletion",
           "cleanupPreparedDirect",
           "finalizeReconcile",
+          "recoverPendingIntegration",
           "finalizeMerge"
         ],
         "imports": [
@@ -3546,6 +3503,7 @@
           "./direct-flow-session.js",
           "./direct-integration-evidence.js",
           "./direct-resolution-plan.js",
+          "./run-finalize.js",
           "./issue-log-store.js",
           "./run-finalize-cleanup.js",
           "./user-action-prompt.js"
@@ -3563,13 +3521,14 @@
       },
       {
         "file": "src/flow/lib/direct-flow-controller.js",
-        "hash": "31900fae7f67af8aed38564109ba41b7",
-        "lines": 2711,
-        "mtime": "2026-07-27T02:34:51.327Z",
+        "hash": "e968a0c3a1f6515c28144bc0dc5ad1f4",
+        "lines": 2759,
+        "mtime": "2026-07-27T14:25:51.246Z",
         "className": "direct-flow-controller",
         "methods": [
           "inspectDirectReconcileEvidence",
           "getDirectFlowAction",
+          "runDirectVerification",
           "runDirectFlowAction",
           "directMutationOptions",
           "gitValue",
@@ -3579,6 +3538,7 @@
           "mechanicalContinuationResult",
           "stoppedEnvelope",
           "stoppedContinuationEnvelope",
+          "nonblockingPolicyEnvelope",
           "directIdentityExpectation",
           "resolveStateFallback",
           "originatingFlowState",
@@ -3626,7 +3586,6 @@
           "hasProhibitedGitOperation",
           "directSafetySnapshot",
           "confirmDirectImplementation",
-          "runDirectVerification",
           "acceptDirectRisk",
           "returnToDirectFix",
           "reopenAbortedDirect",
@@ -3659,6 +3618,7 @@
         "exports": [
           "inspectDirectReconcileEvidence",
           "getDirectFlowAction",
+          "runDirectVerification",
           "runDirectFlowAction",
           "activeDirectPrompt",
           "combinedChangedPaths",
@@ -3679,9 +3639,9 @@
       },
       {
         "file": "src/flow/lib/direct-flow-session.js",
-        "hash": "d935dbf42a796ac2d282d9c4d856c6e9",
-        "lines": 739,
-        "mtime": "2026-07-26T22:57:17.845Z",
+        "hash": "fab8c42a1bb33f0f386cf78223bac78d",
+        "lines": 803,
+        "mtime": "2026-07-27T14:25:51.246Z",
         "className": "direct-flow-session",
         "methods": [
           "flowStateRevisionDigest",
@@ -3959,22 +3919,27 @@
       },
       {
         "file": "src/flow/lib/finalize-cleanup-state.js",
-        "hash": "bdd1554efc15c235753c495accd4b03f",
-        "lines": 207,
-        "mtime": "2026-07-26T22:54:48.245Z",
+        "hash": "35ce438ade8bc19fdea85b105dbe7be8",
+        "lines": 256,
+        "mtime": "2026-07-27T14:25:51.246Z",
         "className": "finalize-cleanup-state",
         "methods": [
+          "FinalizeWorktreeFlowSnapshot",
           "FinalizeCleanupStateResolution"
         ],
         "imports": [
           "node:fs",
+          "node:crypto",
           "node:path",
           "../../lib/flow-envelope.js",
           "../../lib/flow-helpers.js",
+          "../../lib/worktree-flow-binding.js",
           "../definition.js",
+          "./finalize-flow-state-owner.js",
           "./step-tree.js"
         ],
         "exports": [
+          "FinalizeWorktreeFlowSnapshot",
           "FinalizeCleanupStateResolution"
         ],
         "extends": null,
@@ -3982,6 +3947,33 @@
           "src/flow/lib/run-finalize-cleanup.js"
         ],
         "id": "bd3c76b6"
+      },
+      {
+        "file": "src/flow/lib/finalize-flow-state-owner.js",
+        "hash": "33bb3026c7216155f0ec4f5fb2aadf11",
+        "lines": 202,
+        "mtime": "2026-07-27T14:25:51.246Z",
+        "className": "finalize-flow-state-owner",
+        "methods": [
+          "FinalizeFlowStateOwner"
+        ],
+        "imports": [
+          "node:path",
+          "../../lib/flow-manager.js",
+          "../../lib/flow-helpers.js",
+          "./flow-outbox.js",
+          "./step-tree.js"
+        ],
+        "exports": [
+          "FinalizeFlowStateOwner"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/finalize-cleanup-state.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/registry.js"
+        ],
+        "id": "a3e83901"
       },
       {
         "file": "src/flow/lib/finding-disposition-policy.js",
@@ -4045,9 +4037,9 @@
       },
       {
         "file": "src/flow/lib/flow-completion.js",
-        "hash": "46af85b74b1b7a3e82734dd05fbc246d",
-        "lines": 79,
-        "mtime": "2026-07-26T10:16:21.315Z",
+        "hash": "cd5cdf7182d7e857ef30f5042dd5e74d",
+        "lines": 85,
+        "mtime": "2026-07-27T14:25:51.246Z",
         "className": "flow-completion",
         "methods": [
           "FlowCompletion"
@@ -4055,7 +4047,8 @@
         "imports": [
           "./step-tree.js",
           "./direct-completion.js",
-          "./direct-flow-session.js"
+          "./direct-flow-session.js",
+          "./nonblocking.js"
         ],
         "exports": [
           "FlowCompletion"
@@ -4072,15 +4065,16 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "630f119dbd34566565e55b661294437e",
-        "lines": 226,
-        "mtime": "2026-07-26T10:16:21.315Z",
+        "hash": "70c17109f1f5fe3a4626fccfbe3dc950",
+        "lines": 236,
+        "mtime": "2026-07-27T14:25:51.246Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
           "resolveTargetSelection",
           "preparingRunIdSelection",
           "preparingAuthorityForRunId",
+          "mainStateOwnsPostMergeFlow",
           "boundWorktreeAuthority",
           "resolveAuthorityFlowState"
         ],
@@ -4089,7 +4083,8 @@
           "../../lib/flow-helpers.js",
           "../../lib/flow-state-atomic-writer.js",
           "../../lib/flow-target-guard.js",
-          "../../lib/worktree-flow-binding.js"
+          "../../lib/worktree-flow-binding.js",
+          "./step-tree.js"
         ],
         "exports": [
           "resolveFlowContext"
@@ -4187,7 +4182,8 @@
           "src/flow/lib/get-status.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-review.js",
-          "src/flow/lib/stale-test-evidence-refresh.js"
+          "src/flow/lib/stale-test-evidence-refresh.js",
+          "src/flow/lib/nonblocking-handoff.js"
         ],
         "id": "1c664aa8",
         "summary": "Stores and manages deferred flow findings that persist across retries and acceptance review. It validates mirrored source metadata and provides safe helpers to append, read, and summarize the findings ledger.",
@@ -4334,7 +4330,8 @@
         "usedBy": [
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/registry.js",
-          "src/flow/lib/direct-integration-evidence.js"
+          "src/flow/lib/direct-integration-evidence.js",
+          "src/flow/lib/finalize-flow-state-owner.js"
         ],
         "id": "a2b028f4",
         "summary": "Implements an immutable outbox model for flow side effects with idempotent identities and recovery metadata. It also provides a persistence wrapper that updates outbox state through the flow manager.",
@@ -4699,9 +4696,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "b5db7b8f6578d311cf55aae7be5f5322",
-        "lines": 646,
-        "mtime": "2026-07-26T10:16:21.318Z",
+        "hash": "b528347b5da4edc5876d6b28b2ab5f62",
+        "lines": 695,
+        "mtime": "2026-07-27T14:25:51.247Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -4719,11 +4716,11 @@
           "injectPersistentRules",
           "buildContextDescriptor",
           "isFlowImplementationStep",
-          "attachRetryRecovery",
           "buildRetryRecoveryForState",
           "attachLatestStepAttempt",
           "buildPlanGateSemanticDeferralRecovery",
           "buildGateRetryRecovery",
+          "buildPreimplementationBootstrapDirective",
           "promoteNextAvailableTarget",
           "completedNextAction",
           "abortedNextAction",
@@ -4754,7 +4751,11 @@
           "./review-convergence.js",
           "./review-recovery-authority.js",
           "./review-evidence-store.js",
-          "./direct-flow-controller.js"
+          "./direct-flow-controller.js",
+          "./nonblocking.js",
+          "./next-action-directive.js",
+          "./user-action-prompt.js",
+          "./run-preimplementation-bootstrap.js"
         ],
         "exports": [
           "NextActionPlanError",
@@ -4923,9 +4924,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "a4959d97a944cb117acf6753f33698c5",
-        "lines": 397,
-        "mtime": "2026-07-26T14:14:06.400Z",
+        "hash": "b3d043a47e344c0f64077448f33a9f23",
+        "lines": 409,
+        "mtime": "2026-07-27T14:25:51.247Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -4962,6 +4963,7 @@
           "./flow-findings.js",
           "./test-artifacts.js",
           "./flow-completion.js",
+          "./nonblocking.js",
           "../../lib/worktree-flow-binding.js",
           "./review-convergence.js",
           "./review-recovery-authority.js",
@@ -5271,7 +5273,8 @@
           "src/flow/lib/set-issue-log.js",
           "src/flow/lib/run-rewind-test-evidence.js",
           "src/flow/lib/direct-finalize-adapter.js",
-          "src/flow/lib/direct-flow-controller.js"
+          "src/flow/lib/direct-flow-controller.js",
+          "src/flow/lib/nonblocking.js"
         ],
         "id": "a9b2f945",
         "summary": "Provides a concurrency-safe store for issue-log.json with revision tracking and authority checks. It supports append, mutate, remove, restore, and delete operations under a process-owned lock.",
@@ -5333,6 +5336,276 @@
           "definition plan",
           "state mutation"
         ]
+      },
+      {
+        "file": "src/flow/lib/next-action-directive.js",
+        "hash": "3eee1783d9f4bfc127bfdbfe92bc7830",
+        "lines": 434,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "next-action-directive",
+        "methods": [
+          "NextActionDirective",
+          "ExecuteStepDirective",
+          "ExecuteCommandDirective",
+          "RepairEvidenceDirective",
+          "AwaitUserDecisionDirective",
+          "BlockedDirective",
+          "CompletedDirective",
+          "AbortedDirective",
+          "IdleDirective",
+          "NextActionDirectiveResolver",
+          "assertNextActionDirective",
+          "requireString",
+          "requireActionId",
+          "guardedCommand",
+          "reviewCommand",
+          "refreshCommand",
+          "reviewDirective",
+          "gateDirective",
+          "directDirective"
+        ],
+        "imports": [
+          "./review-convergence.js",
+          "./step-outcome.js",
+          "./user-action-prompt.js"
+        ],
+        "exports": [
+          "NextActionDirective",
+          "ExecuteStepDirective",
+          "ExecuteCommandDirective",
+          "RepairEvidenceDirective",
+          "AwaitUserDecisionDirective",
+          "BlockedDirective",
+          "CompletedDirective",
+          "AbortedDirective",
+          "IdleDirective",
+          "NextActionDirectiveResolver",
+          "assertNextActionDirective"
+        ],
+        "extends": "NextActionDirective",
+        "usedBy": [
+          "src/flow/lib/get-next-action.js"
+        ],
+        "id": "8ab50868"
+      },
+      {
+        "file": "src/flow/lib/nonblocking-command-failure.js",
+        "hash": "4b6b928924849fd7968540670282e263",
+        "lines": 32,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "nonblocking-command-failure",
+        "methods": [
+          "nonblockingFailureEnvelope",
+          "fallbackContinuation"
+        ],
+        "imports": [
+          "../../lib/flow-envelope.js",
+          "./user-action-prompt.js"
+        ],
+        "exports": [
+          "nonblockingFailureEnvelope"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/set-nonblocking-decision.js",
+          "src/flow/lib/set-policy.js"
+        ],
+        "id": "f8e7ae62"
+      },
+      {
+        "file": "src/flow/lib/nonblocking-evidence.js",
+        "hash": "115fac9d4a7ea006e7be16da17585b31",
+        "lines": 69,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "nonblocking-evidence",
+        "methods": [
+          "fromReviewResult",
+          "fromGateResult",
+          "fromAcceptanceResult",
+          "fromVerificationResult",
+          "fromFinalRegressionResult",
+          "source"
+        ],
+        "imports": [],
+        "exports": [
+          "fromReviewResult",
+          "fromGateResult",
+          "fromAcceptanceResult",
+          "fromVerificationResult",
+          "fromFinalRegressionResult"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/nonblocking.js"
+        ],
+        "id": "590e8090"
+      },
+      {
+        "file": "src/flow/lib/nonblocking-handoff.js",
+        "hash": "d3c82b9ac337c454214cad54efb771f8",
+        "lines": 181,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "nonblocking-handoff",
+        "methods": [
+          "NonBlockingHandoffFinding",
+          "NonBlockingHandoffArtifact",
+          "verifyNonblockingHandoffSource",
+          "materializeNonblockingAcceptanceHandoff",
+          "digest",
+          "requireString",
+          "sourceRefWithinSpec",
+          "handoffSourcePath",
+          "readHandoffArtifact",
+          "writeHandoffArtifact"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "./flow-findings.js"
+        ],
+        "exports": [
+          "NonBlockingHandoffFinding",
+          "NonBlockingHandoffArtifact",
+          "verifyNonblockingHandoffSource",
+          "materializeNonblockingAcceptanceHandoff",
+          "NONBLOCKING_HANDOFF_FILE"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/acceptance-review-artifacts.js",
+          "src/flow/lib/nonblocking.js"
+        ],
+        "id": "80e875f2"
+      },
+      {
+        "file": "src/flow/lib/nonblocking-route.js",
+        "hash": "942fa6525e34e4a8dd2f92d62e43c099",
+        "lines": 86,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "nonblocking-route",
+        "methods": [
+          "NonBlockingRoute",
+          "nonblockingRouteFor",
+          "requireString",
+          "requireStringList"
+        ],
+        "imports": [],
+        "exports": [
+          "NonBlockingRoute",
+          "nonblockingRouteFor",
+          "NONBLOCKING_ROUTES",
+          "NONBLOCKING_SOURCE_STEPS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/definition.js",
+          "src/flow/lib/nonblocking.js",
+          "src/flow/lib/step-outcome.js",
+          "src/flow/registry.js"
+        ],
+        "id": "d9cd72f1"
+      },
+      {
+        "file": "src/flow/lib/nonblocking.js",
+        "hash": "6800cd055758aae2749c693038a96c23",
+        "lines": 919,
+        "mtime": "2026-07-27T14:25:51.248Z",
+        "className": "nonblocking",
+        "methods": [
+          "NonBlockingPolicy",
+          "NonBlockingDecisionIdentity",
+          "NonBlockingRecoveryState",
+          "NonBlockingDecisionContext",
+          "NonBlockingActivationOffer",
+          "NonBlockingRouteOwnershipError",
+          "NonBlockingDecisionConflictError",
+          "NonBlockingEvidenceError",
+          "decisionContextForActiveFlow",
+          "nonblockingActivationOfferForStrictStop",
+          "recordEligibleNonblockingAttempt",
+          "activateNonBlockingPolicy",
+          "recordNonBlockingDecision",
+          "advisorySummary",
+          "text",
+          "sha256",
+          "specDir",
+          "artifact",
+          "assertSupportedStep",
+          "activeNode",
+          "activeStep",
+          "activationStep",
+          "guardCommand",
+          "continuationFor",
+          "resultForStep",
+          "evidenceForStep",
+          "hasSameEvidence",
+          "latestObservedEvidence",
+          "sourceAttemptFromResult",
+          "latestSourceAttempt",
+          "resultPayload",
+          "isExplicitEvidenceReference",
+          "resultReferencesEvidence",
+          "decisionForIdentity",
+          "uniquelyAddressableDecision",
+          "latestRecoveryDecision",
+          "allowedActionsFor",
+          "mark",
+          "decisionIssueLogId",
+          "issueLogEntry",
+          "withOperationLock",
+          "staleEvidenceError",
+          "contextForState",
+          "assertDecisionChoice",
+          "outcomeFor",
+          "materializeAcceptanceHandoff",
+          "advanceContinuation"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "../../lib/repository-maintenance-lock.js",
+          "./step-tree.js",
+          "../definition.js",
+          "../../lib/flow-helpers.js",
+          "./step-outcome.js",
+          "./issue-log-store.js",
+          "./user-action-prompt.js",
+          "./nonblocking-evidence.js",
+          "./run-review.js",
+          "./run-gate.js",
+          "./nonblocking-handoff.js",
+          "./nonblocking-route.js"
+        ],
+        "exports": [
+          "NonBlockingPolicy",
+          "NonBlockingDecisionIdentity",
+          "NonBlockingRecoveryState",
+          "NonBlockingDecisionContext",
+          "NonBlockingActivationOffer",
+          "NonBlockingRouteOwnershipError",
+          "NonBlockingDecisionConflictError",
+          "NonBlockingEvidenceError",
+          "decisionContextForActiveFlow",
+          "nonblockingActivationOfferForStrictStop",
+          "recordEligibleNonblockingAttempt",
+          "activateNonBlockingPolicy",
+          "recordNonBlockingDecision",
+          "advisorySummary"
+        ],
+        "extends": "Error",
+        "usedBy": [
+          "src/flow/lib/flow-completion.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-acceptance-review.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-report.js",
+          "src/flow/lib/set-nonblocking-decision.js",
+          "src/flow/lib/set-policy.js"
+        ],
+        "id": "8db418c0"
       },
       {
         "file": "src/flow/lib/observation.js",
@@ -5623,9 +5896,9 @@
       },
       {
         "file": "src/flow/lib/repair-state-identity.js",
-        "hash": "5c8951b3be22788fc17e9c8351cede98",
-        "lines": 1307,
-        "mtime": "2026-07-25T10:35:11.334Z",
+        "hash": "044f30ec590c2699289a25d509278da0",
+        "lines": 1308,
+        "mtime": "2026-07-27T14:25:51.249Z",
         "className": "repair-state-identity",
         "methods": [
           "RepairStateError",
@@ -5731,31 +6004,14 @@
         "extends": "Error",
         "usedBy": [
           "src/flow/lib/impl-repair-artifacts.js",
+          "src/flow/lib/review-evidence-store.js",
           "src/flow/lib/run-acceptance-review.js",
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-prepare-spec.js",
           "src/flow/lib/run-rewind-test-evidence.js",
-          "src/flow/lib/set-step.js",
-          "src/flow/lib/review-evidence-store.js"
+          "src/flow/lib/set-step.js"
         ],
-        "id": "12c0ba47",
-        "summary": "Builds canonical repair-state fingerprints from Git and filesystem inputs, and manages the manifests, baselines, and delta files that identify a flow's mutable state. It also publishes and recovers pinned baseline refs so repair workflows can resume safely.",
-        "detail": "The module defines strict value objects for baselines, publications, manifest entries, fingerprint manifests, references, and delta artifacts, each with canonical hashing and schema validation. It derives repair state by normalizing repository-relative paths, reading configured inclusion boundaries, streaming Git status and index data, and hashing files or symlinks with race checks to reject unstable inputs. For non-Git or explicit inputs, it can walk the filesystem directly and merge those results into the same canonical manifest format. Persistence helpers atomically write manifests and delta files, compare changed paths across versions, and maintain baseline publication records under recovery storage for commit pinning and crash recovery.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-25T10:36:37.283Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "repair fingerprint",
-          "state manifest",
-          "Git baseline",
-          "changed path delta",
-          "canonical hashing",
-          "baseline publication",
-          "filesystem identity"
-        ]
+        "id": "12c0ba47"
       },
       {
         "file": "src/flow/lib/req-map.js",
@@ -6019,9 +6275,9 @@
       },
       {
         "file": "src/flow/lib/retry-recovery.js",
-        "hash": "a5970fefa02c44499fc73633e71020f9",
-        "lines": 1972,
-        "mtime": "2026-07-26T03:58:46.095Z",
+        "hash": "a1b5aedd7e2329b79b36bad43043ed92",
+        "lines": 1981,
+        "mtime": "2026-07-27T14:25:51.249Z",
         "className": "retry-recovery",
         "methods": [
           "resolveRecoveryMaxAttempts",
@@ -6075,6 +6331,7 @@
           "appendRecoveryBaseline",
           "loadAuthoritativeRecoveryAuthority",
           "loadAuthoritativeRecoveryArtifact",
+          "buildSpecGateBaselineMigration",
           "recoveryLockError",
           "retryRecoveryArtifactPath",
           "retryRecoveryTransactionPath",
@@ -6110,7 +6367,8 @@
           "../../lib/flow-helpers.js",
           "./issue-log-store.js",
           "./runtime-module-identity.js",
-          "./task-gate-recovery-evidence.js"
+          "./task-gate-recovery-evidence.js",
+          "./retry-target-route.js"
         ],
         "exports": [
           "resolveRecoveryMaxAttempts",
@@ -6160,10 +6418,31 @@
         "id": "3de0db3f"
       },
       {
+        "file": "src/flow/lib/retry-target-route.js",
+        "hash": "4b34b860ad82e37ba6d5f8530702111d",
+        "lines": 82,
+        "mtime": "2026-07-27T14:25:51.249Z",
+        "className": "retry-target-route",
+        "methods": [
+          "RetryTargetRoute",
+          "requireString"
+        ],
+        "imports": [],
+        "exports": [
+          "RetryTargetRoute"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/step-outcome.js"
+        ],
+        "id": "7629d79f"
+      },
+      {
         "file": "src/flow/lib/review-convergence.js",
-        "hash": "a76bffe5ebff0dc4bb0eb3a914891113",
-        "lines": 1258,
-        "mtime": "2026-07-26T03:58:46.096Z",
+        "hash": "d8d5dd3d6185fd59a9074463e2587507",
+        "lines": 1265,
+        "mtime": "2026-07-27T14:25:51.250Z",
         "className": "review-convergence",
         "methods": [
           "artifactPhaseMatchesReviewTarget",
@@ -6192,6 +6471,7 @@
           "buildReviewHandoffFindings",
           "applyReviewEvidenceTransition",
           "ReviewConvergenceStore",
+          "resolveReviewOperationForFlowState",
           "resolveReviewActionForFlowState",
           "requireObject",
           "requireString",
@@ -6255,6 +6535,7 @@
           "buildReviewHandoffFindings",
           "applyReviewEvidenceTransition",
           "ReviewConvergenceStore",
+          "resolveReviewOperationForFlowState",
           "resolveReviewActionForFlowState",
           "REVIEW_EVIDENCE_VERSION",
           "MAX_REVIEW_EVIDENCE_BYTES",
@@ -6266,6 +6547,7 @@
           "src/flow/lib/acceptance-review-artifacts.js",
           "src/flow/lib/get-next-action.js",
           "src/flow/lib/get-status.js",
+          "src/flow/lib/next-action-directive.js",
           "src/flow/lib/review-evidence-store.js",
           "src/flow/lib/run-review.js",
           "src/flow/lib/set-retry.js",
@@ -6424,9 +6706,9 @@
       },
       {
         "file": "src/flow/lib/run-acceptance-review.js",
-        "hash": "df725e31a519c06841dfdd8db68b469d",
-        "lines": 477,
-        "mtime": "2026-07-26T03:35:41.001Z",
+        "hash": "8be0c562483e5ce5fa61260e915fa37b",
+        "lines": 480,
+        "mtime": "2026-07-27T14:25:51.250Z",
         "className": "run-acceptance-review",
         "methods": [
           "AcceptanceBudgetError",
@@ -6453,6 +6735,7 @@
           "./base-command.js",
           "./acceptance-review-artifacts.js",
           "./impl-repair-artifacts.js",
+          "./nonblocking.js",
           "./repair-state-identity.js"
         ],
         "exports": [
@@ -6594,9 +6877,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "fc4878702e44f0e1ef79e6eb3b18598b",
-        "lines": 1701,
-        "mtime": "2026-07-26T03:58:46.096Z",
+        "hash": "2182a4b2c930027342ba01544a9591dc",
+        "lines": 1704,
+        "mtime": "2026-07-27T14:25:51.250Z",
         "className": "run-final-regression",
         "methods": [
           "FinalRegressionRecoveryPolicy",
@@ -6682,7 +6965,8 @@
           "./test-regression.js",
           "./set-issue-log.js",
           "./impl-repair-artifacts.js",
-          "./stale-test-evidence-refresh.js"
+          "./stale-test-evidence-refresh.js",
+          "./nonblocking.js"
         ],
         "exports": [
           "FinalRegressionRecoveryPolicy",
@@ -6703,12 +6987,13 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "7a2daeb1d1fe011dcd556013c02b3383",
-        "lines": 6390,
-        "mtime": "2026-07-27T01:28:37.805Z",
+        "hash": "d9eb65845492b583d540b61bac3be7c9",
+        "lines": 6709,
+        "mtime": "2026-07-27T14:25:51.251Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "FinalizeTeardownPhase",
+          "FinalizeTeardownCheckpoint",
           "FinalizeTeardownResult",
           "readPersistedFinalizeTeardownTransaction",
           "removeWorktreeForCleanup",
@@ -6751,8 +7036,10 @@
           "assertCommitReachableFromBase",
           "pathExistsStrict",
           "assertFeatureBranchAbsent",
+          "featureBranchExists",
           "assertPointerReality",
           "assertActiveFlowCleared",
+          "activeFlowIsCleared",
           "assertPersistedTeardownReality",
           "ensureRealDirectory",
           "recoverAuthorizedWorktreeRuntimeResidue",
@@ -6809,6 +7096,11 @@
           "withFinalizeTransactionStore",
           "createFinalizeCleanupCompletionTransition",
           "completeFinalizeCleanupStep",
+          "persistFinalizeTeardownCheckpoint",
+          "persistFinalizeTeardownCompletion",
+          "deleteFeatureBranchAtCheckpoint",
+          "publishFinalizePointerBoundary",
+          "clearActiveFlowBoundary",
           "runSpecOnlyCompletion",
           "runTeardown",
           "runPersistedTeardownIfPresent",
@@ -6842,9 +7134,9 @@
           "./run-report-show.js",
           "./step-tree.js",
           "./finalize-cleanup-state.js",
+          "./finalize-flow-state-owner.js",
           "./issue-log-store.js",
           "../../lib/plugin-registry.js",
-          "../../lib/flow-manager.js",
           "../../lib/atomic-json-file.js",
           "./flow-outbox.js",
           "./flow-completion.js",
@@ -6856,6 +7148,7 @@
         ],
         "exports": [
           "FinalizeTeardownPhase",
+          "FinalizeTeardownCheckpoint",
           "FinalizeTeardownResult",
           "readPersistedFinalizeTeardownTransaction",
           "removeWorktreeForCleanup",
@@ -6956,9 +7249,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-sync.js",
-        "hash": "14d628f3823f826ba7d40bcc3d8dc3e8",
-        "lines": 42,
-        "mtime": "2026-07-17T06:11:21.623Z",
+        "hash": "b584a4ffa1556a642585b9267c5faffd",
+        "lines": 57,
+        "mtime": "2026-07-27T14:25:51.251Z",
         "className": "run-finalize-sync",
         "methods": [
           "RunFinalizeSyncCommand"
@@ -6977,23 +7270,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "493aa8e8",
-        "summary": "Runs the finalize-sync step that refreshes generated artifacts before committing them. It also supports resumed executions and attaches compact diff reporting to the commit result.",
-        "detail": "The command uses process helpers to launch an auxiliary build script and fail fast when that script exits unsuccessfully. It resolves the script from `PKG_DIR`, which suggests the sync step rebuilds package-managed documentation or similar generated outputs. Git helpers then produce the commit result, while optional `diffStat` and `diffSummary` fields expose a concise change overview. A dedicated resumed return shape keeps the workflow idempotent when sync work was already completed earlier.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-07-18T08:24:04.571Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "finalize sync",
-          "artifact regeneration",
-          "docs build script",
-          "diff stat",
-          "resumable workflow",
-          "git sync"
-        ]
+        "id": "493aa8e8"
       },
       {
         "file": "src/flow/lib/run-finalize.js",
@@ -7061,7 +7338,8 @@
         "usedBy": [
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-finalize-commit.js",
-          "src/flow/lib/run-finalize-sync.js"
+          "src/flow/lib/run-finalize-sync.js",
+          "src/flow/lib/direct-finalize-adapter.js"
         ],
         "id": "c711309b",
         "summary": "Implements the flow finalization stage, including durable pointer updates, git commit idempotency, and preflight validation. It ensures finalize artifacts are committed only when the repository and spec state are safe.",
@@ -7084,13 +7362,14 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "516d019cb950c3c234266a43aa047cdb",
-        "lines": 5993,
-        "mtime": "2026-07-26T14:39:19.743Z",
+        "hash": "76a0319b409c348c785bf1b2cfddbc85",
+        "lines": 6078,
+        "mtime": "2026-07-27T14:25:51.252Z",
         "className": "run-gate",
         "methods": [
           "parsePublicGateArguments",
           "completeGateArtifactBeforeSemanticEvaluation",
+          "promoteNextTaskInState",
           "executeGateSideEffects",
           "checkIntegrationTestArtifacts",
           "validateLevelPhase",
@@ -7112,6 +7391,8 @@
           "evaluateReviewFindingGateReadiness",
           "DurableGateSemanticDeferralInspection",
           "inspectDurableGateSemanticDeferral",
+          "canMaterializeGateRetryExhaustionDeferral",
+          "materializeGateRetryExhaustionDeferral",
           "checkRetryBelowMax",
           "GateOutputAttemptEvidence",
           "GateOutputProtocolFailure",
@@ -7183,6 +7464,7 @@
           "validateDraftReviewArtifactSet",
           "draftReviewRouteSetsForValidation",
           "validateDraftReviewArtifacts",
+          "filterGuardrailsForEvaluation",
           "buildGuardrailPrompt",
           "exactIdSchema",
           "exactIdFallback",
@@ -7218,6 +7500,7 @@
           "recordGateDeferral",
           "writeDurableGateSourceArtifact",
           "resolveGateSourceForDefer",
+          "gateRetryExhaustionDeferralPlan",
           "tryDeferGateRetryExhaustion",
           "persistGateSourceFromResult",
           "gateOutputFailure",
@@ -7303,11 +7586,13 @@
           "./gate-mutation-owner.js",
           "./step-tree.js",
           "./stale-test-evidence-refresh.js",
+          "./spec-test-coverage.js",
           "../definition.js"
         ],
         "exports": [
           "parsePublicGateArguments",
           "completeGateArtifactBeforeSemanticEvaluation",
+          "promoteNextTaskInState",
           "executeGateSideEffects",
           "checkIntegrationTestArtifacts",
           "validateLevelPhase",
@@ -7329,6 +7614,8 @@
           "evaluateReviewFindingGateReadiness",
           "DurableGateSemanticDeferralInspection",
           "inspectDurableGateSemanticDeferral",
+          "canMaterializeGateRetryExhaustionDeferral",
+          "materializeGateRetryExhaustionDeferral",
           "checkRetryBelowMax",
           "GateOutputAttemptEvidence",
           "GateOutputProtocolFailure",
@@ -7399,6 +7686,7 @@
         "usedBy": [
           "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/get-next-action.js",
+          "src/flow/lib/nonblocking.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad"
@@ -7519,15 +7807,18 @@
       },
       {
         "file": "src/flow/lib/run-preimplementation-bootstrap.js",
-        "hash": "8a6df0cba13907e84e85a713a58cec33",
-        "lines": 145,
-        "mtime": "2026-07-26T03:35:41.002Z",
+        "hash": "f9dd4b49850bcc7d38d4aa2711e72950",
+        "lines": 174,
+        "mtime": "2026-07-27T14:25:51.253Z",
         "className": "run-preimplementation-bootstrap",
         "methods": [
+          "PreimplementationBootstrapPlan",
+          "inspectPreimplementationBootstrap",
           "reject",
           "requireExactGuards",
           "readPreflightInvalidPaths",
-          "buildRecoveryTransition"
+          "buildRecoveryTransition",
+          "buildPreimplementationBootstrapPlan"
         ],
         "imports": [
           "node:fs",
@@ -7539,10 +7830,14 @@
           "./step-transition-policy.js"
         ],
         "exports": [
+          "PreimplementationBootstrapPlan",
+          "inspectPreimplementationBootstrap",
           "default"
         ],
         "extends": "Error",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js"
+        ],
         "id": "5968c11f"
       },
       {
@@ -7770,13 +8065,14 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "52da4a39d47d1565f12c4a9b2e733897",
-        "lines": 308,
-        "mtime": "2026-07-26T01:41:09.523Z",
+        "hash": "c7f3f1b40c87a79ffec058046c4ca349",
+        "lines": 320,
+        "mtime": "2026-07-27T14:25:51.253Z",
         "className": "run-report",
         "methods": [
           "buildUpgradeReportDataFromArtifacts",
           "RunReportCommand",
+          "withAdvisorySummary",
           "withDelivery",
           "deliveryState",
           "loadPersistedReport",
@@ -7797,7 +8093,8 @@
           "./base-command.js",
           "./test-artifacts.js",
           "./retro-artifacts.js",
-          "./impl-repair-artifacts.js"
+          "./impl-repair-artifacts.js",
+          "./nonblocking.js"
         ],
         "exports": [
           "buildUpgradeReportDataFromArtifacts",
@@ -7806,25 +8103,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "43872d6b",
-        "summary": "Implements report generation and delivery for flow runs, including loading supporting artifacts and optionally posting results back to an issue. It also resumes incomplete report deliveries using persisted report state and idempotency metadata.",
-        "detail": "The module assembles report inputs from stored artifacts such as upgrade results, issue logs, retro outputs, and regression results, validating required files before calling the report generator. It models delivery state explicitly with pending, unsent, and done markers so a previously interrupted publish step can be retried safely. For issue-linked flows, it posts report content through the GitHub-backed outbox path and records completion comments and changed files for state updates. The implementation keeps delivery idempotent by checking persisted `report.json`, matching idempotency keys, and distinguishing fresh generation from resumed delivery.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-26T01:41:56.586Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "report generation",
-          "issue delivery",
-          "idempotency",
-          "artifact aggregation",
-          "GitHub comment",
-          "persisted report",
-          "flow outbox",
-          "delivery resume"
-        ]
+        "id": "43872d6b"
       },
       {
         "file": "src/flow/lib/run-resume.js",
@@ -7908,13 +8187,15 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "64c2fc6c41a64837f4ba915d2ff9caf7",
-        "lines": 2222,
-        "mtime": "2026-07-26T10:16:38.400Z",
+        "hash": "07847481d4e0b6406613ffcaf246d106",
+        "lines": 2266,
+        "mtime": "2026-07-27T14:25:51.253Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
           "resolveReviewRetryMax",
+          "canMaterializeReviewRetryExhaustionDeferral",
+          "materializeReviewRetryExhaustionDeferral",
           "checkReviewRetryBelowMax",
           "updateReviewRetryCounter",
           "resetImplEvidenceAfterReviewProposals",
@@ -7955,6 +8236,7 @@
           "nextReviewAttemptNumber",
           "recordReviewDeferral",
           "reviewExternalBlock",
+          "reviewRetryExhaustionDeferralPlan",
           "tryDeferReviewRetryExhaustion",
           "isImplPass",
           "resolvePhaseReviewNextStep",
@@ -8023,6 +8305,8 @@
         "exports": [
           "countReviewRetry",
           "resolveReviewRetryMax",
+          "canMaterializeReviewRetryExhaustionDeferral",
+          "materializeReviewRetryExhaustionDeferral",
           "checkReviewRetryBelowMax",
           "updateReviewRetryCounter",
           "resetImplEvidenceAfterReviewProposals",
@@ -8052,6 +8336,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": [
+          "src/flow/lib/nonblocking.js",
           "src/flow/lib/review-recovery-authority.js",
           "src/flow/lib/set-retry.js"
         ],
@@ -8126,9 +8411,9 @@
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
-        "hash": "59daf8289747f60f235b67b7465b1374",
-        "lines": 437,
-        "mtime": "2026-07-26T03:38:53.231Z",
+        "hash": "5b725979763c266a545194f39a0f35b7",
+        "lines": 461,
+        "mtime": "2026-07-27T14:25:51.254Z",
         "className": "run-scenario-validity",
         "methods": [
           "discoverScenarioValidityTestFiles",
@@ -8160,6 +8445,7 @@
           "../../lib/process.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
+          "../../lib/flow-envelope.js",
           "./test-regression.js",
           "./test-artifacts.js"
         ],
@@ -8814,6 +9100,25 @@
         ]
       },
       {
+        "file": "src/flow/lib/set-nonblocking-decision.js",
+        "hash": "7a748028fae049b1b1f6ceb42f7ac631",
+        "lines": 26,
+        "mtime": "2026-07-27T14:25:51.254Z",
+        "className": "set-nonblocking-decision",
+        "methods": [],
+        "imports": [
+          "./base-command.js",
+          "./nonblocking.js",
+          "./nonblocking-command-failure.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "b458492e"
+      },
+      {
         "file": "src/flow/lib/set-note.js",
         "hash": "043b4bee33f97e09f98d0ade06605fad",
         "lines": 62,
@@ -8848,6 +9153,25 @@
           "route options",
           "CLI payload parsing"
         ]
+      },
+      {
+        "file": "src/flow/lib/set-policy.js",
+        "hash": "02a192a8612c7a0beaa2204d488355ec",
+        "lines": 22,
+        "mtime": "2026-07-27T14:25:51.254Z",
+        "className": "set-policy",
+        "methods": [],
+        "imports": [
+          "./base-command.js",
+          "./nonblocking.js",
+          "./nonblocking-command-failure.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "0ed3db79"
       },
       {
         "file": "src/flow/lib/set-req.js",
@@ -9192,6 +9516,26 @@
         ]
       },
       {
+        "file": "src/flow/lib/spec-test-coverage.js",
+        "hash": "a3bcd2ba5ccffec52dd1793ac983b773",
+        "lines": 36,
+        "mtime": "2026-07-27T14:25:51.255Z",
+        "className": "spec-test-coverage",
+        "methods": [
+          "SpecTestCoverageDecision"
+        ],
+        "imports": [],
+        "exports": [
+          "SpecTestCoverageDecision",
+          "SPEC_TEST_COVERAGE_GUARDRAIL_ID"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "32a5e297"
+      },
+      {
         "file": "src/flow/lib/stale-test-evidence-refresh.js",
         "hash": "2066a0f702733a7fd4b8010aec4178d8",
         "lines": 144,
@@ -9239,14 +9583,16 @@
       },
       {
         "file": "src/flow/lib/step-outcome.js",
-        "hash": "2a3b1479bce80d8ca217ba3ff46864dd",
-        "lines": 307,
-        "mtime": "2026-07-26T10:16:21.319Z",
+        "hash": "d656e3291b70070232edc8a3ff19eff4",
+        "lines": 373,
+        "mtime": "2026-07-27T14:25:51.255Z",
         "className": "step-outcome",
         "methods": [
           "StepOutcome",
           "RetryOutcome",
           "DecisionOutcome",
+          "NonBlockingDecisionOutcome",
+          "ObservedNonPassOutcome",
           "DeferOutcome",
           "ExternalBlockedOutcome",
           "AwaitingDecisionOutcome",
@@ -9257,15 +9603,21 @@
           "retryResetTimestampForStep",
           "nextStepAttemptNumber",
           "requireString",
-          "requireAttempt"
+          "requireAttempt",
+          "requireNonblockingText",
+          "requireNonblockingStep"
         ],
         "imports": [
-          "./user-action-prompt.js"
+          "./user-action-prompt.js",
+          "./retry-target-route.js",
+          "./nonblocking-route.js"
         ],
         "exports": [
           "StepOutcome",
           "RetryOutcome",
           "DecisionOutcome",
+          "NonBlockingDecisionOutcome",
+          "ObservedNonPassOutcome",
           "DeferOutcome",
           "ExternalBlockedOutcome",
           "AwaitingDecisionOutcome",
@@ -9274,11 +9626,15 @@
           "persistStepAttempt",
           "recordStepAttempt",
           "retryResetTimestampForStep",
-          "nextStepAttemptNumber"
+          "nextStepAttemptNumber",
+          "NONBLOCKING_SOURCE_STEPS",
+          "NONBLOCKING_TEXT_MAX_LENGTH"
         ],
         "extends": "StepOutcome",
         "usedBy": [
           "src/flow/lib/get-next-action.js",
+          "src/flow/lib/next-action-directive.js",
+          "src/flow/lib/nonblocking.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-review.js",
           "src/flow/lib/run-rewind-test-evidence.js",
@@ -9384,7 +9740,10 @@
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-recover-existing-implementation.js",
           "src/flow/lib/direct-flow-controller.js",
-          "src/flow/lib/run-preimplementation-bootstrap.js"
+          "src/flow/lib/run-preimplementation-bootstrap.js",
+          "src/flow/lib/finalize-flow-state-owner.js",
+          "src/flow/lib/flow-context.js",
+          "src/flow/lib/nonblocking.js"
         ],
         "id": "bc04b8b6",
         "summary": "Provides recursive utilities for navigating nested flow step trees. The helpers support flattening, lookup, and choosing the next executable leaf step.",
@@ -9916,9 +10275,9 @@
       },
       {
         "file": "src/flow/lib/user-action-prompt.js",
-        "hash": "c01ccca0c28df904f3fd68dd4615f8f0",
-        "lines": 287,
-        "mtime": "2026-07-27T02:33:30.805Z",
+        "hash": "7c318aef65299882d8bab842ef5c59cd",
+        "lines": 236,
+        "mtime": "2026-07-27T14:25:51.256Z",
         "className": "user-action-prompt",
         "methods": [
           "UserActionImpact",
@@ -9926,8 +10285,6 @@
           "UserActionPrompt",
           "FlowContinuation",
           "guardFlagsForState",
-          "genericFlowStopContinuation",
-          "genericFlowStopPrompt",
           "attachUserActionPrompt",
           "attachFlowContinuation",
           "assertUserActionResultContract",
@@ -9941,8 +10298,6 @@
           "UserActionPrompt",
           "FlowContinuation",
           "guardFlagsForState",
-          "genericFlowStopContinuation",
-          "genericFlowStopPrompt",
           "attachUserActionPrompt",
           "attachFlowContinuation",
           "assertUserActionResultContract"
@@ -9951,6 +10306,10 @@
         "usedBy": [
           "src/flow/lib/direct-finalize-adapter.js",
           "src/flow/lib/direct-flow-controller.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/next-action-directive.js",
+          "src/flow/lib/nonblocking-command-failure.js",
+          "src/flow/lib/nonblocking.js",
           "src/flow/lib/step-outcome.js"
         ],
         "id": "a97981b8"
@@ -10035,9 +10394,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "0a59ebc78c3b95b7b7d3696f80420d4e",
-        "lines": 1756,
-        "mtime": "2026-07-26T23:09:23.753Z",
+        "hash": "7d848cb3ae0281c72267da73a8468abb",
+        "lines": 1848,
+        "mtime": "2026-07-27T14:25:51.258Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -10074,7 +10433,9 @@
           "./lib/set-issue-log.js",
           "./lib/step-outcome.js",
           "./lib/flow-outbox.js",
-          "./lib/step-transition-policy.js"
+          "./lib/step-transition-policy.js",
+          "./lib/nonblocking-route.js",
+          "./lib/finalize-flow-state-owner.js"
         ],
         "exports": [
           "assertDraftReviewRegistryHookBoundary",
@@ -10971,9 +11332,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "eef12af74c5f085777fd4ba6897c69af",
-        "lines": 240,
-        "mtime": "2026-06-12T04:49:16.894Z",
+        "hash": "04b84b5cc126359ad63fb9c5f59b6978",
+        "lines": 245,
+        "mtime": "2026-07-27T14:25:51.260Z",
         "className": "container",
         "methods": [
           "Container",
@@ -11017,35 +11378,18 @@
           "src/spec.js",
           "src/upgrade.js"
         ],
-        "id": "fc4eae43",
-        "summary": "Builds and initializes the main dependency container for runtime services and derived paths. It wires configuration, logging, providers, flow management, analysis utilities, and cleanup helpers into a shared object graph.",
-        "detail": "The `Container` class offers simple registration and lookup semantics for named dependencies and preset metadata, with explicit failure when a required service is missing. Initialization loads configuration, computes derived filesystem locations such as logs and output paths, and prepares the runtime environment around the repository root and worktree context. The module imports major subsystems including agents, providers, flow orchestration, scanners, language handlers, and data sources, making it a central composition point rather than a feature-specific library. Error handling during bootstrap reports configuration failures to stderr before rethrowing, which helps preserve a clear startup failure mode for CLI entrypoints.",
-        "chapter": "project_structure",
-        "role": "Runtime dependency container and bootstrapper",
-        "enrich": {
-          "processedAt": "2026-06-12T04:50:22.320Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "dependency injection",
-          "service container",
-          "bootstrap",
-          "runtime wiring",
-          "flow manager",
-          "provider registry",
-          "path construction",
-          "application initialization"
-        ]
+        "id": "fc4eae43"
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "08e3f47072318ef2b336195a576af4c9",
-        "lines": 730,
-        "mtime": "2026-07-27T02:35:50.298Z",
+        "hash": "900bfd99bc09ca9637eae47df0d747e8",
+        "lines": 729,
+        "mtime": "2026-07-27T14:25:51.260Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
           "dispatch",
+          "attachNonblockingContinuation",
           "throwUnexpected",
           "splitArgsBySpec",
           "runtimeLogRunId",
@@ -11062,7 +11406,6 @@
           "formatFinalizeCleanupReportDisplay",
           "emitFinalizeCleanupReportDisplay",
           "settleTypedStepOutcome",
-          "ensureIncompleteFailurePrompt",
           "resolveOutputMode",
           "emitFailure"
         ],
@@ -11074,8 +11417,9 @@
           "./flow-target-guard.js",
           "../flow/definition.js",
           "../flow/lib/step-outcome.js",
-          "../flow/lib/flow-completion.js",
-          "../flow/lib/user-action-prompt.js"
+          "../flow/lib/user-action-prompt.js",
+          "../flow/lib/finalize-flow-state-owner.js",
+          "./finalize-cleanup-paths.js"
         ],
         "exports": [
           "parseEntryInput",
@@ -11244,56 +11588,45 @@
       },
       {
         "file": "src/lib/finalize-cleanup-paths.js",
-        "hash": "4bdbd1f8ac2a63abefd36ebc67278693",
-        "lines": 93,
-        "mtime": "2026-06-17T09:47:05.416Z",
+        "hash": "5fcc61a056ac767c76af25b6d435605f",
+        "lines": 153,
+        "mtime": "2026-07-27T14:25:51.260Z",
         "className": "finalize-cleanup-paths",
         "methods": [
+          "FinalizeCleanupRoute",
           "FinalizeCleanupPathResolver",
-          "isPathInside"
+          "isPathInside",
+          "optionValue"
         ],
         "imports": [
           "path"
         ],
         "exports": [
+          "FinalizeCleanupRoute",
           "FinalizeCleanupPathResolver",
           "FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR",
           "FINALIZE_CLEANUP_DURABLE_SUBDIR"
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/container.js"
+          "src/lib/container.js",
+          "src/lib/dispatcher.js",
+          "src/senti.js"
         ],
-        "id": "1223c23c",
-        "enrich": {
-          "processedAt": "2026-06-17T15:28:02.808Z",
-          "attempts": 5
-        },
-        "summary": "Defines durable path constants and a resolver that relocates finalize-cleanup artifacts from ephemeral worktrees into stable main-repository locations. It keeps path rewriting confined to expected roots.",
-        "detail": "The resolver tracks both worktree and main-repo roots and becomes active only when both exist and are different directories. It can detect whether a target path belongs to the worktree, compute a safe relative path, and rebuild that path under the main repository. Durable agent-work and metadata surfaces are redirected into fixed locations such as `.senti/agent-work/finalize-cleanup` and spec-scoped directories so cleanup artifacts survive worktree deletion. The module also exposes ownership helpers for deciding where reports, logs, and metadata files should be written.",
-        "chapter": "internal_design",
-        "role": "Finalize-cleanup path relocation helper",
-        "keywords": [
-          "path resolver",
-          "worktree relocation",
-          "durable artifacts",
-          "main repository mapping",
-          "cleanup paths",
-          "safe path containment",
-          "agent work directory"
-        ]
+        "id": "1223c23c"
       },
       {
         "file": "src/lib/flow-envelope.js",
-        "hash": "d694fe3db37ad82594411a0d8b7365f8",
-        "lines": 88,
-        "mtime": "2026-07-26T10:16:21.322Z",
+        "hash": "35aa068170360be0a28cd01c1c84e092",
+        "lines": 90,
+        "mtime": "2026-07-27T14:25:51.260Z",
         "className": "flow-envelope",
         "methods": [
           "Envelope"
         ],
         "imports": [
-          "../flow/lib/user-action-prompt.js"
+          "../flow/lib/user-action-prompt.js",
+          "../flow/lib/next-action-directive.js"
         ],
         "exports": [
           "Envelope"
@@ -11308,9 +11641,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "bd16df2aad8390a5badf7ecd1338c9c6",
-        "lines": 233,
-        "mtime": "2026-07-24T02:31:56.791Z",
+        "hash": "38b18acad0893c9e110d98891caa5333",
+        "lines": 276,
+        "mtime": "2026-07-27T14:25:51.260Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -11319,6 +11652,7 @@
           "buildInitialSteps",
           "buildInitialTaskSteps",
           "isTaskTerminalStatus",
+          "completeTaskInState",
           "findNextPendingTask",
           "promoteNextPending",
           "specIdFromPath"
@@ -11335,6 +11669,7 @@
           "buildInitialSteps",
           "buildInitialTaskSteps",
           "isTaskTerminalStatus",
+          "completeTaskInState",
           "findNextPendingTask",
           "promoteNextPending",
           "specIdFromPath",
@@ -11358,24 +11693,7 @@
           "src/lib/flow-target-guard.js",
           "src/lib/preparing-flow-store.js"
         ],
-        "id": "09ff0ab4",
-        "summary": "Provides shared helpers and constants for flow phases, task progression, and spec-path handling.",
-        "detail": "The module builds canonical leaf-step lists and phase maps from the flow definition, then exposes utilities for deriving the current phase from completed steps. It provides constructors for initial flow and task step trees, along with status predicates and promotion logic for the next pending task. Path helpers extract spec names, spec directories, and stable spec IDs from stored flow paths. These functions form a small foundational layer that other flow components rely on for consistent state semantics.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-24T13:45:57.111Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow helpers",
-          "phase map",
-          "step tree",
-          "task promotion",
-          "spec path",
-          "state utilities",
-          "workflow phases"
-        ]
+        "id": "09ff0ab4"
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -11605,9 +11923,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "1023017e63c0b8bf7dda5c83f6fc8ca9",
-        "lines": 1126,
-        "mtime": "2026-07-26T15:00:07.410Z",
+        "hash": "d28dbb00648bb27c576e549b7f864ff0",
+        "lines": 1082,
+        "mtime": "2026-07-27T14:25:51.261Z",
         "className": "flow-store",
         "methods": [
           "FlowStateSchemaUnsupportedError",
@@ -14260,9 +14578,9 @@
       },
       {
         "file": "src/senti.js",
-        "hash": "bdd84fc1f3ed021f68d75eddcc11d62b",
-        "lines": 122,
-        "mtime": "2026-07-26T02:53:45.692Z",
+        "hash": "e85cbfee3e5dfd645c7bfd770d1724d6",
+        "lines": 125,
+        "mtime": "2026-07-27T14:25:51.265Z",
         "className": "senti",
         "methods": [
           "isHelpRequest",
@@ -14272,29 +14590,13 @@
         "imports": [
           "./lib/constants.js",
           "./lib/container.js",
+          "./lib/finalize-cleanup-paths.js",
           "./lib/worktree-cli-execution.js"
         ],
         "exports": [],
         "extends": null,
         "usedBy": null,
-        "id": "a8608997",
-        "summary": "Provides the top-level `senti` CLI bootstrap and command dispatcher. It initializes shared services, routes built-in and plugin commands, renders help, and normalizes process exit codes.",
-        "detail": "The entrypoint slices raw arguments, gives the worktree-local executor a chance to take over, and then initializes the dependency container used by core command registries. It handles help requests consistently by stripping help flags, computing the intended help topic, and rendering shared help output for both known and unknown commands. Built-in commands are dispatched through the core registry, while plugin commands are delegated to plugin dispatch and printed as structured JSON results. The file exits explicitly for success, help, plugin failures, and unknown-command cases, making CLI behavior predictable for both humans and automation.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-07-26T03:32:50.446Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "CLI entrypoint",
-          "command dispatcher",
-          "help handling",
-          "exit codes",
-          "plugin commands",
-          "dependency container",
-          "argument parsing"
-        ]
+        "id": "a8608997"
       },
       {
         "file": "src/setup.js",
@@ -14604,8 +14906,8 @@
       }
     ],
     "summary": {
-      "total": 270,
-      "totalMethods": 3116
+      "total": 281,
+      "totalMethods": 3242
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

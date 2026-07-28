@@ -1,5 +1,6 @@
 import { FlowCommand } from "./base-command.js";
 import { container } from "../../lib/container.js";
+import { finalizationOutboxIdentity } from "./flow-outbox.js";
 
 /**
  * Spec 251 R19: the self-contained finalize step transitions and the
@@ -29,7 +30,8 @@ export class RunFinalizeMergeCommand extends FlowCommand {
       flowState: state,
       worktreePath,
       mainRepoPath,
-      idempotencyKey: ctx.flowOutboxEntry?.idempotencyKey || null,
+      idempotencyKey: ctx.flowOutboxEntry?.idempotencyKey
+        || finalizationOutboxIdentity(state, "finalize-merge").idempotencyKey,
     });
     return {
       status: "done",

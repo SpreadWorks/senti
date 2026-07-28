@@ -1,0 +1,146 @@
+{
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-28T01:43:42.353Z",
+  "verdict": "pass",
+  "issues": [],
+  "nextAction": {
+    "diagnosis": {
+      "summary": "No blocking observations.",
+      "observations": []
+    },
+    "prescription": "retro"
+  },
+  "level": "integration",
+  "phase": "integration",
+  "evaluations": [
+    {
+      "guardrail_id": "R1",
+      "result": "pass",
+      "reason": "[REQ:R1] requires one metadata-only commit containing only the active spec flow.json and issue-log.json after finalize-merge failure state is recorded and before returning the rebase instruction, with a clean worktree. The diff adds finalize:onError ordering that performs the finalize-merge metadata preflight, fails the outbox, skips downstream steps, writes issue-log via finalizeOnError, then runs commitFinalizeMergeConflictMetadata; that helper stages only the active spec allowed metadata paths with includeFlowJson and includeIssueLog. [EVIDENCE:R1] The spec-local test asserts HEAD advanced by one commit, the commit contains only specs/<specId>/flow.json and specs/<specId>/issue-log.json, git status --porcelain is empty, and the recovery instruction still mentions git rebase --continue. [TEST:R1] [TEST-REVIEW]",
+      "title": "R1",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R3",
+      "result": "pass",
+      "reason": "[REQ:R3] requires any dirty path outside active spec flow.json and issue-log.json to block commit creation, finalize-merge outbox mutation, and step-state mutation, while returning the exact path, git status --short -- <path>, and a later senti flow run finalize-merge retry instruction. The diff adds assertFinalizeMergeMetadataMutationSafe before finalize-merge pre BeginOutboxEffect and before finalize:onError FailOutboxEffect/SkipSteps/finalizeOnError/commit actions; the helper gathers external dirty paths, runs git status --short -- <path>, and throws FINALIZE_MERGE_EXTERNAL_DIRTY with the path/status and retry command. [EVIDENCE:R3] The spec-local and unit tests assert external dirtiness rejects with the path/status/retry text and leaves HEAD, flow.json, outbox, and steps unchanged. [TEST:R3] [TEST-REVIEW]",
+      "title": "R3",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R2",
+      "result": "pass",
+      "reason": "[REQ:R2] is implemented: finalize-merge onError now fails the outbox, skips finalize-sync/finalize-cleanup, writes issue-log evidence including the conflict message and downstream states, then commits both active spec flow.json and issue-log.json via commitFinalizeMergeConflictMetadata. FlowOutboxEntry preserves failureHistory across retry and completion, so the failed finalize-merge evidence remains in the final snapshot. Validated by [TEST:R2] and [TEST-REVIEW]; full regression is deferred per [REGRESSION]. Sources: [EVIDENCE:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:3], [FILE-MAP:R2:4], [FILE-MAP:R2:5].",
+      "title": "R2",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R4",
+      "result": "pass",
+      "reason": "[REQ:R4] requires retry after resolved conflict to restore finalize-sync/finalize-cleanup from skipped to pending, complete finalize-merge, execute merge/outbox side effects exactly once, and leave downstream steps pending for normal execution. The mapped implementation resets skipped downstream steps during finalize-merge pre via prepareFinalizeMerge/resetSkippedDownstreamSteps and suppresses auto-promotion when finalize-merge is marked done, preserving downstream pending states; post begins/rehydrates the finalize-merge outbox, records merge outcome, completes the step, and completes the outbox. The R4 spec test directly validates finalize-merge done, one done outbox entry with attempt 2, and finalize-sync/finalize-cleanup pending after retry. [EVIDENCE:R4] [TEST:R4] [TEST-REVIEW]",
+      "title": "R4",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R5",
+      "result": "pass",
+      "reason": "[REQ:R5] requires the clean no-conflict finalize-merge path to avoid metadata-only commits and direct finalize/cleanup to continue through main-repository flow state without touching a deleted worktree. The implementation evidence shows finalize-merge pre now only mutates flow state/outbox, with the clean-path test asserting HEAD is unchanged while flow.json is modified, and the validated R5 test confirms this behavior. Cleanup/direct evidence adds main-state ownership checks, retained verification/integration records, resumed cleanup completion from main state, completed teardown journal, and no deleted-worktree recreation. [EVIDENCE:R5] [TEST:R5] [TEST-REVIEW]",
+      "title": "R5",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "R6",
+      "result": "pass",
+      "reason": "[REQ:R6] requires spec-local tests with `// spec: R<N>` headers covering R1-R5 plus shared unit and worktree CLI/E2E coverage for actual conflict detection, evidence commit, clean rebase preparation, manual rebase, retry, one merge/outbox completion, sync, and cleanup. The mapped diff adds `specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js` with header `// spec: R1 R2 R3 R4 R5 R6` and tests for R1-R6, including actual conflicting worktree rebase detection, metadata evidence commit, clean status, manual rebase, retry, idempotent merge/outbox completion, finalize-sync, and cleanup [FILE-MAP:R6:1] [EVIDENCE:R6]. Shared coverage is also added/updated in `tests/unit/flow/finalize-merge-conflict-metadata.test.js` and `tests/e2e/flow/commands/worktree-finalize.test.js`, including conflict evidence, clean worktree, manual-rebase retry, and one finalize-merge outbox completion [FILE-MAP:R6:3] [FILE-MAP:R6:4]. Spec-local execution passed and test review passed, while full regression is explicitly deferred to final-regression [TEST:R6] [TEST-REVIEW] [REGRESSION].",
+      "title": "R6",
+      "category": "requirements"
+    },
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "observations": []
+    },
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "pass",
+      "reason": "no observations emitted",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": []
+    }
+  ],
+  "observations": [],
+  "reasons": [
+    {
+      "verdict": "PASS",
+      "detail": "R1 — [REQ:R1] requires one metadata-only commit containing only the active spec flow.json and issue-log.json after finalize-merge failure state is recorded and before returning the rebase instruction, with a clean worktree. The diff adds finalize:onError ordering that performs the finalize-merge metadata preflight, fails the outbox, skips downstream steps, writes issue-log via finalizeOnError, then runs commitFinalizeMergeConflictMetadata; that helper stages only the active spec allowed metadata paths with includeFlowJson and includeIssueLog. [EVIDENCE:R1] The spec-local test asserts HEAD advanced by one commit, the commit contains only specs/<specId>/flow.json and specs/<specId>/issue-log.json, git status --porcelain is empty, and the recovery instruction still mentions git rebase --continue. [TEST:R1] [TEST-REVIEW]",
+      "guardrail_id": "R1",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R3 — [REQ:R3] requires any dirty path outside active spec flow.json and issue-log.json to block commit creation, finalize-merge outbox mutation, and step-state mutation, while returning the exact path, git status --short -- <path>, and a later senti flow run finalize-merge retry instruction. The diff adds assertFinalizeMergeMetadataMutationSafe before finalize-merge pre BeginOutboxEffect and before finalize:onError FailOutboxEffect/SkipSteps/finalizeOnError/commit actions; the helper gathers external dirty paths, runs git status --short -- <path>, and throws FINALIZE_MERGE_EXTERNAL_DIRTY with the path/status and retry command. [EVIDENCE:R3] The spec-local and unit tests assert external dirtiness rejects with the path/status/retry text and leaves HEAD, flow.json, outbox, and steps unchanged. [TEST:R3] [TEST-REVIEW]",
+      "guardrail_id": "R3",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R2 — [REQ:R2] is implemented: finalize-merge onError now fails the outbox, skips finalize-sync/finalize-cleanup, writes issue-log evidence including the conflict message and downstream states, then commits both active spec flow.json and issue-log.json via commitFinalizeMergeConflictMetadata. FlowOutboxEntry preserves failureHistory across retry and completion, so the failed finalize-merge evidence remains in the final snapshot. Validated by [TEST:R2] and [TEST-REVIEW]; full regression is deferred per [REGRESSION]. Sources: [EVIDENCE:R2], [FILE-MAP:R2:1], [FILE-MAP:R2:3], [FILE-MAP:R2:4], [FILE-MAP:R2:5].",
+      "guardrail_id": "R2",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R4 — [REQ:R4] requires retry after resolved conflict to restore finalize-sync/finalize-cleanup from skipped to pending, complete finalize-merge, execute merge/outbox side effects exactly once, and leave downstream steps pending for normal execution. The mapped implementation resets skipped downstream steps during finalize-merge pre via prepareFinalizeMerge/resetSkippedDownstreamSteps and suppresses auto-promotion when finalize-merge is marked done, preserving downstream pending states; post begins/rehydrates the finalize-merge outbox, records merge outcome, completes the step, and completes the outbox. The R4 spec test directly validates finalize-merge done, one done outbox entry with attempt 2, and finalize-sync/finalize-cleanup pending after retry. [EVIDENCE:R4] [TEST:R4] [TEST-REVIEW]",
+      "guardrail_id": "R4",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R5 — [REQ:R5] requires the clean no-conflict finalize-merge path to avoid metadata-only commits and direct finalize/cleanup to continue through main-repository flow state without touching a deleted worktree. The implementation evidence shows finalize-merge pre now only mutates flow state/outbox, with the clean-path test asserting HEAD is unchanged while flow.json is modified, and the validated R5 test confirms this behavior. Cleanup/direct evidence adds main-state ownership checks, retained verification/integration records, resumed cleanup completion from main state, completed teardown journal, and no deleted-worktree recreation. [EVIDENCE:R5] [TEST:R5] [TEST-REVIEW]",
+      "guardrail_id": "R5",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "R6 — [REQ:R6] requires spec-local tests with `// spec: R<N>` headers covering R1-R5 plus shared unit and worktree CLI/E2E coverage for actual conflict detection, evidence commit, clean rebase preparation, manual rebase, retry, one merge/outbox completion, sync, and cleanup. The mapped diff adds `specs/478-fix-finalize-merge-conflict/tests/finalize-merge-conflict-recovery.test.js` with header `// spec: R1 R2 R3 R4 R5 R6` and tests for R1-R6, including actual conflicting worktree rebase detection, metadata evidence commit, clean status, manual rebase, retry, idempotent merge/outbox completion, finalize-sync, and cleanup [FILE-MAP:R6:1] [EVIDENCE:R6]. Shared coverage is also added/updated in `tests/unit/flow/finalize-merge-conflict-metadata.test.js` and `tests/e2e/flow/commands/worktree-finalize.test.js`, including conflict evidence, clean worktree, manual-rebase retry, and one finalize-merge outbox completion [FILE-MAP:R6:3] [FILE-MAP:R6:4]. Spec-local execution passed and test review passed, while full regression is explicitly deferred to final-regression [TEST:R6] [TEST-REVIEW] [REGRESSION].",
+      "guardrail_id": "R6",
+      "category": "requirements"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Spec Test Coverage — no observations emitted",
+      "guardrail_id": "spec-test-coverage",
+      "category": "testing"
+    },
+    {
+      "verdict": "PASS",
+      "detail": "Avoid Overengineering — no observations emitted",
+      "guardrail_id": "no-overengineering",
+      "category": "code-quality"
+    }
+  ],
+  "failureKind": null,
+  "contractSummary": {
+    "targetStep": "impl-gate",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/impl-gate-result.json",
+    "verdict": "pass",
+    "result": "pass",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": {
+      "diagnosis": {
+        "summary": "No blocking observations.",
+        "observations": []
+      },
+      "prescription": "retro"
+    },
+    "completionKind": "normal",
+    "progressSignature": "3069f0bf86f41e430d169aae3b15e2d405d7d52ecd641b15b754cf1bfce02574"
+  },
+  "repairFingerprint": "aa4ffea84e68bf3cc4c2576f15410f812dc8acfb73a2c53302b8bcf87038e300"
+}

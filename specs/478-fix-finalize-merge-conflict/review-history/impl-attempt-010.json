@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T00:04:09.876Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "finalize-merge-onerror-rebegins-outbox",
+      "title": "finalize-merge failure increments the attempt before recording the first conflict",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/definition.js",
+      "requirementId": "R2",
+      "issue": "The finalize-merge onError lifecycle now runs BeginOutboxEffect immediately before FailOutboxEffect. In the normal failing path, finalize-merge already has an active outbox entry from command execution, so beginning the same identity again can retry/increment the existing entry before the failure is recorded. That makes the first conflict failure appear as a later attempt and can break the required failed-outbox evidence for the conflict transaction.",
+      "suggestion": "In resolveFinalizeLifecycle, remove the finalize-merge BeginOutboxEffect from the onError branch and let FailOutboxEffect mark the existing finalize-merge outbox entry failed. If an absent-entry fallback is needed, implement it inside the outbox effect/store without retrying an already-active entry.",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the failed outbox evidence to be recorded as part of conflict recovery metadata. Re-beginning the outbox during error handling changes the attempt identity of that evidence and is a blocking correctness issue for the required recovery record.",
+      "findingId": "7a55ffad8ecaf457c77a41d96171b97e3283bf04ea4c15771bfd3d33bb434da8",
+      "fingerprint": "7a55ffad8ecaf457c77a41d96171b97e3283bf04ea4c15771bfd3d33bb434da8",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "65506695f67ef9c369f4383a3911c344a1c429a5f1615c5483cebec3a5c33377",
+  "reviewedTree": "65506695f67ef9c369f4383a3911c344a1c429a5f1615c5483cebec3a5c33377",
+  "reviewedHead": "c3087ef30551bc088d81f8b6fe9557ac4a8f8a3f",
+  "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/478-fix-finalize-merge-conflict/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "b7d78c369f1db230d4accfaad05a2adf12ac6f1f764bae98b61c75d2c4c95de6"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 10,
+  "findings": [
+    {
+      "id": "7a55ffad8ecaf457c77a41d96171b97e3283bf04ea4c15771bfd3d33bb434da8",
+      "findingId": "7a55ffad8ecaf457c77a41d96171b97e3283bf04ea4c15771bfd3d33bb434da8",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 10,
+      "severity": "blocking",
+      "title": "finalize-merge failure increments the attempt before recording the first conflict",
+      "body": "The finalize-merge onError lifecycle now runs BeginOutboxEffect immediately before FailOutboxEffect. In the normal failing path, finalize-merge already has an active outbox entry from command execution, so beginning the same identity again can retry/increment the existing entry before the failure is recorded. That makes the first conflict failure appear as a later attempt and can break the required failed-outbox evidence for the conflict transaction.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "7a55ffad8ecaf457c77a41d96171b97e3283bf04ea4c15771bfd3d33bb434da8",
+      "disposition": "must-fix",
+      "rationale": "R2 requires the failed outbox evidence to be recorded as part of conflict recovery metadata. Re-beginning the outbox during error handling changes the attempt identity of that evidence and is a blocking correctness issue for the required recovery record.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/flow-outbox.js"
+    ],
+    "inputHash": "a6bce2e6df18a23e8caa7a8f3f705506368eb6a9348d754677ba5d8c733a9aed",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/flow-outbox.js"
+  ],
+  "inputHash": "a6bce2e6df18a23e8caa7a8f3f705506368eb6a9348d754677ba5d8c733a9aed",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-28T00:55:22.061Z",
+  "finishedAt": "2026-07-28T00:55:22.061Z",
+  "rawResponse": "### 1. Bound Failure History Growth\n**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R2  \n**Issue:** `markFailed()` appends to `failureHistory` without an upper bound. Repeated retry/failure cycles can grow persisted outbox records indefinitely, violating `bounded-resource-usage`.  \n**Suggestion:** Introduce an explicit cap, e.g. `MAX_OUTBOX_FAILURE_HISTORY`, and retain either the most recent N failures or the first + most recent N-1 failures. Apply the cap when appending and when loading stored data.\n\n### 2. Avoid Revalidating Immutable Failure History Entries Repeatedly\n**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R4  \n**Issue:** Methods like `markRetrying()`, `markDone()`, and `markPending()` pass `this.failureHistory` into the constructor, which then maps and rechecks every entry each time a new `FlowOutboxEntry` is created. That adds repeated work and spreads normalization concerns across lifecycle transitions.  \n**Suggestion:** Add a small helper such as `normalizeFailureHistory(failureHistory)` and use it only at construction/storage boundaries, or pass a frozen normalized array through unchanged when all entries are already `FlowOutboxFailure` instances.\n\n### 3. Clarify Failure History Field Naming\n**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R2  \n**Issue:** `FlowOutboxFailure` stores the message in a property also named `failure`, while `FlowOutboxEntry` already has a current `failure` field. This makes `failureHistory[n].failure` harder to distinguish from the entry-level failure.  \n**Suggestion:** Rename the historical record property to something more specific, such as `message` or `reason`, while preserving serialized compatibility if existing persisted records may already use `failure`.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Bound Failure History Growth",
+        "body": "**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R2  \n**Issue:** `markFailed()` appends to `failureHistory` without an upper bound. Repeated retry/failure cycles can grow persisted outbox records indefinitely, violating `bounded-resource-usage`.  \n**Suggestion:** Introduce an explicit cap, e.g. `MAX_OUTBOX_FAILURE_HISTORY`, and retain either the most recent N failures or the first + most recent N-1 failures. Apply the cap when appending and when loading stored data.",
+        "file": "src/flow/lib/flow-outbox.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "2. Avoid Revalidating Immutable Failure History Entries Repeatedly",
+        "body": "**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R4  \n**Issue:** Methods like `markRetrying()`, `markDone()`, and `markPending()` pass `this.failureHistory` into the constructor, which then maps and rechecks every entry each time a new `FlowOutboxEntry` is created. That adds repeated work and spreads normalization concerns across lifecycle transitions.  \n**Suggestion:** Add a small helper such as `normalizeFailureHistory(failureHistory)` and use it only at construction/storage boundaries, or pass a frozen normalized array through unchanged when all entries are already `FlowOutboxFailure` instances.",
+        "file": "src/flow/lib/flow-outbox.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Clarify Failure History Field Naming",
+        "body": "**File:** `src/flow/lib/flow-outbox.js`  \n**Requirement:** R2  \n**Issue:** `FlowOutboxFailure` stores the message in a property also named `failure`, while `FlowOutboxEntry` already has a current `failure` field. This makes `failureHistory[n].failure` harder to distinguish from the entry-level failure.  \n**Suggestion:** Rename the historical record property to something more specific, such as `message` or `reason`, while preserving serialized compatibility if existing persisted records may already use `failure`.",
+        "file": "src/flow/lib/flow-outbox.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

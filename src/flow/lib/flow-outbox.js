@@ -83,6 +83,29 @@ export class FlowOutboxRecoveryReceipt {
   }
 }
 
+export class FlowOutboxFailure {
+  constructor({ attempt, failure, recordedAt }) {
+    if (!Number.isSafeInteger(attempt) || attempt < 1) {
+      throw new Error("outbox failure attempt must be a positive integer");
+    }
+    this.attempt = attempt;
+    this.failure = requireString(failure, "outbox failure history message");
+    this.recordedAt = requireTimestamp(recordedAt, "outbox failure history timestamp");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { attempt: this.attempt, failure: this.failure, recordedAt: this.recordedAt };
+  }
+
+  static fromStored(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("stored outbox failure history must be an object");
+    }
+    return new FlowOutboxFailure(value);
+  }
+}
+
 export class FlowOutboxEntry {
   constructor({
     identity,
@@ -92,6 +115,7 @@ export class FlowOutboxEntry {
     updatedAt,
     result = null,
     failure = null,
+    failureHistory = [],
     exactRecoveryReceipt = null,
   }) {
     if (!(identity instanceof FlowOutboxIdentity)) throw new Error("outbox identity is required");
@@ -104,6 +128,7 @@ export class FlowOutboxEntry {
     }
     if (status === "done" && failure != null) throw new Error("done outbox entry cannot retain a failure");
     if (status === "failed") requireString(failure, "outbox failure");
+    if (!Array.isArray(failureHistory)) throw new Error("outbox failure history must be an array");
     if (exactRecoveryReceipt != null && !(exactRecoveryReceipt instanceof FlowOutboxRecoveryReceipt)) {
       throw new Error("outbox exact recovery receipt must be a FlowOutboxRecoveryReceipt");
     }
@@ -114,6 +139,9 @@ export class FlowOutboxEntry {
     this.updatedAt = updatedAt;
     this.result = cloneJson(result);
     this.failure = failure;
+    this.failureHistory = failureHistory.map((entry) => (
+      entry instanceof FlowOutboxFailure ? entry : FlowOutboxFailure.fromStored(entry)
+    ));
     this.exactRecoveryReceipt = exactRecoveryReceipt;
     Object.freeze(this);
   }
@@ -130,6 +158,7 @@ export class FlowOutboxEntry {
       attempt: this.attempt + 1,
       startedAt: requireTimestamp(at, "outbox retry timestamp"),
       updatedAt: at,
+      failureHistory: this.failureHistory,
       exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
@@ -146,6 +175,7 @@ export class FlowOutboxEntry {
       attempt: this.attempt,
       startedAt: this.startedAt,
       updatedAt,
+      failureHistory: this.failureHistory,
       exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
@@ -160,6 +190,7 @@ export class FlowOutboxEntry {
       startedAt: this.startedAt,
       updatedAt: requireTimestamp(at, "outbox completion timestamp"),
       result,
+      failureHistory: this.failureHistory,
       exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
@@ -174,6 +205,11 @@ export class FlowOutboxEntry {
       startedAt: this.startedAt,
       updatedAt: requireTimestamp(at, "outbox failure timestamp"),
       failure: message,
+      failureHistory: [...this.failureHistory, new FlowOutboxFailure({
+        attempt: this.attempt,
+        failure: message,
+        recordedAt: at,
+      })],
       exactRecoveryReceipt: this.exactRecoveryReceipt,
     });
   }
@@ -187,6 +223,7 @@ export class FlowOutboxEntry {
       updatedAt: this.updatedAt,
       ...(this.status === "done" ? { result: cloneJson(this.result) } : {}),
       ...(this.status === "failed" ? { failure: this.failure } : {}),
+      ...(this.failureHistory.length > 0 ? { failureHistory: this.failureHistory.map((entry) => entry.toJSON()) } : {}),
       ...(this.exactRecoveryReceipt ? { exactRecoveryReceipt: this.exactRecoveryReceipt.toJSON() } : {}),
     };
   }

@@ -88,7 +88,9 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("onError marks finalize-sync and finalize-cleanup as skipped", async () => {
     tmp = createTmpDir("senti-finalize-merge-retry-");
+    initGitRepo(tmp);
     setupFlow(tmp);
+    commitAll(tmp, "test: initial flow state");
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
     const specId = specIdFromState(activeState);
