@@ -310,10 +310,18 @@ class GitPathEntry {
 }
 
 class FinalizeCompletionCommit {
-  constructor({ root, specId, idempotencyKey }) {
+  constructor({ root, specId, idempotencyKey, additionalPaths = [] }) {
     if (!root || !specId) throw new Error("finalize completion root and specId are required");
+    if (!Array.isArray(additionalPaths) || additionalPaths.some((entry) => typeof entry !== "string")) {
+      throw new Error("finalize completion additional paths are invalid");
+    }
     this.root = root;
     this.stateFile = `specs/${specId}/flow.json`;
+    const allowedAdditionalPaths = new Set([`specs/${specId}/issue-log.json`]);
+    if (additionalPaths.some((entry) => !allowedAdditionalPaths.has(entry))) {
+      throw new Error("finalize completion additional path is not authorized");
+    }
+    this.commitPaths = [...new Set([this.stateFile, ...additionalPaths])];
     this.idempotencyKey = idempotencyKey;
     this.marker = outboxCommitMarker(idempotencyKey);
   }
@@ -340,10 +348,12 @@ class FinalizeCompletionCommit {
         runGit(["-C", this.root, "read-tree", parent], { env }),
         "failed to initialize finalize completion index",
       );
-      assertOk(
-        runGit(["-C", this.root, "add", "--", this.stateFile], { env }),
-        "failed to stage completed finalize flow state",
-      );
+      for (const commitPath of this.commitPaths) {
+        assertOk(
+          runGit(["-C", this.root, "add", "--", commitPath], { env }),
+          `failed to stage completed finalize path: ${commitPath}`,
+        );
+      }
       result = runGit([
         "-C", this.root,
         "commit", "-m", "chore: complete finalize cleanup", "-m", this.marker,
@@ -408,8 +418,8 @@ class FinalizeCompletionCommit {
   }
 }
 
-export function commitFinalizeCompletion({ root, specId, idempotencyKey }) {
-  return new FinalizeCompletionCommit({ root, specId, idempotencyKey }).execute();
+export function commitFinalizeCompletion({ root, specId, idempotencyKey, additionalPaths = [] }) {
+  return new FinalizeCompletionCommit({ root, specId, idempotencyKey, additionalPaths }).execute();
 }
 
 export function resolveGitCommonDir(root) {

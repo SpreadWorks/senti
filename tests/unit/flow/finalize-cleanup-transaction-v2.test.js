@@ -1082,6 +1082,16 @@ test("preserves rebased feature commits through explicit auto-rescue before tear
     assert.equal(failed.errors[0].code, "WORKTREE_REMOVE_FAILED");
     git(root, ["worktree", "unlock", fixture.worktreePath]);
     ignoreSentiMetadata(root);
+    const mainFlowPath = path.join(root, "specs", specId, "flow.json");
+    const mainFlow = JSON.parse(fs.readFileSync(mainFlowPath, "utf8"));
+    mainFlow.updatedAt = new Date().toISOString();
+    fs.writeFileSync(mainFlowPath, `${JSON.stringify(mainFlow, null, 2)}\n`);
+    const issueLogPath = path.join(root, "specs", specId, "issue-log.json");
+    fs.writeFileSync(issueLogPath, `${JSON.stringify({ entries: [{
+      step: "finalize-cleanup",
+      reason: "retained cleanup metadata",
+      issueLogId: "retained-cleanup-metadata",
+    }] }, null, 2)}\n`);
     git(fixture.worktreePath, ["rebase", "master"]);
     fs.writeFileSync(path.join(fixture.worktreePath, "preserved-after-rebase.txt"), "keep\n");
     git(fixture.worktreePath, ["add", "preserved-after-rebase.txt"]);
@@ -1105,6 +1115,10 @@ test("preserves rebased feature commits through explicit auto-rescue before tear
     assert.equal(fs.existsSync(fixture.worktreePath), false);
     assert.equal(git(root, ["branch", "--list", fixture.featureBranch]), "");
     assert.equal(git(root, ["show", "master:preserved-after-rebase.txt"]), "keep");
+    assert.equal(
+      JSON.parse(git(root, ["show", `master:specs/${specId}/issue-log.json`])).entries.at(-1).issueLogId,
+      "retained-cleanup-metadata",
+    );
   } finally {
     removeTmpDir(root);
   }

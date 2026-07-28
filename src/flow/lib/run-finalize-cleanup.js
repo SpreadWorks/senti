@@ -2620,6 +2620,7 @@ function reconcileRebasedWorktreeAuthority({
     baseline: baseHead,
     featureBranch: state.featureBranch,
     specId,
+    allowFinalizeMetadata: true,
   });
   if (!rescue.ok) {
     return { env: rebasedWorktreeAutoRescueFailure({ rescue, state, baseHead, featureHead }) };
@@ -2654,6 +2655,7 @@ function reconcileRebasedWorktreeAuthority({
   return {
     expectation: authority.effectiveExpectation(expectation),
     rescued: orphan.commits,
+    completionAdditionalPaths: [`specs/${specId}/issue-log.json`],
   };
 }
 
@@ -3286,12 +3288,80 @@ class AutoRescueIssueLogAllowance {
   }
 }
 
+class FinalizeFlowMetadataAllowance {
+  constructor({ mainRepoPath, specId }) {
+    this.mainRepoPath = mainRepoPath;
+    this.specId = specId;
+    this.flowPath = `specs/${specId}/flow.json`;
+    this.issueLogPath = `specs/${specId}/issue-log.json`;
+  }
+
+  allowsCurrentFlowState() {
+    let current;
+    try {
+      current = JSON.parse(fs.readFileSync(path.join(this.mainRepoPath, this.flowPath), "utf8"));
+    } catch {
+      return false;
+    }
+    return (
+      current != null
+      && typeof current === "object"
+      && current.runId != null
+      && typeof current.runId === "string"
+      && current.spec === `specs/${this.specId}/spec.json`
+      && typeof current.baseBranch === "string"
+      && typeof current.featureBranch === "string"
+      && Array.isArray(current.steps)
+    );
+  }
+
+  allowsCurrentIssueLogAppend() {
+    const currentPath = path.join(this.mainRepoPath, this.issueLogPath);
+    let current;
+    try {
+      current = new IssueLogDocument(JSON.parse(fs.readFileSync(currentPath, "utf8")));
+    } catch {
+      return false;
+    }
+    const exists = runGit([
+      "-C", this.mainRepoPath, "ls-tree", "--name-only", "--full-tree", "HEAD", "--", this.issueLogPath,
+    ]);
+    if (!exists.ok) return false;
+    let committed;
+    if (exists.stdout.trim() === this.issueLogPath) {
+      const show = runGit(["-C", this.mainRepoPath, "show", `HEAD:${this.issueLogPath}`]);
+      if (!show.ok) return false;
+      try {
+        committed = new IssueLogDocument(JSON.parse(show.stdout));
+      } catch {
+        return false;
+      }
+    } else if (exists.stdout.trim() === "") {
+      committed = new IssueLogDocument({ entries: [] });
+    } else {
+      return false;
+    }
+    if (current.entries.length <= committed.entries.length) return false;
+    const committedPrefix = JSON.stringify(current.entries.slice(0, committed.entries.length));
+    if (committedPrefix !== JSON.stringify(committed.entries)) return false;
+    return current.entries.slice(committed.entries.length).every((entry) => (
+      entry?.step === "finalize-cleanup" && typeof entry.issueLogId === "string" && entry.issueLogId !== ""
+    ));
+  }
+}
+
 /**
  * R14: a retry may ignore only the exact stable-ID audit mutation produced by
  * its prior CHERRY_PICK_CONFLICT halt. Any other issue-log edit remains dirty.
  */
-function listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId = null) {
+function listMainRepoDirtyFiles(
+  mainRepoPath,
+  specId,
+  allowedIssueLogId = null,
+  { allowFinalizeMetadata = false } = {},
+) {
   const issueLogPath = `specs/${specId}/issue-log.json`;
+  const flowPath = `specs/${specId}/flow.json`;
   const res = runGit([
     "-C",
     mainRepoPath,
@@ -3300,6 +3370,7 @@ function listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId = null) 
     "--",
     ".",
     `:!${issueLogPath}`,
+    `:!${flowPath}`,
   ]);
   if (!res.ok) {
     const error = new Error(`main repository status probe failed: ${res.stderr || res.stdout || "unknown Git error"}`);
@@ -3311,6 +3382,26 @@ function listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId = null) 
     .map((line) => line.trimEnd())
     .filter((line) => line.trim() !== "")
     .map((line) => line.slice(3));
+  const metadataAllowance = allowFinalizeMetadata
+    ? new FinalizeFlowMetadataAllowance({ mainRepoPath, specId })
+    : null;
+  const flowStatus = runGit([
+    "-C",
+    mainRepoPath,
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+    "--",
+    flowPath,
+  ]);
+  if (!flowStatus.ok) {
+    const error = new Error(`main repository flow-state status probe failed: ${flowStatus.stderr || flowStatus.stdout || "unknown Git error"}`);
+    error.code = "MAIN_REPO_STATUS_FAILED";
+    throw error;
+  }
+  if (flowStatus.stdout.trim() && !metadataAllowance?.allowsCurrentFlowState()) {
+    dirtyFiles.push(flowPath);
+  }
   const issueStatus = runGit([
     "-C",
     mainRepoPath,
@@ -3331,7 +3422,9 @@ function listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId = null) 
       specId,
       idempotencyKey: allowedIssueLogId,
     });
-    if (!allowance.allowsCurrentDocument()) dirtyFiles.push(issueLogPath);
+    if (!allowance.allowsCurrentDocument() && !metadataAllowance?.allowsCurrentIssueLogAppend()) {
+      dirtyFiles.push(issueLogPath);
+    }
   }
   return dirtyFiles;
 }
@@ -4335,13 +4428,24 @@ class AutoRescueCleanupJournal {
   }) {
     assertExactObjectKeys(
       identity,
-      ["mainRepoPath", "baseBranch", "baseline", "featureBranch", "specId", "allowedIssueLogId"],
+      [
+        "mainRepoPath",
+        "baseBranch",
+        "baseline",
+        "featureBranch",
+        "specId",
+        "allowedIssueLogId",
+        "allowFinalizeMetadata",
+      ],
       "auto-rescue cleanup identity",
     );
     if (identity.allowedIssueLogId !== null && (
       typeof identity.allowedIssueLogId !== "string" || identity.allowedIssueLogId === ""
     )) {
       throw new Error("auto-rescue issue-log allowance authority is invalid");
+    }
+    if (typeof identity.allowFinalizeMetadata !== "boolean") {
+      throw new Error("auto-rescue finalize metadata allowance is invalid");
     }
     if (!AUTO_RESCUE_CLEANUP_PHASES.has(phase)) throw new Error("auto-rescue cleanup phase is invalid");
     if (!GIT_OBJECT_ID.test(expectedBaseSha)) throw new Error("auto-rescue expected base OID is invalid");
@@ -4637,6 +4741,7 @@ function autoRescueIdentity({
   featureBranch,
   specId,
   allowedIssueLogId = null,
+  allowFinalizeMetadata = false,
 }) {
   return {
     mainRepoPath: path.resolve(mainRepoPath),
@@ -4645,6 +4750,7 @@ function autoRescueIdentity({
     featureBranch,
     specId,
     allowedIssueLogId,
+    allowFinalizeMetadata,
   };
 }
 
@@ -4794,6 +4900,7 @@ function materializeAutoRescueBase(store, journal, runGitFn) {
       journal.identity.mainRepoPath,
       journal.identity.specId,
       journal.identity.allowedIssueLogId,
+      { allowFinalizeMetadata: journal.identity.allowFinalizeMetadata },
     );
   } catch {
     dirtyFiles = null;
@@ -4815,6 +4922,7 @@ export function runDetachedAutoRescue({
   featureBranch,
   specId,
   allowedIssueLogId = null,
+  allowFinalizeMetadata = false,
   range,
   runGitFn = runGit,
   worktreeAuthoritySource = new AutoRescueWorktreeAuthoritySource(mainRepoPath),
@@ -4824,7 +4932,13 @@ export function runDetachedAutoRescue({
   ),
 }) {
   const identity = autoRescueIdentity({
-    mainRepoPath, baseBranch, baseline, featureBranch, specId, allowedIssueLogId,
+    mainRepoPath,
+    baseBranch,
+    baseline,
+    featureBranch,
+    specId,
+    allowedIssueLogId,
+    allowFinalizeMetadata,
   });
   const store = new AutoRescueCleanupStore(identity);
   const existing = store.load();
@@ -4986,16 +5100,30 @@ export function runAutoRescue({
   featureBranch,
   specId,
   allowedIssueLogId = null,
+  allowFinalizeMetadata = false,
 }) {
   const range = `${baseline}..${featureBranch}`;
   const identity = autoRescueIdentity({
-    mainRepoPath, baseBranch, baseline, featureBranch, specId, allowedIssueLogId,
+    mainRepoPath,
+    baseBranch,
+    baseline,
+    featureBranch,
+    specId,
+    allowedIssueLogId,
+    allowFinalizeMetadata,
   });
   const pendingCleanup = new AutoRescueCleanupStore(identity).load();
   if (pendingCleanup) {
     try {
       return runDetachedAutoRescue({
-        mainRepoPath, baseBranch, baseline, featureBranch, specId, range, allowedIssueLogId,
+        mainRepoPath,
+        baseBranch,
+        baseline,
+        featureBranch,
+        specId,
+        range,
+        allowedIssueLogId,
+        allowFinalizeMetadata,
       });
     } catch (error) {
       if (error.code !== "AUTO_RESCUE_CLEANUP_FAILED") throw error;
@@ -5010,7 +5138,7 @@ export function runAutoRescue({
 
   let dirtyFiles;
   try {
-    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId);
+    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId, { allowFinalizeMetadata });
   } catch (error) {
     return { ok: false, code: error.code || "MAIN_REPO_STATUS_FAILED", message: error.message };
   }
@@ -5020,7 +5148,14 @@ export function runAutoRescue({
 
   try {
     return runDetachedAutoRescue({
-      mainRepoPath, baseBranch, baseline, featureBranch, specId, range, allowedIssueLogId,
+      mainRepoPath,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId,
+      range,
+      allowedIssueLogId,
+      allowFinalizeMetadata,
     });
   } catch (error) {
     if (error.code === "CHERRY_PICK_CONFLICT" && error.outcome?.abortFailure) {
@@ -6927,6 +7062,7 @@ async function runTeardownTransactionOwned(
       root: targetRoot,
       specId,
       idempotencyKey: completionIdentity.idempotencyKey,
+      additionalPaths: rebasedWorktreeRecovery.completionAdditionalPaths || [],
     });
     persistFinalizeTeardownCompletion(transactionStore, transaction, "completed");
   }
