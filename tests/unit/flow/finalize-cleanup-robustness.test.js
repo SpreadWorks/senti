@@ -551,7 +551,7 @@ describe("finalize-cleanup robustness", () => {
     });
 
     assert.equal(result.ok, false);
-    assert.equal(result.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    assert.equal(result.errors[0].code, "WORKTREE_DIRTY");
 
     // Cleanup the worktree for real so we can delete tmp
     execFileSync("git", ["-C", mainRoot, "worktree", "remove", "--force", worktreePath], { encoding: "utf8" });

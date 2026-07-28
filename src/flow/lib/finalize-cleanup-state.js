@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import crypto from "node:crypto";
 import path from "node:path";
 
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -78,46 +77,6 @@ class FinalizeCleanupStepSnapshot {
   }
 }
 
-export class FinalizeWorktreeFlowSnapshot {
-  constructor({ filePath, relativePath, revision }) {
-    if (typeof filePath !== "string" || !path.isAbsolute(filePath)) {
-      throw new Error("finalize worktree flow snapshot requires an absolute path");
-    }
-    if (
-      typeof relativePath !== "string"
-      || relativePath === ""
-      || path.isAbsolute(relativePath)
-      || relativePath.startsWith(`..${path.sep}`)
-    ) {
-      throw new Error("finalize worktree flow snapshot requires a repository-relative path");
-    }
-    if (typeof revision !== "string" || revision.length !== 64) {
-      throw new Error("finalize worktree flow snapshot revision is invalid");
-    }
-    this.filePath = filePath;
-    this.relativePath = relativePath;
-    this.revision = revision;
-    Object.freeze(this);
-  }
-
-  static capture(worktreePath, spec) {
-    if (!worktreePath || typeof spec !== "string") return null;
-    const filePath = path.join(worktreePath, path.dirname(spec), "flow.json");
-    if (!fs.existsSync(filePath)) return null;
-    return new FinalizeWorktreeFlowSnapshot({
-      filePath,
-      relativePath: path.relative(worktreePath, filePath),
-      revision: crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex"),
-    });
-  }
-
-  authorizedDirtyRootFiles() {
-    if (!fs.existsSync(this.filePath)) return [];
-    const current = crypto.createHash("sha256").update(fs.readFileSync(this.filePath)).digest("hex");
-    return current === this.revision ? [this.relativePath] : [];
-  }
-}
-
 export class FinalizeCleanupStateResolution {
   constructor({
     state,
@@ -125,14 +84,12 @@ export class FinalizeCleanupStateResolution {
     worktreePath,
     mainRepoPath,
     cleanupStepSnapshot,
-    worktreeFlowSnapshot,
   }) {
     this.state = state;
     this.stateOwner = stateOwner;
     this.worktreePath = worktreePath;
     this.mainRepoPath = mainRepoPath;
     this.cleanupStepSnapshot = cleanupStepSnapshot;
-    this.worktreeFlowSnapshot = worktreeFlowSnapshot;
     Object.freeze(this);
   }
 
@@ -242,7 +199,6 @@ export class FinalizeCleanupStateResolution {
       worktreePath,
       mainRepoPath,
       cleanupStepSnapshot: mainCleanup ? null : new FinalizeCleanupStepSnapshot(cleanupStep),
-      worktreeFlowSnapshot: FinalizeWorktreeFlowSnapshot.capture(worktreePath, selectedState.spec),
     });
   }
 

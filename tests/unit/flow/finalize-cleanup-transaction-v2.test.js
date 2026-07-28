@@ -396,6 +396,7 @@ async function seedPointerFailure(root, specId, { mergeStrategy = "pr", force = 
 }
 
 function setupWorktreeFinalizeFlow(root, specId, overrides = {}) {
+  const { trackedPluginArtifact = null, ...flowOverrides } = overrides;
   const spec = `specs/${specId}/spec.json`;
   const featureBranch = `feature/${specId}`;
   const worktreePath = path.join(root, ".senti", "worktree", specId);
@@ -405,13 +406,18 @@ function setupWorktreeFinalizeFlow(root, specId, overrides = {}) {
     baseBranch: "master",
     featureBranch,
     worktree: true,
-    ...overrides,
+    ...flowOverrides,
   });
   state.state = { mergeStrategy: "pr" };
   replaceFlowState(root, state, { specId });
+  if (trackedPluginArtifact != null) {
+    const artifactPath = path.join(root, "specs", specId, "plugin-artifacts", "workflow", "prepare.json");
+    fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+    fs.writeFileSync(artifactPath, trackedPluginArtifact);
+  }
   const mainFlowManager = makeFlowManager(root);
   mainFlowManager.addActiveFlow(specId, "worktree");
-  git(root, ["add", `specs/${specId}/flow.json`]);
+  git(root, ["add", `specs/${specId}`]);
   git(root, ["commit", "--quiet", "-m", "add worktree flow"]);
   git(root, ["worktree", "add", "-b", featureBranch, worktreePath]);
   const excludePath = git(worktreePath, ["rev-parse", "--git-path", "info/exclude"]);
@@ -896,6 +902,50 @@ test("restores the exact binding after worktree removal failure and removes it o
   }
 });
 
+test("retains tracked plugin artifacts when cleanup removal fails and retries without dirty residue", async () => {
+  const root = createTmpDir("finalize-plugin-artifact-remove-retry-");
+  try {
+    initGitRepo(root);
+    const specId = "plugin-artifact-retry";
+    const artifact = '{"prepared":true}\n';
+    const fixture = setupWorktreeFinalizeFlow(root, specId, { trackedPluginArtifact: artifact });
+    const artifactPath = path.join(
+      fixture.worktreePath,
+      "specs",
+      specId,
+      "plugin-artifacts",
+      "workflow",
+      "prepare.json",
+    );
+    git(root, ["worktree", "lock", fixture.worktreePath]);
+
+    const failed = await runFinalize(root, specId, {
+      flowManager: fixture.flowManager,
+      flowState: fixture.state,
+    });
+    assert.equal(failed.ok, false, JSON.stringify(failed));
+    assert.equal(failed.errors[0].code, "WORKTREE_REMOVE_FAILED");
+    assert.equal(fs.readFileSync(artifactPath, "utf8"), artifact);
+    assert.equal(git(fixture.worktreePath, ["status", "--porcelain", "--", path.relative(fixture.worktreePath, artifactPath)]), "");
+
+    git(root, ["worktree", "unlock", fixture.worktreePath]);
+    const retryManager = new FlowManager({
+      root: fixture.worktreePath,
+      mainRoot: root,
+      inWorktree: true,
+      specId,
+    });
+    const retried = await runFinalize(root, specId, {
+      flowManager: retryManager,
+      flowState: retryManager.loadReadOnly(specId),
+    });
+    assert.equal(retried.ok, true, JSON.stringify(retried));
+    assert.equal(fs.existsSync(fixture.worktreePath), false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 test("process interruption before Git removal leaves the verified binding restartable", () => {
   const root = createTmpDir("finalize-binding-interruption-");
   try {
@@ -946,9 +996,17 @@ test("does not recreate the binding when Git reports failure after the worktree 
       worktreePath: fixture.worktreePath,
       featureBranch: fixture.featureBranch,
       expectedBinding: worktreeBindingFor(fixture),
-      runGit: () => {
-        fs.rmSync(fixture.worktreePath, { recursive: true, force: true });
-        return { ok: false, status: 1, stdout: "", stderr: "simulated late failure" };
+      runGit: (args) => {
+        if (args.includes("worktree") && args.includes("remove")) {
+          fs.rmSync(fixture.worktreePath, { recursive: true, force: true });
+          return { ok: false, status: 1, stdout: "", stderr: "simulated late failure" };
+        }
+        return {
+          ok: true,
+          status: 0,
+          stdout: execFileSync("git", args, { encoding: "utf8" }),
+          stderr: "",
+        };
       },
     });
     assert.equal(result.ok, false);

@@ -3585,13 +3585,13 @@ function inspectSubmoduleWorktreeCleanliness(worktreePath, runGitFn = runGit) {
   };
 }
 
-function submoduleDirtyEnvelope({ worktreePath, featureBranch, inspection }) {
+function worktreeDirtyEnvelope({ worktreePath, featureBranch, inspection }) {
   return Envelope.fail(
     "run",
     "finalize-cleanup",
-    "SUBMODULE_WORKTREE_DIRTY",
+    "WORKTREE_DIRTY",
     [
-      "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.",
+      "Worktree cleanup stopped because the worktree or an initialized submodule is dirty.",
       "Commit, stash, or remove the dirty changes, then retry finalize-cleanup.",
       "The worktree and feature branch were retained for recovery.",
     ],
@@ -3606,13 +3606,13 @@ function submoduleDirtyEnvelope({ worktreePath, featureBranch, inspection }) {
   );
 }
 
-function submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection }) {
+function worktreeStatusFailedEnvelope({ worktreePath, featureBranch, inspection }) {
   return Envelope.fail(
     "run",
     "finalize-cleanup",
-    "SUBMODULE_WORKTREE_STATUS_FAILED",
+    "WORKTREE_STATUS_FAILED",
     [
-      "Submodule worktree cleanup stopped because cleanliness could not be confirmed.",
+      "Worktree cleanup stopped because cleanliness could not be confirmed.",
       "Inspect the reported git status failure, clean the worktree or submodules, then retry finalize-cleanup.",
       "The worktree and feature branch were retained for recovery.",
     ],
@@ -3626,15 +3626,15 @@ function submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection
   );
 }
 
-function submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res }) {
+function worktreeForceRemoveFailedEnvelope({ worktreePath, featureBranch, res }) {
   const stderr = boundedText(res.stderr || "");
   const stdout = boundedText(res.stdout || "");
   return Envelope.fail(
     "run",
     "finalize-cleanup",
-    "SUBMODULE_WORKTREE_FORCE_REMOVE_FAILED",
+    "WORKTREE_FORCE_REMOVE_FAILED",
     [
-      "Submodule worktree cleanup stopped because clean-confirmed force removal failed.",
+      "Worktree cleanup stopped because clean-confirmed force removal failed.",
       "Inspect the git error, resolve the worktree removal problem manually, then retry finalize-cleanup.",
       "Branch deletion was not attempted; the feature branch was retained for recovery.",
     ],
@@ -3647,6 +3647,37 @@ function submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res }
       recoveryOptions: SUBMODULE_RECOVERY_OPTIONS_FORCE,
     },
   );
+}
+
+function preflightWorktreeRemoval({ worktreePath, featureBranch, authorizedDirtyRootFiles, runGit: runGitFn }) {
+  const inspection = inspectSubmoduleWorktreeCleanliness(worktreePath, runGitFn);
+  if (!inspection.ok) {
+    return {
+      ok: false,
+      env: worktreeStatusFailedEnvelope({ worktreePath, featureBranch, inspection }),
+    };
+  }
+  const authorizedPaths = new Set(authorizedDirtyRootFiles);
+  const unauthorizedRootFiles = inspection.dirtyRootFiles
+    .filter((filePath) => !authorizedPaths.has(filePath));
+  if (inspection.truncated || unauthorizedRootFiles.length > 0 || inspection.dirtySubmodules.length > 0) {
+    return {
+      ok: false,
+      env: worktreeDirtyEnvelope({
+        worktreePath,
+        featureBranch,
+        inspection: {
+          ...inspection,
+          dirtyRootFiles: unauthorizedRootFiles,
+          dirty: true,
+        },
+      }),
+    };
+  }
+  return {
+    ok: true,
+    authorizedResiduePresent: inspection.dirtyRootFiles.length > 0,
+  };
 }
 
 function writeJsonFile(filePath, value) {
@@ -3662,14 +3693,28 @@ function removeGitWorktreeForCleanup({
   authorizedDirtyRootFiles = [],
   runGit: runGitFn,
 }) {
+  // --force is the caller's explicit authority to bypass normal dirty-tree
+  // protection. Ordinary cleanup must prove its worktree is clean before the
+  // first destructive Git operation.
+  const preflight = force
+    ? { ok: true, authorizedResiduePresent: false }
+    : preflightWorktreeRemoval({
+      worktreePath,
+      featureBranch,
+      authorizedDirtyRootFiles,
+      runGit: runGitFn,
+    });
+  if (!preflight.ok) return preflight;
+
+  const forceRemoval = force || preflight.authorizedResiduePresent;
   const removeArgs = ["-C", mainRepoPath, "worktree", "remove"];
-  if (force) removeArgs.push("--force");
+  if (forceRemoval) removeArgs.push("--force");
   removeArgs.push(worktreePath);
   const removeRes = runGitFn(removeArgs);
   if (removeRes.ok) return { ok: true };
 
   const submoduleRemoval = isSubmoduleWorktreeRemoveFailure(removeRes);
-  if (!submoduleRemoval && (force || authorizedDirtyRootFiles.length === 0)) {
+  if (!submoduleRemoval) {
     return {
       ok: false,
       env: Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
@@ -3680,47 +3725,10 @@ function removeGitWorktreeForCleanup({
     };
   }
 
-  if (force) {
+  if (forceRemoval) {
     return {
       ok: false,
-      env: submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: removeRes }),
-    };
-  }
-
-  const inspection = inspectSubmoduleWorktreeCleanliness(worktreePath, runGitFn);
-  if (!inspection.ok) {
-    return {
-      ok: false,
-      env: submoduleStatusFailedEnvelope({ worktreePath, featureBranch, inspection }),
-    };
-  }
-  const authorizedPaths = new Set(authorizedDirtyRootFiles);
-  const unauthorizedRootFiles = inspection.dirtyRootFiles
-    .filter((filePath) => !authorizedPaths.has(filePath));
-  const authorizedResiduePresent = inspection.dirtyRootFiles
-    .some((filePath) => authorizedPaths.has(filePath));
-  if (unauthorizedRootFiles.length > 0 || inspection.dirtySubmodules.length > 0) {
-    return {
-      ok: false,
-      env: submoduleDirtyEnvelope({
-        worktreePath,
-        featureBranch,
-        inspection: {
-          ...inspection,
-          dirtyRootFiles: unauthorizedRootFiles,
-          dirty: true,
-        },
-      }),
-    };
-  }
-  if (!submoduleRemoval && !authorizedResiduePresent) {
-    return {
-      ok: false,
-      env: Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVE_FAILED", [
-        `git worktree remove failed: ${removeRes.stderr || removeRes.stdout || "unknown"}`,
-        "The worktree was clean, but Git did not remove it.",
-        "Inspect the Git worktree registration and retry cleanup.",
-      ]),
+      env: worktreeForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: removeRes }),
     };
   }
 
@@ -3728,7 +3736,7 @@ function removeGitWorktreeForCleanup({
   if (!forceRes.ok) {
     return {
       ok: false,
-      env: submoduleForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: forceRes }),
+      env: worktreeForceRemoveFailedEnvelope({ worktreePath, featureBranch, res: forceRes }),
     };
   }
   return { ok: true };
@@ -3996,7 +4004,7 @@ function finalizeCleanupPrePluginLifecycleContext({ root, state, worktreePath, m
       pluginArtifactRoot: artifactPath,
     },
     artifactPath,
-    discardArtifactsOnSuccess: true,
+    restorePluginArtifactsAfterHooks: true,
   };
 }
 
@@ -4004,6 +4012,15 @@ function removeFinalizePluginArtifacts(pluginContext, state) {
   const artifactRoot = pluginContext.flow.pluginArtifactRoot
     || path.join(path.dirname(state.spec), "plugin-artifacts");
   fs.rmSync(path.resolve(pluginContext.root, artifactRoot), { recursive: true, force: true });
+}
+
+function captureFinalizePluginArtifacts(pluginContext, state) {
+  const artifactRoot = pluginContext.flow.pluginArtifactRoot
+    || path.join(path.dirname(state.spec), "plugin-artifacts");
+  return captureFinalizeTreeAt(
+    pluginContext.root,
+    path.relative(pluginContext.root, path.resolve(pluginContext.root, artifactRoot)),
+  );
 }
 
 function finalizePluginLifecycleFailure(error) {
@@ -4054,10 +4071,19 @@ function attachFinalizePluginLifecycle(env, pluginLifecycle) {
 
 async function runFinalizePreHooks(pluginContext, state) {
   // Flow command hooks receive a scoped artifact API. Their transactional
-  // boundary is the spec's plugin-artifacts tree; arbitrary direct filesystem
-  // writes are outside the plugin hook contract and cannot be recovered
-  // without creating the teardown transaction that a required pre-hook must
-  // prevent.
+  // boundary is the spec's plugin-artifacts tree. In a managed worktree the
+  // tree is restored after hooks run, so a later teardown failure cannot turn
+  // hook output or a pre-existing tracked artifact into dirty residue.
+  const artifactBeforeImage = pluginContext.restorePluginArtifactsAfterHooks
+    ? captureFinalizePluginArtifacts(pluginContext, state)
+    : null;
+  const restorePluginArtifacts = () => {
+    if (artifactBeforeImage != null) {
+      restoreFinalizeTree(pluginContext.root, artifactBeforeImage);
+    } else {
+      removeFinalizePluginArtifacts(pluginContext, state);
+    }
+  };
   let pluginPre;
   try {
     pluginPre = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
@@ -4067,13 +4093,14 @@ async function runFinalizePreHooks(pluginContext, state) {
       result: {},
     });
   } catch (err) {
+    if (artifactBeforeImage != null) restorePluginArtifacts();
     return { ok: false, env: finalizePluginLifecycleFailure(err) };
   }
   if (!pluginPre.ok) {
-    removeFinalizePluginArtifacts(pluginContext, state);
+    restorePluginArtifacts();
     return { ok: false, env: finalizeRequiredPluginHookFailure(pluginPre) };
   }
-  if (pluginContext.discardArtifactsOnSuccess) removeFinalizePluginArtifacts(pluginContext, state);
+  if (artifactBeforeImage != null || pluginContext.discardArtifactsOnSuccess) restorePluginArtifacts();
   return { ok: true, pluginPre };
 }
 
@@ -6939,6 +6966,7 @@ async function runTeardownTransactionOwned(
           worktreePath: wtPath,
           transaction,
         }) === true;
+      const authorizedDirtyRootFiles = [path.join(path.dirname(state.spec), "flow.json")];
       const removeResult = removeWorktreeForCleanup({
         mainRepoPath,
         worktreePath: wtPath,
@@ -6946,9 +6974,10 @@ async function runTeardownTransactionOwned(
         force: ctx.force === true,
         expectedBinding,
         missingBindingRecoveryAuthorized,
-        authorizedDirtyRootFiles: ctx.finalizeCleanupStateResolution
-          ?.worktreeFlowSnapshot
-          ?.authorizedDirtyRootFiles() || [],
+        // flow.json is the active Flow's own state surface. It can legitimately
+        // change while finalization persists metadata; unrelated worktree paths
+        // remain a hard preflight failure.
+        authorizedDirtyRootFiles,
       });
       if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }
