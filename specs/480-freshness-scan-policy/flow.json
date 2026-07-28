@@ -402,20 +402,42 @@
           "children": [
             {
               "id": "finalize-commit",
-              "status": "in_progress",
-              "startedAt": "2026-07-28T12:11:20.234Z"
+              "status": "done",
+              "startedAt": "2026-07-28T12:11:20.234Z",
+              "runtimeLog": {
+                "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+                "sequence": 197,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-28T12:11:39.980Z",
+                "endedAt": "2026-07-28T12:11:40.809Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-merge",
-              "status": "pending"
+              "status": "done",
+              "finishedAt": "2026-07-28T12:12:01.443Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-28T12:12:11.469Z",
+              "finishedAt": "2026-07-28T12:13:39.337Z",
+              "runtimeLog": {
+                "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-28T12:12:16.420Z",
+                "endedAt": "2026-07-28T12:13:39.405Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-28T12:13:39.337Z"
             }
           ]
         }
@@ -1909,6 +1931,104 @@
       "attempt": 1,
       "startedAt": "2026-07-28T12:11:40.009Z",
       "updatedAt": "2026-07-28T12:11:40.009Z"
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:1c600c3d-0eb0-49d6-a5ba-10861e00afb9:flow:finalize-merge:finalize-merge",
+      "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-28T12:12:01.223Z",
+      "updatedAt": "2026-07-28T12:12:01.495Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "2c71312c6cf95036f9e12dbc0dfc155ab9f6b66f"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:1c600c3d-0eb0-49d6-a5ba-10861e00afb9:flow:finalize-sync:finalize-sync",
+      "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-28T12:12:16.448Z",
+      "updatedAt": "2026-07-28T12:13:39.386Z",
+      "result": {
+        "status": "skipped",
+        "message": "nothing to commit",
+        "diagnostics": [
+          {
+            "phase": "docs-build",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "[agents] /home/nakano/workspace/senti/.senti/worktree/feature-480-freshness-scan-policy/AGENTS.md を更新しました\n",
+            "stderr": "[scan] incremental: 24 changed, 2 added, 260 unchanged\n[scan] output: .senti/output/analysis.json\n[scan] done (260ms)\n[enrich] static chapter mapping: 4 categories from {{data}} directives\n[enrich] excluded 7 entries by docs.exclude\n[enrich] resuming: 253 already enriched, 26 remaining\n[enrich] 4 batches (token limit: 10000, concurrency: 4)\n[enrich] batch 1/4 (9 entries)\n[enrich] batch 2/4 (8 entries)\n[enrich] batch 3/4 (1 entries)\n[enrich] batch 4/4 (8 entries)\n[enrich] saved progress (9 entries) to .senti/output/analysis.json\n[enrich] saved progress (17 entries) to .senti/output/analysis.json\n[enrich] saved progress (18 entries) to .senti/output/analysis.json\n[enrich] saved progress (26 entries) to .senti/output/analysis.json\n[enrich] enriched 26 entries in 4 batches\n[enrich] output: .senti/output/analysis.json\n[enrich] done (1m 20s)\n[init] WARN: 7 件のファイルが docs/ に既に存在します:\n[init]   - overview.md\n[init]   - stack_and_ops.md\n[init]   - project_structure.md\n[init]   - cli_commands.md\n[init]   - configuration.md\n[init]   - internal_design.md\n[init]   - creating_presets.md\n[init] --force で上書きできます。\n[init] done (126ms)\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:353: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 16 件置換、{{text}}: 36 件スキップ。\n[data] done (83ms)\n[text] No source changes detected. Use --force to regenerate all chapters.\n[text] done (72ms)\n[readme] 変更なし。書き込みをスキップします。\n[readme] done (157ms)\n[agents] done (70ms)\n[build] Generating ja...\n[init] WARN: 7 件のファイルが docs/ に既に存在します:\n[init]   - overview.md\n[init]   - stack_and_ops.md\n[init]   - project_structure.md\n[init]   - cli_commands.md\n[init]   - configuration.md\n[init]   - internal_design.md\n[init]   - creating_presets.md\n[init] --force で上書きできます。\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:354: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 15 件置換、{{text}}: 30 件スキップ。\n[text] No source changes detected. Use --force to regenerate all chapters.\n[readme] 変更なし。書き込みをスキップします。\n[build] Resolving lang.links...\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:353: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 16 件置換、{{text}}: 36 件スキップ。\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:354: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 15 件置換、{{text}}: 30 件スキップ。\n[translate] done (536ms)\ntotal: 1m 21s\n"
+          },
+          {
+            "phase": "git-ls-files",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": ".senti/output/analysis.json\nAGENTS.md\nCLAUDE.md\nREADME.md\ndocs/change_log.md\ndocs/cli_commands.md\ndocs/configuration.md\ndocs/creating_presets.md\ndocs/internal_design.md\ndocs/ja/README.md\ndocs/ja/cli_commands.md\ndocs/ja/configuration.md\ndocs/ja/creating_presets.md\ndocs/ja/internal_design.md\ndocs/ja/overview.md\ndocs/ja/project_structure.md\ndocs/ja/stack_and_ops.md\ndocs/overview.md\ndocs/project_structure.md\ndocs/stack_and_ops.md\n",
+            "stderr": ""
+          },
+          {
+            "phase": "git-add",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-diff-stat",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-diff-name",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-commit",
+            "exitCode": 1,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "On branch main\nYour branch is ahead of 'origin/main' by 1 commit.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   specs/480-freshness-scan-policy/flow.json\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\n",
+            "stderr": ""
+          }
+        ]
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:1c600c3d-0eb0-49d6-a5ba-10861e00afb9:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "1c600c3d-0eb0-49d6-a5ba-10861e00afb9",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-28T12:14:52.530Z",
+      "updatedAt": "2026-07-28T12:14:53.031Z"
     }
   ],
   "issue": 480,
@@ -5552,6 +5672,8 @@
     "updatedAt": "2026-07-28T12:01:05.944Z"
   },
   "state": {
-    "finalizedAt": "2026-07-28T12:11:40.242Z"
+    "finalizedAt": "2026-07-28T12:11:40.242Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "2c71312c6cf95036f9e12dbc0dfc155ab9f6b66f"
   }
 }
