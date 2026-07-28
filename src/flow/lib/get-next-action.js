@@ -57,8 +57,7 @@ import {
 } from "./next-action-directive.js";
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
-import { FlowOutbox, finalizationOutboxIdentity } from "./flow-outbox.js";
-import { hasOutboxCommit } from "./run-finalize.js";
+import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -262,56 +261,6 @@ function buildPreimplementationBootstrapDirective(ctx, state, target) {
   });
 }
 
-function buildFinalizeOutboxReplayDirective(ctx, state, target) {
-  if (target.scope !== "flow") return null;
-  const commandByStep = {
-    "finalize-commit": "finalize-commit",
-    "finalize-merge": "finalize-merge",
-    "finalize-sync": "finalize-sync",
-  };
-  const command = commandByStep[target.stepId];
-  if (!command) return null;
-
-  const identity = finalizationOutboxIdentity(state, target.stepId);
-  const entry = new FlowOutbox(state.outbox || []).find(identity);
-  if (entry?.status !== "failed") return null;
-  if (entry.attempt !== 1 || entry.exactRecoveryReceipt != null) return null;
-
-  const { mainRepoPath } = state.worktree === true
-    ? ctx.flowManager.resolveWorktreePaths(state)
-    : { mainRepoPath: null };
-  const integrationRoot = mainRepoPath || ctx.root;
-  const durableCommit = target.stepId === "finalize-merge"
-    ? hasOutboxCommit({
-        root: integrationRoot,
-        ref: state.baseBranch,
-        idempotencyKey: entry.idempotencyKey,
-      })
-    : hasOutboxCommit({
-        root: target.stepId === "finalize-sync" ? integrationRoot : ctx.root,
-        ref: "HEAD",
-        idempotencyKey: entry.idempotencyKey,
-      });
-  if (target.stepId !== "finalize-merge" && !durableCommit) return null;
-  // A merge can fail before it creates its durable marker. Permit exactly one
-  // dispatcher-owned replay for that case; subsequent failures remain a
-  // concrete blocker rather than becoming an unbounded retry loop.
-
-  const guards = guardFlagsForState(state);
-  return new ExecuteCommandDirective({
-    actionId: `REPLAY_${target.stepId.replaceAll("-", "_").toUpperCase()}_OUTBOX`,
-    nextAction: `senti flow run ${command}${guards ? ` ${guards}` : ""}`,
-    instruction: target.stepId === "finalize-commit"
-      ? "Replay the idempotent finalize-commit lifecycle to finish durable artifacts after the implementation commit succeeded."
-      : `Replay the first incomplete ${target.stepId} lifecycle once. The durable outbox identity prevents duplicate integration effects.`,
-    reason: target.stepId === "finalize-commit"
-      ? "The implementation commit is durable, but its finalize post-hook did not complete."
-      : target.stepId === "finalize-merge" && !durableCommit
-        ? "The first finalize-merge attempt failed before its completion state could be confirmed."
-        : `The ${target.stepId} side effect is durable, but its post-hook did not complete.`,
-  });
-}
-
 function promoteNextAvailableTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
@@ -413,7 +362,7 @@ class NextActionTerminalPlan {
   }
 }
 
-function buildNextActionResult(ctx, state, target, derived, outputSchema, instruction) {
+function buildNextActionResult(ctx, state, target, derived, outputSchema, instruction, finalizationRecovery = null) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
   const result = {
     taskId: target.taskId,
@@ -466,7 +415,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
-    || buildFinalizeOutboxReplayDirective(ctx, state, target)
+    || finalizationRecovery?.directive
     || new NextActionDirectiveResolver({
       state,
       action: derived.action,
@@ -590,7 +539,16 @@ export class NextActionPlanner {
       key: derived.instructionsKey,
       content: injectPersistentRules(baseInstructions, target, state),
     };
-    const result = buildNextActionResult(ctx, state, target, derived, outputSchema, instruction);
+    const finalizationRecovery = resolveFinalizationOutboxRecovery(ctx, state, target);
+    const result = buildNextActionResult(
+      ctx,
+      state,
+      target,
+      derived,
+      outputSchema,
+      instruction,
+      finalizationRecovery,
+    );
     return new NextActionPromotionPlan({
       definition: target.scope === "task" ? getTaskNode(target.stepId) : getFlowNode(target.stepId),
       rule: derived,
@@ -602,7 +560,7 @@ export class NextActionPlanner {
       maxAttempts: derived.maxAttempts,
       nextState: state,
       result,
-      commitRequired: promoted || reconciledNonblockingAcceptance,
+      commitRequired: promoted || reconciledNonblockingAcceptance || finalizationRecovery?.stateChanged === true,
     });
   }
 }
@@ -717,7 +675,16 @@ export default class GetNextActionCommand extends FlowCommand {
     const plan = new NextActionPromotionPlan(candidate);
     const currentStep = validatePlanAgainstState(plan, ctx.flowState);
     const result = plan.result || injectedPlanResult(plan);
-    if (currentStep.status === "in_progress") return result;
+    if (currentStep.status === "in_progress") {
+      if (plan.commitRequired === true && plan.nextState) {
+        const nextState = structuredClone(plan.nextState);
+        ctx.flowManager.mutate((state) => {
+          for (const key of Object.keys(state)) delete state[key];
+          Object.assign(state, nextState);
+        }, { expectedOriginal: plan.expectedRevision });
+      }
+      return result;
+    }
 
     const nextState = plan.nextState ? structuredClone(plan.nextState) : structuredClone(ctx.flowState);
     const nextStep = targetStepForPlan(nextState, plan.target);

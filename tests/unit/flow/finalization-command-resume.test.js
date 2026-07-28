@@ -157,6 +157,7 @@ describe("finalization command crash resumption", () => {
       const first = await new RunFinalizeMergeCommand().execute(ctx);
       assert.equal(first.status, "done");
       const afterFirst = commitCount(root, "main");
+      assert.equal(runGit(["-C", root, "branch", "--show-current"]).stdout.trim(), "main");
 
       const resumed = await new RunFinalizeMergeCommand().execute(ctx);
       assert.equal(resumed.resumed, true);

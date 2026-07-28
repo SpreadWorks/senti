@@ -12,11 +12,13 @@
 
 import { runCmd, assertOk } from "../../lib/process.js";
 import path from "path";
-import os from "os";
 import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
-import { hasOutboxCommit } from "../lib/run-finalize.js";
+import {
+  FinalizeMergeTransaction,
+  FinalizeMergeTransactionError,
+} from "../lib/finalize-merge-transaction.js";
 
 const MAX_IMPLEMENTATION_SUBJECTS = 50;
 const MAX_SUBJECT_INPUT_CHARS = 4000;
@@ -141,6 +143,12 @@ function loadSpec(state, root) {
   return parseSpec(spec);
 }
 
+function finalizationFeatureMetadataPaths(state) {
+  if (typeof state.spec !== "string" || state.spec === "") return [];
+  const directory = path.posix.dirname(state.spec.replaceAll("\\", "/"));
+  return [`${directory}/flow.json`, `${directory}/issue-log.json`];
+}
+
 function firstNonEmptySubjectLine(value) {
   const text = String(value || "").slice(0, MAX_SUBJECT_INPUT_CHARS);
   let lineStart = 0;
@@ -198,35 +206,6 @@ function buildSquashCommitMessage({
   if (state.issue) paragraphs.push(`fixes #${state.issue}`);
   if (idempotencyKey) paragraphs.push(`senti-outbox: ${idempotencyKey}`);
   return paragraphs.join("\n\n");
-}
-
-function completedSquashMerge({ root, baseBranch, featureBranch, idempotencyKey }) {
-  if (!hasOutboxCommit({ root, ref: baseBranch, idempotencyKey })) return null;
-  const baseline = runGit(["-C", root, "rev-parse", featureBranch]);
-  assertOk(baseline, "failed to recover the completed squash baseline");
-  return { strategy: "squash", mergedFromSha: baseline.stdout.trim(), resumed: true };
-}
-
-function unmergedPaths(gitPrefix) {
-  const result = runGit([...gitPrefix, "diff", "--name-only", "--diff-filter=U"]);
-  if (!result.ok) return [];
-  return String(result.stdout || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function squashMergeFailure({ mergeResult, unmerged }) {
-  if (unmerged.length > 0) {
-    const error = new Error(`Merge conflict detected in ${unmerged.join(", ")}.`);
-    error.code = "MERGE_CONFLICT";
-    error.conflictFiles = unmerged;
-    return error;
-  }
-  const output = String(mergeResult.stderr || mergeResult.stdout || "unknown git merge failure").trim();
-  const error = new Error(`Squash merge failed before conflict resolution: ${output}`);
-  error.code = "MERGE_SQUASH_FAILED";
-  return error;
 }
 
 /**
@@ -311,44 +290,6 @@ function runMerge(ctx) {
     process.stderr.write(`[senti] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
 
-  const mergeRoot = worktree && mainRepoPath ? mainRepoPath : root;
-  const completed = completedSquashMerge({
-    root: mergeRoot,
-    baseBranch,
-    featureBranch,
-    idempotencyKey,
-  });
-  if (completed) return completed;
-
-  function runSquashMerge(gitPrefix, hint) {
-    const mergeArgs = [...gitPrefix, "merge", "--squash", featureBranch];
-    const resetArgs = [...gitPrefix, "reset", "--merge"];
-    const mergeRes = runGit(mergeArgs);
-    if (!mergeRes.ok) {
-      const unmerged = unmergedPaths(gitPrefix);
-      runGit(resetArgs);
-      const failure = squashMergeFailure({ mergeResult: mergeRes, unmerged });
-      failure.recoveryHint = hint;
-      failure.message = `${failure.message} ${hint}`;
-      throw failure;
-    }
-    const repoRoot = gitPrefix[0] === "-C" ? gitPrefix[1] : root;
-    const implementationSubjects = collectImplementationSubjects({
-      cwd: repoRoot,
-      baseBranch,
-      featureBranch,
-    });
-    const commitMsg = buildSquashCommitMessage({
-      state,
-      spec,
-      fallbackTitle,
-      implementationSubjects,
-      idempotencyKey,
-    });
-    const commitRes = runGit([...gitPrefix, "commit", "-m", commitMsg]);
-    assertOk(commitRes, "commit after squash merge failed");
-  }
-
   if (worktree && mainRepoPath) {
     const cfg = container.get("config");
     const remote = resolveRemote(cfg);
@@ -357,18 +298,17 @@ function runMerge(ctx) {
     const syncResult = runPreSync({ worktreePath: root, baseBranch, featureBranch, remote });
     if (syncResult.ok === false) {
       if (syncResult.dirty) {
-        const err = new Error(syncResult.recoveryHint);
-        err.dirty = true;
-        err.recoveryHint = syncResult.recoveryHint;
-        throw err;
+        throw new FinalizeMergeTransactionError({
+          code: "MERGE_PRE_SYNC_DIRTY",
+          message: syncResult.recoveryHint,
+          data: { recoveryHint: syncResult.recoveryHint },
+        });
       }
-      const err = new Error(
-        `Pre-merge rebase detected conflicts in ${syncResult.conflictFiles.join(", ")}. ` +
-          `Worktree has been restored. ${syncResult.recoveryHint}`,
-      );
-      err.conflictFiles = syncResult.conflictFiles;
-      err.recoveryHint = syncResult.recoveryHint;
-      throw err;
+      throw new FinalizeMergeTransactionError({
+        code: "MERGE_PRE_SYNC_CONFLICT",
+        message: `Pre-merge rebase detected conflicts in ${syncResult.conflictFiles.join(", ")}. Worktree has been restored. ${syncResult.recoveryHint}`,
+        data: { conflictFiles: syncResult.conflictFiles, recoveryHint: syncResult.recoveryHint },
+      });
     }
 
     const afterSync = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
@@ -383,52 +323,32 @@ function runMerge(ctx) {
       });
     }
 
-    // R17: capture squash baseline after runPreSync (which may have rebased feature HEAD)
-    // and before runSquashMerge, so the recorded SHA matches what is actually squashed.
-    const baselineRes = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
-    assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
-    const mergedFromSha = baselineRes.stdout.trim();
-
-    const mergeHint = `Run 'git rebase ${baseBranch}' in the worktree and retry finalize-merge.`;
-    const checkoutRes = runGit(["-C", mainRepoPath, "checkout", baseBranch]);
-    if (checkoutRes.ok) {
-      runSquashMerge(["-C", mainRepoPath], mergeHint);
-      return { strategy: "squash", mergedFromSha };
-    }
-
-    // baseBranch is locked (e.g. checked out in another worktree) — fall back to
-    // a temporary detached worktree, squash-merge there, then update the ref.
-    const tmpWorktree = path.join(os.tmpdir(), `senti-merge-tmp-${process.pid}-${Date.now()}`);
-    try {
-      const addRes = runGit(["-C", mainRepoPath, "worktree", "add", "--detach", tmpWorktree, baseBranch]);
-      assertOk(addRes, "failed to create temporary worktree for baseBranch checkout fallback");
-      runSquashMerge(["-C", tmpWorktree], mergeHint);
-      const headRes = runGit(["-C", tmpWorktree, "rev-parse", "HEAD"]);
-      assertOk(headRes, "failed to read HEAD of temporary worktree");
-      const updateRes = runGit(["-C", mainRepoPath, "update-ref", `refs/heads/${baseBranch}`, headRes.stdout.trim()]);
-      assertOk(updateRes, `failed to update ${baseBranch} ref`);
-      return { strategy: "squash", mergedFromSha };
-    } finally {
-      const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", "--force", tmpWorktree]);
-      if (!removeRes.ok) {
-        process.stderr.write(`warning: failed to remove temporary worktree ${tmpWorktree}: ${removeRes.stderr}\n`);
-      }
-    }
   }
 
-  // Branch mode
-  // R17: capture squash baseline before checkout so the recorded SHA matches the squash target.
-  const baselineRes = runGit(["-C", root, "rev-parse", featureBranch]);
-  assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
-  const mergedFromSha = baselineRes.stdout.trim();
-  // The lifecycle preflight permits only Flow metadata at this point. Switch
-  // to the base branch without adding a metadata-only commit; the post hook
-  // records the completed outbox and merge outcome in the base-side flow
-  // state immediately after the squash succeeds.
-  const checkoutRes = runGit(["-C", root, "checkout", "--force", baseBranch]);
-  assertOk(checkoutRes, "git checkout failed");
-  runSquashMerge(["-C", root], `Run 'git rebase ${baseBranch}' and retry finalize.`);
-  return { strategy: "squash", mergedFromSha };
+  const implementationSubjects = collectImplementationSubjects({
+    cwd: root,
+    baseBranch,
+    featureBranch,
+  });
+  const commitMessage = buildSquashCommitMessage({
+    state,
+    spec,
+    fallbackTitle,
+    implementationSubjects,
+    idempotencyKey,
+  });
+  return new FinalizeMergeTransaction({
+    featureRoot: root,
+    mainRoot: mainRepoPath || root,
+    baseBranch,
+    featureBranch,
+    commitMessage,
+    idempotencyKey,
+    operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
+    allowedFeatureMetadataPaths: finalizationFeatureMetadataPaths(state),
+    promoteFeatureWorktreeToBase: worktree !== true
+      && path.resolve(mainRepoPath || root) === path.resolve(root),
+  }).execute();
 }
 
 /**
@@ -449,6 +369,7 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
     const err = new Error(
       `pre-merge fetch failed: git fetch ${remote} ${baseBranch} exited ${fetchRes.status}: ${fetchRes.stderr || fetchRes.stdout}`,
     );
+    err.code = "MERGE_PRE_SYNC_FETCH_FAILED";
     err.fetchFailed = true;
     throw err;
   }
@@ -485,5 +406,4 @@ export {
   buildSquashCommitMessage,
   collectImplementationSubjects,
   runPreSync,
-  squashMergeFailure,
 };

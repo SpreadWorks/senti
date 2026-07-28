@@ -28,7 +28,11 @@ import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
 import { ExternalBlockedOutcome, StepAttempt } from "../../../src/flow/lib/step-outcome.js";
-import { FlowOutbox, finalizationOutboxIdentity } from "../../../src/flow/lib/flow-outbox.js";
+import {
+  FlowOutbox,
+  FlowOutboxRecoveryClaim,
+  finalizationOutboxIdentity,
+} from "../../../src/flow/lib/flow-outbox.js";
 import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 
@@ -304,12 +308,18 @@ describe("flow get next-action", () => {
 
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
-      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_COMMIT_OUTBOX");
+      assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_COMMIT_OUTBOX");
       assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-commit /);
+      assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
+      assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });
 
     it("replays one failed finalize merge through the dispatcher", () => {
       tmp = createTmpDir();
+      initGitRepo(tmp);
+      fs.writeFileSync(join(tmp, "README.md"), "baseline\n");
+      commitAll(tmp, "test: baseline");
+      execFileSync("git", ["checkout", "-b", "feature/001-test"], { cwd: tmp, stdio: "ignore" });
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "finalize-merge");
       const identity = finalizationOutboxIdentity(state, "finalize-merge");
@@ -323,8 +333,38 @@ describe("flow get next-action", () => {
 
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
-      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_MERGE_OUTBOX");
+      assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_MERGE_OUTBOX");
       assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-merge /);
+      assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
+      assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
+    });
+
+    it("stops instead of retrying a finalize merge after the exact recovery is consumed", () => {
+      tmp = createTmpDir();
+      initGitRepo(tmp);
+      fs.writeFileSync(join(tmp, "README.md"), "baseline\n");
+      commitAll(tmp, "test: baseline");
+      execFileSync("git", ["checkout", "-b", "feature/001-test"], { cwd: tmp, stdio: "ignore" });
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "finalize-merge");
+      const identity = finalizationOutboxIdentity(state, "finalize-merge");
+      const outbox = new FlowOutbox();
+      outbox.begin(identity, "2026-07-28T00:00:00.000Z");
+      outbox.fail(identity, new Error("first merge failure"), "2026-07-28T00:00:01.000Z");
+      outbox.reopenFailedExact(new FlowOutboxRecoveryClaim({
+        identity,
+        attempt: 1,
+        failure: "first merge failure",
+      }), "2026-07-28T00:00:02.000Z");
+      outbox.fail(identity, new Error("second merge failure"), "2026-07-28T00:00:03.000Z");
+      state.outbox = outbox.toJSON();
+      replaceFlowState(tmp, state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.directive.kind, "blocked");
+      assert.equal(envelope.data.directive.code, "FINALIZE_OUTBOX_RECOVERY_EXHAUSTED");
     });
 
     it("replays a durable finalize sync whose post-hook failed", () => {
@@ -350,8 +390,10 @@ describe("flow get next-action", () => {
 
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
-      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_SYNC_OUTBOX");
+      assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_SYNC_OUTBOX");
       assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-sync /);
+      assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
+      assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });
   });
 
