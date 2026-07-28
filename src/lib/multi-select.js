@@ -72,18 +72,21 @@ export function buildTreeItems(presets) {
 // Rendering
 // ---------------------------------------------------------------------------
 
-function renderLine(output, item, cursor, index, mode, selected) {
-  const pfx = item.prefix || "";
-  let line;
+export function formatSelectLine(item, cursor, index, mode, selected) {
+  const prefix = item.prefix || "";
+  const marker = index === cursor ? ">" : " ";
+  const selection = `${marker} `;
+  const content = mode === "single"
+    ? item.label
+    : `${selected.has(item.key) ? "[x]" : "[ ]"} ${item.label}`;
 
-  if (mode === "single") {
-    const marker = index === cursor ? ">" : " ";
-    line = ` ${marker} ${pfx}${item.label}`;
-  } else {
-    const check = selected.has(item.key) ? "[x]" : "[ ]";
-    const marker = index === cursor ? ">" : " ";
-    line = ` ${marker} ${pfx}${check} ${item.label}`;
-  }
+  // Keep the tree connector at the left edge of every tree item. Placing the
+  // cursor marker before it shifts only the focused row and breaks the tree.
+  return ` ${prefix}${selection}${content}`;
+}
+
+function renderLine(output, item, cursor, index, mode, selected) {
+  const line = formatSelectLine(item, cursor, index, mode, selected);
 
   if (index === cursor) {
     output.write(`\r\x1B[2K\x1B[36m${line}\x1B[0m\n`);

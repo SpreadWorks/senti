@@ -97,6 +97,7 @@ function fallbackDataSourceChains(types) {
  * @param {string} root - プロジェクトルート
  * @param {Object} [opts] - 追加オプション
  * @param {string} [opts.docsDir] - docs ディレクトリの絶対パス
+ * @param {string} [opts.documentPath] - directive を解決する文書の絶対パス
  * @returns {Promise<{ resolve: (preset: string, source: string, method: string, analysis: Object, labels: string[]) => string|null }>}
  */
 export async function createResolver(type, root, opts) {
@@ -110,7 +111,15 @@ export async function createResolver(type, root, opts) {
 
   const desc = descFactory(root);
   const loadOverrides = () => loadOverridesFor(root);
-  const ctx = { desc, loadOverrides, root, docsDir: opts?.docsDir, type, configChapters: opts?.configChapters };
+  const ctx = {
+    desc,
+    loadOverrides,
+    root,
+    docsDir: opts?.docsDir,
+    documentPath: opts?.documentPath,
+    type,
+    configChapters: opts?.configChapters,
+  };
 
   let chains;
   try {

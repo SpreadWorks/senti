@@ -22,6 +22,7 @@ export default function register(container) {
     super.init(ctx);
     this._root = ctx.root;
     this._docsDir = ctx.docsDir || null;
+    this._documentPath = ctx.documentPath ? path.resolve(ctx.root, ctx.documentPath) : null;
     this._type = ctx.type || null;
     this._configChapters = ctx.configChapters || null;
     this._repoUrl = this._resolveRepoUrl();
@@ -215,17 +216,26 @@ export default function register(container) {
         ? cleanDesc.slice(0, 117) + "…"
         : cleanDesc;
 
-      const docsDirRel = this._docsDir
-        ? path.relative(this._root, this._docsDir).replace(/\\/g, "/")
-        : "docs";
       const link = this._repoUrl
-        ? `${this._repoUrl}/blob/main/${docsDirRel}/${f}`
-        : `${docsDirRel}/${f}`;
+        ? `${this._repoUrl}/blob/main/${this._docsDirRelativePath(docsDir)}/${f}`
+        : this._chapterRelativePath(docsDir, f);
       return [`[${title}](${link})`, description];
     });
 
     const hdr = labels.length >= 2 ? labels : ["章", "概要"];
     return this.toMarkdownTable(rows, hdr);
+  }
+
+  _docsDirRelativePath(docsDir) {
+    return path.relative(this._root, docsDir).replace(/\\/g, "/");
+  }
+
+  _chapterRelativePath(docsDir, fileName) {
+    if (this._documentPath) {
+      return path.relative(path.dirname(this._documentPath), path.join(docsDir, fileName))
+        .replace(/\\/g, "/");
+    }
+    return `${this._docsDirRelativePath(docsDir)}/${fileName}`;
   }
 
   /**

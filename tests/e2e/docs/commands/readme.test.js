@@ -85,4 +85,38 @@ describe("readme CLI", () => {
     assert.ok(fs.existsSync(join(tmp, "README.md")));
     assert.ok(readReadme().length > 0);
   });
+
+  it("uses chapter links relative to a localized README on every generation", () => {
+    tmp = createTmpDir();
+    setupProject(tmp, { name: "localized-readme" });
+    writeJson(tmp, ".senti/config.json", {
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en", "ja"], defaultLanguage: "en" },
+    });
+    writeFile(tmp, ".senti/templates/en/docs/README.md", [
+      "# English README",
+      "",
+      '<!-- {{data("base.docs.chapters", {labels: "Chapter|Summary"})}} -->',
+      "<!-- {{/data}} -->",
+    ].join("\n"));
+    writeFile(tmp, ".senti/templates/ja/docs/README.md", [
+      "# 日本語 README",
+      "",
+      '<!-- {{data("base.docs.chapters", {labels: "章|概要"})}} -->',
+      "<!-- {{/data}} -->",
+    ].join("\n"));
+    writeFile(tmp, "docs/overview.md", "# Overview\n\n## Description\nOverview.\n");
+    writeFile(tmp, "docs/ja/overview.md", "# 概要\n\n## 説明\n概要です。\n");
+
+    runReadme(["--lang", "en"]);
+    assert.match(readReadme(), /\]\(docs\/overview\.md\)/);
+
+    for (let i = 0; i < 2; i++) {
+      runReadme(["--lang", "ja", "--output", "docs/ja/README.md"]);
+      const content = fs.readFileSync(join(tmp, "docs/ja/README.md"), "utf8");
+      assert.match(content, /\]\(overview\.md\)/);
+      assert.doesNotMatch(content, /\]\(docs\/ja\/overview\.md\)/);
+    }
+  });
 });

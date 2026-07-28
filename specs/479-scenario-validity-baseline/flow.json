@@ -2215,10 +2215,18 @@
       "taskId": null,
       "stepId": "finalize-cleanup",
       "operation": "finalize-cleanup",
-      "status": "pending",
+      "status": "failed",
       "attempt": 1,
       "startedAt": "2026-07-28T06:04:43.977Z",
-      "updatedAt": "2026-07-28T06:04:44.692Z"
+      "updatedAt": "2026-07-28T06:04:47.969Z",
+      "failure": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+      "failureHistory": [
+        {
+          "attempt": 1,
+          "failure": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+          "recordedAt": "2026-07-28T06:04:47.969Z"
+        }
+      ]
     }
   ],
   "issue": 479,

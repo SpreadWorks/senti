@@ -2327,6 +2327,28 @@
       "evidenceDigest": "ab56b15e8988ae8775fabef66ce981b067b4a6399c85b0ce94aa17bedccd6c7e",
       "timestamp": "2026-07-28T01:38:06.646Z",
       "issueLogId": "nonblocking-decision-85709eeaaa71ee69f524a15add5f18801e3bd9c90074210e3837f3238706562d"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+      "timestamp": "2026-07-28T01:59:39.228Z",
+      "issueLogId": "issue-log-5f32a1fd-e716-4199-9520-c340cb89eebe"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Finalize cleanup found Flow-generated documentation, analysis output, and workflow artifact residue in the retained worktree.",
+      "trigger": "The first finalize-cleanup attempt stopped with SUBMODULE_WORKTREE_DIRTY after finalize-sync.",
+      "resolution": "Restore only generated Flow-owned worktree residue to the committed snapshot, then retry cleanup without touching product source files.",
+      "guardrailCandidate": "Finalize sync and cleanup must leave the managed worktree clean before removal.",
+      "taskId": null,
+      "timestamp": "2026-07-28T02:02:00.842Z",
+      "issueLogId": "issue-log-1db96da6-9d66-4976-b55d-9e2ceabea81f"
+    },
+    {
+      "step": "finalize-cleanup",
+      "reason": "Submodule worktree cleanup stopped because the worktree or an initialized submodule is dirty.; Commit, stash, or remove the dirty changes, then retry finalize-cleanup.; The worktree and feature branch were retained for recovery.",
+      "timestamp": "2026-07-28T02:02:16.472Z",
+      "issueLogId": "issue-log-e88cd70b-1023-40a1-bd59-019f687d8e8a"
     }
   ]
 }

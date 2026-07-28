@@ -114,16 +114,20 @@ async function runReadme(ctx, rawArgs) {
   // 非デフォルト言語の場合は docsDir を指定して chapters() が正しいディレクトリを参照するようにする
   const readmeOutputPath = ctx.output ? path.resolve(root, ctx.output) : null;
   const resolverDocsDir = readmeOutputPath ? path.dirname(readmeOutputPath) : undefined;
+  const readmePath = readmeOutputPath || path.join(root, "README.md");
   let resolveFn;
   try {
-    const resolver = await createResolver(type, root, { docsDir: resolverDocsDir, configChapters: config?.chapters });
+    const resolver = await createResolver(type, root, {
+      docsDir: resolverDocsDir,
+      documentPath: readmePath,
+      configChapters: config?.chapters,
+    });
     resolveFn = resolver.resolve.bind(resolver);
   } catch (err) {
     logger.log(`resolver error: ${err.message}`);
     return;
   }
 
-  const readmePath = ctx.output ? path.resolve(root, ctx.output) : path.join(root, "README.md");
   const readmeRelPath = path.relative(root, readmePath).replace(/\\/g, "/");
 
   const resolveResult = resolveDataDirectives(
@@ -194,4 +198,3 @@ export default class DocsReadmeCommand extends Command {
     return runReadme(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-
