@@ -28,6 +28,9 @@ import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
 import { ExternalBlockedOutcome, StepAttempt } from "../../../src/flow/lib/step-outcome.js";
+import { FlowOutbox, finalizationOutboxIdentity } from "../../../src/flow/lib/flow-outbox.js";
+import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 
 const CLI = join(process.cwd(), "src/senti.js");
 
@@ -276,6 +279,33 @@ describe("flow get next-action", () => {
         assert.equal(envelope.ok, true, `ok for flow.${id}`);
         assert.equal(envelope.data.requires_approval, false, `requires_approval false for flow.${id}`);
       }
+    });
+
+    it("returns a deterministic replay when a durable finalize commit lost only its post-hook", () => {
+      tmp = createTmpDir();
+      initGitRepo(tmp);
+      fs.writeFileSync(join(tmp, "README.md"), "baseline\n");
+      commitAll(tmp, "test: baseline");
+
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "finalize-commit");
+      const identity = finalizationOutboxIdentity(state, "finalize-commit");
+      const outbox = new FlowOutbox();
+      outbox.begin(identity, "2026-07-28T00:00:00.000Z");
+      outbox.fail(identity, new Error("failed to stage durable test/report artifacts"), "2026-07-28T00:00:01.000Z");
+      state.outbox = outbox.toJSON();
+      replaceFlowState(tmp, state);
+      execFileSync("git", ["commit", "--allow-empty", "-m", "feat: implementation", "-m", outboxCommitMarker(identity.idempotencyKey)], {
+        cwd: tmp,
+        stdio: "ignore",
+      });
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.directive.kind, "execute_command");
+      assert.equal(envelope.data.directive.actionId, "REPLAY_FINALIZE_COMMIT_OUTBOX");
+      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-commit /);
     });
   });
 

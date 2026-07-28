@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -8,7 +9,13 @@ import {
   implementationCommitExcludedTestArtifactPathspecs,
   removeRebuildableTestArtifacts,
 } from "../../../src/flow/lib/test-artifacts.js";
+import { commitDurableFinalizeArtifacts } from "../../../src/flow/lib/run-finalize.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
+
+function git(root, args) {
+  return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+}
 
 function readRunFinalizeSource() {
   const file = path.join(process.cwd(), "src/flow/lib/run-finalize.js");
@@ -50,6 +57,34 @@ describe("run-finalize retro/report commit scope (regression for issue #197)", (
     const body = readDurableArtifactCommitBodySource();
     assert.match(body, /durableTestArtifactPathspecs\(/);
     assert.match(body, /collectExistingArtifactPathspecs\(root,\s*durablePathspecPatterns\)/);
+  });
+
+  it("force-adds only allowlisted ignored raw evidence for the current spec", async () => {
+    const root = createTmpDir("finalize-ignored-durable-evidence-");
+    try {
+      initGitRepo(root);
+      writeFile(root, ".gitignore", "specs/**/tests/.raw/*.log\n");
+      writeFile(root, "specs/001/spec.json", "{\n  \"requirements\": []\n}\n");
+      commitAll(root, "test: baseline");
+
+      const retainedLog = "specs/001/tests/.raw/final-regression-attempt-001.log";
+      const unrelatedLog = "specs/999/tests/.raw/final-regression-attempt-001.log";
+      writeFile(root, retainedLog, "final regression passed\n");
+      writeFile(root, unrelatedLog, "unrelated ignored log\n");
+
+      const result = await commitDurableFinalizeArtifacts({
+        root,
+        flowState: { spec: "specs/001/spec.json" },
+      });
+
+      assert.equal(result.status, "done");
+      const committed = git(root, ["ls-tree", "-r", "--name-only", "HEAD"]).trim().split("\n");
+      assert.ok(committed.includes(retainedLog));
+      assert.equal(committed.includes(unrelatedLog), false);
+      assert.equal(git(root, ["status", "--porcelain"]), "");
+    } finally {
+      removeTmpDir(root);
+    }
   });
 });
 

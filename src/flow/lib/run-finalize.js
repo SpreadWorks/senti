@@ -463,7 +463,10 @@ export async function commitDurableFinalizeArtifacts(ctx) {
   const durablePathspecPatterns = durableTestArtifactPathspecs(specIdFromPath(state.spec));
   const existingDurablePathspecs = collectExistingArtifactPathspecs(root, durablePathspecPatterns);
   if (existingDurablePathspecs.length > 0) {
-    const addRes = runGit(["add", "--", ...existingDurablePathspecs], { cwd: root });
+    // Raw execution logs are intentionally ignored by many projects. These
+    // paths were selected from the current spec's fixed durable-artifact
+    // allowlist, so force-add only that bounded evidence set.
+    const addRes = runGit(["add", "--force", "--", ...existingDurablePathspecs], { cwd: root });
     assertOk(addRes, "failed to stage durable test/report artifacts");
   }
   const result = commitOrSkip(["-m", "chore: add finalization artifacts"], { cwd: root });

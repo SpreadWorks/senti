@@ -57,6 +57,8 @@ import {
 } from "./next-action-directive.js";
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
+import { FlowOutbox, finalizationOutboxIdentity } from "./flow-outbox.js";
+import { hasOutboxCommit } from "./run-finalize.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -260,6 +262,26 @@ function buildPreimplementationBootstrapDirective(ctx, state, target) {
   });
 }
 
+function buildFinalizeCommitOutboxReplayDirective(ctx, state, target) {
+  if (target.scope !== "flow" || target.stepId !== "finalize-commit") return null;
+  const identity = finalizationOutboxIdentity(state, "finalize-commit");
+  const entry = new FlowOutbox(state.outbox || []).find(identity);
+  if (entry?.status !== "failed") return null;
+  if (!hasOutboxCommit({
+    root: ctx.root,
+    ref: "HEAD",
+    idempotencyKey: entry.idempotencyKey,
+  })) return null;
+
+  const guards = guardFlagsForState(state);
+  return new ExecuteCommandDirective({
+    actionId: "REPLAY_FINALIZE_COMMIT_OUTBOX",
+    nextAction: `senti flow run finalize-commit${guards ? ` ${guards}` : ""}`,
+    instruction: "Replay the idempotent finalize-commit lifecycle to finish durable artifacts after the implementation commit succeeded.",
+    reason: "The implementation commit is durable, but its finalize post-hook did not complete.",
+  });
+}
+
 function promoteNextAvailableTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
@@ -414,6 +436,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
+    || buildFinalizeCommitOutboxReplayDirective(ctx, state, target)
     || new NextActionDirectiveResolver({
       state,
       action: derived.action,
