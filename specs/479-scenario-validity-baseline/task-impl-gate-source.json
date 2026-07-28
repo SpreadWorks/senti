@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "8b8d9d07-971e-4cb1-8bb9-54dded351e2f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-28T02:57:39.719Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-silent-error-swallowing",
+      "result": "fail",
+      "reason": "The added `if (!result.ok) return [];` path discards the git failure details instead of logging or re-throwing the error.",
+      "category": "code-quality",
+      "title": "No Silent Error Swallowing",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-silent-error-swallowing",
+          "where": {
+            "file": "src/flow/lib/repair-state-identity.js",
+            "locator": "resolveRepairBaselineRef"
+          },
+          "observed": "The added `if (!result.ok) return [];` path discards the git failure details instead of logging or re-throwing the error.",
+          "severity": "blocking",
+          "refs": [
+            "no-silent-error-swallowing"
+          ]
+        }
+      ],
+      "findingId": "2d0243eae340c1bbfe384454165b533fd2bd9c33d6ae4833ce1bcca195b7d3d3",
+      "fingerprint": "2d0243eae340c1bbfe384454165b533fd2bd9c33d6ae4833ce1bcca195b7d3d3",
+      "disposition": "must-fix",
+      "rationale": "The added `if (!result.ok) return [];` path discards the git failure details instead of logging or re-throwing the error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-28T02:57:39.719Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-silent-error-swallowing",
+      "where": {
+        "file": "src/flow/lib/repair-state-identity.js",
+        "locator": "resolveRepairBaselineRef"
+      },
+      "observed": "The added `if (!result.ok) return [];` path discards the git failure details instead of logging or re-throwing the error.",
+      "severity": "blocking",
+      "refs": [
+        "no-silent-error-swallowing"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-silent-error-swallowing",
+      "category": "guardrail",
+      "findingId": "0f581f375bcc2ec101a4c6b93abacf6e610ebbc572101fcceb56bd90052597df",
+      "fingerprint": "0f581f375bcc2ec101a4c6b93abacf6e610ebbc572101fcceb56bd90052597df",
+      "disposition": "must-fix",
+      "rationale": "The added `if (!result.ok) return [];` path discards the git failure details instead of logging or re-throwing the error.",
+      "requirementId": null,
+      "guardrailId": "no-silent-error-swallowing",
+      "reportedAt": "2026-07-28T02:57:39.719Z",
+      "repeatCount": 1
+    }
+  ]
+}

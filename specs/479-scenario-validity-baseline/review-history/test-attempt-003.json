@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T02:49:01.628Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 0,
+    "total": 3
+  },
+  "coverageArtifact": "specs/479-scenario-validity-baseline/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R3 pass artifact test cannot exercise pass contract",
+      "target": "specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:130",
+      "findingId": "f9958d1559884956ccbba352280bfd3fc894fb007200ea61839024629e6d299c",
+      "fingerprint": "f9958d1559884956ccbba352280bfd3fc894fb007200ea61839024629e6d299c",
+      "disposition": "must-fix",
+      "rationale": "R3 requires preserved valid-run artifact and transition behavior, but the current spec-local test cannot validly reach a passing scenario-validity run.",
+      "issue": "`writeScenarioFixture()` creates `expected-failure.test.js` with tests that always call `assert.fail(\"implementation is pending\")`, yet the R3 test immediately expects `command.execute()` to return `result: \"pass\"`, `next: \"test-review\"`, and a pass artifact. This test contradicts its own fixture and the target scenario-validity API behavior, so it cannot provide executable coverage for retained pass artifact/transition behavior.",
+      "requiredChange": "Use a passing scenario fixture for the pass portion of R3, then introduce the production-target change only for the block portion.",
+      "whyBlocking": "R3 requires preserved valid-run artifact and transition behavior, but the current spec-local test cannot validly reach a passing scenario-validity run.",
+      "origin": "R3",
+      "failureKind": "test is not executable or clearly contradicts the target API"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 omits required untracked production change coverage",
+      "target": "specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:153",
+      "findingId": "32fe568e8c8ff903e0caad2706a1d7cb5021720b957d025a6102e0120fa2a576",
+      "fingerprint": "32fe568e8c8ff903e0caad2706a1d7cb5021720b957d025a6102e0120fa2a576",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test artifact marks R4 covered, but the actual test omits one of R4's named mandatory coverage classes.",
+      "issue": "R4 explicitly requires unit coverage for committed, staged, unstaged, and untracked current-flow changes, but the R4 test only creates committed `src/committed.js`, staged `src/staged.js`, and unstaged tracked files (`tests/retained.test.js`, `package.json`). It does not create or assert any untracked production-target file.",
+      "requiredChange": "Add an untracked production-target file to the R4 fixture and assert it appears in `listScenarioValidityPreflightFiles()` output.",
+      "whyBlocking": "The requirement-to-test artifact marks R4 covered, but the actual test omits one of R4's named mandatory coverage classes.",
+      "origin": "R4",
+      "failureKind": "acceptance requirement has no corresponding spec-local test coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R4 retained transition assertion encodes block behavior, not pass transition",
+      "target": "specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:191",
+      "findingId": "4c0795a0f48da2a6a74416019bdcce76417c4b1157bc3fc460ca7f51910a2207",
+      "fingerprint": "4c0795a0f48da2a6a74416019bdcce76417c4b1157bc3fc460ca7f51910a2207",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test coverage artifact says R4 covers retained artifact/transition behavior, but the actual test contradicts that coverage by asserting only the block path.",
+      "issue": "The R4 test name and requirement claim coverage for retained pass transition behavior, but the executable assertion expects `outcome.ok === false` and `SCENARIO_VALIDITY_BLOCKED` after creating production-target changes. It never asserts advancement of a pass result to test review.",
+      "requiredChange": "Add a pass-path assertion in R4, or remove pass-transition coverage from R4 and rely on a corrected R3 pass-path test.",
+      "whyBlocking": "The requirement-to-test coverage artifact says R4 covers retained artifact/transition behavior, but the actual test contradicts that coverage by asserting only the block path.",
+      "origin": "R4",
+      "failureKind": "requirement coverage artifact contradicts the actual test files"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/479-scenario-validity-baseline/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "01876903fbf84985a0035b8cf127b02193a48d662d15d266cc9420108402ba1b"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "f9958d1559884956ccbba352280bfd3fc894fb007200ea61839024629e6d299c",
+      "findingId": "f9958d1559884956ccbba352280bfd3fc894fb007200ea61839024629e6d299c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R3 pass artifact test cannot exercise pass contract",
+      "body": "`writeScenarioFixture()` creates `expected-failure.test.js` with tests that always call `assert.fail(\"implementation is pending\")`, yet the R3 test immediately expects `command.execute()` to return `result: \"pass\"`, `next: \"test-review\"`, and a pass artifact. This test contradicts its own fixture and the target scenario-validity API behavior, so it cannot provide executable coverage for retained pass artifact/transition behavior.",
+      "category": "unknown",
+      "fingerprint": "f9958d1559884956ccbba352280bfd3fc894fb007200ea61839024629e6d299c",
+      "disposition": "must-fix",
+      "rationale": "R3 requires preserved valid-run artifact and transition behavior, but the current spec-local test cannot validly reach a passing scenario-validity run."
+    },
+    {
+      "id": "32fe568e8c8ff903e0caad2706a1d7cb5021720b957d025a6102e0120fa2a576",
+      "findingId": "32fe568e8c8ff903e0caad2706a1d7cb5021720b957d025a6102e0120fa2a576",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 omits required untracked production change coverage",
+      "body": "R4 explicitly requires unit coverage for committed, staged, unstaged, and untracked current-flow changes, but the R4 test only creates committed `src/committed.js`, staged `src/staged.js`, and unstaged tracked files (`tests/retained.test.js`, `package.json`). It does not create or assert any untracked production-target file.",
+      "category": "unknown",
+      "fingerprint": "32fe568e8c8ff903e0caad2706a1d7cb5021720b957d025a6102e0120fa2a576",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test artifact marks R4 covered, but the actual test omits one of R4's named mandatory coverage classes."
+    },
+    {
+      "id": "4c0795a0f48da2a6a74416019bdcce76417c4b1157bc3fc460ca7f51910a2207",
+      "findingId": "4c0795a0f48da2a6a74416019bdcce76417c4b1157bc3fc460ca7f51910a2207",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "R4 retained transition assertion encodes block behavior, not pass transition",
+      "body": "The R4 test name and requirement claim coverage for retained pass transition behavior, but the executable assertion expects `outcome.ok === false` and `SCENARIO_VALIDITY_BLOCKED` after creating production-target changes. It never asserts advancement of a pass result to test review.",
+      "category": "unknown",
+      "fingerprint": "4c0795a0f48da2a6a74416019bdcce76417c4b1157bc3fc460ca7f51910a2207",
+      "disposition": "must-fix",
+      "rationale": "The requirement-to-test coverage artifact says R4 covers retained artifact/transition behavior, but the actual test contradicts that coverage by asserting only the block path."
+    }
+  ]
+}

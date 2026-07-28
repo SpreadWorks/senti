@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-07-27T14:25:56.429Z",
+  "analyzedAt": "2026-07-28T02:10:34.710Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "8f5d509d24fb3a9656dc3627bd9208b4",
+        "hash": "1e3a38d05c0e028e99cc7e6f025d894c",
         "lines": 45,
-        "mtime": "2026-07-27T14:25:50.311Z",
+        "mtime": "2026-07-28T02:10:28.738Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -2510,9 +2510,9 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "51ae54d876e953afd02609aa2c9bf213",
-        "lines": 456,
-        "mtime": "2026-07-27T14:25:51.243Z",
+        "hash": "0eb451e66325ff7240245c4714480e82",
+        "lines": 490,
+        "mtime": "2026-07-28T02:10:29.714Z",
         "className": "merge",
         "methods": [
           "MergeRevalidationRequiredError",
@@ -2527,6 +2527,8 @@
           "collectImplementationSubjects",
           "buildSquashCommitMessage",
           "completedSquashMerge",
+          "unmergedPaths",
+          "squashMergeFailure",
           "resolveMergeStrategy",
           "runMerge",
           "runPreSync"
@@ -2549,7 +2551,8 @@
           "buildPrBody",
           "buildSquashCommitMessage",
           "collectImplementationSubjects",
-          "runPreSync"
+          "runPreSync",
+          "squashMergeFailure"
         ],
         "extends": "Error",
         "usedBy": null,
@@ -2894,9 +2897,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "c29327218bf6f9107335f747a1b3efcb",
-        "lines": 1516,
-        "mtime": "2026-07-27T14:25:51.245Z",
+        "hash": "705d525b39735f893b6282e8d24f3c30",
+        "lines": 1557,
+        "mtime": "2026-07-28T02:10:29.716Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -2959,6 +2962,7 @@
           "resolveImplReviewLifecycle",
           "resolveReviewLifecycle",
           "resolveGateLifecycle",
+          "finalizeMergeMetadataPreflightAction",
           "resolveFinalizeLifecycle",
           "resolveReportLifecycle",
           "resolveLifecycleForNode",
@@ -3036,9 +3040,9 @@
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
-        "hash": "a3cbb13a0a30317c4fe46c4a8ecfcbc7",
-        "lines": 1677,
-        "mtime": "2026-07-27T14:25:51.245Z",
+        "hash": "c49c964062d12509f27f07f6ea63c142",
+        "lines": 1711,
+        "mtime": "2026-07-28T02:10:29.716Z",
         "className": "acceptance-review-artifacts",
         "methods": [
           "RequirementAcceptanceJudgment",
@@ -3060,6 +3064,7 @@
           "applyAcceptanceReviewResult",
           "applyAcceptanceDecision",
           "requireString",
+          "requireOptionalString",
           "requireNullableIssue",
           "requireStringArray",
           "clone",
@@ -3950,9 +3955,9 @@
       },
       {
         "file": "src/flow/lib/finalize-flow-state-owner.js",
-        "hash": "33bb3026c7216155f0ec4f5fb2aadf11",
-        "lines": 202,
-        "mtime": "2026-07-27T14:25:51.246Z",
+        "hash": "df4237fc00d118295bad2918ccdd0c66",
+        "lines": 203,
+        "mtime": "2026-07-28T02:10:29.717Z",
         "className": "finalize-flow-state-owner",
         "methods": [
           "FinalizeFlowStateOwner"
@@ -4300,13 +4305,14 @@
       },
       {
         "file": "src/flow/lib/flow-outbox.js",
-        "hash": "3684de6d2488eb64b729f7f1d4883af9",
-        "lines": 385,
-        "mtime": "2026-07-18T23:18:53.716Z",
+        "hash": "13daab332551834726e46b4360bef0de",
+        "lines": 422,
+        "mtime": "2026-07-28T02:10:29.718Z",
         "className": "flow-outbox",
         "methods": [
           "FlowOutboxIdentity",
           "FlowOutboxRecoveryReceipt",
+          "FlowOutboxFailure",
           "FlowOutboxEntry",
           "FlowOutboxRecoveryClaim",
           "FlowOutbox",
@@ -4320,6 +4326,7 @@
         "exports": [
           "FlowOutboxIdentity",
           "FlowOutboxRecoveryReceipt",
+          "FlowOutboxFailure",
           "FlowOutboxEntry",
           "FlowOutboxRecoveryClaim",
           "FlowOutbox",
@@ -4328,28 +4335,14 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/flow/lib/run-finalize-cleanup.js",
-          "src/flow/registry.js",
           "src/flow/lib/direct-integration-evidence.js",
-          "src/flow/lib/finalize-flow-state-owner.js"
+          "src/flow/lib/finalize-flow-state-owner.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-merge.js",
+          "src/flow/registry.js"
         ],
-        "id": "a2b028f4",
-        "summary": "Implements an immutable outbox model for flow side effects with idempotent identities and recovery metadata. It also provides a persistence wrapper that updates outbox state through the flow manager.",
-        "detail": "The module validates strings, timestamps, statuses, and cloneable JSON payloads before creating domain objects. `FlowOutboxEntry` enforces state invariants, such as forbidding retained results on pending items and requiring exact-recovery receipts to match the entry identity. `FlowOutbox` exposes transition methods like begin, complete, fail, touch, and reopen while returning new snapshots instead of mutating caller-owned objects. `FlowOutboxStore` persists those transitions through `flowManager.mutate`, and `finalizationOutboxIdentity` builds stable idempotency keys from flow state and step IDs.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-07-18T23:21:47.184Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "outbox",
-          "idempotency",
-          "retry queue",
-          "recovery receipt",
-          "flow state",
-          "event persistence"
-        ]
+        "id": "a2b028f4"
       },
       {
         "file": "src/flow/lib/gate-mutation-owner.js",
@@ -4696,9 +4689,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "b528347b5da4edc5876d6b28b2ab5f62",
-        "lines": 695,
-        "mtime": "2026-07-27T14:25:51.247Z",
+        "hash": "49170e77dc1ab0e9a5fd37bbe5fa7ce0",
+        "lines": 750,
+        "mtime": "2026-07-28T02:10:29.718Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -4721,6 +4714,7 @@
           "buildPlanGateSemanticDeferralRecovery",
           "buildGateRetryRecovery",
           "buildPreimplementationBootstrapDirective",
+          "buildFinalizeOutboxReplayDirective",
           "promoteNextAvailableTarget",
           "completedNextAction",
           "abortedNextAction",
@@ -4755,7 +4749,9 @@
           "./nonblocking.js",
           "./next-action-directive.js",
           "./user-action-prompt.js",
-          "./run-preimplementation-bootstrap.js"
+          "./run-preimplementation-bootstrap.js",
+          "./flow-outbox.js",
+          "./run-finalize.js"
         ],
         "exports": [
           "NextActionPlanError",
@@ -5480,9 +5476,9 @@
       },
       {
         "file": "src/flow/lib/nonblocking-route.js",
-        "hash": "942fa6525e34e4a8dd2f92d62e43c099",
-        "lines": 86,
-        "mtime": "2026-07-27T14:25:51.248Z",
+        "hash": "39177c1a398c778c101420c29805c87a",
+        "lines": 95,
+        "mtime": "2026-07-28T02:10:29.720Z",
         "className": "nonblocking-route",
         "methods": [
           "NonBlockingRoute",
@@ -5508,11 +5504,12 @@
       },
       {
         "file": "src/flow/lib/nonblocking.js",
-        "hash": "6800cd055758aae2749c693038a96c23",
-        "lines": 919,
-        "mtime": "2026-07-27T14:25:51.248Z",
+        "hash": "8f8a78713e66889ee4c852b47f2356ad",
+        "lines": 957,
+        "mtime": "2026-07-28T02:10:29.720Z",
         "className": "nonblocking",
         "methods": [
+          "reconcileNonblockingAcceptanceContinuation",
           "NonBlockingPolicy",
           "NonBlockingDecisionIdentity",
           "NonBlockingRecoveryState",
@@ -5579,6 +5576,7 @@
           "./nonblocking-route.js"
         ],
         "exports": [
+          "reconcileNonblockingAcceptanceContinuation",
           "NonBlockingPolicy",
           "NonBlockingDecisionIdentity",
           "NonBlockingRecoveryState",
@@ -7212,16 +7210,17 @@
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
-        "hash": "56975367578d1608a6e1c06387d666ed",
-        "lines": 44,
-        "mtime": "2026-07-17T06:07:12.231Z",
+        "hash": "191f4937ec5d46530e911240c1358c3b",
+        "lines": 46,
+        "mtime": "2026-07-28T02:10:29.723Z",
         "className": "run-finalize-merge",
         "methods": [
           "RunFinalizeMergeCommand"
         ],
         "imports": [
           "./base-command.js",
-          "../../lib/container.js"
+          "../../lib/container.js",
+          "./flow-outbox.js"
         ],
         "exports": [
           "RunFinalizeMergeCommand",
@@ -7229,23 +7228,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "29dc124e",
-        "summary": "Handles the finalize-merge step as a dedicated flow command. It produces explicit merge metadata even when the step is skipped.",
-        "detail": "The command subclasses `FlowCommand`, so it fits into the same execution contract as other flow actions. It relies on the shared dependency container, which suggests merge policy or state is injected rather than hard-coded. A no-op path returns a structured skip result with `status`, `strategy`, and `mergedFromSha` fields for downstream consumers. Successful execution likely returns the same envelope shape, which simplifies reporting and resume logic.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-07-18T08:24:04.571Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "finalize merge",
-          "merge strategy",
-          "flow command",
-          "skip merge",
-          "merged from SHA",
-          "dependency container"
-        ]
+        "id": "29dc124e"
       },
       {
         "file": "src/flow/lib/run-finalize-sync.js",
@@ -7274,9 +7257,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "d22a7d7b7a1ee01e4449dfecbbc554b7",
-        "lines": 473,
-        "mtime": "2026-07-21T07:38:48.887Z",
+        "hash": "06e2b016bdd5314d0a4f6a7df5606094",
+        "lines": 524,
+        "mtime": "2026-07-28T02:10:29.723Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -7288,7 +7271,9 @@
           "readFinalizeMergeMetadataPreflight",
           "getFinalizeMergeTargetExternalDirtyPaths",
           "hasFinalizeMergeTargetExternalDirty",
+          "assertFinalizeMergeMetadataMutationSafe",
           "commitFinalizeMergeMetadataIfSafe",
+          "commitFinalizeMergeConflictMetadata",
           "commitFinalizeCompletion",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
@@ -7309,6 +7294,7 @@
           "path",
           "../../lib/process.js",
           "../../lib/flow-helpers.js",
+          "./step-tree.js",
           "./set-issue-log.js",
           "../../lib/git-helpers.js",
           "../../lib/container.js",
@@ -7325,7 +7311,9 @@
           "readFinalizeMergeMetadataPreflight",
           "getFinalizeMergeTargetExternalDirtyPaths",
           "hasFinalizeMergeTargetExternalDirty",
+          "assertFinalizeMergeMetadataMutationSafe",
           "commitFinalizeMergeMetadataIfSafe",
+          "commitFinalizeMergeConflictMetadata",
           "commitFinalizeCompletion",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
@@ -7336,29 +7324,13 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/direct-finalize-adapter.js",
+          "src/flow/lib/get-next-action.js",
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-finalize-commit.js",
-          "src/flow/lib/run-finalize-sync.js",
-          "src/flow/lib/direct-finalize-adapter.js"
+          "src/flow/lib/run-finalize-sync.js"
         ],
-        "id": "c711309b",
-        "summary": "Implements the flow finalization stage, including durable pointer updates, git commit idempotency, and preflight validation. It ensures finalize artifacts are committed only when the repository and spec state are safe.",
-        "detail": "This module coordinates finalization with atomic filesystem writes, git-aware commit helpers, and worktree safety checks. It writes the last-finalized spec pointer through a temporary file, `fsync`, and rename sequence to avoid partial updates. It inspects git status to decide whether finalize metadata can be committed without capturing unrelated dirty files, and it records completion through isolated temporary indexes and outbox markers for idempotency. It also runs git write-access preflight checks, optional per-spec migration hooks, and durable artifact commits only when the referenced spec still exists.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-07-21T08:01:09.515Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "finalize workflow",
-          "git idempotent commit",
-          "preflight checks",
-          "atomic file write",
-          "merge metadata",
-          "durable artifacts",
-          "worktree validation"
-        ]
+        "id": "c711309b"
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -9645,9 +9617,9 @@
       },
       {
         "file": "src/flow/lib/step-transition-policy.js",
-        "hash": "6e0100f98a364447dafff152716ed5d8",
-        "lines": 259,
-        "mtime": "2026-07-26T03:39:39.868Z",
+        "hash": "6ca5dd9d1e390d01eb7802b03b759057",
+        "lines": 269,
+        "mtime": "2026-07-28T02:10:29.727Z",
         "className": "step-transition-policy",
         "methods": [
           "StepTransitionError",
@@ -9743,7 +9715,8 @@
           "src/flow/lib/run-preimplementation-bootstrap.js",
           "src/flow/lib/finalize-flow-state-owner.js",
           "src/flow/lib/flow-context.js",
-          "src/flow/lib/nonblocking.js"
+          "src/flow/lib/nonblocking.js",
+          "src/flow/lib/run-finalize.js"
         ],
         "id": "bc04b8b6",
         "summary": "Provides recursive utilities for navigating nested flow step trees. The helpers support flattening, lookup, and choosing the next executable leaf step.",
@@ -10394,9 +10367,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "7d848cb3ae0281c72267da73a8468abb",
-        "lines": 1848,
-        "mtime": "2026-07-27T14:25:51.258Z",
+        "hash": "953a2c7ada45bf2897349621b1d590cc",
+        "lines": 1892,
+        "mtime": "2026-07-28T02:10:29.729Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -12072,9 +12045,9 @@
       },
       {
         "file": "src/lib/git-helpers.js",
-        "hash": "043a1ebed5221b5b1a4c547c2532b754",
-        "lines": 419,
-        "mtime": "2026-07-27T01:28:23.167Z",
+        "hash": "1171649790c1990bd508fb8e128912de",
+        "lines": 420,
+        "mtime": "2026-07-28T02:10:29.733Z",
         "className": "git-helpers",
         "methods": [
           "runGit",
@@ -14907,7 +14880,7 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 3242
+      "totalMethods": 3251
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

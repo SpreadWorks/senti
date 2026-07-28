@@ -208,6 +208,14 @@ function writeTempProjectConfig(tmp) {
   }), "utf8");
 }
 
+function initGitRepo(tmp) {
+  execFileSync("git", ["init", "-q"], { cwd: tmp });
+  execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: tmp });
+  execFileSync("git", ["config", "user.name", "Fixture Test"], { cwd: tmp });
+  execFileSync("git", ["add", "."], { cwd: tmp });
+  execFileSync("git", ["commit", "-q", "-m", "fixture baseline"], { cwd: tmp });
+}
+
 function assertCommandFailure(result, label) {
   assert.equal(result.ok, false, `${label} must return a failure envelope`);
   assert.ok(result.exitCode === undefined || result.exitCode !== 0, `${label} must not report a zero exit code`);
@@ -746,6 +754,7 @@ export default function register(api) {
   };
 }
 `, "utf8");
+  initGitRepo(tmp);
   const prepared = await runPrepareWithPluginHooks({ root: tmp, title: "plugin hook snapshot fixture", request: "fixture request", noBranch: true, issue: 375 });
   const preparedFlow = readJson(path.join(tmp, prepared.flowPath));
   assert.equal(preparedFlow.spec, "specs/001-plugin-hook-snapshot-fixture/spec.json", "prepare helper must write spec path before hooks run");

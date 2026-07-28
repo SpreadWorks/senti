@@ -4,6 +4,10 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { runImplReview } from "../../../src/flow/commands/review.js";
+import {
+  buildRepairFingerprint,
+  prepareImplTriageArtifact,
+} from "../../../src/flow/lib/impl-repair-artifacts.js";
 import { evaluateReviewFindingGateReadiness } from "../../../src/flow/lib/run-gate.js";
 import SetIssueLogCommand, { loadIssueLog } from "../../../src/flow/lib/set-issue-log.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -88,6 +92,59 @@ test("integration finding gate rejects an issue-log repair claim without bound r
       issueLog: loadIssueLog(root, specPath),
     });
     assert.equal(repaired.decision.allowsPass(), false);
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("integration finding gate honors an all-reject implementation triage", async () => {
+  const root = createTmpDir("finding-gate-rejected-triage-");
+  try {
+    const specPath = "specs/demo/spec.json";
+    const specDir = path.join(root, "specs/demo");
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(root, specPath), `${JSON.stringify({
+      requirements: [{ id: "R1", priority: "must", desc: "Persist typed review findings." }],
+    }, null, 2)}\n`);
+    await runImplReview({
+      root,
+      flow: { spec: specPath },
+      touchedFiles: new Set(["src/example.js"]),
+      reviewOutput: JSON.stringify({
+        blockingFindings: [{
+          findingKey: "rejected-by-triage",
+          title: "Rejected finding",
+          failureMode: "spec_behavior_contradiction",
+          file: "src/example.js",
+          requirementId: "R1",
+          issue: "The review proposal contradicts the accepted requirement.",
+          suggestion: "Restore the obsolete behavior.",
+          disposition: "must-fix",
+          rationale: "The reviewer classified it as mandatory.",
+        }],
+        nonBlockingImprovements: [],
+      }),
+    });
+    const review = JSON.parse(fs.readFileSync(path.join(specDir, "impl-review.json"), "utf8"));
+    const fingerprint = buildRepairFingerprint({ root, specPath, state: { spec: specPath } });
+    assert.equal(review.repairFingerprint, fingerprint.hash);
+    prepareImplTriageArtifact({
+      specDir,
+      sourceStep: "impl-review",
+      sourceArtifact: "impl-review.json",
+      findings: review.blockingFindings.map((finding) => ({ ...finding, decision: "reject" })),
+      fingerprint,
+    });
+
+    const readiness = evaluateReviewFindingGateReadiness({
+      root,
+      state: { spec: specPath, currentTaskId: null },
+      phase: "integration",
+      issueLog: { entries: [] },
+    });
+
+    assert.equal(readiness.artifact.verdict, "REJECTED");
+    assert.equal(readiness.decision.allowsPass(), true);
   } finally {
     removeTmpDir(root);
   }

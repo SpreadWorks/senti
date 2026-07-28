@@ -326,6 +326,7 @@ test("R4: flow prepare snapshots hook plans into flow.json and active flows use 
   `);
   const flowPath = path.join(project, "specs", "1-sample", "flow.json");
   writeJson(flowPath, { version: 1, spec: "specs/1-sample/spec.json", plugins: {} });
+  initGitRepo(project);
 
   const discovered = await discoverFlowCommandHooks(project);
   writeFlowCommandHookSnapshot(flowPath, discovered);

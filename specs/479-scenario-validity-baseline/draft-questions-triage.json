@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Both repair targets are valid: pending questions must ask for confirmation without embedding a prescribed implementation outcome.",
+  "items": [
+    {
+      "title": "1. q1 embeds implementation instruction",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The pending question states the required solution framing instead of asking the user to confirm the intended behavior.",
+      "evidence": "draft.json qa[0].question contains 'must use a flow-authorized immutable baseline'."
+    },
+    {
+      "title": "2. q2 embeds implementation instruction",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The pending question should isolate the fail-closed behavioral constraint from the implementation instruction.",
+      "evidence": "draft.json qa[1].question contains 'must fail closed' and an allowlist-preservation instruction."
+    }
+  ]
+}

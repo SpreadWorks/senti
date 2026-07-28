@@ -1,0 +1,132 @@
+[senti] scenario-validity tests start
+command: node --test specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js
+[senti] scenario-validity file start command=node specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js
+TAP version 13
+# Subtest: R1: validates immutable baseline authority before diffing
+not ok 1 - R1: validates immutable baseline authority before diffing
+  ---
+  duration_ms: 1.97401
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:6:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:7:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: R2: attributes committed changes from immutable flow baseline
+not ok 2 - R2: attributes committed changes from immutable flow baseline
+  ---
+  duration_ms: 0.529043
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:10:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:11:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R3: retains preflight artifact and transition contract
+not ok 3 - R3: retains preflight artifact and transition contract
+  ---
+  duration_ms: 0.260362
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:14:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:15:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: exposes fixtures for authority and change-state coverage
+not ok 4 - R4: exposes fixtures for authority and change-state coverage
+  ---
+  duration_ms: 0.213121
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'undefined'
+    - 'function'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'function'
+  actual: 'undefined'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-479-scenario-validity-baseline/specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js:19:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 0
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18.205013
+Command failed: node specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: validates immutable baseline authority before diffing
+[senti] requirement R2 observed: R2: attributes committed changes from immutable flow baseline
+[senti] requirement R3 observed: R3: retains preflight artifact and transition contract
+[senti] requirement R4 observed: R4: exposes fixtures for authority and change-state coverage
+[senti] scenario-validity tests end

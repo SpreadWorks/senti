@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T02:25:26.506Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 1,
+    "advisory": 0,
+    "total": 1
+  },
+  "coverageArtifact": "specs/479-scenario-validity-baseline/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Tests only assert exported symbol existence",
+      "target": "specs/479-scenario-validity-baseline/tests/immutable-baseline.test.js",
+      "findingId": "60165554027d2496270180af6dfc40cbc330c5bed8e9935dac89b2dee0b72589",
+      "fingerprint": "60165554027d2496270180af6dfc40cbc330c5bed8e9935dac89b2dee0b72589",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that would pass without exercising production behavior, and the acceptance requirements have no corresponding behavioral test coverage despite being marked covered.",
+      "issue": "All four tests use `typeof ... === \"function\"` checks against module exports and do not invoke scenario-validity behavior, construct baseline authority cases, inspect diffs, verify artifacts, or assert transitions. These tests would pass if the implementation merely exported stub functions while none of R1-R4 behavior worked.",
+      "requiredChange": "Replace the export-existence checks with executable spec-local tests that exercise production behavior for authority validation failures, immutable-baseline diff computation, current-flow change detection, and artifact/transition outcomes.",
+      "whyBlocking": "This is a static anti-pattern that would pass without exercising production behavior, and the acceptance requirements have no corresponding behavioral test coverage despite being marked covered.",
+      "origin": "R1, R2, R3, R4",
+      "failureKind": "static-anti-pattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/479-scenario-validity-baseline/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a1a5245d3a276af6d5d712d4839c255e65fc77c56de2353390dd3516d9bd57c4"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "60165554027d2496270180af6dfc40cbc330c5bed8e9935dac89b2dee0b72589",
+      "findingId": "60165554027d2496270180af6dfc40cbc330c5bed8e9935dac89b2dee0b72589",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "Tests only assert exported symbol existence",
+      "body": "All four tests use `typeof ... === \"function\"` checks against module exports and do not invoke scenario-validity behavior, construct baseline authority cases, inspect diffs, verify artifacts, or assert transitions. These tests would pass if the implementation merely exported stub functions while none of R1-R4 behavior worked.",
+      "category": "unknown",
+      "fingerprint": "60165554027d2496270180af6dfc40cbc330c5bed8e9935dac89b2dee0b72589",
+      "disposition": "must-fix",
+      "rationale": "This is a static anti-pattern that would pass without exercising production behavior, and the acceptance requirements have no corresponding behavioral test coverage despite being marked covered."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Rephrased both pending questions as self-contained behavioral confirmations without implementation instructions.",
+  "items": [
+    {
+      "title": "1. q1 embeds implementation instruction",
+      "target": "q1",
+      "rationale": "Replaced the prescribed baseline wording with a question about the intended upstream-only behavior.",
+      "evidence": "draft.json qa[0].question now asks only whether upstream-only base-branch commits should be ignored.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. q2 embeds implementation instruction",
+      "target": "q2",
+      "rationale": "Replaced the combined instruction with a question about the fail-closed baseline-authority behavior.",
+      "evidence": "draft.json qa[1].question now asks only whether malformed baseline authority should fail closed.",
+      "changedFieldPaths": ["qa[1].question"]
+    }
+  ]
+}

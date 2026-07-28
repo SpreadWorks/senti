@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "runId": "8b8d9d07-971e-4cb1-8bb9-54dded351e2f",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-28T02:22:07.640Z",
+  "phase": "spec",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "spec-test-coverage",
+      "result": "pass",
+      "reason": "spec phase does not own downstream test-file or runtime evidence",
+      "category": "testing",
+      "title": "Spec Test Coverage",
+      "authority": "mechanical"
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec replaces baseline resolution behavior but does not inventory all affected public surfaces required by migration parity, including APIs, hooks, config entries, generated artifacts, and side effects; it only names the command, allowlist, artifacts, pass/block values, and transition.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[1]"
+          },
+          "observed": "The spec replaces baseline resolution behavior but does not inventory all affected public surfaces required by migration parity, including APIs, hooks, config entries, generated artifacts, and side effects; it only names the command, allowlist, artifacts, pass/block values, and transition.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "68ef6680907b04763fdca5b262db3430e83c4b4de8193f114302ca37daa66ac4",
+      "fingerprint": "68ef6680907b04763fdca5b262db3430e83c4b4de8193f114302ca37daa66ac4",
+      "disposition": "must-fix",
+      "rationale": "The spec replaces baseline resolution behavior but does not inventory all affected public surfaces required by migration parity, including APIs, hooks, config entries, generated artifacts, and side effects; it only names the command, allowlist, artifacts, pass/block values, and transition.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-28T02:22:07.640Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "migration-parity",
+      "result": "fail",
+      "reason": "The spec states that the scenario-validity public contract is retained, but does not map each retained behavior to its new owner or explicitly mark it as removed.",
+      "category": "process",
+      "title": "Migration Parity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "overview.decisions[1]"
+          },
+          "observed": "The spec states that the scenario-validity public contract is retained, but does not map each retained behavior to its new owner or explicitly mark it as removed.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "findingId": "68ef6680907b04763fdca5b262db3430e83c4b4de8193f114302ca37daa66ac4",
+      "fingerprint": "68ef6680907b04763fdca5b262db3430e83c4b4de8193f114302ca37daa66ac4",
+      "disposition": "must-fix",
+      "rationale": "The spec states that the scenario-validity public contract is retained, but does not map each retained behavior to its new owner or explicitly mark it as removed.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-28T02:22:07.640Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[1]"
+      },
+      "observed": "The spec replaces baseline resolution behavior but does not inventory all affected public surfaces required by migration parity, including APIs, hooks, config entries, generated artifacts, and side effects; it only names the command, allowlist, artifacts, pass/block values, and transition.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "6728bfbbb6a950523b0d43b04eae6f6fb50fc00f5553137422ad6960acb95956",
+      "fingerprint": "6728bfbbb6a950523b0d43b04eae6f6fb50fc00f5553137422ad6960acb95956",
+      "disposition": "must-fix",
+      "rationale": "The spec replaces baseline resolution behavior but does not inventory all affected public surfaces required by migration parity, including APIs, hooks, config entries, generated artifacts, and side effects; it only names the command, allowlist, artifacts, pass/block values, and transition.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-28T02:22:07.640Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "migration-parity",
+      "where": {
+        "file": "spec.json",
+        "locator": "overview.decisions[1]"
+      },
+      "observed": "The spec states that the scenario-validity public contract is retained, but does not map each retained behavior to its new owner or explicitly mark it as removed.",
+      "severity": "blocking",
+      "refs": [
+        "migration-parity"
+      ],
+      "result": "fail",
+      "guardrail_id": "migration-parity",
+      "category": "guardrail",
+      "findingId": "6728bfbbb6a950523b0d43b04eae6f6fb50fc00f5553137422ad6960acb95956",
+      "fingerprint": "6728bfbbb6a950523b0d43b04eae6f6fb50fc00f5553137422ad6960acb95956",
+      "disposition": "must-fix",
+      "rationale": "The spec states that the scenario-validity public contract is retained, but does not map each retained behavior to its new owner or explicitly mark it as removed.",
+      "requirementId": null,
+      "guardrailId": "migration-parity",
+      "reportedAt": "2026-07-28T02:22:07.640Z",
+      "repeatCount": 1
+    }
+  ]
+}

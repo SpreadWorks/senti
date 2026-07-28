@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "663359cdbb8b83f7cba46ad736e347416464e72a7f9f0fa9c9ea3d7db7dbabdd",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-28T05:44:34.226Z",
+  "items": [
+    {
+      "findingId": "82558c4d97616a6fe7b1db62f9ba905c33c54855da859bdec05b2d2b4f50fc89",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "Rejected: scenario-validity preflight deliberately compares only src/, tests/, package.json, and .senti/config.json. The generated spec, flow state, and hook snapshot are outside that set, so capturing the immutable Git baseline before prepare-owned artifacts cannot classify those artifacts as implementation changes. The production prepare path uses the same ordering; moving a HEAD-based capture after uncommitted writes would not change its commit authority.",
+      "evidenceRefs": [
+        "impl-review.json#82558c4d97616a6fe7b1db62f9ba905c33c54855da859bdec05b2d2b4f50fc89",
+        "src/flow/lib/run-scenario-validity.js#buildScenarioValidityDiffArgs",
+        "src/flow/lib/run-prepare-spec.js#writeFlowState"
+      ]
+    }
+  ]
+}

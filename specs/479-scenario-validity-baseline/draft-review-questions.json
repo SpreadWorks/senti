@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-28T02:13:34.984Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 2 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q1 embeds implementation instruction",
+      "target": "q1",
+      "rationale": "Rephrase as: `Should scenario-validity ignore base-branch commits that were not introduced by the current flow?`",
+      "evidence": "The shown question includes an instruction/answer framing instead of only question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. q2 embeds implementation instruction",
+      "target": "q2",
+      "rationale": "Rephrase as: `Should scenario-validity fail closed when baseline authority is missing, inconsistent, ambiguous, or has multiple merge bases?`",
+      "evidence": "The shown question includes implementation requirements and constraint instructions instead of only question text.",
+      "classification": "repair_target"
+    }
+  ],
+  "taskId": null,
+  "treeSha": "bc69aa6c539744b7a3c4b4d07a4922d1a336b8e0",
+  "targetStateDigest": "696eed9af8ab541716664fc369127dcd1182d83f7c23470101fa2b042363a6ba"
+}

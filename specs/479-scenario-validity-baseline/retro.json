@@ -1,0 +1,40 @@
+{
+  "spec": "specs/479-scenario-validity-baseline/spec.json",
+  "date": "2026-07-28T05:46:55.546Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Validate repairBaseline authority before scenario-validity computes its preflight diff: its flow identity, ref, and commit identity must agree with persisted authority; missing, mismatched, ambiguous, or unresolvable authority returns a typed fail-closed error.",
+      "status": "done",
+      "note": "R1: rejects missing, mismatched, unresolvable, and ambiguous baseline authority before diffing"
+    },
+    {
+      "desc": "Compute scenario-validity's committed diff from the validated immutable baseline while retaining detection of staged, unstaged, and untracked production-target changes from the existing allowlist.",
+      "status": "done",
+      "note": "R2: derives production changes from the immutable baseline and retains committed plus worktree detection"
+    },
+    {
+      "desc": "Preserve the scenario-validity public contract: valid runs write the version-1 result artifact and raw log, retain pass/block semantics, and advance pass results to test review.",
+      "status": "done",
+      "note": "R3: writes the version-1 artifact and raw log for pass, then preserves the block contract"
+    },
+    {
+      "desc": "Add unit coverage for advanced-base exclusion, committed/staged/unstaged/untracked current-flow changes, invalid baseline authority, and retained artifact/transition behavior.",
+      "status": "done",
+      "note": "R4: covers advanced-base exclusion, every production change class, invalid authority, and pass transition together"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "663359cdbb8b83f7cba46ad736e347416464e72a7f9f0fa9c9ea3d7db7dbabdd"
+}

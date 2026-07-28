@@ -32,6 +32,7 @@ import {
 } from "../../lib/worktree-flow-binding.js";
 import {
   beginRepairBaselinePublication,
+  captureRepairBaseline,
   completeRepairBaselinePublication,
   recoverRepairBaselinePublications,
   rollbackRepairBaselinePublication,
@@ -795,11 +796,14 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
   const plans = await hookSnapshotFor(root);
   let featureBranch = null;
   if (!noBranch) featureBranch = `feature/${specDirName}`;
+  const runId = `fixture-${Date.now()}`;
+  const repairBaseline = captureRepairBaseline({ root, baseRef: "HEAD", runId });
   const state = {
     spec: `specs/${specDirName}/spec.json`,
     baseBranch: "main",
     featureBranch,
-    runId: `fixture-${Date.now()}`,
+    runId,
+    repairBaseline: repairBaseline.toJSON(),
     steps: [],
     requirements: [],
     tasks: [],

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Validate repairBaseline authority before scenario-validity computes its preflight diff: its flow identity, ref, and commit identity must agree with persisted authority; missing, mismatched, ambiguous, or unresolvable authority returns a typed fail-closed error.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/immutable-baseline.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Compute scenario-validity's committed diff from the validated immutable baseline while retaining detection of staged, unstaged, and untracked production-target changes from the existing allowlist.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/immutable-baseline.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "Preserve the scenario-validity public contract: valid runs write the version-1 result artifact and raw log, retain pass/block semantics, and advance pass results to test review.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/immutable-baseline.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Add unit coverage for advanced-base exclusion, committed/staged/unstaged/untracked current-flow changes, invalid baseline authority, and retained artifact/transition behavior.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/immutable-baseline.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/immutable-baseline.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    }
+  ]
+}

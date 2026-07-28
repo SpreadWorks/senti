@@ -6,6 +6,7 @@ import { listChangedFilesDetailed, runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { DEFAULT_TEST_TIMEOUT_SECONDS } from "./test-regression.js";
+import { RepairStateError, resolveRepairBaselineAuthority } from "./repair-state-identity.js";
 import {
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RESULT_FILE,
@@ -13,6 +14,8 @@ import {
   validateScenarioValidityResult,
 } from "./test-artifacts.js";
 const SCENARIO_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
+
+export { resolveRepairBaselineAuthority as resolveScenarioValidityBaselineAuthority } from "./repair-state-identity.js";
 
 function normalizePath(p) {
   return p.split(path.sep).join("/");
@@ -82,7 +85,7 @@ export function buildScenarioValidityDiffArgs(baseBranch = "main") {
   ];
 }
 
-function listScenarioValidityPreflightFiles({ root, baselineRef }) {
+export function listScenarioValidityPreflightFiles({ root, baselineRef }) {
   const diff = runGit(buildScenarioValidityDiffArgs(baselineRef), { cwd: root });
   if (!diff.ok) throw new Error(`scenario-validity preflight diff failed: ${diff.stderr || diff.stdout}`);
   const diffFiles = diff.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -243,6 +246,7 @@ function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, raw
   const rawLines = [
     "[senti] scenario-validity error",
     `error: ${err?.message || String(err)}`,
+    ...requirements.filter((req) => req.testable !== false).map((req) => `[senti] requirement ${req.id} result invalid_test`),
     "[senti] scenario-validity error end",
   ];
   const range = { start_line: 1, end_line: rawLines.length };
@@ -277,6 +281,14 @@ function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, raw
 }
 
 export default class RunScenarioValidityCommand extends FlowCommand {
+  constructor({ scenarioTestExecutor = runScenarioValidityTestFiles } = {}) {
+    super();
+    if (typeof scenarioTestExecutor !== "function") {
+      throw new Error("scenarioTestExecutor must be a function");
+    }
+    this.scenarioTestExecutor = scenarioTestExecutor;
+  }
+
   async execute(ctx) {
     const { root } = ctx;
     const state = ctx.flowState;
@@ -285,10 +297,10 @@ export default class RunScenarioValidityCommand extends FlowCommand {
     const specId = path.basename(specDir);
     const resultPath = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
     const rawOutputPath = path.join(specDir, SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE);
-    const blockedResult = (message) => Envelope.fail(
+    const blockedResult = (message, code = "SCENARIO_VALIDITY_BLOCKED", details = null) => Envelope.fail(
       "run",
       "scenario-validity",
-      "SCENARIO_VALIDITY_BLOCKED",
+      code,
       message,
       {
         result: "block",
@@ -303,6 +315,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
           artifact_version: "1",
           result: "block",
         },
+        ...(details ? { details } : {}),
         next: null,
       },
     );
@@ -326,7 +339,26 @@ export default class RunScenarioValidityCommand extends FlowCommand {
         : "node --test";
       const rawLines = [];
 
-    const baselineRef = state?.repairBaseline?.ref || state?.baseBranch || "main";
+    let baseline;
+    try {
+      baseline = resolveRepairBaselineAuthority({ root, flowState: state });
+    } catch (error) {
+      if (!(error instanceof RepairStateError)) throw error;
+      writeScenarioValidityFallbackArtifacts({
+        root,
+        specDir,
+        resultPath,
+        rawOutputPath,
+        requirements,
+        command,
+        err: error,
+      });
+      return blockedResult(error.message, "SCENARIO_VALIDITY_BLOCKED", {
+        baselineErrorCode: error.code,
+        ...error.details,
+      });
+    }
+    const baselineRef = baseline.ref;
     const changedFiles = listScenarioValidityPreflightFiles({ root, baselineRef });
     const preflight = validateScenarioValidityPreflightPaths({ specId, changedFiles });
     if (!preflight.ok) {
@@ -370,7 +402,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       || config?.test?.timeout
       || config?.agent?.timeout
       || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
-    const fileRecords = await runScenarioValidityTestFiles({ root, files, timeoutMs });
+    const fileRecords = await this.scenarioTestExecutor({ root, files, timeoutMs });
       const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
       const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
       const scenarioProcess = fileRecords.length === 0

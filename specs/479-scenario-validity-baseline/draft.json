@@ -1,0 +1,79 @@
+{
+  "devType": "bugfix",
+  "goal": "scenario-validity must attribute production-target changes to the current flow and ignore later upstream-only base-branch changes.",
+  "analysis": {
+    "problem": "scenario-validity compares a flow worktree with the moving base-branch tip, so commits merged into the base branch after flow creation can be misclassified as changes made by the flow.",
+    "proposedApproach": "Use the flow's existing immutable, authority-backed baseline for preflight attribution and fail closed when that authority cannot be validated.",
+    "validation": "Unit tests must demonstrate that an advanced base branch contributes no invalid paths; current-flow target changes remain blocked in committed, staged, unstaged, and untracked states; each invalid baseline-authority state returns its explicit error; and a valid immutable-baseline run preserves the target allowlist, writes scenario-validity-result.json and tests/.raw/scenario-validity.log, emits pass/block results, and advances a pass to test review."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "The current preflight diff accepts a baseline reference, but the command falls back to the mutable base branch when immutable authority is absent.",
+      "Flow preparation already records an immutable repair baseline that is published as flow authority.",
+      "The preflight target set is limited to src/, tests/, package.json, and .senti/config.json.",
+      "The Issue requires fail-closed behavior for missing, inconsistent, ambiguous, and multiple-merge-base baseline authority.",
+      "The retained public surface is the flow run scenario-validity preflight: its target allowlist, result artifact path, raw-log path, block/pass result values, and transition to test review remain in place.",
+      "No user-facing command name, hook registration, configuration key, or generated artifact path is removed; run-scenario-validity retains ownership of the preflight and changes only its baseline authority source."
+    ],
+    "decisionPoints": [
+      "The implementation must accept only a repairBaseline whose ref, commit OID, and flow run ID match the persisted flow and its published baseline authority; missing, mismatched, ambiguous, or unresolvable authority is an explicit error.",
+      "The implementation must preserve detection of current-flow committed, staged, unstaged, and untracked changes without attributing later upstream commits to the flow."
+    ],
+    "resolvedByProjectRules": [
+      "The Issue defines one concern and must remain one specification.",
+      "The source code remains dependency-free and uses Node.js built-in modules only.",
+      "The existing production-target allowlist and finalize-time strategy are out of scope."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "The spec must define the authority validation and typed error-contract details.",
+      "The spec must define test fixtures for advanced-base, current-flow change states, and malformed baseline authority."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must replace moving-base comparison with immutable authority-backed attribution for scenario-validity.",
+      "must retain blocking detection for current-flow production-target changes in committed, staged, unstaged, and untracked states.",
+      "must add regression coverage for an advanced base branch, committed/staged/unstaged/untracked current-flow changes, and each invalid baseline-authority state."
+    ],
+    "out": [
+      "must not relax the scenario-validity production-target allowlist.",
+      "must not change repair-fingerprint baseline behavior.",
+      "must not change finalize-time rebase or merge strategy."
+    ]
+  },
+  "impactOnExisting": [
+    "scenario-validity artifacts must keep scenario-validity-result.json version 1, tests/.raw/scenario-validity.log, result values pass/block, requirement-summary classifications, and the existing pass-to-test-review transition contract.",
+    "Existing flows with valid immutable baseline authority must continue without a rebase solely because the base branch advances."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should scenario-validity ignore base-branch commits that were not introduced by the current flow?",
+      "answer": "Yes. scenario-validity must attribute only current-flow production-target changes and must ignore later upstream-only base-branch commits.",
+      "evidence": "Issue #479 Expected Behavior and Acceptance Criteria; autoApprove preflight accepted by the user.",
+      "why": "The Issue identifies the moving base-branch comparison as the false-positive source and explicitly requires upstream-only advancement to be ignored.",
+      "considered": "Comparing against the current base-branch tip was rejected because it attributes unrelated upstream commits to the flow.",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "Should scenario-validity fail closed when baseline authority is missing, inconsistent, ambiguous, or has multiple merge bases?",
+      "answer": "Yes. scenario-validity must return an explicit fail-closed error for missing, inconsistent, ambiguous, or multiple-merge-base baseline authority.",
+      "evidence": "Issue #479 Acceptance Criteria; src/flow/lib/repair-state-identity.js already models single merge-base and authority errors; autoApprove preflight accepted by the user.",
+      "why": "Guessing a baseline could silently misclassify changes, so only validated immutable authority can support the preflight decision.",
+      "considered": "Falling back to a mutable base branch or inferred merge base was rejected because either can reintroduce false attribution.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-28T02:15:43.570Z",
+    "notes": ""
+  }
+}

@@ -110,6 +110,7 @@ import {
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
   readImplRepairLedger,
+  readRejectedImplReviewTriage,
   stampRepairFingerprint,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
@@ -2533,8 +2534,23 @@ export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId 
   }
   const ledger = readImplRepairLedger(specDir);
   const repairDiff = ledger?.entries.at(-1)?.changedPathsDigest || null;
+  const rejectedTriage = taskId === null && latestArtifact.verdict === "REJECTED"
+    ? readRejectedImplReviewTriage(specDir)
+    : null;
+  const rejectedFindingIds = new Set(rejectedTriage?.items.map((item) => item.findingId) || []);
+  const findings = [...obligations.values()].map((finding) => {
+    if (!rejectedFindingIds.has(finding.findingId)) return finding;
+    return {
+      ...finding.toJSON(),
+      reportedAt: finding.reportedAt,
+      explicitDecision: {
+        kind: "allow",
+        findingFingerprint: finding.fingerprint,
+      },
+    };
+  });
   const decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
-    findings: [...obligations.values()],
+    findings,
     issueLogEntries: issueLog?.entries || issueLog || [],
     phase,
     taskId,

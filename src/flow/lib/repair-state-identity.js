@@ -158,6 +158,158 @@ export class ImmutableGitBaseline {
   }
 }
 
+function expectedRepairBaselineRef(runId) {
+  return `refs/senti/flows/${assertSafeRunId(runId)}/baseline`;
+}
+
+function resolveRepairBaselineRef({ root, ref }) {
+  const result = runGit([
+    "rev-parse",
+    "--verify",
+    "--end-of-options",
+    `${ref}^{commit}`,
+  ], { cwd: root });
+  if (!result.ok) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `failed to resolve repair baseline ${ref}: ${result.stderr || result.stdout}`.trim(),
+      { ref },
+    );
+  }
+  return result.stdout.trim().split(/\r?\n/).filter(Boolean);
+}
+
+function resolveRepairBaselineObjectFormat({ root }) {
+  const result = runGit(["rev-parse", "--show-object-format"], { cwd: root });
+  if (!result.ok) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `failed to resolve Git object format: ${result.stderr || result.stdout}`.trim(),
+    );
+  }
+  const objectFormat = result.stdout.trim();
+  if (objectFormat !== "sha1" && objectFormat !== "sha256") {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `unsupported Git object format: ${objectFormat}`,
+    );
+  }
+  return objectFormat;
+}
+
+export function resolveRepairBaselineAuthority({
+  root,
+  flowState,
+  resolveRef = resolveRepairBaselineRef,
+  resolveObjectFormat = resolveRepairBaselineObjectFormat,
+}) {
+  if (!flowState?.repairBaseline) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_REQUIRED",
+      "repair baseline authority is required.",
+    );
+  }
+
+  let baseline;
+  try {
+    baseline = new ImmutableGitBaseline(flowState.repairBaseline);
+  } catch (error) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      `repair baseline authority is invalid: ${error.message}`,
+    );
+  }
+
+  let expectedRef;
+  try {
+    expectedRef = expectedRepairBaselineRef(flowState.runId);
+  } catch (error) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      "repair baseline authority is missing its flow identity.",
+    );
+  }
+  if (baseline.kind !== "git" || baseline.ref !== expectedRef) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      `repair baseline authority does not belong to flow ${flowState.runId}.`,
+      { expectedRef, actualRef: baseline.ref },
+    );
+  }
+
+  let currentObjectFormat;
+  try {
+    currentObjectFormat = resolveObjectFormat({ root });
+  } catch (error) {
+    if (error instanceof RepairStateError) throw error;
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `failed to resolve Git object format: ${error.message}`,
+    );
+  }
+  if (currentObjectFormat !== baseline.objectFormat) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      "repair baseline object format does not match the repository.",
+      { expectedObjectFormat: baseline.objectFormat, actualObjectFormat: currentObjectFormat },
+    );
+  }
+
+  let candidates;
+  try {
+    candidates = resolveRef({ root, ref: baseline.ref });
+  } catch (error) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `repair baseline authority cannot be resolved: ${error.message}`,
+      { ref: baseline.ref },
+    );
+  }
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `repair baseline authority cannot resolve ${baseline.ref}.`,
+      { ref: baseline.ref },
+    );
+  }
+  if (candidates.length !== 1) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AMBIGUOUS",
+      `repair baseline authority resolved ${candidates.length} commits for ${baseline.ref}.`,
+      { ref: baseline.ref, candidateCount: candidates.length },
+    );
+  }
+  if (candidates[0] !== baseline.commitOid) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      `repair baseline ref ${baseline.ref} does not match the persisted commit.`,
+      { ref: baseline.ref, expectedCommit: baseline.commitOid, actualCommit: candidates[0] },
+    );
+  }
+  const tree = runGit([
+    "rev-parse",
+    "--verify",
+    "--end-of-options",
+    `${baseline.commitOid}^{tree}`,
+  ], { cwd: root });
+  if (!tree.ok) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_UNRESOLVABLE",
+      `failed to resolve repair baseline tree for ${baseline.commitOid}: ${tree.stderr || tree.stdout}`.trim(),
+      { commitOid: baseline.commitOid },
+    );
+  }
+  const actualTreeOid = tree.stdout.trim();
+  if (actualTreeOid !== baseline.treeOid) {
+    throw new RepairStateError(
+      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
+      `repair baseline commit ${baseline.commitOid} does not match the persisted tree.`,
+      { commitOid: baseline.commitOid, expectedTree: baseline.treeOid, actualTree: actualTreeOid },
+    );
+  }
+  return baseline;
+}
+
 export class RepairBaselinePublication {
   constructor(input = {}) {
     if (input.version !== 1) throw new Error("repair baseline publication version must be 1");

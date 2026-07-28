@@ -9,6 +9,7 @@ import { setupFlow } from "../helpers/flow-setup.js";
 import { writePromptDispatchStubAgentScript } from "../helpers/stub-agent.js";
 import { buildInitialSteps, buildInitialTaskSteps } from "../../src/lib/flow-helpers.js";
 import { collectFlowLeafIds } from "../../src/flow/definition.js";
+import { captureRepairBaseline } from "../../src/flow/lib/repair-state-identity.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 
 const CMD = path.resolve("src/senti.js");
@@ -260,6 +261,11 @@ function setupFixture(tmp) {
 
   const taskSteps = buildInitialTaskSteps("plan");
   taskSteps[0].status = "in_progress";
+  const repairBaseline = captureRepairBaseline({
+    root: tmp,
+    baseRef: "main",
+    runId: `run-${SPEC_ID}`,
+  });
   setupFlow(tmp, {
     spec: SPEC_PATH,
     runId: `run-${SPEC_ID}`,
@@ -283,6 +289,7 @@ function setupFixture(tmp) {
       summary: null,
     }],
     currentTaskId: "T-1",
+    repairBaseline: repairBaseline.toJSON(),
     metrics: [],
     outbox: [],
   });
