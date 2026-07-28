@@ -418,20 +418,42 @@
           "children": [
             {
               "id": "finalize-commit",
-              "status": "in_progress",
-              "startedAt": "2026-07-28T01:55:52.225Z"
+              "status": "done",
+              "startedAt": "2026-07-28T01:55:52.225Z",
+              "runtimeLog": {
+                "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+                "sequence": 336,
+                "attempt": 1,
+                "command": "flow run finalize-commit",
+                "startedAt": "2026-07-28T01:56:07.447Z",
+                "endedAt": "2026-07-28T01:56:08.603Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-merge",
-              "status": "pending"
+              "status": "done",
+              "finishedAt": "2026-07-28T01:56:25.182Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-07-28T01:56:32.230Z",
+              "finishedAt": "2026-07-28T01:59:19.886Z",
+              "runtimeLog": {
+                "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-07-28T01:56:38.165Z",
+                "endedAt": "2026-07-28T01:59:19.981Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-07-28T01:59:19.886Z"
             }
           ]
         }
@@ -2483,6 +2505,48 @@
       "attempt": 1,
       "startedAt": "2026-07-28T01:56:07.487Z",
       "updatedAt": "2026-07-28T01:56:07.487Z"
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:7883a5ce-5978-4501-ae94-876f71228a1f:flow:finalize-merge:finalize-merge",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "taskId": null,
+      "stepId": "finalize-merge",
+      "operation": "finalize-merge",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-28T01:56:24.938Z",
+      "updatedAt": "2026-07-28T01:56:25.256Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "ed86ad5f1492520442b62e74bcea96f1e5b5eec8"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:7883a5ce-5978-4501-ae94-876f71228a1f:flow:finalize-sync:finalize-sync",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-07-28T01:56:38.205Z",
+      "updatedAt": "2026-07-28T01:59:19.959Z",
+      "result": {
+        "status": "skipped",
+        "message": "nothing to commit"
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:7883a5ce-5978-4501-ae94-876f71228a1f:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "7883a5ce-5978-4501-ae94-876f71228a1f",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-28T01:59:34.693Z",
+      "updatedAt": "2026-07-28T01:59:35.525Z"
     }
   ],
   "issue": 478,
@@ -10120,6 +10184,8 @@
     "updatedAt": "2026-07-28T01:46:09.597Z"
   },
   "state": {
-    "finalizedAt": "2026-07-28T01:56:07.779Z"
+    "finalizedAt": "2026-07-28T01:56:07.779Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "ed86ad5f1492520442b62e74bcea96f1e5b5eec8"
   }
 }
