@@ -70,10 +70,8 @@ describe("upgrade agent instruction files", () => {
     assert.match(output, /CLAUDE\.md/);
     assertRefreshed(fs.readFileSync(join(tmp, "AGENTS.md"), "utf8"));
     assertRefreshed(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"));
-    const hooks = JSON.parse(fs.readFileSync(join(tmp, ".codex/hooks.json"), "utf8"));
-    assert.equal(hooks.hooks.Stop.length, 1);
-    assert.match(hooks.hooks.Stop[0].hooks[0].command, /senti-flow-final-response-guard\.mjs/);
-    assert.ok(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")));
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks.json")), false);
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")), false);
   });
 
   it("reports pending agent file refreshes in dry-run without writing", () => {
@@ -86,6 +84,30 @@ describe("upgrade agent instruction files", () => {
     assert.match(output, /DRY-RUN/);
     assert.match(output, /CLAUDE\.md/);
     assert.equal(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"), before);
+  });
+
+  it("removes the legacy Flow hook while preserving project-owned hooks", () => {
+    tmp = createTmpDir("senti-upgrade-agent-hook-cleanup-");
+    setupProject(tmp);
+    writeJson(tmp, ".codex/hooks.json", {
+      hooks: {
+        Stop: [
+          { hooks: [{ type: "command", command: "node project-stop.mjs" }] },
+          { hooks: [{ type: "command", command: "node .codex/hooks/senti-flow-final-response-guard.mjs" }] },
+        ],
+      },
+    });
+    writeFile(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs", "legacy\n");
+
+    const output = runUpgrade(tmp);
+
+    assert.match(output, /removed legacy agent-host Flow hook artifacts/);
+    assert.deepEqual(JSON.parse(fs.readFileSync(join(tmp, ".codex/hooks.json"), "utf8")), {
+      hooks: {
+        Stop: [{ hooks: [{ type: "command", command: "node project-stop.mjs" }] }],
+      },
+    });
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")), false);
   });
 
   it("refreshes legacy agents.sdd blocks without rewriting project-owned content", () => {

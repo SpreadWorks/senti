@@ -439,7 +439,6 @@ export async function dispatch({
       entry.deferTargetNotFound === true
       && targetResolutionError.code === "FLOW_TARGET_NOT_FOUND"
     )
-    && entry.targetMismatchResolution !== "execute"
   ) {
     const failureCode = targetResolutionError.code === "FLOW_TARGET_NOT_FOUND"
       && entry.targetNotFoundAsMismatch === true
@@ -454,7 +453,7 @@ export async function dispatch({
     ));
     return;
   }
-  const targetMismatch = entry.targetGuard === false || entry.targetMismatchResolution === "execute"
+  const targetMismatch = entry.targetGuard === false
     ? null
     : buildHookCtx
       ? targetMismatchEnvelopeForInput({

@@ -36,7 +36,7 @@ import { normalizeSentiGitignore } from "./lib/gitignore.js";
 import { normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
 import { DEFAULT_SCAN_POLICY, FileTreeWalker } from "./lib/file-tree-walker.js";
-import { deployCodexFlowGuardHook } from "./lib/codex-flow-guard-hook.js";
+import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.js";
 
 class RenameRule {
   constructor(from, to) {
@@ -518,7 +518,7 @@ async function main() {
 
   const summary = {
     skills: { updated: 0, unchanged: 0, removed: 0 },
-    codexHook: { updated: 0, unchanged: 0 },
+    legacyAgentArtifacts: { removed: 0, unchanged: 0 },
     presets: { copied: 0 },
     agentFiles: { updated: 0, unchanged: 0, missing: 0 },
     plugins: { changed: false },
@@ -648,11 +648,13 @@ async function main() {
   }
 
   try {
-    const codexHook = deployCodexFlowGuardHook(root, { dryRun });
-    summary.codexHook[codexHook.hookStatus] += 1;
-    summary.codexHook[codexHook.configStatus] += 1;
-    if (codexHook.hookStatus === "updated" || codexHook.configStatus === "updated") {
-      logger.log("[upgrade] installed Codex final-response Flow guard");
+    const cleanup = removeLegacyAgentArtifacts(root, { dryRun });
+    const removed = Number(cleanup.removedHandler) + Number(cleanup.updatedConfig);
+    if (removed > 0) {
+      summary.legacyAgentArtifacts.removed += removed;
+      logger.log("[upgrade] removed legacy agent-host Flow hook artifacts");
+    } else {
+      summary.legacyAgentArtifacts.unchanged += 1;
     }
   } catch (e) {
     logger.error(`upgrade failed: ${e.message}`);
@@ -663,7 +665,7 @@ async function main() {
       dryRun,
       exitCode: EXIT_ERROR,
       result: "failed",
-      summary: { ...summary, error: `Codex Flow guard deployment failed: ${e.message}` },
+      summary: { ...summary, error: `legacy agent artifact cleanup failed: ${e.message}` },
       rawOutput: logger.rawOutput(),
     });
     process.exit(EXIT_ERROR);
@@ -717,7 +719,7 @@ async function main() {
   const hasChanges = renameChanges.length > 0
     || skillResults.some((r) => r.status === "updated")
     || removedSkills.length > 0
-    || summary.codexHook.updated > 0
+    || summary.legacyAgentArtifacts.removed > 0
     || summary.agentFiles.updated > 0
     || configChanged
     || summary.plugins.changed;

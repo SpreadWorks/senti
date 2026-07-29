@@ -52,6 +52,74 @@ describe("Agent.call() — basic invocation", () => {
     assert.match(result, /appended/);
   });
 
+  it("injects an explicit repository-local execution directory for a worker call", () => {
+    const root = tmpDir();
+    const executionWorkDir = path.join(root, "worker");
+    fs.mkdirSync(executionWorkDir);
+    const agent = makeAgent(
+      {
+        command: "worker",
+        args: ["exec", "{{PROMPT}}"],
+        workDirFlag: "--cwd",
+      },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") } },
+    );
+
+    const invocation = agent._buildInvocationForTest("work", {
+      commandId: "test",
+      executionWorkDir,
+    });
+
+    assert.deepEqual(invocation.finalArgs, ["exec", "--cwd", executionWorkDir, "work"]);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects an execution directory outside the repository before spawning", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agent = makeAgent(
+      { command: "echo", args: ["{{PROMPT}}"] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") } },
+    );
+
+    await assert.rejects(
+      agent.call("work", {
+        commandId: "test",
+        executionWorkDir: path.dirname(root),
+      }),
+      /executionWorkDir must stay inside/,
+    );
+  });
+
+  it("waits for a provider process group before returning when requested", async (t) => {
+    const root = tmpDir();
+    const marker = path.join(root, "descendant-finished.txt");
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const descendant = [
+      "const fs=require('node:fs');",
+      `setTimeout(()=>{fs.writeFileSync(${JSON.stringify(marker)},'done');},150);`,
+    ].join("");
+    const provider = [
+      "const {spawn}=require('node:child_process');",
+      `const child=spawn(process.execPath,['-e',${JSON.stringify(descendant)}],{stdio:'ignore'});`,
+      "child.unref();",
+      "process.stdout.write('provider returned');",
+    ].join("");
+    const agent = makeAgent(
+      { command: process.execPath, args: ["-e", provider] },
+      { paths: { root, agentWorkDir: path.join(root, ".tmp") } },
+    );
+
+    const result = await agent.call("", {
+      commandId: "test",
+      retryCount: 0,
+      waitForProcessTree: true,
+    });
+
+    assert.equal(result, "provider returned");
+    assert.equal(fs.readFileSync(marker, "utf8"), "done");
+  });
+
   it("throws on failing command", async () => {
     const agent = makeAgent({ command: "node", args: ["-e", "process.exit(1)"] });
     await assert.rejects(agent.call("test", { commandId: "test" }));

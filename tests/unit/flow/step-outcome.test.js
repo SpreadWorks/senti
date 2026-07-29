@@ -467,38 +467,37 @@ describe("typed dispatcher settlement", () => {
 });
 
 describe("flow skill liveness contract", () => {
-  it("re-fetches guarded next-action after command completion instead of blanket stopping", () => {
+  it("delegates non-terminal ownership to the guarded CLI dispatcher", () => {
     const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
     assert.doesNotMatch(skill, /When that limit is reached, STOP/);
     assert.doesNotMatch(skill, /On budget exhaustion, STOP/);
-    assert.match(skill, /re-fetch[^\n]*next-action[^\n]*targetGuardArgs/i);
-    assert.match(skill, /`directive` as the sole execution authority/);
-    assert.match(skill, /`execute_command`/);
-    assert.match(skill, /do not expose raw action IDs/i);
+    assert.match(skill, /senti flow run dispatch <targetGuardArgs>/);
+    assert.match(skill, /only owner of\s+`execute_step`, `execute_command`, and `repair_evidence`/);
+    assert.match(dispatcher, /await agent\.call/);
+    assert.match(dispatcher, /await this\.fetchNextAction/);
+    assert.match(skill, /without exposing raw action IDs/i);
   });
 
   it("forbids ending a turn at an ordinary intermediate step", () => {
     const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
-    assert.match(skill, /One invocation owns the whole Flow continuation/);
-    assert.match(skill, /MUST NOT be used as the final response/);
-    assert.match(skill, /Do not ask the user to invoke `\$senti\.flow` again/);
-    assert.match(skill, /Context compaction, elapsed time, or the amount of work/);
-    assert.match(skill, /A final response is allowed only after/);
+    assert.match(skill, /A worker's text response is diagnostic only/);
+    assert.match(skill, /never accepts that text\s+as step completion/);
+    assert.match(skill, /Do not ask the user to invoke `\$senti\.flow`\s+again/);
+    assert.match(skill, /The loop exits only at a dispatcher boundary/);
   });
 
   it("repairs recoverable evidence only through the single directive", () => {
-    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
-    assert.match(skill, /`repair_evidence`: perform one bounded repair pass/);
-    assert.match(skill, /persisted\s+findings/);
-    assert.match(skill, /refreshes authority before any retry/);
-    assert.match(skill, /Never route directly from the outcome kind/);
+    const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
+    assert.match(dispatcher, /RepairEvidenceDirective/);
+    assert.match(dispatcher, /action\.isContinuation/);
+    assert.match(dispatcher, /independently verifies the refreshed Flow and repository state/);
   });
 
   it("forbids reconstructing authority from subsystem diagnostics", () => {
-    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
-    assert.match(skill, /Fields\s+such as step outcomes and recovery diagnostics explain state only/);
-    assert.match(skill, /missing or invalid `directive` is a CLI contract failure/);
-    assert.match(skill, /reconstructing recovery from `reviewAction`, `retryRecovery`/);
+    const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
+    assert.match(dispatcher, /NextActionDirective\.fromStored/);
+    assert.doesNotMatch(dispatcher, /reviewAction|retryRecovery|gateStop/);
   });
 
   it("keeps mechanical direct recovery out of user choice prompts", () => {
@@ -509,9 +508,10 @@ describe("flow skill liveness contract", () => {
   });
 
   it("prioritizes an agent-owned nonblocking decision over the strict directive", () => {
-    const flowSkill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
     const nonblockingSkill = fs.readFileSync("src/skills/senti.flow-nonblocking/SKILL.md", "utf8");
-    assert.match(flowSkill, /When `nonblockingDecision` is present, invoke `\/senti\.flow-nonblocking` before dispatching the normal directive/);
+    assert.match(dispatcher, /A nonblockingDecision is present/);
+    assert.match(dispatcher, /before the ordinary directive/);
     assert.match(nonblockingSkill, /If `nonblockingDecision` is absent, run the returned normal check action/);
     assert.match(nonblockingSkill, /at most one agent-recoverable guarded recovery\/re-run/);
   });

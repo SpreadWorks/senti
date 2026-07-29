@@ -33,16 +33,11 @@ export class FlowCommand extends Command {
     requiresFlow = true,
     targetGuard = true,
     explicitTargetResolution = false,
-    targetMismatchResolution = "envelope",
   } = {}) {
-    if (!["envelope", "execute"].includes(targetMismatchResolution)) {
-      throw new Error("targetMismatchResolution must be envelope or execute");
-    }
     super();
     this.requiresFlow = requiresFlow;
     this.targetGuard = targetGuard;
     this.explicitTargetResolution = explicitTargetResolution;
-    this.targetMismatchResolution = targetMismatchResolution;
   }
 
   /**
@@ -65,17 +60,11 @@ export class FlowCommand extends Command {
     };
     if (ctx.flowResolutionError) {
       if (ctx.flowResolutionError.code === "ACTIVE_FLOW_MISMATCH") {
-        if (this.targetMismatchResolution === "execute") {
-          return this.execute({ ...ctx, targetMismatch: ctx.flowResolutionError.data });
-        }
         return buildTargetMismatchEnvelope({
           type: input._envelopeType || "run",
           key: input._envelopeKey || "flow",
           data: ctx.flowResolutionError.data,
         });
-      }
-      if (this.targetMismatchResolution === "execute") {
-        return this.execute({ ...ctx, targetResolutionError: ctx.flowResolutionError });
       }
       if (this.requiresFlow) throw ctx.flowResolutionError;
     }
@@ -90,9 +79,6 @@ export class FlowCommand extends Command {
         flowState: ctx.preparingFlowState ?? ctx.flowState,
       });
       if (mismatch) {
-        if (this.targetMismatchResolution === "execute") {
-          return this.execute({ ...ctx, targetMismatch: mismatch.data });
-        }
         return mismatch;
       }
     }

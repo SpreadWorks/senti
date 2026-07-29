@@ -1137,17 +1137,26 @@ export function finalRegressionTestCount(stdout) {
   return 0;
 }
 
-// This covers staged and unstaged tracked-file content without treating flow artifacts as project mutations.
-export function finalRegressionWorktreeFingerprint(root) {
-  const staged = execFileSync("git", ["diff", "--cached", "--no-ext-diff", "--binary", "HEAD"], {
+// This covers staged, unstaged, and untracked content. Callers that own
+// generated state can exclude it with Git pathspecs so telemetry does not
+// masquerade as a product mutation.
+export function finalRegressionWorktreeFingerprint(root, { pathspecExcludes = [] } = {}) {
+  const pathspec = ["--", ".", ...pathspecExcludes];
+  const staged = execFileSync("git", [
+    "diff", "--cached", "--no-ext-diff", "--binary", "HEAD", ...pathspec,
+  ], {
     cwd: root,
     encoding: "utf8",
   });
-  const unstaged = execFileSync("git", ["diff", "--no-ext-diff", "--binary"], {
+  const unstaged = execFileSync("git", [
+    "diff", "--no-ext-diff", "--binary", ...pathspec,
+  ], {
     cwd: root,
     encoding: "utf8",
   });
-  const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "-z"], {
+  const untracked = execFileSync("git", [
+    "ls-files", "--others", "--exclude-standard", "-z", ...pathspec,
+  ], {
     cwd: root,
     encoding: "utf8",
   }).split("\0").filter(Boolean).sort();
@@ -1157,8 +1166,12 @@ export function finalRegressionWorktreeFingerprint(root) {
     .update("\0unstaged\0")
     .update(unstaged);
   for (const relativePath of untracked) {
-    // Flow-managed specs and configuration are created while evidence is recorded.
-    if (relativePath.startsWith("specs/") || relativePath.startsWith(".senti/")) continue;
+    // Preserve the final-regression contract: newly created Flow-managed
+    // directories contribute their path set but not mutable artifact bytes.
+    if (
+      pathspecExcludes.length === 0
+      && (relativePath.startsWith("specs/") || relativePath.startsWith(".senti/"))
+    ) continue;
     const absolutePath = path.join(root, relativePath);
     const stat = fs.lstatSync(absolutePath);
     if (!stat.isFile() || stat.isSymbolicLink()) continue;

@@ -133,6 +133,8 @@ class Agent {
    * @param {Function} [options.onStderr]
    * @param {number}  [options.retryCount=0]
    * @param {number}  [options.retryDelayMs=3000]
+   * @param {string}  [options.executionWorkDir] - Per-call agent execution directory inside the repository
+   * @param {boolean} [options.waitForProcessTree=false] - Wait for the provider process group to become idle
    * @param {"ambient"|"none"} [options.flowAttribution="ambient"]
    * @param {boolean} [options._dryRun] - Test-only short-circuit
    * @returns {Promise<string>} response text (trimmed)
@@ -153,6 +155,8 @@ class Agent {
       throw new Error(attempt.formatFailure());
     }
     ensureWorkDir(this._paths.agentWorkDir);
+    const executionWorkDir = this._resolveExecutionWorkDir(opts.executionWorkDir);
+    ensureWorkDir(executionWorkDir);
 
     const retry = this._normalizeRetryOptionsForTest(opts);
     const cachePolicy = new PromptCachePolicy(opts.cacheMode);
@@ -192,7 +196,12 @@ class Agent {
       profileKey: resolved.profileKey,
       flowAttribution,
       invoke: async () => {
-        cacheCandidate = await this._callOnceWithRetry(resolved, prompt, opts, retry);
+        cacheCandidate = await this._callOnceWithRetry(
+          resolved,
+          prompt,
+          { ...opts, executionWorkDir },
+          retry,
+        );
         return cacheCandidate;
       },
     });
@@ -210,6 +219,17 @@ class Agent {
     const resolved = this.resolve(options.commandId, options);
     if (!resolved) throw new Error("No agent configured.");
     return this._buildInvocation(resolved, prompt, options);
+  }
+
+  _resolveExecutionWorkDir(override) {
+    if (override == null) return this._paths.agentWorkDir;
+    const root = path.resolve(this._paths.root || process.cwd());
+    const resolved = path.resolve(root, String(override));
+    const relative = path.relative(root, resolved);
+    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error("agent executionWorkDir must stay inside the repository root");
+    }
+    return resolved;
   }
 
   _buildPromptCacheKeyMaterialForTest(resolved, prompt, options = {}) {
@@ -298,8 +318,10 @@ class Agent {
     const promptedArgs = substitutePromptToken(baseArgs, effectivePrompt);
 
     const workDirFlag = provider.workDirFlag();
+    const executionWorkDir = options.executionWorkDir
+      || this._resolveExecutionWorkDir(null);
     const workDirInjected = workDirFlag
-      ? injectWorkDirFlag(workDirFlag, this._paths.agentWorkDir, promptedArgs)
+      ? injectWorkDirFlag(workDirFlag, executionWorkDir, promptedArgs)
       : promptedArgs;
 
     const finalArgs = [...prefix, ...workDirInjected, ...schemaSuffix];
@@ -315,7 +337,7 @@ class Agent {
     // Stdin fallback: route the prompt via stdin instead of CLI args.
     const strippedArgs = stripPromptArgs(baseArgs);
     const strippedFinal = workDirFlag
-      ? injectWorkDirFlag(workDirFlag, this._paths.agentWorkDir, strippedArgs)
+      ? injectWorkDirFlag(workDirFlag, executionWorkDir, strippedArgs)
       : strippedArgs;
     return {
       finalArgs: [...prefix, ...strippedFinal, ...schemaSuffix],
@@ -396,6 +418,7 @@ class Agent {
           platform,
           runTaskkill: this._supervision.runTaskkill,
           onEvent: options.onSupervisorEvent,
+          waitForProcessTree: options.waitForProcessTree === true,
         });
 
         supervisor.wait().then(({ code, signal }) => {
@@ -503,7 +526,16 @@ class UnterminatedProcessMember {
 }
 
 class ChildProcessSupervisor {
-  constructor({ child, timeoutMs, graceMs, exitDrainMs = DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS, platform = process.platform, runTaskkill, onEvent }) {
+  constructor({
+    child,
+    timeoutMs,
+    graceMs,
+    exitDrainMs = DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS,
+    platform = process.platform,
+    runTaskkill,
+    onEvent,
+    waitForProcessTree = false,
+  }) {
     if (!child || typeof child.on !== "function") throw new Error("child must be a ChildProcess");
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
     if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
@@ -515,6 +547,7 @@ class ChildProcessSupervisor {
     this.platform = platform;
     this.runTaskkill = runTaskkill || runWindowsTaskkill;
     this.onEvent = typeof onEvent === "function" ? onEvent : null;
+    this.waitForProcessTree = waitForProcessTree === true;
     this.deadlineTimer = null;
     this.graceTimer = null;
     this.treeDeathPollTimer = null;
@@ -548,6 +581,10 @@ class ChildProcessSupervisor {
     this.directChildClosed = true;
     this._emit({ type: "close", code, signal });
     if (!this.timeoutOwned) {
+      if (this.waitForProcessTree && this.platform !== "win32") {
+        this._waitForSuccessfulPosixTreeDeath(code, signal);
+        return;
+      }
       this._settleClose(code, signal);
       return;
     }
@@ -560,6 +597,14 @@ class ChildProcessSupervisor {
     this._emit({ type: "exit", code, signal });
     if (this.timeoutOwned) {
       this._trySettleTimedOutChild();
+      return;
+    }
+    if (this.waitForProcessTree) {
+      if (this.platform !== "win32") {
+        this._waitForSuccessfulPosixTreeDeath(code, signal);
+      }
+      // On Windows, `close` is the only built-in signal that inherited
+      // provider handles are no longer keeping the process tree active.
       return;
     }
     // A descendant can inherit stdout/stderr and prevent ChildProcess's
@@ -582,6 +627,8 @@ class ChildProcessSupervisor {
   _handleTimeout() {
     if (this.settled || this.timeoutOwned) return;
     this.timeoutOwned = true;
+    if (this.treeDeathPollTimer) clearTimeout(this.treeDeathPollTimer);
+    this.treeDeathPollTimer = null;
     this._emit({ type: "timeout" });
     if (this.platform === "win32") {
       this._signalDirectChild("SIGTERM");
@@ -699,6 +746,21 @@ class ChildProcessSupervisor {
       if (this._isPosixTreeDead()) {
         this._markPosixTreeDead();
         this._trySettleTimedOutChild();
+        return;
+      }
+      this.treeDeathPollTimer = setTimeout(poll, PROCESS_DEATH_POLL_MS);
+    };
+    poll();
+  }
+
+  _waitForSuccessfulPosixTreeDeath(code, signal) {
+    if (this.settled || this.timeoutOwned || this.treeDeathPollTimer) return;
+    const poll = () => {
+      this.treeDeathPollTimer = null;
+      if (this.settled || this.timeoutOwned) return;
+      if (this._isPosixTreeDead()) {
+        this._markPosixTreeDead();
+        this._settleClose(code, signal);
         return;
       }
       this.treeDeathPollTimer = setTimeout(poll, PROCESS_DEATH_POLL_MS);

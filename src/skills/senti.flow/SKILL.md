@@ -171,155 +171,78 @@ Note:
 
 ### C. Dispatcher loop
 
-Repeat until the loop exit condition is met. The loop is bounded by the finite flow schema and the returned `maxAttempts`; stop if the dispatcher cannot make progress within the remaining step count.
+Run `senti flow run dispatch <targetGuardArgs>` as the only owner of
+`execute_step`, `execute_command`, and `repair_evidence` directives. Do not
+manually dispatch those directives outside this command. The command invokes
+the configured agent abstraction, not an agent-host hook, and verifies the
+durable Flow and repository state after every worker finishes.
 
-#### Turn completion contract
+The command is strictly serial: one worker and every review/gate/test command
+it starts must finish in the foreground before the dispatcher refreshes
+`next-action`. A long-running command is not “no progress.” Do not start a
+second review while the first process is running.
 
-- One invocation owns the whole Flow continuation, not only the current step.
-  An `ok: true` next action with `requires_approval: false` MUST be executed in
-  the same turn.
-- `autoApprove: true` also satisfies ordinary `requires_approval: true`
-  boundaries as defined below. Continue fetching and executing actions after
-  that boundary.
-- A progress summary such as “draft gate passed” or “current step: spec” is
-  commentary only. It MUST NOT be used as the final response and MUST NOT end
-  the turn.
-- Do not ask the user to invoke `$senti.flow` again merely to advance to the
-  next normal step. Context compaction, elapsed time, or the amount of work
-  remaining are not loop exit conditions.
-- A final response is allowed only after the documented loop exit condition:
-  Flow completion, a real user decision, a concrete non-recoverable blocker,
-  state corruption, or a true/unrecovered target mismatch. A corrected
-  read-only runId transcription error is not a loop exit condition.
-- **Final-response guard:** immediately before returning a final response, run
-  `senti flow get final-response-guard <targetGuardArgs>`. A
-  `FLOW_CONTINUATION_REQUIRED` result rejects the final attempt; dispatch its
-  returned directive in this invocation. Only a successful guard result may
-  end the turn. Do not treat target-resolution errors other than the guard's
-  explicit `target_mismatch` result as permission to end the turn.
+The CLI owns the guarded refresh equivalent to
+`senti flow get next-action <targetGuardArgs>`. CLI-provided worker
+instructions remain target-bound when they use
+`senti flow get context ... <targetGuardArgs>`,
+`senti flow get prompt ... <targetGuardArgs>`, or
+`senti flow set step <current-step> done <targetGuardArgs>`. If a
+target-sensitive command cannot accept `targetGuardArgs`, STOP instead of
+running an unguarded substitute. Manual step completion is never a substitute
+for the dispatcher's verified continuation.
 
-C.1. **Ask the CLI for the next action**
-   - If `targetRunId` is known, run `senti flow get next-action <targetGuardArgs>`.
-   - If `targetRunId` is not known, first establish an exact target from the user's intent using target-aware status. Bare `senti flow get next-action` is allowed only when the current context has been verified as the intended single active flow; if another active flow exists or the target is ambiguous, STOP and ask for the Issue/spec/runId.
-   - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
-   - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
-   - Otherwise, consume `directive` as the sole execution authority. Fields
-     such as step outcomes and recovery diagnostics explain state only; they
-     MUST NOT be interpreted as competing next actions.
-   - When `nonblockingDecision` is present, invoke `/senti.flow-nonblocking` before dispatching the normal directive. The decision is agent-owned: inspect the returned evidence, then record the single digest-guarded repair, retry, or continue command without a user-facing choice. The ordinary directive describes the strict route and is not an additional decision while this evidence is pending. Do not offer or start direct mode after nonblocking is enabled.
-   - Dispatch the directive by its typed kind:
-     1. `execute_step`: execute `instructions.content`, then re-fetch guarded
-        `next-action`.
-     2. `execute_command`: execute the directive's exact `nextAction`
-        immediately, then re-fetch guarded `next-action`. This includes bounded
-        tooling retry, audited retry recovery, and durable transaction replay.
-        It is not a user decision and MUST NOT be displayed as a choice.
-     3. `repair_evidence`: perform one bounded repair pass using the persisted
-        findings and the named `evidenceKind` / `phase`. Keep all edits inside
-        the managed worktree. Then execute the directive's guarded
-        `nextAction`, which refreshes authority before any retry. If the repair
-        requires a product decision not established by the request, project
-        rules, or persisted evidence, stop and ask only that concrete decision.
-        - For `REPAIR_FINALIZE_MERGE_REBASE`, resolve the managed-worktree
-          rebase named by the directive, complete it, and refresh
-          `next-action`. Do not consume a `finalize-merge` recovery by rerunning
-          it before that rebase target is an ancestor of the feature HEAD. This
-          is an agent-owned Git repair, never a user instruction and never a
-          reason to enable/disable nonblocking or start Direct Flow.
-    4. `await_user_decision`: explain the concrete situation and materially
-        different outcomes in the user's language. Translate and reword text
-        for clarity; do not expose raw action IDs, commands, impact arrays,
-        state-transition names, or internal class names unless diagnostics
-        were requested. Present every materially different choice in the
-        standard numbered format, put the recommendation first, and wait for
-        the user's number or localized label. Map the answer to the current
-        choice's exact action and re-fetch afterward.
-        - A prompt with the two choices `KEEP_STRICT_FLOW` and
-          `ENABLE_NONBLOCKING` appears only after normal strict recovery has
-          stopped on an eligible acceptance-backed checkpoint with a durable
-          non-pass artifact. This includes review/gate checkpoints throughout
-          planning and implementation, scenario/test verification, task
-          review/gate, retro, acceptance, and final regression. It is the only
-          manual mode-selection point: do not offer advisory continuation
-          earlier and do not offer direct mode here.
-        - If the user chooses advisory continuation, record a concise bounded
-          reason and run `senti flow set policy nonblocking --reason "<reason>"
-          <targetGuardArgs>`, then re-fetch guarded `next-action`. The policy
-          is one-way; a failed policy command or stale target is blocking and
-          must follow its returned continuation.
-        - If the user keeps strict recovery, leave the Flow unchanged, report
-          the original strict blocker, and exit the loop. Do not synthesize a
-          retry, a no-op refresh loop, or a mode-selection prompt.
-     5. `blocked`: report `reason` and `resumeInstruction` as the concrete
-        non-recoverable blocker. Do not offer status inspection, normal/direct
-        mode selection, retry, keep-state, or another `$senti.flow` invocation
-        unless the refreshed CLI returns one as an executable directive.
-     6. `completed`, `aborted`, or `idle`: exit the loop and report the terminal
-        state.
-   - A missing or invalid `directive` is a CLI contract failure. STOP instead
-     of reconstructing recovery from `reviewAction`, `retryRecovery`,
-     `gateStop`, `continuation`, `actionPrompt`, process exit status, or prose.
-   - Transition into direct mode, adopt/reconcile an already-merged result, risk acceptance, deletion, orphan handling, and force actions always require explicit user selection. `autoApprove` never selects them. When direct mode is selected, use the `senti.flow-direct` dispatcher rules and continue to preserve this skill's bound target guards.
+Handle the returned `data.dispatch.boundary`:
 
-C.1.5. **Auto-upgrade check (spec 232)**
-   - Run this check only for `directive.kind: "execute_step"`.
-   - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
-     ```
-     ──────────────────────────────────────────────────────────
-       Auto mode is available. Switch now?
-     ──────────────────────────────────────────────────────────
+1. `approval_required`: explain the current step and wait for explicit user
+   approval. Retain `approvalToken` privately. After approval, run
+   `senti flow run dispatch --approve <approvalToken> <targetGuardArgs>`.
+   The CLI binds the token to the exact guarded action and continues in the
+   same process. A stale token is not permission to execute anything.
+2. `auto_upgrade_decision`: present the standard auto-mode choice. If the user
+   explicitly selects auto, run `senti flow set auto on <targetGuardArgs>`;
+   otherwise run `senti flow set auto off <targetGuardArgs>`. Immediately
+   resume `senti flow run dispatch <targetGuardArgs>` in the same turn.
+3. `await_user_decision`: explain every materially different choice in the
+   user's language without exposing raw action IDs or commands. Wait for the
+   user's choice, execute only its current exact action, then immediately
+   resume `senti flow run dispatch <targetGuardArgs>`. Transition into direct
+   mode, adoption/reconciliation, risk acceptance, deletion, orphan handling,
+   and force actions always require explicit user selection. When direct mode
+   is selected, follow `senti.flow-direct`.
+   - For `KEEP_STRICT_FLOW`, leave the Flow unchanged and report the strict
+     blocker.
+   - For `ENABLE_NONBLOCKING`, record the bounded reason with
+     `senti flow set policy nonblocking --reason "<reason>"`
+     plus `targetGuardArgs`, then resume dispatch.
+4. `blocked`: report the returned reason and resume instruction as the concrete
+   blocker. `FLOW_DISPATCH_AGENT_FAILED`, `FLOW_DISPATCH_STALLED`, and
+   `FLOW_DISPATCH_LIMIT_REACHED` are failures, not progress summaries and not
+   permission to mark a step complete manually.
+   - `FLOW_DISPATCH_BUSY` means another live dispatcher owns this Flow. Wait
+     for that invocation to finish; never start a replacement review.
+   - `FLOW_DISPATCH_LOCK_STALE` fails closed because the former dispatcher may
+     have left a detached worker running. Verify that the complete prior
+     process tree has ended before explicit lease recovery; never delete or
+     reclaim the lease merely because no new artifact has appeared.
+5. `completed`, `aborted`, or `idle`: report the terminal state.
+6. `target_mismatch`, or a top-level `ACTIVE_FLOW_MISMATCH` /
+   `FLOW_TARGET_NOT_FOUND` returned before dispatch acquires the target: exit
+   only when the exact guarded target genuinely no longer exists. Ambiguity,
+   state corruption, and a corrected read-only runId transcription error are
+   not successful completion.
 
-       [1] Switch to auto — continue without confirmations
-       [2] Stay manual — keep normal per-step confirmations
-
-     ```
-   - If `[1]`: run `senti flow set auto on <targetGuardArgs>` when `targetRunId` is known. Without a known `targetRunId`, run bare `senti flow set auto on` only after C.1 verified the current context is the intended single active flow. On success, update `autoApprove` to `true` for subsequent steps.
-   - If `[2]`: run `senti flow set auto off <targetGuardArgs>` when `targetRunId` is known. Without a known `targetRunId`, run bare `senti flow set auto off` only after C.1 verified the current context is the intended single active flow. The `autoDesired` flag is cleared and no further upgrade prompts will appear.
-   - This check runs at most once per flow (the CLI clears `autoUpgrade` after `set auto on/off` via the trust path).
-
-C.2. **Execute instructions**
-   - Treat `instructions.content` as the authoritative procedure for this step. Follow it exactly.
-   - Before running any `instructions.content` command that reads or mutates active flow state, preserve target binding by appending `targetGuardArgs` when available. This applies to:
-     - `senti flow get next-action`, `senti flow get context ...`, `senti flow get prompt ...` commands that read active flow state such as `plan.approval`, and `senti flow get qa-count`.
-     - `senti flow run ...` commands that operate on the active flow target, including gate, review, impl/finalize commands, reopen-draft, task commands, lint, retro, final-regression, acceptance-review, and report.
-     - `senti flow set ...` commands that mutate active flow state, including step, request, issue, note, summary, req, files, broad, metric, approval, issue-log, retry, acceptance-decision, and auto.
-   - If a target-sensitive instruction contains a bare `senti flow ...` command and the command cannot accept `targetGuardArgs`, STOP rather than running it. Report the CLI target-binding gap instead of relying on cwd or bare active-flow selection.
-   - Fetch any additional context the instructions request via `senti flow get context ... <targetGuardArgs>` / `senti flow get guardrail <phase>`. `get guardrail` is static and does not select an active flow.
-   - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). A command reaching that limit must persist a typed terminal `StepAttempt`; do not infer the terminal action from the old envelope or process exit status.
-   - When the current step's work is finished, advance step status:
-      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — run target-sensitive commands with `targetGuardArgs`; the hook handles the transition, so do nothing further.
-      - **`flow run review`**:
-        - Draft review routes:
-
-          | Review step | Triage step | Repair step |
-          |---|---|---|
-          | `draft-questions-review` | `draft-questions-triage` | `draft-questions-repair` |
-          | `draft-coverage-review` | `draft-coverage-triage` | `draft-coverage-repair` |
-
-        - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / REJECTED enter the route's triage step. Triage records disposition, repair records mutation audit, and draft-gate performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
-        - `spec-review` records detection output via post hook. PASS / ADVISORY complete review, while REJECTED completes review and advances to `spec-triage`.
-        - `test-review` records one-shot static test review artifacts. PASS and ADVISORY complete `test-review`; REJECTED leaves it open for a test-design fix; TOOLING_ERROR leaves it open without consuming semantic review retry. After explicit nonblocking activation, a continued stop always leaves an acceptance handoff: semantic findings retain their canonical source, while a verification/tooling stop receives a typed handoff source. It remains unresolved until acceptance records its final disposition. Follow the single returned `directive`; register finalized independent evidence only when its repair instruction requires it, and never substitute a completion override for canonical review evidence.
-        - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
-      - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
-      - Otherwise, manually record completion: `senti flow set step <current-step> done <targetGuardArgs>`.
-   - After every instruction command completes, including a command with a non-zero exit status, re-fetch `next-action` with `targetGuardArgs` before deciding whether to continue or stop. The previously fetched action is stale after command and post-hook completion.
-   - Treat `lastStepOutcome` as durable diagnostics only. The refreshed
-     `directive` has already reconciled that outcome with review, gate, and
-     recovery authority. Never route directly from the outcome kind, command
-     exit status, errors, or prose.
-   - State corruption or a true/unrecovered target mismatch stops the loop
-     without another mutating command. A narrowly recoverable status runId
-     transcription error follows the Core Principle contract and retries only
-     that read-only status command.
-
-C.3. **Loop**
-   - Return to C.1 using the guarded re-fetch above. Never reuse the pre-command next-action envelope.
+A corrected read-only runId transcription error is not a loop exit condition.
+A worker's text response is diagnostic only. The CLI never accepts that text
+as step completion; it refreshes the exact target and continues while a
+non-terminal directive remains. Do not ask the user to invoke `$senti.flow`
+again merely to advance a normal step.
 
 ### Loop exit condition
 
-The loop exits when the guarded refreshed next-action returns a terminal
-`directive` (`completed`, `aborted`, `idle`, or `blocked`), a real
-`await_user_decision`, state corruption, or a true/unrecovered target mismatch.
+The loop exits only at a dispatcher boundary described above: a terminal
+directive, real user decision or approval, concrete dispatcher/Flow blocker,
+state corruption, or true/unrecovered target mismatch.
 If `targetRunId`
 is known, use `senti flow get status <targetRunId> <targetGuardArgs>` for final
 readback; the positional runId selects the flow, and `--expect-run-id` validates
@@ -425,6 +348,7 @@ senti flow set issue-log --step <id> --reason "<text>" [--trigger "<text>"] [--r
 senti flow set retry reset <gate|review> <phase> --reason <text> --yes
 # Retry recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
 senti flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
+senti flow run dispatch --expect-run-id <runId> [--approve <approvalToken>]
 senti flow run gate [--phase <draft|spec|task-spec|task-impl|integration>] [--agent-work-dir <path>]
 senti flow run review [--phase <draft|spec|test|impl>] [--agent-work-dir <path>]
 senti flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>]

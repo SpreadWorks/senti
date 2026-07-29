@@ -878,22 +878,6 @@ export const FLOW_COMMANDS = {
         "is defined by the command itself and verified by its unit tests.",
       ].join("\n"),
     },
-    "final-response-guard": {
-      helpKey: "flow.get.final-response-guard",
-      requiresFlow: false,
-      explicitTargetResolution: true,
-      targetNotFoundAsMismatch: true,
-      targetMismatchResolution: "execute",
-      command: () => import("./lib/final-response-guard.js"),
-      args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: [
-        "Usage: senti flow get final-response-guard [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
-        "",
-        "Host integration boundary: call immediately before emitting an agent final response.",
-        "A non-terminal directive returns FLOW_CONTINUATION_REQUIRED with the exact continuation.",
-        "A user decision, terminal Flow state, idle state, or true target mismatch permits final output.",
-      ].join("\n"),
-    },
     context: {
       helpKey: "flow.get.context",
       command: () => import("./lib/get-context.js"),
@@ -1141,6 +1125,30 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    dispatch: {
+      helpKey: "flow.run.dispatch",
+      requiresFlow: true,
+      explicitTargetResolution: true,
+      targetNotFoundAsMismatch: true,
+      command: () => import("./lib/run-dispatch.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: withTargetGuardOptions(["--approve", "--agent-work-dir"]),
+      },
+      help: [
+        "Usage: senti flow run dispatch --expect-run-id <runId> [--approve <token>] [--agent-work-dir <path>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>]",
+        "",
+        "Own the active Flow continuation inside one CLI process. Non-terminal",
+        "directives are executed serially through the configured Agent service;",
+        "the command returns only for approval, a user decision, a terminal",
+        "directive, a concrete blocker, or a true target mismatch.",
+        "",
+        "Options:",
+        "  --approve <token>  Resume the exact approval boundary returned by a prior dispatch.",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     direct: {
       helpKey: "flow.run.direct",
       requiresFlow: false,
