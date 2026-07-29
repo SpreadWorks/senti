@@ -514,7 +514,19 @@
     }
   ],
   "currentTaskId": null,
-  "outbox": [],
+  "outbox": [
+    {
+      "idempotencyKey": "flow-outbox-v1:22f4c1a1-248e-4e7c-a739-ac19cc4cf858:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 1,
+      "startedAt": "2026-07-29T13:35:56.177Z",
+      "updatedAt": "2026-07-29T13:35:56.241Z"
+    }
+  ],
   "issue": 481,
   "request": "Goal: Restore canonical upgrade-evidence recovery after stale test evidence invalidation.\nScope: Regenerate or safely reuse current-fingerprint upgrade evidence before impl-gate when upgrade-required source changes remain; record the decision and cover recovery cases. Preserve fail-closed handling of stale, missing, or malformed evidence.\nOut of scope: Relaxing upgrade-required detection, fail-open artifact handling, or repair manifest and ledger continuity handled by Issue #458.\nDescription: The stale recovery path deletes upgrade-result.json and its raw log, but no canonical owner recreates them before impl-gate. The flow must recover without requiring users to run senti upgrade manually, while avoiding unnecessary upgrades for changes that do not require one.",
   "notes": [
@@ -18763,7 +18775,7 @@
   ],
   "directFlowSession": {
     "phase": "MERGE_ONLY_FINALIZE",
-    "revision": 11,
+    "revision": 12,
     "target": {
       "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
       "issue": 481,
@@ -18782,7 +18794,7 @@
     "adoptedActionId": "SELECT_DIRECT_FIX",
     "requestedScopePaths": [],
     "selectedAt": "2026-07-29T13:34:40.219Z",
-    "updatedAt": "2026-07-29T13:35:49.695Z",
+    "updatedAt": "2026-07-29T13:35:55.440Z",
     "planId": "direct-plan-f0d9543270d526500f4ac187",
     "planRevision": 2,
     "implementationProof": {
@@ -19151,12 +19163,12 @@
     "verificationAttempts": 1,
     "suspendedFrom": null,
     "completion": {
-      "status": "pending-merge",
+      "status": "prepared",
       "completionMode": "direct",
       "success": null,
       "mergeDisposition": "merged",
-      "receiptId": null,
-      "integrationReceiptId": "direct-integration-cd6541a093486249d8b0f970eb9164c6",
+      "receiptId": "direct-completion-1fcb940e0bfff43fad75fb82e1b53cef",
+      "integrationReceiptId": null,
       "reason": null,
       "recordedAt": null,
       "completedAt": null
@@ -19235,7 +19247,7 @@
   "directIntegrationReceipt": {
     "version": 1,
     "receiptId": "direct-integration-cd6541a093486249d8b0f970eb9164c6",
-    "status": "pending",
+    "status": "merged",
     "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
     "issue": 481,
     "spec": "specs/481-upgrade-evidence-recovery/spec.json",
@@ -19243,10 +19255,295 @@
     "planRevision": 2,
     "strategy": "squash",
     "mergeDisposition": "merged",
-    "featureHead": "84d6decc0da0ceeffaae72822f6386da8b232108",
-    "mainHead": null,
+    "featureHead": "1a41fedeaea401fb3c32ec1a8b7358fadbe7c289",
+    "mainHead": "f1490ba894fd227c580febf8a0322215585a5aa9",
     "idempotencyKey": "direct-merge-cd6541a093486249d8b0f970eb9164c6",
     "createdAt": "2026-07-29T13:35:49.695Z",
-    "integratedAt": null
+    "integratedAt": "2026-07-29T13:35:55.296Z"
+  },
+  "directCompletionReceipt": {
+    "version": 1,
+    "receiptId": "direct-completion-1fcb940e0bfff43fad75fb82e1b53cef",
+    "status": "prepared",
+    "completionMode": "direct",
+    "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+    "issue": 481,
+    "spec": "specs/481-upgrade-evidence-recovery/spec.json",
+    "planId": "direct-plan-f0d9543270d526500f4ac187",
+    "planRevision": 2,
+    "mergeDisposition": "merged",
+    "sourceStep": "impl-review",
+    "gitEvidence": {
+      "kind": "integration-receipt",
+      "featureHead": "1a41fedeaea401fb3c32ec1a8b7358fadbe7c289",
+      "mainHead": "f1490ba894fd227c580febf8a0322215585a5aa9",
+      "receiptKey": "direct-integration-cd6541a093486249d8b0f970eb9164c6",
+      "receiptCommit": "f1490ba894fd227c580febf8a0322215585a5aa9",
+      "observedAt": "2026-07-29T13:35:55.324Z"
+    },
+    "skippedSteps": [
+      {
+        "stepId": "impl-review",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "impl-triage",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "impl-gate",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "retro",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "acceptance-review",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "final-regression",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "report",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "finalize-commit",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "finalize-merge",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "finalize-sync",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      },
+      {
+        "stepId": "finalize-cleanup",
+        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+      }
+    ],
+    "minimalValidation": {
+      "status": "passed",
+      "testStatus": "passed",
+      "testCommand": "node --test specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js",
+      "checks": [
+        {
+          "id": "target-identity",
+          "passed": true,
+          "detail": "runId, Issue, spec, and branch identity match the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "origin-flow-revision",
+          "passed": true,
+          "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+          "overrideable": false
+        },
+        {
+          "id": "direct-plan-cas",
+          "passed": true,
+          "detail": "Direct session and plan revisions match.",
+          "overrideable": false
+        },
+        {
+          "id": "worktree-binding",
+          "passed": true,
+          "detail": "Managed worktree binding matches the handoff revision.",
+          "overrideable": false
+        },
+        {
+          "id": "active-registry-cas",
+          "passed": true,
+          "detail": "Active Flow registry revision matches the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "feature-history",
+          "passed": true,
+          "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+          "overrideable": false
+        },
+        {
+          "id": "git-conflicts",
+          "passed": true,
+          "detail": "No unresolved Git conflicts exist.",
+          "overrideable": false
+        },
+        {
+          "id": "change-scope",
+          "passed": true,
+          "detail": "All changed paths are inside the persisted direct scope.",
+          "overrideable": false
+        },
+        {
+          "id": "merge-target-operation",
+          "passed": true,
+          "detail": "No prohibited Git operation is in progress on the merge target.",
+          "overrideable": false
+        },
+        {
+          "id": "implementation-readiness",
+          "passed": true,
+          "detail": "Implementation completion evidence matches the exact verified change set.",
+          "overrideable": false
+        },
+        {
+          "id": "deterministic-tests",
+          "passed": true,
+          "detail": "Deterministic test command exited successfully.",
+          "overrideable": true
+        }
+      ],
+      "changedPaths": [
+        "specs/481-upgrade-evidence-recovery/plugin-artifacts/workflow/prepare.json",
+        "specs/481-upgrade-evidence-recovery/spec.json",
+        "specs/481-upgrade-evidence-recovery/task-impl-gate-source.json",
+        "specs/481-upgrade-evidence-recovery/tasks/T-1.md",
+        "specs/481-upgrade-evidence-recovery/tasks/T-2.md",
+        "specs/481-upgrade-evidence-recovery/tasks/T-3.md",
+        "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js",
+        "src/flow/lib/repair-state-identity.js",
+        "src/flow/lib/run-gate.js",
+        "src/flow/lib/run-retro.js",
+        "src/flow/lib/run-review.js",
+        "src/flow/lib/stale-test-evidence-refresh.js",
+        "src/flow/lib/test-artifacts.js",
+        "src/flow/lib/upgrade-evidence-paths.js",
+        "src/flow/registry.js",
+        "tests/unit/flow/gate-phase-inference.test.js",
+        "tests/unit/flow/repair-state-identity.test.js",
+        "tests/unit/flow/run-retro-no-missing-requirements.test.js",
+        "tests/unit/flow/run-review-advisory.test.js",
+        "tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "tests/unit/flow/upgrade-required-changed-paths.test.js"
+      ],
+      "pathFingerprints": [
+        {
+          "path": "specs/481-upgrade-evidence-recovery/plugin-artifacts/workflow/prepare.json",
+          "kind": "file",
+          "digest": "443ba6eeecca6f5ce0f3bfe6a3fb377ab0b359f055510ff6b3cb20e7c4f944f4"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/spec.json",
+          "kind": "file",
+          "digest": "792ae30d717a286a8b77a60513e675ebf5313613907e0e3cf3cef227094a4051"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/task-impl-gate-source.json",
+          "kind": "file",
+          "digest": "d023a2942e1a3e4c29bd4a670ccf3b81d239006b299f4ddbe372a93e66c13c9d"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/tasks/T-1.md",
+          "kind": "file",
+          "digest": "2e118f76e8c19b6eb6c6fee3a5136a8a4a3e596572008070e55e624165249f37"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/tasks/T-2.md",
+          "kind": "file",
+          "digest": "8d4ace0172c2015bf05e1f9f6981f79a64f7e269ba3b189584033ddccaa4e133"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/tasks/T-3.md",
+          "kind": "file",
+          "digest": "374b4f558df57ed4b05ac4379894e41cc4c7328a6929f9863c7a16aaf725b639"
+        },
+        {
+          "path": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js",
+          "kind": "file",
+          "digest": "f789631de885c2dfd63ebeaf13726f3502354ef4af268c1dce2543460915a5e1"
+        },
+        {
+          "path": "src/flow/lib/repair-state-identity.js",
+          "kind": "file",
+          "digest": "06bc13199dfc68e3695e66437cc5415e52224ac52f553973d9a02babf6747789"
+        },
+        {
+          "path": "src/flow/lib/run-gate.js",
+          "kind": "file",
+          "digest": "9bda26cce7978bd44095fb001fa5f5d088b05b4fb24efd092475b4cbe1764ae6"
+        },
+        {
+          "path": "src/flow/lib/run-retro.js",
+          "kind": "file",
+          "digest": "97970782182dd444ed2c93473a960deff0cef58d1d3ac491c5cdd7cb3926450c"
+        },
+        {
+          "path": "src/flow/lib/run-review.js",
+          "kind": "file",
+          "digest": "8a98b0cc31e2b3188771464e6bcca29cda53d0ec489368996646871282f62e65"
+        },
+        {
+          "path": "src/flow/lib/stale-test-evidence-refresh.js",
+          "kind": "file",
+          "digest": "61a2f5242fbc002ad85c3836ab8908eddd2c22c8e48660742fc3e4a781934e3b"
+        },
+        {
+          "path": "src/flow/lib/test-artifacts.js",
+          "kind": "file",
+          "digest": "bb2bd43f54e35a4214d62678ef571db74977e7b3885ec353448d47a3bf217783"
+        },
+        {
+          "path": "src/flow/lib/upgrade-evidence-paths.js",
+          "kind": "file",
+          "digest": "cfc1c51e236abf33fe3268b92ad406a49784d4fd569ec1925330f14a29818050"
+        },
+        {
+          "path": "src/flow/registry.js",
+          "kind": "file",
+          "digest": "0c035790c32d4dc625a19818acd2c245c6586e942d7046fb381e252d9e3a7a35"
+        },
+        {
+          "path": "tests/unit/flow/gate-phase-inference.test.js",
+          "kind": "file",
+          "digest": "ed178967b0c63437a7986f3364385f6766c795a49d9b52dff0608702c94a386d"
+        },
+        {
+          "path": "tests/unit/flow/repair-state-identity.test.js",
+          "kind": "file",
+          "digest": "b0ca69c46026c59974eef3268b1586aaabb5dd37eb0c14b8f7934b56fc2a8b1b"
+        },
+        {
+          "path": "tests/unit/flow/run-retro-no-missing-requirements.test.js",
+          "kind": "file",
+          "digest": "7aa867435479e612fad91b24d52fb17f323798efa68f61a2891deda93f8fa36c"
+        },
+        {
+          "path": "tests/unit/flow/run-review-advisory.test.js",
+          "kind": "file",
+          "digest": "339eb871faa428ad11e559f97fb932541945a3bdfa98e581f53c766d1a3ec19b"
+        },
+        {
+          "path": "tests/unit/flow/stale-test-evidence-refresh.test.js",
+          "kind": "file",
+          "digest": "4762430e2630dd3725ff9618a96629b1b24c7c5d768f636c86f2fd3f9e4e780e"
+        },
+        {
+          "path": "tests/unit/flow/upgrade-required-changed-paths.test.js",
+          "kind": "file",
+          "digest": "d97a4b161ab84a0ceddd31e8594df87e3e561ffc84928c0f3686434399d2c46b"
+        }
+      ],
+      "featureHead": "84d6decc0da0ceeffaae72822f6386da8b232108",
+      "riskAccepted": false,
+      "riskReason": null,
+      "verifiedAt": "2026-07-29T13:35:49.253Z"
+    },
+    "cleanupDisposition": "remove",
+    "retainedWorktree": null,
+    "preparedAt": "2026-07-29T13:35:55.325Z",
+    "reconciledAt": null,
+    "completedAt": null,
+    "externalUpdateKey": "direct-external-update-1fcb940e0bfff43fad75fb82e1b53cef",
+    "summary": "Direct completion direct-completion-1fcb940e0bfff43fad75fb82e1b53cef; mode=direct; merge=merged; sourceStep=impl-review; cleanup=remove; verification=passed; skipped=impl-review,impl-triage,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup"
+  },
+  "state": {
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "1a41fedeaea401fb3c32ec1a8b7358fadbe7c289"
   }
 }
