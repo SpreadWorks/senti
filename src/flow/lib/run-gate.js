@@ -112,6 +112,7 @@ import {
   assertRepairFingerprint,
   buildRepairFingerprint,
   ensureRepairFingerprintContract,
+  ImplRepairTargetIdentity,
   readImplRepairLedger,
   readRejectedImplReviewTriage,
   stampRepairFingerprint,
@@ -266,11 +267,7 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
   let fingerprint = buildRepairFingerprint({ root, specPath, state });
-  const target = {
-    runId: state.runId,
-    issue: Number(state.issue),
-    spec: specPath,
-  };
+  const target = ImplRepairTargetIdentity.fromState(state);
   const artifacts = new Map();
   let identityProbeError = null;
   try {

@@ -12,6 +12,7 @@ import {
   ArtifactCompletionMechanicalFailure,
   ArtifactCompletionSuccess,
 } from "./artifact-completion.js";
+import { ImplRepairTargetIdentity } from "./impl-repair-artifacts.js";
 import {
   UPGRADE_RAW_OUTPUT_RELATIVE,
   UPGRADE_RECOVERY_AUDIT_FILE,
@@ -186,21 +187,6 @@ function sameJsonValue(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function validateUpgradeRecoveryTarget(target) {
-  if (!target || typeof target !== "object" || Array.isArray(target)) {
-    throw new Error("recoveryAuthority.target must be an object");
-  }
-  if (typeof target.runId !== "string" || target.runId.length === 0) {
-    throw new Error("recoveryAuthority.target.runId must be a non-empty string");
-  }
-  if (!Number.isInteger(target.issue)) {
-    throw new Error("recoveryAuthority.target.issue must be an integer");
-  }
-  if (typeof target.spec !== "string" || target.spec.length === 0) {
-    throw new Error("recoveryAuthority.target.spec must be a non-empty string");
-  }
-}
-
 export class UpgradeEvidenceAuthority {
   constructor(authority) {
     if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
@@ -212,7 +198,6 @@ export class UpgradeEvidenceAuthority {
     if (!REPAIR_FINGERPRINT_PATTERN.test(authority.rawLogDigest || "")) {
       throw new Error("recoveryAuthority.rawLogDigest must be a 64-character SHA-256 digest");
     }
-    validateUpgradeRecoveryTarget(authority.target);
     if (
       authority.recoveryDecision != null
       && !UPGRADE_RECOVERY_DECISIONS.has(authority.recoveryDecision)
@@ -221,7 +206,9 @@ export class UpgradeEvidenceAuthority {
     }
     this.fingerprint = authority.fingerprint;
     this.rawLogDigest = authority.rawLogDigest;
-    this.target = authority.target;
+    this.target = authority.target instanceof ImplRepairTargetIdentity
+      ? authority.target
+      : new ImplRepairTargetIdentity(authority.target);
     this.recoveryDecision = authority.recoveryDecision ?? null;
     Object.freeze(this);
   }
@@ -230,7 +217,7 @@ export class UpgradeEvidenceAuthority {
     if (currentFingerprint != null && this.fingerprint !== currentFingerprint) {
       throw new Error("upgrade recovery authority fingerprint mismatch");
     }
-    if (target != null && !sameJsonValue(this.target, target)) {
+    if (target != null && !this.target.equals(target)) {
       throw new Error("upgrade recovery authority target mismatch");
     }
   }
@@ -381,7 +368,6 @@ function readUpgradeRecoveryAuthority(specDir) {
   if (!REPAIR_FINGERPRINT_PATTERN.test(audit.currentFingerprint || "")) {
     throw new Error(`${UPGRADE_RECOVERY_AUDIT_FILE} currentFingerprint must be a 64-character SHA-256 digest`);
   }
-  validateUpgradeRecoveryTarget(audit.target);
   const recoveryDecision = UPGRADE_AUTHORITY_RECOVERY_DECISIONS.has(audit.decision)
     ? audit.decision
     : null;
@@ -406,11 +392,12 @@ export class UpgradeEvidenceRecovery {
     if (!REPAIR_FINGERPRINT_PATTERN.test(currentFingerprint || "")) {
       throw new Error("UpgradeEvidenceRecovery requires currentFingerprint");
     }
-    validateUpgradeRecoveryTarget(target);
     this.specDir = specDir;
     this.currentFingerprint = currentFingerprint;
     this.currentRequiredPaths = matchUpgradeRequiredSourcePaths(currentRequiredPaths);
-    this.target = target;
+    this.target = target instanceof ImplRepairTargetIdentity
+      ? target
+      : new ImplRepairTargetIdentity(target);
     this.nextActiveStep = "impl-gate";
     this.auditArtifactPath = path.join(specDir, UPGRADE_RECOVERY_AUDIT_FILE);
     Object.freeze(this);
@@ -529,7 +516,7 @@ export class UpgradeEvidenceRecovery {
       action,
       reason,
       currentFingerprint,
-      target: this.target,
+      target: this.target.toJSON(),
       checkedPaths,
       artifactPaths,
       ...(rawLogDigest && { rawLogDigest }),
