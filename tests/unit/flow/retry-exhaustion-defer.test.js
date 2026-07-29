@@ -314,6 +314,33 @@ test("canonical semantic exhaustion recovers a flow-level review with an active 
   );
 });
 
+test("review retry exhaustion does not defer a source artifact bound to a stale target", () => {
+  const fixture = prepareSpecRoot();
+  writeJson(fixture.specDir, "test-review.json", {
+    verdict: "REJECTED",
+    treeSha: "a".repeat(40),
+    targetStateDigest: "b".repeat(64),
+    blockingFindings: [semanticFinding("stale-semantic")],
+  });
+  const updates = [];
+  const result = checkReviewRetryBelowMax({
+    root: fixture.root,
+    flowState: flowStateAt("test-review", {
+      spec: fixture.specPath,
+      metrics: retryMetrics("reviewRetry", "test"),
+    }),
+    flowManager: fakeFlowManager(updates),
+  }, "test", {
+    treeSha: "c".repeat(40),
+    targetStateDigest: "d".repeat(64),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, "REVIEW_MAX_ATTEMPTS_EXCEEDED");
+  assert.deepEqual(updates, []);
+  assert.equal(fs.existsSync(path.join(fixture.specDir, "flow-findings.json")), false);
+});
+
 test("flow-level review post hook counts exhaustion despite an active task cursor", () => {
   const fixture = prepareSpecRoot();
   writeJson(fixture.specDir, "test-review.json", {

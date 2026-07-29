@@ -1122,19 +1122,41 @@ function readFinalRegressionManifest(rawText) {
   };
 }
 
-export function finalRegressionTestCount(stdout) {
-  const text = String(stdout || "");
-  const patterns = [
-    /(?:^|\n)\s*1\.\.(\d+)(?:\s|$)/,
-    /(?:^|\n)\s*# tests\s+(\d+)(?:\s|$)/m,
-    /Tests:\s*(\d+)\s+(?:passed|total)/i,
-    /(?:^|\n)\s*(\d+)\s+passing(?:\s|$)/m,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) return Number.parseInt(match[1], 10);
+class FinalRegressionTestSummary {
+  static #ANSI_ESCAPE_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/g;
+
+  static #REPORTER_PATTERNS = Object.freeze([
+    /^\s*1\.\.(\d+)\s*$/,
+    /^\s*#\s*tests\s+(\d+)\s*$/i,
+    /^\s*ℹ\s*tests\s+(\d+)\s*$/i,
+    /^\s*Tests:\s*(\d+)\s+(?:passed|total)\b/i,
+    /^\s*(\d+)\s+passing\b/i,
+  ]);
+
+  constructor(testCount) {
+    if (!Number.isSafeInteger(testCount) || testCount < 0) {
+      throw new Error("final regression test count must be a non-negative safe integer");
+    }
+    this.testCount = testCount;
+    Object.freeze(this);
   }
-  return 0;
+
+  static parse(stdout) {
+    const lines = String(stdout || "")
+      .replace(FinalRegressionTestSummary.#ANSI_ESCAPE_PATTERN, "")
+      .split(/\r?\n/);
+    for (const pattern of FinalRegressionTestSummary.#REPORTER_PATTERNS) {
+      for (let index = lines.length - 1; index >= 0; index -= 1) {
+        const match = lines[index].match(pattern);
+        if (match) return new FinalRegressionTestSummary(Number.parseInt(match[1], 10));
+      }
+    }
+    return new FinalRegressionTestSummary(0);
+  }
+}
+
+export function finalRegressionTestCount(stdout) {
+  return FinalRegressionTestSummary.parse(stdout).testCount;
 }
 
 // This covers staged, unstaged, and untracked content. Callers that own

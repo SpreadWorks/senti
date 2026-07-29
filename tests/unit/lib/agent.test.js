@@ -46,6 +46,12 @@ describe("Agent.call() — basic invocation", () => {
     assert.equal(result, "test-prompt");
   });
 
+  it("preserves replacement syntax as literal prompt content", async () => {
+    const agent = makeAgent({ command: "echo", args: ["{{PROMPT}}"] });
+    const result = await agent.call("literal $& and $1 content", { commandId: "test" });
+    assert.equal(result, "literal $& and $1 content");
+  });
+
   it("appends prompt when no {{PROMPT}} token", async () => {
     const agent = makeAgent({ command: "echo", args: ["-n"] });
     const result = await agent.call("appended", { commandId: "test" });

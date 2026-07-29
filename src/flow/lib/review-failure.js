@@ -4,6 +4,8 @@
  * Review failure taxonomy and recovery state helpers.
  */
 
+import { reviewPhaseForFlowStepId } from "./review-route.js";
+
 export const REVIEW_FAILURE_MARKER_PREFIX = "SENTI_REVIEW_FAILURE ";
 
 const CLASSIFICATIONS = Object.freeze([
@@ -20,15 +22,6 @@ const MARKER_CLASSIFICATIONS = Object.freeze([
   "input_size_failure",
   "schema_failure",
 ]);
-
-const REVIEW_PHASE_BY_STEP_ID = Object.freeze({
-  "draft-questions-review": "draft-questions",
-  "draft-coverage-review": "draft-coverage",
-  "spec-review": "spec",
-  "test-review": "test",
-  "impl-review": "impl",
-  "task-review": "impl",
-});
 
 function requireString(value, name) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -53,7 +46,7 @@ function retryReviewCommand(phase) {
 }
 
 export function reviewPhaseForStepId(stepId) {
-  return REVIEW_PHASE_BY_STEP_ID[stepId] || null;
+  return stepId === "task-review" ? "impl" : reviewPhaseForFlowStepId(stepId);
 }
 
 function matchesInputSizeFailure(text) {

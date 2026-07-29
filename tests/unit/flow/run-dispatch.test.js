@@ -98,6 +98,9 @@ function context(state, overrides = {}) {
       loadReadOnly() {
         return structuredClone(state);
       },
+      mutate(callback) {
+        callback(state);
+      },
     },
     _envelopeType: "run",
     _envelopeKey: "dispatch",
@@ -201,6 +204,53 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(resumed.dispatch.boundary, "completed");
     assert.equal(resumed.dispatch.dispatchCount, 1);
     assert.equal(calls, 1);
+    assert.equal(state.flowDispatchApprovals.length, 1);
+    assert.equal(state.flowDispatchApprovals[0].approvalToken, first.dispatch.approvalToken);
+  });
+
+  it("reuses a durable exact approval after a worker failure", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "approval-retry" };
+    const current = {
+      value: {
+        ...REVIEW_ACTION,
+        step: "approval",
+        requires_approval: true,
+      },
+    };
+    const first = await command({
+      current,
+      state,
+      agent: { async call() {} },
+    }).execute(context(state));
+    let calls = 0;
+    const failed = await command({
+      current,
+      state,
+      agent: {
+        async call(prompt) {
+          calls += 1;
+          assert.match(prompt, /durably recorded explicit user approval/);
+          throw new Error("provider unavailable after approval");
+        },
+      },
+    }).execute(context(state, { approve: first.dispatch.approvalToken }));
+    assert.equal(failed.ok, false);
+    assert.equal(failed.errors[0].code, "FLOW_DISPATCH_AGENT_FAILED");
+    assert.equal(state.flowDispatchApprovals.length, 1);
+
+    const resumed = await command({
+      current,
+      state,
+      agent: {
+        async call(prompt) {
+          calls += 1;
+          assert.match(prompt, /durably recorded explicit user approval/);
+          current.value = COMPLETED_ACTION;
+        },
+      },
+    }).execute(context(state));
+    assert.equal(resumed.dispatch.boundary, "completed");
+    assert.equal(calls, 2);
   });
 
   it("rejects stale approval without invoking the worker", async () => {
@@ -289,6 +339,30 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(result.errors[0].code, "FLOW_DISPATCH_STALLED");
     assert.equal(result.data.dispatch.boundary, "blocked");
     assert.equal(result.data.dispatch.dispatchCount, 2);
+    assert.equal(calls, 2);
+  });
+
+  it("treats changing diagnostics on the same route as a bounded stall", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "same-content" };
+    const current = { value: structuredClone(REPAIR_ACTION) };
+    let calls = 0;
+    const result = await command({
+      current,
+      state,
+      maxStalledDispatches: 2,
+      agent: {
+        async call() {
+          calls += 1;
+          current.value.lastStepAttempt = {
+            attempt: calls,
+            recordedAt: `2026-07-29T00:00:0${calls}.000Z`,
+          };
+        },
+      },
+    }).execute(context(state));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_DISPATCH_STALLED");
     assert.equal(calls, 2);
   });
 

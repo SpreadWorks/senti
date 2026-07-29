@@ -115,6 +115,16 @@ const REVIEW_PHASE_NODE_MAP = {
 const DRAFT_QA_RULES_PARTIAL_PATH = path.join(PKG_DIR, "flow", "prompts", "partials", "draft-qa-rules.md");
 let cachedDraftQaRulesPartial = null;
 
+class ReviewArtifactWritePolicy {
+  constructor({ enabled }) {
+    if (typeof enabled !== "boolean") throw new Error("review artifact write policy enabled must be boolean");
+    this.enabled = enabled;
+    Object.freeze(this);
+  }
+}
+
+let reviewArtifactWritePolicy = new ReviewArtifactWritePolicy({ enabled: true });
+
 function getReviewMaxAttempts(phase, attemptContext) {
   const nodeId = REVIEW_PHASE_NODE_MAP[phase];
   if (!nodeId) throw new Error(`unsupported review maxAttempts phase: ${phase}`);
@@ -540,7 +550,9 @@ function filterProposalsByScope(proposals, touchedFiles) {
 function writeReviewMd(root, flow, results) {
   const specDir = path.dirname(path.resolve(root, flow.spec));
   const reviewPath = path.join(specDir, "review.md");
-  fs.writeFileSync(reviewPath, formatReviewMd(results));
+  if (reviewArtifactWritePolicy.enabled) {
+    fs.writeFileSync(reviewPath, formatReviewMd(results));
+  }
   return reviewPath;
 }
 
@@ -1245,7 +1257,11 @@ async function runImplReviewWithPersistence({
     })),
     ...artifactJson.nonBlockingImprovements.map((finding) => ({ ...finding, decision: "reject" })),
   ];
-  if (triageFindings.length > 0 && !taskSpec) {
+  if (
+    reviewArtifactWritePolicy.enabled
+    && triageFindings.length > 0
+    && !taskSpec
+  ) {
     prepareImplTriageArtifact({
       specDir,
       sourceStep: "impl-review",
@@ -1548,7 +1564,7 @@ function proposalSuccessPayload(proposals) {
 }
 
 function persistLoopFinalArtifacts({ specDir, proposals, requirementIds }) {
-  if (!specDir) return;
+  if (!specDir || !reviewArtifactWritePolicy.enabled) return;
   const jsonText = loopProposalsToImplReviewJson(proposals, requirementIds);
   fs.writeFileSync(path.join(specDir, "impl-review.json"), `${jsonText}\n`);
   fs.writeFileSync(path.join(specDir, "review.md"), formatImplReviewMd(new ImplReviewArtifact(JSON.parse(jsonText))));
@@ -1781,6 +1797,9 @@ function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
 }
 
 async function runSingleShotImplReviewWithDependencies({ specDir, reviewText }) {
+  if (!reviewArtifactWritePolicy.enabled) {
+    return { changed: ["review.md", "impl-review.json"] };
+  }
   fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(path.join(specDir, "impl-review.json"), `${reviewText}\n`);
   fs.writeFileSync(path.join(specDir, "review.md"), "# Code Review Results\n\n");
@@ -1788,6 +1807,9 @@ async function runSingleShotImplReviewWithDependencies({ specDir, reviewText }) 
 }
 
 async function runNonImplReviewWithDependencies({ phase, specDir, reviewText }) {
+  if (!reviewArtifactWritePolicy.enabled) {
+    return { changed: [`${phase}-review.json`] };
+  }
   fs.mkdirSync(specDir, { recursive: true });
   const basename = `${phase}-review.json`;
   fs.writeFileSync(path.join(specDir, basename), `${reviewText}\n`);
@@ -2687,7 +2709,7 @@ function formatTestReviewMd(reviewArtifact) {
 
 function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact }) {
   const reviewDir = path.resolve(root, specDir);
-  fs.mkdirSync(reviewDir, { recursive: true });
+  if (reviewArtifactWritePolicy.enabled) fs.mkdirSync(reviewDir, { recursive: true });
   const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
   const reviewJsonPath = path.join(reviewDir, TEST_REVIEW_JSON_FILE);
   const reviewMdPath = path.join(reviewDir, "test-review.md");
@@ -2726,7 +2748,7 @@ function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtif
 
 function writeTestCoverageArtifact({ root, specDir, coverageArtifact }) {
   const reviewDir = path.resolve(root, specDir);
-  fs.mkdirSync(reviewDir, { recursive: true });
+  if (reviewArtifactWritePolicy.enabled) fs.mkdirSync(reviewDir, { recursive: true });
   const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
   writeJsonArtifact(coveragePath, coverageArtifact);
   return path.relative(root, coveragePath).split(path.sep).join("/");
@@ -3806,7 +3828,9 @@ function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
 }
 
 function writeJsonArtifact(filePath, artifact) {
-  fs.writeFileSync(filePath, JSON.stringify(artifact, null, 2) + "\n");
+  if (reviewArtifactWritePolicy.enabled) {
+    fs.writeFileSync(filePath, JSON.stringify(artifact, null, 2) + "\n");
+  }
 }
 
 function reviewHistoryAttemptNumber(specDir, phase) {
@@ -3893,7 +3917,7 @@ export function writeReviewAttemptHistory({ specDir, phase, latestBasename, arti
   const attempt = attemptNumber || reviewHistoryAttemptNumber(specDir, phase);
   const ext = latestBasename.endsWith(".md") ? "md" : "json";
   const historyDir = path.join(specDir, "review-history");
-  fs.mkdirSync(historyDir, { recursive: true });
+  if (reviewArtifactWritePolicy.enabled) fs.mkdirSync(historyDir, { recursive: true });
   const latestPath = path.join(specDir, latestBasename);
   const historyPath = path.join(historyDir, `${phase}-attempt-${String(attempt).padStart(3, "0")}.${ext}`);
   const normalizedHistoryPath = path.join(historyDir, `${phase}-attempt-${String(attempt).padStart(3, "0")}.json`);
@@ -3911,8 +3935,10 @@ export function writeReviewAttemptHistory({ specDir, phase, latestBasename, arti
     return { latestPath, historyPath, historyJsonPath: historyPath, normalizedHistoryPath: historyPath };
   }
   const text = content == null ? "" : String(content);
-  fs.writeFileSync(latestPath, text);
-  fs.writeFileSync(historyPath, text);
+  if (reviewArtifactWritePolicy.enabled) {
+    fs.writeFileSync(latestPath, text);
+    fs.writeFileSync(historyPath, text);
+  }
   writeJsonArtifact(normalizedHistoryPath, {
     version: 1,
     phase,
@@ -4008,6 +4034,7 @@ async function runReview(rawArgs) {
     options: ["--phase", "--task-spec"],
     defaults: { dryRun: false, skipConfirm: false, phase: null, taskSpec: null },
   });
+  reviewArtifactWritePolicy = new ReviewArtifactWritePolicy({ enabled: !cli.dryRun });
 
   if (cli.help) {
     const phaseDesc = Object.entries(REVIEW_PHASES).map(([k, v]) => `'${k}' for ${v}`).join(", ");
@@ -4116,7 +4143,11 @@ async function runReview(rawArgs) {
   const requirementIds = resolveRequirementIds(root, flow);
   const result = await runReviewWithDependencies({
     touchedFiles,
-    shouldUseLoopReview: (fileCount) => !taskSpec && shouldUseLoopReview(fileCount),
+    shouldUseLoopReview: (fileCount) => (
+      reviewArtifactWritePolicy.enabled
+      && !taskSpec
+      && shouldUseLoopReview(fileCount)
+    ),
     runLoopReview: async () => {
       const proposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails, config);
       return proposals?.toolingOutcome

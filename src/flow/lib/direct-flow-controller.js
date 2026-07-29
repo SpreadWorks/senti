@@ -1,11 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { spawnSync } from "node:child_process";
 
 import { Envelope } from "../../lib/flow-envelope.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
-import { runGit } from "../../lib/git-helpers.js";
+import { GitStatusPathSet, runGit } from "../../lib/git-helpers.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { findActiveNode } from "../definition.js";
@@ -34,6 +33,7 @@ import {
 import { DirectPreparedCleanupContinuation } from "./direct-finalize-adapter.js";
 import { inspectPersistedIntegrationReceipt } from "./direct-integration-evidence.js";
 import { IssueLogStore } from "./issue-log-store.js";
+import { runDirectTestCommand } from "./direct-test-command.js";
 import {
   attachFlowContinuation,
   attachUserActionPrompt,
@@ -69,12 +69,10 @@ const DIRECT_VALIDATION_ITEMS = Object.freeze([
 ]);
 const MAX_FINDINGS = 200;
 const MAX_SCOPE_PATHS = 200;
-const DEFAULT_TEST_TIMEOUT_MS = 120_000;
-const MAX_TEST_TIMEOUT_MS = 900_000;
 const MAX_DIRECT_VERIFICATION_ATTEMPTS = 3;
 const DIRECT_AUTHORITY_REFRESH_REASON = [
-  "Refresh the direct repair authority after non-lifecycle Flow metadata changed.",
-  "The target identity, lifecycle position, Git safety checks, and repair scope remain unchanged.",
+  "Refresh the direct repair authority after Flow metadata changed.",
+  "The target identity, Git safety checks, and repair scope remain unchanged.",
 ].join(" ");
 
 function directMutationOptions(authority, options = {}) {
@@ -301,23 +299,6 @@ function normalizedScopePaths(value) {
   return paths;
 }
 
-function parseStatusPaths(output) {
-  const records = String(output || "").split("\0");
-  const paths = [];
-  for (let index = 0; index < records.length; index += 1) {
-    const record = records[index];
-    if (!record) continue;
-    const status = record.slice(0, 2);
-    const file = record.slice(3);
-    if (file && !paths.includes(file)) paths.push(file);
-    if (status.includes("R") || status.includes("C")) {
-      const original = records[++index];
-      if (original && !paths.includes(original)) paths.push(original);
-    }
-  }
-  return paths;
-}
-
 function readWorkingTreePaths(root) {
   const status = runGit([
     "-C",
@@ -328,17 +309,36 @@ function readWorkingTreePaths(root) {
     "-z",
   ]);
   if (!status.ok) throw new Error(`direct Git status failed: ${status.stderr || status.stdout}`);
-  return parseStatusPaths(status.stdout);
+  return GitStatusPathSet.fromPorcelainV1Z(status.stdout).toArray();
 }
 
 function readFeatureDiffPaths(root, baseBranch, featureBranch) {
+  const remoteBaseBranch = `origin/${baseBranch}`;
+  const remoteBaseExists = runGit([
+    "-C",
+    root,
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    remoteBaseBranch,
+  ]).ok;
+  const diffBase = remoteBaseExists && runGit([
+    "-C",
+    root,
+    "merge-base",
+    "--is-ancestor",
+    remoteBaseBranch,
+    featureBranch,
+  ]).ok
+    ? remoteBaseBranch
+    : baseBranch;
   const result = runGit([
     "-C",
     root,
     "diff",
     "--name-only",
     "-z",
-    `${baseBranch}...${featureBranch}`,
+    `${diffBase}...${featureBranch}`,
   ]);
   if (!result.ok) {
     throw new Error(`direct feature diff failed: ${result.stderr || result.stdout}`);
@@ -1066,15 +1066,7 @@ function ensureDirectPreflight(authority, input, finalPhase) {
 }
 
 function sessionWithPlan(session, plan, changes = {}) {
-  return new DirectFlowSession({
-    ...session.toJSON(),
-    implementationProof: null,
-    ...changes,
-    planId: plan.planId,
-    planRevision: plan.revision,
-    revision: session.revision + 1,
-    updatedAt: new Date().toISOString(),
-  });
+  return session.withPlan(plan, changes);
 }
 
 function persistPlanRevision(authority, state, plan, changes = {}) {
@@ -1831,7 +1823,7 @@ function activeDirectPrompt(ctx, state) {
       state,
       actionId: "FINALIZE_DIRECT",
       nextAction: run("FINALIZE_DIRECT"),
-      instruction: "Resume the authorized completion transaction, refresh stale pre-merge evidence when safe, rerun its recorded verification, and finish integration and cleanup.",
+      instruction: "Resume the already-authorized pending integration and refresh its saved evidence before cleanup.",
     });
   }
   if (session.phase === "SUSPENDED") {
@@ -2039,40 +2031,7 @@ export function getDirectFlowAction(ctx) {
   });
 }
 
-function runTestCommand(root, command, timeoutMs) {
-  if (command == null || String(command).trim() === "") {
-    return {
-      status: "not-configured",
-      command: null,
-      detail: "No deterministic test command was configured.",
-    };
-  }
-  const timeout = timeoutMs == null ? DEFAULT_TEST_TIMEOUT_MS : Number(timeoutMs);
-  if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > MAX_TEST_TIMEOUT_MS) {
-    throw new Error(`test timeout must be 1 through ${MAX_TEST_TIMEOUT_MS} milliseconds`);
-  }
-  const result = spawnSync(String(command), {
-    cwd: root,
-    encoding: "utf8",
-    shell: true,
-    timeout,
-    maxBuffer: 4 * 1024 * 1024,
-  });
-  if (result.error) {
-    return {
-      status: "tooling-error",
-      command: String(command),
-      detail: result.error.message,
-    };
-  }
-  return {
-    status: result.status === 0 ? "passed" : "failed",
-    command: String(command),
-    detail: result.status === 0
-      ? "Deterministic test command exited successfully."
-      : `Deterministic test command exited ${result.status}: ${String(result.stderr || result.stdout || "").slice(0, 1000)}`,
-  };
-}
+const runTestCommand = runDirectTestCommand;
 
 function pathAllowed(file, plan, specId) {
   const normalized = file.replaceAll("\\", "/");
@@ -2234,6 +2193,12 @@ class DirectRecoveryStabilityAssessment {
     const sourceStep = findActiveNode(state)?.stepId ?? null;
     const skippedSteps = directSkippedSteps(state);
     const routingFailure = latestRoutingFailure(state);
+    const reconciledCompletedTasks = plan.sourceStep?.startsWith("task-")
+      && sourceStep === "implement"
+      && state.currentTaskId == null
+      && Array.isArray(state.tasks)
+      && state.tasks.length > 0
+      && state.tasks.every((task) => ["done", "skipped"].includes(task?.status));
     const blockingReasons = [
       ...(session.phase !== "DIRECT_FIX" ? [`direct phase is ${session.phase}`] : []),
       ...(session.completion != null ? ["direct completion evidence already exists"] : []),
@@ -2250,7 +2215,7 @@ class DirectRecoveryStabilityAssessment {
       ...(state.directCompletionReceipt ? ["direct completion receipt already exists"] : []),
       ...(state.directAbortReceipt ? ["direct abort evidence already exists"] : []),
       ...(state.directReconcileEvidence ? ["direct reconcile evidence already exists"] : []),
-      ...(sourceStep !== plan.sourceStep
+      ...(sourceStep !== plan.sourceStep && !reconciledCompletedTasks
         ? [`active step changed from ${plan.sourceStep} to ${sourceStep || "none"}`]
         : []),
       ...(JSON.stringify(skippedSteps) !== JSON.stringify([...plan.skippedSteps])
@@ -2259,6 +2224,9 @@ class DirectRecoveryStabilityAssessment {
       ...(routingFailure !== plan.routingFailure ? ["routing failure authority changed"] : []),
     ];
     this.sourceStep = sourceStep;
+    this.lifecycleReconciliation = reconciledCompletedTasks
+      ? "all-planned-tasks-completed"
+      : null;
     this.skippedSteps = Object.freeze(skippedSteps);
     this.routingFailure = routingFailure;
     this.blockingReasons = Object.freeze(blockingReasons);
@@ -2286,6 +2254,7 @@ class DirectAuthorityRefreshAssessment {
     this.available = blockingReasons.length === 0;
     this.failedSafetyChecks = Object.freeze(failedSafetyChecks);
     this.sourceStep = stability.sourceStep;
+    this.lifecycleReconciliation = stability.lifecycleReconciliation;
     this.skippedSteps = stability.skippedSteps;
     this.routingFailure = stability.routingFailure;
     this.blockingReasons = Object.freeze(blockingReasons);
@@ -2298,6 +2267,7 @@ class DirectAuthorityRefreshAssessment {
       available: this.available,
       failedSafetyChecks: [...this.failedSafetyChecks],
       sourceStep: this.sourceStep,
+      lifecycleReconciliation: this.lifecycleReconciliation,
       skippedSteps: [...this.skippedSteps],
       routingFailure: this.routingFailure,
       blockingReasons: [...this.blockingReasons],
@@ -2396,13 +2366,16 @@ function refreshDirectAuthority(authority) {
     ...plan.target.toJSON(),
     flowStateRevision: flowStateRevisionDigest(originatingFlowState(state)),
   });
-  const refreshedPlan = plan.withRefreshedAuthority(
-    target,
+  const refreshReason = [
     DIRECT_AUTHORITY_REFRESH_REASON,
-  );
+    ...(assessment.lifecycleReconciliation
+      ? ["The normal task lifecycle advanced only through completion of every planned task."]
+      : []),
+  ].join(" ");
+  const refreshedPlan = plan.withRefreshedAuthority(target, refreshReason);
   const refreshedSession = session.refreshAuthority(
     refreshedPlan,
-    DIRECT_AUTHORITY_REFRESH_REASON,
+    refreshReason,
   );
   authority.flowManager.mutate((current) => {
     const durableSession = DirectFlowSession.fromStored(current.directFlowSession);
@@ -2520,8 +2493,31 @@ function confirmDirectImplementation(authority, input) {
 export function runDirectVerification(authority, input) {
   let state = authority.flowManager.load(authority.specId);
   let session = DirectFlowSession.fromStored(state.directFlowSession);
+  if (
+    session.phase === "DIRECT_FIX"
+    && session.completion?.status === "pending-merge"
+    && state.directIntegrationReceipt?.status === "pending"
+  ) {
+    const recovered = new DirectFlowSession({
+      ...session.toJSON(),
+      verification: null,
+      verificationAttempts: 0,
+      completion: null,
+      revision: session.revision + 1,
+      updatedAt: new Date().toISOString(),
+    });
+    authority.flowManager.mutate((current) => {
+      current.directFlowSession = recovered.toJSON();
+      current.directIntegrationReceipt = null;
+    }, directMutationOptions(authority, { expectedOriginal: state }));
+    state = authority.flowManager.load(authority.specId);
+    session = DirectFlowSession.fromStored(state.directFlowSession);
+  }
   const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
-  if (session.verificationAttempts >= MAX_DIRECT_VERIFICATION_ATTEMPTS) {
+  if (
+    session.verificationAttempts >= MAX_DIRECT_VERIFICATION_ATTEMPTS
+    && session.verification?.status !== "passed"
+  ) {
     throw Object.assign(new Error(
       `direct verification reached its ${MAX_DIRECT_VERIFICATION_ATTEMPTS}-attempt limit`,
     ), { code: "DIRECT_VERIFICATION_LIMIT" });
@@ -2627,7 +2623,11 @@ function acceptDirectRisk(authority, input) {
   });
   const plan = DirectResolutionPlan.fromStored(state.directResolutionPlan);
   const riskFinding = new DirectResolutionFinding({
-    findingId: `risk:verification:${session.verificationAttempts}`,
+    findingId: session.verification.riskFindingId({
+      planId: plan.planId,
+      planRevision: plan.revision,
+      sessionRevision: session.revision,
+    }),
     source: "direct-verification",
     classification: "RISK_ACCEPTED",
     summary: "The deterministic test result did not pass.",
@@ -2640,20 +2640,25 @@ function acceptDirectRisk(authority, input) {
   return persistPlanRevision(authority, state, revised, {
     implementationProof: session.implementationProof?.withPlan(revised).toJSON() ?? null,
     verification: verification.toJSON(),
+    verificationAttempts: session.verificationAttempts,
   });
 }
 
 function returnToDirectFix(authority) {
   const state = authority.flowManager.load(authority.specId);
   const session = DirectFlowSession.fromStored(state.directFlowSession);
-  if (session.phase !== "DIRECT_VERIFY") {
+  if (!["DIRECT_VERIFY", "MERGE_ONLY_FINALIZE"].includes(session.phase)) {
     throw Object.assign(new Error(`cannot return to direct fix from ${session.phase}`), {
       code: "DIRECT_PHASE_MISMATCH",
     });
   }
-  const next = session.transition("DIRECT_FIX", { implementationProof: null });
+  const next = session.transition("DIRECT_FIX", {
+    implementationProof: null,
+    completion: null,
+  });
   authority.flowManager.mutate((current) => {
     current.directFlowSession = next.toJSON();
+    if (session.phase === "MERGE_ONLY_FINALIZE") current.directIntegrationReceipt = null;
   }, directMutationOptions(authority, { expectedOriginal: state }));
   return authority.flowManager.load(authority.specId);
 }
@@ -3069,7 +3074,10 @@ async function runDirectFlowActionOwned(ctx, input) {
         activeDirectPrompt(authority, current),
       );
     }
-    if (currentSession.verificationAttempts >= MAX_DIRECT_VERIFICATION_ATTEMPTS) {
+    if (
+      currentSession.verificationAttempts >= MAX_DIRECT_VERIFICATION_ATTEMPTS
+      && currentSession.verification?.status !== "passed"
+    ) {
       const stopped = activeDirectPrompt(authority, authority.state);
       return stoppedEnvelope(
         "run",

@@ -175,6 +175,51 @@ describe("spec review advisory verdict", () => {
     }
   });
 
+  it("returns a read-only dry-run preview without promoting canonical evidence", async () => {
+    const root = createTmpDir("run-review-dry-run-");
+    fs.mkdirSync(path.join(root, "specs", "demo"), { recursive: true });
+    let finalized = false;
+    const command = new RunReviewCommand({
+      finalizeResult() {
+        finalized = true;
+        throw new Error("dry-run must not promote review evidence");
+      },
+      resolveTreeSha: () => "a".repeat(40),
+      resolveTargetStateDigest: () => "b".repeat(64),
+      runCommand(_command, args) {
+        assert.ok(args.includes("--dry-run"));
+        return {
+          ok: true,
+          status: 0,
+          stdout: "Spec review PASS. Review found no required fixes.",
+          stderr: "[spec-review] Results saved to specs/demo/spec-review.md\n[spec-review] verdict=PASS proposalCount=0",
+          signal: null,
+          killed: false,
+        };
+      },
+    });
+
+    try {
+      const result = await command.execute({
+        root,
+        phase: "spec",
+        dryRun: true,
+        config: { agent: {} },
+        flowState: { spec: "specs/demo/spec.json", metrics: [], steps: [] },
+      });
+
+      assert.equal(finalized, false);
+      assert.equal(result.result, "ok");
+      assert.deepEqual(result.changed, []);
+      assert.equal(result.next, null);
+      assert.equal(result.artifacts.dryRun, true);
+      assert.deepEqual(result.artifacts.previewArtifacts, ["specs/demo/spec-review.md"]);
+      assert.deepEqual(fs.readdirSync(path.join(root, "specs", "demo")), []);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
   it("parses ADVISORY as a non-blocking spec review result", () => {
     const result = parseSpecReviewOutput(
       { ok: true },

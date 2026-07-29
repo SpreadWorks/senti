@@ -1272,7 +1272,11 @@ function matchDefaultProfileFallback(profiles, profileName, commandId) {
 function substitutePromptToken(args, prompt) {
   const hasToken = args.some((a) => typeof a === "string" && a.includes("{{PROMPT}}"));
   if (hasToken) {
-    return args.map((a) => (typeof a === "string" ? a.replaceAll("{{PROMPT}}", prompt) : a));
+    // A replacement function preserves `$&`, `$1`, and other replacement
+    // syntax as literal prompt content.
+    return args.map((a) => (
+      typeof a === "string" ? a.replaceAll("{{PROMPT}}", () => prompt) : a
+    ));
   }
   return [...args, prompt];
 }

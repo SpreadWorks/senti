@@ -10,7 +10,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
-import { runGit } from "../../lib/git-helpers.js";
+import { GitStatusPathSet, runGit } from "../../lib/git-helpers.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { findOutboxCommit } from "./run-finalize.js";
 
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
@@ -58,22 +59,10 @@ function worktreeStatus(root) {
       message: `Unable to inspect worktree status: ${gitFailureText(result)}`,
     });
   }
-  const paths = [];
-  let offset = 0;
-  while (offset < result.stdout.length) {
-    const end = result.stdout.indexOf("\0", offset);
-    const entry = result.stdout.slice(offset, end < 0 ? result.stdout.length : end);
-    offset = (end < 0 ? result.stdout.length : end) + 1;
-    if (!entry) continue;
-    paths.push(entry.slice(3));
-    if (entry.slice(0, 2).includes("R") || entry.slice(0, 2).includes("C")) {
-      const originalEnd = result.stdout.indexOf("\0", offset);
-      const original = result.stdout.slice(offset, originalEnd < 0 ? result.stdout.length : originalEnd);
-      offset = (originalEnd < 0 ? result.stdout.length : originalEnd) + 1;
-      if (original) paths.push(original);
-    }
-  }
-  return new GitWorktreeStatus({ root, paths });
+  return new GitWorktreeStatus({
+    root,
+    paths: GitStatusPathSet.fromPorcelainV1Z(result.stdout).toArray(),
+  });
 }
 
 function configuredWorktrees(mainRoot) {
@@ -182,6 +171,17 @@ export class GitWorktreeStatus {
     });
   }
 
+  excludingOwnedBy(registry) {
+    if (registry == null) return this;
+    if (!(registry instanceof RepairArtifactRegistry)) {
+      throw new Error("worktree status ownership policy must be a RepairArtifactRegistry");
+    }
+    return new GitWorktreeStatus({
+      root: this.root,
+      paths: this.paths.filter((entry) => !registry.owns(entry)),
+    });
+  }
+
   withoutFlowRuntimeArtifacts() {
     return new GitWorktreeStatus({
       root: this.root,
@@ -224,6 +224,7 @@ export class FinalizeMergeTransaction {
     idempotencyKey = null,
     operationOwnerToken = null,
     allowedFeatureMetadataPaths = [],
+    flowArtifactRegistry = null,
     promoteFeatureWorktreeToBase = false,
   }) {
     for (const [name, value] of Object.entries({ featureRoot, mainRoot, baseBranch, featureBranch, commitMessage })) {
@@ -243,6 +244,10 @@ export class FinalizeMergeTransaction {
       throw new Error("finalize merge allowed feature metadata paths are invalid");
     }
     this.allowedFeatureMetadataPaths = Object.freeze([...new Set(allowedFeatureMetadataPaths)]);
+    if (flowArtifactRegistry != null && !(flowArtifactRegistry instanceof RepairArtifactRegistry)) {
+      throw new Error("finalize merge Flow artifact registry is invalid");
+    }
+    this.flowArtifactRegistry = flowArtifactRegistry;
     if (typeof promoteFeatureWorktreeToBase !== "boolean") {
       throw new Error("finalize merge feature worktree promotion flag must be boolean");
     }
@@ -258,7 +263,7 @@ export class FinalizeMergeTransaction {
     return `refs/heads/${this.featureBranch}`;
   }
 
-  inspect({ allowFeatureMetadataPaths = [] } = {}) {
+  inspect({ allowFeatureMetadataPaths = [], flowArtifactRegistry = null } = {}) {
     const baseSha = gitValue(this.mainRoot, ["rev-parse", this.baseRef], `Unable to resolve ${this.baseBranch}`);
     const featureSha = gitValue(this.featureRoot, ["rev-parse", this.featureRef], `Unable to resolve ${this.featureBranch}`);
     const featureHead = gitValue(this.featureRoot, ["rev-parse", "HEAD"], "Unable to resolve feature worktree HEAD");
@@ -278,7 +283,8 @@ export class FinalizeMergeTransaction {
     const featureStatus = worktreeStatus(this.featureRoot);
     const relevantFeatureStatus = featureStatus
       .withoutFlowRuntimeArtifacts()
-      .excluding(allowFeatureMetadataPaths);
+      .excluding(allowFeatureMetadataPaths)
+      .excludingOwnedBy(flowArtifactRegistry);
     if (!relevantFeatureStatus.clean) {
       throw new FinalizeMergeTransactionError({
         code: "MERGE_FEATURE_DIRTY",
@@ -356,6 +362,7 @@ export class FinalizeMergeTransaction {
 
       const readiness = this.inspect({
         allowFeatureMetadataPaths: this.allowedFeatureMetadataPaths,
+        flowArtifactRegistry: this.flowArtifactRegistry,
       });
       const temporaryRoot = path.join(os.tmpdir(), `senti-finalize-merge-${crypto.randomUUID()}`);
       let added = false;
@@ -481,7 +488,8 @@ export class FinalizeMergeTransaction {
     if (currentBranch.stdout.trim() === this.baseBranch) return;
     const status = worktreeStatus(this.featureRoot)
       .withoutFlowRuntimeArtifacts()
-      .excluding(this.allowedFeatureMetadataPaths);
+      .excluding(this.allowedFeatureMetadataPaths)
+      .excludingOwnedBy(this.flowArtifactRegistry);
     if (!status.clean) {
       throw new FinalizeMergeTransactionError({
         code: "MERGE_FEATURE_DIRTY",

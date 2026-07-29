@@ -1221,6 +1221,27 @@ export const FLOW_COMMANDS = {
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
+    "recover-review-pass": {
+      helpKey: "flow.run.recover-review-pass",
+      command: () => import("./lib/run-recover-review-pass.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS, "--phase"],
+      },
+      help: [
+        `Usage: senti flow run recover-review-pass --phase <draft-questions|draft-coverage|spec|test|impl> ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Restore a flow-level review projection from one exact canonical PASS.",
+        "The command requires exact target guards and verifies the current tree,",
+        "review target state, canonical digest, provenance, PASS step outcome,",
+        "and one matching immutable review-history artifact before mutation.",
+        "It does not invoke the reviewer or fabricate triage evidence.",
+        "",
+        "Options:",
+        "  --phase <phase>       Exact flow-level review phase to recover.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     "preimplementation-bootstrap": {
       helpKey: "flow.run.preimplementation-bootstrap",
       command: () => import("./lib/run-preimplementation-bootstrap.js"),
@@ -1353,7 +1374,7 @@ export const FLOW_COMMANDS = {
         options: ["--phase", ...FLOW_RUN_OPTIONS],
       },
       help: [
-        "Usage: senti flow run review [options]",
+        `Usage: senti flow run review [options] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Run AI code review on current changes.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
@@ -1363,6 +1384,7 @@ export const FLOW_COMMANDS = {
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
       async post(ctx, result) {
         assertDraftReviewRegistryHookBoundary();
@@ -1401,6 +1423,7 @@ export const FLOW_COMMANDS = {
         }
       },
       async nonblockingPost(ctx, result) {
+        if (ctx.dryRun) return;
         const phase = result?.artifacts?.phase || result?.data?.phase || ctx.phase;
         const active = findActiveNode(ctx.flowState || {});
         const stepId = phase === "draft-questions"

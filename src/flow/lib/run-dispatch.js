@@ -36,6 +36,7 @@ import { RepairArtifactRegistry } from "./repair-state-identity.js";
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
 const APPROVAL_TOKEN_VERSION = "flow-dispatch-approval-v1";
+const APPROVAL_RECEIPT_VERSION = 1;
 const DISPATCH_LOCK_KIND = "flow-dispatch";
 
 function stableStringify(value) {
@@ -175,6 +176,133 @@ class FlowDispatchIdentity {
   }
 }
 
+class FlowDispatchProgressIdentity {
+  constructor({ runId, nextAction, worktreeFingerprint }) {
+    const directive = NextActionDirective.fromStored(nextAction.directive);
+    this.digest = sha256(stableStringify({
+      runId,
+      taskId: nextAction.taskId ?? null,
+      step: nextAction.step ?? null,
+      action: nextAction.action ?? null,
+      worktreeFingerprint,
+      directive: {
+        kind: directive.kind,
+        actionId: directive.actionId ?? directive.continuation?.actionId ?? null,
+        action: directive.action ?? null,
+        evidenceKind: directive.evidenceKind ?? null,
+        phase: directive.phase ?? null,
+        nextAction: directive.nextAction ?? directive.continuation?.nextAction ?? null,
+      },
+    }));
+    Object.freeze(this);
+  }
+
+  static capture({ ctx, nextAction, repositoryFingerprint }) {
+    let worktreeFingerprint = null;
+    try {
+      worktreeFingerprint = repositoryFingerprint(ctx);
+    } catch {
+      // Lifecycle routing still bounds a stalled worker when Git is
+      // temporarily unavailable.
+    }
+    return new FlowDispatchProgressIdentity({
+      runId: ctx.expectRunId,
+      nextAction,
+      worktreeFingerprint,
+    });
+  }
+
+  equals(other) {
+    return other instanceof FlowDispatchProgressIdentity && this.digest === other.digest;
+  }
+}
+
+class FlowDispatchApprovalReceipt {
+  constructor({
+    version = APPROVAL_RECEIPT_VERSION,
+    runId,
+    actionDigest,
+    approvalToken,
+    approvedAt = new Date().toISOString(),
+  }) {
+    if (version !== APPROVAL_RECEIPT_VERSION) {
+      throw new Error(`flow dispatch approval receipt version must be ${APPROVAL_RECEIPT_VERSION}`);
+    }
+    for (const [field, value] of Object.entries({ runId, actionDigest, approvalToken, approvedAt })) {
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new Error(`flow dispatch approval receipt ${field} is required`);
+      }
+    }
+    if (!/^[a-f0-9]{64}$/.test(actionDigest) || !/^[a-f0-9]{64}$/.test(approvalToken)) {
+      throw new Error("flow dispatch approval receipt digests must be SHA-256");
+    }
+    if (!Number.isFinite(Date.parse(approvedAt))) {
+      throw new Error("flow dispatch approval receipt approvedAt must be an ISO timestamp");
+    }
+    this.version = version;
+    this.runId = runId;
+    this.actionDigest = actionDigest;
+    this.approvalToken = approvalToken;
+    this.approvedAt = approvedAt;
+    Object.freeze(this);
+  }
+
+  matches(identity) {
+    return identity instanceof FlowDispatchIdentity
+      && this.runId === identity.runId
+      && this.actionDigest === identity.digest
+      && this.approvalToken === identity.approvalToken();
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      runId: this.runId,
+      actionDigest: this.actionDigest,
+      approvalToken: this.approvalToken,
+      approvedAt: this.approvedAt,
+    };
+  }
+
+  static matching(flowState, identity) {
+    const receipts = Array.isArray(flowState?.flowDispatchApprovals)
+      ? flowState.flowDispatchApprovals
+      : [];
+    return receipts
+      .map((entry) => new FlowDispatchApprovalReceipt(entry))
+      .findLast((entry) => entry.matches(identity)) || null;
+  }
+}
+
+function persistDispatchApproval(ctx, identity, expectedToken) {
+  const state = readFlowState(ctx);
+  const existing = FlowDispatchApprovalReceipt.matching(state, identity);
+  if (existing) return existing;
+  if (typeof ctx.flowManager?.mutate !== "function") {
+    throw new Error("flow dispatch approval persistence requires a writable Flow manager");
+  }
+  const receipt = new FlowDispatchApprovalReceipt({
+    runId: ctx.expectRunId,
+    actionDigest: identity.digest,
+    approvalToken: expectedToken,
+  });
+  ctx.flowManager.mutate((current) => {
+    if (current.runId !== ctx.expectRunId) {
+      throw new Error("flow dispatch approval target changed before persistence");
+    }
+    const receipts = Array.isArray(current.flowDispatchApprovals)
+      ? current.flowDispatchApprovals
+      : [];
+    if (!FlowDispatchApprovalReceipt.matching(current, identity)) {
+      current.flowDispatchApprovals = [...receipts, receipt.toJSON()];
+    }
+  }, {
+    expectedOriginal: state,
+    operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
+  });
+  return receipt;
+}
+
 export class FlowDispatchAction {
   constructor(nextAction) {
     if (!nextAction || typeof nextAction !== "object" || Array.isArray(nextAction)) {
@@ -236,9 +364,10 @@ export class FlowDispatchBoundary {
 }
 
 class FlowDispatchWork {
-  constructor({ action, targetGuards }) {
+  constructor({ action, targetGuards, approval = null }) {
     this.action = action;
     this.targetGuards = targetGuards;
+    this.approval = approval;
     Object.freeze(this);
   }
 
@@ -261,6 +390,10 @@ class FlowDispatchWork {
       "a review, gate, test, or other Flow command in parallel or in the background.",
       "Never choose a user decision. If a genuine user decision appears unexpectedly,",
       "leave it unchanged and report that fact.",
+      ...(this.approval ? [
+        "The CLI has durably recorded explicit user approval for this exact guarded",
+        `action (approvedAt=${this.approval.approvedAt}). Execute the approved action.`,
+      ] : []),
       `Use these exact target guards for every target-sensitive Flow command: ${this.targetGuards}`,
       nonblockingRule,
       "",
@@ -389,6 +522,11 @@ export default class RunDispatchCommand extends FlowCommand {
         nextAction: current,
         repositoryFingerprint: this.repositoryFingerprint,
       });
+      const progressIdentity = FlowDispatchProgressIdentity.capture({
+        ctx,
+        nextAction: current,
+        repositoryFingerprint: this.repositoryFingerprint,
+      });
 
       if (action.awaitsUserDecision) {
         if (suppliedApproval) {
@@ -465,9 +603,10 @@ export default class RunDispatchCommand extends FlowCommand {
 
       const flowState = readFlowState(ctx);
       const autoApproved = flowState?.autoApprove === true;
+      let approval = FlowDispatchApprovalReceipt.matching(flowState, identity);
       if (action.requiresApproval && !autoApproved) {
         const expectedApproval = identity.approvalToken();
-        if (!suppliedApproval) {
+        if (!suppliedApproval && !approval) {
           return new FlowDispatchBoundary({
             kind: "approval_required",
             nextAction: current,
@@ -475,7 +614,7 @@ export default class RunDispatchCommand extends FlowCommand {
             approvalToken: expectedApproval,
           }).toJSON();
         }
-        if (suppliedApproval !== expectedApproval) {
+        if (suppliedApproval && suppliedApproval !== expectedApproval) {
           return this.failure(
             ctx,
             "FLOW_DISPATCH_APPROVAL_STALE",
@@ -487,6 +626,9 @@ export default class RunDispatchCommand extends FlowCommand {
               approvalToken: expectedApproval,
             }).toJSON(),
           );
+        }
+        if (suppliedApproval === expectedApproval) {
+          approval = persistDispatchApproval(ctx, identity, expectedApproval);
         }
         suppliedApproval = null;
       } else if (suppliedApproval) {
@@ -503,7 +645,7 @@ export default class RunDispatchCommand extends FlowCommand {
       }
 
       const guards = guardFlagsForState(flowState || ctx.flowState);
-      const work = new FlowDispatchWork({ action, targetGuards: guards });
+      const work = new FlowDispatchWork({ action, targetGuards: guards, approval });
       let agentError = null;
       try {
         await agent.call(work.prompt(), {
@@ -540,12 +682,12 @@ export default class RunDispatchCommand extends FlowCommand {
           }),
         );
       }
-      const refreshedIdentity = FlowDispatchIdentity.capture({
+      const refreshedIdentity = FlowDispatchProgressIdentity.capture({
         ctx,
         nextAction: refreshed,
         repositoryFingerprint: this.repositoryFingerprint,
       });
-      stalledDispatches = identity.equals(refreshedIdentity)
+      stalledDispatches = progressIdentity.equals(refreshedIdentity)
         ? stalledDispatches + 1
         : 0;
       if (stalledDispatches >= this.maxStalledDispatches) {

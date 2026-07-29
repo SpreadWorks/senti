@@ -272,6 +272,17 @@ function settleTypedStepOutcome(envelope, result) {
   const attempt = StepAttempt.fromStored(result.stepAttempt);
   if (!(attempt.outcome instanceof ExternalBlockedOutcome)
     && !(attempt.outcome instanceof AwaitingDecisionOutcome)) return;
+  if (
+    attempt.outcome instanceof ExternalBlockedOutcome
+    && ["execute_command", "execute_step", "repair_evidence"].includes(result.directive?.kind)
+    && result.directive?.terminal === false
+    && result.directive?.requiresUserAction === false
+  ) {
+    // The typed attempt records why the prior action stopped. A newer
+    // deterministic directive is the durable recovery route and must remain a
+    // successful guarded next-action response.
+    return;
+  }
   envelope.ok = false;
   envelope.errors.push({
     level: "fatal",

@@ -59,6 +59,8 @@ import { guardFlagsForState } from "./user-action-prompt.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
+import { inspectCanonicalReviewPassRecovery } from "./run-recover-review-pass.js";
+import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -262,6 +264,25 @@ function buildPreimplementationBootstrapDirective(ctx, state, target) {
   });
 }
 
+function buildCanonicalReviewPassRecoveryDirective(ctx, state) {
+  for (const route of FLOW_REVIEW_ROUTES) {
+    const plan = inspectCanonicalReviewPassRecovery({
+      root: ctx.root,
+      state,
+      phase: route.phase,
+    });
+    if (!plan) continue;
+    const guards = guardFlagsForState(state);
+    return new ExecuteCommandDirective({
+      actionId: "RECOVER_CANONICAL_REVIEW_PASS",
+      nextAction: `senti flow run recover-review-pass --phase ${route.phase}${guards ? ` ${guards}` : ""}`,
+      instruction: "Restore the exact canonical PASS projection and clear only the conflicting review tooling state, then refresh next-action.",
+      reason: `The ${route.phase} review has canonical PASS evidence for the unchanged target, but its mutable projection or convergence status was overwritten.`,
+    });
+  }
+  return null;
+}
+
 function promoteNextAvailableTarget(state) {
   const task = findCurrentTask(state);
   if (task && Array.isArray(task.steps)) {
@@ -416,6 +437,7 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
+    || buildCanonicalReviewPassRecoveryDirective(ctx, state)
     || finalizationRecovery?.directive
     || new NextActionDirectiveResolver({
       state,

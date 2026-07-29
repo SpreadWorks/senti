@@ -46,6 +46,17 @@ function requireString(value, field, { max = MAX_REVIEW_AUTHORED_STRING_CHARS } 
   return value.trim();
 }
 
+function requireFindingText(value, field) {
+  const normalized = requireString(value, field);
+  if (
+    /^<[^<>\r\n]+>$/.test(normalized)
+    || /^\{\{[^{}\r\n]+\}\}$/.test(normalized)
+  ) {
+    throw new Error(`${field} must contain concrete review evidence, not a template placeholder`);
+  }
+  return normalized;
+}
+
 function requireNullableTaskId(value) {
   return value == null ? null : requireString(value, "taskId");
 }
@@ -124,8 +135,8 @@ function assertFindingBudget(blockingFindings, advisoryFindings) {
 export class ReviewFinding {
   constructor(input = {}) {
     requireObject(input, "review finding");
-    this.findingId = requireString(input.findingId, "findingId");
-    this.summary = requireString(input.summary, "summary");
+    this.findingId = requireFindingText(input.findingId, "findingId");
+    this.summary = requireFindingText(input.summary, "summary");
     this.fingerprint = requireSha256(input.fingerprint, "fingerprint");
     if (!Array.isArray(input.evidenceRefs) || input.evidenceRefs.length === 0) {
       throw new Error("evidenceRefs must be a non-empty array");
@@ -134,7 +145,7 @@ export class ReviewFinding {
       throw new Error(`evidenceRefs count exceeds ${MAX_REVIEW_FINDINGS}`);
     }
     this.evidenceRefs = freezeArray(input.evidenceRefs.map((value, index) => (
-      requireString(value, `evidenceRefs[${index}]`)
+      requireFindingText(value, `evidenceRefs[${index}]`)
     )));
     Object.freeze(this);
   }

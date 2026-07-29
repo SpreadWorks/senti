@@ -19,6 +19,7 @@ import {
   FinalizeMergeTransaction,
   FinalizeMergeTransactionError,
 } from "../lib/finalize-merge-transaction.js";
+import { RepairArtifactRegistry } from "../lib/repair-state-identity.js";
 
 const MAX_IMPLEMENTATION_SUBJECTS = 50;
 const MAX_SUBJECT_INPUT_CHARS = 4000;
@@ -143,10 +144,9 @@ function loadSpec(state, root) {
   return parseSpec(spec);
 }
 
-function finalizationFeatureMetadataPaths(state) {
-  if (typeof state.spec !== "string" || state.spec === "") return [];
-  const directory = path.posix.dirname(state.spec.replaceAll("\\", "/"));
-  return [`${directory}/flow.json`, `${directory}/issue-log.json`];
+function finalizationFeatureArtifactRegistry(state) {
+  if (typeof state.spec !== "string" || state.spec === "") return null;
+  return new RepairArtifactRegistry(state.spec);
 }
 
 function firstNonEmptySubjectLine(value) {
@@ -349,7 +349,7 @@ function runMerge(ctx) {
     commitMessage,
     idempotencyKey,
     operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
-    allowedFeatureMetadataPaths: finalizationFeatureMetadataPaths(state),
+    flowArtifactRegistry: finalizationFeatureArtifactRegistry(state),
     promoteFeatureWorktreeToBase: worktree !== true
       && path.resolve(mainRepoPath || root) === path.resolve(root),
   }).execute();

@@ -1255,6 +1255,50 @@ test("direct scope adoption preserves verification retry evidence and invalidate
   }
 });
 
+test("a plan revision cannot retain passed verification as finalize authority", async () => {
+  const fixture = createDirectFlowFixture({ specId: "476-direct-plan-revision" });
+  try {
+    const plannedPath = path.join(fixture.worktreePath, "src", "planned.js");
+    await runDirectFlowAction(fixture.context(), {
+      action: "SELECT_DIRECT_FIX",
+      reason: "Verify that a later finding invalidates completed verification authority.",
+      scope: ["src/planned.js"],
+      source: "manual",
+    });
+    fs.mkdirSync(path.dirname(plannedPath), { recursive: true });
+    fs.writeFileSync(plannedPath, "export const planned = true;\n");
+    await confirmDirectImplementation(fixture);
+    const passed = await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(0)\"",
+      timeoutMs: 10_000,
+    });
+    assert.equal(passed.code, "DIRECT_VERIFY_PASSED");
+
+    const revised = await runDirectFlowAction(fixture.context(), {
+      action: "RECORD_DIRECT_FINDING",
+      findingId: "implementation:late-finding",
+      findingSource: "src/planned.js:inspected-diff",
+      classification: "FIX_REQUIRED",
+      summary: "The inspected implementation exposed another bounded correction.",
+      recommendedResolution: "Apply the correction and reconfirm the implementation.",
+      resolution: "Apply the correction and reconfirm the implementation.",
+      rationale: "The finding changes the active repair plan after verification.",
+    });
+
+    assert.equal(revised.code, "DIRECT_VERIFY_STOPPED");
+    assert.equal(
+      revised.actionPrompt.choices.some((entry) => entry.actionId === "FINALIZE_DIRECT"),
+      false,
+    );
+    const session = DirectFlowSession.fromStored(fixture.context().flowState.directFlowSession);
+    assert.equal(session.implementationProof, null);
+    assert.equal(session.verification, null);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test("direct suspend resumes the exact phase and abort retains Git state", async () => {
   const fixture = createDirectFlowFixture({ specId: "476-suspend" });
   try {
@@ -1777,6 +1821,25 @@ test("direct verification is bounded and risk acceptance cannot credit normal st
       true,
     );
     assert.deepEqual(stepStatuses(state), initialSteps);
+
+    await runDirectFlowAction(fixture.context(), {
+      action: "RETURN_TO_DIRECT_FIX",
+    });
+    await confirmDirectImplementation(fixture);
+    await runDirectFlowAction(fixture.context(), {
+      action: "VERIFY_DIRECT",
+      testCommand: "node -e \"process.exit(1)\"",
+      timeoutMs: 10_000,
+    });
+    const acceptedAgain = await runDirectFlowAction(fixture.context(), {
+      action: "ACCEPT_DIRECT_RISK",
+      reason: "The repeated deterministic fixture failure is explicitly accepted.",
+    });
+    assert.equal(acceptedAgain.code, "DIRECT_VERIFY_PASSED");
+    const riskFindings = fixture.context().flowState.directResolutionPlan.findings
+      .filter((entry) => entry.classification === "RISK_ACCEPTED");
+    assert.equal(riskFindings.length, 2);
+    assert.notEqual(riskFindings[0].findingId, riskFindings[1].findingId);
   } finally {
     fixture.cleanup();
   }

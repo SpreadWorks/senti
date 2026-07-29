@@ -81,7 +81,7 @@ export class GitCommitPathSet {
       "--name-only",
       treeish,
       "--",
-      ...candidateSet.paths,
+      ...candidateSet.paths.map((relativePath) => `:(literal)${relativePath}`),
     ]);
     if (!tracked.ok) throw new GitCommitPathProbeError(tracked);
     const treePaths = new Set(tracked.stdout.split("\0").filter(Boolean));
@@ -93,6 +93,52 @@ export class GitCommitPathSet {
 
   get size() {
     return this.paths.length;
+  }
+
+  toArray() {
+    return [...this.paths];
+  }
+}
+
+export class GitStatusPathSet {
+  constructor(paths) {
+    if (
+      !Array.isArray(paths)
+      || paths.some((entry) => typeof entry !== "string" || entry === "" || entry.includes("\0"))
+    ) {
+      throw new Error("git status path set is invalid");
+    }
+    this.paths = Object.freeze([...new Set(paths)]);
+    Object.freeze(this);
+  }
+
+  static fromPorcelainV1Z(output) {
+    const records = String(output || "").split("\0");
+    const paths = [];
+    for (let index = 0; index < records.length; index += 1) {
+      const record = records[index];
+      if (!record) continue;
+      if (record.length < 4 || record[2] !== " ") {
+        throw new Error("git porcelain v1 -z entry is malformed");
+      }
+      const status = record.slice(0, 2);
+      paths.push(record.slice(3));
+      if (status.includes("R") || status.includes("C")) {
+        const original = records[++index];
+        if (!original) throw new Error("git porcelain rename/copy entry is incomplete");
+        paths.push(original);
+      }
+    }
+    return new GitStatusPathSet(paths);
+  }
+
+  get size() {
+    return this.paths.length;
+  }
+
+  every(predicate) {
+    if (typeof predicate !== "function") throw new Error("git status path predicate is required");
+    return this.paths.every(predicate);
   }
 
   toArray() {

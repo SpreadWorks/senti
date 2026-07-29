@@ -7,6 +7,7 @@ import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import {
   GitCommitPathProbeError,
   GitCommitPathSet,
+  GitStatusPathSet,
   runGit,
 } from "../../lib/git-helpers.js";
 import {
@@ -27,6 +28,7 @@ import {
   revalidatePersistedIntegrationReceipt,
 } from "./direct-integration-evidence.js";
 import { DirectResolutionPlan } from "./direct-resolution-plan.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { hasOutboxCommit } from "./run-finalize.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import {
@@ -58,12 +60,10 @@ function gitValue(args, label) {
   return result.stdout.trim();
 }
 
-function hasOnlyTargetFlowArtifacts(statusOutput, specId) {
-  const artifactRoot = `specs/${specId}/`;
-  const entries = statusOutput.split("\0").filter(Boolean);
-  return entries.length > 0 && entries.every((entry) => (
-    entry.length > 3 && entry.slice(3).startsWith(artifactRoot)
-  ));
+function hasOnlyFlowOwnedArtifacts(statusOutput, specPath) {
+  const paths = GitStatusPathSet.fromPorcelainV1Z(statusOutput);
+  const registry = new RepairArtifactRegistry(specPath);
+  return paths.size > 0 && paths.every((entry) => registry.owns(entry));
 }
 
 const PENDING_RECOVERY_REFRESHABLE_CHECKS = new Set([
@@ -276,7 +276,11 @@ function commitOrSkip(root, message, paths = null) {
       throw new Error(`direct commit path probe failed: ${error.result.stderr || error.result.stdout}`);
     }
     if (commitPaths.length > 0) {
-      const add = runGit(["-C", root, "add", "-A", "--", ...commitPaths]);
+      // Direct scopes are repository paths, not Git patterns. Literal pathspec
+      // magic keeps every metacharacter ordinary for both additions and
+      // tracked deletions.
+      const literalCommitPaths = commitPaths.map((commitPath) => `:(literal)${commitPath}`);
+      const add = runGit(["-C", root, "add", "-A", "--", ...literalCommitPaths]);
       if (!add.ok) throw new Error(`direct commit staging failed: ${add.stderr || add.stdout}`);
     }
   }
@@ -663,7 +667,7 @@ export class DirectFinalizeAdapter {
     }
     if (
       status.stdout !== ""
-      && !hasOnlyTargetFlowArtifacts(status.stdout, specIdFromPath(state.spec))
+      && !hasOnlyFlowOwnedArtifacts(status.stdout, state.spec)
     ) {
       throw Object.assign(new Error(
         "direct teardown requires a clean worktree with no unapplied changes",

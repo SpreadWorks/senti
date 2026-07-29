@@ -19,7 +19,7 @@ const TRANSITIONS = Object.freeze({
   DIRECT_HANDOFF_PREFLIGHT: new Set(["DIRECT_FIX", "DIRECT_RECONCILE", "SUSPENDED", "ABORTED"]),
   DIRECT_FIX: new Set(["DIRECT_VERIFY", "SUSPENDED", "ABORTED"]),
   DIRECT_VERIFY: new Set(["DIRECT_FIX", "MERGE_ONLY_FINALIZE", "SUSPENDED", "ABORTED"]),
-  MERGE_ONLY_FINALIZE: new Set(["COMPLETED_DIRECT", "SUSPENDED", "ABORTED"]),
+  MERGE_ONLY_FINALIZE: new Set(["DIRECT_FIX", "COMPLETED_DIRECT", "SUSPENDED", "ABORTED"]),
   DIRECT_RECONCILE: new Set(["COMPLETED_DIRECT", "SUSPENDED", "ABORTED"]),
   SUSPENDED: new Set([
     "DIRECT_HANDOFF_PREFLIGHT",
@@ -39,6 +39,17 @@ function requireString(value, field, max = 2000) {
   }
   const normalized = value.trim();
   if (normalized.length > max) throw new Error(`${field} exceeds ${max} characters`);
+  return normalized;
+}
+
+function requireAuthoredString(value, field, max = 2000) {
+  const normalized = requireString(value, field, max);
+  if (
+    /^<[^<>\r\n]+>$/.test(normalized)
+    || /^\{\{[^{}\r\n]+\}\}$/.test(normalized)
+  ) {
+    throw new Error(`${field} must replace the command placeholder with concrete evidence`);
+  }
   return normalized;
 }
 
@@ -230,6 +241,28 @@ export class DirectVerificationResult {
     };
   }
 
+  riskFindingId({ planId, planRevision, sessionRevision } = {}) {
+    if (typeof planId !== "string" || planId === "") {
+      throw new Error("risk finding identity requires a direct plan ID");
+    }
+    if (!Number.isSafeInteger(planRevision) || planRevision < 1) {
+      throw new Error("risk finding identity requires a direct plan revision");
+    }
+    if (!Number.isSafeInteger(sessionRevision) || sessionRevision < 1) {
+      throw new Error("risk finding identity requires a direct session revision");
+    }
+    const digest = crypto
+      .createHash("sha256")
+      .update(`${JSON.stringify({
+        planId,
+        planRevision,
+        sessionRevision,
+        verification: this.toJSON(),
+      })}\n`)
+      .digest("hex");
+    return `risk:verification:${digest.slice(0, 24)}`;
+  }
+
   static fromStored(value) {
     return value instanceof DirectVerificationResult ? value : new DirectVerificationResult(value);
   }
@@ -260,7 +293,7 @@ export class DirectImplementationProof {
     }
     this.planRevision = planRevision;
     this.sourceStep = requireString(sourceStep, "direct implementation proof sourceStep", 200);
-    this.summary = requireString(summary, "direct implementation proof summary", 8000);
+    this.summary = requireAuthoredString(summary, "direct implementation proof summary", 8000);
     if (this.summary.length < 20) {
       throw new Error("direct implementation proof summary must contain concrete implementation evidence");
     }
@@ -571,7 +604,7 @@ export class DirectFlowSession {
     this.revision = revision;
     this.target = DirectFlowTarget.fromStored(target);
     this.sourceStep = requireString(sourceStep, "direct session sourceStep", 200);
-    this.transitionReason = requireString(transitionReason, "direct session transitionReason");
+    this.transitionReason = requireAuthoredString(transitionReason, "direct session transitionReason");
     this.selectionSource = requireString(selectionSource, "direct session selectionSource", 100);
     if (!["manual", "auto"].includes(this.selectionSource)) {
       throw new Error("direct session selectionSource must be manual or auto");
@@ -677,13 +710,17 @@ export class DirectFlowSession {
     });
   }
 
-  withPlan(plan) {
+  withPlan(plan, changes = {}) {
     if (!plan?.planId || !plan?.revision) throw new Error("direct resolution plan identity is required");
+    const passedVerification = this.verification?.status === "passed";
     return new DirectFlowSession({
       ...this.toJSON(),
       planId: plan.planId,
       planRevision: plan.revision,
       implementationProof: null,
+      verification: passedVerification ? null : this.verification?.toJSON() ?? null,
+      completion: null,
+      ...changes,
       revision: this.revision + 1,
       updatedAt: new Date().toISOString(),
     });

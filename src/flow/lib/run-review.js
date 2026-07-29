@@ -73,6 +73,7 @@ import {
 } from "./review-evidence-store.js";
 import { recoverFinalizedFlowReviewEvidence } from "./set-review-evidence.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
+import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -95,22 +96,14 @@ if (IMPL_REVIEW_DOWNSTREAM_STEP_IDS.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
 // ---------------------------------------------------------------------------
 
-const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
-  "draft-questions": "draft-questions-review",
-  "draft-coverage": "draft-coverage-review",
-  spec: "spec-review",
-  test: "test-review",
-  impl: "impl-review",
-});
+const REVIEW_NODE_ID_BY_PHASE = Object.freeze(Object.fromEntries(
+  FLOW_REVIEW_ROUTES.map((route) => [route.phase, route.reviewStepId]),
+));
 
 const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
-const REVIEW_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
-  "draft-questions": "draft-review-questions.json",
-  "draft-coverage": "draft-review-coverage.json",
-  spec: "spec-review.json",
-  test: "test-review.json",
-  impl: "impl-review.json",
-});
+const REVIEW_SOURCE_ARTIFACT_BY_PHASE = Object.freeze(Object.fromEntries(
+  FLOW_REVIEW_ROUTES.map((route) => [route.phase, route.projectionFile]),
+));
 
 function persistedPhaseKey(ctxPhase) {
   return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;
@@ -407,13 +400,74 @@ function reviewExternalBlock(failure) {
   });
 }
 
-function reviewRetryExhaustionDeferralPlan({ root, flowState, phase }) {
+function reviewArtifactMatchesCanonicalTarget({
+  artifact,
+  flowState,
+  phase,
+  treeSha,
+  targetStateDigest,
+}) {
+  if (
+    artifact.treeSha === treeSha
+    && artifact.targetStateDigest === targetStateDigest
+  ) return true;
+  if (
+    Object.hasOwn(artifact, "treeSha")
+    || Object.hasOwn(artifact, "targetStateDigest")
+  ) return false;
+
+  const records = Array.isArray(flowState.reviewConvergence?.records)
+    ? flowState.reviewConvergence.records
+    : [];
+  const current = records.findLast((record) => (
+    record.phase === phase
+    && record.treeSha === treeSha
+    && record.targetStateDigest === targetStateDigest
+  ));
+  if (!current) return false;
+  const canonicalFindings = current.handoffFindings || [];
+  const sourceFindings = reviewFindingsFromArtifact(artifact)
+    .filter((finding) => finding.findingId);
+  return sourceFindings.length > 0 && sourceFindings.every((sourceFinding) => (
+    canonicalFindings.some((canonicalFinding) => (
+      canonicalFinding.findingId === sourceFinding.findingId
+      && (
+        canonicalFinding.fingerprint == null
+        || sourceFinding.fingerprint == null
+        || canonicalFinding.fingerprint === sourceFinding.fingerprint
+      )
+    ))
+  ));
+}
+
+function reviewRetryExhaustionDeferralPlan({
+  root,
+  flowState,
+  phase,
+  treeSha = null,
+  targetStateDigest = null,
+}) {
   if (!root || !flowState?.spec) return null;
   const sourceArtifact = REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase];
   if (!sourceArtifact) return null;
   const specDir = specDirFromFlowState(root, flowState);
   const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
   if (!artifact) return null;
+  if (treeSha != null || targetStateDigest != null) {
+    const currentTreeSha = treeSha || resolveReviewTargetTreeSha(root, flowState.spec);
+    const currentTargetStateDigest = targetStateDigest || buildRepairFingerprint({
+      root,
+      specPath: flowState.spec,
+      state: flowState,
+    }).hash;
+    if (!reviewArtifactMatchesCanonicalTarget({
+      artifact,
+      flowState,
+      phase,
+      treeSha: currentTreeSha,
+      targetStateDigest: currentTargetStateDigest,
+    })) return null;
+  }
   if (artifact.toolingOutcome) return null;
   if (phase === "test" && artifact.verdict !== "REJECTED") return null;
   if (phase === "test" && reviewArtifactHasStructuredCoverageFailure(specDir)) return null;
@@ -452,8 +506,16 @@ export function materializeReviewRetryExhaustionDeferral({
   attempts,
   sourceStep = null,
   rewriteSourceDisposition = false,
+  treeSha = null,
+  targetStateDigest = null,
 } = {}) {
-  const plan = reviewRetryExhaustionDeferralPlan({ root, flowState, phase });
+  const plan = reviewRetryExhaustionDeferralPlan({
+    root,
+    flowState,
+    phase,
+    treeSha,
+    targetStateDigest,
+  });
   if (!plan) return null;
   const { sourceArtifact, artifact, requireDisposition, repairFingerprints } = plan;
   const { findings } = persistReviewSourceFindingIds(plan.specDir, sourceArtifact, artifact, {
@@ -473,7 +535,12 @@ export function materializeReviewRetryExhaustionDeferral({
   };
 }
 
-function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
+function tryDeferReviewRetryExhaustion(
+  ctx,
+  phase,
+  attempts,
+  { treeSha = null, targetStateDigest = null } = {},
+) {
   if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
   const stepId = reviewStepId(ctx, phase);
   const taskId = phase === IMPL_REVIEW_PHASE
@@ -486,6 +553,8 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
     attempts,
     sourceStep: stepId,
     rewriteSourceDisposition: true,
+    treeSha,
+    targetStateDigest,
   });
   if (!deferred) return null;
   const transition = createLifecycleStepTransition({
@@ -508,7 +577,7 @@ function tryDeferReviewRetryExhaustion(ctx, phase, attempts) {
 export function checkReviewRetryBelowMax(
   ctx,
   phase,
-  { treeSha = null, targetStateDigest = null } = {},
+  { treeSha = null, targetStateDigest = null, readOnly = false } = {},
 ) {
   const flowState = ctx?.flowState || {};
   const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
@@ -551,7 +620,24 @@ export function checkReviewRetryBelowMax(
         resolvedMax,
       });
   if (count < max) return null;
-  const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count);
+  if (readOnly) {
+    const failure = ReviewFailure.maxAttemptsExceeded({
+      phase: persistedPhase,
+      attempts: count,
+      max,
+    });
+    return Envelope.fail(
+      "run",
+      "review",
+      "REVIEW_MAX_ATTEMPTS_EXCEEDED",
+      `review dry-run cannot mutate the exhausted ${persistedPhase} retry state`,
+      { ...failure.toEnvelopeData(), dryRun: true },
+    );
+  }
+  const deferred = tryDeferReviewRetryExhaustion(ctx, persistedPhase, count, {
+    treeSha,
+    targetStateDigest,
+  });
   if (deferred) return recordReviewDeferral(ctx, deferred, persistedPhase, count);
   mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED);
   const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
@@ -593,13 +679,22 @@ export function updateReviewRetryCounter(ctx, result) {
   const resultTaskId = completionScope.taskId;
   const reviewCtx = completionScope.context(ctx);
   const flowState = reviewCtx.flowState;
+  const targetIdentity = {
+    treeSha: result?.artifacts?.treeSha ?? null,
+    targetStateDigest: result?.artifacts?.targetStateDigest ?? null,
+  };
   if (resultTaskId != null) {
     const stepId = reviewStepId(reviewCtx, IMPL_REVIEW_PHASE);
     const pass = isImplPass(result);
     const attempt = nextStepAttemptNumber(flowState, stepId);
     const maxAttempts = resolveMaxAttempts({ scope: "task", stepId, context: flowState }) ?? 1;
     if (!pass && attempt >= maxAttempts) {
-      const deferred = tryDeferReviewRetryExhaustion(reviewCtx, IMPL_REVIEW_PHASE, attempt);
+      const deferred = tryDeferReviewRetryExhaustion(
+        reviewCtx,
+        IMPL_REVIEW_PHASE,
+        attempt,
+        targetIdentity,
+      );
       if (deferred) {
         Object.assign(result, deferred);
         recordReviewDeferral(reviewCtx, result, IMPL_REVIEW_PHASE, attempt);
@@ -638,7 +733,12 @@ export function updateReviewRetryCounter(ctx, result) {
     : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
   mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
   if (!isPass && attemptsBefore + 1 >= maxAttempts) {
-    const deferred = tryDeferReviewRetryExhaustion(reviewCtx, persistedPhase, attemptsBefore + 1);
+    const deferred = tryDeferReviewRetryExhaustion(
+      reviewCtx,
+      persistedPhase,
+      attemptsBefore + 1,
+      targetIdentity,
+    );
     if (deferred) {
       Object.assign(result, deferred);
       recordReviewDeferral(reviewCtx, result, persistedPhase, attemptsBefore + 1);
@@ -1685,6 +1785,9 @@ function finalizeReviewCommandResult({
       repairFingerprint,
       expectedOriginal,
     );
+    result.artifacts ||= {};
+    result.artifacts.treeSha = treeSha;
+    result.artifacts.targetStateDigest = repairFingerprint;
   } catch (error) {
     return reviewExecutionFailureEnvelope(ctx, {
       phase,
@@ -1989,6 +2092,7 @@ export function checkImplReviewTestArtifacts({
   specDir,
   fingerprint,
   flowManager,
+  readOnly = false,
 }) {
   const artifactNames = ["test-execute-result.json", "test-result-review.json"];
   const artifacts = new Map();
@@ -2002,6 +2106,20 @@ export function checkImplReviewTestArtifacts({
     currentFingerprint: fingerprint.hash,
   });
   if (mismatch) {
+    if (readOnly) {
+      return {
+        result: "dry-run",
+        changed: [],
+        artifacts: {
+          phase: IMPL_REVIEW_PHASE,
+          dryRun: true,
+          staleArtifacts: [...mismatch.artifactNames],
+          wouldRecoverEvidence: true,
+        },
+        next: null,
+        output: "Dry-run detected stale implementation test evidence; no rewind was applied.",
+      };
+    }
     const refresh = mismatch.recover({
       root,
       state,
@@ -2047,6 +2165,7 @@ export class RunReviewCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
     const phase = ctx.phase || null;
+    const dryRun = ctx.dryRun === true;
 
     if (phase && !VALID_REVIEW_PHASES.includes(phase)) {
       // spec 253 R8: return Envelope.fail with UNKNOWN_REVIEW_PHASE for unknown
@@ -2057,7 +2176,11 @@ export class RunReviewCommand extends FlowCommand {
         { phase });
     }
 
-    if (isImplementationReviewPhase(phase) && ctx.flowState.currentTaskId == null) {
+    if (
+      !dryRun
+      && isImplementationReviewPhase(phase)
+      && ctx.flowState.currentTaskId == null
+    ) {
       ensureRepairFingerprintContract({
         root,
         state: ctx.flowState,
@@ -2093,6 +2216,7 @@ export class RunReviewCommand extends FlowCommand {
     const preCheck = checkReviewRetryBelowMax(reviewCtx, phase, {
       treeSha: reviewTargetTreeSha,
       targetStateDigest: reviewTargetRepairFingerprint,
+      readOnly: dryRun,
     });
     if (preCheck) return preCheck;
     if (scopeDecision?.kind === "task") {
@@ -2114,7 +2238,10 @@ export class RunReviewCommand extends FlowCommand {
       },
     );
     if (canonicalBlock) {
-      if (canonicalBlock.errors?.[0]?.code === "REVIEW_ALREADY_COMPLETED") {
+      if (
+        !dryRun
+        && canonicalBlock.errors?.[0]?.code === "REVIEW_ALREADY_COMPLETED"
+      ) {
         const replay = completedReviewLifecycleReplay(reviewCtx, {
           phase: persistedPhase,
           taskId: completionScope.taskId,
@@ -2126,7 +2253,6 @@ export class RunReviewCommand extends FlowCommand {
       return canonicalBlock;
     }
 
-    const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;
     if (isImplementationReviewPhase(phase)) {
       if (!taskReviewSpec) {
@@ -2138,6 +2264,7 @@ export class RunReviewCommand extends FlowCommand {
           specDir,
           fingerprint,
           flowManager: ctx.flowManager,
+          readOnly: dryRun,
         });
         if (evidenceRefresh) return evidenceRefresh;
       }
@@ -2158,6 +2285,15 @@ export class RunReviewCommand extends FlowCommand {
         { phase: persistedPhase, retryCount: 0 },
       );
     } catch (error) {
+      if (dryRun) {
+        return Envelope.fail(
+          "run",
+          "review",
+          "REVIEW_DRY_RUN_FAILED",
+          `review dry-run failed before a preview was produced: ${error.message || error}`,
+          { dryRun: true },
+        );
+      }
       return reviewExecutionFailureEnvelope(reviewCtx, {
         phase: persistedPhase,
         taskId: completionScope.taskId,
@@ -2197,8 +2333,31 @@ export class RunReviewCommand extends FlowCommand {
       expectedOriginal: reviewPromotionRevision,
       parse,
     });
+    const previewResult = (parse) => {
+      const parsed = parse();
+      const previewArtifacts = [...(parsed.changed || [])];
+      return {
+        ...parsed,
+        changed: [],
+        artifacts: {
+          ...parsed.artifacts,
+          dryRun: true,
+          previewArtifacts,
+        },
+        next: null,
+      };
+    };
     if (!res.ok) {
       const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
+      if (dryRun) {
+        return Envelope.fail(
+          "run",
+          "review",
+          failure.toEnvelopeCode(),
+          [`review dry-run stopped: ${failure.reason}`],
+          { ...failure.toEnvelopeData(), dryRun: true },
+        );
+      }
       const childToolingOutcome = parseToolingOutcome(stderr);
       const canonicalTooling = persistCanonicalToolingOutcome(reviewCtx, {
         phase: persistedPhase,
@@ -2253,17 +2412,20 @@ export class RunReviewCommand extends FlowCommand {
 
     // Route to draft review parser
     if (phase === "draft") {
-      return finalizeResult(() => parseProposalReviewOutput(res, stdout, stderr));
+      const parse = () => parseProposalReviewOutput(res, stdout, stderr);
+      return dryRun ? previewResult(parse) : finalizeResult(parse);
     }
 
     // Route to test review parser
     if (phase === "test") {
-      return finalizeResult(() => parseTestReviewOutput(res, stdout, stderr));
+      const parse = () => parseTestReviewOutput(res, stdout, stderr);
+      return dryRun ? previewResult(parse) : finalizeResult(parse);
     }
 
     // Route to spec review parser
     if (phase === "spec") {
-      return finalizeResult(() => parseSpecReviewOutput(res, stdout, stderr));
+      const parse = () => parseSpecReviewOutput(res, stdout, stderr);
+      return dryRun ? previewResult(parse) : finalizeResult(parse);
     }
 
     if (!res.ok) {
@@ -2272,13 +2434,16 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
 
-    return finalizeResult(() => {
-      const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
+    const parseImpl = () => {
+      const parsed = parseImplReviewOutput(res, stdout, stderr, {
+        root: dryRun ? null : root,
+      });
       parsed.artifacts.dryRun = dryRun;
       parsed.artifacts.taskId = completionScope.taskId;
       if (broadMode) parsed.artifacts.broadMode = broadMode;
       return parsed;
-    });
+    };
+    return dryRun ? previewResult(parseImpl) : finalizeResult(parseImpl);
   }
 }
 

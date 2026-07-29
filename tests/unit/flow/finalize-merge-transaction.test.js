@@ -9,6 +9,7 @@ import {
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { checkoutNewBranch, commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { runGit } from "../../../src/lib/git-helpers.js";
+import { RepairArtifactRegistry } from "../../../src/flow/lib/repair-state-identity.js";
 
 function git(root, args) {
   const result = runGit(["-C", root, ...args]);
@@ -119,6 +120,27 @@ describe("FinalizeMergeTransaction", () => {
 
     assert.equal(result.strategy, "squash");
     assert.equal(fs.readFileSync(path.join(root, "specs", "001-test", "flow.json"), "utf8"), "{\"outbox\":[]}\n");
+  });
+
+  it("uses the Flow artifact registry without ignoring unknown files in the spec directory", () => {
+    root = createTmpDir("senti-finalize-merge-artifact-ownership-");
+    ({ baseWorktree } = createFixture(root));
+    const specPath = "specs/001-test/spec.json";
+    fs.mkdirSync(path.join(root, "specs", "001-test"), { recursive: true });
+    fs.writeFileSync(path.join(root, "specs", "001-test", "flow.json"), "{\"outbox\":[]}\n");
+    fs.writeFileSync(path.join(root, "specs", "001-test", "operator-notes.txt"), "retain me\n");
+
+    assert.throws(
+      () => transaction(root, {
+        flowArtifactRegistry: new RepairArtifactRegistry(specPath),
+      }).execute(),
+      (error) => (
+        error instanceof FinalizeMergeTransactionError
+        && error.code === "MERGE_FEATURE_DIRTY"
+        && error.data.paths.includes("specs/001-test/operator-notes.txt")
+        && !error.data.paths.includes("specs/001-test/flow.json")
+      ),
+    );
   });
 
   it("moves a branch-mode caller to the published base only after the isolated merge", () => {

@@ -117,6 +117,22 @@ describe("runGit — basic logging", () => {
 
     assert.deepEqual(resolved.toArray(), [trackedDeletion, untracked]);
   });
+
+  it("treats Git pathspec metacharacters as literal repository paths", () => {
+    const literalPath = "src/routes/[dataKey]/page.js";
+    fs.mkdirSync(path.dirname(path.join(tmpDir, literalPath)), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, literalPath), "export const page = true;\n");
+    runCmd("git", ["-C", tmpDir, "add", "--", `:(literal)${literalPath}`]);
+    runCmd("git", ["-C", tmpDir, "commit", "-q", "-m", "add literal route"]);
+
+    const resolved = GitCommitPathSet.resolve({
+      root: tmpDir,
+      treeish: "HEAD",
+      candidates: [literalPath],
+    });
+
+    assert.deepEqual(resolved.toArray(), [literalPath]);
+  });
 });
 
 describe("runGit — worktree regression (R2)", () => {

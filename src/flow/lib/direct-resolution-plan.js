@@ -20,6 +20,17 @@ function requireString(value, field, max = 4000) {
   return normalized;
 }
 
+function requireAuthoredString(value, field, max = 4000) {
+  const normalized = requireString(value, field, max);
+  if (
+    /^<[^<>\r\n]+>$/.test(normalized)
+    || /^\{\{[^{}\r\n]+\}\}$/.test(normalized)
+  ) {
+    throw new Error(`${field} must replace the command placeholder with concrete evidence`);
+  }
+  return normalized;
+}
+
 function stringList(value, field, { allowEmpty = true } = {}) {
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
     throw new Error(`${field} must be ${allowEmpty ? "an" : "a non-empty"} array`);
@@ -45,21 +56,21 @@ export class DirectResolutionFinding {
     if (!FINDING_ID.test(this.findingId)) {
       throw new Error("direct finding findingId must be a stable path-safe token");
     }
-    this.source = requireString(source, "direct finding source", 1000);
+    this.source = requireAuthoredString(source, "direct finding source", 1000);
     this.classification = requireString(classification, "direct finding classification", 100);
     if (!CLASSIFICATIONS.includes(this.classification)) {
       throw new Error(`invalid direct finding classification: ${this.classification}`);
     }
-    this.summary = requireString(summary, "direct finding summary");
-    this.recommendedResolution = requireString(
+    this.summary = requireAuthoredString(summary, "direct finding summary");
+    this.recommendedResolution = requireAuthoredString(
       recommendedResolution,
       "direct finding recommendedResolution",
     );
     this.changeTargets = Object.freeze(stringList(changeTargets, "direct finding changeTargets"));
-    this.rationale = requireString(rationale, "direct finding rationale");
+    this.rationale = requireAuthoredString(rationale, "direct finding rationale");
     this.selectedResolution = selectedResolution == null
       ? null
-      : requireString(selectedResolution, "direct finding selectedResolution");
+      : requireAuthoredString(selectedResolution, "direct finding selectedResolution");
     this.scopeAdoption = scopeAdoption == null
       ? null
       : DirectScopeAdoption.fromStored(scopeAdoption);
@@ -126,7 +137,7 @@ export class DirectResolutionPlan {
   }) {
     this.target = DirectFlowTarget.fromStored(target);
     this.sourceStep = requireString(sourceStep, "direct plan sourceStep", 200);
-    this.transitionReason = requireString(transitionReason, "direct plan transitionReason");
+    this.transitionReason = requireAuthoredString(transitionReason, "direct plan transitionReason");
     this.transitionAt = requireString(transitionAt, "direct plan transitionAt", 100);
     if (!Number.isFinite(Date.parse(this.transitionAt))) throw new Error("direct plan transitionAt must be an ISO timestamp");
     this.skippedSteps = Object.freeze(stringList(skippedSteps, "direct plan skippedSteps", { allowEmpty: false }));
@@ -184,7 +195,7 @@ export class DirectResolutionPlan {
 
   withFindingResolution(findingId, selectedResolution) {
     const normalizedId = requireString(findingId, "direct finding findingId", 300);
-    const normalizedResolution = requireString(
+    const normalizedResolution = requireAuthoredString(
       selectedResolution,
       "direct finding selectedResolution",
     );
