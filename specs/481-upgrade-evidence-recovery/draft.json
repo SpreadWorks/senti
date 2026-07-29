@@ -1,0 +1,85 @@
+{
+  "devType": "bugfix",
+  "goal": "must: stale test evidence recovery の後も、現在の変更に対応する upgrade evidence を正規 lifecycle で回復し、手動の senti upgrade なしで impl-gate へ進める。",
+  "analysis": {
+    "problem": "must: stale recovery は downstream artifact として upgrade-result.json と raw upgrade log を無効化するが、test-execute から impl-gate へ戻る正規経路には current fingerprint の upgrade evidence を再生成または安全に再利用する責務がない。",
+    "proposedApproach": "must: upgrade-required source change が残る場合に限り、current fingerprint、checkedPaths、flow target authority が一致し、upgrade-result.json と raw upgrade log がそろう evidence だけを再利用し、それ以外は正規経路で再生成する。旧 fingerprint、欠損、または不正な evidence は引き続き fail-closed で拒否する。",
+    "validation": "must: stale recovery 後の canonical path が upgrade-result.json missing で再閉塞せず、source が変化した場合は旧 evidence を受理せず、upgrade 不要な変更では upgrade を実行しないことを spec-local と shared lifecycle regression で検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: stale recovery 後、upgrade-result.json と tests/.raw/upgrade.log が無効化される。",
+      "must: integration gate は upgrade-required source path がある場合、current checkedPaths に一致する upgrade-result.json を要求する。",
+      "must: impl-repair transaction は artifact invalidation と flow state transition を監査可能な transaction として扱う。"
+    ],
+    "decisionPoints": [
+      "must: current fingerprint と authority を検証した evidence だけを保持または再利用し、それ以外は正規経路で再生成する。",
+      "must: preserve、reuse、regenerate、missing、stale の判断を flow audit evidence に残す。"
+    ],
+    "resolvedByProjectRules": [
+      "must: stale、missing、malformed artifact を fail-open にしない。",
+      "must: Issue #458 が扱う repair manifest、ledger、delta の transaction continuity を変更しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: owner step、artifact schema、current fingerprint・checkedPaths・flow target authority・result/log の存在を確認する再利用条件、実装ファイルとテスト配置を定義する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: stale evidence recovery 後の upgrade evidence の保持、再公開、または再生成。",
+      "must: impl-gate 前の canonical lifecycle と監査 evidence の整合。",
+      "must: preserve、regenerate、stale、missing、複数 recovery を対象にした回帰テスト。"
+    ],
+    "out": [
+      "must: upgrade-required source detection の緩和。",
+      "must: stale、missing、malformed evidence の fail-open 化。",
+      "must: Issue #458 の repair manifest、ledger、delta transaction continuity。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: stale recovery、test-execute、impl-gate、および upgrade evidence validation の既存 lifecycle を変更し、current source state に一致しない evidence は従来どおり拒否する。",
+    "must: upgrade-required source change がない flow では upgrade 実行を追加しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "stale recovery 後、upgrade-required な変更が残る場合は、利用者の手動操作なしに canonical path が current upgrade evidence を回復して impl-gate へ到達する、という成功条件で進めますか。",
+      "answer": "must: upgrade-required な変更が残る stale recovery 後、canonical path は利用者の手動 senti upgrade なしで current upgrade evidence を回復し、impl-gate へ到達する。",
+      "evidence": "既存コードパターン: src/flow/lib/run-test-execute.js は canonical step が current test execution evidence を生成し、src/flow/lib/impl-repair-artifacts.js は stale recovery で downstream evidence を無効化する。",
+      "why": "stale invalidation 後に evidence owner が存在しないことが根因であり、手動 workaround を不要にすることが Issue の成功条件である。",
+      "considered": "手動 senti upgrade を利用者に要求する案は、Issue が報告する反復的な閉塞を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "fingerprint（evidence がどの source state に対応するかを示す識別値）が変わった場合、旧 evidence は再利用せず、current state に対応する evidence だけを使用する fail-closed 方針を維持しますか。",
+      "answer": "must: fingerprint が変化した旧 evidence は再利用せず、current state に対応する evidence だけを使用する fail-closed 方針を維持する。",
+      "evidence": "Issue #481 Expected Fix は source が変化した場合に旧 evidence を拒否することを明記し、src/flow/lib/impl-repair-artifacts.js は repair transaction の current fingerprint authority を検証する。",
+      "why": "古い evidence を許可すると、current source state を検証したという gate の前提が失われる。",
+      "considered": "fingerprint 不一致の evidence を便宜上再利用する案は fail-open となるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "recovery が evidence を preserve、reuse、regenerate、または拒否した理由を flow audit evidence に記録しますか。",
+      "answer": "should: recovery が evidence を preserve、reuse、regenerate、または拒否した理由を flow audit evidence に記録する。",
+      "evidence": "既存コードパターン: src/flow/lib/impl-repair-artifacts.js は repair transaction、fingerprint manifest、issue log を使って recovery の判断と結果を監査可能な evidence として保存する。",
+      "why": "再閉塞または意図しない upgrade 実行時に、canonical path が選んだ判断を追跡できる必要がある。",
+      "considered": "判断を raw log のみへ残す案では、flow lifecycle の監査証跡として一貫して参照できないため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-28T12:38:37.038Z",
+    "notes": ""
+  }
+}

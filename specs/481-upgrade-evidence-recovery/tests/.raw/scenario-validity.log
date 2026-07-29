@@ -1,0 +1,127 @@
+[senti] scenario-validity tests start
+command: node --test specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js
+[senti] scenario-validity file start command=node specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js
+TAP version 13
+# Subtest: R1: upgrade-unrelated recovery bypasses upgrade execution
+not ok 1 - R1: upgrade-unrelated recovery bypasses upgrade execution
+  ---
+  duration_ms: 2.824454
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:63:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:67:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: R2: current authoritative evidence is reused without upgrade
+not ok 2 - R2: current authoritative evidence is reused without upgrade
+  ---
+  duration_ms: 2.109771
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:79:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:84:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3: missing or stale evidence is regenerated before impl-gate
+not ok 3 - R3: missing or stale evidence is regenerated before impl-gate
+  ---
+  duration_ms: 1.159966
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:96:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:105:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4: recovery decision records current authority and next step
+not ok 4 - R4: recovery decision records current authority and next step
+  ---
+  duration_ms: 1.110325
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:119:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:121:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5: malformed, failed, or unowned evidence fails closed
+ok 5 - R5: malformed, failed, or unowned evidence fails closed
+  ---
+  duration_ms: 4.949505
+  type: 'test'
+  ...
+# Subtest: R6: repeated stale recoveries each restore current upgrade evidence
+not ok 6 - R6: repeated stale recoveries each restore current upgrade evidence
+  ---
+  duration_ms: 1.356927
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:154:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:158:21)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R7: decision variants remain auditable contracts
+not ok 7 - R7: decision variants remain auditable contracts
+  ---
+  duration_ms: 1.580089
+  type: 'test'
+  location: '/home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:171:1'
+  failureType: 'testCodeFailure'
+  error: 'UpgradeEvidenceRecovery is not a constructor'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    recovery (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:55:10)
+    async TestContext.<anonymous> (file:///home/nakano/workspace/senti/.senti/worktree/feature-481-upgrade-evidence-recovery/specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:174:19)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 1
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 32.935371
+Command failed: node specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js
+exitCode: 1
+[senti] scenario-validity file end command=node specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js
+exitCode: 1
+[senti] requirement R1 observed: R1: upgrade-unrelated recovery bypasses upgrade execution
+[senti] requirement R2 observed: R2: current authoritative evidence is reused without upgrade
+[senti] requirement R3 observed: R3: missing or stale evidence is regenerated before impl-gate
+[senti] requirement R4 observed: R4: recovery decision records current authority and next step
+[senti] requirement R5 observed: R5: malformed, failed, or unowned evidence fails closed
+[senti] requirement R6 observed: R6: repeated stale recoveries each restore current upgrade evidence
+[senti] requirement R7 observed: R7: decision variants remain auditable contracts
+[senti] scenario-validity tests end

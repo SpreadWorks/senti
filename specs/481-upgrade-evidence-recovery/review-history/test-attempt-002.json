@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T12:53:16.328Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 3,
+    "advisory": 1,
+    "total": 4
+  },
+  "coverageArtifact": "specs/481-upgrade-evidence-recovery/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 audit coverage can be satisfied by test-only forceDecision",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:136",
+      "findingId": "2043193e990df0ad27d8c45f557cd9d7857f0e37bc73fe2c21c9291182c6def7",
+      "fingerprint": "2043193e990df0ad27d8c45f557cd9d7857f0e37bc73fe2c21c9291182c6def7",
+      "disposition": "must-fix",
+      "rationale": "R4 requires recording which recovery owner decision was selected. A test that supplies the expected decision as input does not exercise that production selection or audit behavior.",
+      "issue": "The preserve/reuse/regenerate/missing/stale audit test injects `forceDecision: entry.decision`, so the test can pass even if production recovery never classifies those states correctly or never records the real selected decision. This is a static anti-pattern that bypasses production behavior for a required audit contract.",
+      "requiredChange": "Remove the test-only forced decision path from the audit assertions and create real fixture states that cause production recovery to select each required decision, then assert the resulting audit fields.",
+      "whyBlocking": "R4 requires recording which recovery owner decision was selected. A test that supplies the expected decision as input does not exercise that production selection or audit behavior.",
+      "origin": "R4",
+      "failureKind": "static-anti-pattern"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 fail-closed cases are not all covered",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:151",
+      "findingId": "5591a788c93d737e90525f6e411581511fcf16aec8f3768c58bc850ebef8f8a0",
+      "fingerprint": "5591a788c93d737e90525f6e411581511fcf16aec8f3768c58bc850ebef8f8a0",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has incomplete spec-local regression coverage for two explicit fail-closed rejection conditions.",
+      "issue": "R5 requires fail-closed rejection for current required path mismatch, missing raw log, malformed artifact, failed upgrade result, and authority mismatch. The executable R5 test covers malformed artifact, missing raw log, and failed result, but does not cover current required path mismatch or authority mismatch in the impl-gate fail-closed path. Authority mismatch appears only in an R2 regeneration test, which expects regeneration rather than rejection.",
+      "requiredChange": "Add spec-local R5 tests that assert impl-gate/recovery validation rejects checkedPaths that do not match current required paths and rejects recoveryAuthority target/fingerprint mismatch as stale evidence rather than accepting it as current evidence.",
+      "whyBlocking": "A must requirement has incomplete spec-local regression coverage for two explicit fail-closed rejection conditions.",
+      "origin": "R5",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R6 repeated recovery test contradicts the requirement premise",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:169",
+      "findingId": "bb23c7df7e54338a5b29aacf7a32f330d0db31c880bd24491860942a1c9fb094",
+      "fingerprint": "bb23c7df7e54338a5b29aacf7a32f330d0db31c880bd24491860942a1c9fb094",
+      "disposition": "must-fix",
+      "rationale": "The current test encodes an incorrect implementation premise for R6 and would not verify the stated no re-closure behavior.",
+      "issue": "R6 requires multiple stale recovery executions to avoid re-blocking impl-gate because canonical regeneration supplies current evidence. The test deletes both upgrade-result.json and the raw log after each recovery, then expects regeneration again. That models externally removed evidence, not repeated stale recovery preserving current evidence through impl-gate.",
+      "requiredChange": "Change the R6 scenario so the first stale recovery regenerates current evidence, the next recovery/impl-gate pass runs against that current evidence without deleting it, and the assertion verifies it does not fail due to missing upgrade-result.json.",
+      "whyBlocking": "The current test encodes an incorrect implementation premise for R6 and would not verify the stated no re-closure behavior.",
+      "origin": "R6",
+      "failureKind": "incorrect-premise"
+    }
+  ],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R1 next-step assertion is implicit",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:60",
+      "findingId": "856cd9831f877804e6b30f96cbd7c1e8d99c9f9ca4fb37b8dd41d881a3ea69ad",
+      "fingerprint": "856cd9831f877804e6b30f96cbd7c1e8d99c9f9ca4fb37b8dd41d881a3ea69ad",
+      "disposition": "informational",
+      "rationale": "R4 already checks `nextActiveStep`, so this is a useful strengthening of R1 rather than missing core coverage.",
+      "improvement": "Assert the bypass result advances to the next lifecycle step, not only that the command did not run and no artifact exists.",
+      "whyNonBlocking": "R4 already checks `nextActiveStep`, so this is a useful strengthening of R1 rather than missing core coverage."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 3,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "e8d5c6f58eab963e66b1a9639134fa96496f124d638b2ffa5ef30cb670a9e166"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 2,
+  "findings": [
+    {
+      "id": "2043193e990df0ad27d8c45f557cd9d7857f0e37bc73fe2c21c9291182c6def7",
+      "findingId": "2043193e990df0ad27d8c45f557cd9d7857f0e37bc73fe2c21c9291182c6def7",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R4 audit coverage can be satisfied by test-only forceDecision",
+      "body": "The preserve/reuse/regenerate/missing/stale audit test injects `forceDecision: entry.decision`, so the test can pass even if production recovery never classifies those states correctly or never records the real selected decision. This is a static anti-pattern that bypasses production behavior for a required audit contract.",
+      "category": "unknown",
+      "fingerprint": "2043193e990df0ad27d8c45f557cd9d7857f0e37bc73fe2c21c9291182c6def7",
+      "disposition": "must-fix",
+      "rationale": "R4 requires recording which recovery owner decision was selected. A test that supplies the expected decision as input does not exercise that production selection or audit behavior."
+    },
+    {
+      "id": "5591a788c93d737e90525f6e411581511fcf16aec8f3768c58bc850ebef8f8a0",
+      "findingId": "5591a788c93d737e90525f6e411581511fcf16aec8f3768c58bc850ebef8f8a0",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R5 fail-closed cases are not all covered",
+      "body": "R5 requires fail-closed rejection for current required path mismatch, missing raw log, malformed artifact, failed upgrade result, and authority mismatch. The executable R5 test covers malformed artifact, missing raw log, and failed result, but does not cover current required path mismatch or authority mismatch in the impl-gate fail-closed path. Authority mismatch appears only in an R2 regeneration test, which expects regeneration rather than rejection.",
+      "category": "unknown",
+      "fingerprint": "5591a788c93d737e90525f6e411581511fcf16aec8f3768c58bc850ebef8f8a0",
+      "disposition": "must-fix",
+      "rationale": "A must requirement has incomplete spec-local regression coverage for two explicit fail-closed rejection conditions."
+    },
+    {
+      "id": "bb23c7df7e54338a5b29aacf7a32f330d0db31c880bd24491860942a1c9fb094",
+      "findingId": "bb23c7df7e54338a5b29aacf7a32f330d0db31c880bd24491860942a1c9fb094",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "blocking",
+      "title": "R6 repeated recovery test contradicts the requirement premise",
+      "body": "R6 requires multiple stale recovery executions to avoid re-blocking impl-gate because canonical regeneration supplies current evidence. The test deletes both upgrade-result.json and the raw log after each recovery, then expects regeneration again. That models externally removed evidence, not repeated stale recovery preserving current evidence through impl-gate.",
+      "category": "unknown",
+      "fingerprint": "bb23c7df7e54338a5b29aacf7a32f330d0db31c880bd24491860942a1c9fb094",
+      "disposition": "must-fix",
+      "rationale": "The current test encodes an incorrect implementation premise for R6 and would not verify the stated no re-closure behavior."
+    },
+    {
+      "id": "856cd9831f877804e6b30f96cbd7c1e8d99c9f9ca4fb37b8dd41d881a3ea69ad",
+      "findingId": "856cd9831f877804e6b30f96cbd7c1e8d99c9f9ca4fb37b8dd41d881a3ea69ad",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 2,
+      "severity": "non-blocking",
+      "title": "R1 next-step assertion is implicit",
+      "body": "R4 already checks `nextActiveStep`, so this is a useful strengthening of R1 rather than missing core coverage.",
+      "category": "unknown",
+      "fingerprint": "856cd9831f877804e6b30f96cbd7c1e8d99c9f9ca4fb37b8dd41d881a3ea69ad",
+      "disposition": "informational",
+      "rationale": "R4 already checks `nextActiveStep`, so this is a useful strengthening of R1 rather than missing core coverage."
+    }
+  ]
+}

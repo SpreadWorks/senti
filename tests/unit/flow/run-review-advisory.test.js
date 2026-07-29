@@ -19,6 +19,12 @@ import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { ReviewFailure } from "../../../src/flow/lib/review-failure.js";
 import {
+  ReviewDisposition,
+  ReviewEvidence,
+  ReviewTargetState,
+  applyReviewEvidenceTransition,
+} from "../../../src/flow/lib/review-convergence.js";
+import {
   CompletionValidator,
   contractFromImplReviewArtifact,
 } from "../../../src/flow/lib/flow-judgment-contract.js";
@@ -653,6 +659,86 @@ describe("impl review structured verdict routing", () => {
       assert.equal(findStepById(recoveredState.steps, "impl-review").status, "pending");
       assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
       assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), false);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
+  it("refreshes stale test evidence before replaying canonical implementation review evidence", async () => {
+    const root = createTmpDir("run-review-stale-before-replay-");
+    const specDir = path.join(root, "specs", "demo");
+    const specPath = "specs/demo/spec.json";
+    const sourcePath = path.join(root, "src", "demo.js");
+    try {
+      fs.mkdirSync(specDir, { recursive: true });
+      fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+      fs.writeFileSync(path.join(root, specPath), "{}\n");
+      fs.writeFileSync(sourcePath, "export const demo = false;\n");
+      const previousFingerprint = buildRepairFingerprint({ root, specPath });
+      writeRepairFingerprintManifest(specDir, previousFingerprint);
+      const flowState = moveFlowToStep(makeFlowState({
+        spec: specPath,
+        repairBaseline: previousFingerprint.baseline.toJSON(),
+      }), "impl-review");
+      for (const file of ["test-execute-result.json", "test-result-review.json"]) {
+        fs.writeFileSync(path.join(specDir, file), `${JSON.stringify({
+          repairFingerprint: previousFingerprint.hash,
+        })}\n`);
+      }
+
+      fs.writeFileSync(sourcePath, "export const demo = true;\n");
+      const currentFingerprint = buildRepairFingerprint({
+        root,
+        specPath,
+        state: flowState,
+      });
+      const treeSha = "c".repeat(40);
+      const evidence = new ReviewEvidence({
+        phase: "impl",
+        taskId: null,
+        treeSha,
+        provenance: {
+          provider: "fixture-reviewer",
+          invocationId: "stale-before-canonical-replay",
+          capturedAt: "2026-07-29T00:00:00.000Z",
+        },
+        disposition: new ReviewDisposition({ value: "PASS" }),
+      });
+      applyReviewEvidenceTransition(flowState, evidence, {
+        configuredSemanticMaxAttempts: 4,
+        targetStateDigest: currentFingerprint.hash,
+        targetState: ReviewTargetState.fromRepairFingerprint(currentFingerprint),
+      });
+
+      const flowManager = new FlowManager({
+        root,
+        mainRoot: root,
+        inWorktree: false,
+      });
+      flowManager.create(flowState);
+      let providerInvoked = false;
+      const command = new RunReviewCommand({
+        resolveTreeSha: () => treeSha,
+        resolveTargetStateDigest: () => currentFingerprint.hash,
+        runCommand() {
+          providerInvoked = true;
+          throw new Error("provider must not run during stale evidence refresh");
+        },
+      });
+
+      const result = await command.execute({
+        root,
+        phase: "impl",
+        config: { agent: {} },
+        flowState: flowManager.load(),
+        flowManager,
+      });
+
+      assert.equal(result.result, "recovered");
+      assert.equal(result.next, "test-execute");
+      assert.equal(result.artifacts.evidenceRefresh.recovered, true);
+      assert.equal(providerInvoked, false);
+      assert.equal(findStepById(flowManager.load().steps, "test-execute").status, "in_progress");
     } finally {
       removeTmpDir(root);
     }

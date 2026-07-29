@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "18253cc66979dc1c828d5da4c5367358ed70f97e87793e77def43748d99d9a03",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-29T02:18:13.673Z",
+  "items": [
+    {
+      "findingId": "edc97715c181f80b3fc18634e2081bba0e4dbab7605e04e0a084e4bc97218db5",
+      "sourceStep": "impl-review",
+      "decision": "apply",
+      "rationale": "Move the existing-artifact validation behind the `currentRequiredPaths.length > 0` branch, or make the constructor skip `assertExistingArtifactIsUsableOrAbsent()` when `matchUpgradeRequiredSourcePaths(currentRequiredPaths)` is empty.",
+      "evidenceRefs": [
+        "impl-review.json#edc97715c181f80b3fc18634e2081bba0e4dbab7605e04e0a084e4bc97218db5"
+      ]
+    }
+  ]
+}

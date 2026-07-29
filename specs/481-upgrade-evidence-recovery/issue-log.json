@@ -1,0 +1,817 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Question q1 gives a recommended answer, but its stated basis cites Issue #481 and flow prelude rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.; Question q3 gives a recommended answer, but its stated basis cites Issue #481 rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-28T12:39:27.183Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[0].evidence"
+          },
+          "observed": "Question q1 gives a recommended answer, but its stated basis cites Issue #481 and flow prelude rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "content",
+            "locator": "qa[2].evidence"
+          },
+          "observed": "Question q3 gives a recommended answer, but its stated basis cites Issue #481 rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q1 gives a recommended answer, but its stated basis cites Issue #481 and flow prelude rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Question q3 gives a recommended answer, but its stated basis cites Issue #481 rather than one of the allowed bases: project docs/, guardrail principles, or existing code patterns."
+        }
+      ],
+      "issueLogId": "issue-log-70447f13-bae9-4c71-9668-3113a139f800"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague condition \"安全に再利用\" without stating verifiable reuse criteria.; The requirement says evidence must be reused \"安全に\" but does not define measurable criteria for two reviewers to agree that reuse is safe.; The requirement defers defining \"既存 evidence の安全な再利用条件\", leaving the current draft without verifiable safe-reuse conditions.; The requirement refers to \"安全な再利用条件\" but does not specify the measurable conditions needed to determine whether an implementation satisfies safe reuse.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-28T12:40:09.971Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement uses the vague condition \"安全に再利用\" without stating verifiable reuse criteria.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement says evidence must be reused \"安全に\" but does not define measurable criteria for two reviewers to agree that reuse is safe.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "The requirement defers defining \"既存 evidence の安全な再利用条件\", leaving the current draft without verifiable safe-reuse conditions.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.deferredToSpec[0]"
+          },
+          "observed": "The requirement refers to \"安全な再利用条件\" but does not specify the measurable conditions needed to determine whether an implementation satisfies safe reuse.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague condition \"安全に再利用\" without stating verifiable reuse criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says evidence must be reused \"安全に\" but does not define measurable criteria for two reviewers to agree that reuse is safe."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement defers defining \"既存 evidence の安全な再利用条件\", leaving the current draft without verifiable safe-reuse conditions."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement refers to \"安全な再利用条件\" but does not specify the measurable conditions needed to determine whether an implementation satisfies safe reuse."
+        }
+      ],
+      "issueLogId": "issue-log-7fed5f54-aa7c-4089-aa90-48d40f6b1f39"
+    },
+    {
+      "step": "task-review",
+      "reason": "Moved canonical upgrade evidence recovery into the integration impl-gate path before trust validation.",
+      "normalizedFindingId": "48c471fbd665bd53d3b0ca0ba850a01b0a0b4808ca3bcf0bead3ac32f6137a94",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-gate.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-28T17:57:18.641Z",
+      "issueLogId": "issue-log-7a3dae1c-1d85-445c-acf9-f251f048db2e"
+    },
+    {
+      "step": "task-review",
+      "reason": "Removed upgrade mutation from test-execute so evidence recovery occurs only at the integration impl-gate boundary.",
+      "normalizedFindingId": "92880eb2f464eee57786f49be719c8d4abc19daf2c653e509d5f1e4335f38272",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/run-test-execute.js"
+        ]
+      },
+      "taskId": "T-1",
+      "timestamp": "2026-07-28T17:57:24.434Z",
+      "issueLogId": "issue-log-a85533c9-afda-4fda-bc94-fd21675d537c"
+    },
+    {
+      "step": "spec-gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-28T17:58:23.554Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "recoverUpgradeEvidenceForIntegration"
+          },
+          "observed": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary."
+        }
+      ],
+      "issueLogId": "issue-log-6d194a2f-49b0-4675-acd2-7c5bb0b841d0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: removed the single-use exported recovery wrapper and call UpgradeEvidenceRecovery directly from the integration gate boundary.",
+      "resolution": "The gate now owns recovery without an unnecessary indirection, satisfying the no-overengineering observation.",
+      "taskId": "T-1",
+      "timestamp": "2026-07-28T17:59:13.920Z",
+      "issueLogId": "issue-log-f966d5bc-10f7-4fa1-8acd-bd0d29efc933"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test-execute prerequisite failed before normal v2 artifact creation: fingerprint is not defined",
+      "failureKind": "prerequisite",
+      "message": "fingerprint is not defined",
+      "commandSource": null,
+      "commandCandidates": [],
+      "changedFileCount": 7,
+      "trigger": "senti flow run test-execute",
+      "resolution": "fix the prerequisite failure and rerun test-execute",
+      "taskId": null,
+      "timestamp": "2026-07-28T18:00:27.955Z",
+      "issueLogId": "issue-log-17eab7e2-4e64-4a72-8c9c-e68b48daf0e0"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: separated recovery operation from missing or stale evidence reason in the durable audit and made stale validation messages specific.",
+      "resolution": "R4 now records regenerate plus its cause, and R5 reports the failed authority or checkedPaths condition.",
+      "taskId": null,
+      "timestamp": "2026-07-28T23:37:02.652Z",
+      "issueLogId": "issue-log-d158716a-fdd2-483a-8d4f-20752d94a54c"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Resolved shared test paths before boundary checks and reject paths outside the repository or inside spec-local tests using path.relative.",
+      "normalizedFindingId": "fac9a82e15f6aa4c9129585032fb4632549b2c2c50c2f45ccf47466dbb7707e6",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T23:38:54.652Z",
+      "issueLogId": "issue-log-2cefe73e-94db-4639-96c4-2be87539c6e9"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Collect shared test directives only after the spec-local tests directory is confirmed to exist.",
+      "normalizedFindingId": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "repairRef": {
+        "files": [
+          "src/flow/commands/review.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-28T23:40:43.507Z",
+      "issueLogId": "issue-log-7376a092-1974-43e2-b1c1-615d38a7f847"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Validate declared shared tests through the canonical header-validation path before test coverage is constructed.",
+      "normalizedFindingId": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/test-headers.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-29T02:11:54.811Z",
+      "issueLogId": "issue-log-2f62e44d-3050-476f-b51e-a572bc01be66"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "[REQ:R4] and [AC:4] require the flow audit evidence to record which recovery decision was selected from preserve/reuse/regenerate/missing/stale, plus current fingerprint, checkedPaths, artifact paths, and next active step. The implementation does write audit records with currentFingerprint, checkedPaths, artifactPaths, and nextActiveStep, but `UpgradeEvidenceRecovery.resolve()` records `decision: \"not-required\"` for empty required paths and records `decision: \"regenerate\"` with `reason: current.status` for missing/stale-like evidence rather than recording `missing` or `stale` as the decision. That contradicts the required decision set. [EVIDENCE:R4] [FILE-MAP:R4:2]; [REQ:R6] requires repeated stale recovery to use the canonical regeneration path so impl-gate receives current upgrade evidence and does not re-block on missing upgrade-result.json. The mapped implementation evidence defines UpgradeEvidenceRecovery and audit persistence in src/flow/lib/test-artifacts.js, but the diff provides no integration from the stale recovery or test-execute-to-impl-gate canonical path into this resolver; src/flow/lib/run-test-execute.js only moves fingerprint construction and does not call UpgradeEvidenceRecovery, and tests/unit/flow/stale-test-evidence-refresh.test.js exercises the class directly rather than the canonical lifecycle. Although [TEST:R6] is validated, the shown implementation evidence omits the required canonical-path integration, so the changed behavior required by [AC:6] and [TASK:T-1] is not supplied by the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T02:14:32.756Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "[REQ:R4] and [AC:4] require the flow audit evidence to record which recovery decision was selected from preserve/reuse/regenerate/missing/stale, plus current fingerprint, checkedPaths, artifact paths, and next active step. The implementation does write audit records with currentFingerprint, checkedPaths, artifactPaths, and nextActiveStep, but `UpgradeEvidenceRecovery.resolve()` records `decision: \"not-required\"` for empty required paths and records `decision: \"regenerate\"` with `reason: current.status` for missing/stale-like evidence rather than recording `missing` or `stale` as the decision. That contradicts the required decision set. [EVIDENCE:R4] [FILE-MAP:R4:2]",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "[REQ:R6] requires repeated stale recovery to use the canonical regeneration path so impl-gate receives current upgrade evidence and does not re-block on missing upgrade-result.json. The mapped implementation evidence defines UpgradeEvidenceRecovery and audit persistence in src/flow/lib/test-artifacts.js, but the diff provides no integration from the stale recovery or test-execute-to-impl-gate canonical path into this resolver; src/flow/lib/run-test-execute.js only moves fingerprint construction and does not call UpgradeEvidenceRecovery, and tests/unit/flow/stale-test-evidence-refresh.test.js exercises the class directly rather than the canonical lifecycle. Although [TEST:R6] is validated, the shown implementation evidence omits the required canonical-path integration, so the changed behavior required by [AC:6] and [TASK:T-1] is not supplied by the diff.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R2",
+        "R7"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "[REQ:R4] and [AC:4] require the flow audit evidence to record which recovery decision was selected from preserve/reuse/regenerate/missing/stale, plus current fingerprint, checkedPaths, artifact paths, and next active step. The implementation does write audit records with currentFingerprint, checkedPaths, artifactPaths, and nextActiveStep, but `UpgradeEvidenceRecovery.resolve()` records `decision: \"not-required\"` for empty required paths and records `decision: \"regenerate\"` with `reason: current.status` for missing/stale-like evidence rather than recording `missing` or `stale` as the decision. That contradicts the required decision set. [EVIDENCE:R4] [FILE-MAP:R4:2]"
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "[REQ:R6] requires repeated stale recovery to use the canonical regeneration path so impl-gate receives current upgrade evidence and does not re-block on missing upgrade-result.json. The mapped implementation evidence defines UpgradeEvidenceRecovery and audit persistence in src/flow/lib/test-artifacts.js, but the diff provides no integration from the stale recovery or test-execute-to-impl-gate canonical path into this resolver; src/flow/lib/run-test-execute.js only moves fingerprint construction and does not call UpgradeEvidenceRecovery, and tests/unit/flow/stale-test-evidence-refresh.test.js exercises the class directly rather than the canonical lifecycle. Although [TEST:R6] is validated, the shown implementation evidence omits the required canonical-path integration, so the changed behavior required by [AC:6] and [TASK:T-1] is not supplied by the diff."
+        }
+      ],
+      "issueLogId": "issue-log-457aa8fd-bc25-4615-8cc6-acac026dcd2a"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "fix: record audit decisions as preserve/reuse/missing/stale and map R6 to the integration-gate recovery path.",
+      "resolution": "The audit now distinguishes selected evidence state from recovery action, and R6 explicitly maps the canonical impl-gate integration that invokes recovery before artifact validation.",
+      "taskId": null,
+      "timestamp": "2026-07-29T02:17:13.836Z",
+      "issueLogId": "issue-log-f5269f52-5928-4a6a-93dc-4eacfb9cf14b"
+    },
+    {
+      "step": "impl-repair",
+      "reason": "Skip leftover upgrade artifact validation when no upgrade-required paths exist so the R1 bypass cannot be blocked.",
+      "normalizedFindingId": "edc97715c181f80b3fc18634e2081bba0e4dbab7605e04e0a084e4bc97218db5",
+      "repairRef": {
+        "files": [
+          "src/flow/lib/test-artifacts.js"
+        ]
+      },
+      "taskId": null,
+      "timestamp": "2026-07-29T02:19:08.019Z",
+      "issueLogId": "issue-log-37fb0d6d-5671-495d-8645-800080f7b62b"
+    },
+    {
+      "step": "spec-gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in bindCurrentAuthority; extract the shared upgrade-result validation/rejection behavior into a local helper.; The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in assertExistingArtifactIsUsableOrAbsent; extract the shared upgrade-result validation/rejection behavior into a local helper.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T02:21:05.940Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/test-artifacts.js",
+            "locator": "UpgradeEvidenceRecovery.assertExistingArtifactIsUsableOrAbsent"
+          },
+          "observed": "The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in bindCurrentAuthority; extract the shared upgrade-result validation/rejection behavior into a local helper.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/test-artifacts.js",
+            "locator": "UpgradeEvidenceRecovery.bindCurrentAuthority"
+          },
+          "observed": "The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in assertExistingArtifactIsUsableOrAbsent; extract the shared upgrade-result validation/rejection behavior into a local helper.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R5",
+        "R7",
+        "R4",
+        "R6"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in bindCurrentAuthority; extract the shared upgrade-result validation/rejection behavior into a local helper."
+        },
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "The added method duplicates the same read/validate/failed-upgrade rejection shape that is also added in assertExistingArtifactIsUsableOrAbsent; extract the shared upgrade-result validation/rejection behavior into a local helper."
+        }
+      ],
+      "issueLogId": "issue-log-519863e8-590f-410a-84d3-e52c795e78dc"
+    },
+    {
+      "step": "impl-gate",
+      "reason": "The active worktree CLI predated the serial Flow dispatcher and could not continue the non-terminal gate repair.",
+      "trigger": "senti flow run dispatch returned unknown key dispatch in the Issue 481 worktree.",
+      "resolution": "Committed the current implementation and merged main into the feature branch without conflicts, making the canonical dispatcher available inside the worktree.",
+      "guardrailCandidate": "Active long-lived worktrees must refresh their CLI implementation before relying on newly introduced lifecycle commands.",
+      "taskId": null,
+      "timestamp": "2026-07-29T09:18:50.273Z",
+      "issueLogId": "issue-log-63a7d175-99a0-40d2-b87a-edd6deac5b0f"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "The acceptance decision boundary offered risk acceptance or abort but no safe route back to implementation validation after a late quality mismatch was confirmed.",
+      "trigger": "Completion audit found repeated upgrade artifact validation after impl-gate had already passed.",
+      "resolution": "Added acceptance-decision to the generic guarded plan-rewind stages so any Flow can preserve work and invalidate stale evidence before repair.",
+      "guardrailCandidate": "Post-acceptance decision boundaries must allow a guarded repair rewind when the user declines both risk acceptance and abort.",
+      "taskId": null,
+      "timestamp": "2026-07-29T09:38:49.048Z",
+      "issueLogId": "issue-log-e9aae621-a55d-44e9-8572-8ea56b48f060"
+    },
+    {
+      "step": "acceptance-decision",
+      "reason": "A shared stale-evidence regression asserted regeneration as the recovery decision even though the approved audit contract separates evidence state from the executed action.",
+      "trigger": "Focused regression expected decision=regenerate while canonical R4 evidence requires decision=missing or stale and action=regenerate.",
+      "resolution": "Corrected the invalid scenario to assert decision=missing and action=regenerate, then reran all focused tests successfully.",
+      "guardrailCandidate": "Shared lifecycle tests must assert both audit decision and action when the contract models cause separately from mutation.",
+      "taskId": null,
+      "timestamp": "2026-07-29T09:38:58.978Z",
+      "issueLogId": "issue-log-997ca067-a8e0-41ae-b660-a021d11d5734"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft replaces the existing upgrade evidence recovery path by adding reuse/regeneration behavior, but this passage does not inventory the existing public behavior being replaced, map each retained behavior to the new owner or removal decision, or define behavior-level verification for each retained public surface.; The draft defines conditions for reusing existing upgrade evidence, but does not provide migration parity details for the replaced behavior: existing public behavior inventory, retained-behavior owner mapping or removal decisions, and behavior-level verification through the new path.; The draft scopes in preserving, republishing, or regenerating upgrade evidence after stale evidence recovery, but does not include the required migration parity inventory, mapping of retained behavior to new owner or removal decision, and behavior-level verification for retained public surfaces.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:43:12.762Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The draft replaces the existing upgrade evidence recovery path by adding reuse/regeneration behavior, but this passage does not inventory the existing public behavior being replaced, map each retained behavior to the new owner or removal decision, or define behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "decisionMap.resolvedByProjectRules[2]"
+          },
+          "observed": "The draft defines conditions for reusing existing upgrade evidence, but does not provide migration parity details for the replaced behavior: existing public behavior inventory, retained-behavior owner mapping or removal decisions, and behavior-level verification through the new path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "The draft scopes in preserving, republishing, or regenerating upgrade evidence after stale evidence recovery, but does not include the required migration parity inventory, mapping of retained behavior to new owner or removal decision, and behavior-level verification for retained public surfaces.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft replaces the existing upgrade evidence recovery path by adding reuse/regeneration behavior, but this passage does not inventory the existing public behavior being replaced, map each retained behavior to the new owner or removal decision, or define behavior-level verification for each retained public surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defines conditions for reusing existing upgrade evidence, but does not provide migration parity details for the replaced behavior: existing public behavior inventory, retained-behavior owner mapping or removal decisions, and behavior-level verification through the new path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft scopes in preserving, republishing, or regenerating upgrade evidence after stale evidence recovery, but does not include the required migration parity inventory, mapping of retained behavior to new owner or removal decision, and behavior-level verification for retained public surfaces."
+        }
+      ],
+      "issueLogId": "issue-log-ba2809d1-4f63-4dda-a57e-c5f0106cdd54"
+    },
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the vague adjective 「安全に」 in 「upgrade evidence を再生成または安全に再利用する」 without stating the verifiable condition that makes reuse safe.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:43:50.407Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "content",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement uses the vague adjective 「安全に」 in 「upgrade evidence を再生成または安全に再利用する」 without stating the verifiable condition that makes reuse safe.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The requirement uses the vague adjective 「安全に」 in 「upgrade evidence を再生成または安全に再利用する」 without stating the verifiable condition that makes reuse safe."
+        }
+      ],
+      "issueLogId": "issue-log-4e81390b-1ee5-41ff-a6ff-2dfbdfbe9c15"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:48:22.235Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: new task 'T-2' added_round must be 1, got 0",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: new task 'T-3' added_round must be 1, got 0",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-4665d34d-bef4-47f5-99bf-8f287d6cddee"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: 'T-1' added_round changed (0 → 1, not allowed); tasks: new task 'T-3' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:48:42.307Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: 'T-1' added_round changed (0 → 1, not allowed)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "tasks: new task 'T-3' added_round must be 1, got 0",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-7168fafb-b891-4973-b6d9-11c1fd88e5ef"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The requirement says tests must include \"shared lifecycle regression updates\" but does not specify which shared lifecycle regressions must be updated, so independent reviewers may not agree whether the requirement is satisfied.; The spec does not list the impact on existing features and does not explicitly state that no existing features are affected.; The acceptance criterion says shared lifecycle tests should cover the changed canonical path \"where appropriate\" without defining when coverage is appropriate, so independent reviewers may not agree whether it is satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:49:22.322Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "The requirement says tests must include \"shared lifecycle regression updates\" but does not specify which shared lifecycle regressions must be updated, so independent reviewers may not agree whether the requirement is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json"
+          },
+          "observed": "The spec does not list the impact on existing features and does not explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[2].acceptance[1]"
+          },
+          "observed": "The acceptance criterion says shared lifecycle tests should cover the changed canonical path \"where appropriate\" without defining when coverage is appropriate, so independent reviewers may not agree whether it is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says tests must include \"shared lifecycle regression updates\" but does not specify which shared lifecycle regressions must be updated, so independent reviewers may not agree whether the requirement is satisfied."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not list the impact on existing features and does not explicitly state that no existing features are affected."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The acceptance criterion says shared lifecycle tests should cover the changed canonical path \"where appropriate\" without defining when coverage is appropriate, so independent reviewers may not agree whether it is satisfied."
+        }
+      ],
+      "issueLogId": "issue-log-24b6b129-d64d-4ca2-b871-478d0a210d4a"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "spec.json contains invalid JSON: Expected ',' or '}' after property value in JSON at position 16722 (line 234 column 7)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:49:55.618Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "spec.json contains invalid JSON: Expected ',' or '}' after property value in JSON at position 16722 (line 234 column 7)",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-290754e7-fdf3-4f3e-bc37-a4099817c0a8"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec replaces a manual `senti upgrade` recovery path with canonical lifecycle regeneration/reuse of upgrade evidence, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.; The spec does not map each retained behavior from the existing upgrade evidence/manual upgrade path to its new owner, nor does it state explicit removal decisions for any behavior not retained.; The acceptance criteria do not include behavior-level verification for each retained public surface affected by replacing the manual `senti upgrade` recovery path with canonical lifecycle recovery.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T09:50:38.540Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements"
+          },
+          "observed": "The spec replaces a manual `senti upgrade` recovery path with canonical lifecycle regeneration/reuse of upgrade evidence, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements"
+          },
+          "observed": "The spec does not map each retained behavior from the existing upgrade evidence/manual upgrade path to its new owner, nor does it state explicit removal decisions for any behavior not retained.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria"
+          },
+          "observed": "The acceptance criteria do not include behavior-level verification for each retained public surface affected by replacing the manual `senti upgrade` recovery path with canonical lifecycle recovery.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec replaces a manual `senti upgrade` recovery path with canonical lifecycle regeneration/reuse of upgrade evidence, but does not inventory the existing public behavior being moved or replaced, including affected user-facing commands, APIs, hooks, config entries, generated artifacts, and side effects."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The spec does not map each retained behavior from the existing upgrade evidence/manual upgrade path to its new owner, nor does it state explicit removal decisions for any behavior not retained."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The acceptance criteria do not include behavior-level verification for each retained public surface affected by replacing the manual `senti upgrade` recovery path with canonical lifecycle recovery."
+        }
+      ],
+      "issueLogId": "issue-log-bf8beac6-6ebe-408e-9e55-5540ab63d8ca"
+    },
+    {
+      "step": "task-review",
+      "reason": "Refreshed spec-local execution evidence from the current R1-R8 test output so test-execute-result.json and tests/.raw/test-execution.log include the R8 passing result.",
+      "normalizedFindingId": "4eeef6bacdcef1e411c8f267ae3f385efd55f085e631664320c0563a0fb5ef2e",
+      "repairRef": {
+        "files": [
+          "specs/481-upgrade-evidence-recovery/test-execute-result.json"
+        ]
+      },
+      "taskId": "T-3",
+      "timestamp": "2026-07-29T10:31:49.325Z",
+      "issueLogId": "issue-log-dbfa4549-4bc0-4e7d-a7c3-ed516ffef87b"
+    },
+    {
+      "step": "impl-review",
+      "reason": "A zero-finding impl-triage validation relaxation bypassed the existing PASS lifecycle invariant",
+      "trigger": "Recovery worker attempted to complete impl-triage after canonical PASS replay post-hook failure",
+      "resolution": "Removed the unrelated allow-empty relaxation and retained the general stale-evidence-before-replay ordering fix",
+      "guardrailCandidate": "Recovery must restore the canonical PASS lifecycle instead of weakening artifact invariants",
+      "taskId": null,
+      "timestamp": "2026-07-29T13:16:50.794Z",
+      "issueLogId": "issue-log-3595a459-657c-419f-883a-e850c035fb9b"
+    },
+    {
+      "step": "impl-review",
+      "reason": "Independent PASS registration was already present for the exact current review identity",
+      "trigger": "Guarded review-evidence registration returned REVIEW_DUPLICATE_IDENTITY",
+      "resolution": "Reused the existing canonical evidence and avoided launching another reviewer",
+      "guardrailCandidate": "Check exact review identity reuse before starting or registering another review attempt",
+      "taskId": null,
+      "timestamp": "2026-07-29T13:18:31.123Z",
+      "issueLogId": "issue-log-08c3132a-558a-4cab-b5fd-4db9ff1b371e"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_FIX",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+      "planId": "direct-plan-f0d9543270d526500f4ac187",
+      "planRevision": 1,
+      "sourceStep": "impl-review",
+      "skippedSteps": [
+        "impl-review",
+        "impl-triage",
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": null,
+      "findings": [],
+      "timestamp": "2026-07-29T13:34:40.219Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:22f4c1a1-248e-4e7c-a739-ac19cc4cf858:direct-plan-f0d9543270d526500f4ac187:r1"
+    }
+  ]
+}

@@ -1815,7 +1815,11 @@ export const FLOW_COMMANDS = {
         "  --force     Overwrite existing retro.json (default: always overwrites)",
         "  --dry-run   Preview only, do not write retro.json",
       ].join("\n"),
-      post(ctx) {
+      post(ctx, result) {
+        if (
+          result?.result === "recovered"
+          && result?.artifacts?.evidenceRefresh?.recovered === true
+        ) return;
         if (ctx.flowState?.nonblocking?.enabled === true) {
           const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
           const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "retro.json"), "utf8"));

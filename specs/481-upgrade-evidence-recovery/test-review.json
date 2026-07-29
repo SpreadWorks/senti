@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T17:52:46.107Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/481-upgrade-evidence-recovery/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Preserve path is only indirectly specified",
+      "target": "tests/upgrade-evidence-recovery.test.js: R4 preserve case",
+      "findingId": "9770f955e29bbe3dd178fe57abb07b02d2b5dbcb59a0202937ffcb031ea30662",
+      "fingerprint": "9770f955e29bbe3dd178fe57abb07b02d2b5dbcb59a0202937ffcb031ea30662",
+      "disposition": "informational",
+      "rationale": "The current variant table includes preserve and checks audit fields, so R4 has spec-local coverage; the improvement would make the preserve/reuse boundary easier to diagnose if behavior changes.",
+      "improvement": "Add an explicit preserve scenario that distinguishes a previously preserved artifact from ordinary reuse, including the exact expected result decision and audit decision.",
+      "whyNonBlocking": "The current variant table includes preserve and checks audit fields, so R4 has spec-local coverage; the improvement would make the preserve/reuse boundary easier to diagnose if behavior changes."
+    }
+  ],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/test-review.json",
+    "verdict": "ADVISORY",
+    "result": "ADVISORY",
+    "blockingCount": 0,
+    "failureKind": null,
+    "nextAction": "implement",
+    "completionKind": "normal",
+    "progressSignature": "cde97f168d2c7581e2b433ca782fe0e5686b36f4102399bf74cd819c540d55ce"
+  },
+  "taskId": null,
+  "treeSha": "03786e796238d934226c2c5928ec5589e4247860",
+  "targetStateDigest": "3b5a011b3c82127041f7f49d5719d7b22df8e842549ff885382f478aacfe7937"
+}

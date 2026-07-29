@@ -17,9 +17,10 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { execFile } from "child_process";
+import { execFile, execFileSync } from "child_process";
 import { promisify } from "util";
 import { assertOk } from "../../lib/process.js";
+import { PKG_DIR } from "../../lib/cli.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
 
@@ -60,6 +61,8 @@ import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import {
   IMPL_GATE_RESULT_FILE,
+  UpgradeEvidenceRecovery,
+  listUpgradeRequiredChangedPaths,
   readJsonStrict,
   validateIntegrationArtifactTrust,
 } from "./test-artifacts.js";
@@ -242,6 +245,16 @@ class StaleIntegrationTestEvidence {
   }
 }
 
+export function runSentiUpgradeForRecovery(root, {
+  execFileSyncImpl = execFileSync,
+  packageDir = PKG_DIR,
+} = {}) {
+  execFileSyncImpl(process.execPath, [path.join(packageDir, "senti.js"), "upgrade"], {
+    cwd: root,
+    stdio: "inherit",
+  });
+}
+
 /**
  * spec 251 R17 and spec 258: precheck for integration gate. Verifies the
  * full trust-input set produced by test-execute / test-result-review before
@@ -252,7 +265,12 @@ class StaleIntegrationTestEvidence {
 export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
-  const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  let fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const target = {
+    runId: state.runId,
+    issue: Number(state.issue),
+    spec: specPath,
+  };
   const artifacts = new Map();
   let identityProbeError = null;
   try {
@@ -271,12 +289,42 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
     // refresh before obsolete semantic results can block regeneration.
     identityProbeError = error;
   }
+  const recovery = new UpgradeEvidenceRecovery({
+    specDir,
+    currentFingerprint: fingerprint.hash,
+    currentRequiredPaths: listUpgradeRequiredChangedPaths({
+      root,
+      baseBranch: state.baseBranch,
+    }),
+    target,
+  });
+  const recoveryResult = recovery.resolve({
+    runUpgrade() {
+      runSentiUpgradeForRecovery(root);
+    },
+    refreshCurrentFingerprint() {
+      return buildRepairFingerprint({ root, specPath, state }).hash;
+    },
+  });
+  fingerprint = buildRepairFingerprint({ root, specPath, state });
+  if (recoveryResult.currentFingerprint !== fingerprint.hash) {
+    throw new Error("upgrade recovery authority changed before integration validation");
+  }
+  const postRecoveryMismatch = StaleTestEvidenceMismatch.detect({
+    artifacts,
+    currentFingerprint: fingerprint.hash,
+  });
+  if (postRecoveryMismatch) {
+    return new StaleIntegrationTestEvidence(postRecoveryMismatch, state);
+  }
   const result = validateIntegrationArtifactTrust({
     root,
     specDir,
     phase,
     specPath,
     state,
+    currentFingerprint: fingerprint.hash,
+    target,
     config,
   });
   if (!result.ok) {

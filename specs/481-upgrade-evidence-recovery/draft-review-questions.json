@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-07-28T12:36:31.524Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 3 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. Priority label embedded in question text",
+      "target": "q1",
+      "rationale": "Remove `must:` from the question text.",
+      "evidence": "The shown question includes an instruction/priority marker (`must:`) instead of only the question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. Priority label embedded in question text",
+      "target": "q2",
+      "rationale": "Remove `must:` from the question text.",
+      "evidence": "The shown question includes an instruction/priority marker (`must:`) instead of only the question text.",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. Priority label and rationale embedded in question text",
+      "target": "q3",
+      "rationale": "Remove `should:` and shorten to the question itself, e.g. `recovery が evidence を preserve、reuse、regenerate、または拒否した理由を flow audit evidence に記録しますか。`",
+      "evidence": "The shown question includes an instruction/priority marker (`should:`) and rationale text instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ],
+  "taskId": null,
+  "treeSha": "2eac301d4565a7a7af7ab6fef28b447dfde23a76",
+  "targetStateDigest": "57899244a30f4a00420a17fd190a9c2e2c4e72bec51da486dfef377a231f2813"
+}

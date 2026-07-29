@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T17:50:04.413Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/481-upgrade-evidence-recovery/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R4 audit coverage only verifies complete fields for regenerate",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js",
+      "findingId": "5e4c9a8057296b407b0e140695f7ce266fcdc1e9d8e7f4d97f6ea74f73695056",
+      "fingerprint": "5e4c9a8057296b407b0e140695f7ce266fcdc1e9d8e7f4d97f6ea74f73695056",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has only partial spec-local coverage, so implementations could omit required audit fields for non-regenerate decisions and still pass the tests.",
+      "issue": "R4 requires the audit evidence to record the selected recovery outcome, current fingerprint, checkedPaths, artifact paths, and next active step for preserve, reuse, regenerate, missing, and stale. The variant test checks decision, fingerprint, target, and checkedPaths, but does not assert artifactPaths or nextActiveStep for preserve, reuse, missing, or stale.",
+      "requiredChange": "Extend the R4 decision-variant audit assertions to verify artifact paths and next active step for every recovery outcome, or add focused tests that cover those fields for the missing variants.",
+      "whyBlocking": "An acceptance requirement has only partial spec-local coverage, so implementations could omit required audit fields for non-regenerate decisions and still pass the tests.",
+      "origin": "R4",
+      "failureKind": "missing-coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R7 shared lifecycle contract regression coverage is not represented",
+      "target": "Requirement-to-Test Coverage Artifact / specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js",
+      "findingId": "e2ff5aaacf1786f3418335bd98d817ba1318dbb4a07efee22bed6c7a7fea1a8c",
+      "fingerprint": "e2ff5aaacf1786f3418335bd98d817ba1318dbb4a07efee22bed6c7a7fea1a8c",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact claims R7 is covered while the required shared lifecycle contract regression coverage is absent from the listed test files.",
+      "issue": "R7 explicitly requires updated regression tests for the changed shared lifecycle contract, but the coverage artifact lists only the spec-local test file and the provided tests only exercise the new recovery helpers/integration entrypoint from this spec.",
+      "requiredChange": "Add or identify a regression test file for the shared lifecycle contract affected by this change, and include it in the requirement-to-test coverage artifact for R7.",
+      "whyBlocking": "The coverage artifact claims R7 is covered while the required shared lifecycle contract regression coverage is absent from the listed test files.",
+      "origin": "R7",
+      "failureKind": "coverage-artifact-contradiction"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "a880cb623b8f2b8e61a5045d3530a69ff48fb603b4f27140c065aedecffa54c5"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "5e4c9a8057296b407b0e140695f7ce266fcdc1e9d8e7f4d97f6ea74f73695056",
+      "findingId": "5e4c9a8057296b407b0e140695f7ce266fcdc1e9d8e7f4d97f6ea74f73695056",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "R4 audit coverage only verifies complete fields for regenerate",
+      "body": "R4 requires the audit evidence to record the selected recovery outcome, current fingerprint, checkedPaths, artifact paths, and next active step for preserve, reuse, regenerate, missing, and stale. The variant test checks decision, fingerprint, target, and checkedPaths, but does not assert artifactPaths or nextActiveStep for preserve, reuse, missing, or stale.",
+      "category": "unknown",
+      "fingerprint": "5e4c9a8057296b407b0e140695f7ce266fcdc1e9d8e7f4d97f6ea74f73695056",
+      "disposition": "must-fix",
+      "rationale": "An acceptance requirement has only partial spec-local coverage, so implementations could omit required audit fields for non-regenerate decisions and still pass the tests."
+    },
+    {
+      "id": "e2ff5aaacf1786f3418335bd98d817ba1318dbb4a07efee22bed6c7a7fea1a8c",
+      "findingId": "e2ff5aaacf1786f3418335bd98d817ba1318dbb4a07efee22bed6c7a7fea1a8c",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "R7 shared lifecycle contract regression coverage is not represented",
+      "body": "R7 explicitly requires updated regression tests for the changed shared lifecycle contract, but the coverage artifact lists only the spec-local test file and the provided tests only exercise the new recovery helpers/integration entrypoint from this spec.",
+      "category": "unknown",
+      "fingerprint": "e2ff5aaacf1786f3418335bd98d817ba1318dbb4a07efee22bed6c7a7fea1a8c",
+      "disposition": "must-fix",
+      "rationale": "The coverage artifact claims R7 is covered while the required shared lifecycle contract regression coverage is absent from the listed test files."
+    }
+  ]
+}

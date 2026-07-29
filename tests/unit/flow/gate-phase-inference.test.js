@@ -1,5 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlowConfig } from "../../helpers/flow-setup.js";
 import {
@@ -11,6 +12,30 @@ import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { SetStepStatus } from "../../../src/flow/definition.js";
 import { DefinitionLifecycleTransition } from "../../../src/flow/lib/step-transition-policy.js";
+import { runSentiUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
+
+// spec: R3 R8
+it("runs canonical upgrade from the package entrypoint in the consuming project", () => {
+  const calls = [];
+  const consumerRoot = "/consumer/project";
+  const packageDir = "/installed/senti/src";
+
+  runSentiUpgradeForRecovery(consumerRoot, {
+    packageDir,
+    execFileSyncImpl(...args) {
+      calls.push(args);
+    },
+  });
+
+  assert.deepEqual(calls, [[
+    process.execPath,
+    [path.join(packageDir, "senti.js"), "upgrade"],
+    {
+      cwd: consumerRoot,
+      stdio: "inherit",
+    },
+  ]]);
+});
 
 // -----------------------------------------------------------------------------
 // AC6 (R5): resolveGateStepId / STEP_TO_PHASE round-trip consistency
@@ -290,6 +315,7 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.equal(updates.length, 1);
     const [{ transition, opts }] = updates;
     assert.ok(transition instanceof DefinitionLifecycleTransition);
+    assert.equal(resolveGateStepId("integration"), "impl-gate");
     assert.equal(transition.stepId, "impl-gate");
     assert.equal(transition.action.step, "impl-gate");
     assert.equal(transition.currentStepId, "impl-gate");

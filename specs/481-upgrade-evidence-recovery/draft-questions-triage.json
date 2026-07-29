@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "Apply the three formatting-only repairs so pending questions contain only their question text.",
+  "items": [
+    {
+      "title": "1. Priority label embedded in question text",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The priority is already recorded in the requirement-level draft fields and should not appear in a pending user question.",
+      "evidence": "draft.json qa[0].question starts with must:."
+    },
+    {
+      "title": "2. Priority label embedded in question text",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The priority is already recorded in the requirement-level draft fields and should not appear in a pending user question.",
+      "evidence": "draft.json qa[1].question starts with must:."
+    },
+    {
+      "title": "3. Priority label and rationale embedded in question text",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question should request a decision without embedding its recommendation or rationale.",
+      "evidence": "draft.json qa[2].question starts with should: and includes an explanatory outcome."
+    }
+  ]
+}

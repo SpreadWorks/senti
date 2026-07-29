@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-07-28T13:10:00.693Z",
+  "verdict": "REJECTED",
+  "counts": {
+    "blocking": 2,
+    "advisory": 0,
+    "total": 2
+  },
+  "coverageArtifact": "specs/481-upgrade-evidence-recovery/test-coverage.json",
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "R6 repeated stale recovery scenario is not actually covered",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:188",
+      "findingId": "116f7ca51291a2a6f6e65934e7185b58be5d584ba99d36d00a046533d126db2b",
+      "fingerprint": "116f7ca51291a2a6f6e65934e7185b58be5d584ba99d36d00a046533d126db2b",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires repeated stale recovery behavior and impl-gate non-reclosure; the current test can pass without exercising that requirement.",
+      "issue": "The R6 test starts from missing evidence, regenerates once, then verifies a normal reuse path. It does not make evidence stale across multiple recovery attempts, and it does not verify the impl-gate path after repeated stale recovery.",
+      "requiredChange": "Change or add a spec-local R6 test that runs recovery multiple times from stale evidence states and then verifies impl-gate accepts the regenerated current upgrade-result.json/raw log rather than re-blocking on missing upgrade-result.json.",
+      "whyBlocking": "R6 explicitly requires repeated stale recovery behavior and impl-gate non-reclosure; the current test can pass without exercising that requirement.",
+      "origin": "R6",
+      "failureKind": "missing requirement coverage"
+    },
+    {
+      "kind": "blocking",
+      "title": "R5 authority mismatch can pass without testing authority rejection",
+      "target": "specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js:153",
+      "findingId": "3c603be4d0528bcda235fb415df96665a02c0d89d0a6bc72cfa385efc40e516e",
+      "fingerprint": "3c603be4d0528bcda235fb415df96665a02c0d89d0a6bc72cfa385efc40e516e",
+      "disposition": "must-fix",
+      "rationale": "R5 requires authority mismatch to fail closed; the current test encodes a masking condition that does not independently exercise production authority validation.",
+      "issue": "The impl-gate stale authority case also uses a stale fingerprint, so an implementation that rejects only fingerprint mismatches and ignores target authority mismatch would still pass.",
+      "requiredChange": "Add or adjust an R5 impl-gate case with current checkedPaths and current fingerprint but mismatched target authority, and assert it is rejected.",
+      "whyBlocking": "R5 requires authority mismatch to fail closed; the current test encodes a masking condition that does not independently exercise production authority validation.",
+      "origin": "R5",
+      "failureKind": "static anti-pattern"
+    }
+  ],
+  "advisoryFindings": [],
+  "contractSummary": {
+    "targetStep": "test-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/test-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 2,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "non_normal",
+    "progressSignature": "f154d8c9928a0c9e5a1374c153bf9af43956cc00ce9c82753b96fcaf765769f6"
+  },
+  "sourceArtifact": "test-review.json",
+  "attempt": 4,
+  "findings": [
+    {
+      "id": "116f7ca51291a2a6f6e65934e7185b58be5d584ba99d36d00a046533d126db2b",
+      "findingId": "116f7ca51291a2a6f6e65934e7185b58be5d584ba99d36d00a046533d126db2b",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R6 repeated stale recovery scenario is not actually covered",
+      "body": "The R6 test starts from missing evidence, regenerates once, then verifies a normal reuse path. It does not make evidence stale across multiple recovery attempts, and it does not verify the impl-gate path after repeated stale recovery.",
+      "category": "unknown",
+      "fingerprint": "116f7ca51291a2a6f6e65934e7185b58be5d584ba99d36d00a046533d126db2b",
+      "disposition": "must-fix",
+      "rationale": "R6 explicitly requires repeated stale recovery behavior and impl-gate non-reclosure; the current test can pass without exercising that requirement."
+    },
+    {
+      "id": "3c603be4d0528bcda235fb415df96665a02c0d89d0a6bc72cfa385efc40e516e",
+      "findingId": "3c603be4d0528bcda235fb415df96665a02c0d89d0a6bc72cfa385efc40e516e",
+      "phase": "test",
+      "sourceArtifact": "test-review.json",
+      "attempt": 4,
+      "severity": "blocking",
+      "title": "R5 authority mismatch can pass without testing authority rejection",
+      "body": "The impl-gate stale authority case also uses a stale fingerprint, so an implementation that rejects only fingerprint mismatches and ignores target authority mismatch would still pass.",
+      "category": "unknown",
+      "fingerprint": "3c603be4d0528bcda235fb415df96665a02c0d89d0a6bc72cfa385efc40e516e",
+      "disposition": "must-fix",
+      "rationale": "R5 requires authority mismatch to fail closed; the current test encodes a masking condition that does not independently exercise production authority validation."
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import {
   ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
+import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 
 const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -121,6 +122,32 @@ export class RunRetroCommand extends FlowCommand {
 
     const result = readJson(resultPath);
     const fingerprint = buildRepairFingerprint({ root, specPath, state });
+    const staleEvidence = StaleTestEvidenceMismatch.detect({
+      artifacts: new Map([
+        [TEST_EXECUTE_RESULT_FILE, result],
+        [TEST_RESULT_REVIEW_FILE, review],
+      ]),
+      currentFingerprint: fingerprint.hash,
+    });
+    if (staleEvidence) {
+      const refresh = staleEvidence.recoverFromCurrentAuthority({
+        root,
+        state,
+        specDir,
+        flowManager: ctx.flowManager,
+        reason: "retro detected stale fingerprint evidence after integration gate",
+        sourceStep: "retro",
+      });
+      return {
+        result: "recovered",
+        changed: [...refresh.invalidatedArtifacts],
+        artifacts: {
+          staleArtifacts: [...staleEvidence.artifactNames],
+          evidenceRefresh: refresh.toJSON(),
+        },
+        next: refresh.activeStep,
+      };
+    }
     try {
       validateTestResultReview(review);
       validateTestExecuteResultV2(result);

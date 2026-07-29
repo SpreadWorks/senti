@@ -1,0 +1,276 @@
+{
+  "goal": "Recover current upgrade evidence through the canonical Flow lifecycle after stale test evidence recovery, so upgrade-required changes can reach impl-gate without a manual senti upgrade.",
+  "scope": {
+    "in": [
+      "Recovery of upgrade-result.json and tests/.raw/upgrade.log after stale test evidence invalidation.",
+      "Canonical test-execute to impl-gate behavior for upgrade-required changed paths.",
+      "Fail-closed validation of reused or regenerated upgrade evidence.",
+      "Durable audit evidence for preserve, reuse, regenerate, missing, and stale recovery decisions.",
+      "Spec-local coverage plus shared lifecycle regression coverage in tests/unit/flow/stale-test-evidence-refresh.test.js, tests/unit/flow/upgrade-required-changed-paths.test.js, and tests/unit/flow/gate-phase-inference.test.js."
+    ],
+    "out": [
+      "Relaxing upgrade-required source path detection.",
+      "Accepting stale, missing, malformed, failed, or authority-mismatched upgrade evidence as current.",
+      "Changing Issue #458 repair manifest, ledger, or repair delta transaction continuity.",
+      "Adding external dependencies."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules; do not add external dependencies.",
+    "Reuse upgrade evidence only when current repair fingerprint, current checkedPaths, flow target authority, schema-valid successful upgrade-result.json, rawLogDigest, and existing raw upgrade log all match.",
+    "When no upgrade-required source paths are present, do not run senti upgrade and do not require an upgrade artifact for impl-gate.",
+    "Missing, malformed, failed, stale, raw-log-missing, or authority-mismatched evidence must remain fail-closed and must not be accepted as current evidence.",
+    "Recovery decisions and artifact mutations must be owned by the canonical lifecycle path before impl-gate, not by a user-required manual workaround.",
+    "Represent meaningful recovery decisions, authority, and artifact validation concepts with dedicated classes that enforce invariants.",
+    "Existing feature impact: stale test evidence refresh continues to rewind to test-execute, upgrade-required changed path detection remains strict, and impl-gate remains fail-closed for invalid upgrade evidence while gaining canonical current-evidence recovery before evaluation.",
+    "Migration parity inventory: the retained public behavior of user-run senti upgrade is limited to producing upgrade-result.json and tests/.raw/upgrade.log for upgrade-required changed paths, preserving command/result/raw-log validation semantics, and leaving user-facing command behavior unchanged. New ownership maps changed-path detection to src/flow/lib/test-artifacts.js, stale refresh rewind to src/flow/lib/stale-test-evidence-refresh.js, pre-gate recovery orchestration to src/flow/lib/run-gate.js, artifact writing and validation to src/flow/lib/test-artifacts.js, generated artifact paths to upgrade-result.json, tests/.raw/upgrade.log, and upgrade-recovery-audit.json, and step-state side effects to the existing flow lifecycle hooks. No user-facing commands, APIs, hooks, config entries, or generated artifact formats are removed."
+  ],
+  "design_principles": [
+    "Keep stale evidence recovery and integration gate behavior aligned with existing artifact validation contracts.",
+    "Treat upgrade evidence as proof for the current source state, not merely as a file-presence check.",
+    "Make the recovery path auditable enough to explain whether evidence was bypassed, reused, or regenerated."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/impl-repair-artifacts.js owns repair transactions, artifact invalidation, lifecycle reset, and issue-log evidence."
+      },
+      {
+        "text": "src/flow/lib/stale-test-evidence-refresh.js detects stale repair fingerprints and returns the active lifecycle to test-execute after delegated invalidation."
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js detects upgrade-required changed paths, writes upgrade result/raw-log artifacts, validates gate evidence, and hosts upgrade evidence recovery logic."
+      },
+      {
+        "text": "src/flow/lib/run-gate.js owns integration precheck orchestration before semantic impl-gate evaluation."
+      },
+      {
+        "text": "src/flow/definition.js defines test-execute before impl-gate in the canonical lifecycle."
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js keeps upgrade-result.json validation fail-closed for checkedPaths, result status, raw-log existence, rawLogDigest, and recoveryAuthority target/fingerprint checks.",
+        "added_by_task": "T-2"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Stale recovery invalidates downstream artifacts and returns the active lifecycle to test-execute."
+      },
+      {
+        "text": "Before impl-gate evaluation, the canonical path determines whether current changed paths require upgrade evidence."
+      },
+      {
+        "text": "If no required paths remain, recovery records a bypass decision and proceeds without upgrade artifacts."
+      },
+      {
+        "text": "If required paths remain, current evidence is reused only when fingerprint, checkedPaths, target authority, raw-log digest, result schema, and raw log existence all match."
+      },
+      {
+        "text": "When reusable evidence is absent, stale, missing, or authority-mismatched, the canonical path regenerates upgrade-result.json and tests/.raw/upgrade.log before impl-gate."
+      },
+      {
+        "text": "impl-gate continues to validate the resulting artifact through the existing fail-closed evidence contract."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] upgrade evidence validation requires sorted checkedPaths, a schema-valid successful result, matching current required paths, and an existing raw log; result=match.",
+        "evidence": "src/flow/lib/test-artifacts.js: validateUpgradeResultArtifact validates version, command, result, checkedPaths, and rawLogPath. validateUpgradeEvidenceForGate skips artifacts only when requiredPaths is empty and otherwise rejects missing, failed, malformed, or stale checkedPaths artifacts."
+      },
+      {
+        "text": "[VERIFY] stale test evidence recovery delegates invalidation to the impl-repair owner and returns activeStep test-execute; result=match.",
+        "evidence": "src/flow/lib/stale-test-evidence-refresh.js: StaleTestEvidenceRefresh.recover calls completeTestEvidenceRefresh. StaleTestEvidenceRefreshResult sets activeStep to test-execute."
+      },
+      {
+        "text": "[VERIFY] upgrade evidence recovery binds current repair fingerprint and flow target authority outside the original upgrade-result writer; result=match.",
+        "evidence": "src/flow/lib/test-artifacts.js: writeUpgradeResultArtifact writes checkedPaths, rawLogPath, and rawLogDigest. UpgradeEvidenceRecovery.bindCurrentAuthority adds recoveryAuthority with fingerprint and target after successful regeneration."
+      },
+      {
+        "text": "[CORRECTION] the draft mentions current repair fingerprint as part of reusable evidence; source verification shows it is stored as recoveryAuthority, not as a top-level upgrade-result field.",
+        "evidence": "src/flow/lib/test-artifacts.js: validateUpgradeResultArtifact does not require a repairFingerprint field. UpgradeEvidenceRecovery.currentEvidence checks artifact.recoveryAuthority.fingerprint and target, then checkedPaths and rawLogDigest."
+      },
+      {
+        "text": "Manual senti upgrade is rejected as the recovery mechanism because it leaves the canonical lifecycle blocked after stale invalidation.",
+        "evidence": "draft.json q1 records that the success condition is canonical recovery of current upgrade evidence without user-run senti upgrade."
+      },
+      {
+        "text": "Old evidence remains rejected when source state or target authority changes, preserving the existing fail-closed gate premise.",
+        "evidence": "draft.json q2 records the fail-closed policy for changed fingerprints. src/flow/lib/test-artifacts.js rejects authority mismatch, checkedPaths mismatch, raw log digest mismatch, failed result, malformed result, and missing raw log."
+      },
+      {
+        "text": "Recovery must write durable audit evidence containing the decision and state used for that decision.",
+        "evidence": "draft.json q3 records preserve/reuse/regenerate/reject audit needs. src/flow/lib/test-artifacts.js recordResolution writes upgrade-recovery-audit.json with decision, action, reason, currentFingerprint, target, checkedPaths, artifactPaths, and nextActiveStep."
+      },
+      {
+        "text": "R5 validation remains strict: upgrade evidence is accepted only when required paths are current and malformed, failed, missing-log, digest-mismatched, stale, or authority-mismatched artifacts are rejected before gate trust succeeds.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "[VERIFY] T-3 coverage maps spec-local upgrade evidence recovery tests to R1 through R8 and extends shared lifecycle tests for stale upgrade artifact invalidation, canonical upgrade-required source path matching, and integration gate identity.",
+        "added_by_task": "T-3"
+      }
+    ]
+  },
+  "background": "Stale test evidence recovery invalidates downstream upgrade artifacts, including upgrade-result.json and tests/.raw/upgrade.log. The draft identifies a lifecycle gap: after returning to test-execute, the normal path can arrive at impl-gate with upgrade-required source changes but without current upgrade evidence, causing validateUpgradeEvidenceForGate to fail on a missing artifact. The fix must preserve the existing fail-closed evidence contract while adding a canonical owner that can bypass, reuse, or regenerate evidence for the current source state.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "After stale test evidence recovery, the canonical path must compute current upgrade-required changed paths and bypass upgrade execution when that list is empty.",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "When upgrade-required paths exist, the canonical path must reuse or preserve existing upgrade evidence only if current repair fingerprint, current checkedPaths, flow target authority, schema-valid successful result, rawLogDigest, and raw upgrade log existence all match.",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "When R2 conditions are not met for required paths, the canonical path must regenerate upgrade-result.json and tests/.raw/upgrade.log before impl-gate evaluates integration readiness.",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "Recovery must write audit evidence recording decision, action, reason when applicable, current fingerprint, target authority, checkedPaths, artifact paths, and next active step.",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "impl-gate evidence validation must continue to reject stale checkedPaths, missing raw logs, malformed artifacts, failed upgrade results, raw-log digest mismatch, and authority mismatch instead of accepting old evidence as current.",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "Repeated stale recovery in the same flow must still lead to current upgrade evidence for each post-recovery source state and must not re-block impl-gate solely because upgrade-result.json was invalidated.",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "must",
+      "desc": "Tests must cover bypass, preserve or reuse, regenerate, missing, stale, malformed or failed rejection, authority mismatch, raw-log mismatch, and repeated recovery behavior with requirement headers in specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js plus shared lifecycle regression updates in tests/unit/flow/stale-test-evidence-refresh.test.js, tests/unit/flow/upgrade-required-changed-paths.test.js, and tests/unit/flow/gate-phase-inference.test.js.",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "desc": "Canonical recovery must preserve migration parity for the existing upgrade evidence surface: senti upgrade remains user-callable with unchanged command semantics; upgrade-result.json and tests/.raw/upgrade.log keep their existing schema/path contracts; validation continues through validateUpgradeEvidenceForGate; lifecycle step-state changes remain owned by existing Flow hooks; and the only added generated artifact is upgrade-recovery-audit.json.",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "[AC1/R1] A stale recovery scenario with no upgrade-required changed paths records bypass and does not call senti upgrade.",
+    "[AC2/R2] Matching current fingerprint, checkedPaths, target authority, schema-valid successful result, rawLogDigest, and raw log allow evidence reuse or preserve without rerunning upgrade.",
+    "[AC3/R3] Missing, stale, authority-mismatched, or digest-mismatched evidence for required paths triggers regeneration of upgrade-result.json and tests/.raw/upgrade.log before impl-gate.",
+    "[AC4/R4] upgrade-recovery-audit.json includes decision, action, reason when applicable, currentFingerprint, target, checkedPaths, artifactPaths, and nextActiveStep.",
+    "[AC5/R5] malformed result, missing raw log, failed result, stale checkedPaths, raw-log digest mismatch, and authority mismatch fail closed and cannot pass impl-gate as current evidence.",
+    "[AC6/R6] Two stale recovery cycles in one flow each recover current evidence and do not require a manual senti upgrade workaround.",
+    "[AC7/R7] specs/481-upgrade-evidence-recovery/tests/ contains Node tests with // spec: R1 ... R8 headers, and affected shared flow lifecycle tests pass.",
+    "[AC8/R8] Behavior-level verification covers the retained public surfaces: user-run senti upgrade semantics are unchanged, upgrade-result.json and tests/.raw/upgrade.log contracts remain compatible with validateUpgradeEvidenceForGate, flow hook step-state ownership is unchanged, and upgrade-recovery-audit.json is the only new artifact format."
+  ],
+  "clarifications": [
+    {
+      "q": "What exact conditions allow existing upgrade evidence to be reused?",
+      "a": "The current repair fingerprint, current checkedPaths, flow target authority, schema-valid successful upgrade result, rawLogDigest, and existing raw upgrade log must all match."
+    },
+    {
+      "q": "Is upgrade-result.json required when no current upgrade-required path exists?",
+      "a": "No. The existing validateUpgradeEvidenceForGate contract succeeds without an artifact when current required paths are empty."
+    },
+    {
+      "q": "Can stale or malformed evidence be kept to unblock impl-gate?",
+      "a": "No. Stale, malformed, failed, missing-log, digest-mismatched, and authority-mismatched evidence remains rejected; recovery must regenerate or fail closed."
+    },
+    {
+      "q": "Which existing upgrade behavior is moved or replaced by canonical recovery?",
+      "a": "Manual senti upgrade remains available and unchanged. The canonical lifecycle only takes ownership of producing or reusing current upgrade-result.json and tests/.raw/upgrade.log before impl-gate when stale recovery invalidated those artifacts. Existing validation, command semantics, hook-owned step transitions, and config behavior are retained; no public surface is removed."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Exclude upgrade artifacts from stale recovery invalidation.",
+      "reason": "Rejected because it can leave evidence for a previous source state available after source changes."
+    },
+    {
+      "option": "Ask users to run senti upgrade manually when impl-gate reports missing evidence.",
+      "reason": "Rejected because it preserves the reported lifecycle blockage and shifts canonical recovery responsibility to the user."
+    },
+    {
+      "option": "Accept missing or stale upgrade evidence when test evidence is current.",
+      "reason": "Rejected because it breaks the fail-closed upgrade evidence contract for checkedPaths, raw logs, target authority, and current source state."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "UpgradeEvidenceRecovery",
+    "upgrade evidence",
+    "upgrade-result.json",
+    "upgrade.log",
+    "stale test evidence",
+    "impl-gate",
+    "test-execute",
+    "checkedPaths",
+    "repair fingerprint",
+    "recoveryAuthority",
+    "rawLogDigest",
+    "validateUpgradeEvidenceForGate",
+    "StaleTestEvidenceRefresh"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Restore upgrade evidence",
+      "goal": "Add canonical upgrade evidence recovery before impl-gate so stale recovery can bypass, reuse, or regenerate evidence for the current source state.",
+      "acceptance": [
+        "R1 bypasses upgrade execution when no current upgrade-required paths exist.",
+        "R2 and R3 reuse only current evidence or regenerate current evidence before impl-gate.",
+        "R4 records durable audit evidence for each recovery decision."
+      ],
+      "implementation_notes": "Keep the recovery owner in the lifecycle path before integration gate evaluation. Reuse existing changed-path detection and upgrade artifact writing. Bind current fingerprint and target authority separately from the original upgrade-result schema.",
+      "test_strategy": "Add spec-local Node tests for bypass, reuse/preserve, regeneration, audit content, and repeated stale recovery.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Preserve fail-closed validation",
+      "goal": "Keep impl-gate validation strict for stale, malformed, failed, missing-log, digest-mismatched, and authority-mismatched upgrade evidence.",
+      "acceptance": [
+        "R5 failure modes are rejected instead of treated as current evidence.",
+        "Validation still succeeds without an artifact only when current upgrade-required paths are empty."
+      ],
+      "implementation_notes": "Extend existing artifact validation and recovery checks without weakening validateUpgradeEvidenceForGate behavior.",
+      "test_strategy": "Add spec-local tests for stale checkedPaths, malformed result, failed result, missing raw log, raw-log digest mismatch, and authority mismatch; update tests/unit/flow/upgrade-required-changed-paths.test.js when changed-path detection behavior changes.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover recovery lifecycle",
+      "goal": "Provide requirement-mapped coverage for the recovery behavior and the affected shared lifecycle contracts in stale evidence refresh, upgrade-required changed path detection, and gate phase inference.",
+      "acceptance": [
+        "R7 spec-local tests include // spec: headers covering R1 through R8.",
+        "Shared lifecycle tests cover the changed canonical path in tests/unit/flow/stale-test-evidence-refresh.test.js, tests/unit/flow/upgrade-required-changed-paths.test.js, and tests/unit/flow/gate-phase-inference.test.js."
+      ],
+      "implementation_notes": "Keep spec-local behavior tests under specs/481-upgrade-evidence-recovery/tests/ and shared contract tests under tests/unit/flow/ only when production lifecycle contracts change.",
+      "test_strategy": "Run specs/481-upgrade-evidence-recovery/tests/upgrade-evidence-recovery.test.js plus tests/unit/flow/stale-test-evidence-refresh.test.js, tests/unit/flow/upgrade-required-changed-paths.test.js, and tests/unit/flow/gate-phase-inference.test.js.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-07-29T10:15:28.796Z",
+    "notes": "Approved by Flow CLI dispatcher; approvedAt=2026-07-29T10:15:00.910Z"
+  }
+}

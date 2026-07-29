@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "test-review",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "stale test evidence recovery の完了後、canonical path は current state の upgrade-required changed paths を判定し、空の場合は upgrade command を実行せず upgrade artifact なしで次の lifecycle step へ進む。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "upgrade-required changed paths が存在する場合、canonical path は current repair fingerprint、current checkedPaths、flow target authority、schema-valid upgrade-result.json、および既存 raw upgrade log が一致する evidence だけを reuse または preserve する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "R2 の一致条件を満たす evidence が存在しない場合、canonical path は impl-gate 前に senti upgrade を実行し、current checkedPaths を持つ upgrade-result.json と tests/.raw/upgrade.log を再生成する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "recovery owner は preserve、reuse、regenerate、missing、stale のいずれを選んだか、current fingerprint、checkedPaths、artifact paths、次の active step を flow audit evidence に記録する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "impl-gate は current required paths と一致しない checkedPaths、missing raw log、malformed artifact、failed upgrade result、または authority mismatch を fail-closed で拒否し、旧 upgrade evidence を current evidence として受理しない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "stale recovery を複数回実行しても、R3 の canonical regeneration が current state 用 evidence を供給し、upgrade-result.json missing を理由に impl-gate が再閉塞しない。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "spec-local tests は preserve、reuse、regenerate、missing、stale、複数 recovery、upgrade 非対象 path、旧 evidence 拒否を要件ごとに検証し、変更された shared lifecycle contract の回帰テストも更新する。",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "../../tests/unit/flow/stale-test-evidence-refresh.test.js",
+        "tests/upgrade-evidence-recovery.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/upgrade-evidence-recovery.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "file": "../../tests/unit/flow/stale-test-evidence-refresh.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R7"
+      ],
+      "testNameIds": [
+        "R7"
+      ]
+    }
+  ]
+}

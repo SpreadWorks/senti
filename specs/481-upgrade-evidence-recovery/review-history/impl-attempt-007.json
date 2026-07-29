@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T23:39:45.467Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "missing-spec-tests-dir-crash",
+      "title": "Missing spec-local tests directory now crashes test review",
+      "failureMode": "spec_behavior_contradiction",
+      "file": "src/flow/commands/review.js",
+      "requirementId": "R7",
+      "issue": "collectTestFiles() now always calls collectDeclaredSharedTestFiles(root, specTestDir, files.values()), and collectDeclaredSharedTestFiles() immediately calls fs.realpathSync(specTestDir). When a spec has no spec-local tests/ directory, the previous behavior returned an empty test file list, but the new code throws ENOENT before review can proceed.",
+      "suggestion": "In collectTestFiles(), only call collectDeclaredSharedTestFiles() when specTestDir exists, or make collectDeclaredSharedTestFiles() avoid realpathSync(specTestDir) until a shared-test directive is actually being validated.",
+      "disposition": "must-fix",
+      "rationale": "This is tied to R7 because the touched review pipeline must preserve test-review behavior while adding shared-test coverage. The new unconditional realpathSync introduces a blocking regression for valid specs without a local tests directory.",
+      "findingId": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "fingerprint": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "eadaa97162a3c28aec93af6050e6811ba5279c6f777946d73d04ba3c66ddced0",
+  "reviewedTree": "eadaa97162a3c28aec93af6050e6811ba5279c6f777946d73d04ba3c66ddced0",
+  "reviewedHead": "048535de0bdb46ebf1d82e27903c9726d721ba4e",
+  "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "309364a3e36d5ad4ed7502e93acc74a7e9ed524ee1e3a386c5044ff11ff68867"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 7,
+  "findings": [
+    {
+      "id": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "findingId": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 7,
+      "severity": "blocking",
+      "title": "Missing spec-local tests directory now crashes test review",
+      "body": "collectTestFiles() now always calls collectDeclaredSharedTestFiles(root, specTestDir, files.values()), and collectDeclaredSharedTestFiles() immediately calls fs.realpathSync(specTestDir). When a spec has no spec-local tests/ directory, the previous behavior returned an empty test file list, but the new code throws ENOENT before review can proceed.",
+      "category": "spec_behavior_contradiction",
+      "fingerprint": "8f69d3df81b66e3552fddd96798dafabae1f9c7f3a6d913093b57032eae4c915",
+      "disposition": "must-fix",
+      "rationale": "This is tied to R7 because the touched review pipeline must preserve test-review behavior while adding shared-test coverage. The new unconditional realpathSync introduces a blocking regression for valid specs without a local tests directory.",
+      "requirementId": "R7",
+      "repeatCount": 1
+    }
+  ]
+}

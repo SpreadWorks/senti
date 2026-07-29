@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Removed priority labels and embedded rationale from the three pending question texts.",
+  "items": [
+    {
+      "title": "1. Priority label embedded in question text",
+      "target": "q1",
+      "rationale": "Removed the must: label while preserving the requested success condition.",
+      "evidence": "draft.json qa[0].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[0].question"]
+    },
+    {
+      "title": "2. Priority label embedded in question text",
+      "target": "q2",
+      "rationale": "Removed the must: label while preserving the fingerprint definition and policy question.",
+      "evidence": "draft.json qa[1].question now contains only the self-contained question.",
+      "changedFieldPaths": ["qa[1].question"]
+    },
+    {
+      "title": "3. Priority label and rationale embedded in question text",
+      "target": "q3",
+      "rationale": "Removed the should: label and the embedded rationale, leaving the audit-evidence decision question.",
+      "evidence": "draft.json qa[2].question now contains only the decision question.",
+      "changedFieldPaths": ["qa[2].question"]
+    }
+  ]
+}

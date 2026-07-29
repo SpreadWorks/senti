@@ -12,6 +12,17 @@ import {
   ArtifactCompletionMechanicalFailure,
   ArtifactCompletionSuccess,
 } from "./artifact-completion.js";
+import {
+  UPGRADE_RAW_OUTPUT_RELATIVE,
+  UPGRADE_RECOVERY_AUDIT_FILE,
+  UPGRADE_RESULT_FILE,
+} from "./upgrade-evidence-paths.js";
+export {
+  UPGRADE_RAW_OUTPUT_RELATIVE,
+  UPGRADE_RECOVERY_AUDIT_FILE,
+  UPGRADE_RECOVERY_ARTIFACTS,
+  UPGRADE_RESULT_FILE,
+} from "./upgrade-evidence-paths.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -20,8 +31,6 @@ export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
 export const IMPL_GATE_RESULT_FILE = "impl-gate-result.json";
 export const TESTS_RAW_DIR_RELATIVE = "tests/.raw";
 export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log`;
-export const UPGRADE_RESULT_FILE = "upgrade-result.json";
-export const UPGRADE_RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/upgrade.log`;
 // Public durable path pattern: tests/.raw/final-regression-attempt-*.log
 export const FINAL_REGRESSION_RAW_OUTPUT_PATTERN = `${TESTS_RAW_DIR_RELATIVE}/final-regression-attempt-*.log`;
 export const TEMP_SUMMARY_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/requirement-summary.json`;
@@ -60,6 +69,8 @@ const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
 const GATE_ARTIFACT_TRUST_FAILURE_CODE = ARTIFACT_PLACEHOLDER;
 const DEFAULT_PLACEHOLDER_SENTINELS = Object.freeze(["placeholder", "todo", "tbd"]);
 const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
+const UPGRADE_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse", "missing", "stale"]));
+const UPGRADE_AUTHORITY_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse"]));
 const PLACEHOLDER_JSON_HASHES = Object.freeze(new Set([
   // specs/258-gate-artifact-validation/tests writes this exact fixture to
   // prove known hand-written artifact samples are rejected even when their
@@ -167,7 +178,76 @@ function validateUpgradeSummary(summary) {
   }
 }
 
-export function validateUpgradeResultArtifact(specDir, artifact) {
+function sha256(text) {
+  return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+function sameJsonValue(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function validateUpgradeRecoveryTarget(target) {
+  if (!target || typeof target !== "object" || Array.isArray(target)) {
+    throw new Error("recoveryAuthority.target must be an object");
+  }
+  if (typeof target.runId !== "string" || target.runId.length === 0) {
+    throw new Error("recoveryAuthority.target.runId must be a non-empty string");
+  }
+  if (!Number.isInteger(target.issue)) {
+    throw new Error("recoveryAuthority.target.issue must be an integer");
+  }
+  if (typeof target.spec !== "string" || target.spec.length === 0) {
+    throw new Error("recoveryAuthority.target.spec must be a non-empty string");
+  }
+}
+
+export class UpgradeEvidenceAuthority {
+  constructor(authority) {
+    if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
+      throw new Error("recoveryAuthority must be an object");
+    }
+    if (!REPAIR_FINGERPRINT_PATTERN.test(authority.fingerprint || "")) {
+      throw new Error("recoveryAuthority.fingerprint must be a 64-character SHA-256 digest");
+    }
+    if (!REPAIR_FINGERPRINT_PATTERN.test(authority.rawLogDigest || "")) {
+      throw new Error("recoveryAuthority.rawLogDigest must be a 64-character SHA-256 digest");
+    }
+    validateUpgradeRecoveryTarget(authority.target);
+    if (
+      authority.recoveryDecision != null
+      && !UPGRADE_RECOVERY_DECISIONS.has(authority.recoveryDecision)
+    ) {
+      throw new Error("recoveryAuthority.recoveryDecision is invalid");
+    }
+    this.fingerprint = authority.fingerprint;
+    this.rawLogDigest = authority.rawLogDigest;
+    this.target = authority.target;
+    this.recoveryDecision = authority.recoveryDecision ?? null;
+    Object.freeze(this);
+  }
+
+  assertCurrent({ currentFingerprint = null, target = null } = {}) {
+    if (currentFingerprint != null && this.fingerprint !== currentFingerprint) {
+      throw new Error("upgrade recovery authority fingerprint mismatch");
+    }
+    if (target != null && !sameJsonValue(this.target, target)) {
+      throw new Error("upgrade recovery authority target mismatch");
+    }
+  }
+
+  assertRawLog(rawPath) {
+    const rawLogDigest = sha256(fs.readFileSync(rawPath));
+    if (rawLogDigest !== this.rawLogDigest) {
+      throw new Error("upgrade recovery authority rawLogDigest mismatch");
+    }
+  }
+}
+
+export function validateUpgradeResultArtifact(specDir, artifact, {
+  currentFingerprint = null,
+  target = null,
+  trustAuthority = false,
+} = {}) {
   try {
     if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
       throw new Error(`${UPGRADE_RESULT_FILE} must be an object`);
@@ -198,7 +278,19 @@ export function validateUpgradeResultArtifact(specDir, artifact) {
     if (!fs.existsSync(rawPath)) {
       throw new Error("rawLogPath points to missing upgrade raw log");
     }
-    return upgradeResultSuccess({ artifact, rawPath });
+    const authority = trustAuthority ? readUpgradeRecoveryAuthority(specDir) : null;
+    if (
+      trustAuthority
+      && (currentFingerprint != null || target != null)
+      && authority == null
+    ) {
+      throw new Error("upgrade recovery authority is missing");
+    }
+    if (authority) {
+      authority.assertCurrent({ currentFingerprint, target });
+      authority.assertRawLog(rawPath);
+    }
+    return upgradeResultSuccess({ artifact, rawPath, authority });
   } catch (err) {
     return upgradeResultFailure(err.message);
   }
@@ -245,7 +337,14 @@ export function writeUpgradeResultArtifact({
   return { artifact, path: upgradeResultPath(specDir), rawLogPath: rawLog };
 }
 
-export function validateUpgradeEvidenceForGate({ root = null, specDir, baseBranch = null, currentRequiredPaths = null }) {
+export function validateUpgradeEvidenceForGate({
+  root = null,
+  specDir,
+  baseBranch = null,
+  currentRequiredPaths = null,
+  currentFingerprint = null,
+  target = null,
+}) {
   const requiredPaths = currentRequiredPaths
     ? matchUpgradeRequiredSourcePaths(currentRequiredPaths)
     : listUpgradeRequiredChangedPaths({ root, baseBranch });
@@ -254,7 +353,11 @@ export function validateUpgradeEvidenceForGate({ root = null, specDir, baseBranc
   const loaded = readUpgradeResultArtifact(specDir);
   if (!loaded.ok) return upgradeResultFailure(loaded.reason, { currentRequiredPaths: requiredPaths });
 
-  const validation = validateUpgradeResultArtifact(specDir, loaded.artifact);
+  const validation = validateUpgradeResultArtifact(specDir, loaded.artifact, {
+    currentFingerprint,
+    target,
+    trustAuthority: true,
+  });
   if (!validation.ok) return upgradeResultFailure(validation.reason, { currentRequiredPaths: requiredPaths });
   if (validation.artifact.result === "failed") {
     return upgradeResultFailure("upgrade-result.json result=failed", { currentRequiredPaths: requiredPaths });
@@ -266,6 +369,199 @@ export function validateUpgradeEvidenceForGate({ root = null, specDir, baseBranc
     });
   }
   return upgradeResultSuccess({ currentRequiredPaths: requiredPaths, artifact: validation.artifact });
+}
+
+function readUpgradeRecoveryAuthority(specDir) {
+  const auditPath = path.join(specDir, UPGRADE_RECOVERY_AUDIT_FILE);
+  if (!fs.existsSync(auditPath)) return null;
+  const audit = readBoundedJson(auditPath, UPGRADE_RECOVERY_AUDIT_FILE).value;
+  if (!audit || typeof audit !== "object" || Array.isArray(audit)) {
+    throw new Error(`${UPGRADE_RECOVERY_AUDIT_FILE} must be an object`);
+  }
+  if (!REPAIR_FINGERPRINT_PATTERN.test(audit.currentFingerprint || "")) {
+    throw new Error(`${UPGRADE_RECOVERY_AUDIT_FILE} currentFingerprint must be a 64-character SHA-256 digest`);
+  }
+  validateUpgradeRecoveryTarget(audit.target);
+  const recoveryDecision = UPGRADE_AUTHORITY_RECOVERY_DECISIONS.has(audit.decision)
+    ? audit.decision
+    : null;
+  return new UpgradeEvidenceAuthority({
+    fingerprint: audit.currentFingerprint,
+    rawLogDigest: audit.rawLogDigest,
+    target: audit.target,
+    recoveryDecision,
+  });
+}
+
+export class UpgradeEvidenceRecovery {
+  constructor({
+    specDir,
+    currentFingerprint,
+    currentRequiredPaths = [],
+    target,
+  }) {
+    if (!specDir || typeof specDir !== "string") {
+      throw new Error("UpgradeEvidenceRecovery requires specDir");
+    }
+    if (!REPAIR_FINGERPRINT_PATTERN.test(currentFingerprint || "")) {
+      throw new Error("UpgradeEvidenceRecovery requires currentFingerprint");
+    }
+    validateUpgradeRecoveryTarget(target);
+    this.specDir = specDir;
+    this.currentFingerprint = currentFingerprint;
+    this.currentRequiredPaths = matchUpgradeRequiredSourcePaths(currentRequiredPaths);
+    this.target = target;
+    this.nextActiveStep = "impl-gate";
+    this.auditArtifactPath = path.join(specDir, UPGRADE_RECOVERY_AUDIT_FILE);
+    Object.freeze(this);
+  }
+
+  resolve({ runUpgrade, refreshCurrentFingerprint = null } = {}) {
+    const assessment = this.#assess();
+    let currentFingerprint = this.currentFingerprint;
+    if (assessment.action === "regenerate") {
+      if (typeof runUpgrade !== "function") {
+        throw new Error(`UpgradeEvidenceRecovery: ${assessment.reason}`);
+      }
+      runUpgrade();
+      if (refreshCurrentFingerprint != null) {
+        if (typeof refreshCurrentFingerprint !== "function") {
+          throw new Error("UpgradeEvidenceRecovery: refreshCurrentFingerprint must be a function");
+        }
+        currentFingerprint = refreshCurrentFingerprint();
+        if (!REPAIR_FINGERPRINT_PATTERN.test(currentFingerprint || "")) {
+          throw new Error("UpgradeEvidenceRecovery: refreshed fingerprint must be a 64-character SHA-256 digest");
+        }
+      }
+      this.#completeRegeneratedArtifact();
+    }
+
+    const validation = this.currentRequiredPaths.length === 0
+      ? null
+      : this.#loadValidatedArtifact({
+        currentFingerprint,
+        trustAuthority: assessment.action !== "regenerate",
+      });
+    if (
+      validation
+      && !sameJsonValue(validation.artifact.checkedPaths, this.currentRequiredPaths)
+    ) {
+      throw new Error("UpgradeEvidenceRecovery: upgrade-result.json checkedPaths is stale");
+    }
+
+    const checkedPaths = validation?.artifact.checkedPaths ?? [];
+    const artifactPaths = validation
+      ? [UPGRADE_RESULT_FILE, UPGRADE_RAW_OUTPUT_RELATIVE]
+      : [];
+    const rawLogDigest = validation
+      ? sha256(fs.readFileSync(validation.rawPath))
+      : null;
+    return this.#recordResolution({
+      decision: assessment.decision,
+      action: assessment.action,
+      reason: assessment.reason,
+      currentFingerprint,
+      checkedPaths,
+      artifactPaths,
+      rawLogDigest,
+    });
+  }
+
+  #assess() {
+    if (this.currentRequiredPaths.length === 0) {
+      return { decision: "missing", action: "bypass", reason: "not-required" };
+    }
+
+    if (!fs.existsSync(upgradeResultPath(this.specDir))) {
+      return { decision: "missing", action: "regenerate", reason: "missing" };
+    }
+    let validation;
+    try {
+      validation = this.#loadValidatedArtifact();
+    } catch (error) {
+      return {
+        decision: "stale",
+        action: "regenerate",
+        reason: this.#staleReason(error.message),
+      };
+    }
+    if (!sameJsonValue(validation.artifact.checkedPaths, this.currentRequiredPaths)) {
+      return { decision: "stale", action: "regenerate", reason: "checkedPaths mismatch" };
+    }
+    return {
+      decision: validation.authority?.recoveryDecision ?? "reuse",
+      action: validation.authority?.recoveryDecision ?? "reuse",
+      reason: null,
+    };
+  }
+
+  #loadValidatedArtifact({
+    currentFingerprint = this.currentFingerprint,
+    target = this.target,
+    trustAuthority = true,
+  } = {}) {
+    const loaded = readUpgradeResultArtifact(this.specDir);
+    if (!loaded.ok) throw new Error(`UpgradeEvidenceRecovery: ${loaded.reason}`);
+    const validation = validateUpgradeResultArtifact(this.specDir, loaded.artifact, {
+      currentFingerprint,
+      target,
+      trustAuthority,
+    });
+    if (!validation.ok) throw new Error(`UpgradeEvidenceRecovery: ${validation.reason}`);
+    if (validation.artifact.result === "failed") {
+      throw new Error("UpgradeEvidenceRecovery: upgrade-result.json result=failed");
+    }
+    return validation;
+  }
+
+  #recordResolution({
+    decision,
+    action,
+    reason,
+    currentFingerprint,
+    checkedPaths,
+    artifactPaths,
+    rawLogDigest,
+  }) {
+    const audit = {
+      version: 1,
+      decision,
+      action,
+      reason,
+      currentFingerprint,
+      target: this.target,
+      checkedPaths,
+      artifactPaths,
+      ...(rawLogDigest && { rawLogDigest }),
+      nextActiveStep: this.nextActiveStep,
+    };
+    fs.mkdirSync(this.specDir, { recursive: true });
+    fs.writeFileSync(this.auditArtifactPath, `${JSON.stringify(audit, null, 2)}\n`, "utf8");
+    return {
+      ...audit,
+      audit,
+      auditArtifactPath: this.auditArtifactPath,
+    };
+  }
+
+  #completeRegeneratedArtifact() {
+    const validation = this.#loadValidatedArtifact({
+      currentFingerprint: null,
+      target: null,
+      trustAuthority: false,
+    });
+    const artifact = {
+      ...validation.artifact,
+      checkedPaths: this.currentRequiredPaths,
+    };
+    fs.writeFileSync(upgradeResultPath(this.specDir), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+  }
+
+  #staleReason(reason) {
+    if (/fingerprint mismatch|target mismatch/.test(reason)) return "authority mismatch";
+    if (/checkedPaths/.test(reason)) return "checkedPaths mismatch";
+    return reason;
+  }
 }
 
 export function durableTestArtifactPathspecs(specId) {
@@ -1941,6 +2237,8 @@ export function validateIntegrationArtifactTrust({
   specPath = null,
   state = {},
   baseBranch = state?.baseBranch ?? null,
+  currentFingerprint = null,
+  target = null,
   config = {},
 }) {
   const contract = buildGateArtifactTrustContract({ step: "impl-gate", phase });
@@ -1951,6 +2249,8 @@ export function validateIntegrationArtifactTrust({
       root,
       specDir,
       baseBranch,
+      currentFingerprint,
+      target,
     });
     if (!upgradeEvidence.ok) return new GateArtifactTrustFailure(upgradeEvidence.reason);
 

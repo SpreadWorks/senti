@@ -170,6 +170,18 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
   writeFile(tmp, "specs/demo/test-execute-result.json", JSON.stringify({
     repairFingerprint: unledgeredRefresh.hash,
   }, null, 2));
+  writeFile(tmp, "specs/demo/upgrade-result.json", JSON.stringify({
+    version: 1,
+    command: "senti upgrade",
+    dryRun: false,
+    exitCode: 0,
+    result: "success-updated",
+    summary: {},
+    checkedPaths: ["src/skills/demo/SKILL.md"],
+    rawLogPath: "tests/.raw/upgrade.log",
+    rawLogDigest: "0".repeat(64),
+  }, null, 2));
+  writeFile(tmp, "specs/demo/tests/.raw/upgrade.log", "stale upgrade output\n");
   writeFile(tmp, "specs/demo/retro.json", JSON.stringify({
     repairFingerprint: unledgeredRefresh.hash,
   }, null, 2));
@@ -199,6 +211,10 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
   assert.equal(state.implRepairTransaction, undefined);
   assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
   assert.equal(findStepById(state.steps, "final-regression").status, "pending");
+  assert.ok(result.invalidatedArtifacts.includes("upgrade-result.json"));
+  assert.ok(result.invalidatedArtifacts.includes("tests/.raw/upgrade.log"));
   assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
+  assert.equal(fs.existsSync(path.join(specDir, "upgrade-result.json")), false);
+  assert.equal(fs.existsSync(path.join(specDir, "tests", ".raw", "upgrade.log")), false);
   assert.equal(fs.existsSync(path.join(specDir, "retro.json")), false);
 });

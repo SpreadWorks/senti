@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-28T23:41:23.086Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "shared-test-header-scope-bypass",
+      "title": "Shared test directives can bypass spec-local header validation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/commands/review.js",
+      "requirementId": "R7",
+      "issue": "`collectDeclaredSharedTestFiles()` adds files referenced by `// shared-test:` into the AI review prompt and coverage artifact, but `validateTestHeaders()` still validates only the spec-local `tests/` directory. The added `scanFileHeader()` data is written after validation, so a shared test with missing or invalid `// spec:` headers is not included in `headerResult` blocking findings.",
+      "suggestion": "Extend the header validation path in `runTestReview()` so every declared shared test is validated with the same required requirement-id rules as spec-local tests before constructing `TestCoverageArtifact`, or reject shared tests whose `scanFileHeader()` result is not valid / whose extracted IDs do not map to allowed requirements.",
+      "disposition": "must-fix",
+      "rationale": "R7 maps to `src/flow/commands/review.js` and the implementation introduces shared test inclusion as part of the acceptance/test-review contract. The guardrail requires file-specific findings to use touched files and mandatory acceptance coverage must not be bypassable; because invalid shared tests can be accepted and surfaced as coverage without participating in the blocking header validation result, this is a blocking acceptance-policy gap.",
+      "findingId": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "fingerprint": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "a31ad0e6d8f12fb6246b1ca17088f0629fa656c117736512da3adc2f5f211059",
+  "reviewedTree": "a31ad0e6d8f12fb6246b1ca17088f0629fa656c117736512da3adc2f5f211059",
+  "reviewedHead": "048535de0bdb46ebf1d82e27903c9726d721ba4e",
+  "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+  "planRewindAt": null,
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/481-upgrade-evidence-recovery/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "c81586303dc2e00dd37623518f8de61df4374c5cf48e4f37589f3f67fc7b378b"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 8,
+  "findings": [
+    {
+      "id": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "findingId": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 8,
+      "severity": "blocking",
+      "title": "Shared test directives can bypass spec-local header validation",
+      "body": "`collectDeclaredSharedTestFiles()` adds files referenced by `// shared-test:` into the AI review prompt and coverage artifact, but `validateTestHeaders()` still validates only the spec-local `tests/` directory. The added `scanFileHeader()` data is written after validation, so a shared test with missing or invalid `// spec:` headers is not included in `headerResult` blocking findings.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "8875ef5cb723c2499d7c9a666948ca115e40faac8b83b3ffb263b50e96a6d83d",
+      "disposition": "must-fix",
+      "rationale": "R7 maps to `src/flow/commands/review.js` and the implementation introduces shared test inclusion as part of the acceptance/test-review contract. The guardrail requires file-specific findings to use touched files and mandatory acceptance coverage must not be bypassable; because invalid shared tests can be accepted and surfaced as coverage without participating in the blocking header validation result, this is a blocking acceptance-policy gap.",
+      "requirementId": "R7",
+      "repeatCount": 1
+    }
+  ]
+}

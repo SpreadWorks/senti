@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
+import { UPGRADE_RECOVERY_AUDIT_FILE } from "./upgrade-evidence-paths.js";
 
 export const REPAIR_STATE_VERSION = 3;
 export const LEGACY_REPAIR_STATE_VERSION = 2;
@@ -533,6 +534,7 @@ export class RepairArtifactRegistry {
       "test-result-review.md",
       "scenario-validity-result.json",
       "upgrade-result.json",
+      UPGRADE_RECOVERY_AUDIT_FILE,
       "placeholder-permission.json",
       "test-execute-result.json",
       "test-result-review.json",

@@ -1,5 +1,6 @@
 import { normalizeSourceArtifactPath } from "./flow-findings.js";
 import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
+import { UPGRADE_RECOVERY_ARTIFACTS } from "./upgrade-evidence-paths.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -88,10 +89,37 @@ export class StaleTestEvidenceMismatch {
   }
 
   recover(options) {
+    return this.#recover(options, this.previousFingerprint);
+  }
+
+  recoverFromCurrentAuthority(options) {
+    return this.#recover(options, null);
+  }
+
+  #recover({
+    root,
+    state,
+    specDir,
+    flowManager,
+    reason,
+    sourceStep = "test-evidence-refresh",
+    additionalArtifacts = [],
+    faultInjector = null,
+  }, expectedPreviousFingerprint) {
     return new StaleTestEvidenceRefresh({
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
-    }).recover(options);
+    }).recover({
+      root,
+      state,
+      specDir,
+      flowManager,
+      reason,
+      sourceStep,
+      additionalArtifacts,
+      faultInjector,
+      expectedPreviousFingerprint,
+    });
   }
 }
 
@@ -114,13 +142,18 @@ export class StaleTestEvidenceRefresh {
     sourceStep = "test-evidence-refresh",
     additionalArtifacts = [],
     faultInjector = null,
+    expectedPreviousFingerprint = this.previousFingerprint,
   }) {
-    const normalizedAdditionalArtifacts = additionalArtifacts.map(
-      (relativePath, index) => new AdditionalRefreshArtifact({
+    const normalizedAdditionalArtifacts = [
+      ...additionalArtifacts.map((relativePath, index) => new AdditionalRefreshArtifact({
         relativePath,
         index,
-      }).relativePath,
-    );
+      }).relativePath),
+      ...UPGRADE_RECOVERY_ARTIFACTS.map((relativePath, index) => new AdditionalRefreshArtifact({
+        relativePath,
+        index: additionalArtifacts.length + index,
+      }).relativePath),
+    ];
     const completed = completeTestEvidenceRefresh({
       root,
       state,
@@ -129,7 +162,7 @@ export class StaleTestEvidenceRefresh {
       reason,
       sourceStep,
       additionalArtifacts: normalizedAdditionalArtifacts,
-      expectedPreviousFingerprint: this.previousFingerprint,
+      expectedPreviousFingerprint,
       expectedCurrentFingerprint: this.currentFingerprint,
       faultInjector,
     });

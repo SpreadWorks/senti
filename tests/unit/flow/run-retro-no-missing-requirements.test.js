@@ -19,7 +19,12 @@ import path from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 
 function createRepo() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "retro-req-"));
@@ -152,5 +157,56 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       msgs.some((m) => /test-result-review|test-execute/i.test(m)),
       `error must reference upstream artifact: ${msgs.join("; ")}`,
     );
+  });
+
+  it("rewinds stale post-gate evidence to test-execute instead of stranding retro", async () => {
+    tmp = createRepo();
+    const specId = "001-test";
+    const specPath = `specs/${specId}/spec.json`;
+    const specDir = writeSpec(tmp, specId, [
+      { id: "R1", desc: "first", priority: "must", status: "pending" },
+    ]);
+    const state = moveFlowToStep(makeFlowState({ spec: specPath }), "retro");
+    const previous = buildRepairFingerprint({ root: tmp, specPath, state });
+    state.repairBaseline = previous.baseline.toJSON();
+    writeRepairFingerprintManifest(specDir, previous);
+    writeArtifacts(specDir, [{
+      id: "R1",
+      result: "pass",
+      evidence: {
+        test_file: "f.test.js",
+        test_name: "R1: works",
+        command: "node --test",
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
+    }]);
+    fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, "src", "post-gate-repair.js"), "export const repaired = true;\n");
+    const flowManager = new FlowManager({
+      root: tmp,
+      mainRoot: tmp,
+      inWorktree: false,
+    });
+    flowManager.create(state);
+
+    const result = await new RunRetroCommand().execute({
+      root: tmp,
+      flowState: flowManager.loadReadOnly(),
+      flowManager,
+    });
+    await FLOW_COMMANDS.run.retro.post({
+      root: tmp,
+      flowState: flowManager.loadReadOnly(),
+      flowManager,
+    }, result);
+    const recoveredState = flowManager.loadReadOnly();
+
+    assert.equal(result.result, "recovered");
+    assert.equal(result.next, "test-execute");
+    assert.equal(result.artifacts.evidenceRefresh.recovered, true);
+    assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
+    assert.equal(findStepById(recoveredState.steps, "retro").status, "pending");
+    assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
+    assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), false);
   });
 });

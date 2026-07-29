@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "runId": "22f4c1a1-248e-4e7c-a739-ac19cc4cf858",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-28T17:58:23.378Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "no-overengineering",
+      "result": "fail",
+      "reason": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+      "category": "code-quality",
+      "title": "Avoid Overengineering",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/lib/run-gate.js",
+            "locator": "recoverUpgradeEvidenceForIntegration"
+          },
+          "observed": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "findingId": "02ca8bc2f2c07b45ccbb4fe771cf925af1af40652e37bdc592725295b53b1b9a",
+      "fingerprint": "02ca8bc2f2c07b45ccbb4fe771cf925af1af40652e37bdc592725295b53b1b9a",
+      "disposition": "must-fix",
+      "rationale": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-28T17:58:23.378Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "no-overengineering",
+      "where": {
+        "file": "src/flow/lib/run-gate.js",
+        "locator": "recoverUpgradeEvidenceForIntegration"
+      },
+      "observed": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+      "severity": "blocking",
+      "refs": [
+        "no-overengineering"
+      ],
+      "result": "fail",
+      "guardrail_id": "no-overengineering",
+      "category": "guardrail",
+      "findingId": "0118f582e57b3d21adecf5a1f870d8ad2fb7f816ece3a3842535fffd48aba281",
+      "fingerprint": "0118f582e57b3d21adecf5a1f870d8ad2fb7f816ece3a3842535fffd48aba281",
+      "disposition": "must-fix",
+      "rationale": "The diff adds an exported helper with only one production caller. It wraps `UpgradeEvidenceRecovery.resolve()` and adds `next: \"impl-gate\"`, but does not hide meaningful complexity, enforce an invariant, or establish a separate ownership boundary.",
+      "requirementId": null,
+      "guardrailId": "no-overengineering",
+      "reportedAt": "2026-07-28T17:58:23.378Z",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -2226,6 +2226,23 @@ export class RunReviewCommand extends FlowCommand {
         decision: scopeDecision,
       });
     }
+    if (isImplementationReviewPhase(phase) && !taskReviewSpec) {
+      const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
+      const fingerprint = buildRepairFingerprint({
+        root,
+        specPath: ctx.flowState.spec,
+        state: ctx.flowState,
+      });
+      const evidenceRefresh = checkImplReviewTestArtifacts({
+        root,
+        state: ctx.flowState,
+        specDir,
+        fingerprint,
+        flowManager: ctx.flowManager,
+        readOnly: dryRun,
+      });
+      if (evidenceRefresh) return evidenceRefresh;
+    }
     const canonicalBlock = canonicalReviewExecutionBlock(
       reviewCtx,
       persistedPhase,
@@ -2254,21 +2271,6 @@ export class RunReviewCommand extends FlowCommand {
     }
 
     const skipConfirm = ctx.skipConfirm || false;
-    if (isImplementationReviewPhase(phase)) {
-      if (!taskReviewSpec) {
-        const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
-        const fingerprint = buildRepairFingerprint({ root, specPath: ctx.flowState.spec, state: ctx.flowState });
-        const evidenceRefresh = checkImplReviewTestArtifacts({
-          root,
-          state: ctx.flowState,
-          specDir,
-          fingerprint,
-          flowManager: ctx.flowManager,
-          readOnly: dryRun,
-        });
-        if (evidenceRefresh) return evidenceRefresh;
-      }
-    }
 
     const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
     const args = [];
