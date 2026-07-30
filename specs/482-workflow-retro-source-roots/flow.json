@@ -500,19 +500,7 @@
     }
   ],
   "currentTaskId": null,
-  "outbox": [
-    {
-      "idempotencyKey": "flow-outbox-v1:048d7fd4-7130-44bf-b689-7aa08bf69a27:flow:finalize-cleanup:finalize-cleanup",
-      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
-      "taskId": null,
-      "stepId": "finalize-cleanup",
-      "operation": "finalize-cleanup",
-      "status": "pending",
-      "attempt": 1,
-      "startedAt": "2026-07-30T00:11:07.044Z",
-      "updatedAt": "2026-07-30T00:11:07.068Z"
-    }
-  ],
+  "outbox": [],
   "issue": 482,
   "request": "Goal: Correct workflow retro code-target classification for tracked implementation paths. Scope: Determine code eligibility from the retro target project's configured or bounded tracked source roots; support tracked src/flow/... and src/lib/... candidates; preserve existing lib/, commands/, hooks/, and root-config eligibility; retain fail-closed handling for unsafe, external, untracked, and excessive targets. Out of Scope: Changing retro candidate safety constraints or adding repository-specific rules. Description: Fix the plugin-layout bias so in-project candidates with tracked src implementation files are displayed and can be added with retro --add. Cover the behavior with unit/CLI tests and update workflow skill or CLI documentation.",
   "autoApprove": true,
@@ -2228,7 +2216,7 @@
   ],
   "directFlowSession": {
     "phase": "MERGE_ONLY_FINALIZE",
-    "revision": 17,
+    "revision": 16,
     "target": {
       "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
       "issue": 482,
@@ -2247,7 +2235,7 @@
     "adoptedActionId": "REFRESH_DIRECT_AUTHORITY",
     "requestedScopePaths": [],
     "selectedAt": "2026-07-30T00:00:55.024Z",
-    "updatedAt": "2026-07-30T00:11:06.714Z",
+    "updatedAt": "2026-07-30T00:11:01.705Z",
     "planId": "direct-plan-56257562257e8349dbe37a91",
     "planRevision": 1,
     "implementationProof": {
@@ -2448,12 +2436,12 @@
     "verificationAttempts": 1,
     "suspendedFrom": null,
     "completion": {
-      "status": "prepared",
+      "status": "pending-merge",
       "completionMode": "direct",
       "success": null,
       "mergeDisposition": "merged",
-      "receiptId": "direct-completion-37ec18cec6a6738c171de04f8960382f",
-      "integrationReceiptId": null,
+      "receiptId": null,
+      "integrationReceiptId": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
       "reason": null,
       "recordedAt": null,
       "completedAt": null
@@ -2518,7 +2506,7 @@
   "directIntegrationReceipt": {
     "version": 1,
     "receiptId": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
-    "status": "merged",
+    "status": "pending",
     "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
     "issue": 482,
     "spec": "specs/482-workflow-retro-source-roots/spec.json",
@@ -2526,215 +2514,10 @@
     "planRevision": 1,
     "strategy": "squash",
     "mergeDisposition": "merged",
-    "featureHead": "09b895c233a9fb4d03c461cea5e2faf93f6bd6c8",
-    "mainHead": "50f4e199d78f2b4a68831748233c57daa1616d01",
+    "featureHead": "846aed18618045e8a868abe72d1cdf9887fc247d",
+    "mainHead": null,
     "idempotencyKey": "direct-merge-0135ca98e1fa7407b0f8b70f3c7d58ff",
     "createdAt": "2026-07-30T00:11:01.704Z",
-    "integratedAt": "2026-07-30T00:11:06.664Z"
-  },
-  "directCompletionReceipt": {
-    "version": 1,
-    "receiptId": "direct-completion-37ec18cec6a6738c171de04f8960382f",
-    "status": "prepared",
-    "completionMode": "direct",
-    "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
-    "issue": 482,
-    "spec": "specs/482-workflow-retro-source-roots/spec.json",
-    "planId": "direct-plan-56257562257e8349dbe37a91",
-    "planRevision": 1,
-    "mergeDisposition": "merged",
-    "sourceStep": "test-result-review",
-    "gitEvidence": {
-      "kind": "integration-receipt",
-      "featureHead": "09b895c233a9fb4d03c461cea5e2faf93f6bd6c8",
-      "mainHead": "50f4e199d78f2b4a68831748233c57daa1616d01",
-      "receiptKey": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
-      "receiptCommit": "50f4e199d78f2b4a68831748233c57daa1616d01",
-      "observedAt": "2026-07-30T00:11:06.669Z"
-    },
-    "skippedSteps": [
-      {
-        "stepId": "impl-review",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "impl-triage",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "impl-repair",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "impl-gate",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "retro",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "acceptance-review",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "final-regression",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "report",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "finalize-commit",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "finalize-merge",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "finalize-sync",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      },
-      {
-        "stepId": "finalize-cleanup",
-        "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
-      }
-    ],
-    "minimalValidation": {
-      "status": "passed",
-      "testStatus": "passed",
-      "testCommand": "node --test specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
-      "checks": [
-        {
-          "id": "target-identity",
-          "passed": true,
-          "detail": "runId, Issue, spec, and branch identity match the handoff.",
-          "overrideable": false
-        },
-        {
-          "id": "origin-flow-revision",
-          "passed": true,
-          "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
-          "overrideable": false
-        },
-        {
-          "id": "direct-plan-cas",
-          "passed": true,
-          "detail": "Direct session and plan revisions match.",
-          "overrideable": false
-        },
-        {
-          "id": "worktree-binding",
-          "passed": true,
-          "detail": "Managed worktree binding matches the handoff revision.",
-          "overrideable": false
-        },
-        {
-          "id": "active-registry-cas",
-          "passed": true,
-          "detail": "Active Flow registry revision matches the handoff.",
-          "overrideable": false
-        },
-        {
-          "id": "feature-history",
-          "passed": true,
-          "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
-          "overrideable": false
-        },
-        {
-          "id": "git-conflicts",
-          "passed": true,
-          "detail": "No unresolved Git conflicts exist.",
-          "overrideable": false
-        },
-        {
-          "id": "change-scope",
-          "passed": true,
-          "detail": "All changed paths are inside the persisted direct scope.",
-          "overrideable": false
-        },
-        {
-          "id": "merge-target-operation",
-          "passed": true,
-          "detail": "No prohibited Git operation is in progress on the merge target.",
-          "overrideable": false
-        },
-        {
-          "id": "implementation-readiness",
-          "passed": true,
-          "detail": "Implementation completion evidence matches the exact verified change set.",
-          "overrideable": false
-        },
-        {
-          "id": "deterministic-tests",
-          "passed": true,
-          "detail": "Deterministic test command exited successfully.",
-          "overrideable": true
-        }
-      ],
-      "changedPaths": [
-        "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
-        "specs/482-workflow-retro-source-roots/spec.json",
-        "specs/482-workflow-retro-source-roots/tasks/T-1.md",
-        "specs/482-workflow-retro-source-roots/tasks/T-2.md",
-        "specs/482-workflow-retro-source-roots/tasks/T-3.md",
-        "specs/482-workflow-retro-source-roots/tasks/T-4.md",
-        "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
-      ],
-      "pathFingerprints": [
-        {
-          "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
-          "kind": "file",
-          "digest": "1065f4f33381e49a5cfd9f956b533a9635de66ceb3176a6451735919c94d1066"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/spec.json",
-          "kind": "file",
-          "digest": "178fc3e2fbeee82f32bf5a56ae32e3232758392d310deba0c1a212ed96671be3"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
-          "kind": "file",
-          "digest": "454304b4f012bfbb680ebbc6b94e559bfe148a78561de07bfb8a6b78ff53c17a"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
-          "kind": "file",
-          "digest": "3214d4f9f29bacc12ac0205842af0c05eb24ffecb6b5c613103f48889e57403b"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
-          "kind": "file",
-          "digest": "937c099e68abeda3d86d957dc741d4055bd1b4f6c964b0d22a28c50bb3e8a701"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
-          "kind": "file",
-          "digest": "d6e9a5405f498770715c37328cfdbbaab4a35475e7b2ed83c250526856617666"
-        },
-        {
-          "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
-          "kind": "file",
-          "digest": "7b0fcdcb66e84884b00151a4fdc857e73557e220bdf7b0d6ddebc5d2ea198ed6"
-        }
-      ],
-      "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
-      "riskAccepted": false,
-      "riskReason": null,
-      "verifiedAt": "2026-07-30T00:10:54.229Z"
-    },
-    "cleanupDisposition": "remove",
-    "retainedWorktree": null,
-    "preparedAt": "2026-07-30T00:11:06.670Z",
-    "reconciledAt": null,
-    "completedAt": null,
-    "externalUpdateKey": "direct-external-update-37ec18cec6a6738c171de04f8960382f",
-    "summary": "Direct completion direct-completion-37ec18cec6a6738c171de04f8960382f; mode=direct; merge=merged; sourceStep=test-result-review; cleanup=remove; verification=passed; skipped=impl-review,impl-triage,impl-repair,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup"
-  },
-  "state": {
-    "mergeStrategy": "squash",
-    "featureBranchSquashedSha": "09b895c233a9fb4d03c461cea5e2faf93f6bd6c8"
+    "integratedAt": null
   }
 }
