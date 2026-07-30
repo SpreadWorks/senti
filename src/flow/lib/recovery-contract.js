@@ -611,12 +611,24 @@ export class RecoveryActionDescriptor {
 }
 
 export class RecoveryUnavailable {
-  constructor({ reason, nextAction }) {
+  constructor({ reason, message = null, nextAction }) {
     this.reason = requireString(reason, "recovery unavailable reason", { pattern: IDENTIFIER, max: 128 });
+    this.message = message == null
+      ? "Recovery did not change the Flow. Follow the next action to collect current authority or evidence."
+      : requireString(message, "recovery unavailable message", { max: 1_000 });
     this.nextAction = nextAction instanceof RecoveryActionDescriptor
       ? nextAction
       : new RecoveryActionDescriptor(nextAction);
     Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      available: false,
+      reason: this.reason,
+      message: this.message,
+      nextAction: this.nextAction.toJSON(),
+    };
   }
 }
 

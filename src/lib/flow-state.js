@@ -12,6 +12,7 @@ import {
 import { FlowStateRevision } from "./flow-state-atomic-writer.js";
 import { RecoveryFailureLedger } from "../flow/lib/recovery-contract.js";
 import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
+import { UserResolutionLedger } from "../flow/lib/recovery-composition.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -138,6 +139,10 @@ export class FlowState {
     const recoveryDecisions = new RecoveryDecisionLedger({
       failureLedger: recoveryFailures,
       decisions: value.recoveryDecisions || [],
+    });
+    new UserResolutionLedger({
+      failureLedger: recoveryFailures,
+      resolutions: value.recoveryUserResolutions || [],
     });
     recoveryDecisions.assertConsistent({
       failureLedger: recoveryFailures,
