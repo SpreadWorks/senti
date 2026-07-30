@@ -5875,6 +5875,14 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
   return withFinalizeTransactionStore(store, async () => {
     let result;
     const existed = store.hasExisting();
+    if (!existed && ctx.requirePersistedJournal === true) {
+      return Envelope.fail(
+        "run",
+        "finalize-cleanup",
+        "FINALIZE_TEARDOWN_JOURNAL_MISSING",
+        "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
+      );
+    }
     const transaction = store.loadOrCreate();
     if (!existed) store.write(transaction);
     if (transaction.phase.atLeast("pointer-written")) assertPointerReality(reportRoot, ctx.flowState.spec);
@@ -5988,7 +5996,16 @@ async function runTeardown(ctx, options) {
   return withFinalizeTransactionStore(
     store,
     () => {
-      if (options.finalizeAdapter && !store.hasExisting()) {
+      const existed = store.hasExisting();
+      if (!existed && ctx.requirePersistedJournal === true) {
+        return Envelope.fail(
+          "run",
+          "finalize-cleanup",
+          "FINALIZE_TEARDOWN_JOURNAL_MISSING",
+          "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
+        );
+      }
+      if (options.finalizeAdapter && !existed) {
         options.finalizeAdapter.assertTeardownAuthority({
           flowManager: ctx.flowManager,
           state: ctx.flowState,
