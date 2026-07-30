@@ -433,6 +433,203 @@
       "timestamp": "2026-07-30T00:02:46.916Z",
       "taskId": null,
       "issueLogId": "direct-authority-refresh:048d7fd4-7130-44bf-b689-7aa08bf69a27:direct-plan-56257562257e8349dbe37a91"
+    },
+    {
+      "step": "direct-completion",
+      "reason": "Direct handling completed from test-result-review.",
+      "trigger": "MERGE_ONLY_FINALIZE",
+      "resolution": "Direct completion direct-completion-37ec18cec6a6738c171de04f8960382f; mode=direct; merge=merged; sourceStep=test-result-review; cleanup=remove; verification=passed; skipped=impl-review,impl-triage,impl-repair,impl-gate,retro,acceptance-review,final-regression,report,finalize-commit,finalize-merge,finalize-sync,finalize-cleanup",
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "planId": "direct-plan-56257562257e8349dbe37a91",
+      "planRevision": 1,
+      "completionMode": "direct",
+      "mergeDisposition": "merged",
+      "gitEvidence": {
+        "kind": "integration-receipt",
+        "featureHead": "09b895c233a9fb4d03c461cea5e2faf93f6bd6c8",
+        "mainHead": "50f4e199d78f2b4a68831748233c57daa1616d01",
+        "receiptKey": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
+        "receiptCommit": "50f4e199d78f2b4a68831748233c57daa1616d01",
+        "observedAt": "2026-07-30T00:11:06.669Z"
+      },
+      "cleanupDisposition": "remove",
+      "retainedWorktree": null,
+      "skippedSteps": [
+        {
+          "stepId": "impl-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-triage",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-repair",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "impl-gate",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "retro",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "acceptance-review",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "final-regression",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "report",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-commit",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-merge",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-sync",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        },
+        {
+          "stepId": "finalize-cleanup",
+          "reason": "direct-limited-completion: normal post-impl step was not executed or credited"
+        }
+      ],
+      "minimalValidation": {
+        "status": "passed",
+        "testStatus": "passed",
+        "testCommand": "node --test specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+        "checks": [
+          {
+            "id": "target-identity",
+            "passed": true,
+            "detail": "runId, Issue, spec, and branch identity match the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "origin-flow-revision",
+            "passed": true,
+            "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+            "overrideable": false
+          },
+          {
+            "id": "direct-plan-cas",
+            "passed": true,
+            "detail": "Direct session and plan revisions match.",
+            "overrideable": false
+          },
+          {
+            "id": "worktree-binding",
+            "passed": true,
+            "detail": "Managed worktree binding matches the handoff revision.",
+            "overrideable": false
+          },
+          {
+            "id": "active-registry-cas",
+            "passed": true,
+            "detail": "Active Flow registry revision matches the handoff.",
+            "overrideable": false
+          },
+          {
+            "id": "feature-history",
+            "passed": true,
+            "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+            "overrideable": false
+          },
+          {
+            "id": "git-conflicts",
+            "passed": true,
+            "detail": "No unresolved Git conflicts exist.",
+            "overrideable": false
+          },
+          {
+            "id": "change-scope",
+            "passed": true,
+            "detail": "All changed paths are inside the persisted direct scope.",
+            "overrideable": false
+          },
+          {
+            "id": "merge-target-operation",
+            "passed": true,
+            "detail": "No prohibited Git operation is in progress on the merge target.",
+            "overrideable": false
+          },
+          {
+            "id": "implementation-readiness",
+            "passed": true,
+            "detail": "Implementation completion evidence matches the exact verified change set.",
+            "overrideable": false
+          },
+          {
+            "id": "deterministic-tests",
+            "passed": true,
+            "detail": "Deterministic test command exited successfully.",
+            "overrideable": true
+          }
+        ],
+        "changedPaths": [
+          "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+          "specs/482-workflow-retro-source-roots/spec.json",
+          "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+          "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+          "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+          "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+          "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
+        ],
+        "pathFingerprints": [
+          {
+            "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+            "kind": "file",
+            "digest": "1065f4f33381e49a5cfd9f956b533a9635de66ceb3176a6451735919c94d1066"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/spec.json",
+            "kind": "file",
+            "digest": "178fc3e2fbeee82f32bf5a56ae32e3232758392d310deba0c1a212ed96671be3"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+            "kind": "file",
+            "digest": "454304b4f012bfbb680ebbc6b94e559bfe148a78561de07bfb8a6b78ff53c17a"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+            "kind": "file",
+            "digest": "3214d4f9f29bacc12ac0205842af0c05eb24ffecb6b5c613103f48889e57403b"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+            "kind": "file",
+            "digest": "937c099e68abeda3d86d957dc741d4055bd1b4f6c964b0d22a28c50bb3e8a701"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+            "kind": "file",
+            "digest": "d6e9a5405f498770715c37328cfdbbaab4a35475e7b2ed83c250526856617666"
+          },
+          {
+            "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+            "kind": "file",
+            "digest": "7b0fcdcb66e84884b00151a4fdc857e73557e220bdf7b0d6ddebc5d2ea198ed6"
+          }
+        ],
+        "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+        "riskAccepted": false,
+        "riskReason": null,
+        "verifiedAt": "2026-07-30T00:10:54.229Z"
+      },
+      "timestamp": "2026-07-30T00:11:06.670Z",
+      "taskId": null,
+      "issueLogId": "direct-completion:048d7fd4-7130-44bf-b689-7aa08bf69a27:direct-plan-56257562257e8349dbe37a91:r1"
     }
   ]
 }
