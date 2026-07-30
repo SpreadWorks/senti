@@ -40,7 +40,6 @@ import {
 import { resolveReviewOperationForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
-import { getDirectFlowAction } from "./direct-flow-controller.js";
 import {
   decisionContextForActiveFlow,
   nonblockingActivationOfferForStrictStop,
@@ -495,22 +494,6 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
 export class NextActionPlanner {
   build(ctx) {
     const original = ctx.flowState;
-    if (original.directFlowSession) {
-      const directAction = getDirectFlowAction({ ...ctx, state: original });
-      return new NextActionTerminalPlan({
-        taskId: null,
-        step: null,
-        action: "direct",
-        instructions: null,
-        context: null,
-        output_schema: null,
-        requires_approval: false,
-        directive: new NextActionDirectiveResolver({
-          state: original,
-          directAction,
-        }).resolve().toJSON(),
-      });
-    }
     if (original.acceptanceReview?.status === "aborted") {
       return new NextActionTerminalPlan(abortedNextAction());
     }

@@ -2,8 +2,7 @@
  * Advisory Flow policy for eligible acceptance-backed checks.
  *
  * This closed module owns the nonblocking vocabulary. It reads authoritative
- * result artifacts, stores only their identity in flow.json, and deliberately
- * has no dependency on the direct-flow implementation.
+ * result artifacts and stores only their identity in flow.json.
  */
 
 import crypto from "node:crypto";
@@ -95,7 +94,6 @@ function activeStep(state) {
 
 function activationStep(root, state) {
   if (!state?.runId) throw new Error("an active normal flow is required");
-  if (state.directFlowSession) throw new NonBlockingRouteOwnershipError("a direct session already owns this Flow route", state);
   const step = assertSupportedStep(activeStep(state));
   let evidence;
   try {
@@ -261,7 +259,7 @@ function mark(state, id, status, taskId = null) {
  * authority that may close this leaf; no acceptance artifact is rewritten.
  */
 export function reconcileNonblockingAcceptanceContinuation(root, state) {
-  if (!root || state?.nonblocking?.enabled !== true || state.directFlowSession) return false;
+  if (!root || state?.nonblocking?.enabled !== true) return false;
   const acceptanceReview = findStepById(state.steps || [], "acceptance-review");
   const acceptanceDecision = findStepById(state.steps || [], "acceptance-decision");
   if (
@@ -729,9 +727,6 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null, { h
 export function activateNonBlockingPolicy({ root, flowManager, reason }) {
   const state = flowManager.load();
   if (state?.nonblocking) {
-    if (state.directFlowSession) {
-      throw new NonBlockingRouteOwnershipError("a direct session already owns this Flow route", state);
-    }
     return NonBlockingPolicy.fromStored(state.nonblocking).toJSON();
   }
   const step = activationStep(root, state);
@@ -740,9 +735,6 @@ export function activateNonBlockingPolicy({ root, flowManager, reason }) {
   let durablePolicy = policy;
   withOperationLock(root, (operationOwnerToken) => {
     flowManager.mutate((current) => {
-      if (current.directFlowSession) {
-        throw new NonBlockingRouteOwnershipError("a direct session became durable before nonblocking activation", current);
-      }
       if (current.nonblocking) {
         durablePolicy = NonBlockingPolicy.fromStored(current.nonblocking);
         return;
@@ -896,7 +888,6 @@ export function recordNonBlockingDecision({
     try {
       flowManager.mutate((current) => {
         if (!current.nonblocking?.enabled) throw new NonBlockingRouteOwnershipError("nonblocking policy is no longer the Flow owner", current);
-        if (current.directFlowSession) throw new NonBlockingRouteOwnershipError("a direct session owns this Flow route", current);
         const currentContext = contextForState(root, current);
         if (expectEvidenceDigest !== currentContext.evidenceDigest || !currentContext.identity().equals(identity)) {
           throw staleEvidenceError(current, currentContext);

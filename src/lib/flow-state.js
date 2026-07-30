@@ -1,14 +1,5 @@
 import { buildInitialNestedSteps } from "../flow/definition.js";
 import { FlowOutbox } from "../flow/lib/flow-outbox.js";
-import { DirectFlowSession } from "../flow/lib/direct-flow-session.js";
-import { DirectResolutionPlan } from "../flow/lib/direct-resolution-plan.js";
-import {
-  DirectAbortReceipt,
-  DirectAbortReceiptHistory,
-  DirectCompletionReceipt,
-  DirectGitEvidence,
-  DirectIntegrationReceipt,
-} from "../flow/lib/direct-completion.js";
 import { FlowStateRevision } from "./flow-state-atomic-writer.js";
 import { RecoveryFailureLedger } from "../flow/lib/recovery-contract.js";
 import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
@@ -148,105 +139,6 @@ export class FlowState {
       failureLedger: recoveryFailures,
       outboxIdempotencyKeys: new Set(outbox.entries.map((entry) => entry.idempotencyKey)),
     });
-    const directSession = value.directFlowSession == null
-      ? null
-      : DirectFlowSession.fromStored(value.directFlowSession);
-    const directPlan = value.directResolutionPlan == null
-      ? null
-      : DirectResolutionPlan.fromStored(value.directResolutionPlan);
-    invariant(
-      directPlan == null || directSession != null,
-      "direct resolution plan requires a direct flow session",
-    );
-    invariant(
-      directPlan == null
-        || (
-          directSession.planId === directPlan.planId
-          && directSession.planRevision === directPlan.revision
-        ),
-      "direct session plan identity does not match direct resolution plan",
-    );
-    const integrationReceipt = value.directIntegrationReceipt == null
-      ? null
-      : DirectIntegrationReceipt.fromStored(value.directIntegrationReceipt);
-    const completionReceipt = value.directCompletionReceipt == null
-      ? null
-      : DirectCompletionReceipt.fromStored(value.directCompletionReceipt);
-    const abortReceipt = value.directAbortReceipt == null
-      ? null
-      : DirectAbortReceipt.fromStored(value.directAbortReceipt);
-    const abortHistory = value.directAbortHistory == null
-      ? DirectAbortReceiptHistory.fromStored()
-      : DirectAbortReceiptHistory.fromStored(value.directAbortHistory);
-    const reconcileEvidence = value.directReconcileEvidence == null
-      ? null
-      : DirectGitEvidence.fromStored(value.directReconcileEvidence);
-    invariant(
-      integrationReceipt == null || directPlan != null,
-      "direct integration receipt requires a direct resolution plan",
-    );
-    invariant(
-      completionReceipt == null || directPlan != null,
-      "direct completion receipt requires a direct resolution plan",
-    );
-    invariant(
-      abortReceipt == null || directPlan != null,
-      "direct abort receipt requires a direct resolution plan",
-    );
-    invariant(
-      abortHistory.receipts.length === 0 || directPlan != null,
-      "direct abort receipt history requires a direct resolution plan",
-    );
-    invariant(
-      reconcileEvidence == null || directPlan != null,
-      "direct reconcile evidence requires a direct resolution plan",
-    );
-    invariant(
-      integrationReceipt == null
-        || (
-          integrationReceipt.runId === value.runId
-          && integrationReceipt.spec === value.spec
-          && integrationReceipt.planId === directPlan.planId
-          && integrationReceipt.planRevision === directPlan.revision
-        ),
-      "direct integration receipt does not match Flow identity",
-    );
-    invariant(
-      completionReceipt == null
-        || (
-          completionReceipt.runId === value.runId
-          && completionReceipt.spec === value.spec
-          && completionReceipt.planId === directPlan.planId
-          && completionReceipt.planRevision === directPlan.revision
-        ),
-      "direct completion receipt does not match Flow identity",
-    );
-    invariant(
-      abortReceipt == null
-        || (
-          abortReceipt.runId === value.runId
-          && abortReceipt.spec === value.spec
-          && abortReceipt.planId === directPlan.planId
-          && abortReceipt.planRevision === directPlan.revision
-        ),
-      "direct abort receipt does not match Flow identity",
-    );
-    invariant(
-      abortHistory.receipts.every((receipt) => (
-        receipt.runId === value.runId
-        && receipt.spec === value.spec
-        && receipt.planId === directPlan.planId
-        && (
-          receipt.planRevision < directPlan.revision
-          || (
-            receipt.planRevision === directPlan.revision
-            && completionReceipt?.status === "completed"
-            && directSession?.phase === "COMPLETED_DIRECT"
-          )
-        )
-      )),
-      "direct abort receipt history does not match completed or prior Flow plan revisions",
-    );
     if (revision) {
       const identity = revision.identity;
       const hasIssue = Object.hasOwn(value, "issue") && value.issue != null;

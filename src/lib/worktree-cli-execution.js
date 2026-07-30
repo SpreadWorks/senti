@@ -43,9 +43,7 @@ class WorktreeCliInvocation {
   }
 
   get requiresRecoveryAuthority() {
-    return this.argv[0] === "flow"
-      && this.argv[2] === "direct"
-      && ["get", "run"].includes(this.argv[1]);
+    return false;
   }
 }
 

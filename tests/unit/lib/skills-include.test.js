@@ -66,27 +66,5 @@ describe("deploySkills include resolution", () => {
       );
     }
 
-    const directPath = path.join(
-      projectDir,
-      ".agents",
-      "skills",
-      "senti.flow-direct",
-      "SKILL.md",
-    );
-    if (fs.existsSync(directPath)) {
-      const content = fs.readFileSync(directPath, "utf8");
-      assert.ok(
-        content.includes("Present real choices in the following format"),
-        "direct flow skill should reserve the numbered Choice Format for real decisions",
-      );
-      assert.ok(
-        content.includes("Do not show the entry choices"),
-        "explicit direct flow invocation should enter direct repair without a second menu",
-      );
-      assert.ok(
-        /translated\s+into the user's language/.test(content),
-        "direct flow decisions should be presented in the user's language",
-      );
-    }
   });
 });

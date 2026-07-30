@@ -12,15 +12,12 @@ import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGh
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCompletion } from "./flow-completion.js";
-import { DirectFlowSession } from "./direct-flow-session.js";
 import { flattenSteps } from "./step-tree.js";
 
 const SKILL_BY_PHASE = { sync: "senti.flow-sync" };
 const DEFAULT_SKILL = "senti.flow";
-const DIRECT_SKILL = "senti.flow-direct";
 
-function phaseToSkill(phase, directSession) {
-  if (directSession) return DIRECT_SKILL;
+function phaseToSkill(phase) {
   return SKILL_BY_PHASE[phase] ?? DEFAULT_SKILL;
 }
 
@@ -73,10 +70,6 @@ export function buildResolvedFlowContext(ctx) {
   const lastCommit = getLastCommit(effectiveRoot);
   const ghAvailable = isGhAvailable();
   const completion = new FlowCompletion(state);
-  const directSession = state.directFlowSession
-    ? DirectFlowSession.fromStored(state.directFlowSession)
-    : null;
-
   return {
     mainRepoPath,
     worktreePath,
@@ -102,9 +95,6 @@ export function buildResolvedFlowContext(ctx) {
     lastCommit,
     ghAvailable,
     completion: completion.toJSON(),
-    ...(directSession && { directFlowSession: directSession.toJSON() }),
-    ...(state.directAbortReceipt && { directAbortReceipt: state.directAbortReceipt }),
-    ...(state.directAbortHistory && { directAbortHistory: state.directAbortHistory }),
-    recommendedSkill: phaseToSkill(phase, directSession),
+    recommendedSkill: phaseToSkill(phase),
   };
 }

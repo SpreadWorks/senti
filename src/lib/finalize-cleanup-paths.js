@@ -2,10 +2,6 @@ import path from "path";
 
 export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = path.join(".senti", "agent-work");
 export const FINALIZE_CLEANUP_DURABLE_SUBDIR = "finalize-cleanup";
-const DIRECT_FINALIZE_ACTIONS = new Set([
-  "FINALIZE_DIRECT",
-  "FINALIZE_DIRECT_RECONCILE",
-]);
 
 function isPathInside(base, target) {
   const rel = path.relative(path.resolve(base), path.resolve(target));
@@ -51,11 +47,7 @@ export class FinalizeCleanupRoute {
   }
 
   get removesManagedWorktree() {
-    return this.command === "finalize-cleanup"
-      || (
-        this.command === "direct"
-        && DIRECT_FINALIZE_ACTIONS.has(this.action)
-      );
+    return this.command === "finalize-cleanup";
   }
 }
 

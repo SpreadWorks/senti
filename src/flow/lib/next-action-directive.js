@@ -3,7 +3,7 @@
  *
  * Domain subsystems may expose diagnostics, but only a NextActionDirective is
  * allowed to tell an agent what to do next. This prevents step outcomes,
- * reviews, gates, direct recovery, and the dispatcher from competing as
+ * reviews, gates, recovery, and the dispatcher from competing as
  * independent routing authorities.
  */
 
@@ -315,49 +315,6 @@ function gateDirective({ state, phase, recovery }) {
   });
 }
 
-function directDirective(action) {
-  if (action?.continuation) {
-    return new ExecuteCommandDirective(action.continuation);
-  }
-  if (action?.yieldsControl === true && action.actionPrompt) {
-    return new AwaitUserDecisionDirective({
-      prompt: action.actionPrompt,
-      reason: action.actionPrompt.recommendationReason,
-    });
-  }
-  if (action?.scopeReviewRequired === true && action.scopeReview?.recordAction) {
-    return new RepairEvidenceDirective({
-      actionId: action.scopeReview.recordAction.actionId,
-      evidenceKind: "direct-scope",
-      phase: action.phase || "direct-fix",
-      instruction: action.scopeReview.instruction,
-      reason: "Changed paths exist outside the persisted direct repair scope.",
-      nextAction: action.scopeReview.recordAction.nextAction,
-    });
-  }
-  if (action?.implementationRequired === true && action.implementation?.completionAction) {
-    return new RepairEvidenceDirective({
-      actionId: action.implementation.completionAction.actionId,
-      evidenceKind: "implementation",
-      phase: action.phase || "direct-fix",
-      instruction: action.implementation.instruction,
-      reason: action.implementation.proofReason || "Direct implementation evidence is incomplete.",
-      nextAction: action.implementation.completionAction.nextAction,
-    });
-  }
-  if (action?.code === "COMPLETED" || action?.code === "COMPLETED_DIRECT") {
-    return new CompletedDirective();
-  }
-  if (action?.code === "ABORTED") {
-    return new AbortedDirective({ reason: "The direct Flow was aborted." });
-  }
-  return new BlockedDirective({
-    code: action?.code || "DIRECT_FLOW_STATE_UNAVAILABLE",
-    reason: action?.message || "Direct Flow state requires the direct recovery dispatcher.",
-    resumeInstruction: "Continue this target through the direct Flow dispatcher.",
-  });
-}
-
 export class NextActionDirectiveResolver {
   constructor({
     state,
@@ -368,7 +325,6 @@ export class NextActionDirectiveResolver {
     stepAttempt = null,
     reviewOperation = null,
     gateRecovery = null,
-    directAction = null,
   } = {}) {
     if (!state || typeof state !== "object" || Array.isArray(state)) {
       throw new Error("directive resolver state is required");
@@ -381,12 +337,9 @@ export class NextActionDirectiveResolver {
     this.stepAttempt = stepAttempt;
     this.reviewOperation = reviewOperation;
     this.gateRecovery = gateRecovery;
-    this.directAction = directAction;
   }
 
   resolve() {
-    if (this.directAction) return directDirective(this.directAction);
-
     const review = this.reviewOperation
       ? reviewDirective({
           state: this.state,
@@ -437,7 +390,6 @@ export function assertNextActionDirective(data) {
     "reviewAction",
     "retryRecovery",
     "gateStop",
-    "directMode",
     "halt",
     "yieldsControl",
     "requiresUserAction",

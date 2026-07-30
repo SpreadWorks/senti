@@ -99,7 +99,7 @@ describe("nonblocking flow policy", () => {
     }), /no longer than 2000 characters/);
   });
 
-  it("requires durable non-pass evidence and excludes direct ownership", () => {
+  it("requires durable non-pass evidence", () => {
     const root = createTmpDir("nonblocking-durable-evidence-");
     try {
       const spec = "specs/477-durable-evidence/spec.json";
@@ -113,11 +113,6 @@ describe("nonblocking flow policy", () => {
       });
       assert.equal(enabled.enabled, true);
       assert.equal(state.nonblocking.activatedStep, "impl-review");
-      state.directFlowSession = { phase: "DIRECT_FIX" };
-      assert.throws(() => activateNonBlockingPolicy({
-        root, flowManager: manager,
-        reason: "This must not take ownership from a direct session.",
-      }), /direct session/);
     } finally {
       removeTmpDir(root);
     }
@@ -326,38 +321,6 @@ describe("nonblocking flow policy", () => {
     assert.equal(result.data.continuation.actionId, "REFRESH_NONBLOCKING_FLOW");
     assert.match(result.data.continuation.nextAction, /^senti flow get next-action /);
     assert.doesNotThrow(() => result.toJSON());
-  });
-
-  it("yields policy activation to a direct session that becomes durable in the mutation", () => {
-    const root = createTmpDir("nonblocking-direct-owner-");
-    try {
-      const spec = "specs/477-direct-owner/spec.json";
-      writeJson(root, spec, { requirements: [] });
-      fs.writeFileSync(path.join(root, "specs/477-direct-owner/impl-review.json"), '{"verdict":"REJECTED"}\n');
-      const state = moveFlowToStep(makeFlowState({ spec }), "impl-review");
-      let injectDirectOwner = true;
-      const manager = {
-        load: () => state,
-        mutate: (fn) => {
-          if (injectDirectOwner) {
-            injectDirectOwner = false;
-            state.directFlowSession = { phase: "DIRECT_FIX" };
-          }
-          fn(state);
-        },
-      };
-      assert.throws(() => activateNonBlockingPolicy({
-        root,
-        flowManager: manager,
-        reason: "The direct owner won the route-selection race.",
-      }), (error) => (
-        error.code === "NONBLOCKING_ROUTE_OWNED"
-        && error.continuation?.actionId === "CONTINUE_CURRENT_FLOW_OWNER"
-      ));
-      assert.equal(state.nonblocking, undefined);
-    } finally {
-      removeTmpDir(root);
-    }
   });
 
   it("uses canonical result fields for every acceptance-backed checkpoint", () => {

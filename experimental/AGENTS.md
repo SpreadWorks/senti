@@ -14,10 +14,6 @@
 2. 実装が安定し、CLI surface・config キー・利用パターンが固まったら src/ へ昇格する。
 3. 昇格時に呼び出し経路（skill / docs）を新しい src/ コマンドへ更新し、experimental/ の旧実体を削除する。
 
-## 昇格の実例
-
-- `senti workflow`（GitHub Projects ボード管理 + issue 化）は `experimental/` から `src/workflow/` へ昇格済み。昇格条件は `src/workflow/AGENTS.md` を参照。
-
 ## テスト
 
 - **MUST: `experimental/` 配下のコードをテストするファイルは `experimental/tests/` に置くこと。**

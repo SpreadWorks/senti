@@ -459,7 +459,6 @@ describe("worktree command identity", () => {
       }
     }
     assert.deepEqual(entries, [
-      "get.direct",
       "get.next-action",
       "get.runtime-log",
       "set.step",

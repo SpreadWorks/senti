@@ -500,13 +500,6 @@ describe("flow skill liveness contract", () => {
     assert.doesNotMatch(dispatcher, /reviewAction|retryRecovery|gateStop/);
   });
 
-  it("keeps mechanical direct recovery out of user choice prompts", () => {
-    const skill = fs.readFileSync("src/skills/senti.flow-direct/SKILL.md", "utf8");
-    assert.match(skill, /DIRECT_MODE_UNSUPPORTED/);
-    assert.match(skill, /execute a sole read-only `INSPECT_\*` choice once without asking/);
-    assert.match(skill, /Never show raw action IDs/);
-  });
-
   it("prioritizes an agent-owned nonblocking decision over the strict directive", () => {
     const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
     const nonblockingSkill = fs.readFileSync("src/skills/senti.flow-nonblocking/SKILL.md", "utf8");

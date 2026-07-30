@@ -37,7 +37,7 @@ function guards(state) {
   ];
 }
 
-test("nonblocking policy keeps normal Flow ownership and excludes direct mode", () => {
+test("nonblocking policy keeps normal Flow ownership", () => {
   const root = createTmpDir("senti-nonblocking-policy-e2e-");
   try {
     const specId = "477-nonblocking-e2e";
@@ -78,14 +78,6 @@ test("nonblocking policy keeps normal Flow ownership and excludes direct mode", 
     const digest = next.envelope.data.nonblockingDecision.evidenceDigest;
     assert.equal(digest, crypto.createHash("sha256").update(evidence).digest("hex"));
 
-    const direct = invoke(root, [
-      "run", "direct", "--action", "SELECT_DIRECT_FIX",
-      ...guards(state),
-    ]);
-    assert.notEqual(direct.status, 0);
-    assert.equal(direct.envelope.errors[0].code, "NONBLOCKING_POLICY_ACTIVE");
-    assert.equal(direct.envelope.data.continuation.actionId, "CONTINUE_NONBLOCKING_FLOW");
-
     const continued = invoke(root, [
       "set", "nonblocking-decision",
       "--choice", "continue",
@@ -98,7 +90,6 @@ test("nonblocking policy keeps normal Flow ownership and excludes direct mode", 
     assert.equal(continued.envelope.data.action, "continue");
 
     const persisted = JSON.parse(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"));
-    assert.equal(persisted.directFlowSession, undefined);
     assert.equal(findStepById(persisted.steps, "impl-review").status, "done");
     assert.equal(findStepById(persisted.steps, "impl-gate").status, "in_progress");
     assert.equal(

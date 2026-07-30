@@ -592,7 +592,7 @@ describe("dispatcher (unified runner)", () => {
           entry,
           argv: [],
           envelopeType: "get",
-          envelopeKey: "direct",
+          envelopeKey: "status",
           runtimeLog: true,
           stdout: (s) => out.push(s),
           buildHookCtx: () => ({ flowState: null }),
@@ -642,8 +642,8 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
-    it("writes direct finalization runtime logs outside the managed worktree", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-direct-finalize-"));
+    it("writes finalize cleanup runtime logs outside the managed worktree", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-finalize-cleanup-"));
       const mainRoot = path.join(tmp, "main");
       const worktreeRoot = path.join(mainRoot, ".senti", "worktree", "feature-demo");
       try {
@@ -652,9 +652,14 @@ describe("dispatcher (unified runner)", () => {
           root: worktreeRoot,
           agentWorkDir: path.join(worktreeRoot, ".agent-work"),
         });
+        const mainFlowManager = {};
         const flowManager = {
           resolveWorktreePaths() {
             return { mainRepoPath: mainRoot, worktreePath: worktreeRoot };
+          },
+          forRoot(root) {
+            assert.equal(root, mainRoot);
+            return mainFlowManager;
           },
         };
 
@@ -665,31 +670,32 @@ describe("dispatcher (unified runner)", () => {
           }
         }
 
-        for (const action of ["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"]) {
-          const entry = {
-            command: async () => ({ default: Cmd }),
-            args: { options: ["--action"] },
-            requiresFlow: false,
-            runtimeLog: { stepMetadata: false },
-          };
-          const out = [];
-          await dispatch({
-            container,
-            entry,
-            argv: ["--action", action],
-            envelopeType: "run",
-            envelopeKey: "direct",
-            runtimeLog: true,
-            stdout: (s) => out.push(s),
-            buildHookCtx: () => ({
-              root: worktreeRoot,
-              specId: "demo-flow",
-              flowState: { runId: "run-demo", worktree: true },
-              flowManager,
-            }),
-          });
-          assert.equal(JSON.parse(out.join("")).ok, true);
-        }
+        const entry = {
+          command: async () => ({
+            default: Cmd,
+            recordFinalizeCleanupPostCommandMetadata() {},
+          }),
+          args: { options: [] },
+          requiresFlow: false,
+          runtimeLog: { stepMetadata: false },
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: [],
+          envelopeType: "run",
+          envelopeKey: "finalize-cleanup",
+          runtimeLog: true,
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({
+            root: worktreeRoot,
+            specId: "demo-flow",
+            flowState: { runId: "run-demo", worktree: true },
+            flowManager,
+          }),
+        });
+        assert.equal(JSON.parse(out.join("")).ok, true);
 
         assert.equal(
           fs.existsSync(path.join(mainRoot, ".tmp", "logs", "demo-flow.log")),

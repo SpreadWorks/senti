@@ -105,7 +105,7 @@ describe("senti.flow skill prelude auto flow", () => {
     assert.match(core, /only unequal expected\/active identity pair is\s+`expectedRunId`\/`activeRunId`/s);
     assert.match(core, /every supplied Issue\/spec guard pair\s+matches/s);
     assert.match(core, /retry the same read-only status command once in the\s+same turn/s);
-    assert.match(core, /Do not ask the user, enter direct mode, or run any mutating\s+command/s);
+    assert.match(core, /Do not ask the user or run any mutating\s+command/s);
     assert.match(core, /If it fails again, or any Issue\/spec\/selected-run identity differs,\s+STOP/s);
     assert.match(core, /Store runId values returned by the CLI as opaque tokens/);
     assert.match(text, /corrected\s+read-only runId transcription error is not a loop exit condition/s);

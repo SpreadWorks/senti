@@ -55,7 +55,7 @@ function assertTargetMatchesState(target, state) {
 /**
  * Describes a revalidation entirely in terms of the current Flow definition.
  * The reset range intentionally comes from the normal dependency ordering,
- * never from a recovery-specific or direct-flow step list.
+ * never from a recovery-specific step list.
  */
 export class ImplementationRevalidationPlan {
   constructor({

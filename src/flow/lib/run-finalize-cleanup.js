@@ -2802,159 +2802,6 @@ function ensureRealDirectory(directory) {
   }
 }
 
-class FinalizeWorktreeRuntimeResidue {
-  constructor({ mainRepoPath, worktreePath, transactionId }) {
-    if (typeof transactionId !== "string" || transactionId === "") {
-      throw new Error("finalize runtime residue requires a transaction identity");
-    }
-    this.mainRepoPath = fs.realpathSync(mainRepoPath);
-    this.worktreePath = path.resolve(worktreePath);
-    this.transactionId = transactionId;
-    this.managedWorktreeRoot = path.join(this.mainRepoPath, ".senti", "worktree");
-    this.recoveryRoot = path.join(
-      this.mainRepoPath,
-      ".senti",
-      "recovery",
-      "finalize-cleanup-residue",
-    );
-  }
-
-  #assertRealDirectory(directory, label) {
-    const stat = fs.lstatSync(directory);
-    if (
-      !stat.isDirectory()
-      || stat.isSymbolicLink()
-      || fs.realpathSync(directory) !== directory
-    ) {
-      throw new Error(`${label} must be one real directory`);
-    }
-  }
-
-  #assertEmptyDirectoryTree(directory) {
-    this.#assertRealDirectory(directory, "finalize worktree metadata residue");
-    for (const entry of fs.readdirSync(directory)) {
-      const entryPath = path.join(directory, entry);
-      const stat = fs.lstatSync(entryPath);
-      if (!stat.isDirectory() || stat.isSymbolicLink()) {
-        throw new Error("finalize worktree metadata residue contains a file");
-      }
-      this.#assertEmptyDirectoryTree(entryPath);
-    }
-  }
-
-  #assertRuntimeLogDirectory(directory) {
-    this.#assertRealDirectory(directory, "finalize runtime log residue");
-    for (const entry of fs.readdirSync(directory)) {
-      const entryPath = path.join(directory, entry);
-      const stat = fs.lstatSync(entryPath);
-      if (
-        !stat.isFile()
-        || stat.isSymbolicLink()
-        || stat.nlink !== 1
-        || fs.realpathSync(entryPath) !== entryPath
-      ) {
-        throw new Error("finalize runtime log residue contains a non-log entry");
-      }
-    }
-  }
-
-  #assertRuntimeOnlyTree() {
-    this.#assertRealDirectory(this.managedWorktreeRoot, "managed worktree root");
-    this.#assertRealDirectory(this.worktreePath, "finalize worktree residue");
-    if (path.dirname(this.worktreePath) !== this.managedWorktreeRoot) {
-      throw new Error("finalize worktree residue is outside the managed worktree root");
-    }
-
-    const worktrees = runGit([
-      "-C",
-      this.mainRepoPath,
-      "worktree",
-      "list",
-      "--porcelain",
-    ]);
-    if (!worktrees.ok) {
-      throw new Error(
-        `finalize worktree residue registration could not be verified: ${
-          worktrees.stderr || worktrees.stdout || "unknown"
-        }`,
-      );
-    }
-    if (
-      worktrees.stdout
-        .split("\n")
-        .some((line) => line === `worktree ${this.worktreePath}`)
-    ) {
-      throw new Error("finalize worktree residue is still registered as a Git worktree");
-    }
-
-    for (const entry of fs.readdirSync(this.worktreePath)) {
-      if (entry === ".senti") {
-        this.#assertEmptyDirectoryTree(path.join(this.worktreePath, entry));
-        continue;
-      }
-      if (entry === ".tmp") {
-        const tempDirectory = path.join(this.worktreePath, entry);
-        this.#assertRealDirectory(tempDirectory, "finalize temporary residue");
-        const tempEntries = fs.readdirSync(tempDirectory);
-        if (
-          tempEntries.some((name) => name !== "logs")
-          || !tempEntries.includes("logs")
-        ) {
-          throw new Error("finalize temporary residue contains non-runtime data");
-        }
-        this.#assertRuntimeLogDirectory(path.join(tempDirectory, "logs"));
-        continue;
-      }
-      throw new Error(`finalize worktree residue contains unexpected data: ${entry}`);
-    }
-  }
-
-  relocate() {
-    this.#assertRuntimeOnlyTree();
-    ensureRealDirectory(this.recoveryRoot);
-    const token = crypto
-      .createHash("sha256")
-      .update(this.transactionId)
-      .digest("hex");
-    const recoveryPath = path.join(this.recoveryRoot, token);
-    if (pathExistsStrict(recoveryPath)) {
-      throw new Error("finalize runtime residue recovery target already exists");
-    }
-    fs.renameSync(this.worktreePath, recoveryPath);
-    fsyncDirectory(this.managedWorktreeRoot);
-    fsyncDirectory(this.recoveryRoot);
-    return recoveryPath;
-  }
-}
-
-function recoverAuthorizedWorktreeRuntimeResidue({
-  finalizeAdapter,
-  state,
-  transaction,
-  mainRepoPath,
-  worktreePath,
-}) {
-  if (
-    !finalizeAdapter
-    || !mainRepoPath
-    || !worktreePath
-    || !transaction.phase.atLeast("worktree-removed")
-    || !pathExistsStrict(worktreePath)
-    || finalizeAdapter.authorizeRemovedWorktreeRuntimeResidueRecovery?.({
-      state,
-      worktreePath,
-      transaction,
-    }) !== true
-  ) {
-    return null;
-  }
-  return new FinalizeWorktreeRuntimeResidue({
-    mainRepoPath,
-    worktreePath,
-    transactionId: transaction.transactionId,
-  }).relocate();
-}
-
 class FinalizeRepositoryOperationLock {
   constructor(mainRoot) {
     this.mainRoot = fs.realpathSync(resolveRepositoryLockRoot(mainRoot));
@@ -5376,16 +5223,6 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     const specId = specIdFromPath(state.spec);
     const reportRoot = mainRepoPath || root;
 
-    if (ctx.directFinalizeAdapter) {
-      return runTeardown(ctx, {
-        worktreePath,
-        mainRepoPath,
-        reportRoot,
-        specId,
-        finalizeAdapter: ctx.directFinalizeAdapter,
-      });
-    }
-
     // ── Stage (A) — args validation ─────────────────────────────────────────
     if (autoRescue && force) {
       return Envelope.fail("run", "finalize-cleanup", "ARGS_ERROR", [
@@ -6014,9 +5851,6 @@ async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
 }
 
 async function runTeardown(ctx, options) {
-  if (ctx.directFinalizeAdapter && !options.finalizeAdapter) {
-    options = { ...options, finalizeAdapter: ctx.directFinalizeAdapter };
-  }
   const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
   return withFinalizeTransactionStore(
     store,
@@ -6030,24 +5864,12 @@ async function runTeardown(ctx, options) {
           "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
         );
       }
-      if (options.finalizeAdapter && !existed) {
-        options.finalizeAdapter.assertTeardownAuthority({
-          flowManager: ctx.flowManager,
-          state: ctx.flowState,
-          worktreePath: options.worktreePath,
-          mainRoot: options.mainRepoPath || options.reportRoot,
-          operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
-        });
-      }
       return runTeardownTransaction(ctx, options, store);
     },
   );
 }
 
 async function runPersistedTeardownIfPresent(ctx, options) {
-  if (ctx.directFinalizeAdapter && !options.finalizeAdapter) {
-    options = { ...options, finalizeAdapter: ctx.directFinalizeAdapter };
-  }
   const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
   return withFinalizeTransactionStore(store, async () => {
     if (!store.hasExisting()) return null;
@@ -6410,8 +6232,8 @@ function cleanupFinalizePreparedAuthorities(
 async function runTeardownTransaction(ctx, options, transactionStore) {
   const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
   // CLI order is repository lock -> finalize transaction lock; this nested
-  // acquisition borrows that owner. Direct callers fail fast on conflicts, so
-  // their inverse entry order cannot wait into a deadlock.
+  // acquisition borrows that owner, so nested teardown work cannot wait into
+  // a deadlock on the outer operation.
   const publicationAuthority = new RepositoryFlowOperationLock({
     mainRoot,
     operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
@@ -6452,7 +6274,7 @@ async function runTeardownTransaction(ctx, options, transactionStore) {
 
 async function runTeardownTransactionOwned(
   ctx,
-  { worktreePath, mainRepoPath, reportRoot, specId, finalizeAdapter = null },
+  { worktreePath, mainRepoPath, reportRoot, specId },
   transactionStore,
   publicationAuthority,
 ) {
@@ -6591,31 +6413,6 @@ async function runTeardownTransactionOwned(
     transactionStore.write(transaction);
     return attachTransaction(env);
   };
-  const preserveAuthorizedRuntimeResidue = () => {
-    try {
-      recoverAuthorizedWorktreeRuntimeResidue({
-        finalizeAdapter,
-        state,
-        transaction,
-        mainRepoPath,
-        worktreePath,
-      });
-      return null;
-    } catch (error) {
-      return failAfterCommit(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "WORKTREE_RUNTIME_RESIDUE_RECOVERY_FAILED",
-        [
-          `Removed worktree runtime residue could not be safely preserved: ${error.message}`,
-          "The remaining directory was left untouched.",
-        ],
-        { causeCode: error.code || null, worktreePath },
-      ));
-    }
-  };
-  const initialResidueFailure = preserveAuthorizedRuntimeResidue();
-  if (initialResidueFailure) return initialResidueFailure;
   assertPersistedTeardownReality(transaction, ctx, {
     worktreePath,
     mainRepoPath,
@@ -7000,14 +6797,6 @@ async function runTeardownTransactionOwned(
             worktreePath: wtPath,
           })
         : null;
-      const bindingMissing = expectedBinding != null
-        && !new WorktreeFlowBindingStore({ worktreePath: wtPath }).exists;
-      const missingBindingRecoveryAuthorized = bindingMissing
-        && finalizeAdapter?.authorizeMissingWorktreeBindingRecovery?.({
-          state,
-          worktreePath: wtPath,
-          transaction,
-        }) === true;
       const authorizedDirtyRootFiles = [path.join(path.dirname(state.spec), "flow.json")];
       const removeResult = removeWorktreeForCleanup({
         mainRepoPath,
@@ -7015,7 +6804,6 @@ async function runTeardownTransactionOwned(
         featureBranch,
         force: ctx.force === true,
         expectedBinding,
-        missingBindingRecoveryAuthorized,
         // flow.json is the active Flow's own state surface. It can legitimately
         // change while finalization persists metadata; unrelated worktree paths
         // remain a hard preflight failure.
@@ -7041,9 +6829,6 @@ async function runTeardownTransactionOwned(
   }
 
   assertCommitReachableFromBase(transaction, { mainRepoPath: gitAuthorityRoot, state });
-
-  const residueFailure = preserveAuthorizedRuntimeResidue();
-  if (residueFailure) return residueFailure;
 
   if (!transaction.phase.atLeast("validated")) {
     const validation = validateTeardown({
@@ -7132,7 +6917,6 @@ async function runTeardownTransactionOwned(
     ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
     assurance: completion.assurance,
     ...(completionReceipt.advisorySummary && { advisorySummary: completionReceipt.advisorySummary }),
-    ...(finalizeAdapter?.completionData || {}),
     pluginHooks: pluginLifecycle.data?.pluginHooks || [],
     followUps: pluginLifecycle.data?.followUps || [],
     retainedCleanupMetadata: retainedCleanupMetadata
@@ -7141,14 +6925,10 @@ async function runTeardownTransactionOwned(
   };
   if (!transaction.phase.atLeast("completed")) {
     persistFinalizeTeardownCheckpoint(transactionStore, transaction, "completed");
-    if (finalizeAdapter) {
-      finalizeAdapter.complete(stateOwner.flowManager, specId, ctx.repositoryOperationOwnerToken);
-    } else {
-      completeFinalizeCleanupStep(
-        stateOwner,
-        ctx.repositoryOperationOwnerToken,
-      );
-    }
+    completeFinalizeCleanupStep(
+      stateOwner,
+      ctx.repositoryOperationOwnerToken,
+    );
     const completionOutbox = stateOwner.outbox({
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
     });

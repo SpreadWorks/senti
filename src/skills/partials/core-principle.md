@@ -24,7 +24,7 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
   - For that case, rebuild both the positional selector and
     `--expect-run-id` from the stored `targetRunId`, preserve the matching
     Issue/spec guards, and retry the same read-only status command once in the
-    same turn. Do not ask the user, enter direct mode, or run any mutating
+    same turn. Do not ask the user or run any mutating
     command before this retry passes.
   - If the corrected status passes, continue the existing Flow in the same
     turn. If it fails again, or any Issue/spec/selected-run identity differs,

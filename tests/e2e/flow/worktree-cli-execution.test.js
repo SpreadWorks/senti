@@ -80,25 +80,6 @@ describe("global CLI execution from a managed worktree", () => {
     assert.equal(JSON.parse(result.stdout).ok, true);
   });
 
-  it("keeps direct recovery on the installed CLI when the worktree source is older", () => {
-    const { root, worktreePath } = createFixture();
-    const worktreeCli = path.join(worktreePath, "src", "senti.js");
-    const worktreeSource = fs.readFileSync(worktreeCli, "utf8");
-    fs.writeFileSync(
-      worktreeCli,
-      worktreeSource.replace(
-        "const rawArgs = process.argv.slice(2);",
-        "process.stderr.write('[stale-worktree-cli]\\n');\nconst rawArgs = process.argv.slice(2);",
-      ),
-    );
-
-    const result = invokeGlobalCli(root, worktreePath, ["flow", "get", "direct"]);
-
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.doesNotMatch(result.stderr, /\[stale-worktree-cli\]/);
-    assert.equal(JSON.parse(result.stdout).data.code, "NO_FLOW");
-  });
-
   it("fails closed when the worktree-local CLI source is absent", () => {
     const { root, worktreePath } = createFixture();
     const worktreeCli = path.join(worktreePath, "src", "senti.js");

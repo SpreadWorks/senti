@@ -9,6 +9,8 @@ import {
 } from "./recovery-contract.js";
 import { validateUpgradeEvidenceForGate } from "./test-artifacts.js";
 
+export const UPGRADE_EVIDENCE_RECOVERY_AUTHORITY = "upgrade-evidence/current-authority";
+
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
   return value;

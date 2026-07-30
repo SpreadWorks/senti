@@ -113,7 +113,6 @@ test("replays only a matching incomplete Issue #473 journal through normal final
     assert.equal(fixture.executor.calls[0].requirePersistedJournal, true);
     assert.equal(fixture.executor.calls[0].autoRescue, false);
     assert.equal(fixture.executor.calls[0].force, false);
-    assert.equal("directFinalizeAdapter" in fixture.executor.calls[0], false);
   } finally {
     removeTmpDir(root);
   }
@@ -159,7 +158,7 @@ test("returns RecoveryUnavailable when the exact Flow changes before replay", as
   }
 });
 
-test("maps existing cleanup authority rejection to RecoveryUnavailable without a direct retry state", async () => {
+test("maps existing cleanup authority rejection to RecoveryUnavailable without a retry state", async () => {
   const root = createTmpDir("finalize-journal-adapter-cleanup-");
   try {
     const state = flowState();

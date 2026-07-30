@@ -127,10 +127,7 @@ export class FinalizeCleanupStateResolution {
       ? ctx.worktreeFlowProvenance.identity.worktreePath
       : selectedPaths.worktreePath;
     let worktreeState = null;
-    const missingDirectWorktreeBinding = ctx.directFinalizeAdapter != null
-      && worktreePath != null
-      && !fs.existsSync(path.join(worktreePath, ".senti", "flow-identity.json"));
-    if (worktreePath && fs.existsSync(worktreePath) && !missingDirectWorktreeBinding) {
+    if (worktreePath && fs.existsSync(worktreePath)) {
       worktreeState = ctx.flowManager
         .forRoot(worktreePath, { specId })
         .loadReadOnly(specId);
@@ -179,20 +176,6 @@ export class FinalizeCleanupStateResolution {
       ...(activeState.state || {}),
       ...(mainState.state || {}),
     };
-    if (mainState.directFlowSession) {
-      operationalState.plugins = structuredClone(mainState.plugins);
-    }
-    for (const key of [
-      "directFlowSession",
-      "directResolutionPlan",
-      "directIntegrationReceipt",
-      "directCompletionReceipt",
-      "directAbortReceipt",
-      "directAbortHistory",
-      "directReconcileEvidence",
-    ]) {
-      if (mainState[key] !== undefined) operationalState[key] = structuredClone(mainState[key]);
-    }
     return new FinalizeCleanupStateResolution({
       state: operationalState,
       stateOwner,

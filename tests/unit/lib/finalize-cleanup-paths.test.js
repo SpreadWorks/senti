@@ -8,40 +8,6 @@ import {
   FinalizeCleanupRoute,
 } from "../../../src/lib/finalize-cleanup-paths.js";
 
-test("direct finalize CLI routes own managed-worktree cleanup durability", () => {
-  for (const action of ["FINALIZE_DIRECT", "FINALIZE_DIRECT_RECONCILE"]) {
-    assert.equal(
-      FinalizeCleanupRoute.fromCliArgs([
-        "flow",
-        "run",
-        "direct",
-        "--action",
-        action,
-      ]).removesManagedWorktree,
-      true,
-    );
-    assert.equal(
-      FinalizeCleanupRoute.fromCliArgs([
-        "flow",
-        "run",
-        "direct",
-        `--action=${action}`,
-      ]).removesManagedWorktree,
-      true,
-    );
-  }
-  assert.equal(
-    FinalizeCleanupRoute.fromCliArgs([
-      "flow",
-      "run",
-      "direct",
-      "--action",
-      "VERIFY_DIRECT",
-    ]).removesManagedWorktree,
-    false,
-  );
-});
-
 test("finalize cleanup command and dispatcher share one destructive route contract", () => {
   assert.equal(
     FinalizeCleanupRoute
@@ -50,10 +16,7 @@ test("finalize cleanup command and dispatcher share one destructive route contra
     true,
   );
   assert.equal(
-    FinalizeCleanupRoute.fromDispatch({
-      envelopeKey: "direct",
-      action: "FINALIZE_DIRECT",
-    }).removesManagedWorktree,
+    FinalizeCleanupRoute.fromDispatch({ envelopeKey: "finalize-cleanup" }).removesManagedWorktree,
     true,
   );
 });

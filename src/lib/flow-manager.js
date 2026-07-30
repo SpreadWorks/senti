@@ -879,14 +879,6 @@ export class FlowManager {
     let state = this._store.load(specId);
     let worktreePath = null;
 
-    // Direct reconciliation deliberately persists its session in main before
-    // it removes the managed worktree. That state is the active authority for
-    // the limited completion path, so do not replace it with the stale
-    // worktree copy solely because the registry entry is still worktree-mode.
-    if (state?.directFlowSession?.phase === "DIRECT_RECONCILE") {
-      return { state, specId, worktreePath };
-    }
-
     // worktree mode: the flow.json lives inside the worktree, not main repo.
     // First check the active-flows registry to know whether to look there.
     if (!state) {

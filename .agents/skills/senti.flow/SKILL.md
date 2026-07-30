@@ -35,7 +35,7 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
   - For that case, rebuild both the positional selector and
     `--expect-run-id` from the stored `targetRunId`, preserve the matching
     Issue/spec guards, and retry the same read-only status command once in the
-    same turn. Do not ask the user, enter direct mode, or run any mutating
+    same turn. Do not ask the user or run any mutating
     command before this retry passes.
   - If the corrected status passes, continue the existing Flow in the same
     turn. If it fails again, or any Issue/spec/selected-run identity differs,
@@ -297,9 +297,9 @@ Run bare `senti flow get status` first. This is a display and branch-decision ch
 - Evaluate target mismatch before autoApprove or `requires_approval` for existing-flow continuation; neither can bypass `ACTIVE_FLOW_MISMATCH`.
 
 - If the user's latest request explicitly invokes Spec-Driven Development flow, explicitly requests starting the flow, or provides an Issue/spec target as part of a flow-start instruction → go to **B. Prelude**.
+- If the user explicitly requests recovery of an interrupted active Flow → follow `senti.flow-direct` for the exact target.
 - If the user's latest request is to continue the current active flow and `active: true` → go to **C. Dispatcher loop**.
-- If `active: false` and `directFlowSession` is present → tell the user normal Flow is not authoritative and invoke `/senti.flow-direct` for the exact target. Do not route by the stale normal phase.
-- If `active: false` and there is no explicit flow-start request or direct session → tell the user there is no active flow and stop. Do not start the flow, and do not present a mandatory startup choice for ordinary requests.
+- If `active: false` and there is no explicit flow-start request → tell the user there is no active flow and stop. Do not start the flow, and do not present a mandatory startup choice for ordinary requests.
 
 ### B. Prelude (pre-flow setup)
 
@@ -443,10 +443,9 @@ Handle the returned `data.dispatch.boundary`:
 3. `await_user_decision`: explain every materially different choice in the
    user's language without exposing raw action IDs or commands. Wait for the
    user's choice, execute only its current exact action, then immediately
-   resume `senti flow run dispatch <targetGuardArgs>`. Transition into direct
-   mode, adoption/reconciliation, risk acceptance, deletion, orphan handling,
-   and force actions always require explicit user selection. When direct mode
-   is selected, follow `senti.flow-direct`.
+   resume `senti flow run dispatch <targetGuardArgs>`. Adoption/reconciliation,
+   risk acceptance, deletion, orphan handling, and force actions always require
+   explicit user selection.
    - For `KEEP_STRICT_FLOW`, leave the Flow unchanged and report the strict
      blocker.
    - For `ENABLE_NONBLOCKING`, record the bounded reason with
@@ -499,7 +498,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 - Do not advance past any step whose `requires_approval` is `true` without explicit user approval.
 - **autoApprove exception:** when `autoApprove: true`, `requires_approval: true` is satisfied by auto-selecting `[1]`.
-- **Non-auto-selectable actions:** autoApprove never selects entry into direct mode, already-merged adoption/reconcile, risk acceptance, deletion, orphan handling, or force actions.
+- **Non-auto-selectable actions:** autoApprove never selects already-merged adoption/reconcile, risk acceptance, deletion, orphan handling, or force actions.
 
 ### No-auto-promote
 
@@ -627,7 +626,6 @@ senti flow set issue-log --step finalize \
 # Reference forms below omit `targetGuardArgs`; when a dispatcher target is bound, append the required `--expect-run-id` / `--expect-issue` / `--expect-spec` guards.
 senti flow get status
 senti flow get next-action
-senti flow get direct
 senti flow get context [<path> | --search "..."] [--raw]
 senti flow get guardrail <draft|spec|task-spec|task-impl|integration|test|lint|review>  # alias: impl -> task-impl
 senti flow get prompt <kind>
@@ -661,7 +659,6 @@ senti flow run finalize-commit [--message "<msg>"]
 senti flow run finalize-merge
 senti flow run finalize-sync
 senti flow run finalize-cleanup
-senti flow run direct --action <CLI-provided-action>
 senti flow run reopen-draft [--reason "<text>"]
 senti flow run report [--dry-run]
 senti snapshot check

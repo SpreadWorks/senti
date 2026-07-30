@@ -304,11 +304,6 @@ function buildStatusOutput(state, root, options = {}) {
     assurance: advisory.length > 0 ? "advisory" : "strict",
     ...(state.nonblocking?.enabled === true && { nonblocking: state.nonblocking }),
     ...(advisory.length > 0 && { advisorySummary: advisory }),
-    ...(state.directFlowSession && { directFlowSession: state.directFlowSession }),
-    ...(state.directResolutionPlan && { directResolutionPlan: state.directResolutionPlan }),
-    ...(state.directCompletionReceipt && { directCompletionReceipt: state.directCompletionReceipt }),
-    ...(state.directAbortReceipt && { directAbortReceipt: state.directAbortReceipt }),
-    ...(state.directAbortHistory && { directAbortHistory: state.directAbortHistory }),
   };
 
   if (!details) return output;

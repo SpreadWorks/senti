@@ -111,7 +111,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     process.env.SENTI_WORK_ROOT = worktree;
     container.reset();
     initContainer({
-      entryCommand: "flow run direct --action FINALIZE_DIRECT",
+      entryCommand: "flow run finalize-cleanup",
       finalizeCleanupDurablePaths: true,
     });
     const logger = container.get("logger");

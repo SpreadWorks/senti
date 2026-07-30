@@ -42,4 +42,14 @@ describe("removed flow run commands", () => {
       assert.match(out, /unknown (action|key)/i);
     }
   });
+
+  it("flow get direct returns unknown action error", () => {
+      try {
+        execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "direct"], { encoding: "utf8" });
+        assert.fail("should exit non-zero");
+      } catch (err) {
+        const out = `${err.stdout || ""}${err.stderr || ""}`;
+        assert.match(out, /unknown (action|key)/i);
+      }
+  });
 });
