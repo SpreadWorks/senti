@@ -1,0 +1,438 @@
+{
+  "entries": [
+    {
+      "step": "draft-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses \"bounded tracked-project metadata\" without defining what metadata qualifies or what bounds apply, so reviewers cannot consistently determine whether an implementation satisfies it.; The requirement says the source root must be derived from \"tracked metadata\" but does not define the accepted metadata sources or derivation rule.; The requirement allows \"bounded な tracked-project metadata\" without specifying the concrete metadata or bounds, leaving satisfaction subjective.; The requirement defers the \"bounded heuristic\" for source-root detection instead of stating measurable criteria in the draft.; The requirement defers the concrete path rules for distinguishing implementation paths from test/docs/skill/spec artifacts, so reviewers cannot yet agree on eligibility.; The answer relies on \"bounded な tracked-project metadata\" without defining qualifying metadata or limits, making the requirement insufficiently specific.; The draft identifies affected existing behavior but does not map each retained public behavior to its new owner or explicitly mark any behavior for removal.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T14:19:56.793Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "analysis.proposedApproach"
+          },
+          "observed": "The requirement uses \"bounded tracked-project metadata\" without defining what metadata qualifies or what bounds apply, so reviewers cannot consistently determine whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.decisionPoints[0]"
+          },
+          "observed": "The requirement says the source root must be derived from \"tracked metadata\" but does not define the accepted metadata sources or derivation rule.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.resolvedByProjectRules[4]"
+          },
+          "observed": "The requirement allows \"bounded な tracked-project metadata\" without specifying the concrete metadata or bounds, leaving satisfaction subjective.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.deferredToSpec[3]"
+          },
+          "observed": "The requirement defers the \"bounded heuristic\" for source-root detection instead of stating measurable criteria in the draft.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The requirement defers the concrete path rules for distinguishing implementation paths from test/docs/skill/spec artifacts, so reviewers cannot yet agree on eligibility.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "qa[1].answer"
+          },
+          "observed": "The answer relies on \"bounded な tracked-project metadata\" without defining qualifying metadata or limits, making the requirement insufficiently specific.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "draft.json",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft identifies affected existing behavior but does not map each retained public behavior to its new owner or explicitly mark any behavior for removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement uses \"bounded tracked-project metadata\" without defining what metadata qualifies or what bounds apply, so reviewers cannot consistently determine whether an implementation satisfies it."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement says the source root must be derived from \"tracked metadata\" but does not define the accepted metadata sources or derivation rule."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement allows \"bounded な tracked-project metadata\" without specifying the concrete metadata or bounds, leaving satisfaction subjective."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement defers the \"bounded heuristic\" for source-root detection instead of stating measurable criteria in the draft."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The requirement defers the concrete path rules for distinguishing implementation paths from test/docs/skill/spec artifacts, so reviewers cannot yet agree on eligibility."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The answer relies on \"bounded な tracked-project metadata\" without defining qualifying metadata or limits, making the requirement insufficiently specific."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft identifies affected existing behavior but does not map each retained public behavior to its new owner or explicitly mark any behavior for removal."
+        }
+      ],
+      "issueLogId": "issue-log-25e7074a-33b8-4d88-9fa6-94c6ebda8273"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The phrase \"relevant unit or CLI coverage\" is vague; it does not state which unit or CLI coverage is required.; The phrase \"a fixture equivalent to the `337-repair-stale-evidence-ledger` `src/...` misclassification\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.; The phrase \"A regression fixture equivalent to `senti workflow retro 337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.; The phrase \"A fixture equivalent to `337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.; The phrase \"any production public surface\" is vague; it does not enumerate which public surfaces must be covered.; The phrase \"the smallest relevant workflow retro unit or CLI test suite\" is vague; it does not identify the test suite or selection rule.; The migration parity inventory retains candidate numbering, but the spec does not include behavior-level verification proving candidate numbering still works through the retained path.; The migration parity inventory retains cache use, but the spec does not include behavior-level verification proving cache behavior still works through the retained path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T14:26:36.061Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scope.in[5]"
+          },
+          "observed": "The phrase \"relevant unit or CLI coverage\" is vague; it does not state which unit or CLI coverage is required.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[7].desc"
+          },
+          "observed": "The phrase \"a fixture equivalent to the `337-repair-stale-evidence-ledger` `src/...` misclassification\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "acceptance_criteria[5]"
+          },
+          "observed": "The phrase \"A regression fixture equivalent to `senti workflow retro 337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[3].acceptance[1]"
+          },
+          "observed": "The phrase \"A fixture equivalent to `337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[3].acceptance[2]"
+          },
+          "observed": "The phrase \"any production public surface\" is vague; it does not enumerate which public surfaces must be covered.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "tasks[3].test_strategy"
+          },
+          "observed": "The phrase \"the smallest relevant workflow retro unit or CLI test suite\" is vague; it does not identify the test suite or selection rule.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[6]"
+          },
+          "observed": "The migration parity inventory retains candidate numbering, but the spec does not include behavior-level verification proving candidate numbering still works through the retained path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "spec.json",
+            "locator": "constraints[6]"
+          },
+          "observed": "The migration parity inventory retains cache use, but the spec does not include behavior-level verification proving cache behavior still works through the retained path.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"relevant unit or CLI coverage\" is vague; it does not state which unit or CLI coverage is required."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The phrase \"a fixture equivalent to the `337-repair-stale-evidence-ledger` `src/...` misclassification\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The phrase \"A regression fixture equivalent to `senti workflow retro 337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The phrase \"A fixture equivalent to `337-repair-stale-evidence-ledger`\" is subjective; it does not define the concrete fixture inputs or expected behavior needed for independent reviewers to agree."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"any production public surface\" is vague; it does not enumerate which public surfaces must be covered."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "The phrase \"the smallest relevant workflow retro unit or CLI test suite\" is vague; it does not identify the test suite or selection rule."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration parity inventory retains candidate numbering, but the spec does not include behavior-level verification proving candidate numbering still works through the retained path."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The migration parity inventory retains cache use, but the spec does not include behavior-level verification proving cache behavior still works through the retained path."
+        }
+      ],
+      "issueLogId": "issue-log-256ce246-7850-4d2a-be49-8e393c2c9f85"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R7 uses the vague phrase \"updated code eligibility contract\" without stating all verifiable documentation content in the requirement itself.; Requirement R7 depends on the subjective phrase \"updated code eligibility contract\" without measurable criteria sufficient for independent reviewers to decide satisfaction from the requirement alone.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-07-29T14:27:22.384Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "Requirement R7 uses the vague phrase \"updated code eligibility contract\" without stating all verifiable documentation content in the requirement itself.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "requirements[6].desc"
+          },
+          "observed": "Requirement R7 depends on the subjective phrase \"updated code eligibility contract\" without measurable criteria sufficient for independent reviewers to decide satisfaction from the requirement alone.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "spec-test-coverage"
+      ],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement R7 uses the vague phrase \"updated code eligibility contract\" without stating all verifiable documentation content in the requirement itself."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirement R7 depends on the subjective phrase \"updated code eligibility contract\" without measurable criteria sufficient for independent reviewers to decide satisfaction from the requirement alone."
+        }
+      ],
+      "issueLogId": "issue-log-0bdadd2a-c995-4c71-8556-c141df6f885f"
+    },
+    {
+      "step": "task-review",
+      "reason": "Added outside-repository symlink fixture coverage and preserved unsafe-target rejection through realpath repository-boundary checking.",
+      "normalizedFindingId": "b23cde2b2e1968450bb1fb3b44f10429c1389d9b7dad369d4d64aefa08ef7195",
+      "repairRef": {
+        "files": [
+          "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
+        ]
+      },
+      "taskId": "T-2",
+      "timestamp": "2026-07-29T15:39:57.664Z",
+      "issueLogId": "issue-log-50853445-e807-4b5f-95a3-59c88859f44c"
+    },
+    {
+      "step": "direct-handoff-preflight",
+      "reason": "User explicitly selected direct mode.",
+      "trigger": "SELECT_DIRECT_FIX",
+      "resolution": "Persisted the direct resolution plan before implementation changes.",
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "planId": "direct-plan-802b790acc6740b4bdce9941",
+      "planRevision": 1,
+      "sourceStep": "test-result-review",
+      "skippedSteps": [
+        "impl-review",
+        "impl-triage",
+        "impl-repair",
+        "impl-gate",
+        "retro",
+        "acceptance-review",
+        "final-regression",
+        "report",
+        "finalize-commit",
+        "finalize-merge",
+        "finalize-sync",
+        "finalize-cleanup"
+      ],
+      "routingFailure": null,
+      "findings": [],
+      "timestamp": "2026-07-30T00:00:55.024Z",
+      "taskId": null,
+      "issueLogId": "direct-plan:048d7fd4-7130-44bf-b689-7aa08bf69a27:direct-plan-802b790acc6740b4bdce9941:r1"
+    },
+    {
+      "step": "direct-authority-refresh",
+      "reason": "Refresh the direct repair authority after Flow metadata changed. The target identity, Git safety checks, and repair scope remain unchanged.",
+      "trigger": "REFRESH_DIRECT_AUTHORITY",
+      "resolution": "Rebound the retained direct repair to the current non-lifecycle Flow revision.",
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "previousPlanId": "direct-plan-802b790acc6740b4bdce9941",
+      "previousPlanRevision": 1,
+      "planId": "direct-plan-ef6a2c0013f14d30f28fb947",
+      "planRevision": 1,
+      "sourceStep": "test-result-review",
+      "timestamp": "2026-07-30T00:01:20.265Z",
+      "taskId": null,
+      "issueLogId": "direct-authority-refresh:048d7fd4-7130-44bf-b689-7aa08bf69a27:direct-plan-ef6a2c0013f14d30f28fb947"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "Direct verification artifact rejected because detail exceeded the 2000-character limit",
+      "trigger": "VERIFY_DIRECT ran the recorded spec-local node test command",
+      "resolution": "Inspect direct recovery state and use the CLI-provided bounded recovery action",
+      "guardrailCandidate": "direct verification must summarize oversized output before persisting evidence",
+      "taskId": null,
+      "timestamp": "2026-07-30T00:02:19.943Z",
+      "issueLogId": "issue-log-a72a7ba0-7715-4951-923f-47a540825c01"
+    },
+    {
+      "step": "direct-authority-refresh",
+      "reason": "Refresh the direct repair authority after Flow metadata changed. The target identity, Git safety checks, and repair scope remain unchanged.",
+      "trigger": "REFRESH_DIRECT_AUTHORITY",
+      "resolution": "Rebound the retained direct repair to the current non-lifecycle Flow revision.",
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "previousPlanId": "direct-plan-ef6a2c0013f14d30f28fb947",
+      "previousPlanRevision": 1,
+      "planId": "direct-plan-56257562257e8349dbe37a91",
+      "planRevision": 1,
+      "sourceStep": "test-result-review",
+      "timestamp": "2026-07-30T00:02:46.916Z",
+      "taskId": null,
+      "issueLogId": "direct-authority-refresh:048d7fd4-7130-44bf-b689-7aa08bf69a27:direct-plan-56257562257e8349dbe37a91"
+    }
+  ]
+}

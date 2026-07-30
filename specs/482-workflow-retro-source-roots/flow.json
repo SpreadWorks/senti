@@ -1,0 +1,2523 @@
+{
+  "spec": "specs/482-workflow-retro-source-roots/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/482-workflow-retro-source-roots",
+  "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+  "repairBaseline": {
+    "kind": "git",
+    "objectFormat": "sha1",
+    "commitOid": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+    "treeOid": "feaad9c4975fdd472ba18220446d30da6c533fff",
+    "sourceRef": "main",
+    "ref": "refs/senti/flows/048d7fd4-7130-44bf-b689-7aa08bf69a27/baseline",
+    "capturedAt": "2026-07-29T14:11:42.905Z"
+  },
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-07-29T14:11:44.439Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-07-29T14:11:44.440Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-07-29T14:11:44.440Z",
+          "finishedAt": "2026-07-29T14:14:28.763Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 8,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T14:14:28.711Z",
+            "endedAt": "2026-07-29T14:14:28.787Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-07-29T14:14:28.763Z",
+          "finishedAt": "2026-07-29T14:15:08.017Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 9,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-29T14:14:48.070Z",
+            "endedAt": "2026-07-29T14:15:08.075Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-07-29T14:15:08.017Z",
+          "finishedAt": "2026-07-29T14:15:53.223Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 10,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T14:15:53.168Z",
+            "endedAt": "2026-07-29T14:15:53.247Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-07-29T14:15:53.223Z",
+          "finishedAt": "2026-07-29T14:17:03.755Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 11,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T14:17:03.700Z",
+            "endedAt": "2026-07-29T14:17:03.778Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-07-29T14:17:03.755Z",
+          "finishedAt": "2026-07-29T14:18:35.637Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 12,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T14:18:35.584Z",
+            "endedAt": "2026-07-29T14:18:35.661Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-07-29T14:18:35.637Z",
+          "finishedAt": "2026-07-29T14:19:02.811Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 13,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-29T14:18:54.900Z",
+            "endedAt": "2026-07-29T14:19:02.945Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-07-29T14:19:02.811Z",
+          "finishedAt": "2026-07-29T14:19:02.848Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-07-29T14:19:02.848Z",
+          "finishedAt": "2026-07-29T14:19:02.883Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "done",
+          "startedAt": "2026-07-29T14:19:02.883Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 16,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-29T14:20:33.251Z",
+            "endedAt": "2026-07-29T14:20:48.785Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-29T14:20:48.666Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-07-29T14:20:48.666Z",
+          "finishedAt": "2026-07-29T14:23:42.666Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 21,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T14:23:42.610Z",
+            "endedAt": "2026-07-29T14:23:42.690Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-review",
+          "status": "done",
+          "startedAt": "2026-07-29T14:23:42.666Z",
+          "finishedAt": "2026-07-29T14:25:33.752Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 22,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-29T14:23:54.258Z",
+            "endedAt": "2026-07-29T14:25:33.927Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "spec-triage",
+          "status": "done",
+          "startedAt": "2026-07-29T14:25:33.752Z",
+          "finishedAt": "2026-07-29T14:25:33.792Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-07-29T14:25:33.792Z",
+          "finishedAt": "2026-07-29T14:25:33.829Z"
+        },
+        {
+          "id": "spec-gate",
+          "status": "done",
+          "startedAt": "2026-07-29T14:25:51.729Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 87,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-07-29T15:40:47.617Z",
+            "endedAt": "2026-07-29T15:40:55.164Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-29T14:27:56.049Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-07-29T14:27:56.049Z",
+          "finishedAt": "2026-07-29T15:04:05.471Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 46,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T15:04:05.406Z",
+            "endedAt": "2026-07-29T15:04:05.519Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-07-29T15:04:05.471Z",
+          "finishedAt": "2026-07-29T15:15:21.826Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 56,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T15:15:21.752Z",
+            "endedAt": "2026-07-29T15:15:21.850Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-07-29T15:15:21.826Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 58,
+            "attempt": 1,
+            "command": "flow run scenario-validity",
+            "startedAt": "2026-07-29T15:16:43.067Z",
+            "endedAt": "2026-07-29T15:16:43.734Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-29T15:16:43.636Z"
+        },
+        {
+          "id": "test-review",
+          "status": "done",
+          "startedAt": "2026-07-29T15:16:43.636Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 64,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-29T15:32:29.173Z",
+            "endedAt": "2026-07-29T15:32:48.873Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-07-29T15:32:48.761Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-07-29T15:32:48.761Z",
+          "finishedAt": "2026-07-29T15:46:46.409Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 111,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T15:46:46.344Z",
+            "endedAt": "2026-07-29T15:46:46.437Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-07-29T15:46:46.409Z",
+          "finishedAt": "2026-07-29T15:49:24.324Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 113,
+            "attempt": 1,
+            "command": "flow run test-execute",
+            "startedAt": "2026-07-29T15:49:23.370Z",
+            "endedAt": "2026-07-29T15:49:24.338Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "test-result-review",
+          "status": "in_progress",
+          "startedAt": "2026-07-29T15:49:24.324Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 121,
+            "attempt": 1,
+            "command": "flow run test-result-review",
+            "startedAt": "2026-07-29T15:55:37.152Z",
+            "endedAt": "2026-07-29T15:55:37.787Z",
+            "exitCode": 1
+          }
+        },
+        {
+          "id": "impl-review",
+          "status": "pending",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 85,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-07-29T15:40:07.485Z",
+            "endedAt": "2026-07-29T15:40:24.529Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "impl-triage",
+          "status": "pending"
+        },
+        {
+          "id": "impl-repair",
+          "status": "pending"
+        },
+        {
+          "id": "impl-gate",
+          "status": "pending"
+        },
+        {
+          "id": "retro",
+          "status": "pending"
+        },
+        {
+          "id": "acceptance-review",
+          "status": "pending"
+        },
+        {
+          "id": "acceptance-decision",
+          "status": "pending"
+        },
+        {
+          "id": "final-regression",
+          "status": "pending"
+        },
+        {
+          "id": "report",
+          "status": "pending"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "spec": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-29T15:32:54.791Z",
+          "finishedAt": "2026-07-29T15:35:18.675Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-2",
+      "spec": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-29T15:35:28.534Z",
+          "finishedAt": "2026-07-29T15:37:45.656Z",
+          "runtimeLog": {
+            "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+            "sequence": 81,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-07-29T15:37:45.592Z",
+            "endedAt": "2026-07-29T15:37:45.683Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "task-review",
+          "status": "done",
+          "finishedAt": "2026-07-29T15:40:24.442Z"
+        },
+        {
+          "id": "task-gate",
+          "status": "done",
+          "finishedAt": "2026-07-29T15:40:55.031Z"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-3",
+      "spec": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-29T15:40:59.045Z",
+          "finishedAt": "2026-07-29T15:42:40.824Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    },
+    {
+      "id": "T-4",
+      "spec": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "done",
+      "steps": [
+        {
+          "id": "task-impl",
+          "status": "done",
+          "startedAt": "2026-07-29T15:42:48.194Z",
+          "finishedAt": "2026-07-29T15:44:21.507Z"
+        },
+        {
+          "id": "task-review",
+          "status": "pending"
+        },
+        {
+          "id": "task-gate",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 0
+    }
+  ],
+  "currentTaskId": null,
+  "outbox": [],
+  "issue": 482,
+  "request": "Goal: Correct workflow retro code-target classification for tracked implementation paths. Scope: Determine code eligibility from the retro target project's configured or bounded tracked source roots; support tracked src/flow/... and src/lib/... candidates; preserve existing lib/, commands/, hooks/, and root-config eligibility; retain fail-closed handling for unsafe, external, untracked, and excessive targets. Out of Scope: Changing retro candidate safety constraints or adding repository-specific rules. Description: Fix the plugin-layout bias so in-project candidates with tracked src implementation files are displayed and can be added with retro --add. Cover the behavior with unit/CLI tests and update workflow skill or CLI documentation.",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "goalGate": {
+      "checked": true,
+      "passed": true
+    },
+    "reason": "目的・対象ファイル・安全制約・受入条件が明確で、既存挙動維持とテストで機械検証できるためauto mode適性が高い。"
+  },
+  "notes": [
+    {
+      "text": "prelude-auto-mode: user approved preflight summary and enabled auto mode",
+      "taskId": null,
+      "ts": "2026-07-29T14:11:31.596Z"
+    },
+    {
+      "text": "dispatch-lease-recovery: user approved recovery after prior dispatcher and worker tree were verified ended",
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:13:35.484Z"
+    },
+    {
+      "text": "direct-repair: user selected direct repair to continue the current implementation",
+      "taskId": null,
+      "ts": "2026-07-30T00:00:49.839Z"
+    }
+  ],
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0,
+        "failurePolicy": "advisory"
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0,
+        "failurePolicy": "advisory"
+      }
+    ]
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-29T14:12:23.865Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2520,
+      "durationMs": 159207,
+      "tokens": {
+        "input": 77360,
+        "output": 6373,
+        "cacheRead": 739584,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:14:40.408Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 855,
+      "durationMs": 17331,
+      "tokens": {
+        "input": 15262,
+        "output": 479,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:15:06.901Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:15:08.043Z"
+    },
+    {
+      "phase": "draft-questions-triage",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 572,
+      "durationMs": 31318,
+      "tokens": {
+        "input": 39363,
+        "output": 272,
+        "cacheRead": 2816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:15:12.207Z"
+    },
+    {
+      "phase": "draft-questions-repair",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 895,
+      "durationMs": 43322,
+      "tokens": {
+        "input": 18886,
+        "output": 1644,
+        "cacheRead": 131328,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:15:56.009Z"
+    },
+    {
+      "phase": "draft-refine",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1298,
+      "durationMs": 72182,
+      "tokens": {
+        "input": 18720,
+        "output": 2413,
+        "cacheRead": 139904,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:17:08.683Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1989,
+      "durationMs": 98158,
+      "tokens": {
+        "input": 34438,
+        "output": 4384,
+        "cacheRead": 244736,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:18:47.331Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 5023,
+      "tokens": {
+        "input": 18500,
+        "output": 75,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:19:01.568Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:19:02.913Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 438,
+      "durationMs": 17902,
+      "tokens": {
+        "input": 17237,
+        "output": 225,
+        "cacheRead": 19200,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:19:05.725Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2216,
+      "durationMs": 23290,
+      "tokens": {
+        "input": 18821,
+        "output": 981,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:19:56.683Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-29T14:19:56.737Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 15104,
+      "tokens": {
+        "input": 21910,
+        "output": 414,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:20:48.622Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:20:48.698Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1655,
+      "durationMs": 112232,
+      "tokens": {
+        "input": 30867,
+        "output": 2982,
+        "cacheRead": 210944,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:20:58.443Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2331,
+      "durationMs": 166783,
+      "tokens": {
+        "input": 65994,
+        "output": 7099,
+        "cacheRead": 458880,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:23:45.610Z"
+    },
+    {
+      "phase": "spec-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1404,
+      "durationMs": 96941,
+      "tokens": {
+        "input": 73443,
+        "output": 3995,
+        "cacheRead": 486912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:25:32.648Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:25:33.858Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 857,
+      "durationMs": 111668,
+      "tokens": {
+        "input": 20054,
+        "output": 456,
+        "cacheRead": 84864,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:25:37.677Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:25:51.729Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 723,
+      "durationMs": 23481,
+      "tokens": {
+        "input": 11323,
+        "output": 469,
+        "cacheRead": 47232,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:26:01.949Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2609,
+      "durationMs": 24607,
+      "tokens": {
+        "input": 19890,
+        "output": 1107,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:26:35.930Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-29T14:26:36.005Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 681,
+      "durationMs": 10494,
+      "tokens": {
+        "input": 17604,
+        "output": 146,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:27:22.248Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-29T14:27:22.325Z"
+    },
+    {
+      "phase": "spec-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 13333,
+      "tokens": {
+        "input": 20213,
+        "output": 441,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:27:55.993Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T14:27:56.085Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1520,
+      "durationMs": 119071,
+      "tokens": {
+        "input": 56147,
+        "output": 2489,
+        "cacheRead": 228736,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:28:01.790Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 15643,
+      "durationMs": 78134,
+      "tokens": {
+        "input": 17288,
+        "output": 3851,
+        "cacheRead": 39040,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:29:20.684Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 836,
+      "durationMs": 17829,
+      "tokens": {
+        "input": 10026,
+        "output": 459,
+        "cacheRead": 54400,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:29:39.269Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 15549,
+      "durationMs": 74643,
+      "tokens": {
+        "input": 11141,
+        "output": 3712,
+        "cacheRead": 45184,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:30:54.666Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 15651,
+      "durationMs": 74764,
+      "tokens": {
+        "input": 14552,
+        "output": 3699,
+        "cacheRead": 49280,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:32:10.195Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 15668,
+      "durationMs": 80868,
+      "tokens": {
+        "input": 14558,
+        "output": 3769,
+        "cacheRead": 49280,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:34:46.060Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 15421,
+      "durationMs": 77006,
+      "tokens": {
+        "input": 14443,
+        "output": 3595,
+        "cacheRead": 49280,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:36:03.843Z"
+    },
+    {
+      "phase": "approval",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 737,
+      "durationMs": 26697,
+      "tokens": {
+        "input": 23751,
+        "output": 593,
+        "cacheRead": 40064,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T14:36:31.306Z"
+    },
+    {
+      "phase": "scenario-validity",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1407,
+      "durationMs": 103077,
+      "tokens": {
+        "input": 38390,
+        "output": 4775,
+        "cacheRead": 278912,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:15:23.814Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1797,
+      "durationMs": 85594,
+      "tokens": {
+        "input": 23304,
+        "output": 2822,
+        "cacheRead": 184064,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:16:50.200Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2323,
+      "durationMs": 23038,
+      "tokens": {
+        "input": 18481,
+        "output": 1001,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:17:22.993Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-29T15:17:24.077Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 505,
+      "durationMs": 36945,
+      "tokens": {
+        "input": 15279,
+        "output": 269,
+        "cacheRead": 21248,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:17:27.918Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4605,
+      "durationMs": 761661,
+      "tokens": {
+        "input": 49277,
+        "output": 7202,
+        "cacheRead": 929152,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:30:10.438Z"
+    },
+    {
+      "phase": "test-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 45,
+      "durationMs": 17112,
+      "tokens": {
+        "input": 19253,
+        "output": 537,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:32:47.666Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T15:32:48.793Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3258,
+      "durationMs": 163449,
+      "tokens": {
+        "input": 46583,
+        "output": 5003,
+        "cacheRead": 560512,
+        "cacheCreation": 0
+      },
+      "taskId": "T-1",
+      "ts": "2026-07-29T15:32:54.748Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3272,
+      "durationMs": 159506,
+      "tokens": {
+        "input": 68559,
+        "output": 5136,
+        "cacheRead": 995200,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:35:34.678Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3474,
+      "durationMs": 146088,
+      "tokens": {
+        "input": 112314,
+        "output": 4988,
+        "cacheRead": 1153024,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:38:01.160Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1184,
+      "durationMs": 15777,
+      "tokens": {
+        "input": 18277,
+        "output": 444,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:38:35.626Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:39:57.714Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 52,
+      "durationMs": 13939,
+      "tokens": {
+        "input": 16359,
+        "output": 212,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:40:22.983Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1594,
+      "durationMs": 156246,
+      "tokens": {
+        "input": 37833,
+        "output": 3736,
+        "cacheRead": 380800,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:40:37.825Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 19,
+      "durationMs": 6995,
+      "tokens": {
+        "input": 38522,
+        "output": 148,
+        "cacheRead": 1408,
+        "cacheCreation": 0
+      },
+      "taskId": "T-2",
+      "ts": "2026-07-29T15:40:54.972Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-07-29T15:40:55.064Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 329,
+      "durationMs": 20778,
+      "tokens": {
+        "input": 8994,
+        "output": 204,
+        "cacheRead": 28416,
+        "cacheCreation": 0
+      },
+      "taskId": "T-3",
+      "ts": "2026-07-29T15:40:59.001Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2987,
+      "durationMs": 108729,
+      "tokens": {
+        "input": 57285,
+        "output": 3784,
+        "cacheRead": 552192,
+        "cacheCreation": 0
+      },
+      "taskId": "T-4",
+      "ts": "2026-07-29T15:42:48.152Z"
+    },
+    {
+      "phase": "implement",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2657,
+      "durationMs": 111504,
+      "tokens": {
+        "input": 60166,
+        "output": 3626,
+        "cacheRead": 554880,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:44:40.072Z"
+    },
+    {
+      "phase": "test-execute",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1719,
+      "durationMs": 139149,
+      "tokens": {
+        "input": 43158,
+        "output": 4549,
+        "cacheRead": 660864,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:47:00.331Z"
+    },
+    {
+      "phase": "test-result-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3599,
+      "durationMs": 176248,
+      "tokens": {
+        "input": 55031,
+        "output": 6419,
+        "cacheRead": 820480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:49:57.734Z"
+    },
+    {
+      "phase": "test-result-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3524,
+      "durationMs": 151572,
+      "tokens": {
+        "input": 80332,
+        "output": 5550,
+        "cacheRead": 804224,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:52:30.421Z"
+    },
+    {
+      "phase": "test-result-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3177,
+      "durationMs": 123397,
+      "tokens": {
+        "input": 52549,
+        "output": 4677,
+        "cacheRead": 538880,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:54:34.938Z"
+    },
+    {
+      "phase": "test-result-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2825,
+      "durationMs": 85438,
+      "tokens": {
+        "input": 57751,
+        "output": 3120,
+        "cacheRead": 300416,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-07-29T15:56:01.509Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-30T00:01:04.782Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-07-30T00:02:20.031Z"
+    }
+  ],
+  "reviewConvergence": {
+    "version": 1,
+    "records": [
+      {
+        "phase": "draft-questions",
+        "taskId": null,
+        "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7",
+          "disposition": "ADVISORY"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "draft-questions-advisory-001",
+            "summary": "1. q2 asks for internal implementation policy",
+            "fingerprint": "1d57b9c2d19099e8605822745d01f077c9246b839d3b15b7f9a32e07e5e80c9c",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-001"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "356b5e26139445d06627f2ee3dc27512da4a188da8d356ef5435cffa9e744e23",
+              "capturedAt": "2026-07-29T14:15:06.913Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7.json",
+            "evidenceDigest": "e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-002",
+            "summary": "2. q4 is not self-contained",
+            "fingerprint": "54b90bb7abaa1a18b30193b61f3d8644e2666e3c4ca5ab3034c7cef317cdf7e3",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-002"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "356b5e26139445d06627f2ee3dc27512da4a188da8d356ef5435cffa9e744e23",
+              "capturedAt": "2026-07-29T14:15:06.913Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7.json",
+            "evidenceDigest": "e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-questions",
+          "taskId": null,
+          "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "356b5e26139445d06627f2ee3dc27512da4a188da8d356ef5435cffa9e744e23",
+            "capturedAt": "2026-07-29T14:15:06.913Z"
+          },
+          "evidenceDigest": "e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "356b5e26139445d06627f2ee3dc27512da4a188da8d356ef5435cffa9e744e23",
+              "capturedAt": "2026-07-29T14:15:06.913Z"
+            },
+            "evidenceDigest": "e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/e0bd55ee3533faf95e886e4a8c1e3a30aa06736577f7bd0bf719dead2cefcee7.json",
+        "targetStateDigest": "854626e4d1a39720ccfa2c7b7a0e382226b795f9c25195d13408023f266396ef",
+        "targetState": {
+          "digest": "854626e4d1a39720ccfa2c7b7a0e382226b795f9c25195d13408023f266396ef",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "0f341b660a5910f5c4639766537587501b5aa01996741356adc444d7c8145ff5",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "bf1a45d3fb4ac668fad9145563969281ba00803bb91a28ef10e4786ad2151d43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/spec.json",
+              "contentHash": "4df369abf0284a37a7f917029d73414c7e381a850fcfb37a6cd545f656db4979",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tests",
+              "contentHash": "b7b3aede84b3cb0edbea85abfb62dab3e0d8e43975e68b80a5a411cf67c32ff4",
+              "mode": "missing"
+            }
+          ]
+        }
+      },
+      {
+        "phase": "draft-coverage",
+        "taskId": null,
+        "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "36a6ff070c3d6c5250a9b3c96e73f9c13bc7a546a9157c9f6e294e6df677a433",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-coverage",
+          "taskId": null,
+          "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "b72a5d6a93243e54aa6162ee4de26806618e6a8bc853903b5e6cd7fd8488df25",
+            "capturedAt": "2026-07-29T14:19:01.579Z"
+          },
+          "evidenceDigest": "36a6ff070c3d6c5250a9b3c96e73f9c13bc7a546a9157c9f6e294e6df677a433"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-coverage",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "b72a5d6a93243e54aa6162ee4de26806618e6a8bc853903b5e6cd7fd8488df25",
+              "capturedAt": "2026-07-29T14:19:01.579Z"
+            },
+            "evidenceDigest": "36a6ff070c3d6c5250a9b3c96e73f9c13bc7a546a9157c9f6e294e6df677a433"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/36a6ff070c3d6c5250a9b3c96e73f9c13bc7a546a9157c9f6e294e6df677a433.json",
+        "targetStateDigest": "854626e4d1a39720ccfa2c7b7a0e382226b795f9c25195d13408023f266396ef",
+        "targetState": {
+          "digest": "854626e4d1a39720ccfa2c7b7a0e382226b795f9c25195d13408023f266396ef",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "0f341b660a5910f5c4639766537587501b5aa01996741356adc444d7c8145ff5",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "bf1a45d3fb4ac668fad9145563969281ba00803bb91a28ef10e4786ad2151d43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/spec.json",
+              "contentHash": "4df369abf0284a37a7f917029d73414c7e381a850fcfb37a6cd545f656db4979",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tests",
+              "contentHash": "b7b3aede84b3cb0edbea85abfb62dab3e0d8e43975e68b80a5a411cf67c32ff4",
+              "mode": "missing"
+            }
+          ]
+        }
+      },
+      {
+        "phase": "spec",
+        "taskId": null,
+        "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "spec",
+          "taskId": null,
+          "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "da60d27349c8c5c1e75fdb9795eac5355e98e6b021651e6e34e20171356452a6",
+            "capturedAt": "2026-07-29T14:25:32.660Z"
+          },
+          "evidenceDigest": "72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "spec",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "da60d27349c8c5c1e75fdb9795eac5355e98e6b021651e6e34e20171356452a6",
+              "capturedAt": "2026-07-29T14:25:32.660Z"
+            },
+            "evidenceDigest": "72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41.json",
+        "targetStateDigest": "0a7a2c3ec8af61151e455609cdbbdc8b5f2c120b69d431df762074977a03de02",
+        "targetState": {
+          "digest": "0a7a2c3ec8af61151e455609cdbbdc8b5f2c120b69d431df762074977a03de02",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "0f341b660a5910f5c4639766537587501b5aa01996741356adc444d7c8145ff5",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "bf1a45d3fb4ac668fad9145563969281ba00803bb91a28ef10e4786ad2151d43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/spec.json",
+              "contentHash": "6d5055f73d9aa74ff93e5453ac7954da930169957027ec25a651ea21a19f3f5e",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tests",
+              "contentHash": "b7b3aede84b3cb0edbea85abfb62dab3e0d8e43975e68b80a5a411cf67c32ff4",
+              "mode": "missing"
+            }
+          ]
+        },
+        "updatedAt": "2026-07-29T14:25:51.729Z"
+      },
+      {
+        "phase": "test",
+        "taskId": null,
+        "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+        "semanticAttempts": 1,
+        "semanticMaxAttempts": 5,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "bbb2de455ba892878dda5e75250e58be805d56e86c8d34308fe9c9b4161b4777",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "test",
+          "taskId": null,
+          "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "a9d194cddd77d507394aee4ca9a7c92d1cbb003b0014278d8976164ec9a721f3",
+            "capturedAt": "2026-07-29T15:32:47.678Z"
+          },
+          "evidenceDigest": "bbb2de455ba892878dda5e75250e58be805d56e86c8d34308fe9c9b4161b4777"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "29fe9bcb1aaf53ee269da36329b969753fe7a5d959e0d2bdd73cee6f02cd9160",
+              "capturedAt": "2026-07-29T15:17:23.008Z"
+            },
+            "evidenceDigest": "e1aa4dac052d15cec7369d8a9be5f1eeb622dc7944ac2e142501e3ddc659a568"
+          },
+          {
+            "phase": "test",
+            "taskId": null,
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "a9d194cddd77d507394aee4ca9a7c92d1cbb003b0014278d8976164ec9a721f3",
+              "capturedAt": "2026-07-29T15:32:47.678Z"
+            },
+            "evidenceDigest": "bbb2de455ba892878dda5e75250e58be805d56e86c8d34308fe9c9b4161b4777"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/bbb2de455ba892878dda5e75250e58be805d56e86c8d34308fe9c9b4161b4777.json",
+        "targetStateDigest": "979d445caa5cc6b7803e2a7ae800aa61de2425faa98f708ac195a2fd94622857",
+        "targetState": {
+          "digest": "979d445caa5cc6b7803e2a7ae800aa61de2425faa98f708ac195a2fd94622857",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "0f341b660a5910f5c4639766537587501b5aa01996741356adc444d7c8145ff5",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "bf1a45d3fb4ac668fad9145563969281ba00803bb91a28ef10e4786ad2151d43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/spec.json",
+              "contentHash": "575cc8e6fe3a33547d8d8598dde8936257b7f28da81eb129a81965acbef17394",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+              "contentHash": "6b18c10a3a2c1e37d28822feedf45b3c4631c58f1fb06a9d451a51e45f66aa41",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+              "contentHash": "37a8b3b5abaa38089d5805e6fafcbed7fcafd07746eb9ed11352c7ba6698320b",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+              "contentHash": "7102887ee258caf43b7bdcab3d51cdf5eaf44bac7c474e8f1f8105cf45bd372f",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+              "contentHash": "6b0a7cdd5aa9d2977bee10f506cbb8ffc36f2ed707efa2993b65c8e5a3f40112",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+              "contentHash": "d5c838a9da60081e36a0312846293eeb27eefb908b4c3c2e4eb3f3146b0d1639",
+              "mode": "100644"
+            }
+          ]
+        }
+      },
+      {
+        "phase": "impl",
+        "taskId": "T-2",
+        "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+        "semanticAttempts": 1,
+        "semanticMaxAttempts": 4,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "f7ad7329491423435339bbb239d227859513fcfe1e0060b8faab1b17537f30e8",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "impl",
+          "taskId": "T-2",
+          "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "f8ed9d22ccdd2460b5872776e7f778cb5c90528d9949399f526931bf58126d22",
+            "capturedAt": "2026-07-29T15:40:23.002Z"
+          },
+          "evidenceDigest": "f7ad7329491423435339bbb239d227859513fcfe1e0060b8faab1b17537f30e8"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "impl",
+            "taskId": "T-2",
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "bd5b4b20476731a233cba3d9df55160fb69ef74e9e823f2a2eff098fbe9136b0",
+              "capturedAt": "2026-07-29T15:38:35.643Z"
+            },
+            "evidenceDigest": "5a4888be4ae05e25d71bde587f60a0d7b0b96b446d30b83b882768f65020145b"
+          },
+          {
+            "phase": "impl",
+            "taskId": "T-2",
+            "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "f8ed9d22ccdd2460b5872776e7f778cb5c90528d9949399f526931bf58126d22",
+              "capturedAt": "2026-07-29T15:40:23.002Z"
+            },
+            "evidenceDigest": "f7ad7329491423435339bbb239d227859513fcfe1e0060b8faab1b17537f30e8"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/f7ad7329491423435339bbb239d227859513fcfe1e0060b8faab1b17537f30e8.json",
+        "targetStateDigest": "477512cd66d8abf54417eb711dbdbff84285fd7936ba2b9038fe51571b6c42f3",
+        "targetState": {
+          "digest": "477512cd66d8abf54417eb711dbdbff84285fd7936ba2b9038fe51571b6c42f3",
+          "entries": [
+            {
+              "path": ".senti/config.json",
+              "contentHash": "0f341b660a5910f5c4639766537587501b5aa01996741356adc444d7c8145ff5",
+              "mode": "100644"
+            },
+            {
+              "path": ".senti/config.local.json",
+              "contentHash": "3af5cade77b261e2e4d3fcbddb99a426f37c8b0c1510776d881d40f2532f9812",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+              "contentHash": "bf1a45d3fb4ac668fad9145563969281ba00803bb91a28ef10e4786ad2151d43",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/spec.json",
+              "contentHash": "50bc8a86c277b3ea243be0383f3c8efa8854276592bab73fd6434a7b9b277602",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+              "contentHash": "6b18c10a3a2c1e37d28822feedf45b3c4631c58f1fb06a9d451a51e45f66aa41",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+              "contentHash": "37a8b3b5abaa38089d5805e6fafcbed7fcafd07746eb9ed11352c7ba6698320b",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+              "contentHash": "7102887ee258caf43b7bdcab3d51cdf5eaf44bac7c474e8f1f8105cf45bd372f",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+              "contentHash": "6b0a7cdd5aa9d2977bee10f506cbb8ffc36f2ed707efa2993b65c8e5a3f40112",
+              "mode": "100644"
+            },
+            {
+              "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+              "contentHash": "21eae8e370a639aacc3378c2bb71cb381bc820b6056549bc1b9a4d5e5a2c6f5e",
+              "mode": "100644"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "stepAttempts": [
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "draft-questions-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-questions-triage",
+        "decision": "ADVISORY"
+      },
+      "recordedAt": "2026-07-29T14:15:08.051Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "draft-coverage-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T14:19:02.922Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-draft"
+      },
+      "recordedAt": "2026-07-29T14:19:56.748Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T14:20:48.709Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "spec-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "spec-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T14:25:33.867Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-29T14:26:36.016Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 2,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-gate-spec"
+      },
+      "recordedAt": "2026-07-29T14:27:22.339Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "spec-gate",
+      "attempt": 3,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "approval",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T14:27:56.096Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "test-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-test"
+      },
+      "recordedAt": "2026-07-29T15:17:24.088Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": null,
+      "stepId": "test-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "implement",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T15:32:48.805Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": "T-2",
+      "stepId": "task-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "retry",
+        "terminal": false,
+        "nextAction": "run-review-task"
+      },
+      "recordedAt": "2026-07-29T15:38:37.019Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": "T-2",
+      "stepId": "task-review",
+      "attempt": 2,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "impl-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T15:40:24.462Z"
+    },
+    {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "taskId": "T-2",
+      "stepId": "impl-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "refresh-next-action",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-07-29T15:40:55.073Z"
+    }
+  ],
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "gate",
+      "phase": "draft",
+      "canonicalPhase": "draft",
+      "fingerprint": {
+        "sourceKind": "draft-artifact",
+        "hash": "c67650665bd945c5f0e1bfaa72a29da755dda5aed25f8c54a8adee48c789164b",
+        "paths": [
+          "specs/482-workflow-retro-source-roots/draft.json"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "6f45c24f7fb0b796190b4db32e26dbc68105bce8ce8d9c37e3fa60374a4c7c54",
+          "runtimeHash": "30c651fe914dab85c1b6e97dfbdd35d10621c8f047699432ef104752a8d836da"
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-29T14:19:56.783Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "spec",
+      "canonicalPhase": "spec",
+      "fingerprint": {
+        "sourceKind": "spec-artifact",
+        "hash": "51f6b45c7029cc1aba34d36dbdda9766438a0841eb1993d4b73e647d7f4bb86b",
+        "paths": [
+          "specs/482-workflow-retro-source-roots/spec.json"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "5fb717a1925c6977f5602729e7db3f709545cc904287498010bc10862f01a5e8",
+          "runtimeHash": "30c651fe914dab85c1b6e97dfbdd35d10621c8f047699432ef104752a8d836da"
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-29T14:26:36.052Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "spec",
+      "canonicalPhase": "spec",
+      "fingerprint": {
+        "sourceKind": "spec-artifact",
+        "hash": "35237959f3c9abcc04f12983887650a822edc9b7059e3d9a283fd9b83ab3fc76",
+        "paths": [
+          "specs/482-workflow-retro-source-roots/spec.json"
+        ],
+        "truncated": false,
+        "components": {
+          "projectHash": "fb233fe06612af5e25cb56ef442ce6edcf3be5ebc360b3f27286e9439d5f1ded",
+          "runtimeHash": "30c651fe914dab85c1b6e97dfbdd35d10621c8f047699432ef104752a8d836da"
+        }
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-07-29T14:27:22.375Z"
+    }
+  ],
+  "canonicalReviewPassRecoveries": [
+    {
+      "version": 1,
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "issue": 482,
+      "spec": "specs/482-workflow-retro-source-roots/spec.json",
+      "phase": "spec",
+      "treeSha": "feaad9c4975fdd472ba18220446d30da6c533fff",
+      "targetStateDigest": "0a7a2c3ec8af61151e455609cdbbdc8b5f2c120b69d431df762074977a03de02",
+      "evidenceDigest": "72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41",
+      "canonicalEvidenceRef": "review-evidence/72c9e9cfddc0de1efacd38407bfcb73017dcb9370fa18f2e4846600d461f7e41.json",
+      "historyRef": "review-history/spec-attempt-001.json",
+      "projectionDigest": "b4c49b8445cb16fd1561909b1ab17814066106c39c2bd73beeaaa59a5f4c3703",
+      "invalidatedDownstreamStep": "spec-gate",
+      "recoveredAt": "2026-07-29T14:25:51.729Z"
+    }
+  ],
+  "directFlowSession": {
+    "phase": "MERGE_ONLY_FINALIZE",
+    "revision": 16,
+    "target": {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "issue": 482,
+      "spec": "specs/482-workflow-retro-source-roots/spec.json",
+      "worktreePath": "/home/nakano/workspace/senti/.senti/worktree/feature-482-workflow-retro-source-roots",
+      "bindingRevision": "52c2ef32c578551c53bf5acdebd8b8bff89b08b93ed55eacfbd96c90858e3be4",
+      "featureBranch": "feature/482-workflow-retro-source-roots",
+      "baseBranch": "main",
+      "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+      "flowStateRevision": "a8089e3931261aed7032edf7f6e7b15f2b07337c84d97bfc754f8d0b2e8163bd",
+      "activeRegistryRevision": "82:WwogIHsKICAgICJzcGVjIjogIjQ4Mi13b3JrZmxvdy1yZXRyby1zb3VyY2Utcm9vdHMiLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfQpdCg=="
+    },
+    "sourceStep": "test-result-review",
+    "transitionReason": "Refresh the direct repair authority after Flow metadata changed. The target identity, Git safety checks, and repair scope remain unchanged.",
+    "selectionSource": "manual",
+    "adoptedActionId": "REFRESH_DIRECT_AUTHORITY",
+    "requestedScopePaths": [],
+    "selectedAt": "2026-07-30T00:00:55.024Z",
+    "updatedAt": "2026-07-30T00:11:01.705Z",
+    "planId": "direct-plan-56257562257e8349dbe37a91",
+    "planRevision": 1,
+    "implementationProof": {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "issue": 482,
+      "spec": "specs/482-workflow-retro-source-roots/spec.json",
+      "planId": "direct-plan-56257562257e8349dbe37a91",
+      "planRevision": 1,
+      "sourceStep": "test-result-review",
+      "summary": "R1: tracked top-level src production JavaScript is code-eligible and src/flow/lib/example.js is included. R2: tests, specs, docs, fixtures, skills, and agent paths are excluded from production src eligibility. R3: legacy lib/, commands/, hooks/, plugin.json, and config paths remain eligible. R4: scope, empty/over-limit, unsafe, untracked, and tracked-file-cap prerequisites fail closed before eligibility. R5: display and --add share the evaluation map; the command context now maps clients.board to the workflow board client and retro results preserve the original sourceTitle. R6: tracked non-production paths remain non-code even with a src root. R8: source-root detection is cached per display/add evaluation and the cached workflow flow includes src candidates. T-1 through T-4 and the corrected command invocation were inspected; the spec-local test passes 8/8.",
+      "requirementIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8"
+      ],
+      "taskIds": [
+        "T-1",
+        "T-2",
+        "T-3",
+        "T-4"
+      ],
+      "changedPaths": [
+        "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+        "specs/482-workflow-retro-source-roots/spec.json",
+        "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+        "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
+      ],
+      "pathFingerprints": [
+        {
+          "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+          "kind": "file",
+          "digest": "1065f4f33381e49a5cfd9f956b533a9635de66ceb3176a6451735919c94d1066"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/spec.json",
+          "kind": "file",
+          "digest": "178fc3e2fbeee82f32bf5a56ae32e3232758392d310deba0c1a212ed96671be3"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+          "kind": "file",
+          "digest": "454304b4f012bfbb680ebbc6b94e559bfe148a78561de07bfb8a6b78ff53c17a"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+          "kind": "file",
+          "digest": "3214d4f9f29bacc12ac0205842af0c05eb24ffecb6b5c613103f48889e57403b"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+          "kind": "file",
+          "digest": "937c099e68abeda3d86d957dc741d4055bd1b4f6c964b0d22a28c50bb3e8a701"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+          "kind": "file",
+          "digest": "d6e9a5405f498770715c37328cfdbbaab4a35475e7b2ed83c250526856617666"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+          "kind": "file",
+          "digest": "7b0fcdcb66e84884b00151a4fdc857e73557e220bdf7b0d6ddebc5d2ea198ed6"
+        }
+      ],
+      "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+      "recordedAt": "2026-07-30T00:10:47.064Z"
+    },
+    "verification": {
+      "status": "passed",
+      "testStatus": "passed",
+      "testCommand": "node --test specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+      "checks": [
+        {
+          "id": "target-identity",
+          "passed": true,
+          "detail": "runId, Issue, spec, and branch identity match the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "origin-flow-revision",
+          "passed": true,
+          "detail": "The normal Flow state still matches the revision adopted by the direct plan.",
+          "overrideable": false
+        },
+        {
+          "id": "direct-plan-cas",
+          "passed": true,
+          "detail": "Direct session and plan revisions match.",
+          "overrideable": false
+        },
+        {
+          "id": "worktree-binding",
+          "passed": true,
+          "detail": "Managed worktree binding matches the handoff revision.",
+          "overrideable": false
+        },
+        {
+          "id": "active-registry-cas",
+          "passed": true,
+          "detail": "Active Flow registry revision matches the handoff.",
+          "overrideable": false
+        },
+        {
+          "id": "feature-history",
+          "passed": true,
+          "detail": "Feature ref and worktree HEAD match and descend from the handoff HEAD.",
+          "overrideable": false
+        },
+        {
+          "id": "git-conflicts",
+          "passed": true,
+          "detail": "No unresolved Git conflicts exist.",
+          "overrideable": false
+        },
+        {
+          "id": "change-scope",
+          "passed": true,
+          "detail": "All changed paths are inside the persisted direct scope.",
+          "overrideable": false
+        },
+        {
+          "id": "merge-target-operation",
+          "passed": true,
+          "detail": "No prohibited Git operation is in progress on the merge target.",
+          "overrideable": false
+        },
+        {
+          "id": "implementation-readiness",
+          "passed": true,
+          "detail": "Implementation completion evidence matches the exact verified change set.",
+          "overrideable": false
+        },
+        {
+          "id": "deterministic-tests",
+          "passed": true,
+          "detail": "Deterministic test command exited successfully.",
+          "overrideable": true
+        }
+      ],
+      "changedPaths": [
+        "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+        "specs/482-workflow-retro-source-roots/spec.json",
+        "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+        "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+        "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
+      ],
+      "pathFingerprints": [
+        {
+          "path": "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+          "kind": "file",
+          "digest": "1065f4f33381e49a5cfd9f956b533a9635de66ceb3176a6451735919c94d1066"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/spec.json",
+          "kind": "file",
+          "digest": "178fc3e2fbeee82f32bf5a56ae32e3232758392d310deba0c1a212ed96671be3"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+          "kind": "file",
+          "digest": "454304b4f012bfbb680ebbc6b94e559bfe148a78561de07bfb8a6b78ff53c17a"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+          "kind": "file",
+          "digest": "3214d4f9f29bacc12ac0205842af0c05eb24ffecb6b5c613103f48889e57403b"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+          "kind": "file",
+          "digest": "937c099e68abeda3d86d957dc741d4055bd1b4f6c964b0d22a28c50bb3e8a701"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+          "kind": "file",
+          "digest": "d6e9a5405f498770715c37328cfdbbaab4a35475e7b2ed83c250526856617666"
+        },
+        {
+          "path": "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js",
+          "kind": "file",
+          "digest": "7b0fcdcb66e84884b00151a4fdc857e73557e220bdf7b0d6ddebc5d2ea198ed6"
+        }
+      ],
+      "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+      "riskAccepted": false,
+      "riskReason": null,
+      "verifiedAt": "2026-07-30T00:10:54.229Z"
+    },
+    "verificationAttempts": 1,
+    "suspendedFrom": null,
+    "completion": {
+      "status": "pending-merge",
+      "completionMode": "direct",
+      "success": null,
+      "mergeDisposition": "merged",
+      "receiptId": null,
+      "integrationReceiptId": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
+      "reason": null,
+      "recordedAt": null,
+      "completedAt": null
+    }
+  },
+  "directResolutionPlan": {
+    "planId": "direct-plan-56257562257e8349dbe37a91",
+    "revision": 1,
+    "target": {
+      "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+      "issue": 482,
+      "spec": "specs/482-workflow-retro-source-roots/spec.json",
+      "worktreePath": "/home/nakano/workspace/senti/.senti/worktree/feature-482-workflow-retro-source-roots",
+      "bindingRevision": "52c2ef32c578551c53bf5acdebd8b8bff89b08b93ed55eacfbd96c90858e3be4",
+      "featureBranch": "feature/482-workflow-retro-source-roots",
+      "baseBranch": "main",
+      "featureHead": "b5c5f6df7096225ab7f1d106e185fa052f72f266",
+      "flowStateRevision": "a8089e3931261aed7032edf7f6e7b15f2b07337c84d97bfc754f8d0b2e8163bd",
+      "activeRegistryRevision": "82:WwogIHsKICAgICJzcGVjIjogIjQ4Mi13b3JrZmxvdy1yZXRyby1zb3VyY2Utcm9vdHMiLAogICAgIm1vZGUiOiAid29ya3RyZWUiCiAgfQpdCg=="
+    },
+    "sourceStep": "test-result-review",
+    "transitionReason": "Refresh the direct repair authority after Flow metadata changed. The target identity, Git safety checks, and repair scope remain unchanged.",
+    "transitionAt": "2026-07-30T00:02:46.916Z",
+    "skippedSteps": [
+      "impl-review",
+      "impl-triage",
+      "impl-repair",
+      "impl-gate",
+      "retro",
+      "acceptance-review",
+      "final-regression",
+      "report",
+      "finalize-commit",
+      "finalize-merge",
+      "finalize-sync",
+      "finalize-cleanup"
+    ],
+    "validationItems": [
+      "target identity and managed worktree binding remain exact",
+      "feature history only advances from the handoff HEAD",
+      "no unresolved Git conflicts exist",
+      "specified deterministic tests or mechanical checks are recorded",
+      "implementation completion is explicitly evidenced before verification",
+      "all changed paths stay inside the persisted direct scope",
+      "the merge target has no prohibited in-progress Git operation"
+    ],
+    "findings": [],
+    "routingFailure": null,
+    "originFlowStateRevision": "a8089e3931261aed7032edf7f6e7b15f2b07337c84d97bfc754f8d0b2e8163bd",
+    "selectionSource": "manual",
+    "adoptedActionId": "REFRESH_DIRECT_AUTHORITY",
+    "scopePaths": [
+      "specs/482-workflow-retro-source-roots/plugin-artifacts/workflow/prepare.json",
+      "specs/482-workflow-retro-source-roots/spec.json",
+      "specs/482-workflow-retro-source-roots/tasks/T-1.md",
+      "specs/482-workflow-retro-source-roots/tasks/T-2.md",
+      "specs/482-workflow-retro-source-roots/tasks/T-3.md",
+      "specs/482-workflow-retro-source-roots/tasks/T-4.md",
+      "specs/482-workflow-retro-source-roots/tests/workflow-retro-source-roots.test.js"
+    ]
+  },
+  "directIntegrationReceipt": {
+    "version": 1,
+    "receiptId": "direct-integration-0135ca98e1fa7407b0f8b70f3c7d58ff",
+    "status": "pending",
+    "runId": "048d7fd4-7130-44bf-b689-7aa08bf69a27",
+    "issue": 482,
+    "spec": "specs/482-workflow-retro-source-roots/spec.json",
+    "planId": "direct-plan-56257562257e8349dbe37a91",
+    "planRevision": 1,
+    "strategy": "squash",
+    "mergeDisposition": "merged",
+    "featureHead": "846aed18618045e8a868abe72d1cdf9887fc247d",
+    "mainHead": null,
+    "idempotencyKey": "direct-merge-0135ca98e1fa7407b0f8b70f3c7d58ff",
+    "createdAt": "2026-07-30T00:11:01.704Z",
+    "integratedAt": null
+  }
+}
