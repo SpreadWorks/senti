@@ -5,6 +5,7 @@ import { afterEach, describe, it } from "node:test";
 
 import {
   AuthorityUnavailableFailure,
+  CurrentRecoveryValidatorRerun,
   EvidenceProcessingFailure,
   RecoveryFailureRecordStore,
   RecoveryInputFingerprint,
@@ -19,6 +20,7 @@ import {
   RecoveryValidatorRerunRequired,
   ReplacementProofObligation,
   SemanticDecisionFailure,
+  StaticRecoveryValidationInputCollector,
   resolveCurrentRecoveryPolicy,
 } from "../../../src/flow/lib/recovery-contract.js";
 import { makeFlowManager, setupFlow } from "../../helpers/flow-setup.js";
@@ -247,6 +249,106 @@ describe("validator-owned recovery contract", () => {
     assert.equal(persisted.recoveryFailureRecords.length, 1);
     assert.equal(persisted.recoveryFailureRecords[0].policy, undefined);
     assert.equal(persisted.recoveryFailureRecords[0].policyDigest, record.policyIdentity.policyDigest);
+  });
+
+  it("records only a freshly reproduced failure under the exact active target", () => {
+    tmp = createTmpDir("recovery-contract-rerun-");
+    setupFlow(tmp, {
+      spec: "specs/recovery-contract/spec.json",
+      runId: target().runId,
+      issue: target().issue,
+    });
+    const originalInput = input();
+    const originalValidator = new FixtureValidator({ policy: evidencePolicy(originalInput, "1") });
+    const original = recordFor(originalValidator, originalInput);
+    const manager = makeFlowManager(tmp);
+    const store = new RecoveryFailureRecordStore(manager);
+    store.record(original);
+
+    const currentInput = input("b".repeat(64));
+    const currentValidator = new FixtureValidator({ policy: evidencePolicy(currentInput, "2") });
+    const rerun = new CurrentRecoveryValidatorRerun({
+      record: original,
+      registry: new RecoveryValidatorRegistry([currentValidator]),
+      inputCollector: new StaticRecoveryValidationInputCollector(currentInput),
+      recordStore: store,
+    }).rerun({ recordedAt: "2026-07-30T00:01:00.000Z" });
+    const persisted = JSON.parse(fs.readFileSync(
+      path.join(tmp, "specs", "recovery-contract", "flow.json"),
+      "utf8",
+    ));
+
+    assert.equal(rerun.unavailable, null);
+    assert.notEqual(rerun.record.recordId, original.recordId);
+    assert.equal(rerun.record.policyIdentity.policyVersion, "2");
+    assert.equal(persisted.recoveryFailureRecords.length, 2);
+    assert.equal(persisted.recoveryFailureRecords[0].recordId, original.recordId);
+    assert.equal(persisted.recoveryFailureRecords[0].consumption.state, "available");
+    assert.equal(persisted.recoveryFailureRecords[1].recordId, rerun.record.recordId);
+  });
+
+  it("does not mutate normal Flow state when recollected validator input now passes", () => {
+    tmp = createTmpDir("recovery-contract-rerun-pass-");
+    setupFlow(tmp, {
+      spec: "specs/recovery-contract/spec.json",
+      runId: target().runId,
+      issue: target().issue,
+    });
+    const originalInput = input();
+    const originalValidator = new FixtureValidator({ policy: evidencePolicy(originalInput) });
+    const original = recordFor(originalValidator, originalInput);
+    const currentInput = input("b".repeat(64));
+    const currentValidator = new FixtureValidator({
+      policy: evidencePolicy(currentInput, "2"),
+      result: new RecoveryValidatorPassed(),
+    });
+    const flowPath = path.join(tmp, "specs", "recovery-contract", "flow.json");
+    const store = new RecoveryFailureRecordStore(makeFlowManager(tmp));
+    store.record(original);
+    const before = fs.readFileSync(flowPath, "utf8");
+
+    const rerun = new CurrentRecoveryValidatorRerun({
+      record: original,
+      registry: new RecoveryValidatorRegistry([currentValidator]),
+      inputCollector: new StaticRecoveryValidationInputCollector(currentInput),
+      recordStore: store,
+    }).rerun({ recordedAt: "2026-07-30T00:01:00.000Z" });
+
+    assert.equal(rerun.record, null);
+    assert.ok(rerun.unavailable instanceof RecoveryUnavailable);
+    assert.equal(rerun.unavailable.reason, "failure-not-reproduced");
+    assert.equal(fs.readFileSync(flowPath, "utf8"), before);
+  });
+
+  it("does not adopt a rerun result when the exact Flow target changed", () => {
+    tmp = createTmpDir("recovery-contract-rerun-target-");
+    setupFlow(tmp, {
+      spec: "specs/recovery-contract/spec.json",
+      runId: target().runId,
+      issue: target().issue,
+    });
+    const originalInput = input();
+    const validator = new FixtureValidator({ policy: evidencePolicy(originalInput) });
+    const original = recordFor(validator, originalInput);
+    const store = new RecoveryFailureRecordStore(makeFlowManager(tmp));
+    store.record(original);
+    const flowPath = path.join(tmp, "specs", "recovery-contract", "flow.json");
+    const before = fs.readFileSync(flowPath, "utf8");
+    const mismatched = new RecoveryValidationInput({
+      target: { ...target(), runId: "another-run" },
+      inputFingerprint: originalInput.inputFingerprint,
+    });
+
+    const rerun = new CurrentRecoveryValidatorRerun({
+      record: original,
+      registry: new RecoveryValidatorRegistry([validator]),
+      inputCollector: new StaticRecoveryValidationInputCollector(mismatched),
+      recordStore: store,
+    }).rerun({ recordedAt: "2026-07-30T00:01:00.000Z" });
+
+    assert.equal(rerun.record, null);
+    assert.equal(rerun.unavailable.reason, "target-mismatch");
+    assert.equal(fs.readFileSync(flowPath, "utf8"), before);
   });
 
   it("does not allow authority failures to become waiver policies", () => {

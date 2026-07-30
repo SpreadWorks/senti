@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import path from "node:path";
 
+import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
+import { findStepById } from "./step-tree.js";
+
 const DIGEST = /^[a-f0-9]{64}$/;
 const IDENTIFIER = /^[a-z][a-z0-9-]{0,127}$/;
 const ATTEMPT_IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/;
@@ -500,6 +503,37 @@ export class RecoveryFailureRecordStore {
     }, options);
     return persisted;
   }
+
+  /**
+   * Persists a newly observed failure only after resolving the exact active
+   * Flow target. Recovery callers use this instead of the unscoped writer so
+   * a revalidation can never adopt its result into a different active Flow.
+   */
+  recordForExactTarget(record, options = {}) {
+    const next = record instanceof RecoveryFailureRecord ? record : new RecoveryFailureRecord(record);
+    if (typeof this.flowManager.captureExactTarget !== "function") {
+      throw new Error("exact recovery failure recording requires a target-aware flow manager");
+    }
+    const target = new FlowTargetExpectation({
+      expectRunId: next.target.runId,
+      expectSpec: next.target.spec,
+      ...(next.target.issue == null
+        ? { expectNoIssue: true }
+        : { expectIssue: next.target.issue }),
+    });
+    const captured = this.flowManager.captureExactTarget(target);
+    let persisted = null;
+    captured.mutate((state) => {
+      if (!findStepById(state.steps || [], next.target.stepId)) {
+        throw new Error("recovery validator step is absent from the exact active flow");
+      }
+      const ledger = new RecoveryFailureLedger(state.recoveryFailureRecords || []);
+      const updated = ledger.record(next);
+      state.recoveryFailureRecords = updated.toJSON();
+      persisted = updated.find(next.recordId);
+    }, options);
+    return persisted;
+  }
 }
 
 export class RecoveryValidatorFailure {
@@ -644,6 +678,90 @@ export class RecoveryValidatorRerunRequired {
       });
     }
     throw new Error("recovery validator validate must return a typed result");
+  }
+}
+
+/** A behavioral boundary for collecting validator input immediately before a rerun. */
+export class RecoveryValidationInputCollector {
+  collect() {
+    throw new Error("recovery validation input collector must implement collect()");
+  }
+}
+
+export class StaticRecoveryValidationInputCollector extends RecoveryValidationInputCollector {
+  constructor(input) {
+    super();
+    this.input = input instanceof RecoveryValidationInput ? input : new RecoveryValidationInput(input);
+    Object.freeze(this);
+  }
+
+  collect() { return this.input; }
+}
+
+/**
+ * Recollects input and re-runs the live validator. A reproduced failure is
+ * written as a fresh record under an exact Flow target; a pass leaves normal
+ * Flow state untouched and explicitly stops recovery.
+ */
+export class CurrentRecoveryValidatorRerun {
+  constructor({ record, registry, inputCollector, recordStore }) {
+    this.record = record instanceof RecoveryFailureRecord ? record : new RecoveryFailureRecord(record);
+    if (!(registry instanceof RecoveryValidatorRegistry)) {
+      throw new Error("current recovery validator rerun requires a validator registry");
+    }
+    if (!(inputCollector instanceof RecoveryValidationInputCollector)) {
+      throw new Error("current recovery validator rerun requires an input collector");
+    }
+    if (!(recordStore instanceof RecoveryFailureRecordStore)) {
+      throw new Error("current recovery validator rerun requires a failure record store");
+    }
+    this.registry = registry;
+    this.inputCollector = inputCollector;
+    this.recordStore = recordStore;
+    Object.freeze(this);
+  }
+
+  rerun({ recordedAt = new Date().toISOString(), recordOptions = {} } = {}) {
+    const input = this.inputCollector.collect();
+    if (!(input instanceof RecoveryValidationInput)) {
+      throw new Error("recovery validation input collector did not return validation input");
+    }
+    if (!this.record.target.equals(input.target)) {
+      return new RecoveryFailureRerunResult({
+        unavailable: unavailable(
+          "target-mismatch",
+          "inspect-recovery-target",
+          "Read the active Flow target and record a new failure only for that exact target.",
+        ),
+      });
+    }
+    const validator = this.registry.resolve(this.record.validatorId);
+    if (!validator) {
+      return new RecoveryFailureRerunResult({
+        unavailable: unavailable(
+          "validator-unavailable",
+          "inspect-validator-registry",
+          "Restore the exact validator before attempting recovery.",
+        ),
+      });
+    }
+    const result = validator.validate(input);
+    if (result instanceof RecoveryValidatorPassed) {
+      return new RecoveryFailureRerunResult({
+        unavailable: unavailable(
+          "failure-not-reproduced",
+          "inspect-normal-flow",
+          "Inspect the current normal Flow state before attempting another recovery.",
+        ),
+      });
+    }
+    if (!(result instanceof RecoveryValidatorFailure)) {
+      throw new Error("recovery validator validate must return a typed result");
+    }
+    const fresh = validator.recordFailure(input, result, recordedAt);
+    return new RecoveryFailureRerunResult({
+      record: this.recordStore.recordForExactTarget(fresh, recordOptions),
+    });
   }
 }
 
