@@ -10,6 +10,8 @@ import {
   DirectIntegrationReceipt,
 } from "../flow/lib/direct-completion.js";
 import { FlowStateRevision } from "./flow-state-atomic-writer.js";
+import { RecoveryFailureLedger } from "../flow/lib/recovery-contract.js";
+import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -131,7 +133,16 @@ export class FlowState {
       revision === null || revision instanceof FlowStateRevision,
       "flow state revision must be a FlowStateRevision or null",
     );
-    new FlowOutbox(value.outbox || []);
+    const outbox = new FlowOutbox(value.outbox || []);
+    const recoveryFailures = new RecoveryFailureLedger(value.recoveryFailureRecords || []);
+    const recoveryDecisions = new RecoveryDecisionLedger({
+      failureLedger: recoveryFailures,
+      decisions: value.recoveryDecisions || [],
+    });
+    recoveryDecisions.assertConsistent({
+      failureLedger: recoveryFailures,
+      outboxIdempotencyKeys: new Set(outbox.entries.map((entry) => entry.idempotencyKey)),
+    });
     const directSession = value.directFlowSession == null
       ? null
       : DirectFlowSession.fromStored(value.directFlowSession);
