@@ -17,6 +17,12 @@ import {
   detectExposedDirectives,
 } from "./assertions.js";
 import { verifyWithAI } from "./ai-verify.js";
+import {
+  AcceptanceHostAgentConfiguration,
+  acceptanceHostRoot,
+} from "./host-agent-config.js";
+
+const PROJECT_ROOT = acceptanceHostRoot();
 
 function resolveFixtureDir(presetName, opts) {
   const fixtureDir = opts?.fixtureDir;
@@ -46,6 +52,17 @@ export function persistReport(projectRoot, report) {
   return reportPath;
 }
 
+/**
+ * Preserve fixture-specific docs and scan settings while running AI steps with
+ * the test host's effective provider/profile selection.
+ */
+export function acceptanceFixtureConfigOverrides(configOverrides = {}, hostRoot = PROJECT_ROOT) {
+  return {
+    ...configOverrides,
+    agent: AcceptanceHostAgentConfiguration.fromRoot(hostRoot).toFixtureAgent(),
+  };
+}
+
 export function acceptanceTest(presetName, opts) {
   const { configOverrides } = opts || {};
   const fixtureDir = resolveFixtureDir(presetName, opts);
@@ -54,7 +71,7 @@ export function acceptanceTest(presetName, opts) {
     let tmp;
 
     it("pipeline completes and passes all checks", async () => {
-      tmp = copyFixture(fixtureDir, configOverrides);
+      tmp = copyFixture(fixtureDir, acceptanceFixtureConfigOverrides(configOverrides));
 
       const { ctx, steps } = await runPipeline(tmp);
 
@@ -102,13 +119,7 @@ export function acceptanceTest(presetName, opts) {
       writeReport(reportPath, report);
       console.log(`  [report] written to ${reportPath}`);
 
-      const projectRoot = path.resolve(
-        path.dirname(fileURLToPath(import.meta.url)),
-        "..",
-        "..",
-        "..",
-      );
-      const persistPath = persistReport(projectRoot, report);
+      const persistPath = persistReport(PROJECT_ROOT, report);
       console.log(`  [report] persisted to ${persistPath}`);
 
       if (aiError) throw aiError;
