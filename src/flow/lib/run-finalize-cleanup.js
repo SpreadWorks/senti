@@ -2557,6 +2557,31 @@ function reconcileRebasedWorktreeAuthority({
   if (expectation?.worktreePath == null) return { expectation };
   if (transaction.phase.atLeast("worktree-removed")) return { expectation };
 
+  const checkpoint = transaction.checkpoint;
+  if (
+    checkpoint?.targetPhase.name === "worktree-removed"
+    && !pathExistsStrict(expectation.worktreePath)
+  ) {
+    // The worktree deletion can be durable even when persisting its completion
+    // checkpoint fails. The journaled checkpoint is the only authority that
+    // permits retry to advance without probing the deleted worktree again.
+    return { expectation };
+  }
+  if (!pathExistsStrict(expectation.worktreePath)) {
+    const error = new Error(
+      `finalize worktree is missing before its recorded deletion: ${expectation.worktreePath}`,
+    );
+    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
+    throw error;
+  }
+  if (!featureBranchExists(mainRepoPath, state.featureBranch)) {
+    const error = new Error(
+      `finalize feature branch is missing before worktree deletion: ${state.featureBranch}`,
+    );
+    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
+    throw error;
+  }
+
   const persisted = authorityStore.read();
   if (persisted != null) {
     return { expectation: persisted.effectiveExpectation(expectation) };
@@ -2594,7 +2619,7 @@ function reconcileRebasedWorktreeAuthority({
     state.featureBranch,
   ]);
   if (!featureExtendsBase.ok) {
-    throw new Error("finalize rebased worktree is not based on the current base branch");
+    throw new Error("finalize rebased worktree authority is not based on the current base branch");
   }
   const orphan = readOrphanCommits(mainRepoPath, baseHead, state.featureBranch);
   if (!orphan.ok) {
