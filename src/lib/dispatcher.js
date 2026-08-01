@@ -18,7 +18,7 @@ import { parseArgs as cliParseArgs } from "./cli.js";
 import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
 import { RuntimeLogBlockWriter } from "./runtime-log.js";
-import { targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
+import { FlowTargetBinding, targetMismatchEnvelopeForInput } from "./flow-target-guard.js";
 import { findActiveNode, taskIdForResolvedStep } from "../flow/definition.js";
 import {
   AwaitingDecisionOutcome,
@@ -29,18 +29,19 @@ import {
   attachFlowContinuation,
   attachUserActionPrompt,
   FlowContinuation,
-  guardFlagsForState,
 } from "../flow/lib/user-action-prompt.js";
+import { guardedCommand } from "../flow/lib/guarded-command.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
 import { FinalizeCleanupRoute } from "./finalize-cleanup-paths.js";
 
-function attachNonblockingContinuation(envelope, state, reason) {
+function attachNonblockingContinuation(envelope, ctx, reason) {
+  const state = ctx?.flowState;
   if (!(envelope instanceof Envelope) || state?.nonblocking?.enabled !== true) return envelope;
   if (envelope.data?.actionPrompt || envelope.data?.continuation) return envelope;
-  const guards = guardFlagsForState(state);
+  const binding = FlowTargetBinding.captureContext(ctx);
   return attachFlowContinuation(envelope, new FlowContinuation({
     actionId: "REFRESH_NONBLOCKING_FLOW",
-    nextAction: `senti flow get next-action ${guards}`.trim(),
+    nextAction: guardedCommand("senti flow get next-action", state, binding),
     instruction: "Refresh the guarded next action and continue the normal Flow route.",
     reason,
   }));
@@ -555,6 +556,7 @@ export async function dispatch({
         writeErr,
         setExit,
         runtimeLogMetadata: runtimeLog?.metadata,
+        flowContext: hookCtx,
       });
       closeRuntimeLog();
       persistRuntimeLogMetadata(null);
@@ -642,7 +644,7 @@ export async function dispatch({
             code: "NONBLOCKING_EVIDENCE_RECORD_FAILED",
             messages: [nonblockingError.message || String(nonblockingError)],
           });
-          attachNonblockingContinuation(envelope, hookCtx.flowState, "The nonblocking evidence record was not durably saved.");
+          attachNonblockingContinuation(envelope, hookCtx, "The nonblocking evidence record was not durably saved.");
         } else {
           writeErr(`[nonblocking evidence] ${nonblockingError.message || nonblockingError}\n`);
         }
@@ -651,7 +653,7 @@ export async function dispatch({
     if (mode === "envelope") {
       settleTypedStepOutcome(envelope, result);
       if (envelope.ok === false) {
-        attachNonblockingContinuation(envelope, hookCtx.flowState, "The normal Flow operation did not complete.");
+        attachNonblockingContinuation(envelope, hookCtx, "The normal Flow operation did not complete.");
       }
       if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
@@ -689,7 +691,7 @@ export async function dispatch({
     writeErr,
     setExit,
     runtimeLogMetadata: runtimeLog?.metadata,
-    flowState: hookCtx.flowState,
+    flowContext: hookCtx,
   });
   closeRuntimeLog();
   await persistFinalizeCleanupPostReturnMetadata({
@@ -720,7 +722,7 @@ function emitFailure({
   writeErr,
   setExit,
   runtimeLogMetadata,
-  flowState,
+  flowContext,
 }) {
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
@@ -730,10 +732,10 @@ function emitFailure({
       try {
         attachFlowContinuation(env, FlowContinuation.fromStored(err.continuation));
       } catch {
-        attachNonblockingContinuation(env, flowState, "The normal Flow operation did not complete.");
+        attachNonblockingContinuation(env, flowContext, "The normal Flow operation did not complete.");
       }
     } else {
-      attachNonblockingContinuation(env, flowState, "The normal Flow operation did not complete.");
+      attachNonblockingContinuation(env, flowContext, "The normal Flow operation did not complete.");
     }
     attachRuntimeLog(env, runtimeLogMetadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");

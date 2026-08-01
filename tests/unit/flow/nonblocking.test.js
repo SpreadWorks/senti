@@ -37,6 +37,7 @@ import {
   fromReviewResult,
 } from "../../../src/flow/lib/nonblocking-evidence.js";
 import { readFlowFindingsArtifact } from "../../../src/flow/lib/flow-findings.js";
+import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 
 const DIGEST = "a".repeat(64);
 
@@ -313,13 +314,18 @@ describe("nonblocking flow policy", () => {
       value: "nonblocking",
       reason: "The policy can only be enabled at an eligible check.",
       root: process.cwd(),
+      mainRoot: process.cwd(),
+      flowCommandBoundary: true,
       flowState: state,
       flowManager: { load: () => state, mutate: (fn) => fn(state) },
     });
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "NONBLOCKING_OPERATION_FAILED");
     assert.equal(result.data.continuation.actionId, "REFRESH_NONBLOCKING_FLOW");
-    assert.match(result.data.continuation.nextAction, /^senti flow get next-action /);
+    const token = result.data.continuation.nextAction.match(/--expect-binding '([^']+)'/)?.[1];
+    assert.ok(token);
+    assert.equal(FlowTargetBinding.deserialize(token).runId, state.runId);
+    assert.doesNotMatch(result.data.continuation.nextAction, /--expect-run-id|--expect-spec|--expect-issue/);
     assert.doesNotThrow(() => result.toJSON());
   });
 
@@ -752,6 +758,8 @@ describe("nonblocking flow policy", () => {
 
       const commandResult = new SetNonBlockingDecisionCommand().execute({
         root,
+        mainRoot: root,
+        flowCommandBoundary: true,
         flowState: state,
         flowManager: manager,
         choice: "continue",
@@ -761,6 +769,8 @@ describe("nonblocking flow policy", () => {
       });
       assert.equal(commandResult.ok, false);
       assert.equal(commandResult.data.continuation.actionId, "REFRESH_NONBLOCKING_FLOW");
+      assert.match(commandResult.data.continuation.nextAction, /--expect-binding '[^']+'/);
+      assert.doesNotMatch(commandResult.data.continuation.nextAction, /--expect-run-id|--expect-spec|--expect-issue/);
       assert.doesNotThrow(() => commandResult.toJSON());
     } finally {
       removeTmpDir(root);

@@ -6,6 +6,9 @@ import path from "node:path";
 import { Container } from "../../../src/lib/container.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
+import { Envelope } from "../../../src/lib/flow-envelope.js";
+import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
+import { makeFlowState } from "../../helpers/flow-setup.js";
 
 describe("dispatcher (unified runner)", () => {
   let container;
@@ -77,6 +80,57 @@ describe("dispatcher (unified runner)", () => {
       assert.equal(captured[0].dryRun, true);
       assert.equal(captured[1].reset, "modules");
     });
+  });
+
+  it("binds dispatcher-generated nonblocking continuations to the current target authority", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-binding-"));
+    try {
+      const state = makeFlowState({
+        nonblocking: {
+          enabled: true,
+          activatedAt: "2026-08-01T00:00:00.000Z",
+          activatedStep: "impl-review",
+          reason: "The normal recovery route exhausted its retry budget.",
+        },
+      });
+      const out = [];
+      class FailingCommand extends Command {
+        static outputMode = "envelope";
+
+        execute() {
+          return Envelope.fail("run", "review", "REVIEW_FAILED", "The review result requires recovery.");
+        }
+      }
+      await dispatch({
+        container,
+        entry: {
+          command: async () => ({ default: FailingCommand }),
+          args: { flags: [], options: [] },
+        },
+        argv: [],
+        envelopeType: "run",
+        envelopeKey: "review",
+        stdout: (chunk) => out.push(chunk),
+        setExitCode: () => {},
+        buildHookCtx: () => ({
+          root,
+          mainRoot: root,
+          flowState: state,
+          flowManager: {},
+          flowResolutionError: null,
+        }),
+      });
+
+      const continuation = JSON.parse(out.join("")).data.continuation;
+      const token = continuation.nextAction.match(/--expect-binding '([^']+)'/)?.[1];
+      assert.ok(token);
+      const binding = FlowTargetBinding.deserialize(token);
+      assert.equal(binding.runId, state.runId);
+      assert.equal(binding.authority.executionRoot, root);
+      assert.doesNotMatch(continuation.nextAction, /--expect-run-id|--expect-spec|--expect-issue/);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   describe("lifecycle hooks (R4)", () => {

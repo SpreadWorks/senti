@@ -29,8 +29,8 @@ import {
   UserActionChoice,
   UserActionImpact,
   UserActionPrompt,
-  guardFlagsForState,
 } from "./user-action-prompt.js";
+import { guardedCommand } from "./guarded-command.js";
 import {
   fromAcceptanceResult,
   fromFinalRegressionResult,
@@ -105,14 +105,14 @@ function activationStep(root, state) {
   return step;
 }
 
-function guardCommand(state) {
-  return `senti flow get next-action ${guardFlagsForState(state)}`.trim();
+function guardCommand(state, binding = null) {
+  return guardedCommand("senti flow get next-action", state, binding);
 }
 
-function continuationFor(state, actionId, instruction, reason) {
+function continuationFor(state, actionId, instruction, reason, binding = null) {
   return new FlowContinuation({
     actionId,
-    nextAction: guardCommand(state),
+    nextAction: guardCommand(state, binding),
     instruction,
     reason,
   });
@@ -503,7 +503,7 @@ export class NonBlockingActivationOffer {
 }
 
 export class NonBlockingRouteOwnershipError extends Error {
-  constructor(message, state) {
+  constructor(message, state, binding = null) {
     super(message);
     this.code = "NONBLOCKING_ROUTE_OWNED";
     this.continuation = continuationFor(
@@ -511,12 +511,13 @@ export class NonBlockingRouteOwnershipError extends Error {
       "CONTINUE_CURRENT_FLOW_OWNER",
       "Refresh the guarded next action for the Flow route that is already durable.",
       message,
+      binding,
     ).toJSON();
   }
 }
 
 export class NonBlockingDecisionConflictError extends Error {
-  constructor(existing, state) {
+  constructor(existing, state, binding = null) {
     super("a different nonblocking decision already exists for this evidence");
     this.code = "NONBLOCKING_DECISION_CONFLICT";
     this.existingDecision = existing.toJSON();
@@ -525,12 +526,13 @@ export class NonBlockingDecisionConflictError extends Error {
       "REFRESH_NONBLOCKING_DECISION",
       "Refresh the guarded next action before making another advisory decision.",
       "The evidence already has a durable advisory decision.",
+      binding,
     ).toJSON();
   }
 }
 
 export class NonBlockingEvidenceError extends Error {
-  constructor({ code, message, state, cause = undefined, continuation = true }) {
+  constructor({ code, message, state, cause = undefined, continuation = true, binding = null }) {
     super(message, cause === undefined ? undefined : { cause });
     this.code = code;
     if (continuation) {
@@ -539,12 +541,13 @@ export class NonBlockingEvidenceError extends Error {
         "RECOVER_NONBLOCKING_EVIDENCE",
         "Recover or regenerate the authoritative check evidence, then refresh the guarded next action.",
         message,
+        binding,
       ).toJSON();
     }
   }
 }
 
-function staleEvidenceError(state, context = null) {
+function staleEvidenceError(state, context = null, binding = null) {
   const error = new Error("nonblocking evidence changed; refresh the guarded next action");
   error.code = "NONBLOCKING_STALE_EVIDENCE";
   error.context = context?.toJSON?.() || null;
@@ -553,11 +556,12 @@ function staleEvidenceError(state, context = null) {
     "REFRESH_NONBLOCKING_EVIDENCE",
     "Refresh the guarded next action and use its latest evidence digest.",
     "The evidence digest changed before the advisory decision could be recorded.",
+    binding,
   ).toJSON();
   return error;
 }
 
-function contextForState(root, state) {
+function contextForState(root, state, binding = null) {
   const node = activeNode(state);
   const step = assertSupportedStep(node?.stepId);
   const taskId = node?.taskId ?? null;
@@ -570,6 +574,7 @@ function contextForState(root, state) {
       message: `authoritative nonblocking evidence for ${step} cannot be read: ${error.message}`,
       state,
       cause: error,
+      binding,
     });
   }
   if (!evidence) {
@@ -578,6 +583,7 @@ function contextForState(root, state) {
       message: `no eligible non-pass evidence is available for ${step}`,
       state,
       continuation: false,
+      binding,
     });
   }
   const log = new StepAttemptLog(state.stepAttempts || []);
@@ -591,6 +597,7 @@ function contextForState(root, state) {
       code: "NONBLOCKING_EVIDENCE_NOT_RECORDED",
       message: `eligible evidence for ${step} has not been durably recorded`,
       state,
+      binding,
     });
   }
   const identity = new NonBlockingDecisionIdentity({
@@ -724,7 +731,7 @@ export function recordEligibleNonblockingAttempt(ctx, stepId, result = null, { h
   return record;
 }
 
-export function activateNonBlockingPolicy({ root, flowManager, reason }) {
+export function activateNonBlockingPolicy({ root, flowManager, reason, binding = null }) {
   const state = flowManager.load();
   if (state?.nonblocking) {
     return NonBlockingPolicy.fromStored(state.nonblocking).toJSON();
@@ -739,7 +746,7 @@ export function activateNonBlockingPolicy({ root, flowManager, reason }) {
         durablePolicy = NonBlockingPolicy.fromStored(current.nonblocking);
         return;
       }
-      if (activeStep(current) !== step) throw staleEvidenceError(current);
+      if (activeStep(current) !== step) throw staleEvidenceError(current, null, binding);
       current.nonblocking = policy.toJSON();
       durablePolicy = policy;
       activated = true;
@@ -843,12 +850,13 @@ export function recordNonBlockingDecision({
   expectEvidenceDigest,
   remainingRisk = null,
   issueLogStoreFactory = (options) => new IssueLogStore(options),
+  binding = null,
 }) {
   const initial = flowManager.load();
   if (!initial?.nonblocking?.enabled) throw new Error("nonblocking policy is not enabled");
   let context;
   try {
-    context = contextForState(root, initial);
+    context = contextForState(root, initial, binding);
   } catch (error) {
     // A successful `continue` advances the active step, so the original
     // artifact is no longer current.  The command still has to be safely
@@ -861,15 +869,15 @@ export function recordNonBlockingDecision({
       expectEvidenceDigest,
     );
     if (!existing) throw error;
-    if (existing.outcome.action !== choice) throw new NonBlockingDecisionConflictError(existing.outcome, initial);
+    if (existing.outcome.action !== choice) throw new NonBlockingDecisionConflictError(existing.outcome, initial, binding);
     return existing.outcome.toJSON();
   }
-  if (expectEvidenceDigest !== context.evidenceDigest) throw staleEvidenceError(initial, context);
+  if (expectEvidenceDigest !== context.evidenceDigest) throw staleEvidenceError(initial, context, binding);
   const identity = context.identity();
   const initialLog = new StepAttemptLog(initial.stepAttempts || []);
   const existing = decisionForIdentity(initialLog, identity, context.taskId);
   if (existing) {
-    if (existing.outcome.action !== choice) throw new NonBlockingDecisionConflictError(existing.outcome, initial);
+    if (existing.outcome.action !== choice) throw new NonBlockingDecisionConflictError(existing.outcome, initial, binding);
     return existing.outcome.toJSON();
   }
   assertDecisionChoice(context, choice);
@@ -887,16 +895,16 @@ export function recordNonBlockingDecision({
     let durableOutcome = null;
     try {
       flowManager.mutate((current) => {
-        if (!current.nonblocking?.enabled) throw new NonBlockingRouteOwnershipError("nonblocking policy is no longer the Flow owner", current);
-        const currentContext = contextForState(root, current);
+        if (!current.nonblocking?.enabled) throw new NonBlockingRouteOwnershipError("nonblocking policy is no longer the Flow owner", current, binding);
+        const currentContext = contextForState(root, current, binding);
         if (expectEvidenceDigest !== currentContext.evidenceDigest || !currentContext.identity().equals(identity)) {
-          throw staleEvidenceError(current, currentContext);
+          throw staleEvidenceError(current, currentContext, binding);
         }
         const log = new StepAttemptLog(current.stepAttempts || []);
         const currentExisting = decisionForIdentity(log, identity, currentContext.taskId);
         if (currentExisting) {
           if (currentExisting.outcome.action !== choice) {
-            throw new NonBlockingDecisionConflictError(currentExisting.outcome, current);
+            throw new NonBlockingDecisionConflictError(currentExisting.outcome, current, binding);
           }
           durableOutcome = currentExisting.outcome;
           return;

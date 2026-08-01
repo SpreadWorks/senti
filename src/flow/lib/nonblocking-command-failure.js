@@ -1,22 +1,21 @@
 import { Envelope } from "../../lib/flow-envelope.js";
 import {
   FlowContinuation,
-  guardFlagsForState,
 } from "./user-action-prompt.js";
+import { guardedCommand } from "./guarded-command.js";
 
-function fallbackContinuation(state, error) {
+function fallbackContinuation(state, error, binding = null) {
   if (error?.continuation) return FlowContinuation.fromStored(error.continuation);
-  const guards = guardFlagsForState(state || {});
   return new FlowContinuation({
     actionId: "REFRESH_NONBLOCKING_FLOW",
-    nextAction: `senti flow get next-action ${guards}`.trim(),
+    nextAction: guardedCommand("senti flow get next-action", state || {}, binding),
     instruction: "Refresh the guarded normal Flow action before retrying the nonblocking operation.",
     reason: error?.message || "The nonblocking operation did not complete.",
   });
 }
 
-export function nonblockingFailureEnvelope({ type, key, error, state }) {
-  const continuation = fallbackContinuation(state, error);
+export function nonblockingFailureEnvelope({ type, key, error, state, binding = null }) {
+  const continuation = fallbackContinuation(state, error, binding);
   return Envelope.fail(
     type,
     key,

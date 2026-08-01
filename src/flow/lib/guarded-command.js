@@ -1,4 +1,5 @@
 import { guardFlagsForState } from "./user-action-prompt.js";
+import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 
 const MAX_COMMAND_LENGTH = 4000;
 
@@ -18,4 +19,9 @@ export function guardedCommand(command, state, binding = null) {
   if (binding) return binding.guardCommand(normalized);
   const guards = guardFlagsForState(state);
   return `${normalized}${guards ? ` ${guards}` : ""}`;
+}
+
+export function flowTargetBindingForContext(ctx) {
+  if (ctx?.flowCommandBoundary !== true) return null;
+  return FlowTargetBinding.captureContext(ctx);
 }
