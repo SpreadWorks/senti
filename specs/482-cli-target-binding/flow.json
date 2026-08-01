@@ -461,16 +461,29 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-08-01T00:08:12.229Z"
+              "status": "done",
+              "startedAt": "2026-08-01T00:08:12.229Z",
+              "finishedAt": "2026-08-01T00:21:39.281Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-08-01T00:21:43.474Z",
+              "finishedAt": "2026-08-01T00:27:40.580Z",
+              "runtimeLog": {
+                "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+                "sequence": 1,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-08-01T00:21:53.724Z",
+                "endedAt": "2026-08-01T00:27:40.794Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "in_progress",
+              "startedAt": "2026-08-01T00:27:40.580Z"
             }
           ]
         }
@@ -3764,15 +3777,124 @@
       "taskId": null,
       "stepId": "finalize-merge",
       "operation": "finalize-merge",
-      "status": "pending",
+      "status": "done",
       "attempt": 1,
       "startedAt": "2026-08-01T00:08:35.963Z",
-      "updatedAt": "2026-08-01T00:21:14.879Z",
+      "updatedAt": "2026-08-01T00:21:39.486Z",
+      "result": {
+        "status": "done",
+        "strategy": "squash",
+        "mergedFromSha": "5b0ceaf5ae7c04db21c7f4bad439583730cb2a8b"
+      },
       "exactRecoveryReceipt": {
         "idempotencyKey": "flow-outbox-v1:b92c91db-5c67-4044-8f77-33b600ba1415:flow:finalize-merge:finalize-merge",
         "attempt": 1,
         "failure": "Base worktree /home/nakano/workspace/senti has uncommitted changes: .agents/skills/senti.flow/SKILL.md, .claude/skills/senti.flow/SKILL.md, src/flow/commands/review.js, src/flow/definition.js, src/flow/lib/get-next-action.js, src/flow/lib/next-action-directive.js, src/flow/lib/repair-state-identity.js, src/flow/lib/review-convergence.js, src/flow/lib/review-failure.js, src/flow/lib/run-dispatch.js, src/flow/lib/test-regression.js, src/flow/lib/user-action-prompt.js, src/flow/registry.js, src/skills/senti.flow-direct/SKILL.md, src/skills/senti.flow/SKILL.md, tests/e2e/flow/commands/dispatch.test.js, tests/unit/flow/next-action-directive.test.js, tests/unit/flow/repair-state-identity.test.js, tests/unit/flow/retry-recovery-convergence.test.js, tests/unit/flow/run-dispatch.test.js, tests/unit/flow/run-review-advisory.test.js, tests/unit/flow/step-outcome.test.js, src/flow/lib/review-provider-recovery.js, src/lib/command-line.js, tests/unit/flow/review-provider-recovery.test.js."
       }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:b92c91db-5c67-4044-8f77-33b600ba1415:flow:finalize-sync:finalize-sync",
+      "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+      "taskId": null,
+      "stepId": "finalize-sync",
+      "operation": "finalize-sync",
+      "status": "done",
+      "attempt": 1,
+      "startedAt": "2026-08-01T00:21:53.822Z",
+      "updatedAt": "2026-08-01T00:27:40.746Z",
+      "result": {
+        "status": "skipped",
+        "message": "nothing to commit",
+        "diagnostics": [
+          {
+            "phase": "docs-build",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "[agents] /home/nakano/workspace/senti/.senti/worktree/feature-482-cli-target-binding/AGENTS.md を更新しました\n",
+            "stderr": "[scan] incremental: 27 changed, 1 added, 264 unchanged\n[scan] output: .senti/output/analysis.json\n[scan] done (245ms)\n[enrich] static chapter mapping: 4 categories from {{data}} directives\n[enrich] excluded 7 entries by docs.exclude\n[enrich] resuming: 211 already enriched, 74 remaining\n[enrich] 14 batches (token limit: 10000, concurrency: 4)\n[enrich] batch 1/14 (6 entries)\n[enrich] batch 2/14 (1 entries)\n[enrich] batch 3/14 (8 entries)\n[enrich] batch 4/14 (8 entries)\n[enrich] batch 5/14 (4 entries)\n[enrich] batch 6/14 (7 entries)\n[enrich] batch 7/14 (7 entries)\n[enrich] batch 8/14 (1 entries)\n[enrich] batch 9/14 (2 entries)\n[enrich] batch 10/14 (1 entries)\n[enrich] batch 11/14 (8 entries)\n[enrich] batch 12/14 (5 entries)\n[enrich] batch 13/14 (7 entries)\n[enrich] batch 14/14 (9 entries)\n[enrich] saved progress (6 entries) to .senti/output/analysis.json\n[enrich] saved progress (7 entries) to .senti/output/analysis.json\n[enrich] saved progress (15 entries) to .senti/output/analysis.json\n[enrich] saved progress (23 entries) to .senti/output/analysis.json\n[enrich] saved progress (27 entries) to .senti/output/analysis.json\n[enrich] saved progress (34 entries) to .senti/output/analysis.json\n[enrich] saved progress (41 entries) to .senti/output/analysis.json\n[enrich] saved progress (42 entries) to .senti/output/analysis.json\n[enrich] saved progress (44 entries) to .senti/output/analysis.json\n[enrich] saved progress (45 entries) to .senti/output/analysis.json\n[enrich] saved progress (53 entries) to .senti/output/analysis.json\n[enrich] saved progress (58 entries) to .senti/output/analysis.json\n[enrich] saved progress (65 entries) to .senti/output/analysis.json\n[enrich] saved progress (74 entries) to .senti/output/analysis.json\n[enrich] enriched 74 entries in 14 batches\n[enrich] output: .senti/output/analysis.json\n[enrich] done (5m 43s)\n[init] WARN: 7 件のファイルが docs/ に既に存在します:\n[init]   - overview.md\n[init]   - stack_and_ops.md\n[init]   - project_structure.md\n[init]   - cli_commands.md\n[init]   - configuration.md\n[init]   - internal_design.md\n[init]   - creating_presets.md\n[init] --force で上書きできます。\n[init] done (126ms)\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:353: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 16 件置換、{{text}}: 36 件スキップ。\n[data] done (91ms)\n[text] No source changes detected. Use --force to regenerate all chapters.\n[text] done (70ms)\n[readme] 変更なし。書き込みをスキップします。\n[readme] done (153ms)\n[agents] done (80ms)\n[build] Generating ja...\n[init] WARN: 7 件のファイルが docs/ に既に存在します:\n[init]   - overview.md\n[init]   - stack_and_ops.md\n[init]   - project_structure.md\n[init]   - cli_commands.md\n[init]   - configuration.md\n[init]   - internal_design.md\n[init]   - creating_presets.md\n[init] --force で上書きできます。\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:354: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 15 件置換、{{text}}: 30 件スキップ。\n[text] No source changes detected. Use --force to regenerate all chapters.\n[readme] 変更なし。書き込みをスキップします。\n[build] Resolving lang.links...\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:353: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 16 件置換、{{text}}: 36 件スキップ。\n[data] UNRESOLVED {{data}} in project_structure.md:21: base.structure.tree → null\n[data] UNRESOLVED {{data}} in creating_presets.md:354: symfony.config.auth → null\n[data] 完了。6 ファイル updated。{{data}}: 15 件置換、{{text}}: 30 件スキップ。\n[translate] done (505ms)\ntotal: 5m 44s\n"
+          },
+          {
+            "phase": "git-ls-files",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": ".senti/output/analysis.json\nAGENTS.md\nCLAUDE.md\nREADME.md\ndocs/change_log.md\ndocs/cli_commands.md\ndocs/configuration.md\ndocs/creating_presets.md\ndocs/internal_design.md\ndocs/ja/README.md\ndocs/ja/cli_commands.md\ndocs/ja/configuration.md\ndocs/ja/creating_presets.md\ndocs/ja/internal_design.md\ndocs/ja/overview.md\ndocs/ja/project_structure.md\ndocs/ja/stack_and_ops.md\ndocs/overview.md\ndocs/project_structure.md\ndocs/stack_and_ops.md\n",
+            "stderr": ""
+          },
+          {
+            "phase": "git-add",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-diff-stat",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-diff-name",
+            "exitCode": 0,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "phase": "git-commit",
+            "exitCode": 1,
+            "signal": null,
+            "killed": false,
+            "errorCode": null,
+            "stdout": "On branch main\nYour branch is ahead of 'origin/main' by 2 commits.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   specs/482-cli-target-binding/flow.json\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\n",
+            "stderr": ""
+          }
+        ]
+      }
+    },
+    {
+      "idempotencyKey": "flow-outbox-v1:b92c91db-5c67-4044-8f77-33b600ba1415:flow:finalize-cleanup:finalize-cleanup",
+      "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+      "taskId": null,
+      "stepId": "finalize-cleanup",
+      "operation": "finalize-cleanup",
+      "status": "pending",
+      "attempt": 5,
+      "startedAt": "2026-08-01T00:42:02.456Z",
+      "updatedAt": "2026-08-01T00:42:03.731Z",
+      "failureHistory": [
+        {
+          "attempt": 1,
+          "failure": "finalize tree before-image exceeds the byte bound",
+          "recordedAt": "2026-08-01T00:27:57.951Z"
+        },
+        {
+          "attempt": 2,
+          "failure": "finalize tree before-image exceeds the byte bound",
+          "recordedAt": "2026-08-01T00:28:12.564Z"
+        },
+        {
+          "attempt": 3,
+          "failure": "finalize tree before-image exceeds the byte bound",
+          "recordedAt": "2026-08-01T00:28:26.102Z"
+        },
+        {
+          "attempt": 4,
+          "failure": "finalize tree before-image exceeds the byte bound",
+          "recordedAt": "2026-08-01T00:28:49.137Z"
+        }
+      ]
     }
   ],
   "issue": 483,
@@ -27355,6 +27477,8 @@
     "updatedAt": "2026-07-31T22:33:22.060Z"
   },
   "state": {
-    "finalizedAt": "2026-08-01T00:08:11.033Z"
+    "finalizedAt": "2026-08-01T00:08:11.033Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "5b0ceaf5ae7c04db21c7f4bad439583730cb2a8b"
   }
 }
