@@ -235,4 +235,52 @@ describe("finalization command crash resumption", () => {
       removeTmpDir(root);
     }
   });
+
+  it("binds docs generation to the main repository when finalize-sync runs from a worktree", async () => {
+    const root = createTmpDir("finalize-sync-main-root-");
+    try {
+      const { state } = setupFinalizationRepo(root, { worktree: true });
+      const worktreeRoot = path.join(root, ".senti", "worktree", "feature");
+      fs.mkdirSync(worktreeRoot, { recursive: true });
+      let docsBuildOptions = null;
+      const resultFor = ({ ok = true, status = 0, stdout = "", stderr = "" } = {}) => ({
+        ok,
+        status,
+        stdout,
+        stderr,
+        signal: null,
+        killed: false,
+        errorCode: null,
+      });
+      const command = new RunFinalizeSyncCommand({
+        hasCommit: () => false,
+        runCommand: (_command, _args, options) => {
+          docsBuildOptions = options;
+          return resultFor();
+        },
+        git: (args, options) => {
+          assert.equal(options.cwd, root);
+          if (args[0] === "commit") {
+            return resultFor({ ok: false, status: 1, stderr: "nothing to commit" });
+          }
+          return resultFor();
+        },
+      });
+
+      const result = await command.execute({
+        root: worktreeRoot,
+        flowState: state,
+        flowManager: {
+          resolveWorktreePaths: () => ({ mainRepoPath: root }),
+        },
+      });
+
+      assert.equal(result.status, "skipped");
+      assert.equal(docsBuildOptions.cwd, root);
+      assert.equal(docsBuildOptions.env.SENTI_WORK_ROOT, root);
+      assert.equal(docsBuildOptions.env.SENTI_SOURCE_ROOT, root);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
 });

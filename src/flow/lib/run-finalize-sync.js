@@ -71,7 +71,14 @@ export class RunFinalizeSyncCommand extends FlowCommand {
         return result;
       };
       const buildScript = path.join(this.packageDir, "docs.js");
-      run("docs-build", () => this.runCommand("node", [buildScript, "build"], { cwd: syncCwd }));
+      run("docs-build", () => this.runCommand("node", [buildScript, "build"], {
+        cwd: syncCwd,
+        env: {
+          ...process.env,
+          SENTI_WORK_ROOT: syncCwd,
+          SENTI_SOURCE_ROOT: syncCwd,
+        },
+      }));
       const stageCandidates = ["docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".senti/output/analysis.json"];
       const trackedRes = run("git-ls-files", () => this.git(["ls-files", "--", ...stageCandidates], { cwd: syncCwd }));
       const stagePaths = pathsToStage(syncCwd, stageCandidates, trackedRes.stdout);

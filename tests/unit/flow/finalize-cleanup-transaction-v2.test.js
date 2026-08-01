@@ -374,6 +374,26 @@ test("ignores non-transaction recovery evidence while creating a teardown journa
   }
 });
 
+test("captures a normal finalized artifact tree larger than eight MiB", async () => {
+  const root = createTmpDir("finalize-large-before-image-");
+  try {
+    initGitRepo(root);
+    const specId = "159";
+    setupFinalizeFlow(root, specId);
+    const rawLogPath = path.join(root, "specs", specId, "tests", ".raw", "final-regression.log");
+    fs.mkdirSync(path.dirname(rawLogPath), { recursive: true });
+    fs.writeFileSync(rawLogPath, Buffer.alloc(9 * 1024 * 1024, "x"));
+    git(root, ["add", `specs/${specId}`]);
+    git(root, ["commit", "--quiet", "-m", "add final regression evidence"]);
+
+    const result = await runFinalize(root, specId);
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
 async function seedPointerFailure(root, specId, { mergeStrategy = "pr", force = false } = {}) {
   const fixture = setupFinalizeFlow(root, specId);
   if (mergeStrategy === "squash") {
