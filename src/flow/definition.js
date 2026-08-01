@@ -807,7 +807,6 @@ class FlowNode {
   }
 }
 
-const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
 const DRAFT_QUESTIONS_ROUTE = draftReviewRouteForKey("questions");
 const DRAFT_COVERAGE_ROUTE = draftReviewRouteForKey("coverage");
 const DRAFT_REVIEW_ROUTE_EXPECTATIONS = Object.freeze([
@@ -1084,7 +1083,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
-        sideEffects: GATE_IMPL_SIDE_EFFECTS,
+        sideEffects: [],
         gatePhase: ["integration", "task-impl"],
         failurePolicy: "block",
         definitionLifecycleOwned: true,
@@ -1219,7 +1218,7 @@ const TASK_DEFINITION = Object.freeze([
     contextKinds: ["task_spec", "guardrail"],
     outputSchemaRef: "next-action/gate.schema.json",
     maxAttempts: 5,
-    sideEffects: ["completeTask", "promoteNextTask", "mergeOverview"],
+    sideEffects: ["mergeOverview"],
     failurePolicy: "block",
     definitionLifecycleOwned: true,
   }),

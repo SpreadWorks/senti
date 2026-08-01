@@ -61,6 +61,7 @@ import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recover
 import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
 import { inspectCanonicalReviewPassRecovery } from "./run-recover-review-pass.js";
 import { FLOW_REVIEW_ROUTES } from "./review-route.js";
+import { resolveTaskGateOverviewRecovery } from "./task-gate-completion.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -407,7 +408,7 @@ function buildNextActionResult(
   outputSchema,
   instruction,
   binding,
-  finalizationRecovery = null,
+  outboxRecovery = null,
 ) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
   const result = {
@@ -462,7 +463,7 @@ function buildNextActionResult(
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target, binding)
     || buildCanonicalReviewPassRecoveryDirective(ctx, state, binding)
-    || finalizationRecovery?.directive
+    || outboxRecovery?.directive
     || new NextActionDirectiveResolver({
       state,
       binding,
@@ -575,7 +576,11 @@ export class NextActionPlanner {
       content: injectPersistentRules(baseInstructions, target, state),
     };
     const binding = captureNextActionBinding(ctx, state);
-    const finalizationRecovery = resolveFinalizationOutboxRecovery(ctx, state, target, binding);
+    const taskGateOverviewRecovery = resolveTaskGateOverviewRecovery(state, binding);
+    const finalizationRecovery = taskGateOverviewRecovery == null
+      ? resolveFinalizationOutboxRecovery(ctx, state, target, binding)
+      : null;
+    const outboxRecovery = taskGateOverviewRecovery || finalizationRecovery;
     const result = buildNextActionResult(
       ctx,
       state,
@@ -584,7 +589,7 @@ export class NextActionPlanner {
       outputSchema,
       instruction,
       binding,
-      finalizationRecovery,
+      outboxRecovery,
     );
     return new NextActionPromotionPlan({
       definition: target.scope === "task" ? getTaskNode(target.stepId) : getFlowNode(target.stepId),
@@ -597,7 +602,7 @@ export class NextActionPlanner {
       maxAttempts: derived.maxAttempts,
       nextState: state,
       result,
-      commitRequired: promoted || reconciledNonblockingAcceptance || finalizationRecovery?.stateChanged === true,
+      commitRequired: promoted || reconciledNonblockingAcceptance || outboxRecovery?.stateChanged === true,
     });
   }
 }

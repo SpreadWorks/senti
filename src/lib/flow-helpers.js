@@ -239,9 +239,9 @@ export function findNextPendingTask(tasks) {
  * Promote the next pending task's id into `state.currentTaskId` (no-op if
  * currentTaskId is already set or no pending tasks remain).
  *
- * Spec 226: single caller boundary — call sites are (1) sync-spec-tasks at end
- * of sync, (2) impl-gate PASS post-hook after completeTask. completeTask itself
- * must NOT call this (responsibility separation).
+ * Direct callers are limited to task synchronization, the combined
+ * completion/promotion state helper, and get-next-action's repair fallback.
+ * completeTask itself must NOT call this (responsibility separation).
  *
  * Mutates `state` in place. Returns the promoted task id or null.
  *
@@ -259,6 +259,16 @@ export function promoteNextPending(state) {
   state.currentTaskId = next.id;
   if (next.status === "pending") next.status = "in_progress";
   return next.id;
+}
+
+/** Complete one task and promote its deterministic successor in one state mutation. */
+export function completeTaskAndPromoteInState(state, taskId, checkpoint = () => {}) {
+  if (typeof checkpoint !== "function") throw new Error("task transition checkpoint must be a function");
+  completeTaskInState(state, taskId);
+  checkpoint({ phase: "after-task-completion", taskId });
+  const promoted = promoteNextPending(state);
+  checkpoint({ phase: "after-next-task-promotion", taskId, promotedTaskId: promoted });
+  return promoted;
 }
 
 /**

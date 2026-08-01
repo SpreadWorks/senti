@@ -55,11 +55,26 @@ function taskGateState(specId, metrics = []) {
   });
 }
 
+function validSpec() {
+  return {
+    goal: "",
+    scope: { in: [], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    background: "",
+    requirements: [{ id: "R1", desc: "task gate scope", priority: "must" }],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+    tasks: [],
+  };
+}
+
 function persistState(root, specId, state) {
   fs.mkdirSync(path.join(root, "specs", specId), { recursive: true });
-  fs.writeFileSync(path.join(root, "specs", specId, "spec.json"), JSON.stringify({
-    requirements: [{ id: "R1", desc: "task gate scope", priority: "must" }],
-  }));
+  fs.writeFileSync(path.join(root, "specs", specId, "spec.json"), JSON.stringify(validSpec()));
   fs.mkdirSync(path.join(root, "src"), { recursive: true });
   fs.writeFileSync(path.join(root, "src", "example.js"), "export const example = true;\n");
   const unbound = makeFlowManager(root);

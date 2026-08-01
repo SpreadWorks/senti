@@ -65,6 +65,13 @@ export class Envelope {
     this.errors.push({ level: "warn", code, messages: msgs });
   }
 
+  /** Append a fatal entry and invalidate the envelope. */
+  addFatal(code, messages) {
+    const msgs = Array.isArray(messages) ? messages : [messages];
+    this.ok = false;
+    this.errors.push({ level: "fatal", code, messages: msgs });
+  }
+
   toJSON() {
     assertUserActionResultContract(this.data);
     assertNextActionDirective(this.data);

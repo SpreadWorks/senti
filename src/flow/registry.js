@@ -47,6 +47,10 @@ import {
 } from "./lib/step-transition-policy.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
+import {
+  TaskGateCompletionError,
+  TaskGateCompletionIntent,
+} from "./lib/task-gate-completion.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -222,7 +226,7 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
         operationOwnerToken: mutationOpts?.operationOwnerToken ?? null,
       });
     } else {
-      fm.updateStepStatus(transition, mutationOpts);
+      fm.updateStepStatus(transition, mutationOpts, provenance.commitIntent || null);
     }
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
@@ -374,18 +378,30 @@ class RegistryLifecycleAdapter {
       );
       return;
     }
-    tryUpdateStepStatus(
-      { ...this.ctx, phase: this.phase },
-      step,
-      settledStatus,
-      this.mutationOpts(step),
-      {
-        action,
-        plan: this.plan,
-        currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
-        event: this.input.event,
-      },
-    );
+    const taskGateCompletion = step === "task-gate" && settledStatus === "done"
+      ? new TaskGateCompletionIntent({
+          runId: this.ctx.flowState.runId,
+          taskId: this.gateTaskId,
+        })
+      : null;
+    try {
+      tryUpdateStepStatus(
+        { ...this.ctx, phase: this.phase },
+        step,
+        settledStatus,
+        this.mutationOpts(step),
+        {
+          action,
+          plan: this.plan,
+          currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
+          event: this.input.event,
+          commitIntent: taskGateCompletion,
+        },
+      );
+    } catch (error) {
+      if (taskGateCompletion) throw new TaskGateCompletionError(error, this.gateTaskId);
+      throw error;
+    }
   }
 
   refreshFlowState() {
@@ -440,7 +456,10 @@ class RegistryLifecycleAdapter {
   async executeSideEffects() {
     const gateMod = await import("./lib/run-gate.js");
     const phase = this.result?.artifacts?.phase || this.ctx.phase;
-    await gateMod.executeGateSideEffects(this.ctx, phase);
+    await gateMod.executeGateSideEffects(this.ctx, phase, {
+      stepId: this.gateStepId,
+      taskId: this.gateTaskId,
+    });
   }
 
   outboxStore() {
@@ -1188,6 +1207,24 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --phase <phase>       Exact flow-level review phase to recover.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
+    "recover-task-gate-overview": {
+      helpKey: "flow.run.recover-task-gate-overview",
+      command: () => import("./lib/run-recover-task-gate-overview.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: FLOW_RUN_OPTIONS,
+      },
+      help: [
+        `Usage: senti flow run recover-task-gate-overview [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Resume the one incomplete task-gate overview outbox effect for the exact active Flow.",
+        "The task identity and idempotency key are read from durable CLI-owned state and are not re-entered by the agent.",
+        "",
+        "Options:",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },

@@ -33,6 +33,7 @@ import {
 import { guardedCommand } from "../flow/lib/guarded-command.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
 import { FinalizeCleanupRoute } from "./finalize-cleanup-paths.js";
+import { FatalPostHookError } from "./post-hook-error.js";
 
 function attachNonblockingContinuation(envelope, ctx, reason) {
   const state = ctx?.flowState;
@@ -621,7 +622,11 @@ export async function dispatch({
       } catch (postErr) {
         postFailed = true;
         if (mode === "envelope") {
-          envelope.addWarning("POST_HOOK_FAILED", postErr.message || String(postErr));
+          if (postErr instanceof FatalPostHookError) {
+            envelope.addFatal(postErr.code, postErr.message);
+          } else {
+            envelope.addWarning("POST_HOOK_FAILED", postErr.message || String(postErr));
+          }
         } else {
           writeErr(`[post hook] ${postErr.message || postErr}\n`);
         }

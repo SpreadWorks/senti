@@ -23,16 +23,15 @@ import { assertOk } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
+import { TaskGateOverviewEffect } from "./task-gate-completion.js";
 
 const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { validateConfiguredPresetChains } from "../../lib/presets.js";
-import {
-  getSpecName,
-  promoteNextPending,
-} from "../../lib/flow-helpers.js";
+import { getSpecName } from "../../lib/flow-helpers.js";
+import { FatalPostHookError } from "../../lib/post-hook-error.js";
 import {
   enumerateUsableRequirementIds,
   loadSpecJson,
@@ -156,10 +155,6 @@ export async function completeGateArtifactBeforeSemanticEvaluation({
   return evaluateSemanticGuardrail(completed);
 }
 
-export function promoteNextTaskInState(state) {
-  return promoteNextPending(state);
-}
-
 /**
  * Execute gate PASS side effects driven by definition's sideEffects attribute.
  * Looks up sideEffects from the definition for the given phase, then dispatches.
@@ -168,33 +163,40 @@ export function promoteNextTaskInState(state) {
  * @param {object} ctx - flow command context with flowManager
  * @param {string} phase - gate phase (e.g. "task-impl", "draft")
  */
-export async function executeGateSideEffects(ctx, phase) {
+export async function executeGateSideEffects(ctx, phase, {
+  stepId: explicitStepId = null,
+  taskId = null,
+} = {}) {
   const { deriveNextAction } = await import("../definition.js");
   const fm = ctx.flowManager;
-  const state = fm.load();
-  const invocationState = ctx.flowState || state;
-  const stepId = resolveScopedGateStepId(invocationState, phase);
+  const invocationState = ctx.flowState || (
+    ctx.specId ? fm.loadReadOnly(ctx.specId) : fm.load()
+  );
+  const stepId = explicitStepId || resolveScopedGateStepId(invocationState, phase);
   const scope = stepId === "task-gate" ? "task" : "flow";
   const derived = deriveNextAction({ scope, stepId, context: invocationState });
   const sideEffects = derived?.sideEffects;
   if (!sideEffects || sideEffects.length === 0) return;
 
   for (const effect of sideEffects) {
-    try {
-      if (effect === "completeTask") {
-        if (invocationState?.currentTaskId != null) {
-          fm.completeTask(invocationState.currentTaskId);
-        }
-      } else if (effect === "promoteNextTask") {
-        fm.mutate(promoteNextTaskInState);
-      } else if (effect === "mergeOverview") {
-        const { default: RunUpdateOverviewCommand } = await import("./run-update-overview.js");
-        const cmd = new RunUpdateOverviewCommand();
-        await cmd.execute({ ...ctx, args: { json: "[]" } });
-      }
-    } catch (err) {
-      process.stderr.write(`[senti] gate side effect '${effect}' failed: ${err.message}\n`);
+    if (effect !== "mergeOverview") {
+      throw new FatalPostHookError(
+        "GATE_SIDE_EFFECT_UNSUPPORTED",
+        `Unsupported gate side effect: ${effect}`,
+      );
     }
+    if (stepId !== "task-gate") {
+      throw new FatalPostHookError(
+        "GATE_SIDE_EFFECT_SCOPE_INVALID",
+        `Gate side effect ${effect} is not valid for ${stepId}`,
+      );
+    }
+    new TaskGateOverviewEffect({
+      root: ctx.root,
+      flowManager: fm,
+      specId: ctx.specId,
+      taskId,
+    }).execute();
   }
 }
 

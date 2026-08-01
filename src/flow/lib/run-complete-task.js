@@ -4,15 +4,14 @@
  * FlowCommand: `flow run complete-task [--task-id <id>]` — manually complete
  * a task and auto-promote the next pending task.
  *
- * Spec 226: thin wrapper. Calls `completeTask` (which handles parent
- * propagation) then `promoteNextPending` (single-caller boundary site 2 of 2).
- * Validation is delegated to the flow-store primitive via `throw`.
+ * Completion, parent propagation, and deterministic promotion are committed
+ * by one flow-state mutation. Validation remains owned by the state boundary.
  */
 
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { promoteNextPending } from "../../lib/flow-helpers.js";
+import { completeTaskAndPromoteInState } from "../../lib/flow-helpers.js";
 
 export class RunCompleteTaskCommand extends FlowCommand {
   constructor() {
@@ -58,13 +57,9 @@ export class RunCompleteTaskCommand extends FlowCommand {
       );
     }
 
-    // completeTask handles parent propagation internally (spec 226).
-    fm.completeTask(taskId);
-
-    // Auto-promote next pending — call site (2) of the single-caller boundary.
     let promoted = null;
     fm.mutate((s) => {
-      promoted = promoteNextPending(s);
+      promoted = completeTaskAndPromoteInState(s, taskId);
     });
     const nextAction = promoted
       ? `next task ${promoted} is current; run senti flow get next-action`

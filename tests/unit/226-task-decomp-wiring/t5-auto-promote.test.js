@@ -2,9 +2,8 @@
  * tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js
  *
  * Spec 226 / T-5: タスク遷移の自動化と auto-promote。
- * auto-promote 関数の単一性、sync 末尾と impl-gate post-hook の 2 箇所のみ
- * から呼ばれること、completeTask が auto-promote を呼ばないこと、全 task
- * done 時の flow-scope 遷移を検証する。
+ * auto-promote 関数の単一性、直接呼び出し境界、completeTask が
+ * auto-promote を呼ばないこと、全 task done 時の flow-scope 遷移を検証する。
  *
  * REQ-4 / REQ-5 / REQ-7 に対応。
  */
@@ -266,7 +265,7 @@ describe("T-5: auto-promote function and callers", () => {
     assert.equal(t2.status, "in_progress");
   });
 
-  it("auto-promote is called from exactly 3 production sites (grep verification)", () => {
+  it("auto-promote is called directly from exactly 3 production sites (grep verification)", () => {
     // Grep src/ for actual invocations of promoteNextPending(
     // excluding: definition, imports, comments, test files.
     const srcRoot = path.join(process.cwd(), "src");
@@ -286,17 +285,16 @@ describe("T-5: auto-promote function and callers", () => {
       return true;
     });
 
-    // There should be exactly 4 invocation lines across 3 logical sites:
+    // There should be exactly 3 direct invocation lines:
     //   Site 1: sync-spec-tasks.js (1 line)
-    //   Site 2: run-gate.js + run-complete-task.js (2 lines, both impl-gate PASS)
+    //   Site 2: flow-helpers.js (1 line, atomic completion/promotion helper)
     //   Site 3: get-next-action.js (1 line, spec 229 safety-net fallback)
-    assert.equal(lines.length, 4, `expected 4 invocation lines, got:\n${lines.join("\n")}`);
+    assert.equal(lines.length, 3, `expected 3 invocation lines, got:\n${lines.join("\n")}`);
 
     // Verify the files match the expected call sites.
     const files = lines.map((l) => path.basename(l.split(":")[0]));
     assert.ok(files.includes("sync-spec-tasks.js"), "site 1: sync-spec-tasks");
-    assert.ok(files.includes("run-gate.js"), "site 2a: run-gate definition-driven side effects");
-    assert.ok(files.includes("run-complete-task.js"), "site 2b: run-complete-task CLI");
+    assert.ok(files.includes("flow-helpers.js"), "site 2: atomic completion/promotion helper");
     assert.ok(files.includes("get-next-action.js"), "site 3: safety-net fallback (spec 229)");
   });
 

@@ -14,7 +14,7 @@ import {
 } from "../../lib/repository-maintenance-lock.js";
 import { findStepById } from "./step-tree.js";
 import { findActiveNode } from "../definition.js";
-import { completeTaskInState } from "../../lib/flow-helpers.js";
+import { completeTaskAndPromoteInState } from "../../lib/flow-helpers.js";
 import {
   NonBlockingDecisionOutcome,
   NONBLOCKING_SOURCE_STEPS,
@@ -43,7 +43,6 @@ import {
 } from "./run-review.js";
 import {
   materializeGateRetryExhaustionDeferral,
-  promoteNextTaskInState,
 } from "./run-gate.js";
 import { materializeNonblockingAcceptanceHandoff } from "./nonblocking-handoff.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
@@ -833,8 +832,7 @@ function advanceContinuation(state, context) {
     throw staleEvidenceError(state, context);
   }
   if (route.sourceStep === "task-gate") {
-    completeTaskInState(state, context.taskId);
-    promoteNextTaskInState(state);
+    completeTaskAndPromoteInState(state, context.taskId);
     return;
   }
   mark(state, route.sourceStep, "done", context.taskId);

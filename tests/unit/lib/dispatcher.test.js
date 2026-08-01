@@ -8,6 +8,7 @@ import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { Envelope } from "../../../src/lib/flow-envelope.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
+import { FatalPostHookError } from "../../../src/lib/post-hook-error.js";
 import { makeFlowState } from "../../helpers/flow-setup.js";
 
 describe("dispatcher (unified runner)", () => {
@@ -914,6 +915,27 @@ describe("dispatcher (unified runner)", () => {
         "post hook error message is preserved",
       );
       assert.equal(lastExitCode, 1, "exit code is 1 despite ok=true");
+    });
+
+    it("envelope mode: typed fatal post hook failure makes the command result fail", async () => {
+      const entry = makeEntry({
+        mode: "envelope",
+        post: () => {
+          throw new FatalPostHookError(
+            "TASK_GATE_COMPLETION_FAILED",
+            "atomic task-gate completion failed",
+          );
+        },
+      });
+      const { stdout, lastExitCode } = await runDispatch({ entry, captureStdout: true });
+      const parsed = JSON.parse(stdout);
+      assert.equal(parsed.ok, false);
+      assert.deepEqual(parsed.errors, [{
+        level: "fatal",
+        code: "TASK_GATE_COMPLETION_FAILED",
+        messages: ["atomic task-gate completion failed"],
+      }]);
+      assert.equal(lastExitCode, 1);
     });
 
     it("raw mode: post hook failure sets exit code 1 and writes stderr", async () => {
