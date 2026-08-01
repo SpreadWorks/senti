@@ -1182,11 +1182,17 @@ class CommittedImplRepairEffects {
     const manifestPath = path.join(this.specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
     const manifestCurrent = fs.existsSync(manifestPath)
       && sameSerializedValue(readRepairFingerprintManifest(this.specDir), this.transaction.currentManifest);
-    const lifecycleCurrent = this.transaction.resetStepIds
-      .filter((stepId) => stepId !== "impl-repair")
+    const lifecycleStepIds = this.transaction.purpose instanceof TestEvidenceRefreshPurpose
+      ? this.transaction.resetStepIds
+      : this.transaction.resetStepIds.filter((stepId) => stepId !== "impl-repair");
+    const lifecycleCurrent = lifecycleStepIds
       .every((stepId) => {
         const step = findStepById(this.state.steps || [], stepId);
-        return step?.status === (stepId === "test-execute" ? "in_progress" : "pending");
+        if (stepId === "test-execute") return step?.status === "in_progress";
+        if (stepId === "impl-repair") {
+          return step?.status === "pending" || step?.status === "done";
+        }
+        return step?.status === "pending";
       })
       && (
         !(this.transaction.purpose instanceof TestEvidenceRefreshPurpose)
@@ -2303,9 +2309,10 @@ function prepareImplRepairTransaction({ root, state, specDir, resetStepIds }) {
   });
 }
 
-function plannedRepairStepChanges(state, resetStepIds) {
-  return resetStepIds.filter((stepId) => stepId !== "impl-repair").flatMap((stepId) => {
+function plannedRepairStepChanges(state, resetStepIds, { preserveImplRepair = false } = {}) {
+  return resetStepIds.filter((stepId) => !preserveImplRepair || stepId !== "impl-repair").flatMap((stepId) => {
     const step = findStepById(state.steps || [], stepId);
+    if (stepId === "impl-repair" && step?.status === "done") return [];
     return step ? [{
       stepId,
       currentStatus: step.status,
@@ -2430,7 +2437,7 @@ export function completeImplRepair({ root, state, flowManager = null, resetStepI
       return {
         entry: transaction.entry.toJSON(),
         invalidations: transaction.invalidations.map((record) => record.toJSON()),
-        stepChanges: plannedRepairStepChanges(state, transaction.resetStepIds),
+        stepChanges: plannedRepairStepChanges(state, transaction.resetStepIds, { preserveImplRepair: true }),
         transaction: transaction.toJSON(),
       };
     }

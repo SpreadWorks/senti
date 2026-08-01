@@ -61,6 +61,7 @@ import {
   parseImplLoopProposals,
   buildDraftReviewArtifact,
   writeReviewAttemptHistory,
+  classifyReviewCommandError,
 } from "../../../../src/flow/commands/review.js";
 
 function assertAllMatch(text, patterns) {
@@ -70,6 +71,43 @@ function assertAllMatch(text, patterns) {
 function assertAllDoesNotMatch(text, patterns) {
   for (const pattern of patterns) assert.doesNotMatch(text, pattern);
 }
+
+describe("review command error classification", () => {
+  it("does not classify a local schema error as a provider failure from a stack line number", () => {
+    const error = new Error("spec.json failed schema validation: overview.modules[0].text is required");
+    error.stack = `${error.message}\n    at runReview (src/flow/commands/review.js:4295:3)`;
+
+    assert.equal(classifyReviewCommandError(error, "spec"), null);
+  });
+});
+
+describe("canonical review finding disposition", () => {
+  it("preserves an informational disposition for acceptance handoff", () => {
+    const canonical = canonicalReviewArtifactFindings({
+      blockingFindings: [],
+      nonBlockingImprovements: [{
+        findingId: "informational-finding",
+        fingerprint: "a".repeat(64),
+        title: "Optional cleanup",
+        disposition: "informational",
+      }],
+    }, "impl", "impl-review.json");
+
+    assert.equal(canonical.advisoryFindings[0].disposition, "informational");
+    const evidence = new ReviewEvidence({
+      phase: "impl",
+      taskId: null,
+      treeSha: "1".repeat(40),
+      provenance: {
+        provider: "fixture-provider",
+        invocationId: "typed-informational-finding",
+        capturedAt: "2026-07-24T00:00:00.000Z",
+      },
+      disposition: new ReviewDisposition({ value: "ADVISORY", ...canonical }),
+    });
+    assert.equal(evidence.disposition.advisoryFindings[0].disposition, "informational");
+  });
+});
 
 function resolveAgent(cfg, commandId) {
   const registry = new ProviderRegistry(cfg.agent?.providers || {});
@@ -1621,8 +1659,8 @@ describe("impl review structured artifact helpers", () => {
 
     assert.deepEqual([...itemSchema.required].sort(), propertyKeys);
     assert.deepEqual(itemSchema.properties.file.type, ["string", "null"]);
-    assert.equal(itemSchema.properties.requirementId.type, "string");
-    assert.deepEqual(itemSchema.properties.requirementId.enum, ["R1"]);
+    assert.deepEqual(itemSchema.properties.requirementId.type, ["string", "null"]);
+    assert.deepEqual(itemSchema.properties.requirementId.enum, ["R1", null]);
     assert.deepEqual(itemSchema.properties.disposition.enum, ["must-fix", "deferred", "informational"]);
   });
 
@@ -1782,6 +1820,46 @@ describe("impl review structured artifact helpers", () => {
       );
     } finally {
       removeTmpDir(fixture.root);
+    }
+  });
+
+  it("downgrades unauthoritative task review must-fix proposals to informational", async () => {
+    const fixture = createTmpDir("impl-task-review-unauthoritative-");
+    try {
+      fs.mkdirSync(path.join(fixture, "specs/demo"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "specs/demo/spec.json"), `${JSON.stringify({
+        requirements: [{ id: "R1", priority: "must", desc: "Keep required behavior." }],
+      }, null, 2)}\n`);
+      const reviewOutput = JSON.stringify({
+        blockingFindings: [{
+          findingKey: "helper-name",
+          title: "Helper name could be clearer",
+          failureMode: "naming",
+          file: "src/example.js",
+          requirementId: null,
+          issue: "The helper name is vague.",
+          suggestion: "Rename the helper.",
+          disposition: "must-fix",
+          rationale: "This is a suggested cleanup, not a mandatory requirement.",
+        }],
+        nonBlockingImprovements: [],
+      });
+
+      const result = await runImplReview({
+        root: fixture,
+        flow: { spec: "specs/demo/spec.json" },
+        touchedFiles: new Set(["src/example.js"]),
+        taskSpec: { task: { id: "T-1" }, relPath: "specs/demo/tasks/T-1.md" },
+        reviewOutput,
+      });
+      const artifact = JSON.parse(fs.readFileSync(path.join(fixture, "specs/demo/impl-review.json"), "utf8"));
+
+      assert.equal(result.artifacts.verdict, "ADVISORY");
+      assert.equal(artifact.blockingFindings.length, 0);
+      assert.equal(artifact.nonBlockingImprovements.length, 1);
+      assert.equal(artifact.nonBlockingImprovements[0].disposition, "informational");
+    } finally {
+      removeTmpDir(fixture);
     }
   });
 

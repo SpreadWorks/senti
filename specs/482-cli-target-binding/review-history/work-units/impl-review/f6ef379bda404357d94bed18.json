@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "f6ef379bda404357d94bed18",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-47dd373731e08211",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".agents/skills/senti.flow/SKILL.md",
+      "src/flow/lib/base-command.js",
+      "src/flow/lib/flow-context.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-recover-existing-implementation.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/registry.js",
+      "src/lib/flow-manager.js",
+      "src/skills/partials/core-principle.md",
+      "tests/unit/flow/finding-disposition-policy.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "47dd373731e082119e98350643405009e99ed9f9bf2649f17341e316289cfcc3",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "f6ef379bda404357d94bed18"
+  },
+  "targetFiles": [
+    ".agents/skills/senti.flow/SKILL.md",
+    "src/flow/lib/base-command.js",
+    "src/flow/lib/flow-context.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-recover-existing-implementation.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/registry.js",
+    "src/lib/flow-manager.js",
+    "src/skills/partials/core-principle.md",
+    "tests/unit/flow/finding-disposition-policy.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "47dd373731e082119e98350643405009e99ed9f9bf2649f17341e316289cfcc3",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T05:51:21.644Z",
+  "finishedAt": "2026-07-31T05:51:21.644Z",
+  "rawResponse": "### 1. Duplicate guarded-command construction paths\n**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R3\n**Issue:** Guarded command creation appears in multiple files with slightly different fallback behavior: direct `binding.guardCommand(...)` calls in `get-next-action.js`, `guardedCommand(...)` in `next-action-directive.js`, and similar recovery helpers in `finalization-outbox-recovery.js`. This creates a cross-file interface inconsistency around whether commands must be derived from `FlowTargetBinding` or may fall back to state-derived guard flags.\n**Suggestion:** Introduce one shared guarded-command helper or directive-layer API that owns command wrapping. Require `FlowTargetBinding` for target-sensitive paths, and keep any legacy fallback in a clearly named non-target-sensitive helper.\n\n### 2. Repeated exact-target guard failure wrappers\n**File:** `src/flow/lib/run-recover-existing-implementation.js`\n**Requirement:** R4\n**Issue:** `run-recover-existing-implementation.js`, `run-recover-review-pass.js`, and `run-reopen-draft.js` each keep a local wrapper around `missingExactTargetGuardNames()` that builds the same mismatch/failure envelope. The only meaningful difference is local naming, which makes enforcement behavior easier to drift across command files.\n**Suggestion:** Extract a shared exact-target guard failure helper and have all three command paths call it before target-sensitive side effects.\n\n### 3. Inconsistent guard naming across command files\n**File:** `src/flow/lib/run-reopen-draft.js`\n**Requirement:** R4\n**Issue:** The same exact-target guard concept is named `validateCorrectionGuards()` in `run-reopen-draft.js` but `requireExactGuards()` in recovery files. This weakens cross-file readability because equivalent guard semantics use different names.\n**Suggestion:** Rename the reopen-draft helper to match the shared terminology, preferably `requireExactGuards()`, or remove the local helper entirely if a shared guard failure helper is introduced.\n\n### 4. Binding environment constants are only partially centralized\n**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `DISPATCH_INVOCATION_ENV` names one dispatcher environment variable, while `SENTI_FLOW_TARGET_BINDING` remains hardcoded in `executionEnvironment()`. These two env vars form one cross-file dispatcher/recovery contract, but only one has a named constant.\n**Suggestion:** Add `TARGET_BINDING_ENV` beside `DISPATCH_INVOCATION_ENV` and use computed keys for both entries.\n\n### 5. Binding command wording duplicated across generated and source skill docs\n**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** The literal `--expect-binding <token>` command form is repeated across `src/skills/senti.flow/SKILL.md`, `.agents/skills/senti.flow/SKILL.md`, and related partial guidance. This creates a documentation drift risk between source partials and generated skill output.\n**Suggestion:** Define one canonical phrase or placeholder in the source partial, such as “current binding command arguments,” and have generated skill text consistently reference that concept instead of repeating the literal flag everywhere.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Duplicate guarded-command construction paths",
+        "body": "**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R3\n**Issue:** Guarded command creation appears in multiple files with slightly different fallback behavior: direct `binding.guardCommand(...)` calls in `get-next-action.js`, `guardedCommand(...)` in `next-action-directive.js`, and similar recovery helpers in `finalization-outbox-recovery.js`. This creates a cross-file interface inconsistency around whether commands must be derived from `FlowTargetBinding` or may fall back to state-derived guard flags.\n**Suggestion:** Introduce one shared guarded-command helper or directive-layer API that owns command wrapping. Require `FlowTargetBinding` for target-sensitive paths, and keep any legacy fallback in a clearly named non-target-sensitive helper.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Repeated exact-target guard failure wrappers",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`\n**Requirement:** R4\n**Issue:** `run-recover-existing-implementation.js`, `run-recover-review-pass.js`, and `run-reopen-draft.js` each keep a local wrapper around `missingExactTargetGuardNames()` that builds the same mismatch/failure envelope. The only meaningful difference is local naming, which makes enforcement behavior easier to drift across command files.\n**Suggestion:** Extract a shared exact-target guard failure helper and have all three command paths call it before target-sensitive side effects.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Inconsistent guard naming across command files",
+        "body": "**File:** `src/flow/lib/run-reopen-draft.js`\n**Requirement:** R4\n**Issue:** The same exact-target guard concept is named `validateCorrectionGuards()` in `run-reopen-draft.js` but `requireExactGuards()` in recovery files. This weakens cross-file readability because equivalent guard semantics use different names.\n**Suggestion:** Rename the reopen-draft helper to match the shared terminology, preferably `requireExactGuards()`, or remove the local helper entirely if a shared guard failure helper is introduced.",
+        "file": "src/flow/lib/run-reopen-draft.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Binding environment constants are only partially centralized",
+        "body": "**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `DISPATCH_INVOCATION_ENV` names one dispatcher environment variable, while `SENTI_FLOW_TARGET_BINDING` remains hardcoded in `executionEnvironment()`. These two env vars form one cross-file dispatcher/recovery contract, but only one has a named constant.\n**Suggestion:** Add `TARGET_BINDING_ENV` beside `DISPATCH_INVOCATION_ENV` and use computed keys for both entries.",
+        "file": "src/flow/lib/run-dispatch.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Binding command wording duplicated across generated and source skill docs",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** The literal `--expect-binding <token>` command form is repeated across `src/skills/senti.flow/SKILL.md`, `.agents/skills/senti.flow/SKILL.md`, and related partial guidance. This creates a documentation drift risk between source partials and generated skill output.\n**Suggestion:** Define one canonical phrase or placeholder in the source partial, such as “current binding command arguments,” and have generated skill text consistently reference that concept instead of repeating the literal flag everywhere.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

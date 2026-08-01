@@ -472,7 +472,7 @@ describe("flow skill liveness contract", () => {
     const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
     assert.doesNotMatch(skill, /When that limit is reached, STOP/);
     assert.doesNotMatch(skill, /On budget exhaustion, STOP/);
-    assert.match(skill, /senti flow run dispatch <targetGuardArgs>/);
+    assert.match(skill, /senti flow run dispatch --expect-binding <token>/);
     assert.match(skill, /only owner of\s+`execute_step`, `execute_command`, and `repair_evidence`/);
     assert.match(dispatcher, /await agent\.call/);
     assert.match(dispatcher, /await this\.fetchNextAction/);

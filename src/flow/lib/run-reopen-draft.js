@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
@@ -350,14 +351,7 @@ class PlanRewindAuditEntry {
 }
 
 function validateCorrectionGuards(ctx, state) {
-  const missing = [];
-  if (ctx.expectRunId == null) missing.push("--expect-run-id");
-  if (ctx.expectSpec == null) missing.push("--expect-spec");
-  if (state.issue == null) {
-    if (ctx.expectNoIssue !== true) missing.push("--expect-no-issue");
-  } else if (ctx.expectIssue == null) {
-    missing.push("--expect-issue");
-  }
+  const missing = missingExactTargetGuardNames(ctx, state);
   if (missing.length === 0) return null;
   return Envelope.fail(
     "run",

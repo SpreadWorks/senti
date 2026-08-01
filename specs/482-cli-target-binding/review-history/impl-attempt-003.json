@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-31T04:18:29.834Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "binding-command-omits-no-issue-guard",
+      "title": "Binding command drops explicit no-Issue guard",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/flow-target-guard.js",
+      "requirementId": "R8",
+      "issue": "`FlowTargetBinding.guardCommand()` always emits only `--expect-binding`, even when the captured binding has `issue: null`. Existing guard semantics require a no-Issue target to be explicit so a later Issue-bearing active flow cannot be selected accidentally.",
+      "suggestion": "Update `FlowTargetBinding.guardCommand()` or the binding-consuming CLI boundary so commands produced from a no-Issue binding include or enforce the equivalent of `--expect-no-issue`; the affected branch is the `this.issue === null` binding case.",
+      "disposition": "must-fix",
+      "rationale": "R8 is a target identity requirement, and the touched spec test asserts that no-Issue identity remains explicit. As written, serialized command text does not expose that guard and risks weakening the mandatory target binding behavior.",
+      "findingId": "40732bc77dbd95e795c0e4287602fd7ddbd8de10dfb4ee7e8e794bb9328b3c48",
+      "fingerprint": "40732bc77dbd95e795c0e4287602fd7ddbd8de10dfb4ee7e8e794bb9328b3c48",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "39b066cdcf8283fecb628d80482db164839163b2070d4db1fabe7581cdb5ad9f",
+  "reviewedTree": "39b066cdcf8283fecb628d80482db164839163b2070d4db1fabe7581cdb5ad9f",
+  "reviewedHead": "80356e35a40b4254c32ecb327050c260a8d679bd",
+  "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+  "planRewindAt": null,
+  "taskId": "T-2",
+  "target": "specs/482-cli-target-binding/tasks/T-2.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/482-cli-target-binding/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "703529d249da9bb17b08bdfdd64313206ffc2fc2bd68097c99bd362de707926d"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 3,
+  "findings": [
+    {
+      "id": "40732bc77dbd95e795c0e4287602fd7ddbd8de10dfb4ee7e8e794bb9328b3c48",
+      "findingId": "40732bc77dbd95e795c0e4287602fd7ddbd8de10dfb4ee7e8e794bb9328b3c48",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 3,
+      "severity": "blocking",
+      "title": "Binding command drops explicit no-Issue guard",
+      "body": "`FlowTargetBinding.guardCommand()` always emits only `--expect-binding`, even when the captured binding has `issue: null`. Existing guard semantics require a no-Issue target to be explicit so a later Issue-bearing active flow cannot be selected accidentally.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "40732bc77dbd95e795c0e4287602fd7ddbd8de10dfb4ee7e8e794bb9328b3c48",
+      "disposition": "must-fix",
+      "rationale": "R8 is a target identity requirement, and the touched spec test asserts that no-Issue identity remains explicit. As written, serialized command text does not expose that guard and risks weakening the mandatory target binding behavior.",
+      "requirementId": "R8",
+      "repeatCount": 1
+    }
+  ]
+}

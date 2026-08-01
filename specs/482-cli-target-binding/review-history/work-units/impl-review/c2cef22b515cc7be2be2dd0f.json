@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "c2cef22b515cc7be2be2dd0f",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-a6286c03bf1af8c8",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/next-action-directive.js",
+      "src/flow/lib/run-dispatch.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/lib/set-retry.js",
+      "src/lib/dispatcher.js",
+      "src/lib/provider.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/run-dispatch.test.js",
+      "tests/unit/flow/skill-prelude-auto.test.js"
+    ],
+    "inputHash": "a6286c03bf1af8c89a502f39df6bb86a28c063a0adf6e620ff916161617a1162",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "c2cef22b515cc7be2be2dd0f"
+  },
+  "targetFiles": [
+    "src/flow/commands/review.js",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/next-action-directive.js",
+    "src/flow/lib/run-dispatch.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/set-retry.js",
+    "src/lib/dispatcher.js",
+    "src/lib/provider.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/run-dispatch.test.js",
+    "tests/unit/flow/skill-prelude-auto.test.js"
+  ],
+  "inputHash": "a6286c03bf1af8c89a502f39df6bb86a28c063a0adf6e620ff916161617a1162",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T05:33:37.660Z",
+  "finishedAt": "2026-07-31T05:33:37.660Z",
+  "rawResponse": "### 1. Standardize Target Binding Naming\n**File:** `src/flow/lib/next-action-directive.js`\n**Requirement:** R3\n**Issue:** Multiple files introduce a generic `binding` name for `FlowTargetBinding` behavior, while other files and tests refer to the same concept as target binding. This creates cross-file naming drift across directive, finalization recovery, and test helpers.\n**Suggestion:** Rename generic `binding` parameters/fields/helpers to `targetBinding` or `flowTargetBinding` consistently in production and test files.\n\n### 2. Consolidate Binding-Guarded Command Construction\n**File:** `src/flow/lib/finalization-outbox-recovery.js`\n**Requirement:** R10\n**Issue:** Binding-aware command construction appears in multiple places with the same conditional pattern: use `binding.guardCommand(...)` when available, otherwise append legacy guard flags. This duplicates the interface contract for guarded commands across files.\n**Suggestion:** Extract a shared helper such as `guardedCommand(command, state, targetBinding)` and reuse it wherever CLI continuation commands are built.\n\n### 3. Unify Flow Target Authority Field Names\n**File:** `src/lib/flow-target-guard.js`\n**Requirement:** R12\n**Issue:** The same authority value is referred to as `authorityRoot` in capture inputs and `executionRoot` in serialized authority data. Related dispatcher code also reconstructs the same fields manually, making the target authority interface harder to reason about across files.\n**Suggestion:** Standardize on one internal name, preferably `executionRoot`, and expose a shared context-to-binding helper so dispatcher and binding capture paths use the same mapping.\n\n### 4. Extract Shared Review Recovery Identity Construction\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity fields are duplicated across `review-convergence.js` and `set-retry.js`, including run/spec/target-binding/dispatch identity details. Future identity changes could be applied inconsistently.\n**Suggestion:** Add a shared identity builder, for example `buildReviewRecoveryIdentity(input, overrides)`, and use it from both review convergence and retry code.\n\n### 5. Centralize Binding Command Assertions In Tests\n**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several test files repeat the same binding-only command assertions, checking for `--expect-binding` and absence of manual `--expect-run-id`, `--expect-issue`, and `--expect-spec` guards.\n**Suggestion:** Add local or shared test helpers such as `assertUsesBindingOnly(command)` / `assertCommandUsesExpectBinding(command)` and reuse them across directive, review, dispatch, and skill prelude tests.\n\n### 6. Clarify Binding-Era Skill Wording Across Artifacts\n**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Binding command guidance is repeated with slightly different wording across `senti.flow` and `core-principle.md`, while some sections still mention manual guard assembly. This creates documentation-level interface inconsistency for agents.\n**Suggestion:** Define one canonical phrase for “binding command” and one canonical mismatch-stop rule, then use the same wording in both the skill and shared partial.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Standardize Target Binding Naming",
+        "body": "**File:** `src/flow/lib/next-action-directive.js`\n**Requirement:** R3\n**Issue:** Multiple files introduce a generic `binding` name for `FlowTargetBinding` behavior, while other files and tests refer to the same concept as target binding. This creates cross-file naming drift across directive, finalization recovery, and test helpers.\n**Suggestion:** Rename generic `binding` parameters/fields/helpers to `targetBinding` or `flowTargetBinding` consistently in production and test files.",
+        "file": "src/flow/lib/next-action-directive.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Consolidate Binding-Guarded Command Construction",
+        "body": "**File:** `src/flow/lib/finalization-outbox-recovery.js`\n**Requirement:** R10\n**Issue:** Binding-aware command construction appears in multiple places with the same conditional pattern: use `binding.guardCommand(...)` when available, otherwise append legacy guard flags. This duplicates the interface contract for guarded commands across files.\n**Suggestion:** Extract a shared helper such as `guardedCommand(command, state, targetBinding)` and reuse it wherever CLI continuation commands are built.",
+        "file": "src/flow/lib/finalization-outbox-recovery.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "3. Unify Flow Target Authority Field Names",
+        "body": "**File:** `src/lib/flow-target-guard.js`\n**Requirement:** R12\n**Issue:** The same authority value is referred to as `authorityRoot` in capture inputs and `executionRoot` in serialized authority data. Related dispatcher code also reconstructs the same fields manually, making the target authority interface harder to reason about across files.\n**Suggestion:** Standardize on one internal name, preferably `executionRoot`, and expose a shared context-to-binding helper so dispatcher and binding capture paths use the same mapping.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R12"
+      },
+      {
+        "title": "4. Extract Shared Review Recovery Identity Construction",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity fields are duplicated across `review-convergence.js` and `set-retry.js`, including run/spec/target-binding/dispatch identity details. Future identity changes could be applied inconsistently.\n**Suggestion:** Add a shared identity builder, for example `buildReviewRecoveryIdentity(input, overrides)`, and use it from both review convergence and retry code.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "5. Centralize Binding Command Assertions In Tests",
+        "body": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several test files repeat the same binding-only command assertions, checking for `--expect-binding` and absence of manual `--expect-run-id`, `--expect-issue`, and `--expect-spec` guards.\n**Suggestion:** Add local or shared test helpers such as `assertUsesBindingOnly(command)` / `assertCommandUsesExpectBinding(command)` and reuse them across directive, review, dispatch, and skill prelude tests.",
+        "file": "tests/unit/flow/next-action-directive.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "6. Clarify Binding-Era Skill Wording Across Artifacts",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Binding command guidance is repeated with slightly different wording across `senti.flow` and `core-principle.md`, while some sections still mention manual guard assembly. This creates documentation-level interface inconsistency for agents.\n**Suggestion:** Define one canonical phrase for “binding command” and one canonical mismatch-stop rule, then use the same wording in both the skill and shared partial.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      }
+    ]
+  }
+}

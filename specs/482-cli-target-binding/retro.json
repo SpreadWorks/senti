@@ -1,0 +1,85 @@
+{
+  "spec": "specs/482-cli-target-binding/spec.json",
+  "date": "2026-07-31T22:32:12.542Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add a CLI-owned FlowTargetBinding class that stores canonical runId, Issue identity as either a positive issue number or explicit no-Issue, canonical spec path in specs/<specId>/spec.json form, and authority for the active normal Flow target. Managed-worktree authority uses the owned worktree identity; non-worktree branch authority is active-flow mode=branch plus the canonical main-repository execution root and flowState.featureBranch/baseBranch.",
+      "status": "done",
+      "note": "R1: captures canonical Flow identity and stable branch authority"
+    },
+    {
+      "desc": "FlowTargetBinding construction must verify that runId equals the active flow runId, Issue/no-Issue equals the active flow Issue state, spec path equals the active flow canonical spec path, and target authority equals the active Flow authority before the binding can generate a target-sensitive command or directive. For a non-worktree branch Flow this comparison covers registry mode=branch, realpath-normalized main-repository execution root, flowState.featureBranch, and flowState.baseBranch; it does not freeze moving ref OIDs or process HEAD.",
+      "status": "done",
+      "note": "R2: rejects every changed target or branch-authority field"
+    },
+    {
+      "desc": "next-action and dispatcher outputs for target-sensitive normal Flow actions must derive guard arguments or executable command text from FlowTargetBinding, and must not require the worker or skill to re-enter runId, Issue, or spec strings.",
+      "status": "done",
+      "note": "R3: CLI-generated command directives carry the complete opaque binding"
+    },
+    {
+      "desc": "Before each target-sensitive side effect in normal Flow dispatcher execution and the retained gate, set, reopen-draft, rewind-test-evidence, recover-existing-implementation, recover-review-pass, finalize, and finalize-cleanup command paths, the CLI must compare the binding against the current active authority and return ACTIVE_FLOW_MISMATCH without mutating artifacts when runId, Issue/no-Issue, spec, managed-worktree authority, or the branch authority tuple of registry mode, canonical main-repository execution root, featureBranch, and baseBranch differs.",
+      "status": "done",
+      "note": "R4: stale binding fails before a target-sensitive mutation callback"
+    },
+    {
+      "desc": "A command generated from a FlowTargetBinding in a dispatcher invocation must proceed past target validation when the current flow.json runId, Issue/no-Issue, spec path, and managed-worktree authority or defined branch authority tuple still equal the binding values; normal commits that advance the bound feature ref must not invalidate the binding.",
+      "status": "done",
+      "note": "R5: advancing the bound feature ref does not change branch identity"
+    },
+    {
+      "desc": "Dispatcher resume and context-compaction recovery paths must reacquire the active target authority from CLI state and reconstruct or validate FlowTargetBinding before issuing the next target-sensitive directive.",
+      "status": "done",
+      "note": "R6: a resumed dispatcher reacquires authority instead of reusing stale binding text"
+    },
+    {
+      "desc": "Remove targetGuardArgs as a public worker prompt contract, or keep it only as an internal implementation detail generated from FlowTargetBinding with no requirement for agent-side string transcription.",
+      "status": "done",
+      "note": "R7: worker prompt receives an opaque binding environment without guard transcription"
+    },
+    {
+      "desc": "Preserve no-Issue flow behavior: a binding for an active no-Issue flow must serialize an explicit no-Issue identity and must fail with ACTIVE_FLOW_MISMATCH if the active flow later has an Issue number.",
+      "status": "done",
+      "note": "R8: no-Issue identity is explicit and rejects an Issue-bearing target"
+    },
+    {
+      "desc": "Preserve multiple-target and missing-target behavior: explicit target selection must resolve exactly one active Flow before binding construction, and zero or multiple matches must stop without mutating Flow artifacts.",
+      "status": "done",
+      "note": "R9: explicit selection requires exactly one matching active Flow"
+    },
+    {
+      "desc": "Preserve finalize-cleanup boundary behavior without redesign: binding validation must not allow cleanup, finalize, or post-finalize transitions to run with a different registry mode, execution root, featureBranch, or baseBranch, while existing finalize logic remains responsible for lifecycle-specific ref OID and HEAD checks.",
+      "status": "done",
+      "note": "R10: finalize boundaries retain lifecycle ref checks behind binding identity"
+    },
+    {
+      "desc": "If src/skills/senti.flow/SKILL.md changes, generated skill artifacts must be refreshed with senti upgrade and tests must cover that workers execute CLI-returned directives or commands as-is.",
+      "status": "done",
+      "note": "R11: worker prompt preserves the CLI-returned executable command as-is"
+    },
+    {
+      "desc": "For a managed-worktree Flow, the same explicit runId, Issue/no-Issue, and spec selection invoked from the canonical main repository or the bound worktree must resolve one FlowTargetBinding; process-owned dispatcher locks must use the canonical main-repository lock authority, and any conflicting worktree binding must return ACTIVE_FLOW_MISMATCH before mutation.",
+      "status": "done",
+      "note": "R12: main and managed-worktree invocation roots capture one lock authority"
+    },
+    {
+      "desc": "Review convergence and provider-recovery decisions must validate the current FlowTargetBinding and canonical target-state digest before reusing an exhausted blocker; an authorized draft/spec correction that changes canonical review input must make the old blocker inapplicable, while a fresh retry for unchanged input must be represented by a single audited, same-binding recovery receipt.",
+      "status": "done",
+      "note": "R13: stale digest suppresses an old blocker instead of reusing it"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 13,
+    "done": 13,
+    "partial": 0,
+    "not_done": 0,
+    "not_applicable_count": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  },
+  "repairFingerprint": "67e841a86930b10ee700e8af75f968bc9763a1c7b57977f18ff46e38df7ef0a2"
+}

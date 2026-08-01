@@ -262,6 +262,7 @@ export function buildDeferredDispositionRepairPrompt(context, missingFindings) {
     requirements: context.evidence.requirements,
     diff: context.evidence.diff,
     repairEvidence: context.evidence.repairEvidence,
+    upgradeEvidence: context.evidence.upgradeEvidence,
     testEvidence: context.evidence.testEvidence,
     deferredFindings: missingFindings,
     deferredFindingEvidence: context.evidence.deferredFindingEvidence.filter((entry) => (

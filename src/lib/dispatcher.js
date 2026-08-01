@@ -472,6 +472,10 @@ export async function dispatch({
           key: envelopeKey || "?",
           input,
           flowState: hookCtx.preparingFlowState ?? hookCtx.flowState,
+          mainRoot: hookCtx.mainRoot || hookCtx.root,
+          authorityRoot: hookCtx.root,
+          worktreePath: hookCtx.flowState?.worktree === true ? hookCtx.root : undefined,
+          context: hookCtx,
         })
       : null;
   if (targetMismatch) {

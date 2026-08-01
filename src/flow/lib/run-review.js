@@ -1135,6 +1135,7 @@ function canonicalFinding(input, artifactName, { findingId, fingerprint }) {
     summary,
     fingerprint,
     evidenceRefs: [`${artifactName}#${findingId}`],
+    ...(input.disposition == null ? {} : { disposition: input.disposition }),
   };
 }
 
@@ -1534,14 +1535,17 @@ function persistCanonicalReviewArtifact(
     error.code = "REVIEW_CONVERGENCE_CONTEXT_REQUIRED";
     throw error;
   }
+  const artifactName = canonicalArtifactName(phase);
+  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  const artifactPath = path.join(specDir, artifactName);
+  if ((!Array.isArray(result.changed) || result.changed.length === 0) && fs.existsSync(artifactPath)) {
+    result.changed = [path.relative(ctx.root, artifactPath).split(path.sep).join("/")];
+  }
   if (!Array.isArray(result.changed) || result.changed.length === 0) {
     const error = new Error("successful review execution did not report a canonical source artifact");
     error.code = "REVIEW_EVIDENCE_ARTIFACT_REQUIRED";
     throw error;
   }
-  const artifactName = canonicalArtifactName(phase);
-  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
-  const artifactPath = path.join(specDir, artifactName);
   if (!fs.existsSync(artifactPath)) {
     const error = new Error(`successful review execution is missing ${artifactName}`);
     error.code = "REVIEW_EVIDENCE_ARTIFACT_MISSING";

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Apply the blocking finding by defining branch-flow authority from persisted flow state and canonical repository identity.",
+  "items": [
+    {
+      "title": "Branch authority is required but not defined against existing branch-flow state",
+      "target": "R1, R2, R4, R5, R10",
+      "decision": "apply",
+      "rationale": "The finding identifies a real ambiguity that affects mismatch safety and finalization. The existing state already provides stable featureBranch and baseBranch identities, while the active-flow registry provides mode and FlowManager provides the canonical main-repository execution authority.",
+      "evidence": "src/lib/active-flow-registry.js restricts entries to spec and mode; src/lib/flow-manager.js resolves non-worktree authority to mainRoot; src/flow/lib/run-finalize-cleanup.js persists and validates featureBranch/baseBranch and resolves their refs independently of process HEAD."
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+  "planRewindAt": null,
+  "generatedAt": "2026-07-31T04:55:14.360Z",
+  "phase": "task-impl",
+  "result": "fail",
+  "evaluations": [
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added test constructs `new FlowDispatchWork({ action, binding })`, but the implementation now requires a non-empty `dispatchInvocationId`, so this project test is statically inconsistent with the implemented constructor contract.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+            "locator": "FlowDispatchWork construction in R7 test"
+          },
+          "observed": "The added test constructs `new FlowDispatchWork({ action, binding })`, but the implementation now requires a non-empty `dispatchInvocationId`, so this project test is statically inconsistent with the implemented constructor contract.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "faadb3995c5010bb09985df1372fc454ab2c4a3c34d95913cabc60af64a1e8b7",
+      "fingerprint": "faadb3995c5010bb09985df1372fc454ab2c4a3c34d95913cabc60af64a1e8b7",
+      "disposition": "must-fix",
+      "rationale": "The added test constructs `new FlowDispatchWork({ action, binding })`, but the implementation now requires a non-empty `dispatchInvocationId`, so this project test is statically inconsistent with the implemented constructor contract.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-31T04:55:14.360Z",
+      "repeatCount": 1
+    },
+    {
+      "guardrail_id": "project-test-integrity",
+      "result": "fail",
+      "reason": "The added test expects `work.executionEnvironment()` to return only `SENTI_FLOW_TARGET_BINDING`, but the implementation also returns `SENTI_FLOW_DISPATCH_INVOCATION_ID`, so this project test assertion is statically inconsistent with the implemented behavior.",
+      "category": "testing",
+      "title": "Project Test Integrity",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "project-test-integrity",
+          "where": {
+            "file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+            "locator": "R7 executionEnvironment assertion"
+          },
+          "observed": "The added test expects `work.executionEnvironment()` to return only `SENTI_FLOW_TARGET_BINDING`, but the implementation also returns `SENTI_FLOW_DISPATCH_INVOCATION_ID`, so this project test assertion is statically inconsistent with the implemented behavior.",
+          "severity": "blocking",
+          "refs": [
+            "project-test-integrity"
+          ]
+        }
+      ],
+      "findingId": "faadb3995c5010bb09985df1372fc454ab2c4a3c34d95913cabc60af64a1e8b7",
+      "fingerprint": "faadb3995c5010bb09985df1372fc454ab2c4a3c34d95913cabc60af64a1e8b7",
+      "disposition": "must-fix",
+      "rationale": "The added test expects `work.executionEnvironment()` to return only `SENTI_FLOW_TARGET_BINDING`, but the implementation also returns `SENTI_FLOW_DISPATCH_INVOCATION_ID`, so this project test assertion is statically inconsistent with the implemented behavior.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-31T04:55:14.360Z",
+      "repeatCount": 1
+    }
+  ],
+  "observations": [
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "locator": "FlowDispatchWork construction in R7 test"
+      },
+      "observed": "The added test constructs `new FlowDispatchWork({ action, binding })`, but the implementation now requires a non-empty `dispatchInvocationId`, so this project test is statically inconsistent with the implemented constructor contract.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "283728efddbde2f6ade5ae3705c7a5e93bd384c0cba81e5f4aa688f816b7e6f3",
+      "fingerprint": "283728efddbde2f6ade5ae3705c7a5e93bd384c0cba81e5f4aa688f816b7e6f3",
+      "disposition": "must-fix",
+      "rationale": "The added test constructs `new FlowDispatchWork({ action, binding })`, but the implementation now requires a non-empty `dispatchInvocationId`, so this project test is statically inconsistent with the implemented constructor contract.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-31T04:55:14.360Z",
+      "repeatCount": 1
+    },
+    {
+      "kind": "violation",
+      "failureMode": "guardrail-violation",
+      "requirementRef": "project-test-integrity",
+      "where": {
+        "file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "locator": "R7 executionEnvironment assertion"
+      },
+      "observed": "The added test expects `work.executionEnvironment()` to return only `SENTI_FLOW_TARGET_BINDING`, but the implementation also returns `SENTI_FLOW_DISPATCH_INVOCATION_ID`, so this project test assertion is statically inconsistent with the implemented behavior.",
+      "severity": "blocking",
+      "refs": [
+        "project-test-integrity"
+      ],
+      "result": "fail",
+      "guardrail_id": "project-test-integrity",
+      "category": "guardrail",
+      "findingId": "283728efddbde2f6ade5ae3705c7a5e93bd384c0cba81e5f4aa688f816b7e6f3",
+      "fingerprint": "283728efddbde2f6ade5ae3705c7a5e93bd384c0cba81e5f4aa688f816b7e6f3",
+      "disposition": "must-fix",
+      "rationale": "The added test expects `work.executionEnvironment()` to return only `SENTI_FLOW_TARGET_BINDING`, but the implementation also returns `SENTI_FLOW_DISPATCH_INVOCATION_ID`, so this project test assertion is statically inconsistent with the implemented behavior.",
+      "requirementId": null,
+      "guardrailId": "project-test-integrity",
+      "reportedAt": "2026-07-31T04:55:14.360Z",
+      "repeatCount": 1
+    }
+  ]
+}

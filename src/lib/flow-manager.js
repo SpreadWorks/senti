@@ -26,13 +26,15 @@ import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
 const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "local"]);
 
 export class ResolvedFlowTarget {
-  constructor({ state, specId = null, worktreePath = null, authorityRoot, preparing = false }) {
+  constructor({ state, specId = null, worktreePath = null, mainRoot, authorityRoot, preparing = false }) {
     if (!state || typeof state !== "object") throw new Error("resolved flow target state is required");
     if (!state.runId) throw new Error("resolved flow target runId is required");
+    if (!mainRoot) throw new Error("resolved flow target main root is required");
     if (!authorityRoot) throw new Error("resolved flow target authority root is required");
     this.state = state;
     this.specId = state.spec ? specIdFromPath(state.spec) : specId;
     this.worktreePath = worktreePath;
+    this.mainRoot = mainRoot;
     this.authorityRoot = authorityRoot;
     this.preparing = Boolean(preparing);
     if (this.preparing && this.specId != null) {
@@ -46,14 +48,37 @@ export class ResolvedFlowTarget {
 
   matches(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) return false;
-    if (expectation.runId != null && this.state.runId !== expectation.runId) return false;
-    const activeIssue = this.state.issue == null ? null : Number(this.state.issue);
-    if (expectation.issue != null && activeIssue !== expectation.issue) return false;
-    if (expectation.issueAbsent && activeIssue !== null) return false;
-    if (expectation.spec != null && this.specId !== expectation.spec) return false;
+    if (this.mismatchAgainst(expectation)) return false;
     return true;
   }
 
+  mismatchAgainst(expectation) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) return null;
+    if (this.preparing && expectation.binding) {
+      return expectation.mismatchAgainst(this.state) || {
+        expectedSpec: specIdFromPath(expectation.binding.spec),
+        activeSpec: null,
+      };
+    }
+    if (expectation.binding) {
+      try {
+        expectation.binding.assertCurrent(this.bindingInput());
+      } catch (error) {
+        if (error?.code === "ACTIVE_FLOW_MISMATCH") return error.data;
+        throw error;
+      }
+    }
+    return expectation.mismatchAgainst(this.state);
+  }
+
+  bindingInput() {
+    return {
+      flowState: this.state,
+      mainRoot: this.mainRoot,
+      authorityRoot: this.authorityRoot,
+      ...(this.worktreePath && { worktreePath: this.worktreePath }),
+    };
+  }
 }
 
 export class ActiveFlowIdentityEntry {
@@ -275,8 +300,7 @@ function activeFlowExpectation(opts) {
 }
 
 class ActiveFlowMismatchError extends Error {
-  constructor(expectation, state) {
-    const data = expectation.mismatchAgainst(state);
+  constructor(expectation, state, data = expectation.mismatchAgainst(state)) {
     super("managed worktree flow identity does not match the specified target");
     this.code = "ACTIVE_FLOW_MISMATCH";
     this.data = data;
@@ -777,6 +801,7 @@ export class FlowManager {
         state: resolved.state,
         specId: resolved.specId,
         worktreePath: resolved.worktreePath,
+        mainRoot: this._mainRoot,
         authorityRoot: resolved.worktreePath || this._mainRoot,
       });
       candidates.push(target);
@@ -786,6 +811,7 @@ export class FlowManager {
       if (!state) continue;
       const target = new ResolvedFlowTarget({
         state,
+        mainRoot: this._mainRoot,
         authorityRoot: this._mainRoot,
         preparing: true,
       });
@@ -812,14 +838,25 @@ export class FlowManager {
   resolveActiveFlow(flowState, opts = {}) {
     const expectation = activeFlowExpectation(opts);
     if (flowState) {
-      if (expectation?.mismatchAgainst(flowState)) {
-        throw new ActiveFlowMismatchError(expectation, flowState);
-      }
       const specId = specIdFromPath(flowState.spec);
       let worktreePath = null;
       if (flowState.worktree) {
         const candidate = this._store.resolveWorktreePaths(flowState).worktreePath;
         if (candidate && fs.existsSync(candidate)) worktreePath = candidate;
+      }
+      if (!expectation) {
+        return { state: flowState, specId, worktreePath };
+      }
+      const target = new ResolvedFlowTarget({
+        state: flowState,
+        specId,
+        worktreePath,
+        mainRoot: this._mainRoot,
+        authorityRoot: worktreePath || this._root,
+      });
+      const mismatch = expectation ? target.mismatchAgainst(expectation) : null;
+      if (mismatch) {
+        throw new ActiveFlowMismatchError(expectation, flowState, mismatch);
       }
       return { state: flowState, specId, worktreePath };
     }
@@ -831,6 +868,7 @@ export class FlowManager {
           state: resolved.state,
           specId: resolved.specId,
           worktreePath: resolved.worktreePath,
+          mainRoot: this._mainRoot,
           authorityRoot: resolved.worktreePath || this._mainRoot,
         })
       )).filter((target) => target.matches(expectation));

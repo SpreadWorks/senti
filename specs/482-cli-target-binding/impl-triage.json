@@ -1,0 +1,455 @@
+{
+  "version": 2,
+  "phase": "impl-triage",
+  "sourceStep": "impl-review",
+  "sourceArtifact": "impl-review.json",
+  "previousFingerprint": {
+    "version": 3,
+    "hash": "67e841a86930b10ee700e8af75f968bc9763a1c7b57977f18ff46e38df7ef0a2",
+    "manifestRef": "repair-fingerprint.json"
+  },
+  "generatedAt": "2026-07-31T22:31:02.590Z",
+  "items": [
+    {
+      "findingId": "136580844da483f3b9a10e4b232f45475aa9830f45cfee99f662a116a75c5449",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.agents/skills/senti.flow/SKILL.md`  \n**Requirement:** R13  \n**Issue:** The document repeats many near-identical command forms using `--expect-binding <token>`. This raises the chance of future drift when the binding syntax changes again.  \n**Suggestion:** Define a short placeholder once, for example `bindingArgs = --expect-binding <token>`, then use that placeholder consistently in the dispatcher-loop examples and command reference.",
+      "evidenceRefs": [
+        "impl-review.json#136580844da483f3b9a10e4b232f45475aa9830f45cfee99f662a116a75c5449"
+      ]
+    },
+    {
+      "findingId": "3e6dd0c614d46c8b00a13d35d663b8650196f233345120f73202862b96418354",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `.claude/skills/senti.flow/SKILL.md`  \n**Requirement:** R13  \n**Issue:** The document repeats many near-identical command forms using `--expect-binding <token>`. This raises the chance of future drift when the binding syntax changes again.  \n**Suggestion:** Define a short placeholder once, for example `bindingArgs = --expect-binding <token>`, then use that placeholder consistently in the dispatcher-loop examples and command reference.",
+      "evidenceRefs": [
+        "impl-review.json#3e6dd0c614d46c8b00a13d35d663b8650196f233345120f73202862b96418354"
+      ]
+    },
+    {
+      "findingId": "91862be3be231994f4ab0fb2581713e38e73419737375cf928cc403d45c05607",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/commands/review.js`  \n**Requirement:** R13  \n**Issue:** `ImplReviewFinding.toMemoryObject()` now always emits `requirementId`, even when it is `null`. That creates a noisier memory shape and may force downstream consumers to handle an explicit null where absence would be simpler.  \n**Suggestion:** Match the existing optional-field style used for `file` and `guardrailId`: only include `requirementId` when it is non-null.",
+      "evidenceRefs": [
+        "impl-review.json#91862be3be231994f4ab0fb2581713e38e73419737375cf928cc403d45c05607"
+      ]
+    },
+    {
+      "findingId": "223e00e21a9fde4a0272d79143d99a2f13cd5f6e3d3325f561dd5921e08f1739",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/definition.js`  \n**Requirement:** R13  \n**Issue:** The lifecycle-owned action prefix is duplicated as the string literal `\"run-\"` in both validation and `executionCommand` derivation.  \n**Suggestion:** Introduce a small constant such as `const RUN_ACTION_PREFIX = \"run-\";` and use it for both `startsWith()` and `slice()`. This keeps the invariant and command derivation tied to the same definition.",
+      "evidenceRefs": [
+        "impl-review.json#223e00e21a9fde4a0272d79143d99a2f13cd5f6e3d3325f561dd5921e08f1739"
+      ]
+    },
+    {
+      "findingId": "175d9ce8270ac7fb9b530cfe51ce1756583e5f51c9ec648a9f6caa17fe7adb32",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/acceptance-review-artifacts.js`  \n**Requirement:** R8  \n**Issue:** `ReviewHandoffAcceptanceDisposition.#appliedRepairRef` reads and scans the same repair artifact for each matching review handoff. With many handoffs from the same source step, this repeats file parsing and linear scans.  \n**Suggestion:** Build a per-review-step cache in `buildDeferredFindingsFromEvidence` or pass a small lookup object into `ReviewHandoffAcceptanceDisposition`, keyed by `sourceStep` and summary, so each repair artifact is read and indexed once.",
+      "evidenceRefs": [
+        "impl-review.json#175d9ce8270ac7fb9b530cfe51ce1756583e5f51c9ec648a9f6caa17fe7adb32"
+      ]
+    },
+    {
+      "findingId": "7a5866a39ba8c16a84765de8a11f76b7aa879864651ef1c68d3cb603e4e6976b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/base-command.js`  \n**Requirement:** R4  \n**Issue:** `flowCommandBoundary: true` is set before `...input`, so an input property named `flowCommandBoundary` can overwrite the internal boundary marker.  \n**Suggestion:** Move `flowCommandBoundary: true` after `...input`, or keep internal boundary metadata outside the merged user input object.",
+      "evidenceRefs": [
+        "impl-review.json#7a5866a39ba8c16a84765de8a11f76b7aa879864651ef1c68d3cb603e4e6976b"
+      ]
+    },
+    {
+      "findingId": "2afcfcbea4026c5a1adeac5e05331f4a4883ea6ae2a93ee5e99753487a8a8e43",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/finalization-outbox-recovery.js`  \n**Requirement:** R10  \n**Issue:** `recoveryCommand` and `refreshCommand` now duplicate the same binding-vs-guard fallback pattern.  \n**Suggestion:** Add a small helper such as `guardedCommand(command, state, binding)` and have both functions delegate to it. This keeps finalize cleanup command construction consistent as more recovery commands are added.",
+      "evidenceRefs": [
+        "impl-review.json#2afcfcbea4026c5a1adeac5e05331f4a4883ea6ae2a93ee5e99753487a8a8e43"
+      ]
+    },
+    {
+      "findingId": "601ac782cdf372a5b1e3e0913991a8c62f6f6c13fcef9ad42f3ddea6912daee1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/finding-disposition-policy.js`  \n**Requirement:** R1  \n**Issue:** `expectedProposal` is still computed as `\"informational\"` for non-mandatory findings, but the new condition only enforces conflicts when `mandatory` is true. That makes the non-mandatory branch misleading dead logic.  \n**Suggestion:** Simplify to compute the policy disposition only inside the mandatory branch, e.g. check `if (mandatory && candidate.proposedDisposition !== null && candidate.proposedDisposition !== \"must-fix\")`.",
+      "evidenceRefs": [
+        "impl-review.json#601ac782cdf372a5b1e3e0913991a8c62f6f6c13fcef9ad42f3ddea6912daee1"
+      ]
+    },
+    {
+      "findingId": "ad2f913b30a3114fd1c9637b15a6894e3ddf2fd122570b011dfdb34285c22660",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R6  \n**Issue:** `captureNextActionBinding()` catches all errors and returns `null` when resumed from the main root after worktree removal. That can hide unrelated bugs in `FlowTargetBinding.captureContext()` under the same condition.  \n**Suggestion:** Only suppress the specific expected failure mode for missing/removed worktree binding, or inspect the error type/message before returning `null`; otherwise rethrow.",
+      "evidenceRefs": [
+        "impl-review.json#ad2f913b30a3114fd1c9637b15a6894e3ddf2fd122570b011dfdb34285c22660"
+      ]
+    },
+    {
+      "findingId": "1fafd1d01216cda0a6b26da64a843f63d219d491093283b339f89e06aed2f22c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`  \n**Requirement:** R6  \n**Issue:** `buildPreimplementationBootstrapDirective()` and `buildCanonicalReviewPassRecoveryDirective()` now repeat the same pattern: build a base command, wrap it with `guardedCommand(..., state, binding)`, and construct an `ExecuteCommandDirective`.  \n**Suggestion:** Add a small local helper for guarded `ExecuteCommandDirective` creation, or at least for guarded command construction, to keep recovery directive behavior consistent as more target-sensitive recovery commands are added.",
+      "evidenceRefs": [
+        "impl-review.json#1fafd1d01216cda0a6b26da64a843f63d219d491093283b339f89e06aed2f22c"
+      ]
+    },
+    {
+      "findingId": "6b81665d04d8b18ce34902b987d03d97cb90fc56e4f82e022dd1bd6e69b4ea4c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `plannedRepairStepChanges()` uses `!preserveImplRepair || stepId !== \"impl-repair\"`, which appears inverted: the default now includes `impl-repair`, while `{ preserveImplRepair: true }` excludes it. The option name also does not clearly describe whether the step should be excluded from planned changes.  \n**Suggestion:** Rename the option to something explicit like `includeImplRepair` or `skipImplRepair`, and align the predicate with the name. For example, `includeImplRepair ? true : stepId !== \"impl-repair\"`.",
+      "evidenceRefs": [
+        "impl-review.json#6b81665d04d8b18ce34902b987d03d97cb90fc56e4f82e022dd1bd6e69b4ea4c"
+      ]
+    },
+    {
+      "findingId": "7bb0339a995c842779dd084a310c9228da9de5c7f43ce43c0109dd76577a2ac1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryMutation` duplicates nearly identical construction of `previousIdentity` and `nextIdentity`, with only tree/digest/invocation fields changing. This makes future target-binding identity changes easy to apply to one side but miss on the other.  \n**Suggestion:** Add a small helper such as `recoveryIdentityForMutation(input, prefix)` or build a shared base object, then spread in previous/next-specific fields.",
+      "evidenceRefs": [
+        "impl-review.json#7bb0339a995c842779dd084a310c9228da9de5c7f43ce43c0109dd76577a2ac1"
+      ]
+    },
+    {
+      "findingId": "1ecf07034535d96b6cc19cf1690340d5239d894661c1ae7939cf4e247130f51b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` accepts and stores `dispatchInvocationId`, and mutations persist it, but `changedIdentity()` does not compare it. That makes the field look semantically important while having no effect on reuse decisions.  \n**Suggestion:** If dispatch invocation identity is part of the audited same-binding recovery receipt, include it in the compared fields. If not, avoid storing it in `ReviewRecoveryIdentity` and keep it only on persisted records where needed.",
+      "evidenceRefs": [
+        "impl-review.json#1ecf07034535d96b6cc19cf1690340d5239d894661c1ae7939cf4e247130f51b"
+      ]
+    },
+    {
+      "findingId": "6f4ea1c1f3f507f043858660d33f59068b3bab84b75d409c203125ecba577309",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `convergenceStateForTargetDigest()` now always clears `blocker` and `toolingOutcome`, but `resolveReviewOperationForFlowState()` calls it even when the target digest matches. The function name does not make it obvious that it intentionally strips stored blocker state.  \n**Suggestion:** Rename it to reflect the behavior, such as `freshConvergenceStateForTargetDigest()`, or split the exact-match path from the “input changed, blocker no longer applies” path so the blocker-clearing behavior is explicit at the call site.",
+      "evidenceRefs": [
+        "impl-review.json#6f4ea1c1f3f507f043858660d33f59068b3bab84b75d409c203125ecba577309"
+      ]
+    },
+    {
+      "findingId": "244c314ff93b24e8658f1d3a46c8f32b8cef41670d7c2ab404a32f8c2356b51c",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-dispatch.js`  \n**Requirement:** R6  \n**Issue:** `dispatchInvocationId` is generated once before the dispatch loop, then reused for every agent call in `dispatchContinuation`. The name reads like a single dispatcher invocation, but it is attached to each worker execution environment, which makes the intended lifetime ambiguous.  \n**Suggestion:** Either rename it to reflect loop-wide scope, such as `dispatchSessionId`, or generate it inside the loop if each agent call should receive a unique invocation id. This keeps the recovery/context-compaction contract easier to reason about.",
+      "evidenceRefs": [
+        "impl-review.json#244c314ff93b24e8658f1d3a46c8f32b8cef41670d7c2ab404a32f8c2356b51c"
+      ]
+    },
+    {
+      "findingId": "8c246879ab820a9709dd342017ddb1ae46d4040df6749a2c8f7ad3ee4d52de97",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R10  \n**Issue:** `persistCanonicalReviewArtifact` now writes a fallback into `result.changed`. That mutates an input object and makes later code observe a value that was not actually reported by the review execution.  \n**Suggestion:** Compute a local normalized `changed` array instead, then validate against that:\n\n```js\nconst reportedChanged = Array.isArray(result.changed) ? result.changed : [];\nconst changed =\n  reportedChanged.length > 0\n    ? reportedChanged\n    : fs.existsSync(artifactPath)\n      ? [path.relative(ctx.root, artifactPath).split(path.sep).join(\"/\")]\n      : [];\n```\n\nThen check `changed.length` rather than changing `result.changed`.",
+      "evidenceRefs": [
+        "impl-review.json#8c246879ab820a9709dd342017ddb1ae46d4040df6749a2c8f7ad3ee4d52de97"
+      ]
+    },
+    {
+      "findingId": "ce9a05284e087aaf4bfe14fb7c826cb96064e33ab2da54c8722a0292988f437f",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-review.js`  \n**Requirement:** R10  \n**Issue:** `persistCanonicalReviewArtifact` now mixes artifact-name selection, spec-dir resolution, fallback `changed` inference, and artifact existence validation inline. The path-building logic is mechanical and likely useful wherever canonical review artifacts are handled.  \n**Suggestion:** Extract a small local helper such as `canonicalArtifactPath(ctx, phase)` returning `{ artifactName, artifactPath }`. This keeps the validation flow easier to scan and reduces future duplication if more canonical artifact checks are added.",
+      "evidenceRefs": [
+        "impl-review.json#ce9a05284e087aaf4bfe14fb7c826cb96064e33ab2da54c8722a0292988f437f"
+      ]
+    },
+    {
+      "findingId": "29dcfb37ed7a94ebeacfd65f235779d6cf756d01d004a333216fa387b47c3e5b",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` is now constructed in two places with mostly the same contextual fields (`runId`, issue/spec fields, target binding digest, dispatch invocation id). This makes it easy for future changes to update one identity path but not the other, which is risky for convergence and recovery correctness.  \n**Suggestion:** Add a small helper, for example `reviewRecoveryIdentityContext(ctx)`, that returns the shared identity fields. Use it in both `currentReviewRecoveryIdentity()` and `unchangedReviewConvergenceTarget()`.",
+      "evidenceRefs": [
+        "impl-review.json#29dcfb37ed7a94ebeacfd65f235779d6cf756d01d004a333216fa387b47c3e5b"
+      ]
+    },
+    {
+      "findingId": "75bbf4851b58e23387b6e8cab149a6eeb3f47e0a56e26a920638bf7acd5cb904",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** `normalizedExecutionEnvironment()` reads like a value, but it performs validation and may throw. Existing command/agent helper naming appears action-oriented for behavior-heavy helpers.  \n**Suggestion:** Rename it to `normalizeExecutionEnvironment()` or `buildExecutionEnvironmentOverride()` to make the validation/construction behavior clearer at call sites.",
+      "evidenceRefs": [
+        "impl-review.json#75bbf4851b58e23387b6e8cab149a6eeb3f47e0a56e26a920638bf7acd5cb904"
+      ]
+    },
+    {
+      "findingId": "fae4e3f89dc9d2c069eed50f6284383d7aa639b62526187396e6c517b32a5647",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** The byte cap counts only `name` and `entry` bytes, but the actual environment representation also includes at least the `=` separator per variable. The current limit is still bounded, but the implementation undercounts its own stated maximum.  \n**Suggestion:** Change the accounting to include separator overhead, e.g. `Buffer.byteLength(name) + 1 + Buffer.byteLength(entry)`, so the bound more accurately reflects the environment payload size.",
+      "evidenceRefs": [
+        "impl-review.json#fae4e3f89dc9d2c069eed50f6284383d7aa639b62526187396e6c517b32a5647"
+      ]
+    },
+    {
+      "findingId": "4732173bb0c8142e4ba66ffce2c4d73a60652f4443940ac950dd4f827b17b610",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** `targetMismatchEnvelopeForInput()` duplicates binding validation paths for `context` versus explicit `flowState/mainRoot/authorityRoot`, including repeated mismatch envelope construction and exception handling. This makes future changes to `ACTIVE_FLOW_MISMATCH` behavior easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `bindingMismatchDataForInput(expectation, { flowState, mainRoot, authorityRoot, worktreePath, context })` that returns mismatch data or `null`, and let `targetMismatchEnvelopeForInput()` only translate that into an envelope.",
+      "evidenceRefs": [
+        "impl-review.json#4732173bb0c8142e4ba66ffce2c4d73a60652f4443940ac950dd4f827b17b610"
+      ]
+    },
+    {
+      "findingId": "51fa433cccaaab10a3c918353657f72d8aa1bb032e1ed686946682b9dde9d8f4",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R6  \n**Issue:** In `resolveActiveFlow()`, after `if (!expectation) return ...`, the code still computes `const mismatch = expectation ? target.mismatchAgainst(expectation) : null;`. The ternary is dead defensive logic because `expectation` is guaranteed truthy at that point.  \n**Suggestion:** Replace it with `const mismatch = target.mismatchAgainst(expectation);` to make the control flow clearer.",
+      "evidenceRefs": [
+        "impl-review.json#51fa433cccaaab10a3c918353657f72d8aa1bb032e1ed686946682b9dde9d8f4"
+      ]
+    },
+    {
+      "findingId": "8349c00236bb585867127e06ab50bd936b455fb4a3b1b83f6726a22536a7abec",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** The `else` block inside `targetMismatchEnvelopeForInput()` is mis-indented, making the binding validation control flow harder to read and review. This is especially risky around mutation-prevention guard code.  \n**Suggestion:** Reformat the `else` block so the `if (!flowState || !mainRoot || !authorityRoot)` and following `try/catch` are visibly scoped inside the `else`.",
+      "evidenceRefs": [
+        "impl-review.json#8349c00236bb585867127e06ab50bd936b455fb4a3b1b83f6726a22536a7abec"
+      ]
+    },
+    {
+      "findingId": "bcaee2f33c7371fae6044d12d00fb1742fac6c23cf455e0c7ac4bfbc30a2e0c2",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` compares authorities with `JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON())`. This is brittle and inconsistent with the explicit field-by-field comparison already implemented in `bindingMismatch()`.  \n**Suggestion:** Either remove `equals()` if unused, or implement it through a field comparison helper shared with `bindingMismatch()`.",
+      "evidenceRefs": [
+        "impl-review.json#bcaee2f33c7371fae6044d12d00fb1742fac6c23cf455e0c7ac4bfbc30a2e0c2"
+      ]
+    },
+    {
+      "findingId": "a8cddfac55292fc78449098ea2b09b1b950e6dc481632f2ff5d86bd74930c2c1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` appears unused in the diff and adds an extra comparison mechanism alongside `bindingMismatch()`. Multiple comparison paths increase the chance of authority rules diverging.  \n**Suggestion:** Delete `equals()` unless there is an existing caller outside the shown diff; use `bindingMismatch()` as the single authority comparison path.",
+      "evidenceRefs": [
+        "impl-review.json#a8cddfac55292fc78449098ea2b09b1b950e6dc481632f2ff5d86bd74930c2c1"
+      ]
+    },
+    {
+      "findingId": "5565506e3599c897e84dd38f63d460df2587e675a924fc79f6b9d59f1a303044",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/provider.js`  \n**Requirement:** R13  \n**Issue:** `parse()` now keeps only the last `agent_message` by assigning `text = ...`, but the loop gives no local name or helper that documents this behavior. Since the previous behavior accumulated text, this semantic change is easy to miss during maintenance.  \n**Suggestion:** Extract the assignment into a small helper or at least use a clearly named local update point such as `lastAgentMessageText = String(...)`, then return that value. This makes the intended “last message wins” behavior explicit.",
+      "evidenceRefs": [
+        "impl-review.json#5565506e3599c897e84dd38f63d460df2587e675a924fc79f6b9d59f1a303044"
+      ]
+    },
+    {
+      "findingId": "56b615431cc7e7fe6c0be5a907ad4381f7d761d313f17e9a8f4c4e345c855aba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/skills/partials/core-principle.md`  \n**Requirement:** R13  \n**Issue:** The updated `ACTIVE_FLOW_MISMATCH` guidance repeats the same “refresh target authority through the CLI and continue only when the returned directive or command is for the intended Flow” concept in prose form, while `src/skills/senti.flow/SKILL.md` has similar but not identical wording.  \n**Suggestion:** Consolidate the rule into a single reusable sentence in the partial and have the skill text mirror it exactly, reducing drift between the core principle and generated skill artifact.",
+      "evidenceRefs": [
+        "impl-review.json#56b615431cc7e7fe6c0be5a907ad4381f7d761d313f17e9a8f4c4e345c855aba"
+      ]
+    },
+    {
+      "findingId": "6008e8f5b4d7ac306d41104f79081b89d0dcdfdcc71567e3a6bdde0c4e099b99",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The new `--expect-binding <token>` contract is repeated in several slightly different forms: “CLI-returned”, “CLI-generated”, “current CLI-generated binding”, and full command examples. This increases the chance future edits reintroduce `targetGuardArgs`-style manual assembly language in one section but not another.  \n**Suggestion:** Define one short canonical term near the first binding mention, for example “binding command means the exact CLI-returned command containing `--expect-binding <token>`”, then use that term consistently in the dispatcher loop and command reference.",
+      "evidenceRefs": [
+        "impl-review.json#6008e8f5b4d7ac306d41104f79081b89d0dcdfdcc71567e3a6bdde0c4e099b99"
+      ]
+    },
+    {
+      "findingId": "8a528f7a46b2c60fe0dbf56e939ef8d80ee2009b96ed105d0749d126eb2a9a96",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** Early sections still instruct agents to run `senti flow get status <runId> --expect-run-id <runId>` and add `--expect-issue` / `--expect-spec` guards for existing-target continuation. That may be intentional for pre-dispatch verification, but it now sits next to “Do not assemble runId, Issue, or spec guards yourself,” creating an inconsistent pattern.  \n**Suggestion:** Clarify the phase boundary explicitly: manual runId/Issue/spec guards are allowed only before a CLI binding exists; once a binding exists, all target-sensitive continuation must use the binding command exactly.",
+      "evidenceRefs": [
+        "impl-review.json#8a528f7a46b2c60fe0dbf56e939ef8d80ee2009b96ed105d0749d126eb2a9a96"
+      ]
+    },
+    {
+      "findingId": "22d257dd50f860029f9c539894f5e935dfaec571b2cc21f58a5c3a4e4a391522",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/commands/review.test.js`  \n**Requirement:** R6  \n**Issue:** The new unauthoritative task review test manually creates the temp spec directory, writes `spec.json`, builds review JSON, runs the review, and reads the artifact inline. This adds setup noise around the behavior being tested.  \n**Suggestion:** Extract the repeated fixture creation/readback into a small local helper, for example `runImplReviewWithReviewOutput(...)`, so the test emphasizes the downgrade from `must-fix` to `informational`.",
+      "evidenceRefs": [
+        "impl-review.json#22d257dd50f860029f9c539894f5e935dfaec571b2cc21f58a5c3a4e4a391522"
+      ]
+    },
+    {
+      "findingId": "0c3d2dd9dda1944ea8ea8c222f8afad5c6d3451c66bb9cab04a68d54e2a83eba",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/next-action-directive.test.js`  \n**Requirement:** R3  \n**Issue:** The same `--expect-binding` and legacy flag exclusion assertions are repeated across multiple directive tests.  \n**Suggestion:** Add a helper such as `assertUsesTargetBinding(nextAction)` that checks for `--expect-binding` and rejects `--expect-run-id|--expect-issue|--expect-spec`, then reuse it in each test.",
+      "evidenceRefs": [
+        "impl-review.json#0c3d2dd9dda1944ea8ea8c222f8afad5c6d3451c66bb9cab04a68d54e2a83eba"
+      ]
+    },
+    {
+      "findingId": "ec74948ccf422589a4ad7175289093ae6a510b9bfbc50e93edbf26a056b05677",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/next-action-directive.test.js`  \n**Requirement:** R3  \n**Issue:** The new helper is named `binding()`, which is vague in a test file with several domain concepts.  \n**Suggestion:** Rename it to something more specific, such as `flowTargetBinding()` or `captureTestBinding()`, to make each `NextActionDirectiveResolver` setup clearer.",
+      "evidenceRefs": [
+        "impl-review.json#ec74948ccf422589a4ad7175289093ae6a510b9bfbc50e93edbf26a056b05677"
+      ]
+    },
+    {
+      "findingId": "e75f978afe3bc139d232392defb135af0825cea2cbd1dfc77889ddad5642cab0",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The two new handoff tests duplicate a long setup pattern: finding object, `ReviewEvidence`, canonical evidence ref, file write, state creation, transition application, and acceptance context creation. This makes future changes to review evidence shape more error-prone.  \n**Suggestion:** Add a small local helper such as `prepareReviewHandoffContext({ fixture, phase, disposition, finding, request, repairArtifact })` and use it in both tests.",
+      "evidenceRefs": [
+        "impl-review.json#e75f978afe3bc139d232392defb135af0825cea2cbd1dfc77889ddad5642cab0"
+      ]
+    },
+    {
+      "findingId": "3ee8217762d104aa6f9e9fbcacc32c76c131494872bfe432cf4a1ad9596c9703",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The upgrade evidence test writes an `upgrade-result.json` object and then repeats the same object verbatim inside `assert.deepEqual`. This duplicates the expected contract and increases maintenance cost if the artifact schema changes.  \n**Suggestion:** Store the artifact in a named constant, write that constant with `writeJson`, and assert `artifact: upgradeArtifact`.",
+      "evidenceRefs": [
+        "impl-review.json#3ee8217762d104aa6f9e9fbcacc32c76c131494872bfe432cf4a1ad9596c9703"
+      ]
+    },
+    {
+      "findingId": "7ddd04ae9468af220f10583d3398e04a28693a128be6dc08a0fb03ef49def3fd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The variable `informationalFinding` is passed as an `advisoryFindings` entry and the test title refers to “legacy advisory review handoffs.” The mixed terminology makes the test intent slightly harder to scan.  \n**Suggestion:** Rename `informationalFinding` to `advisoryFinding` or adjust the test title/fixture consistently around “informational” if that is the canonical domain term.",
+      "evidenceRefs": [
+        "impl-review.json#7ddd04ae9468af220f10583d3398e04a28693a128be6dc08a0fb03ef49def3fd"
+      ]
+    },
+    {
+      "findingId": "4ecd9422409b641fa05d67b6cea5c595130437e4c3496b9d42e740f69d8920c6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R1  \n**Issue:** The new test constructs two `ReviewRecoveryIdentity` instances inline inside one assertion, which obscures the actual behavior under test.  \n**Suggestion:** Assign them to named locals like `currentIdentity` and `previousIdentity`, then assert `currentIdentity.changedFrom(previousIdentity) === false`. This matches the style of behavior-focused tests and makes failures easier to inspect.",
+      "evidenceRefs": [
+        "impl-review.json#4ecd9422409b641fa05d67b6cea5c595130437e4c3496b9d42e740f69d8920c6"
+      ]
+    },
+    {
+      "findingId": "d10ba732f0e1d3cdc3ae4cb64e7d10e1014a5df9e90257834641617341327442",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/set-retry.test.js`  \n**Requirement:** R13  \n**Issue:** `initializeRepositoryWithUntrackedSpec` duplicates most of `initializeRepository`: git init, config, fixture file creation, add, and commit. The only meaningful difference is adding an untracked spec after the initial commit.  \n**Suggestion:** Replace the new helper with a smaller wrapper around `initializeRepository(root)`:\n\n```js\nfunction initializeRepositoryWithUntrackedSpec(root) {\n  initializeRepository(root);\n  fs.mkdirSync(path.join(root, \"specs\", \"001-retry\"), { recursive: true });\n  fs.writeFileSync(path.join(root, \"specs\", \"001-retry\", \"spec.json\"), '{\"revision\":1}\\n');\n}\n```\n\nThis keeps fixture setup consistent and avoids future drift between the two repository initialization paths.",
+      "evidenceRefs": [
+        "impl-review.json#d10ba732f0e1d3cdc3ae4cb64e7d10e1014a5df9e90257834641617341327442"
+      ]
+    },
+    {
+      "findingId": "d01834bb7113ece2d3ab361c7a8df056f83e79f9bf6af1295fc22a3661b3a5a5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/skill-prelude-auto.test.js`  \n**Requirement:** R7  \n**Issue:** The test repeats several `assert.match(dispatcher, /... --expect-binding <token>/)` checks with only the command text changing. This makes future binding-contract updates more error-prone.  \n**Suggestion:** Store the expected dispatcher command patterns in an array and iterate over them, e.g. `for (const pattern of expectedBindingCommands) assert.match(dispatcher, pattern);`.",
+      "evidenceRefs": [
+        "impl-review.json#d01834bb7113ece2d3ab361c7a8df056f83e79f9bf6af1295fc22a3661b3a5a5"
+      ]
+    },
+    {
+      "findingId": "06284ce0c8ecf89d500712111ffed986b9544f9d46c19d48a7379d83ecfbbdc5",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R4  \n**Issue:** `mutableFlowManager` is accurate but broad; it does not make clear that this is a lightweight in-memory test double around a shared `state` object.  \n**Suggestion:** Rename it to something like `inMemoryFlowManager` or `flowManagerForState` to better match its test-double role and avoid implying it is a production-style mutable manager.",
+      "evidenceRefs": [
+        "impl-review.json#06284ce0c8ecf89d500712111ffed986b9544f9d46c19d48a7379d83ecfbbdc5"
+      ]
+    },
+    {
+      "findingId": "6ce25efcec2ad305e4b6966e0c93f5008b43c6b66fb735fb23dfa6feffaa0e6e",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/stale-test-evidence-refresh.test.js`  \n**Requirement:** R4  \n**Issue:** The final assertion builds an inline `flatMap(...).filter(...)` expression to count active leaf steps. That logic is more complex than the assertion’s intent and may be duplicated in future flow-state tests.  \n**Suggestion:** Add a small local helper such as `countInProgressLeafSteps(state)` and use it in the assertion. This makes the test read as behavior rather than tree traversal mechanics.",
+      "evidenceRefs": [
+        "impl-review.json#6ce25efcec2ad305e4b6966e0c93f5008b43c6b66fb735fb23dfa6feffaa0e6e"
+      ]
+    },
+    {
+      "findingId": "abe37aec76fc59cdd811cd85d51f924cfed65d9d5bfacf36ac50e50d1b99b0cd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/lib/agent.test.js`  \n**Requirement:** R1  \n**Issue:** The two new execution-environment validation tests duplicate the same `makeAgent({ command: \"echo\", args: [\"{{PROMPT}}\"] })` setup.  \n**Suggestion:** Introduce a small local helper such as `makeEchoAgent()` inside the describe block, or reuse an existing fixture if one exists in this file, so future environment-limit tests do not repeat the command shape.",
+      "evidenceRefs": [
+        "impl-review.json#abe37aec76fc59cdd811cd85d51f924cfed65d9d5bfacf36ac50e50d1b99b0cd"
+      ]
+    },
+    {
+      "findingId": "b77312c12f8d5b16e1106892a74e8289900e4527e7d3d135e2c04a915330f8f1",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/lib/agent.test.js`  \n**Requirement:** R1  \n**Issue:** The limits `65`, `64`, and `64 * 1024` are embedded directly in the tests. This makes the intended boundary less obvious and risks drift if the production constants change.  \n**Suggestion:** Use named test constants such as `MAX_EXECUTION_ENVIRONMENT_VARIABLES = 64` and `MAX_EXECUTION_ENVIRONMENT_BYTES = 64 * 1024`, then build the failing cases from those names.",
+      "evidenceRefs": [
+        "impl-review.json#b77312c12f8d5b16e1106892a74e8289900e4527e7d3d135e2c04a915330f8f1"
+      ]
+    },
+    {
+      "findingId": "7400a827407572fd23b023b778716b00f4dde9100c8bcf5c98a2ad5c87708a0d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/lib/provider.test.js`  \n**Requirement:** R13  \n**Issue:** The new provider test repeats verbose event object construction for each `item.completed` agent message, which makes the important distinction between progress and final messages harder to scan.  \n**Suggestion:** Add small local helpers like `agentMessage(payload)`, `commandExecution(command)`, and `turnCompleted(usage)` within the test or file. That would make the test emphasize the behavior: earlier agent message is ignored, final agent message is parsed, usage is normalized.",
+      "evidenceRefs": [
+        "impl-review.json#7400a827407572fd23b023b778716b00f4dde9100c8bcf5c98a2ad5c87708a0d"
+      ]
+    },
+    {
+      "findingId": "907a886868e3873adcef04875d93f15f2e64b74370a51629a7f11938562627fd",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Multiple files propose the same drift-prone fix for `--expect-binding <token>` wording across `.agents/skills/senti.flow/SKILL.md`, `src/skills/senti.flow/SKILL.md`, `src/skills/partials/core-principle.md`, and related generated tests. The cross-file problem is that binding-era guidance appears to exist in at least two skill sources plus a partial, with similar but not identical phrasing.\n**Suggestion:** Define one canonical binding-command phrase in the source partial or canonical skill source, generate or mirror it into the derived skill artifact, and update tests to assert that canonical wording rather than repeated bespoke strings.",
+      "evidenceRefs": [
+        "impl-review.json#907a886868e3873adcef04875d93f15f2e64b74370a51629a7f11938562627fd"
+      ]
+    },
+    {
+      "findingId": "9bc1d4bc2634183f96d7c4246ea871481b5d7dbd162d9791a4ac201455934a67",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R6\n**Issue:** Guarded command construction is duplicated across recovery/finalization paths: `finalization-outbox-recovery.js` has repeated binding-vs-guard fallback logic, while `get-next-action.js` repeats guarded `ExecuteCommandDirective` creation. These files are implementing the same target-sensitive command contract independently.\n**Suggestion:** Introduce a shared helper for guarded target-sensitive commands, then use it from recovery command builders and next-action directive builders so binding fallback behavior cannot diverge.",
+      "evidenceRefs": [
+        "impl-review.json#9bc1d4bc2634183f96d7c4246ea871481b5d7dbd162d9791a4ac201455934a67"
+      ]
+    },
+    {
+      "findingId": "f448f4d21e7b84ba17e0271abadeea99638b9f6ed48e515fa56b9a5404d6c9cc",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity construction is duplicated within `review-convergence.js` and again in `set-retry.js`, using the same contextual fields such as `runId`, issue/spec data, target binding digest, and dispatch invocation id. This creates a cross-file risk that convergence and retry recovery compare different identity shapes.\n**Suggestion:** Add a single identity-context helper or factory used by both `ReviewRecoveryMutation` construction and retry recovery code. Keep comparison semantics in one place, including whether `dispatchInvocationId` participates in identity changes.",
+      "evidenceRefs": [
+        "impl-review.json#f448f4d21e7b84ba17e0271abadeea99638b9f6ed48e515fa56b9a5404d6c9cc"
+      ]
+    },
+    {
+      "findingId": "44fbd53d7e372c1660131aa213b9186897bacc8e7a16d890a0a3446489dfb44d",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `dispatchInvocationId` is generated once per dispatch loop in `run-dispatch.js`, while recovery identity code stores or compares similarly named data in `review-convergence.js` and `set-retry.js`. The name suggests a per-invocation value, but its cross-file usage appears session-wide.\n**Suggestion:** Either rename the field consistently to something loop-scoped like `dispatchSessionId`, or generate a distinct id per worker invocation and update recovery identity semantics accordingly.",
+      "evidenceRefs": [
+        "impl-review.json#44fbd53d7e372c1660131aa213b9186897bacc8e7a16d890a0a3446489dfb44d"
+      ]
+    },
+    {
+      "findingId": "682e0bec52511867989573284a0d33a2b28165adb33e59beec97cfc5150283c7",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `src/lib/flow-target-guard.js`\n**Requirement:** R2\n**Issue:** Authority comparison is proposed in two competing forms in the same area: `FlowExecutionAuthority.equals()` uses JSON stringification, while mismatch detection uses explicit field comparison. Other files rely on target-binding correctness, so multiple comparison paths increase cross-file semantic drift.\n**Suggestion:** Keep one authority comparison mechanism, preferably explicit field comparison shared by `bindingMismatch()` and any equality caller. Remove `equals()` if it has no external caller.",
+      "evidenceRefs": [
+        "impl-review.json#682e0bec52511867989573284a0d33a2b28165adb33e59beec97cfc5150283c7"
+      ]
+    },
+    {
+      "findingId": "d24a5939c37f2816bcc204a299d57466153e53b7be42730763936a80d93a4ab6",
+      "sourceStep": "impl-review",
+      "decision": "reject",
+      "rationale": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several test files repeat `--expect-binding` assertions or setup helpers independently, including `next-action-directive.test.js`, `skill-prelude-auto.test.js`, and related flow review tests. This duplicates the binding contract in test code and makes future CLI syntax changes harder.\n**Suggestion:** Add focused local or shared test helpers for binding assertions, such as `assertUsesTargetBinding(command)`, and reuse them where tests are asserting the same absence of legacy guard flags.",
+      "evidenceRefs": [
+        "impl-review.json#d24a5939c37f2816bcc204a299d57466153e53b7be42730763936a80d93a4ab6"
+      ]
+    }
+  ]
+}

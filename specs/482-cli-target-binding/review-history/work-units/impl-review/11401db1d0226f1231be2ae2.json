@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "11401db1d0226f1231be2ae2",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0009",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/lib/provider.js",
+      "src/skills/partials/core-principle.md",
+      "src/skills/senti.flow/SKILL.md"
+    ],
+    "inputHash": "0d763a4de1f2747337e7f55a9b7193aa4eb04cc2737967247df2a02e51c6dd44",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "11401db1d0226f1231be2ae2"
+  },
+  "targetFiles": [
+    "src/lib/provider.js",
+    "src/skills/partials/core-principle.md",
+    "src/skills/senti.flow/SKILL.md"
+  ],
+  "inputHash": "0d763a4de1f2747337e7f55a9b7193aa4eb04cc2737967247df2a02e51c6dd44",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T21:44:02.466Z",
+  "finishedAt": "2026-07-31T21:44:02.466Z",
+  "rawResponse": "### 1. Extract binding-command wording into one canonical phrase\n**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The new `--expect-binding <token>` contract is repeated in several slightly different forms: “CLI-returned”, “CLI-generated”, “current CLI-generated binding”, and full command examples. This increases the chance future edits reintroduce `targetGuardArgs`-style manual assembly language in one section but not another.  \n**Suggestion:** Define one short canonical term near the first binding mention, for example “binding command means the exact CLI-returned command containing `--expect-binding <token>`”, then use that term consistently in the dispatcher loop and command reference.\n\n### 2. Remove lingering manual guard examples from binding-era instructions\n**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** Early sections still instruct agents to run `senti flow get status <runId> --expect-run-id <runId>` and add `--expect-issue` / `--expect-spec` guards for existing-target continuation. That may be intentional for pre-dispatch verification, but it now sits next to “Do not assemble runId, Issue, or spec guards yourself,” creating an inconsistent pattern.  \n**Suggestion:** Clarify the phase boundary explicitly: manual runId/Issue/spec guards are allowed only before a CLI binding exists; once a binding exists, all target-sensitive continuation must use the binding command exactly.\n\n### 3. Simplify repeated mismatch-stop wording\n**File:** `src/skills/partials/core-principle.md`  \n**Requirement:** R13  \n**Issue:** The updated `ACTIVE_FLOW_MISMATCH` guidance repeats the same “refresh target authority through the CLI and continue only when the returned directive or command is for the intended Flow” concept in prose form, while `src/skills/senti.flow/SKILL.md` has similar but not identical wording.  \n**Suggestion:** Consolidate the rule into a single reusable sentence in the partial and have the skill text mirror it exactly, reducing drift between the core principle and generated skill artifact.\n\n### 4. Add a parser helper for last agent message semantics\n**File:** `src/lib/provider.js`  \n**Requirement:** R13  \n**Issue:** `parse()` now keeps only the last `agent_message` by assigning `text = ...`, but the loop gives no local name or helper that documents this behavior. Since the previous behavior accumulated text, this semantic change is easy to miss during maintenance.  \n**Suggestion:** Extract the assignment into a small helper or at least use a clearly named local update point such as `lastAgentMessageText = String(...)`, then return that value. This makes the intended “last message wins” behavior explicit.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract binding-command wording into one canonical phrase",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** The new `--expect-binding <token>` contract is repeated in several slightly different forms: “CLI-returned”, “CLI-generated”, “current CLI-generated binding”, and full command examples. This increases the chance future edits reintroduce `targetGuardArgs`-style manual assembly language in one section but not another.  \n**Suggestion:** Define one short canonical term near the first binding mention, for example “binding command means the exact CLI-returned command containing `--expect-binding <token>`”, then use that term consistently in the dispatcher loop and command reference.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Remove lingering manual guard examples from binding-era instructions",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`  \n**Requirement:** R7  \n**Issue:** Early sections still instruct agents to run `senti flow get status <runId> --expect-run-id <runId>` and add `--expect-issue` / `--expect-spec` guards for existing-target continuation. That may be intentional for pre-dispatch verification, but it now sits next to “Do not assemble runId, Issue, or spec guards yourself,” creating an inconsistent pattern.  \n**Suggestion:** Clarify the phase boundary explicitly: manual runId/Issue/spec guards are allowed only before a CLI binding exists; once a binding exists, all target-sensitive continuation must use the binding command exactly.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "3. Simplify repeated mismatch-stop wording",
+        "body": "**File:** `src/skills/partials/core-principle.md`  \n**Requirement:** R13  \n**Issue:** The updated `ACTIVE_FLOW_MISMATCH` guidance repeats the same “refresh target authority through the CLI and continue only when the returned directive or command is for the intended Flow” concept in prose form, while `src/skills/senti.flow/SKILL.md` has similar but not identical wording.  \n**Suggestion:** Consolidate the rule into a single reusable sentence in the partial and have the skill text mirror it exactly, reducing drift between the core principle and generated skill artifact.",
+        "file": "src/skills/partials/core-principle.md",
+        "requirementId": "R13"
+      },
+      {
+        "title": "4. Add a parser helper for last agent message semantics",
+        "body": "**File:** `src/lib/provider.js`  \n**Requirement:** R13  \n**Issue:** `parse()` now keeps only the last `agent_message` by assigning `text = ...`, but the loop gives no local name or helper that documents this behavior. Since the previous behavior accumulated text, this semantic change is easy to miss during maintenance.  \n**Suggestion:** Extract the assignment into a small helper or at least use a clearly named local update point such as `lastAgentMessageText = String(...)`, then return that value. This makes the intended “last message wins” behavior explicit.",
+        "file": "src/lib/provider.js",
+        "requirementId": "R13"
+      }
+    ]
+  }
+}

@@ -1,7 +1,14 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { specIdFromPath } from "./flow-helpers.js";
 import { Envelope } from "./flow-envelope.js";
 
 const MAX_TARGET_TOKEN_LENGTH = 300;
+const MAX_FLOW_TARGET_BINDING_TOKEN_BYTES = 32 * 1024;
+const FLOW_TARGET_BINDING_VERSION = 1;
+const FLOW_TARGET_BINDING_MODES = new Set(["branch", "local", "worktree"]);
+const CANONICAL_SPEC = /^specs\/([^/]+)\/spec\.json$/;
 
 function normalizedToken(value, field) {
   if (value == null) return null;
@@ -41,8 +48,338 @@ function activeRunIdOf(state) {
   return state?.runId || null;
 }
 
+function requireFlowState(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("FlowTargetBinding requires active Flow state");
+  }
+  return input;
+}
+
+function canonicalDirectory(input, field) {
+  if (typeof input !== "string" || !path.isAbsolute(input)) {
+    throw new Error(`${field} must be an absolute directory`);
+  }
+  const resolved = path.resolve(input);
+  let stat;
+  let canonical;
+  try {
+    stat = fs.lstatSync(resolved);
+    canonical = fs.realpathSync(resolved);
+  } catch (cause) {
+    throw new Error(`${field} is unavailable: ${resolved}`, { cause });
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink() || canonical !== resolved) {
+    throw new Error(`${field} must be a canonical real directory: ${resolved}`);
+  }
+  return canonical;
+}
+
+function canonicalSpecPath(input) {
+  if (typeof input !== "string" || input.includes("\\")) {
+    throw new Error("FlowTargetBinding spec must use a canonical POSIX path");
+  }
+  const match = CANONICAL_SPEC.exec(input);
+  if (!match || path.posix.normalize(input) !== input || specIdFromPath(input) !== match[1]) {
+    throw new Error("FlowTargetBinding spec must match specs/<specId>/spec.json");
+  }
+  return input;
+}
+
+function flowIssue(state) {
+  const issue = state.issue ?? null;
+  if (issue == null) return null;
+  if (typeof issue !== "number" || !Number.isSafeInteger(issue) || issue < 1) {
+    throw new Error("FlowTargetBinding issue must be a positive integer or null");
+  }
+  return issue;
+}
+
+function requireBranch(value, field) {
+  if (typeof value !== "string" || value.trim() === "" || value.length > MAX_TARGET_TOKEN_LENGTH) {
+    throw new Error(`FlowTargetBinding ${field} must be a non-empty branch name`);
+  }
+  return value.trim();
+}
+
+function flowAuthorityMode(flowState) {
+  if (flowState.worktree === true) return "worktree";
+  const featureBranch = requireBranch(flowState.featureBranch, "featureBranch");
+  const baseBranch = requireBranch(flowState.baseBranch, "baseBranch");
+  return featureBranch === baseBranch ? "local" : "branch";
+}
+
+class FlowExecutionAuthority {
+  constructor(mode, mainRoot, executionRoot) {
+    if (new.target === FlowExecutionAuthority) {
+      throw new Error("FlowExecutionAuthority is abstract");
+    }
+    if (!FLOW_TARGET_BINDING_MODES.has(mode)) {
+      throw new Error(`unsupported Flow target authority mode: ${mode}`);
+    }
+    this.mode = mode;
+    this.mainRoot = canonicalDirectory(mainRoot, "FlowTargetBinding mainRoot");
+    this.executionRoot = canonicalDirectory(executionRoot, "FlowTargetBinding executionRoot");
+  }
+
+  get dispatchLockRoot() {
+    return this.mainRoot;
+  }
+
+  equals(other) {
+    return other instanceof FlowExecutionAuthority
+      && JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON());
+  }
+
+  static capture({ mode, flowState, mainRoot, authorityRoot, worktreePath }) {
+    const activeMode = flowAuthorityMode(flowState);
+    if (mode != null && mode !== activeMode) {
+      throw new FlowTargetBindingMismatchError({
+        expectedMode: mode ?? null,
+        activeMode,
+      });
+    }
+    if (activeMode === "worktree") {
+      return new ManagedWorktreeFlowAuthority({
+        mainRoot,
+        executionRoot: authorityRoot,
+        worktreePath: worktreePath ?? authorityRoot,
+      });
+    }
+    if (activeMode === "branch" || activeMode === "local") {
+      return new BranchFlowAuthority({
+        mode: activeMode,
+        mainRoot,
+        executionRoot: authorityRoot,
+        featureBranch: flowState.featureBranch,
+        baseBranch: flowState.baseBranch,
+      });
+    }
+    throw new Error(`unsupported Flow target authority mode: ${activeMode}`);
+  }
+
+  static fromStored(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("stored Flow target authority must be an object");
+    }
+    if (value.mode === "worktree") return new ManagedWorktreeFlowAuthority(value);
+    if (value.mode === "branch" || value.mode === "local") return new BranchFlowAuthority(value);
+    throw new Error(`unsupported stored Flow target authority mode: ${value.mode}`);
+  }
+}
+
+class BranchFlowAuthority extends FlowExecutionAuthority {
+  constructor({ mode = "branch", mainRoot, executionRoot, featureBranch, baseBranch }) {
+    super(mode, mainRoot, executionRoot);
+    if (this.executionRoot !== this.mainRoot) {
+      throw new Error(`${mode} Flow execution root must equal the canonical main repository`);
+    }
+    this.featureBranch = requireBranch(featureBranch, "featureBranch");
+    this.baseBranch = requireBranch(baseBranch, "baseBranch");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      mode: this.mode,
+      mainRoot: this.mainRoot,
+      executionRoot: this.executionRoot,
+      featureBranch: this.featureBranch,
+      baseBranch: this.baseBranch,
+    };
+  }
+}
+
+class ManagedWorktreeFlowAuthority extends FlowExecutionAuthority {
+  constructor({ mainRoot, executionRoot, worktreePath }) {
+    super("worktree", mainRoot, executionRoot);
+    this.worktreePath = canonicalDirectory(
+      worktreePath,
+      "FlowTargetBinding managed worktree path",
+    );
+    if (this.executionRoot !== this.worktreePath) {
+      throw new Error("managed worktree execution root must equal the owned worktree path");
+    }
+    if (this.worktreePath === this.mainRoot) {
+      throw new Error("managed worktree authority must differ from the main repository");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      mode: this.mode,
+      mainRoot: this.mainRoot,
+      executionRoot: this.executionRoot,
+      worktreePath: this.worktreePath,
+    };
+  }
+}
+
+export class FlowTargetBindingMismatchError extends Error {
+  constructor(data) {
+    super("active Flow authority no longer matches the captured FlowTargetBinding");
+    this.name = "FlowTargetBindingMismatchError";
+    this.code = "ACTIVE_FLOW_MISMATCH";
+    this.data = Object.freeze({ ...data });
+  }
+}
+
+function bindingMismatch(expected, active) {
+  const mismatches = {};
+  for (const [field, expectedKey, activeKey] of [
+    ["runId", "expectedRunId", "activeRunId"],
+    ["issue", "expectedIssue", "activeIssue"],
+    ["spec", "expectedSpec", "activeSpec"],
+  ]) {
+    if (expected[field] !== active[field]) {
+      mismatches[expectedKey] = expected[field];
+      mismatches[activeKey] = active[field];
+    }
+  }
+  const expectedAuthority = expected.authority;
+  const activeAuthority = active.authority;
+  for (const [field, label] of [
+    ["mode", "Mode"],
+    ["mainRoot", "MainRoot"],
+    ["executionRoot", "ExecutionRoot"],
+    ["worktreePath", "WorktreePath"],
+    ["featureBranch", "FeatureBranch"],
+    ["baseBranch", "BaseBranch"],
+  ]) {
+    const expectedValue = expectedAuthority[field] ?? null;
+    const activeValue = activeAuthority[field] ?? null;
+    if (expectedValue !== activeValue) {
+      mismatches[`expected${label}`] = expectedValue;
+      mismatches[`active${label}`] = activeValue;
+    }
+  }
+  return mismatches;
+}
+
+export class FlowTargetBinding {
+  constructor({ version = FLOW_TARGET_BINDING_VERSION, runId, issue, spec, authority }) {
+    if (version !== FLOW_TARGET_BINDING_VERSION) {
+      throw new Error(`unsupported FlowTargetBinding version: ${version}`);
+    }
+    this.version = version;
+    this.runId = normalizedRunId(runId);
+    if (this.runId == null) throw new Error("FlowTargetBinding runId is required");
+    this.issue = flowIssue({ issue });
+    this.spec = canonicalSpecPath(spec);
+    this.authority = authority instanceof FlowExecutionAuthority
+      ? authority
+      : FlowExecutionAuthority.fromStored(authority);
+    Object.freeze(this);
+  }
+
+  static capture(input = {}) {
+    const flowState = requireFlowState(input.flowState);
+    return new FlowTargetBinding({
+      runId: flowState.runId,
+      issue: flowIssue(flowState),
+      spec: flowState.spec,
+      authority: FlowExecutionAuthority.capture({
+        ...input,
+        flowState,
+      }),
+    });
+  }
+
+  static captureContext(ctx, flowState = ctx?.flowState) {
+    if (!ctx || typeof ctx !== "object" || Array.isArray(ctx)) {
+      throw new Error("FlowTargetBinding context is required");
+    }
+    return FlowTargetBinding.capture({
+      flowState,
+      mainRoot: ctx.mainRoot || ctx.root,
+      authorityRoot: ctx.root,
+      worktreePath: flowState?.worktree === true ? ctx.root : undefined,
+    });
+  }
+
+  static deserialize(token) {
+    if (typeof token !== "string" || token.trim() === "") {
+      throw new Error("serialized FlowTargetBinding is required");
+    }
+    if (Buffer.byteLength(token) > MAX_FLOW_TARGET_BINDING_TOKEN_BYTES) {
+      throw new Error(`serialized FlowTargetBinding must not exceed ${MAX_FLOW_TARGET_BINDING_TOKEN_BYTES} bytes`);
+    }
+    let value;
+    try {
+      value = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+    } catch (cause) {
+      throw new Error("serialized FlowTargetBinding is invalid", { cause });
+    }
+    return new FlowTargetBinding(value);
+  }
+
+  get digest() {
+    return crypto.createHash("sha256").update(JSON.stringify(this.toJSON())).digest("hex");
+  }
+
+  get dispatchLockRoot() {
+    return this.authority.dispatchLockRoot;
+  }
+
+  serialize() {
+    return Buffer.from(JSON.stringify(this.toJSON()), "utf8").toString("base64url");
+  }
+
+  guardCommand(command) {
+    if (typeof command !== "string" || command.trim() === "") {
+      throw new Error("FlowTargetBinding guarded command is required");
+    }
+    const issueGuard = this.issue == null
+      ? " --expect-no-issue"
+      : "";
+    return `${command.trim()} --expect-binding '${this.serialize()}'${issueGuard}`;
+  }
+
+  mismatchAgainst(input) {
+    let active;
+    try {
+      active = FlowTargetBinding.capture(input);
+    } catch (error) {
+      if (error?.code === "ACTIVE_FLOW_MISMATCH") throw error;
+      throw new FlowTargetBindingMismatchError({
+        expectedAuthority: this.authority.toJSON(),
+        activeAuthorityInvalid: error?.message || String(error),
+      });
+    }
+    const mismatches = bindingMismatch(this.toJSON(), active.toJSON());
+    return Object.keys(mismatches).length === 0 ? null : mismatches;
+  }
+
+  assertCurrent(input) {
+    const mismatch = this.mismatchAgainst(input);
+    if (mismatch) throw new FlowTargetBindingMismatchError(mismatch);
+    return this;
+  }
+
+  runIfCurrent(input, mutation) {
+    if (typeof mutation !== "function") {
+      throw new Error("FlowTargetBinding mutation callback is required");
+    }
+    this.assertCurrent(input);
+    return mutation();
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      runId: this.runId,
+      issue: this.issue,
+      spec: this.spec,
+      authority: this.authority.toJSON(),
+    };
+  }
+}
+
 export class FlowTargetExpectation {
   constructor(input = {}) {
+    this.binding = input.expectBinding == null
+      ? null
+      : FlowTargetBinding.deserialize(input.expectBinding);
     this.issue = normalizedIssue(input.expectIssue);
     this.issueAbsent = input.expectNoIssue === true;
     if (this.issue != null && this.issueAbsent) {
@@ -50,44 +387,59 @@ export class FlowTargetExpectation {
     }
     this.spec = normalizedSpec(input.expectSpec);
     this.runId = normalizedRunId(input.expectRunId ?? input.expectRunID);
+    if (this.binding) {
+      const mismatch = this.mismatchAgainst(this.binding.toJSON());
+      if (mismatch) {
+        throw new Error("explicit target guards conflict with --expect-binding");
+      }
+    }
     Object.freeze(this);
   }
 
   get empty() {
-    return this.issue == null && !this.issueAbsent && this.spec == null && this.runId == null;
+    return this.binding == null
+      && this.issue == null
+      && !this.issueAbsent
+      && this.spec == null
+      && this.runId == null;
   }
 
   mismatchAgainst(state) {
     if (this.empty || !state) return null;
     const mismatches = {};
+    const binding = this.binding;
+    const expectedIssue = this.issue ?? binding?.issue ?? null;
+    const expectsNoIssue = this.issueAbsent || (binding != null && binding.issue == null);
+    const expectedSpec = this.spec ?? (binding ? specIdFromPath(binding.spec) : null);
+    const expectedRunId = this.runId ?? binding?.runId ?? null;
     const activeIssue = activeIssueOf(state);
     const activeSpec = activeSpecOf(state);
     const activeRunId = activeRunIdOf(state);
-    if (this.issue != null && activeIssue !== this.issue) {
-      mismatches.expectedIssue = this.issue;
+    if (expectedIssue != null && activeIssue !== expectedIssue) {
+      mismatches.expectedIssue = expectedIssue;
       mismatches.activeIssue = activeIssue;
     }
-    if (this.issueAbsent && activeIssue !== null) {
+    if (expectsNoIssue && activeIssue !== null) {
       mismatches.expectedIssue = null;
       mismatches.activeIssue = activeIssue;
     }
-    if (this.spec != null && activeSpec !== this.spec) {
-      mismatches.expectedSpec = this.spec;
+    if (expectedSpec != null && activeSpec !== expectedSpec) {
+      mismatches.expectedSpec = expectedSpec;
       mismatches.activeSpec = activeSpec;
     }
-    if (this.runId != null && activeRunId !== this.runId) {
-      mismatches.expectedRunId = this.runId;
+    if (expectedRunId != null && activeRunId !== expectedRunId) {
+      mismatches.expectedRunId = expectedRunId;
       mismatches.activeRunId = activeRunId;
     }
     if (Object.keys(mismatches).length === 0) return null;
     return {
       ...mismatches,
-      ...((this.issue != null || this.issueAbsent) && !("expectedIssue" in mismatches) && {
-        expectedIssue: this.issue,
+      ...((expectedIssue != null || expectsNoIssue) && !("expectedIssue" in mismatches) && {
+        expectedIssue,
         activeIssue,
       }),
-      ...(this.spec != null && !("expectedSpec" in mismatches) && { expectedSpec: this.spec, activeSpec }),
-      ...(this.runId != null && !("expectedRunId" in mismatches) && { expectedRunId: this.runId, activeRunId }),
+      ...(expectedSpec != null && !("expectedSpec" in mismatches) && { expectedSpec, activeSpec }),
+      ...(expectedRunId != null && !("expectedRunId" in mismatches) && { expectedRunId, activeRunId }),
     };
   }
 }
@@ -109,7 +461,7 @@ function mismatchSummary(data) {
 }
 
 export function buildTargetMismatchEnvelope({ type, key, data }) {
-  return Envelope.fail(
+  const envelope = Envelope.fail(
     type,
     key,
     "ACTIVE_FLOW_MISMATCH",
@@ -119,16 +471,85 @@ export function buildTargetMismatchEnvelope({ type, key, data }) {
     ],
     data,
   );
+  envelope.errors[0].data = envelope.data;
+  return envelope;
 }
 
-export function targetMismatchEnvelopeForInput({ type, key, input, flowState }) {
+export function targetMismatchEnvelopeForInput({
+  type,
+  key,
+  input,
+  flowState,
+  mainRoot = null,
+  authorityRoot = null,
+  worktreePath = null,
+  context = null,
+}) {
   let expectation;
   try {
     expectation = new FlowTargetExpectation(input);
   } catch (err) {
     return Envelope.fail(type, key, "ARGS_ERROR", err.message);
   }
+  if (expectation.binding) {
+    if (context) {
+      try {
+        const active = FlowTargetBinding.captureContext(context, flowState);
+        const data = bindingMismatch(expectation.binding.toJSON(), active.toJSON());
+        if (Object.keys(data).length > 0) {
+          return buildTargetMismatchEnvelope({ type, key, data });
+        }
+      } catch (err) {
+        if (err?.code === "ACTIVE_FLOW_MISMATCH") {
+          return buildTargetMismatchEnvelope({ type, key, data: err.data });
+        }
+        return buildTargetMismatchEnvelope({
+          type,
+          key,
+          data: {
+            expectedAuthority: expectation.binding.authority.toJSON(),
+            activeAuthorityInvalid: err?.message || String(err),
+          },
+        });
+      }
+    } else {
+    if (!flowState || !mainRoot || !authorityRoot) {
+      return buildTargetMismatchEnvelope({
+        type,
+        key,
+        data: {
+          expectedRunId: expectation.binding.runId,
+          activeRunId: activeRunIdOf(flowState),
+        },
+      });
+    }
+    try {
+      expectation.binding.assertCurrent({
+        flowState,
+        mainRoot,
+        authorityRoot,
+        worktreePath: worktreePath ?? (flowState?.worktree === true ? authorityRoot : undefined),
+      });
+    } catch (err) {
+      if (err?.code !== "ACTIVE_FLOW_MISMATCH") throw err;
+      return buildTargetMismatchEnvelope({ type, key, data: err.data });
+    }
+    }
+  }
   const data = expectation.mismatchAgainst(flowState);
   if (!data) return null;
   return buildTargetMismatchEnvelope({ type, key, data });
+}
+
+export function missingExactTargetGuardNames(input = {}, state = {}) {
+  if (input.expectBinding != null) return [];
+  const missing = [];
+  if (input.expectRunId == null) missing.push("--expect-run-id");
+  if (input.expectSpec == null) missing.push("--expect-spec");
+  if (state.issue == null) {
+    if (input.expectNoIssue !== true) missing.push("--expect-no-issue");
+  } else if (input.expectIssue == null) {
+    missing.push("--expect-issue");
+  }
+  return missing;
 }

@@ -55,9 +55,10 @@ import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
  */
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
 const FLOW_TARGET_GUARD_FLAGS = ["--expect-no-issue"];
-const FLOW_TARGET_GUARD_OPTIONS = ["--expect-issue", "--expect-spec", "--expect-run-id"];
-const FLOW_TARGET_GUARD_USAGE = "[--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]";
+const FLOW_TARGET_GUARD_OPTIONS = ["--expect-issue", "--expect-spec", "--expect-run-id", "--expect-binding"];
+const FLOW_TARGET_GUARD_USAGE = "[--expect-binding <token> | [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]]";
 const FLOW_TARGET_GUARD_HELP_LINES = [
+  "  --expect-binding <token>  Require the selected flow and execution authority to match this CLI-generated binding.",
   "  --expect-issue <number>  Require the selected flow to belong to this Issue.",
   "  --expect-no-issue        Require the selected flow to have no Issue.",
   "  --expect-spec <spec>     Require the selected flow to match this spec.",
@@ -798,13 +799,10 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-resolve-context.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get resolve-context [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        `Usage: senti flow get resolve-context ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Resolve worktree/repo paths and active flow for context recovery.",
-        "  --expect-issue <number>  Fail with ACTIVE_FLOW_MISMATCH when the resolved flow belongs to another Issue.",
-        "  --expect-no-issue        Fail with ACTIVE_FLOW_MISMATCH when the resolved flow belongs to an Issue.",
-        "  --expect-spec <spec>     Fail with ACTIVE_FLOW_MISMATCH when the current context is another spec.",
-        "  --expect-run-id <runId>  Fail with ACTIVE_FLOW_MISMATCH when the current context is another runId.",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
     check: {

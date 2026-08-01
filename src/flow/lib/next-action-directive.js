@@ -19,9 +19,9 @@ import {
 } from "./step-outcome.js";
 import {
   FlowContinuation,
-  guardFlagsForState,
   UserActionPrompt,
 } from "./user-action-prompt.js";
+import { guardedCommand } from "./guarded-command.js";
 
 const ACTION_ID = /^[A-Z][A-Z0-9_]{2,79}$/;
 const MAX_TEXT_LENGTH = 4000;
@@ -55,19 +55,14 @@ function requireActionId(value, field = "actionId") {
   return actionId;
 }
 
-function guardedCommand(command, state) {
-  const guards = guardFlagsForState(state);
-  return `${requireString(command, "command")}${guards ? ` ${guards}` : ""}`;
-}
-
 function reviewCommand(phase) {
   return phase === "impl"
     ? "senti flow run review"
     : `senti flow run review --phase ${phase}`;
 }
 
-function refreshCommand(state) {
-  return guardedCommand("senti flow get next-action", state);
+function refreshCommand(state, binding) {
+  return guardedCommand("senti flow get next-action", state, binding);
 }
 
 export class NextActionDirective {
@@ -114,14 +109,21 @@ export class NextActionDirective {
 }
 
 export class ExecuteStepDirective extends NextActionDirective {
-  constructor({ action } = {}) {
+  constructor({ action, nextAction = null } = {}) {
     super({ kind: "execute_step", terminal: false, requiresUserAction: false });
     this.action = requireString(action, "directive.action", 200);
+    this.nextAction = nextAction == null
+      ? null
+      : requireString(nextAction, "directive.nextAction");
     Object.freeze(this);
   }
 
   toJSON() {
-    return { ...super.toJSON(), action: this.action };
+    return {
+      ...super.toJSON(),
+      action: this.action,
+      ...(this.nextAction && { nextAction: this.nextAction }),
+    };
   }
 }
 
@@ -241,11 +243,11 @@ export class IdleDirective extends NextActionDirective {
   }
 }
 
-function reviewDirective({ state, phase, operation }) {
+function reviewDirective({ state, binding, phase, operation }) {
   if (operation instanceof MoveToAcceptance) {
     return new ExecuteCommandDirective({
       actionId: "COMPLETE_REVIEW_LIFECYCLE",
-      nextAction: guardedCommand(reviewCommand(phase), state),
+      nextAction: guardedCommand(reviewCommand(phase), state, binding),
       instruction: "Complete the current canonical review outcome without invoking the reviewer again, persist any exhausted semantic findings for acceptance disposition, then refresh next-action.",
       reason: "The canonical review outcome is ready for its normal lifecycle transition.",
     });
@@ -254,7 +256,7 @@ function reviewDirective({ state, phase, operation }) {
     if (!operation.requiresChangedEvidence) {
       return new ExecuteCommandDirective({
         actionId: "RETRY_REVIEW",
-        nextAction: guardedCommand(reviewCommand(phase), state),
+        nextAction: guardedCommand(reviewCommand(phase), state, binding),
         instruction: "Retry the current review with its remaining tooling budget.",
         reason: operation.blocker.reason,
       });
@@ -265,7 +267,7 @@ function reviewDirective({ state, phase, operation }) {
       phase,
       instruction: "Repair the persisted blocking review findings in the current review target, then refresh next-action. Do not reset or spend another review attempt until the target identity changes.",
       reason: operation.blocker.reason,
-      nextAction: refreshCommand(state),
+      nextAction: refreshCommand(state, binding),
     });
   }
   if (operation instanceof RegisterAlternativeEvidence) {
@@ -275,7 +277,7 @@ function reviewDirective({ state, phase, operation }) {
       phase,
       instruction: "Recover the finalized canonical review evidence for this target and register it through the guarded review-evidence command, then refresh next-action.",
       reason: operation.blocker.reason,
-      nextAction: refreshCommand(state),
+      nextAction: refreshCommand(state, binding),
     });
   }
   if (operation instanceof StopAsBlocker) {
@@ -288,12 +290,12 @@ function reviewDirective({ state, phase, operation }) {
   throw new Error("unknown review permitted operation");
 }
 
-function gateDirective({ state, phase, recovery }) {
+function gateDirective({ state, binding, phase, recovery }) {
   if (!recovery) return null;
   if (recovery.recoveryPossible === true && recovery.recoveryCommand) {
     return new ExecuteCommandDirective({
       actionId: "RECOVER_GATE_RETRY",
-      nextAction: guardedCommand(recovery.recoveryCommand, state),
+      nextAction: guardedCommand(recovery.recoveryCommand, state, binding),
       instruction: "Apply the persisted one-attempt gate recovery and continue the normal Flow.",
       reason: recovery.recoveryReason,
     });
@@ -305,7 +307,7 @@ function gateDirective({ state, phase, recovery }) {
       phase,
       instruction: "Repair the persisted gate findings in the mapped source evidence, then refresh next-action. Do not spend another gate attempt until the evidence fingerprint changes.",
       reason: recovery.recoveryReason,
-      nextAction: refreshCommand(state),
+      nextAction: refreshCommand(state, binding),
     });
   }
   return new BlockedDirective({
@@ -318,7 +320,9 @@ function gateDirective({ state, phase, recovery }) {
 export class NextActionDirectiveResolver {
   constructor({
     state,
+    binding = null,
     action = null,
+    nextAction = null,
     reviewPhase = null,
     reviewTargetChanged = false,
     gatePhase = null,
@@ -330,7 +334,12 @@ export class NextActionDirectiveResolver {
       throw new Error("directive resolver state is required");
     }
     this.state = state;
+    if (binding != null && typeof binding.guardCommand !== "function") {
+      throw new Error("directive resolver binding.guardCommand is required");
+    }
+    this.binding = binding;
     this.action = action;
+    this.nextAction = nextAction;
     this.reviewPhase = reviewPhase;
     this.reviewTargetChanged = reviewTargetChanged === true;
     this.gatePhase = gatePhase;
@@ -343,6 +352,7 @@ export class NextActionDirectiveResolver {
     const review = this.reviewOperation
       ? reviewDirective({
           state: this.state,
+          binding: this.binding,
           phase: this.reviewPhase,
           operation: this.reviewOperation,
         })
@@ -359,6 +369,7 @@ export class NextActionDirectiveResolver {
     if (this.stepAttempt?.outcome instanceof ExternalBlockedOutcome) {
       const gate = gateDirective({
         state: this.state,
+        binding: this.binding,
         phase: this.gatePhase,
         recovery: this.gateRecovery,
       });
@@ -367,7 +378,10 @@ export class NextActionDirectiveResolver {
         this.reviewOperation instanceof MoveToAcceptance
         || this.reviewTargetChanged
       ) {
-        return new ExecuteStepDirective({ action: this.action });
+        return new ExecuteStepDirective({
+          action: this.action,
+          nextAction: this.nextAction,
+        });
       }
       return new BlockedDirective({
         code: "STEP_EXTERNAL_BLOCKED",
@@ -376,7 +390,10 @@ export class NextActionDirectiveResolver {
       });
     }
 
-    return new ExecuteStepDirective({ action: this.action });
+    return new ExecuteStepDirective({
+      action: this.action,
+      nextAction: this.nextAction,
+    });
   }
 }
 

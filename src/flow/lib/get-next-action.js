@@ -54,7 +54,8 @@ import {
   IdleDirective,
   NextActionDirectiveResolver,
 } from "./next-action-directive.js";
-import { guardFlagsForState } from "./user-action-prompt.js";
+import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
+import { guardedCommand } from "./guarded-command.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
 import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
@@ -250,20 +251,32 @@ function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
     || existingRecovery();
 }
 
-function buildPreimplementationBootstrapDirective(ctx, state, target) {
+function captureNextActionBinding(ctx, state) {
+  if (ctx.flowCommandBoundary !== true) return null;
+  try {
+    return FlowTargetBinding.captureContext(ctx, state);
+  } catch (error) {
+    const resumedFromMainAfterWorktreeRemoval = state.worktree === true
+      && ctx.mainRoot
+      && path.resolve(ctx.root) === path.resolve(ctx.mainRoot);
+    if (resumedFromMainAfterWorktreeRemoval) return null;
+    throw error;
+  }
+}
+
+function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
   if (target.stepId !== "scenario-validity") return null;
   const plan = inspectPreimplementationBootstrap({ root: ctx.root, state });
   if (!plan) return null;
-  const guards = guardFlagsForState(state);
   return new ExecuteCommandDirective({
     actionId: "RECOVER_PREIMPLEMENTATION_BOOTSTRAP",
-    nextAction: `senti flow run preimplementation-bootstrap${guards ? ` ${guards}` : ""}`,
+    nextAction: guardedCommand("senti flow run preimplementation-bootstrap", state, binding),
     instruction: "Use the persisted scenario-validity preflight evidence to enter implementation without reclassifying existing implementation-target changes as test design.",
     reason: `scenario-validity detected ${plan.invalidPaths.length} existing implementation-target change(s) against the immutable Flow baseline`,
   });
 }
 
-function buildCanonicalReviewPassRecoveryDirective(ctx, state) {
+function buildCanonicalReviewPassRecoveryDirective(ctx, state, binding) {
   for (const route of FLOW_REVIEW_ROUTES) {
     const plan = inspectCanonicalReviewPassRecovery({
       root: ctx.root,
@@ -271,10 +284,13 @@ function buildCanonicalReviewPassRecoveryDirective(ctx, state) {
       phase: route.phase,
     });
     if (!plan) continue;
-    const guards = guardFlagsForState(state);
     return new ExecuteCommandDirective({
       actionId: "RECOVER_CANONICAL_REVIEW_PASS",
-      nextAction: `senti flow run recover-review-pass --phase ${route.phase}${guards ? ` ${guards}` : ""}`,
+      nextAction: guardedCommand(
+        `senti flow run recover-review-pass --phase ${route.phase}`,
+        state,
+        binding,
+      ),
       instruction: "Restore the exact canonical PASS projection and clear only the conflicting review tooling state, then refresh next-action.",
       reason: `The ${route.phase} review has canonical PASS evidence for the unchanged target, but its mutable projection or convergence status was overwritten.`,
     });
@@ -383,7 +399,16 @@ class NextActionTerminalPlan {
   }
 }
 
-function buildNextActionResult(ctx, state, target, derived, outputSchema, instruction, finalizationRecovery = null) {
+function buildNextActionResult(
+  ctx,
+  state,
+  target,
+  derived,
+  outputSchema,
+  instruction,
+  binding,
+  finalizationRecovery = null,
+) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
   const result = {
     taskId: target.taskId,
@@ -435,12 +460,16 @@ function buildNextActionResult(ctx, state, target, derived, outputSchema, instru
   const gateRecovery = gateRecoveryDisplay
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
-  const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target)
-    || buildCanonicalReviewPassRecoveryDirective(ctx, state)
+  const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target, binding)
+    || buildCanonicalReviewPassRecoveryDirective(ctx, state, binding)
     || finalizationRecovery?.directive
     || new NextActionDirectiveResolver({
       state,
+      binding,
       action: derived.action,
+      nextAction: derived.executionCommand
+        ? guardedCommand(derived.executionCommand, state, binding)
+        : null,
       reviewPhase,
       reviewTargetChanged,
       gatePhase: gateRecoveryDisplay?.phase ?? null,
@@ -545,7 +574,8 @@ export class NextActionPlanner {
       key: derived.instructionsKey,
       content: injectPersistentRules(baseInstructions, target, state),
     };
-    const finalizationRecovery = resolveFinalizationOutboxRecovery(ctx, state, target);
+    const binding = captureNextActionBinding(ctx, state);
+    const finalizationRecovery = resolveFinalizationOutboxRecovery(ctx, state, target, binding);
     const result = buildNextActionResult(
       ctx,
       state,
@@ -553,6 +583,7 @@ export class NextActionPlanner {
       derived,
       outputSchema,
       instruction,
+      binding,
       finalizationRecovery,
     );
     return new NextActionPromotionPlan({

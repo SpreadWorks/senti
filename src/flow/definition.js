@@ -782,6 +782,9 @@ class FlowNode {
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
     this.gatePhase = gatePhase ? Object.freeze([...gatePhase]) : null;
     this.definitionLifecycleOwned = definitionLifecycleOwned === true;
+    if (this.definitionLifecycleOwned && !this.action.startsWith("run-")) {
+      throw new Error(`definition lifecycle-owned action must start with run-: ${this.action}`);
+    }
     if (failurePolicy !== null && !FAILURE_POLICIES.has(failurePolicy)) {
       throw new Error(`invalid failurePolicy: ${failurePolicy}`);
     }
@@ -1476,6 +1479,9 @@ export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
     maxAttempts: node.resolveMaxAttempts(context),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
     failurePolicy: node.failurePolicy,
+    executionCommand: node.definitionLifecycleOwned
+      ? `senti flow run ${node.action.slice("run-".length)}`
+      : null,
   };
 }
 

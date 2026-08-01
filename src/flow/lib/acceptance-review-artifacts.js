@@ -36,9 +36,11 @@ import {
 } from "./impl-repair-artifacts.js";
 import { StaleTestEvidenceRefresh } from "./stale-test-evidence-refresh.js";
 import {
+  matchUpgradeRequiredSourcePaths,
   validateScenarioValidityResult,
   validateTestExecuteResultV2,
   validateTestResultReview,
+  validateUpgradeEvidenceForGate,
 } from "./test-artifacts.js";
 
 export const ACCEPTANCE_REVIEW_ARTIFACT_FILE = "acceptance-review.json";
@@ -59,6 +61,11 @@ const FINGERPRINTED_INPUT_ARTIFACTS = Object.freeze(REQUIRED_MECHANICAL_ARTIFACT
 const MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES = 20 * 1024 * 1024;
 const MAX_MECHANICAL_BLOCKER_DETAIL_CHARS = 2_000;
 const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
+const PREIMPLEMENTATION_REPAIR_ARTIFACT_BY_REVIEW_STEP = Object.freeze({
+  "draft-questions-review": "draft-questions-repair.json",
+  "draft-coverage-review": "draft-coverage-repair.json",
+  "spec-review": "spec-repair.json",
+});
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -90,6 +97,13 @@ function requireStringArray(value, field, { allowEmpty = false } = {}) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function changedPathsFromDiff(diff) {
+  return [...new Set(
+    [...String(diff || "").matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm)]
+      .flatMap((match) => [match[1], match[2]]),
+  )];
 }
 
 function readJson(file) {
@@ -437,6 +451,38 @@ export class AcceptanceTestEvidenceProjection {
   }
 }
 
+export class AcceptanceUpgradeEvidenceProjection {
+  constructor(validation) {
+    if (!validation || typeof validation !== "object" || Array.isArray(validation)) {
+      throw new Error("upgrade evidence validation result must be an object");
+    }
+    this.requiredPaths = Object.freeze(requireStringArray(
+      validation.currentRequiredPaths || [],
+      "upgrade requiredPaths",
+      { allowEmpty: true },
+    ));
+    this.required = this.requiredPaths.length > 0;
+    this.valid = validation.ok === true;
+    this.ref = validation.artifact ? "upgrade-result.json" : null;
+    this.artifact = validation.artifact ? Object.freeze(clone(validation.artifact)) : null;
+    this.invalidReason = this.valid
+      ? null
+      : requireString(validation.reason, "upgrade evidence invalidReason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      required: this.required,
+      requiredPaths: [...this.requiredPaths],
+      valid: this.valid,
+      ref: this.ref,
+      artifact: this.artifact == null ? null : clone(this.artifact),
+      invalidReason: this.invalidReason,
+    };
+  }
+}
+
 export class DeferredAcceptanceFinding {
   constructor(input = {}) {
     this.findingId = requireString(input.findingId, "findingId");
@@ -671,10 +717,7 @@ export class AcceptanceEvidenceBindings {
   constructor(context) {
     this.requestRef = "flow.request";
     this.requirementIds = Object.freeze([...context.requirementIds]);
-    this.diffRefs = Object.freeze([...new Set(
-      [...String(context.evidence.diff || "").matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm)]
-        .flatMap((match) => [`diff:${match[1]}`, `diff:${match[2]}`]),
-    )]);
+    this.diffRefs = Object.freeze(changedPathsFromDiff(context.evidence.diff).map((file) => `diff:${file}`));
     const repair = context.evidence.repairEvidence;
     const repairRefs = new Set([repair.ref]);
     if (repair.kind === "repair-audit") {
@@ -1000,9 +1043,52 @@ class DeferredFindingSources {
   }
 }
 
+class ReviewHandoffAcceptanceDisposition {
+  constructor({ specDir, entry, decision, canonicalEvidence }) {
+    const sourceRef = `${entry.sourceArtifact}#${entry.sourceFindingId}`;
+    if (decision) {
+      this.finalDisposition = decision.finalDisposition;
+      this.evidenceRefs = Object.freeze([...decision.evidenceRefs]);
+      Object.freeze(this);
+      return;
+    }
+    const sourceFinding = canonicalEvidence.findFinding(entry.sourceFindingId);
+    if (!sourceFinding) {
+      throw new Error(`canonical review finding is missing: ${sourceRef}`);
+    }
+    const blocking = canonicalEvidence.evidence.disposition.blockingFindings
+      .some((finding) => finding.findingId === entry.sourceFindingId);
+    const findingDisposition = sourceFinding.disposition || (blocking ? "must-fix" : "informational");
+    const appliedRepairRef = findingDisposition === "must-fix"
+      ? this.#appliedRepairRef(specDir, entry.sourceStep, sourceFinding.summary)
+      : null;
+    this.finalDisposition = appliedRepairRef
+      ? "fixed"
+      : findingDisposition === "informational"
+        ? "not_needed"
+        : "still_open";
+    this.evidenceRefs = Object.freeze([
+      sourceRef,
+      ...(appliedRepairRef ? [appliedRepairRef] : []),
+    ]);
+    Object.freeze(this);
+  }
+
+  #appliedRepairRef(specDir, sourceStep, summary) {
+    const artifactPath = PREIMPLEMENTATION_REPAIR_ARTIFACT_BY_REVIEW_STEP[sourceStep];
+    if (!artifactPath) return null;
+    const artifact = readBoundedSourceArtifact(specDir, artifactPath);
+    const index = Array.isArray(artifact?.items)
+      ? artifact.items.findIndex((item) => item?.decision === "applied" && item?.title === summary)
+      : -1;
+    return index < 0 ? null : `${artifactPath}#items[${index}]`;
+  }
+}
+
 function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
   const evidence = dispositionEvidence(specDir);
   const sources = new DeferredFindingSources(specDir, flowState);
+  const canonicalEvidence = new Map();
   const deferred = sources.flowFindings.map((entry) => {
     const decision = evidence.get(entry.findingId);
     return new DeferredAcceptanceFinding({
@@ -1016,13 +1102,25 @@ function buildDeferredFindingsFromEvidence(specDir, flowState = null) {
   });
   const reviewHandoffs = sources.reviewHandoffs.map((entry) => {
     const decision = evidence.get(entry.findingId);
+    if (!canonicalEvidence.has(entry.record)) {
+      canonicalEvidence.set(entry.record, new CanonicalReviewEvidenceProjection({
+        specDir,
+        record: entry.record,
+      }));
+    }
+    const disposition = new ReviewHandoffAcceptanceDisposition({
+      specDir,
+      entry,
+      decision,
+      canonicalEvidence: canonicalEvidence.get(entry.record),
+    });
     return new DeferredAcceptanceFinding({
       findingId: entry.findingId,
       sourceStep: entry.sourceStep,
       sourceArtifact: entry.sourceArtifact,
       sourceFindingId: entry.sourceFindingId,
-      finalDisposition: decision?.finalDisposition || "still_open",
-      evidenceRefs: decision?.evidenceRefs || [],
+      finalDisposition: disposition.finalDisposition,
+      evidenceRefs: disposition.evidenceRefs,
     }).toJSON();
     });
   return [...deferred, ...reviewHandoffs];
@@ -1419,6 +1517,10 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
     : rejectedReviewTriage
       ? { kind: "no-repair", ref: "impl-triage.json", artifact: rejectedReviewTriage }
       : { kind: "no-repair", ref: "acceptance:no-repair", artifact: { reason: "No implementation repair was required." } };
+  const upgradeEvidence = new AcceptanceUpgradeEvidenceProjection(validateUpgradeEvidenceForGate({
+    specDir,
+    currentRequiredPaths: matchUpgradeRequiredSourcePaths(changedPathsFromDiff(diff)),
+  }));
   return {
     root,
     specDir,
@@ -1429,6 +1531,7 @@ export function buildAcceptanceReviewContext({ root, state, diff }) {
       requirements,
       diff,
       repairEvidence,
+      upgradeEvidence: upgradeEvidence.toJSON(),
       testEvidence: new AcceptanceTestEvidenceProjection(mechanical.artifacts).toJSON(),
       reviewEvidence: mechanical.canonicalImplReviewEvidence?.toJSON() || null,
       deferredFindings,

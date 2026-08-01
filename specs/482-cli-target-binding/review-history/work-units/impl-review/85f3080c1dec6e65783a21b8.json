@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "85f3080c1dec6e65783a21b8",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-80d9bd40a23baf65",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".agents/skills/senti.flow/SKILL.md",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/lib/set-retry.js",
+      "src/lib/dispatcher.js",
+      "src/lib/provider.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/run-dispatch.test.js",
+      "tests/unit/flow/skill-prelude-auto.test.js",
+      "tests/unit/lib/agent.test.js"
+    ],
+    "inputHash": "80d9bd40a23baf65ac39d9077d73c40bd9dd89ca40c12ab37c79108737eb1d6d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "85f3080c1dec6e65783a21b8"
+  },
+  "targetFiles": [
+    ".agents/skills/senti.flow/SKILL.md",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-failure.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/set-retry.js",
+    "src/lib/dispatcher.js",
+    "src/lib/provider.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/run-dispatch.test.js",
+    "tests/unit/flow/skill-prelude-auto.test.js",
+    "tests/unit/lib/agent.test.js"
+  ],
+  "inputHash": "80d9bd40a23baf65ac39d9077d73c40bd9dd89ca40c12ab37c79108737eb1d6d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T22:19:31.839Z",
+  "finishedAt": "2026-07-31T22:19:31.839Z",
+  "rawResponse": "### 1. Canonicalize Binding Command Wording\n**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Binding-era command guidance is duplicated across `.agents/skills/senti.flow/SKILL.md`, `src/skills/senti.flow/SKILL.md`, `src/skills/partials/core-principle.md`, and several tests. The wording varies between “CLI-returned”, “CLI-generated”, “current CLI-generated binding”, and manual guard phrasing, which creates a cross-file contract drift risk.\n**Suggestion:** Define one canonical phrase for binding continuation, preferably in the shared partial, and mirror it exactly in both skill files and tests. Explicitly state the phase boundary: manual guards are only valid before a binding exists; after that, use the exact CLI-returned `--expect-binding <token>` command.\n\n### 2. Consolidate Guarded Command Construction\n**File:** `src/flow/lib/finalization-outbox-recovery.js`\n**Requirement:** R10\n**Issue:** Binding-aware command construction is independently introduced in `finalization-outbox-recovery.js` and `get-next-action.js`, with the same pattern of using `binding.guardCommand(...)` when present and falling back to `guardFlagsForState(state)`. Separate implementations can diverge as recovery paths evolve.\n**Suggestion:** Introduce a shared helper such as `guardedCommand(baseCommand, state, binding)` in the appropriate flow utility module, then use it from recovery, refresh, and next-action directive construction.\n\n### 3. Centralize Review Recovery Identity Construction\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity fields are assembled in multiple places across `review-convergence.js` and `set-retry.js`, including run/spec/issue context, target binding digest, and dispatch invocation id. That makes future identity changes easy to apply inconsistently.\n**Suggestion:** Add one helper for shared recovery identity context, for example `reviewRecoveryIdentityContext(ctx)` or `recoveryIdentityForMutation(...)`, and use it for previous identity, next identity, current identity, and unchanged-target checks.\n\n### 4. Resolve Dispatch Invocation Naming Semantics\n**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `dispatchInvocationId` is used across `run-dispatch.js`, `review-convergence.js`, and `set-retry.js`, but its cross-file meaning is unclear: the name suggests a single invocation, while the value appears loop/session scoped and is stored in recovery identity records.\n**Suggestion:** Decide whether the value is per dispatch loop or per agent call. Rename it consistently to something like `dispatchSessionId` if loop-scoped, or generate it per worker invocation if per-call identity is required.\n\n### 5. Align Binding Assertion Helpers Across Tests\n**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Multiple test files now assert the same binding contract in slightly different ways, including `next-action-directive.test.js`, `skill-prelude-auto.test.js`, `rewind-test-evidence.test.js`, and retry/defer tests. This duplicates the binding interface contract across tests.\n**Suggestion:** Add shared or local assertion helpers where appropriate, such as `assertUsesTargetBinding(command)`, and use the same positive `--expect-binding` and negative legacy guard assertions consistently.\n\n### 6. Use Consistent Test Helper Naming For Flow Binding Doubles\n**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R4\n**Issue:** Test helpers related to flow target binding and flow manager state use broad names across files, such as `binding()` and `mutableFlowManager`, even though they represent specific in-memory target-binding fixtures. The naming inconsistency makes cross-file test intent harder to scan.\n**Suggestion:** Rename helpers to domain-specific names such as `flowTargetBinding()`, `captureTestBinding()`, and `inMemoryFlowManager()` so binding and state test doubles are consistently recognizable.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Canonicalize Binding Command Wording",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Binding-era command guidance is duplicated across `.agents/skills/senti.flow/SKILL.md`, `src/skills/senti.flow/SKILL.md`, `src/skills/partials/core-principle.md`, and several tests. The wording varies between “CLI-returned”, “CLI-generated”, “current CLI-generated binding”, and manual guard phrasing, which creates a cross-file contract drift risk.\n**Suggestion:** Define one canonical phrase for binding continuation, preferably in the shared partial, and mirror it exactly in both skill files and tests. Explicitly state the phase boundary: manual guards are only valid before a binding exists; after that, use the exact CLI-returned `--expect-binding <token>` command.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Consolidate Guarded Command Construction",
+        "body": "**File:** `src/flow/lib/finalization-outbox-recovery.js`\n**Requirement:** R10\n**Issue:** Binding-aware command construction is independently introduced in `finalization-outbox-recovery.js` and `get-next-action.js`, with the same pattern of using `binding.guardCommand(...)` when present and falling back to `guardFlagsForState(state)`. Separate implementations can diverge as recovery paths evolve.\n**Suggestion:** Introduce a shared helper such as `guardedCommand(baseCommand, state, binding)` in the appropriate flow utility module, then use it from recovery, refresh, and next-action directive construction.",
+        "file": "src/flow/lib/finalization-outbox-recovery.js",
+        "requirementId": "R10"
+      },
+      {
+        "title": "3. Centralize Review Recovery Identity Construction",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity fields are assembled in multiple places across `review-convergence.js` and `set-retry.js`, including run/spec/issue context, target binding digest, and dispatch invocation id. That makes future identity changes easy to apply inconsistently.\n**Suggestion:** Add one helper for shared recovery identity context, for example `reviewRecoveryIdentityContext(ctx)` or `recoveryIdentityForMutation(...)`, and use it for previous identity, next identity, current identity, and unchanged-target checks.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "4. Resolve Dispatch Invocation Naming Semantics",
+        "body": "**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `dispatchInvocationId` is used across `run-dispatch.js`, `review-convergence.js`, and `set-retry.js`, but its cross-file meaning is unclear: the name suggests a single invocation, while the value appears loop/session scoped and is stored in recovery identity records.\n**Suggestion:** Decide whether the value is per dispatch loop or per agent call. Rename it consistently to something like `dispatchSessionId` if loop-scoped, or generate it per worker invocation if per-call identity is required.",
+        "file": "src/flow/lib/run-dispatch.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Align Binding Assertion Helpers Across Tests",
+        "body": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Multiple test files now assert the same binding contract in slightly different ways, including `next-action-directive.test.js`, `skill-prelude-auto.test.js`, `rewind-test-evidence.test.js`, and retry/defer tests. This duplicates the binding interface contract across tests.\n**Suggestion:** Add shared or local assertion helpers where appropriate, such as `assertUsesTargetBinding(command)`, and use the same positive `--expect-binding` and negative legacy guard assertions consistently.",
+        "file": "tests/unit/flow/next-action-directive.test.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "6. Use Consistent Test Helper Naming For Flow Binding Doubles",
+        "body": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R4\n**Issue:** Test helpers related to flow target binding and flow manager state use broad names across files, such as `binding()` and `mutableFlowManager`, even though they represent specific in-memory target-binding fixtures. The naming inconsistency makes cross-file test intent harder to scan.\n**Suggestion:** Rename helpers to domain-specific names such as `flowTargetBinding()`, `captureTestBinding()`, and `inMemoryFlowManager()` so binding and state test doubles are consistently recognizable.",
+        "file": "tests/unit/flow/next-action-directive.test.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

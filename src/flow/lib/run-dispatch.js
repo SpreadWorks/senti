@@ -29,7 +29,7 @@ import {
   RepairEvidenceDirective,
 } from "./next-action-directive.js";
 import { finalRegressionWorktreeFingerprint } from "./test-artifacts.js";
-import { guardFlagsForState } from "./user-action-prompt.js";
+import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import GetNextActionCommand from "./get-next-action.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
 
@@ -38,6 +38,7 @@ const DEFAULT_MAX_STALLED_DISPATCHES = 3;
 const APPROVAL_TOKEN_VERSION = "flow-dispatch-approval-v1";
 const APPROVAL_RECEIPT_VERSION = 1;
 const DISPATCH_LOCK_KIND = "flow-dispatch";
+const DISPATCH_INVOCATION_ENV = "SENTI_FLOW_DISPATCH_INVOCATION_ID";
 
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
@@ -68,6 +69,7 @@ function errorCode(envelope) {
 
 function targetGuardInput(ctx) {
   return {
+    ...(ctx.expectBinding ? { expectBinding: ctx.expectBinding } : {}),
     ...(ctx.expectRunId ? { expectRunId: ctx.expectRunId } : {}),
     ...(ctx.expectSpec ? { expectSpec: ctx.expectSpec } : {}),
     ...(ctx.expectIssue != null ? { expectIssue: ctx.expectIssue } : {}),
@@ -363,12 +365,26 @@ export class FlowDispatchBoundary {
   }
 }
 
-class FlowDispatchWork {
-  constructor({ action, targetGuards, approval = null }) {
+export class FlowDispatchWork {
+  constructor({ action, binding, dispatchInvocationId, approval = null }) {
+    if (binding != null && !(binding instanceof FlowTargetBinding)) {
+      throw new Error("FlowDispatchWork requires a FlowTargetBinding");
+    }
+    if (typeof dispatchInvocationId !== "string" || dispatchInvocationId.trim() === "") {
+      throw new Error("FlowDispatchWork requires a dispatch invocation id");
+    }
     this.action = action;
-    this.targetGuards = targetGuards;
+    this.binding = binding;
+    this.dispatchInvocationId = dispatchInvocationId.trim();
     this.approval = approval;
     Object.freeze(this);
+  }
+
+  executionEnvironment() {
+    return {
+      ...(this.binding && { SENTI_FLOW_TARGET_BINDING: this.binding.serialize() }),
+      [DISPATCH_INVOCATION_ENV]: this.dispatchInvocationId,
+    };
   }
 
   prompt() {
@@ -394,7 +410,12 @@ class FlowDispatchWork {
         "The CLI has durably recorded explicit user approval for this exact guarded",
         `action (approvedAt=${this.approval.approvedAt}). Execute the approved action.`,
       ] : []),
-      `Use these exact target guards for every target-sensitive Flow command: ${this.targetGuards}`,
+      ...(this.binding ? [
+        "Target-sensitive senti commands inherit the CLI-captured Flow binding.",
+        "Do not construct or append target identity arguments.",
+      ] : []),
+      "When the directive includes nextAction, execute that exact CLI-generated",
+      "command; do not infer completion from pre-existing artifacts.",
       nonblockingRule,
       "",
       "Guarded next action:",
@@ -423,7 +444,7 @@ export default class RunDispatchCommand extends FlowCommand {
     maxDispatches = DEFAULT_MAX_DISPATCHES,
     maxStalledDispatches = DEFAULT_MAX_STALLED_DISPATCHES,
     leaseFactory = (ctx) => new FlowDispatchLease({
-      mainRoot: ctx.mainRoot || ctx.root,
+      mainRoot: FlowTargetBinding.captureContext(ctx).dispatchLockRoot,
       runId: ctx.expectRunId,
     }),
   } = {}) {
@@ -488,6 +509,7 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async dispatchContinuation(ctx) {
     const agent = this.agent || this.container.get("agent");
+    const dispatchInvocationId = crypto.randomUUID();
     let dispatchCount = 0;
     let stalledDispatches = 0;
     let suppliedApproval = ctx.approve || null;
@@ -644,8 +666,15 @@ export default class RunDispatchCommand extends FlowCommand {
         );
       }
 
-      const guards = guardFlagsForState(flowState || ctx.flowState);
-      const work = new FlowDispatchWork({ action, targetGuards: guards, approval });
+      const binding = ctx.flowCommandBoundary === true
+        ? FlowTargetBinding.captureContext(ctx, flowState || ctx.flowState)
+        : null;
+      const work = new FlowDispatchWork({
+        action,
+        binding,
+        dispatchInvocationId,
+        approval,
+      });
       let agentError = null;
       try {
         await agent.call(work.prompt(), {
@@ -654,6 +683,7 @@ export default class RunDispatchCommand extends FlowCommand {
           cacheMode: "bypass",
           retryCount: 0,
           waitForProcessTree: true,
+          executionEnvironment: work.executionEnvironment(),
         });
       } catch (error) {
         agentError = error;

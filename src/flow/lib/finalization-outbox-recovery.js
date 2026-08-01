@@ -21,12 +21,14 @@ const FINALIZATION_COMMANDS = Object.freeze({
   "finalize-sync": "finalize-sync",
 });
 
-function recoveryCommand(command, state) {
+function recoveryCommand(command, state, binding) {
+  if (binding) return binding.guardCommand(`senti flow run ${command}`);
   const guards = guardFlagsForState(state);
   return `senti flow run ${command}${guards ? ` ${guards}` : ""}`;
 }
 
-function refreshCommand(state) {
+function refreshCommand(state, binding) {
+  if (binding) return binding.guardCommand("senti flow get next-action");
   const guards = guardFlagsForState(state);
   return `senti flow get next-action${guards ? ` ${guards}` : ""}`;
 }
@@ -51,10 +53,11 @@ function configuredPushRemote() {
 }
 
 export class FinalizationOutboxRecovery {
-  constructor({ ctx, state, target }) {
+  constructor({ ctx, state, target, binding = null }) {
     this.ctx = ctx;
     this.state = state;
     this.target = target;
+    this.binding = binding;
     Object.freeze(this);
   }
 
@@ -104,7 +107,7 @@ export class FinalizationOutboxRecovery {
     return {
       directive: new ExecuteCommandDirective({
         actionId: `RECOVER_${this.target.stepId.replaceAll("-", "_").toUpperCase()}_OUTBOX`,
-        nextAction: recoveryCommand(command, this.state),
+        nextAction: recoveryCommand(command, this.state, this.binding),
         instruction: `Apply the one persisted exact recovery for ${this.target.stepId}. The outbox key is unchanged, so a durable side effect is resumed rather than duplicated.`,
         reason: durable
           ? `The ${this.target.stepId} side effect is durable, but its lifecycle post-hook did not finish.`
@@ -156,7 +159,7 @@ export class FinalizationOutboxRecovery {
           phase: "finalize",
           instruction: `Rebase the managed worktree onto ${baseRef}, resolve every persisted pre-sync conflict, complete the rebase, then refresh next-action. Do not rerun finalize-merge until ${baseRef}@${baseHead} is an ancestor of the feature HEAD.`,
           reason: `The previous finalize merge stopped at a pre-sync conflict against ${baseRef}@${baseHead}.`,
-          nextAction: refreshCommand(this.state),
+          nextAction: refreshCommand(this.state, this.binding),
         }),
         stateChanged: false,
       };
@@ -205,6 +208,6 @@ export class FinalizationOutboxRecovery {
   }
 }
 
-export function resolveFinalizationOutboxRecovery(ctx, state, target) {
-  return new FinalizationOutboxRecovery({ ctx, state, target }).resolve();
+export function resolveFinalizationOutboxRecovery(ctx, state, target, binding = null) {
+  return new FinalizationOutboxRecovery({ ctx, state, target, binding }).resolve();
 }

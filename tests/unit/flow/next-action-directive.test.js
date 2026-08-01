@@ -21,6 +21,7 @@ import {
   UserActionImpact,
   UserActionPrompt,
 } from "../../../src/flow/lib/user-action-prompt.js";
+import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 
 function flowState() {
   return {
@@ -28,6 +29,21 @@ function flowState() {
     spec: "specs/353-durable-finalize-cleanup/spec.json",
     issue: 473,
   };
+}
+
+function binding() {
+  return FlowTargetBinding.capture({
+    flowState: {
+      ...flowState(),
+      featureBranch: "feature/353-durable-finalize-cleanup",
+      baseBranch: "main",
+      worktree: false,
+    },
+    mode: "branch",
+    mainRoot: process.cwd(),
+    authorityRoot: process.cwd(),
+    invocationRoot: process.cwd(),
+  });
 }
 
 function convergenceState() {
@@ -110,6 +126,7 @@ describe("single next-action directive authority", () => {
 
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
+      binding: binding(),
       action: "run-review",
       reviewPhase: "spec",
       stepAttempt: blockedAttempt(),
@@ -119,9 +136,8 @@ describe("single next-action directive authority", () => {
     assert.equal(directive.kind, "execute_command");
     assert.equal(directive.actionId, "RETRY_REVIEW");
     assert.match(directive.nextAction, /^senti flow run review --phase spec /);
-    assert.match(directive.nextAction, /--expect-run-id 'run-473'/);
-    assert.match(directive.nextAction, /--expect-issue 473/);
-    assert.match(directive.nextAction, /--expect-spec 'specs\/353-durable-finalize-cleanup\/spec\.json'/);
+    assert.match(directive.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
+    assert.doesNotMatch(directive.nextAction, /--expect-run-id|--expect-issue|--expect-spec/);
   });
 
   it("routes semantic review remediation through evidence repair without retry reset", () => {
@@ -167,6 +183,7 @@ describe("single next-action directive authority", () => {
 
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
+      binding: binding(),
       action: "run-review-test",
       reviewPhase: "test",
       reviewOperation: operation,
@@ -175,12 +192,14 @@ describe("single next-action directive authority", () => {
     assert.equal(directive.kind, "execute_command");
     assert.equal(directive.actionId, "COMPLETE_REVIEW_LIFECYCLE");
     assert.match(directive.nextAction, /^senti flow run review --phase test /);
-    assert.match(directive.nextAction, /--expect-run-id 'run-473'/);
+    assert.match(directive.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
+    assert.doesNotMatch(directive.nextAction, /--expect-run-id|--expect-issue|--expect-spec/);
   });
 
   it("routes an exhausted gate with unchanged evidence through one repair pass", () => {
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
+      binding: binding(),
       action: "run-gate",
       gatePhase: "spec",
       stepAttempt: blockedAttempt("spec-gate"),
@@ -199,6 +218,7 @@ describe("single next-action directive authority", () => {
   it("routes an audited gate reset or journal replay through one command", () => {
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
+      binding: binding(),
       action: "run-gate",
       gatePhase: "spec",
       stepAttempt: blockedAttempt("spec-gate"),
@@ -211,7 +231,8 @@ describe("single next-action directive authority", () => {
 
     assert.equal(directive.kind, "execute_command");
     assert.equal(directive.actionId, "RECOVER_GATE_RETRY");
-    assert.match(directive.nextAction, /--expect-run-id 'run-473'/);
+    assert.match(directive.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
+    assert.doesNotMatch(directive.nextAction, /--expect-run-id|--expect-issue|--expect-spec/);
   });
 
   it("reports a real blocker without manufacturing an inspection choice", () => {

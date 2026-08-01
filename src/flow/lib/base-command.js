@@ -57,6 +57,7 @@ export class FlowCommand extends Command {
         input,
       }),
       ...input,
+      flowCommandBoundary: true,
     };
     if (ctx.flowResolutionError) {
       if (ctx.flowResolutionError.code === "ACTIVE_FLOW_MISMATCH") {
@@ -77,6 +78,10 @@ export class FlowCommand extends Command {
         key: input._envelopeKey || "flow",
         input,
         flowState: ctx.preparingFlowState ?? ctx.flowState,
+        mainRoot: ctx.mainRoot || ctx.root,
+        authorityRoot: ctx.root,
+        worktreePath: ctx.flowState?.worktree === true ? ctx.root : undefined,
+        context: ctx,
       });
       if (mismatch) {
         return mismatch;

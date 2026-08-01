@@ -487,6 +487,27 @@ describe("retry recovery authority convergence", () => {
     assert.equal(recovered.finalizedEvidenceAvailable, false);
   });
 
+  it("keeps dispatch invocation id out of review recovery identity comparison", () => {
+    const treeSha = "9".repeat(40);
+    const targetStateDigest = "a".repeat(64);
+    const targetBindingDigest = "b".repeat(64);
+
+    assert.equal(
+      new ReviewRecoveryIdentity({
+        treeSha,
+        targetStateDigest,
+        targetBindingDigest,
+        dispatchInvocationId: "next-dispatch",
+      }).changedFrom(new ReviewRecoveryIdentity({
+        treeSha,
+        targetStateDigest,
+        targetBindingDigest,
+        dispatchInvocationId: "previous-dispatch",
+      })),
+      false,
+    );
+  });
+
   it("recovers an exhausted rejected review after result recording lost its evidence reference", () => {
     const state = makeFlowState({
       spec: "specs/review-tooling/spec.json",

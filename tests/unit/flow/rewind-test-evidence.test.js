@@ -1131,6 +1131,7 @@ describe("public stale test evidence recovery", () => {
         "--expect-issue",
         "--expect-spec",
         "--expect-run-id",
+        "--expect-binding",
       ]);
       assert.match(entry.help, /Usage: senti flow run rewind-test-evidence/);
       assert.match(entry.help, /exact runId, spec, and Issue identity guards are required/);

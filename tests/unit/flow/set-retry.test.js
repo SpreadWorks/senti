@@ -32,6 +32,17 @@ function initializeRepository(root) {
   git(root, ["commit", "-m", "initial fixture"]);
 }
 
+function initializeRepositoryWithUntrackedSpec(root) {
+  git(root, ["init", "--initial-branch=main"]);
+  git(root, ["config", "user.email", "tests@example.invalid"]);
+  git(root, ["config", "user.name", "Senti tests"]);
+  fs.writeFileSync(path.join(root, "tracked.js"), "export const tracked = true;\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "initial fixture"]);
+  fs.mkdirSync(path.join(root, "specs", "001-retry"), { recursive: true });
+  fs.writeFileSync(path.join(root, "specs", "001-retry", "spec.json"), '{"revision":1}\n');
+}
+
 test("review retry reset includes an uncommitted target-state change in review identity", async () => {
   const root = createTmpDir("set-retry-worktree-identity-");
   roots.push(root);
@@ -164,4 +175,91 @@ test("review retry reset includes an uncommitted target-state change in review i
   });
   assert.equal(unrelated.ok, false);
   assert.equal(unrelated.errors[0].code, "REVIEW_IDENTITY_UNCHANGED");
+});
+
+test("review retry reset accepts a changed canonical digest when the exhausted record has no target-state entries", () => {
+  const root = createTmpDir("set-retry-legacy-tooling-identity-");
+  roots.push(root);
+  initializeRepositoryWithUntrackedSpec(root);
+
+  const state = moveFlowToStep(makeFlowState({
+    spec: "specs/001-retry/spec.json",
+    runId: "retry-tooling-target-state",
+    metrics: Array.from({ length: 4 }, () => ({
+      phase: "spec",
+      counter: "reviewRetry",
+      delta: 1,
+      taskId: null,
+    })),
+  }), "spec-review");
+  const treeSha = resolveCurrentReviewTreeSha(root, state.spec);
+  const targetState = buildRepairFingerprint({ root, specPath: state.spec, state });
+  state.reviewConvergence = {
+    version: 1,
+    records: [{
+      phase: "spec",
+      taskId: null,
+      treeSha,
+      semanticAttempts: 0,
+      semanticMaxAttempts: 4,
+      toolingAttempts: 1,
+      toolingMaxAttempts: 1,
+      evidence: null,
+      finalizedEvidenceAvailable: false,
+      handoffFindings: [],
+      blocker: { kind: "tooling_attempts_exhausted", reason: "provider-error" },
+      toolingOutcome: {
+        kind: "TOOLING_ERROR",
+        stage: "communication",
+        attempt: 2,
+        maxAttempts: 2,
+        remainingAttempts: 0,
+        reason: "provider-error",
+        permissionRelated: false,
+      },
+      provider: "independent-reviewer",
+      targetStateDigest: targetState.hash,
+    }],
+  };
+  persistRecoveryBaseline(state, {
+    kind: "review",
+    phase: "spec",
+    fingerprint: buildCurrentRecoveryFingerprint({
+      root,
+      flowState: state,
+      kind: "review",
+      canonicalPhase: "spec",
+      baseline: null,
+    }),
+    createdAt: "2026-07-31T00:00:00.000Z",
+  });
+  const flowManager = makeFlowManager(root);
+  flowManager.create(state);
+
+  fs.writeFileSync(path.join(root, state.spec), '{"revision":2}\n');
+  const nextTreeSha = resolveCurrentReviewTreeSha(root, state.spec);
+  const nextTargetState = buildRepairFingerprint({
+    root,
+    specPath: state.spec,
+    state: flowManager.load(),
+  });
+  assert.equal(nextTreeSha, treeSha);
+  assert.notEqual(nextTargetState.hash, targetState.hash);
+
+  const result = new SetRetryCommand().execute({
+    action: "reset",
+    kind: "review",
+    phase: "spec",
+    reason: "Canonical spec input changed after the provider tooling failure.",
+    yes: true,
+    root,
+    flowState: flowManager.load(),
+    flowManager,
+  });
+
+  assert.equal(result.reset, true, JSON.stringify(result));
+  const recovered = flowManager.load().reviewConvergence.records[0];
+  assert.equal(recovered.treeSha, treeSha);
+  assert.equal(recovered.targetStateDigest, nextTargetState.hash);
+  assert.equal(recovered.toolingAttempts, 0);
 });

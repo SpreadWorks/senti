@@ -9,6 +9,7 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import { countGateRetry, resolveRetryMax } from "./run-gate.js";
 import { countReviewRetry, resolveReviewRetryMax } from "./run-review.js";
 import { flattenSteps } from "./step-tree.js";
@@ -98,9 +99,18 @@ function currentReviewTargetState(ctx) {
 }
 
 function currentReviewRecoveryIdentity(ctx, targetState) {
+  const targetBindingDigest = ctx.expectBinding
+    ? FlowTargetBinding.deserialize(ctx.expectBinding).digest
+    : null;
   return new ReviewRecoveryIdentity({
+    runId: ctx.flowState.runId,
+    hasIssue: Object.hasOwn(ctx.flowState, "issue"),
+    issue: ctx.flowState.issue,
+    spec: ctx.flowState.spec,
     treeSha: resolveCurrentReviewTreeSha(ctx.root, ctx.flowState.spec),
     targetStateDigest: targetState.digest,
+    targetBindingDigest,
+    dispatchInvocationId: ctx.dispatchInvocationId ?? null,
   });
 }
 
@@ -118,12 +128,20 @@ function unchangedReviewConvergenceTarget(ctx, phase, taskId, currentIdentity, c
   const current = latestReviewConvergenceRecord(ctx.flowState, phase, taskId);
   if (!current) return false;
   const previousIdentity = new ReviewRecoveryIdentity({
+    runId: ctx.flowState.runId,
+    hasIssue: Object.hasOwn(ctx.flowState, "issue"),
+    issue: ctx.flowState.issue,
+    spec: ctx.flowState.spec,
+    phase,
+    taskId,
     treeSha: current.treeSha,
     targetStateDigest: current.targetStateDigest,
+    targetBindingDigest: current.targetBindingDigest ?? null,
+    dispatchInvocationId: current.dispatchInvocationId ?? null,
   });
   if (!currentIdentity.changedFrom(previousIdentity)) return true;
   if (currentIdentity.treeSha !== previousIdentity.treeSha) return false;
-  if (!current.targetState) return true;
+  if (!current.targetState) return false;
   const previousTargetState = new ReviewTargetState(current.targetState);
   return !previousTargetState.hasChangedEntryWithin(
     currentTargetState,
@@ -147,6 +165,10 @@ function reviewRecoveryMutation({ ctx, reviewRecord, phase, taskId, currentIdent
       nextTargetState: currentTargetState.toJSON(),
       expectedRunId: ctx.flowState.runId,
       expectedSpec: ctx.flowState.spec,
+      previousTargetBindingDigest: reviewRecord.targetBindingDigest ?? null,
+      nextTargetBindingDigest: currentIdentity.targetBindingDigest,
+      previousDispatchInvocationId: reviewRecord.dispatchInvocationId ?? null,
+      nextDispatchInvocationId: currentIdentity.dispatchInvocationId,
       ...(Object.hasOwn(ctx.flowState, "issue") && {
         expectedIssue: ctx.flowState.issue,
       }),
@@ -160,6 +182,8 @@ function reviewRecoveryMutation({ ctx, reviewRecord, phase, taskId, currentIdent
     nextTreeSha: currentIdentity.treeSha,
     nextTargetStateDigest: currentIdentity.targetStateDigest,
     nextTargetState: currentTargetState.toJSON(),
+    nextTargetBindingDigest: currentIdentity.targetBindingDigest,
+    nextDispatchInvocationId: currentIdentity.dispatchInvocationId,
   });
 }
 
@@ -200,7 +224,7 @@ export default class SetRetryCommand extends FlowCommand {
         "set",
         "retry",
         "REVIEW_IDENTITY_UNCHANGED",
-        "review retry reset requires a changed tree SHA or canonical evidence identity",
+        "review retry reset requires a changed tree SHA or canonical target-state digest",
       );
     }
 

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "59fa3a31c681356961cc7bdf",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0003",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/next-action-directive.js",
+      "src/flow/lib/review-convergence.js"
+    ],
+    "inputHash": "cf9de47d0d8ece73a5853a7ce9b94f5707dd768d13bfb16eb9a3838a0fb34b65",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "59fa3a31c681356961cc7bdf"
+  },
+  "targetFiles": [
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/next-action-directive.js",
+    "src/flow/lib/review-convergence.js"
+  ],
+  "inputHash": "cf9de47d0d8ece73a5853a7ce9b94f5707dd768d13bfb16eb9a3838a0fb34b65",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T22:18:20.442Z",
+  "finishedAt": "2026-07-31T22:18:20.442Z",
+  "rawResponse": "### 1. Fix Inverted `preserveImplRepair` Filtering\n**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `plannedRepairStepChanges()` uses `!preserveImplRepair || stepId !== \"impl-repair\"`, which appears inverted: the default now includes `impl-repair`, while `{ preserveImplRepair: true }` excludes it. The option name also does not clearly describe whether the step should be excluded from planned changes.  \n**Suggestion:** Rename the option to something explicit like `includeImplRepair` or `skipImplRepair`, and align the predicate with the name. For example, `includeImplRepair ? true : stepId !== \"impl-repair\"`.\n\n### 2. Extract Recovery Identity Construction\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryMutation` duplicates nearly identical construction of `previousIdentity` and `nextIdentity`, with only tree/digest/invocation fields changing. This makes future target-binding identity changes easy to apply to one side but miss on the other.  \n**Suggestion:** Add a small helper such as `recoveryIdentityForMutation(input, prefix)` or build a shared base object, then spread in previous/next-specific fields.\n\n### 3. Either Compare Or Remove `dispatchInvocationId`\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` accepts and stores `dispatchInvocationId`, and mutations persist it, but `changedIdentity()` does not compare it. That makes the field look semantically important while having no effect on reuse decisions.  \n**Suggestion:** If dispatch invocation identity is part of the audited same-binding recovery receipt, include it in the compared fields. If not, avoid storing it in `ReviewRecoveryIdentity` and keep it only on persisted records where needed.\n\n### 4. Clarify Target-Digest State Resolution\n**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `convergenceStateForTargetDigest()` now always clears `blocker` and `toolingOutcome`, but `resolveReviewOperationForFlowState()` calls it even when the target digest matches. The function name does not make it obvious that it intentionally strips stored blocker state.  \n**Suggestion:** Rename it to reflect the behavior, such as `freshConvergenceStateForTargetDigest()`, or split the exact-match path from the “input changed, blocker no longer applies” path so the blocker-clearing behavior is explicit at the call site.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Fix Inverted `preserveImplRepair` Filtering",
+        "body": "**File:** `src/flow/lib/impl-repair-artifacts.js`  \n**Requirement:** R1  \n**Issue:** `plannedRepairStepChanges()` uses `!preserveImplRepair || stepId !== \"impl-repair\"`, which appears inverted: the default now includes `impl-repair`, while `{ preserveImplRepair: true }` excludes it. The option name also does not clearly describe whether the step should be excluded from planned changes.  \n**Suggestion:** Rename the option to something explicit like `includeImplRepair` or `skipImplRepair`, and align the predicate with the name. For example, `includeImplRepair ? true : stepId !== \"impl-repair\"`.",
+        "file": "src/flow/lib/impl-repair-artifacts.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Extract Recovery Identity Construction",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryMutation` duplicates nearly identical construction of `previousIdentity` and `nextIdentity`, with only tree/digest/invocation fields changing. This makes future target-binding identity changes easy to apply to one side but miss on the other.  \n**Suggestion:** Add a small helper such as `recoveryIdentityForMutation(input, prefix)` or build a shared base object, then spread in previous/next-specific fields.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "3. Either Compare Or Remove `dispatchInvocationId`",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` accepts and stores `dispatchInvocationId`, and mutations persist it, but `changedIdentity()` does not compare it. That makes the field look semantically important while having no effect on reuse decisions.  \n**Suggestion:** If dispatch invocation identity is part of the audited same-binding recovery receipt, include it in the compared fields. If not, avoid storing it in `ReviewRecoveryIdentity` and keep it only on persisted records where needed.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "4. Clarify Target-Digest State Resolution",
+        "body": "**File:** `src/flow/lib/review-convergence.js`  \n**Requirement:** R13  \n**Issue:** `convergenceStateForTargetDigest()` now always clears `blocker` and `toolingOutcome`, but `resolveReviewOperationForFlowState()` calls it even when the target digest matches. The function name does not make it obvious that it intentionally strips stored blocker state.  \n**Suggestion:** Rename it to reflect the behavior, such as `freshConvergenceStateForTargetDigest()`, or split the exact-match path from the “input changed, blocker no longer applies” path so the blocker-clearing behavior is explicit at the call site.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      }
+    ]
+  }
+}

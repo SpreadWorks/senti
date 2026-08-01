@@ -388,6 +388,42 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(calls, 1);
   });
 
+  it("passes one stable dispatch invocation id to every worker in a dispatcher invocation", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "invocation-r0" };
+    const current = { value: REVIEW_ACTION };
+    const invocationIds = [];
+    const bindingValues = [];
+    const callsByInvocation = new Map();
+    const agent = {
+      async call(_prompt, options) {
+        const invocationId = options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID;
+        invocationIds.push(invocationId);
+        bindingValues.push(options.executionEnvironment.SENTI_FLOW_TARGET_BINDING);
+        const invocationCallCount = (callsByInvocation.get(invocationId) || 0) + 1;
+        callsByInvocation.set(invocationId, invocationCallCount);
+        state.repositoryRevision = `invocation-r${invocationIds.length}`;
+        current.value = invocationCallCount === 1 ? REPAIR_ACTION : COMPLETED_ACTION;
+      },
+    };
+
+    const first = await command({ current, state, agent }).execute(context(state));
+
+    assert.equal(first.dispatch.boundary, "completed");
+    assert.equal(invocationIds.length, 2);
+    assert.match(invocationIds[0], /^[0-9a-f-]{36}$/);
+    assert.equal(invocationIds[0], invocationIds[1]);
+    assert.equal(bindingValues[0], bindingValues[1]);
+
+    current.value = REVIEW_ACTION;
+    state.repositoryRevision = "invocation-r3";
+    const second = await command({ current, state, agent }).execute(context(state));
+
+    assert.equal(second.dispatch.boundary, "completed");
+    assert.equal(invocationIds.length, 4);
+    assert.notEqual(invocationIds[0], invocationIds[2]);
+    assert.equal(invocationIds[2], invocationIds[3]);
+  });
+
   it("honors a terminal transition discovered after the worker process exits with an error", async () => {
     const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "cleanup" };
     const current = { value: REPAIR_ACTION };

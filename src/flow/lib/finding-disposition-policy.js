@@ -757,7 +757,7 @@ export class FindingDispositionPolicy {
 
     const mandatory = requirementAuthority?.mandatory === true || guardrailAuthority?.blocking === true;
     const expectedProposal = mandatory ? "must-fix" : "informational";
-    if (candidate.proposedDisposition !== null && candidate.proposedDisposition !== expectedProposal) {
+    if (mandatory && candidate.proposedDisposition !== null && candidate.proposedDisposition !== expectedProposal) {
       throw new Error(
         `finding disposition ${candidate.proposedDisposition} conflicts with policy disposition ${expectedProposal}`,
       );

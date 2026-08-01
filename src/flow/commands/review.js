@@ -606,7 +606,10 @@ function buildImplReviewResponseSchema(requirementIds) {
       title: { type: "string", minLength: 1 },
       failureMode: { type: "string", minLength: 1 },
       file: { type: ["string", "null"] },
-      requirementId: { type: "string", minLength: 1, enum: allowedRequirementIds },
+      requirementId: {
+        type: ["string", "null"],
+        enum: [...allowedRequirementIds, null],
+      },
       issue: { type: "string", minLength: 1 },
       suggestion: { type: "string", minLength: 1 },
       disposition: { type: "string", enum: [...IMPL_REVIEW_DISPOSITIONS] },
@@ -651,7 +654,9 @@ class ImplReviewFinding {
     this.title = String(item.title || "").trim();
     this.failureMode = String(item.failureMode || "").trim();
     this.file = normalizeReviewPath(item.file || "");
-    this.requirementId = String(item.requirementId || "").trim();
+    this.requirementId = item.requirementId == null
+      ? null
+      : String(item.requirementId).trim();
     this.guardrailId = String(item.guardrailId || "").trim();
     this.issue = String(item.issue || "").trim();
     this.suggestion = String(item.suggestion || "").trim();
@@ -663,10 +668,13 @@ class ImplReviewFinding {
     if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(this.findingKey)) {
       throw new Error("findingKey must be a stable lowercase slug");
     }
-    if (!this.requirementId) {
-      throw new Error("requirementId must be a non-empty string");
+    if (this.requirementId === "") {
+      throw new Error("requirementId must be null or a non-empty string");
     }
-    if (!normalizeImplReviewRequirementIds(requirementIds).has(this.requirementId)) {
+    if (
+      this.requirementId != null
+      && !normalizeImplReviewRequirementIds(requirementIds).has(this.requirementId)
+    ) {
       throw new Error(`requirementId is not present in the target spec: ${this.requirementId}`);
     }
     if (!IMPL_REVIEW_DISPOSITION_SET.has(this.disposition)) {
@@ -714,7 +722,7 @@ class ImplReviewFinding {
       title: truncateReviewMemoryText(this.title),
       failureMode: truncateReviewMemoryText(this.failureMode),
       ...(this.file ? { file: truncateReviewMemoryText(this.file) } : {}),
-      requirementId: truncateReviewMemoryText(this.requirementId),
+      requirementId: this.requirementId,
       ...(this.guardrailId ? { guardrailId: truncateReviewMemoryText(this.guardrailId) } : {}),
       issue: truncateReviewMemoryText(this.issue),
       suggestion: truncateReviewMemoryText(this.suggestion),
@@ -2577,7 +2585,7 @@ async function runTestReviewWithDependencies({
 }
 
 function classifyReviewCommandError(err, phase) {
-  const message = String(err?.stack || err?.message || err || "");
+  const message = String(err?.message || err || "");
   const schemaFailure = message.match(/impl review output failed schema validation:\s*([^\n]+)/i);
   if ((phase == null || phase === "impl") && schemaFailure) {
     return ReviewFailure.schemaFailure({

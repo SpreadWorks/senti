@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "427dfbd203456f4fae825b67",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0008",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/lib/dispatcher.js",
+      "src/lib/flow-manager.js",
+      "src/lib/flow-target-guard.js"
+    ],
+    "inputHash": "b2a1f7d6b9535ec690ef54fe46c21f0bc4a604a7e4276166dfac3dcd24a7d40d",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "427dfbd203456f4fae825b67"
+  },
+  "targetFiles": [
+    "src/lib/dispatcher.js",
+    "src/lib/flow-manager.js",
+    "src/lib/flow-target-guard.js"
+  ],
+  "inputHash": "b2a1f7d6b9535ec690ef54fe46c21f0bc4a604a7e4276166dfac3dcd24a7d40d",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T21:44:02.348Z",
+  "finishedAt": "2026-07-31T21:44:02.348Z",
+  "rawResponse": "### 1. Extract Binding Validation Envelope Logic\n**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** `targetMismatchEnvelopeForInput()` duplicates binding validation paths for `context` versus explicit `flowState/mainRoot/authorityRoot`, including repeated mismatch envelope construction and exception handling. This makes future changes to `ACTIVE_FLOW_MISMATCH` behavior easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `bindingMismatchDataForInput(expectation, { flowState, mainRoot, authorityRoot, worktreePath, context })` that returns mismatch data or `null`, and let `targetMismatchEnvelopeForInput()` only translate that into an envelope.\n\n### 2. Simplify Redundant Expectation Check\n**File:** `src/lib/flow-manager.js`  \n**Requirement:** R6  \n**Issue:** In `resolveActiveFlow()`, after `if (!expectation) return ...`, the code still computes `const mismatch = expectation ? target.mismatchAgainst(expectation) : null;`. The ternary is dead defensive logic because `expectation` is guaranteed truthy at that point.  \n**Suggestion:** Replace it with `const mismatch = target.mismatchAgainst(expectation);` to make the control flow clearer.\n\n### 3. Fix Inconsistent Formatting In Binding Branch\n**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** The `else` block inside `targetMismatchEnvelopeForInput()` is mis-indented, making the binding validation control flow harder to read and review. This is especially risky around mutation-prevention guard code.  \n**Suggestion:** Reformat the `else` block so the `if (!flowState || !mainRoot || !authorityRoot)` and following `try/catch` are visibly scoped inside the `else`.\n\n### 4. Avoid JSON Stringification For Authority Equality\n**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` compares authorities with `JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON())`. This is brittle and inconsistent with the explicit field-by-field comparison already implemented in `bindingMismatch()`.  \n**Suggestion:** Either remove `equals()` if unused, or implement it through a field comparison helper shared with `bindingMismatch()`.\n\n### 5. Remove Unused Authority Equality Method\n**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` appears unused in the diff and adds an extra comparison mechanism alongside `bindingMismatch()`. Multiple comparison paths increase the chance of authority rules diverging.  \n**Suggestion:** Delete `equals()` unless there is an existing caller outside the shown diff; use `bindingMismatch()` as the single authority comparison path.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Binding Validation Envelope Logic",
+        "body": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** `targetMismatchEnvelopeForInput()` duplicates binding validation paths for `context` versus explicit `flowState/mainRoot/authorityRoot`, including repeated mismatch envelope construction and exception handling. This makes future changes to `ACTIVE_FLOW_MISMATCH` behavior easy to apply inconsistently.  \n**Suggestion:** Add a small helper such as `bindingMismatchDataForInput(expectation, { flowState, mainRoot, authorityRoot, worktreePath, context })` that returns mismatch data or `null`, and let `targetMismatchEnvelopeForInput()` only translate that into an envelope.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "2. Simplify Redundant Expectation Check",
+        "body": "**File:** `src/lib/flow-manager.js`  \n**Requirement:** R6  \n**Issue:** In `resolveActiveFlow()`, after `if (!expectation) return ...`, the code still computes `const mismatch = expectation ? target.mismatchAgainst(expectation) : null;`. The ternary is dead defensive logic because `expectation` is guaranteed truthy at that point.  \n**Suggestion:** Replace it with `const mismatch = target.mismatchAgainst(expectation);` to make the control flow clearer.",
+        "file": "src/lib/flow-manager.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Fix Inconsistent Formatting In Binding Branch",
+        "body": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R4  \n**Issue:** The `else` block inside `targetMismatchEnvelopeForInput()` is mis-indented, making the binding validation control flow harder to read and review. This is especially risky around mutation-prevention guard code.  \n**Suggestion:** Reformat the `else` block so the `if (!flowState || !mainRoot || !authorityRoot)` and following `try/catch` are visibly scoped inside the `else`.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Avoid JSON Stringification For Authority Equality",
+        "body": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` compares authorities with `JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON())`. This is brittle and inconsistent with the explicit field-by-field comparison already implemented in `bindingMismatch()`.  \n**Suggestion:** Either remove `equals()` if unused, or implement it through a field comparison helper shared with `bindingMismatch()`.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "5. Remove Unused Authority Equality Method",
+        "body": "**File:** `src/lib/flow-target-guard.js`  \n**Requirement:** R2  \n**Issue:** `FlowExecutionAuthority.equals()` appears unused in the diff and adds an extra comparison mechanism alongside `bindingMismatch()`. Multiple comparison paths increase the chance of authority rules diverging.  \n**Suggestion:** Delete `equals()` unless there is an existing caller outside the shown diff; use `bindingMismatch()` as the single authority comparison path.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R2"
+      }
+    ]
+  }
+}

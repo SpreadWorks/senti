@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "d7e860f04f301bf9cac6a177",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0007",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/set-retry.js",
+      "src/flow/registry.js",
+      "src/lib/agent.js"
+    ],
+    "inputHash": "7c8db210bcb180b72a436f2e227a3beec2b7666d6458ef3c6dc3e3eb1bfcf2ba",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "d7e860f04f301bf9cac6a177"
+  },
+  "targetFiles": [
+    "src/flow/lib/set-retry.js",
+    "src/flow/registry.js",
+    "src/lib/agent.js"
+  ],
+  "inputHash": "7c8db210bcb180b72a436f2e227a3beec2b7666d6458ef3c6dc3e3eb1bfcf2ba",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T21:44:02.218Z",
+  "finishedAt": "2026-07-31T21:44:02.218Z",
+  "rawResponse": "### 1. Extract Review Recovery Identity Construction\n**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` is now constructed in two places with mostly the same contextual fields (`runId`, issue/spec fields, target binding digest, dispatch invocation id). This makes it easy for future changes to update one identity path but not the other, which is risky for convergence and recovery correctness.  \n**Suggestion:** Add a small helper, for example `reviewRecoveryIdentityContext(ctx)`, that returns the shared identity fields. Use it in both `currentReviewRecoveryIdentity()` and `unchangedReviewConvergenceTarget()`.\n\n### 2. Rename Normalization Helper To Verb Form\n**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** `normalizedExecutionEnvironment()` reads like a value, but it performs validation and may throw. Existing command/agent helper naming appears action-oriented for behavior-heavy helpers.  \n**Suggestion:** Rename it to `normalizeExecutionEnvironment()` or `buildExecutionEnvironmentOverride()` to make the validation/construction behavior clearer at call sites.\n\n### 3. Account For Environment Entry Separators In Byte Limit\n**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** The byte cap counts only `name` and `entry` bytes, but the actual environment representation also includes at least the `=` separator per variable. The current limit is still bounded, but the implementation undercounts its own stated maximum.  \n**Suggestion:** Change the accounting to include separator overhead, e.g. `Buffer.byteLength(name) + 1 + Buffer.byteLength(entry)`, so the bound more accurately reflects the environment payload size.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Review Recovery Identity Construction",
+        "body": "**File:** `src/flow/lib/set-retry.js`  \n**Requirement:** R13  \n**Issue:** `ReviewRecoveryIdentity` is now constructed in two places with mostly the same contextual fields (`runId`, issue/spec fields, target binding digest, dispatch invocation id). This makes it easy for future changes to update one identity path but not the other, which is risky for convergence and recovery correctness.  \n**Suggestion:** Add a small helper, for example `reviewRecoveryIdentityContext(ctx)`, that returns the shared identity fields. Use it in both `currentReviewRecoveryIdentity()` and `unchangedReviewConvergenceTarget()`.",
+        "file": "src/flow/lib/set-retry.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "2. Rename Normalization Helper To Verb Form",
+        "body": "**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** `normalizedExecutionEnvironment()` reads like a value, but it performs validation and may throw. Existing command/agent helper naming appears action-oriented for behavior-heavy helpers.  \n**Suggestion:** Rename it to `normalizeExecutionEnvironment()` or `buildExecutionEnvironmentOverride()` to make the validation/construction behavior clearer at call sites.",
+        "file": "src/lib/agent.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Account For Environment Entry Separators In Byte Limit",
+        "body": "**File:** `src/lib/agent.js`  \n**Requirement:** R4  \n**Issue:** The byte cap counts only `name` and `entry` bytes, but the actual environment representation also includes at least the `=` separator per variable. The current limit is still bounded, but the implementation undercounts its own stated maximum.  \n**Suggestion:** Change the accounting to include separator overhead, e.g. `Buffer.byteLength(name) + 1 + Buffer.byteLength(entry)`, so the bound more accurately reflects the environment payload size.",
+        "file": "src/lib/agent.js",
+        "requirementId": "R4"
+      }
+    ]
+  }
+}

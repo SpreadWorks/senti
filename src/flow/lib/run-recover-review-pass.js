@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { collectFlowLeafIds, findActiveNode } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
@@ -553,14 +554,7 @@ export function inspectCanonicalReviewPassRecovery({
 }
 
 function requireExactGuards(ctx, state) {
-  const missing = [];
-  if (ctx.expectRunId == null) missing.push("--expect-run-id");
-  if (ctx.expectSpec == null) missing.push("--expect-spec");
-  if (state.issue == null) {
-    if (ctx.expectNoIssue !== true) missing.push("--expect-no-issue");
-  } else if (ctx.expectIssue == null) {
-    missing.push("--expect-issue");
-  }
+  const missing = missingExactTargetGuardNames(ctx, state);
   if (missing.length === 0) return null;
   return Envelope.fail(
     "run",

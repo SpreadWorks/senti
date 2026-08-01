@@ -1,0 +1,139 @@
+{
+  "devType": "feature",
+  "goal": "通常 Flow の target-sensitive action が、agent の文字列転記ではなく CLI が生成・検証する immutable Flow target binding に基づいて実行されるようにする。",
+  "analysis": {
+    "problem": "Issue #483 は、通常 Flow 継続時の target guard が agent/skill の文字列転記に依存しており、runId・Issue・spec の誤記で不要な ACTIVE_FLOW_MISMATCH 停止を再発し得ることを問題にしている。既存実装は FlowTargetExpectation、guardFlagsForState、run-dispatch、next-action directive によって guard を扱っているが、dispatcher worker prompt には guard 文字列が埋め込まれ、agent がその文字列を再利用する契約が残っている。",
+    "proposedApproach": "CLI 内で runId・Issue/no-Issue・spec・managed worktree/branch authority を検証済みの単一 target binding として扱い、next-action / dispatcher が返す構造化 directive から target-sensitive command の guard を決定的に供給する。agent/skill は target identity を再入力せず、CLI が返した directive または binding 由来 command をそのまま実行する契約に寄せる。",
+    "validation": "この approach は、誤った target への自動 retry ではなく、誤記経路そのものを CLI 側の binding 生成へ移すため root problem に対応している。既存の fail-closed ACTIVE_FLOW_MISMATCH、no-Issue guard、multiple/missing target 解決、managed worktree identity、finalize-cleanup 境界は維持すべき契約として扱う。docs は stale のため、Issue と source code を正として調査した。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #483 の目標は、通常 Flow の target-sensitive action を CLI 生成の immutable FlowTargetBinding に束縛し、agent-side guard-string transcription をなくすこと。",
+      "must: Issue #483 の out of scope は、target guard の緩和/削除、ACTIVE_FLOW_MISMATCH 後の mutating command 自動 retry、異なる Issue/spec/worktree の自動採用、direct Flow/finalize-cleanup state-machine redesign。",
+      "must: src/lib/flow-target-guard.js は FlowTargetExpectation と ACTIVE_FLOW_MISMATCH envelope を持ち、runId・Issue/no-Issue・spec mismatch を side effect 前に表現している。",
+      "must: src/lib/flow-manager.js は explicit target 解決、managed worktree binding、multiple/missing target の解決失敗を扱っている。",
+      "must: managed worktree 上の通常 Flow では、active authority は invocation root だけで推測せず、main repository 側の process-owned lock directory と worktree binding metadata から同じ canonical runId・Issue/no-Issue・spec・worktree authority を解決する必要がある。",
+      "must: src/flow/lib/run-dispatch.js は dispatcher worker prompt に exact target guards 文字列を渡し、worker がそれを target-sensitive Flow command に使う契約を持っている。",
+      "must: src/flow/lib/next-action-directive.js は guardedCommand と guardFlagsForState で command 文字列を生成しているが、directive の target identity は独立した binding object として表現されていない。",
+      "must: tests/e2e/flow/worktree-flow-command-identity.test.js と tests/unit/flow/run-dispatch.test.js は target mismatch、worktree identity、dispatcher 継続の既存 regression surface を含んでいる。"
+    ],
+    "decisionPoints": [
+      "must: FlowTargetBinding の対象は normal Flow dispatcher / next-action directive の target-sensitive action 全体とし、dispatcher worker prompt の guard transcription 排除だけに限定しない。",
+      "must: 既存 read-only status transcription recovery は structured binding 導入後の user-visible contract として残さず、必要な短期 bridge があっても spec 内部の migration detail に留める。",
+      "should: skill source は必須変更対象にしない。CLI 側の directive 契約変更だけで agent-side transcription 排除を達成できない場合のみ変更し、その場合は project rule に従って senti upgrade と regression を含める。",
+      "must: agent / worker contract は、CLI が返した directive または binding 由来 command をそのまま実行し、agent が runId / Issue / spec guard を再構成しない強い契約として定義する。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 実装は Node.js built-in modules のみを使い、外部依存を追加しない。",
+      "must: 特定 agent host の hooks や lifecycle callback を正当性条件にせず、senti CLI 内部の agent-independent mechanism で継続と検証を担保する。",
+      "must: alpha 版ポリシーにより、旧フォーマットや非推奨 path の後方互換コードを保持しない。",
+      "must: 値の構造的制約は専用 class で表現し、意味のある binding / expectation は constructor invariant と behavior を持つ型として扱う。",
+      "must: docs が stale の場合は source code を正とする。draft では required observable behavior、affected modules、test obligations だけを記録し、private helper 名、constructor signature、JSON property name、command rendering template は spec phase で source code と既存 tests を再確認して確定する。",
+      "must: 正しい binding から生成された command は、同一 dispatcher invocation 内で flow.json の active runId・Issue/no-Issue・spec path・managed worktree/branch authority が binding の各値と byte-for-byte に一致している限り ACTIVE_FLOW_MISMATCH を返さないことを acceptance criteria に含める。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "should: FlowTargetBinding の module placement と method names は既存 `src/lib/flow-target-guard.js` / `src/lib/flow-manager.js` の責務境界に合わせて spec で確定する。",
+      "should: CLI-generated directive の exact JSON field names と command rendering format は、既存 next-action consumer が読む `directive.action`、`directive.requiresUserAction`、`directive.terminal`、`instructions`、`context`、`output_schema` を rename / remove せず、target-sensitive execution target だけを CLI-owned binding 由来 field または command に置き換える形で spec で確定する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: 通常 Flow dispatcher と next-action directive の target-sensitive action が CLI 生成 binding に基づくこと。",
+      "must: run ID、Issue/no-Issue、spec、managed worktree / branch authority の mismatch が副作用前に ACTIVE_FLOW_MISMATCH で停止すること。",
+      "must: context compaction または dispatcher resume 後も active authority から binding を再取得・検証できること。",
+      "must: managed worktree flow では、main repository の process-owned lock directory から解決した active authority と worktree binding metadata が一致する場合だけ binding を構築し、invocation root の違いで guarded status と dispatcher recovery が別 target を採用しないこと。",
+      "must: no-Issue flow、multiple target、missing target、read-only recovery removal/internalization、finalize-cleanup 境界について、各 behavior ごとに少なくとも 1 件の unit または CLI regression を含め、期待される PASS または ACTIVE_FLOW_MISMATCH 停止、または artifact mutation なしの解決失敗を assertion で検証すること。",
+      "should: skill source を変更した場合は senti upgrade と生成済み skill regression を実行すること。"
+    ],
+    "out": [
+      "must: target guards の緩和または削除はしない。",
+      "must: ACTIVE_FLOW_MISMATCH 後に mutating command を自動再実行しない。",
+      "must: 異なる Issue、spec、worktree の target を自動採用しない。",
+      "must: direct Flow または finalize-cleanup state machine の redesign は行わない。",
+      "must: Issue を別 spec に分割しない。"
+    ]
+  },
+  "impactOnExisting": [
+    "must: src/flow/lib/run-dispatch.js の worker prompt と dispatcher continuation contract に影響する。",
+    "must: src/flow/lib/next-action-directive.js の guarded command / directive serialization contract に影響する。",
+    "must: src/lib/flow-target-guard.js と src/lib/flow-manager.js の target expectation / explicit target resolution contract に影響する。",
+    "must: `senti flow run dispatch` と dispatcher-owned worker prompt の user-visible behavior は、exact guard flags の文字列転記要求を廃止し、CLI-generated directive / command をそのまま実行する contract に移行する。",
+    "must: `senti flow get next-action` と `senti flow run dispatch` が worker に渡す next-action directive は、target-sensitive action の runId・Issue/no-Issue・spec guard を agent が再構成する入力ではなく、binding 由来の immutable execution target として返す contract に移行する。",
+    "must: `senti flow run gate`、`senti flow set ...`、その他 target-sensitive mutating Flow command の safety behavior は維持し、mismatch は副作用前に ACTIVE_FLOW_MISMATCH で fail-closed する。",
+    "must: `senti flow run gate` は binding と active target が一致する場合に draft/spec gate を実行し、不一致の runId・Issue/no-Issue・spec・managed worktree/branch authority のいずれかでは draft/spec artifact を変更せず ACTIVE_FLOW_MISMATCH を返す regression で検証する。",
+    "must: `senti flow set ...` 系の target-sensitive mutation は binding と active target が一致する場合だけ flow state を更新し、不一致の runId・Issue/no-Issue・spec・managed worktree/branch authority のいずれかでは flow state を変更せず ACTIVE_FLOW_MISMATCH を返す regression で検証する。",
+    "must: dispatcher から実行される target-sensitive mutating Flow command は、draft-gate または spec-gate action の binding 由来 command path で active target 一致時に次 step へ進行し、不一致時に draft/spec artifact と flow state を変更せず ACTIVE_FLOW_MISMATCH で停止する regression を少なくとも 1 件含める。",
+    "must: `senti flow get status` などの read-only recovery surface は、agent が転記した target identity を public contract として受ける形では残さず、必要な場合も FlowTargetBinding / authority reload の内部 bridge としてだけ保持する。",
+    "must: managed-worktree dispatcher recovery は、main repository の process-owned lock directory と worktree binding metadata から同じ active authority を解決する regression を含め、worktree invocation root と main repository authority が食い違う場合は target adoption せず停止する。",
+    "must: no-Issue flow、multiple target、missing target、managed worktree / branch authority、context compaction resume、finalize-cleanup 境界の observable behavior は既存の安全側停止または正規 target 継続を維持する。",
+    "must: generated artifacts と prompts に露出していた targetGuardArgs / exact target guard wording は public compatibility surface として保持せず、CLI-owned binding から生成された directive / command の内部 detail に置き換える。",
+    "must: hooks や agent host 固有 lifecycle には新しい依存を追加せず、side effects は既存 Flow command の guarded execution path に限定する。",
+    "must: config entries や project-local generated docs の新規必須設定は追加しない。skill source を変更しない場合は generated skill artifacts への影響を発生させない。",
+    "should: tests/unit/flow/run-dispatch.test.js、tests/unit/flow/next-action-directive.test.js、tests/e2e/flow/worktree-flow-command-identity.test.js、tests/e2e/flow/commands/dispatch.test.js のいずれかに、binding serialization、dispatcher command execution、worktree identity mismatch、correct-binding continuation の regression を追加または更新する。",
+    "should: src/skills/senti.flow/SKILL.md を変更する場合、generated skill と skill-prelude regression に影響する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #483 の goal は、通常 Flow の target-sensitive action について、agent が run ID / Issue / spec を再入力して guard を組み立てる必要をなくし、CLI が生成・検証する immutable binding に一本化する、で合っていますか？",
+      "answer": "はい。Issue #483 の goal は、通常 Flow の target-sensitive action を CLI が生成・検証する immutable Flow target binding に束縛し、agent が run ID / Issue / spec を再入力して guard を組み立てる経路をなくすこととして扱う。",
+      "evidence": "issue.md の Problem は Flow continuation が skill wording と agent string transcription に依存していることを問題化し、Approach と Acceptance Criteria 1-2 は CLI 内の immutable FlowTargetBinding と agent が guard strings を再入力しない契約を要求している。",
+      "why": "ユーザーへの新規判断ではなく、Issue 本文と draft goal が一致している goal confirmation であり、draft-refine instruction は request / Issue / source context から分かる回答は質問せず同じ entry に記録するよう求めているため。",
+      "considered": "dispatcher prompt の target guard wording だけを調整する狭い解釈も考えられるが、Issue の Acceptance Criteria は normal Flow のすべての target-sensitive action と next-action / dispatcher binding を対象にしているため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存の read-only `senti flow get status` 転記回復は、structured binding 導入後にどう扱いますか？",
+      "answer": "structured binding 導入後は user-visible contract として残さない。実装中の短期 bridge は内部 migration detail として扱い、最終 spec では CLI binding が authority を再取得・検証することで read-only status transcription recovery に依存しない形にする。",
+      "evidence": "issue.md は read-only status transcription recovery を safe interim measure と説明し、Approach では compatibility path until migration または不要なら削除とする。AGENTS.md の alpha 版ポリシーは旧フォーマット・非推奨 path の後方互換コードを保持しないことを要求している。",
+      "why": "read-only recovery は agent-side transcription 依存を下げる暫定策であり、今回の目的は typo path そのものを CLI generated binding に移すこと。alpha policy と agent-independence requirement から、恒久的な互換経路として残す判断は不要。",
+      "considered": "read-only status recovery を明示互換として残す案もあるが、binding が正しく導入された後に agent transcription を user-visible recovery contract として保持すると Issue の root problem を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "skill source の変更は、この Issue の scope に必ず含めますか？",
+      "answer": "必須にはしない。CLI 側の structured directive / binding 契約だけで agent-side guard transcription 排除を達成できる場合は skill source を変更しない。skill source を変更した場合だけ、project rule と issue.md Acceptance Criteria 7 に従って `senti upgrade` と generated skill regression を scope に含める。",
+      "evidence": "issue.md の Main Change Targets は `src/skills/senti.flow/SKILL.md, if needed` とし、Acceptance Criteria 7 は `If the skill source is changed` という条件付きで `senti upgrade` を要求している。AGENTS.md も `src/skills/` 変更時の `senti upgrade` を条件付きルールとしている。",
+      "why": "Issue の root fix は CLI 内の binding generation / validation であり、skill wording は必要な場合の consumer contract 表現に限られる。scope を必須化すると不要な generated artifact churn を招く。",
+      "considered": "skill source を必ず変更して prompt wording も同期する案はあるが、Issue と project rule は条件付きとしているため draft では必須 scope にしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "binding 導入後の agent / worker contract は、どの強さで定義しますか？",
+      "answer": "強い contract として定義する。agent / worker は CLI が返した directive または binding 由来 command をそのまま実行し、runId / Issue / spec guard を手入力・再構成しない。target identity の正当性は CLI 側の binding constructor / authority validation / pre-side-effect mismatch check が担保する。",
+      "evidence": "issue.md の Approach は structured directives returned by next-action / dispatcher generate the target guard from the binding itself、agent does not reconstruct the run ID or guard arguments と記述している。AGENTS.md は agent host 固有機能ではなく senti CLI 内部の agent-independent mechanism で正当性を保証することを要求している。",
+      "why": "弱い contract にすると agent transcription path が残り、Issue #483 の unnecessary ACTIVE_FLOW_MISMATCH 再発リスクを閉じられないため。",
+      "considered": "agent が guard strings を再入力して CLI が検証する弱い contract も考えられるが、現状の problem statement と同じ依存を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "acceptance criteria では、既存 mismatch safety に加えて「正しい binding から生成された command は同一 dispatcher invocation 内で不要な ACTIVE_FLOW_MISMATCH を起こさない」ことを must として検証しますか？",
+      "answer": "must として検証する。既存 mismatch safety の維持に加えて、正しい CLI-generated binding 由来の command が同一 dispatcher invocation 内で transcription error による不要な ACTIVE_FLOW_MISMATCH を起こさず進行できることを acceptance criteria に含める。",
+      "evidence": "issue.md Acceptance Criteria 4 は mismatch が副作用前に ACTIVE_FLOW_MISMATCH で停止すること、Acceptance Criteria 5 は correct binding から生成された commands が transcription errors による unnecessary ACTIVE_FLOW_MISMATCH を起こさず同一 dispatcher invocation で proceed できることを要求している。",
+      "why": "この検証がないと fail-closed safety だけを確認して root problem である不要停止の排除を検証できないため。",
+      "considered": "mismatch safety regression だけを acceptance にする案はあるが、Issue #483 の主目的である typo path elimination を直接検証できないため不十分。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-07-31T03:22:53.800Z",
+    "notes": "draft-refine reopened after pre-implementation draft regression; approval remains downstream of coverage review and draft gate."
+  }
+}

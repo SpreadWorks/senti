@@ -25,6 +25,35 @@ afterEach(() => {
   tmp = null;
 });
 
+function mutableFlowManager(state) {
+  return {
+    load() {
+      return state;
+    },
+    loadReadOnly() {
+      return state;
+    },
+    mutate(mutator) {
+      mutator(state);
+    },
+    updateStepStatus(transition, _options, commitIntent = null) {
+      commitIntent?.assertBeforeTransition(state);
+      for (const change of transition.changes) {
+        const step = findStepById(state.steps, change.stepId);
+        step.status = change.requestedStatus;
+        delete step.startedAt;
+        delete step.finishedAt;
+      }
+      commitIntent?.applyTo(state);
+      return state;
+    },
+    completeStepTransitionIntent(commitIntent) {
+      commitIntent.completeIn(state);
+      return state;
+    },
+  };
+}
+
 test("stale evidence refresh rejects additional artifact paths outside the spec directory", () => {
   tmp = createTmpDir("stale-test-evidence-refresh-");
   const specDir = path.join(tmp, "specs", "demo");
@@ -114,32 +143,7 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
     spec: specPath,
     repairBaseline: baseline.baseline.toJSON(),
   }), "impl-repair");
-  const flowManager = {
-    load() {
-      return state;
-    },
-    loadReadOnly() {
-      return state;
-    },
-    mutate(mutator) {
-      mutator(state);
-    },
-    updateStepStatus(transition, _options, commitIntent = null) {
-      commitIntent?.assertBeforeTransition(state);
-      for (const change of transition.changes) {
-        const step = findStepById(state.steps, change.stepId);
-        step.status = change.requestedStatus;
-        delete step.startedAt;
-        delete step.finishedAt;
-      }
-      commitIntent?.applyTo(state);
-      return state;
-    },
-    completeStepTransitionIntent(commitIntent) {
-      commitIntent.completeIn(state);
-      return state;
-    },
-  };
+  const flowManager = mutableFlowManager(state);
   writeFile(tmp, "specs/demo/impl-review.json", JSON.stringify({
     repairFingerprint: baseline.hash,
     blockingFindings: [{ findingId: "F-1" }],
@@ -217,4 +221,46 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
   assert.equal(fs.existsSync(path.join(specDir, "upgrade-result.json")), false);
   assert.equal(fs.existsSync(path.join(specDir, "tests", ".raw", "upgrade.log")), false);
   assert.equal(fs.existsSync(path.join(specDir, "retro.json")), false);
+});
+
+test("stale evidence refresh clears an active impl-repair leaf before restarting tests", () => {
+  tmp = createTmpDir("stale-test-evidence-refresh-active-repair-");
+  const specPath = "specs/demo/spec.json";
+  const specDir = path.join(tmp, "specs", "demo");
+  writeFile(tmp, specPath, JSON.stringify({ requirements: [] }, null, 2));
+  writeFile(tmp, "src/value.js", "export const value = 1;\n");
+  initGitRepo(tmp);
+  commitAll(tmp, "initial");
+
+  const baseline = buildRepairFingerprint({ root: tmp, specPath });
+  const state = moveFlowToStep(makeFlowState({
+    spec: specPath,
+    repairBaseline: baseline.baseline.toJSON(),
+  }), "impl-repair");
+  const flowManager = mutableFlowManager(state);
+  writeRepairFingerprintManifest(specDir, baseline);
+  writeFile(tmp, "specs/demo/test-execute-result.json", JSON.stringify({
+    repairFingerprint: baseline.hash,
+  }, null, 2));
+  writeFile(tmp, "src/value.js", "export const value = 2;\n");
+  const current = buildRepairFingerprint({ root: tmp, specPath, state });
+
+  new StaleTestEvidenceRefresh({
+    previousFingerprint: baseline.hash,
+    currentFingerprint: current.hash,
+  }).recover({
+    root: tmp,
+    state,
+    specDir,
+    flowManager,
+    reason: "acceptance review detected stale evidence",
+    sourceStep: "acceptance-review",
+  });
+
+  assert.equal(findStepById(state.steps, "test-execute").status, "in_progress");
+  assert.equal(findStepById(state.steps, "impl-repair").status, "pending");
+  assert.equal(
+    state.steps.flatMap((phase) => phase.children || []).filter((step) => step.status === "in_progress").length,
+    1,
+  );
 });

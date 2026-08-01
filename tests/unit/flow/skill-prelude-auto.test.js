@@ -81,35 +81,28 @@ describe("senti.flow skill prelude auto flow", () => {
     const text = readSkill();
     const dispatcher = text.slice(text.indexOf("### C. Dispatcher loop"), text.indexOf("## Post-flow"));
 
-    assert.match(text, /Build `targetGuardArgs`/);
-    assert.match(dispatcher, /senti flow get next-action <targetGuardArgs>/);
-    assert.match(dispatcher, /senti flow set auto on <targetGuardArgs>/);
-    assert.match(dispatcher, /senti flow set auto off <targetGuardArgs>/);
-    assert.match(dispatcher, /senti flow get context \.\.\. <targetGuardArgs>/);
-    assert.match(dispatcher, /senti flow get prompt \.\.\./);
-    assert.match(dispatcher, /cannot accept `targetGuardArgs`, STOP/);
-    assert.match(dispatcher, /senti flow set step <current-step> done <targetGuardArgs>/);
-    assert.match(dispatcher, /senti flow get status <targetRunId> <targetGuardArgs>/);
-    assert.match(text, /Reference forms below omit `targetGuardArgs`/);
+    assert.match(text, /CLI-returned opaque binding tokens/);
+    assert.match(dispatcher, /senti flow get next-action --expect-binding <token>/);
+    assert.match(dispatcher, /senti flow set auto on --expect-binding <token>/);
+    assert.match(dispatcher, /senti flow set auto off --expect-binding <token>/);
+    assert.match(dispatcher, /cannot accept the\s+CLI-generated binding, STOP/s);
+    assert.match(dispatcher, /senti flow get status <targetRunId> --expect-binding <token>/);
+    assert.match(text, /Reference forms below omit `--expect-binding <token>`/);
+    assert.doesNotMatch(text, /targetGuardArgs/);
     assert.match(text, /Do not proceed past a step whose `requires_approval` is `true`/);
     assert.match(text, /Do not start `finalize-commit` without its required user confirmation/);
     assert.doesNotMatch(text, /Do not finalize without user confirmation\./);
   });
 
-  it("recovers only a verified read-only runId transcription error", () => {
+  it("does not keep read-only runId repair as a public continuation contract", () => {
     const text = readSkill();
     const core = readCorePrinciple();
 
-    assert.match(core, /locally generated runId transcription error/);
-    assert.match(core, /same read-only\s+`senti flow get status <selectedRunId>/s);
-    assert.match(core, /only unequal expected\/active identity pair is\s+`expectedRunId`\/`activeRunId`/s);
-    assert.match(core, /every supplied Issue\/spec guard pair\s+matches/s);
-    assert.match(core, /retry the same read-only status command once in the\s+same turn/s);
-    assert.match(core, /Do not ask the user or run any mutating\s+command/s);
-    assert.match(core, /If it fails again, or any Issue\/spec\/selected-run identity differs,\s+STOP/s);
-    assert.match(core, /Store runId values returned by the CLI as opaque tokens/);
-    assert.match(text, /corrected\s+read-only runId transcription error is not a loop exit condition/s);
-    assert.match(text, /Reuse this argument\s+list verbatim instead of reconstructing UUID text/s);
+    assert.doesNotMatch(core, /transcri(?:be|ption)/i);
+    assert.doesNotMatch(text, /transcri(?:be|ption)/i);
+    assert.match(core, /Treat `ACTIVE_FLOW_MISMATCH` as a no-mutation boundary/);
+    assert.match(core, /Do not retry a\s+target-sensitive command by editing guard strings/s);
+    assert.match(core, /Store runId and binding values returned by the CLI as opaque tokens/);
   });
 
   it("does not include automatic route choice for non-explicit requests", () => {

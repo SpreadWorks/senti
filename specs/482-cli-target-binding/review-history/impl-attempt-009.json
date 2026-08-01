@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-31T04:52:15.275Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "dispatch-invocation-not-recorded-for-review-recovery",
+      "title": "Review recovery is not scoped to dispatcher invocation",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/flow/lib/set-retry.js",
+      "requirementId": "R13",
+      "issue": "The recovery identity only includes `ctx.dispatchInvocationId`, but the dispatcher never populates that field when it asks the worker to run recovery commands through the environment. As a result, `currentReviewRecoveryIdentity()` records `dispatchInvocationId: null`, and `ReviewRecoveryIdentity.changedFrom()` skips null fields. A second unchanged-input retry in a later dispatcher invocation is still treated as unchanged against the prior record, so the implementation enforces one retry forever rather than one audited retry per fresh dispatcher invocation.",
+      "suggestion": "Capture and propagate a concrete dispatcher invocation id into target-sensitive command context, then persist it through `currentReviewRecoveryIdentity()` and `ReviewToolingRecoveryMutation` so unchanged input can retry once per new dispatcher invocation and not again within the same invocation.",
+      "disposition": "must-fix",
+      "rationale": "T-6 explicitly requires unchanged input to receive only one audited same-binding provider retry per fresh dispatcher invocation. Without a non-null invocation scope in the mutation path, the implementation cannot satisfy the per-fresh-invocation part of that mandatory acceptance criterion.",
+      "findingId": "46b530e2d665b28581cfac8d94f4b084800cfb841f6ebaf06d7c6446f3404afe",
+      "fingerprint": "46b530e2d665b28581cfac8d94f4b084800cfb841f6ebaf06d7c6446f3404afe",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "4875aa7101f33d08576ccb266f403189a757c654ba04e0037d7f114c08d017c3",
+  "reviewedTree": "4875aa7101f33d08576ccb266f403189a757c654ba04e0037d7f114c08d017c3",
+  "reviewedHead": "80356e35a40b4254c32ecb327050c260a8d679bd",
+  "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+  "planRewindAt": null,
+  "taskId": "T-6",
+  "target": "specs/482-cli-target-binding/tasks/T-6.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/482-cli-target-binding/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "3b9579336454b59dc1cd9dedc37b5b2f6eec0b385d0d386d5133416a5e551d69"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 9,
+  "findings": [
+    {
+      "id": "46b530e2d665b28581cfac8d94f4b084800cfb841f6ebaf06d7c6446f3404afe",
+      "findingId": "46b530e2d665b28581cfac8d94f4b084800cfb841f6ebaf06d7c6446f3404afe",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 9,
+      "severity": "blocking",
+      "title": "Review recovery is not scoped to dispatcher invocation",
+      "body": "The recovery identity only includes `ctx.dispatchInvocationId`, but the dispatcher never populates that field when it asks the worker to run recovery commands through the environment. As a result, `currentReviewRecoveryIdentity()` records `dispatchInvocationId: null`, and `ReviewRecoveryIdentity.changedFrom()` skips null fields. A second unchanged-input retry in a later dispatcher invocation is still treated as unchanged against the prior record, so the implementation enforces one retry forever rather than one audited retry per fresh dispatcher invocation.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "46b530e2d665b28581cfac8d94f4b084800cfb841f6ebaf06d7c6446f3404afe",
+      "disposition": "must-fix",
+      "rationale": "T-6 explicitly requires unchanged input to receive only one audited same-binding provider retry per fresh dispatcher invocation. Without a non-null invocation scope in the mutation path, the implementation cannot satisfy the per-fresh-invocation part of that mandatory acceptance criterion.",
+      "requirementId": "R13",
+      "repeatCount": 1
+    }
+  ]
+}

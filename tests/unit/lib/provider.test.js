@@ -133,6 +133,39 @@ describe("CodexProvider", () => {
     assert.equal(usage.cache_creation_tokens, 0);
   });
 
+  it("parse() uses the final agent message when the stream contains progress messages", () => {
+    const events = [
+      {
+        type: "item.completed",
+        item: {
+          type: "agent_message",
+          text: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
+        },
+      },
+      { type: "item.completed", item: { type: "command_execution", command: "rg example" } },
+      {
+        type: "item.completed",
+        item: {
+          type: "agent_message",
+          text: JSON.stringify({
+            blockingFindings: [{ title: "Final finding" }],
+            nonBlockingImprovements: [],
+          }),
+        },
+      },
+      { type: "turn.completed", usage: { input_tokens: 30, output_tokens: 12, cached_input_tokens: 10 } },
+    ];
+
+    const { text, usage } = provider.parse(events.map((event) => JSON.stringify(event)).join("\n"));
+
+    assert.deepEqual(JSON.parse(text), {
+      blockingFindings: [{ title: "Final finding" }],
+      nonBlockingImprovements: [],
+    });
+    assert.equal(usage.input_tokens, 20);
+    assert.equal(usage.output_tokens, 12);
+  });
+
   it("builtinProfiles entries do NOT contain hardcoded workdir values like '-C .tmp'", () => {
     const profiles = provider.builtinProfiles();
     for (const [, profile] of Object.entries(profiles)) {

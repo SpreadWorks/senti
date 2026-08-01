@@ -105,6 +105,24 @@ describe("FindingDispositionPolicy", () => {
     assert.equal(disposition.requiresRepair(), false);
   });
 
+  it("R6: downgrades unauthoritative must-fix proposals to informational", () => {
+    const policy = new FindingDispositionPolicy({ maxOccurrences: 3 });
+    const disposition = policy.classify({
+      finding: finding({
+        category: "naming",
+        requirementId: null,
+        disposition: "must-fix",
+        rationale: "The proposal is useful but no requirement or guardrail makes it mandatory.",
+      }),
+      requirement: null,
+      guardrail: null,
+      repeatCount: 1,
+    });
+
+    assert.ok(disposition instanceof InformationalDisposition);
+    assert.equal(disposition.requiresRepair(), false);
+  });
+
   it("R1: keeps a repeated mandatory fingerprint must-fix at the occurrence bound", () => {
     const policy = new FindingDispositionPolicy({ maxOccurrences: 3 });
     const disposition = policy.classify({

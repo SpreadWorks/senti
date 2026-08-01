@@ -104,14 +104,13 @@ class CodexProvider extends Provider {
   }
 
   parse(stdout) {
-    const lines = stdout.trim().split("\n");
     let text = "";
     let usageRaw = null;
-    for (const line of lines) {
+    for (const line of stdout.trim().split("\n")) {
       if (!line.trim()) continue;
       const event = JSON.parse(line);
       if (event.type === "item.completed" && event.item?.type === "agent_message") {
-        text += String(event.item.text ?? "");
+        text = String(event.item.text ?? "");
       } else if (event.type === "turn.completed") {
         usageRaw = event.usage;
       }

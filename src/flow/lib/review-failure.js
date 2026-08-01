@@ -54,7 +54,7 @@ function matchesInputSizeFailure(text) {
 }
 
 function matchesProviderFailure(text) {
-  return /rate limit|quota|429|provider|api error|overloaded|temporarily unavailable/i.test(text);
+  return /rate limit|quota|\b429\b|provider(?:=|\s+(?:error|failure|unavailable)\b)|api error|overloaded|temporarily unavailable/i.test(text);
 }
 
 export class ReviewFailure {

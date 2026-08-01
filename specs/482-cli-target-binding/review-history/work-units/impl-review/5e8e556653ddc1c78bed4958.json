@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "5e8e556653ddc1c78bed4958",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-dfdb22b6ce8ac3eb",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".agents/skills/senti.flow/SKILL.md",
+      "src/flow/lib/acceptance-review-artifacts.js",
+      "src/flow/lib/finding-disposition-policy.js",
+      "src/flow/lib/impl-repair-artifacts.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-reopen-draft.js",
+      "src/flow/lib/set-retry.js",
+      "src/lib/dispatcher.js",
+      "src/lib/provider.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/run-dispatch.test.js",
+      "tests/unit/flow/skill-prelude-auto.test.js",
+      "tests/unit/lib/agent.test.js"
+    ],
+    "inputHash": "dfdb22b6ce8ac3eb4859141849345efefaad5acf8620a7c51a14e3d1be2e94b7",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "5e8e556653ddc1c78bed4958"
+  },
+  "targetFiles": [
+    ".agents/skills/senti.flow/SKILL.md",
+    "src/flow/lib/acceptance-review-artifacts.js",
+    "src/flow/lib/finding-disposition-policy.js",
+    "src/flow/lib/impl-repair-artifacts.js",
+    "src/flow/lib/review-failure.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/set-retry.js",
+    "src/lib/dispatcher.js",
+    "src/lib/provider.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/run-dispatch.test.js",
+    "tests/unit/flow/skill-prelude-auto.test.js",
+    "tests/unit/lib/agent.test.js"
+  ],
+  "inputHash": "dfdb22b6ce8ac3eb4859141849345efefaad5acf8620a7c51a14e3d1be2e94b7",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T22:31:01.705Z",
+  "finishedAt": "2026-07-31T22:31:01.705Z",
+  "rawResponse": "### 1. Centralize Target-Binding Command Wording\n**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Multiple files propose the same drift-prone fix for `--expect-binding <token>` wording across `.agents/skills/senti.flow/SKILL.md`, `src/skills/senti.flow/SKILL.md`, `src/skills/partials/core-principle.md`, and related generated tests. The cross-file problem is that binding-era guidance appears to exist in at least two skill sources plus a partial, with similar but not identical phrasing.\n**Suggestion:** Define one canonical binding-command phrase in the source partial or canonical skill source, generate or mirror it into the derived skill artifact, and update tests to assert that canonical wording rather than repeated bespoke strings.\n\n### 2. Unify Guarded Command Construction\n**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R6\n**Issue:** Guarded command construction is duplicated across recovery/finalization paths: `finalization-outbox-recovery.js` has repeated binding-vs-guard fallback logic, while `get-next-action.js` repeats guarded `ExecuteCommandDirective` creation. These files are implementing the same target-sensitive command contract independently.\n**Suggestion:** Introduce a shared helper for guarded target-sensitive commands, then use it from recovery command builders and next-action directive builders so binding fallback behavior cannot diverge.\n\n### 3. Share Review Recovery Identity Context\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity construction is duplicated within `review-convergence.js` and again in `set-retry.js`, using the same contextual fields such as `runId`, issue/spec data, target binding digest, and dispatch invocation id. This creates a cross-file risk that convergence and retry recovery compare different identity shapes.\n**Suggestion:** Add a single identity-context helper or factory used by both `ReviewRecoveryMutation` construction and retry recovery code. Keep comparison semantics in one place, including whether `dispatchInvocationId` participates in identity changes.\n\n### 4. Resolve Dispatch Invocation Naming Across Runtime And Recovery\n**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `dispatchInvocationId` is generated once per dispatch loop in `run-dispatch.js`, while recovery identity code stores or compares similarly named data in `review-convergence.js` and `set-retry.js`. The name suggests a per-invocation value, but its cross-file usage appears session-wide.\n**Suggestion:** Either rename the field consistently to something loop-scoped like `dispatchSessionId`, or generate a distinct id per worker invocation and update recovery identity semantics accordingly.\n\n### 5. Consolidate Flow Authority Comparison Semantics\n**File:** `src/lib/flow-target-guard.js`\n**Requirement:** R2\n**Issue:** Authority comparison is proposed in two competing forms in the same area: `FlowExecutionAuthority.equals()` uses JSON stringification, while mismatch detection uses explicit field comparison. Other files rely on target-binding correctness, so multiple comparison paths increase cross-file semantic drift.\n**Suggestion:** Keep one authority comparison mechanism, preferably explicit field comparison shared by `bindingMismatch()` and any equality caller. Remove `equals()` if it has no external caller.\n\n### 6. Standardize Binding Test Helpers\n**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several test files repeat `--expect-binding` assertions or setup helpers independently, including `next-action-directive.test.js`, `skill-prelude-auto.test.js`, and related flow review tests. This duplicates the binding contract in test code and makes future CLI syntax changes harder.\n**Suggestion:** Add focused local or shared test helpers for binding assertions, such as `assertUsesTargetBinding(command)`, and reuse them where tests are asserting the same absence of legacy guard flags.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Target-Binding Command Wording",
+        "body": "**File:** `src/skills/senti.flow/SKILL.md`\n**Requirement:** R7\n**Issue:** Multiple files propose the same drift-prone fix for `--expect-binding <token>` wording across `.agents/skills/senti.flow/SKILL.md`, `src/skills/senti.flow/SKILL.md`, `src/skills/partials/core-principle.md`, and related generated tests. The cross-file problem is that binding-era guidance appears to exist in at least two skill sources plus a partial, with similar but not identical phrasing.\n**Suggestion:** Define one canonical binding-command phrase in the source partial or canonical skill source, generate or mirror it into the derived skill artifact, and update tests to assert that canonical wording rather than repeated bespoke strings.",
+        "file": "src/skills/senti.flow/SKILL.md",
+        "requirementId": "R7"
+      },
+      {
+        "title": "2. Unify Guarded Command Construction",
+        "body": "**File:** `src/flow/lib/get-next-action.js`\n**Requirement:** R6\n**Issue:** Guarded command construction is duplicated across recovery/finalization paths: `finalization-outbox-recovery.js` has repeated binding-vs-guard fallback logic, while `get-next-action.js` repeats guarded `ExecuteCommandDirective` creation. These files are implementing the same target-sensitive command contract independently.\n**Suggestion:** Introduce a shared helper for guarded target-sensitive commands, then use it from recovery command builders and next-action directive builders so binding fallback behavior cannot diverge.",
+        "file": "src/flow/lib/get-next-action.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "3. Share Review Recovery Identity Context",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity construction is duplicated within `review-convergence.js` and again in `set-retry.js`, using the same contextual fields such as `runId`, issue/spec data, target binding digest, and dispatch invocation id. This creates a cross-file risk that convergence and retry recovery compare different identity shapes.\n**Suggestion:** Add a single identity-context helper or factory used by both `ReviewRecoveryMutation` construction and retry recovery code. Keep comparison semantics in one place, including whether `dispatchInvocationId` participates in identity changes.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "4. Resolve Dispatch Invocation Naming Across Runtime And Recovery",
+        "body": "**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `dispatchInvocationId` is generated once per dispatch loop in `run-dispatch.js`, while recovery identity code stores or compares similarly named data in `review-convergence.js` and `set-retry.js`. The name suggests a per-invocation value, but its cross-file usage appears session-wide.\n**Suggestion:** Either rename the field consistently to something loop-scoped like `dispatchSessionId`, or generate a distinct id per worker invocation and update recovery identity semantics accordingly.",
+        "file": "src/flow/lib/run-dispatch.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "5. Consolidate Flow Authority Comparison Semantics",
+        "body": "**File:** `src/lib/flow-target-guard.js`\n**Requirement:** R2\n**Issue:** Authority comparison is proposed in two competing forms in the same area: `FlowExecutionAuthority.equals()` uses JSON stringification, while mismatch detection uses explicit field comparison. Other files rely on target-binding correctness, so multiple comparison paths increase cross-file semantic drift.\n**Suggestion:** Keep one authority comparison mechanism, preferably explicit field comparison shared by `bindingMismatch()` and any equality caller. Remove `equals()` if it has no external caller.",
+        "file": "src/lib/flow-target-guard.js",
+        "requirementId": "R2"
+      },
+      {
+        "title": "6. Standardize Binding Test Helpers",
+        "body": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several test files repeat `--expect-binding` assertions or setup helpers independently, including `next-action-directive.test.js`, `skill-prelude-auto.test.js`, and related flow review tests. This duplicates the binding contract in test code and makes future CLI syntax changes harder.\n**Suggestion:** Add focused local or shared test helpers for binding assertions, such as `assertUsesTargetBinding(command)`, and reuse them where tests are asserting the same absence of legacy guard flags.",
+        "file": "tests/unit/flow/next-action-directive.test.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

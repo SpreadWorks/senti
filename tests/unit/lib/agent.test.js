@@ -170,6 +170,30 @@ describe("Agent.call() — basic invocation", () => {
     const result = await agent.call(largePrompt, { commandId: "test" });
     assert.equal(result, largePrompt);
   });
+
+  it("rejects too many execution environment variables before spawning", () => {
+    const agent = makeAgent({ command: "echo", args: ["{{PROMPT}}"] });
+    const executionEnvironment = Object.fromEntries(
+      Array.from({ length: 65 }, (_, index) => [`SENTI_TEST_${index}`, "value"]),
+    );
+
+    assert.throws(
+      () => agent._buildInvocationForTest("work", { commandId: "test", executionEnvironment }),
+      /must contain at most 64 variables/,
+    );
+  });
+
+  it("rejects an oversized execution environment before spawning", () => {
+    const agent = makeAgent({ command: "echo", args: ["{{PROMPT}}"] });
+
+    assert.throws(
+      () => agent._buildInvocationForTest("work", {
+        commandId: "test",
+        executionEnvironment: { SENTI_TEST_VALUE: "x".repeat(64 * 1024) },
+      }),
+      /must not exceed 65536 bytes/,
+    );
+  });
 });
 
 describe("ChildProcessSupervisor", () => {

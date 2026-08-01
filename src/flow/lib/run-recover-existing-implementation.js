@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { Envelope } from "../../lib/flow-envelope.js";
+import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { findActiveNode, flowLeafIdsBetween } from "../definition.js";
 import { findStepById } from "./step-tree.js";
 import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
@@ -26,14 +27,7 @@ function reject(code, message) {
 }
 
 function requireExactGuards(ctx, state) {
-  const missing = [];
-  if (ctx.expectRunId == null) missing.push("--expect-run-id");
-  if (ctx.expectSpec == null) missing.push("--expect-spec");
-  if (state.issue == null) {
-    if (ctx.expectNoIssue !== true) missing.push("--expect-no-issue");
-  } else if (ctx.expectIssue == null) {
-    missing.push("--expect-issue");
-  }
+  const missing = missingExactTargetGuardNames(ctx, state);
   if (missing.length > 0) {
     return Envelope.fail(
       "run",

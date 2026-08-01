@@ -1,0 +1,196 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/482-cli-target-binding/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+  "process": {
+    "started": false,
+    "exitCode": null,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "block",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R1: captures canonical Flow identity and stable branch authority",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R2: rejects every changed target or branch-authority field",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "test_name": "R3: CLI-generated command directives carry the complete opaque binding",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R4: stale binding fails before a target-sensitive mutation callback",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R5: advancing the bound feature ref does not change branch identity",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "test_name": "R6: a resumed dispatcher reacquires authority instead of reusing stale binding text",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "test_name": "R7: worker prompt receives an opaque binding environment without guard transcription",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R8: no-Issue identity is explicit and rejects an Issue-bearing target",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R9: explicit selection requires exactly one matching active Flow",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R10",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R10: finalize boundaries retain lifecycle ref checks behind binding identity",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R11",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/dispatcher-binding.test.js",
+        "test_name": "R11: deployed senti.flow skill matches source and omits the retired transcription contract",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R12",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/flow-target-binding.test.js",
+        "test_name": "R12: main and managed-worktree invocation roots capture one lock authority",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    },
+    {
+      "id": "R13",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "test_name": "R13: stale digest suppresses an old blocker instead of reusing it",
+        "command": "node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 17
+        }
+      }
+    }
+  ],
+  "preflight": {
+    "invalid_paths": [
+      "src/flow/commands/review.js",
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/set-retry.js",
+      "src/lib/provider.js",
+      "tests/unit/flow/commands/review.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/set-retry.test.js",
+      "tests/unit/lib/provider.test.js"
+    ]
+  }
+}

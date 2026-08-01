@@ -951,6 +951,53 @@ test("acceptance-review accepts an audited skipped scenario-validity preconditio
   );
 });
 
+test("acceptance-review exposes validated upgrade evidence for changed skill sources", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  writeFile(fixture.specDir, "tests/.raw/upgrade.log", "upgrade complete\n");
+  writeJson(fixture.specDir, "upgrade-result.json", {
+    version: 1,
+    command: "senti upgrade",
+    dryRun: false,
+    exitCode: 0,
+    result: "success-updated",
+    summary: {},
+    checkedPaths: ["src/skills/senti.flow/SKILL.md"],
+    rawLogPath: "tests/.raw/upgrade.log",
+  });
+  const state = makeFlowState({
+    spec: fixture.specPath,
+    runId: "run-test",
+    request: "Refresh generated skills after changing the source skill.",
+  });
+  const diff = [
+    "diff --git a/src/skills/senti.flow/SKILL.md b/src/skills/senti.flow/SKILL.md",
+    "--- a/src/skills/senti.flow/SKILL.md",
+    "+++ b/src/skills/senti.flow/SKILL.md",
+    "",
+  ].join("\n");
+
+  const context = buildAcceptanceReviewContext({ root: fixture.root, state, diff });
+
+  assert.deepEqual(context.evidence.upgradeEvidence, {
+    required: true,
+    requiredPaths: ["src/skills/senti.flow/SKILL.md"],
+    valid: true,
+    ref: "upgrade-result.json",
+    artifact: {
+      version: 1,
+      command: "senti upgrade",
+      dryRun: false,
+      exitCode: 0,
+      result: "success-updated",
+      summary: {},
+      checkedPaths: ["src/skills/senti.flow/SKILL.md"],
+      rawLogPath: "tests/.raw/upgrade.log",
+    },
+    invalidReason: null,
+  });
+});
+
 test("acceptance-review turns a continued impl-gate failure into an explicit risk decision", () => {
   const fixture = prepareSpecRoot();
   const fingerprint = prepareAcceptanceEvidence(fixture);
@@ -1220,6 +1267,125 @@ test("unresolved deferred findings route to acceptance decision without masking 
     ...unresolved,
     mechanicalBlockers: [{ blockerId: "M-1", kind: "missing_artifact" }],
   }), "blocked");
+});
+
+test("acceptance-review resolves legacy advisory review handoffs without a risk decision", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  const informationalFinding = {
+    findingId: "task-informational",
+    summary: "Optional fixture cleanup",
+    fingerprint: "d".repeat(64),
+    evidenceRefs: ["impl-review.json#task-informational"],
+  };
+  const evidence = new ReviewEvidence({
+    phase: "impl",
+    taskId: "T-informational",
+    treeSha: "4".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "acceptance-informational-handoff",
+      capturedAt: "2026-07-24T00:00:00.000Z",
+    },
+    disposition: new ReviewDisposition({
+      value: "ADVISORY",
+      advisoryFindings: [informationalFinding],
+    }),
+  });
+  const canonicalEvidenceRef = `review-evidence/${evidence.identity.evidenceDigest}.json`;
+  writeFile(fixture.specDir, canonicalEvidenceRef, evidence.canonicalText);
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify informational review handoffs remain non-blocking.",
+  };
+  applyReviewEvidenceTransition(state, evidence, { configuredSemanticMaxAttempts: 4 });
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: "diff --git a/src/demo.js b/src/demo.js\n",
+  });
+
+  assert.equal(context.mechanicalBlockers.length, 0);
+  assert.equal(context.deferredFindings.length, 1);
+  assert.equal(context.deferredFindings[0].finalDisposition, "not_needed");
+  assert.deepEqual(context.deferredFindings[0].evidenceRefs, [
+    `${canonicalEvidenceRef}#${informationalFinding.findingId}`,
+  ]);
+  const artifact = artifactFromAcceptanceJudgments({
+    context,
+    requirementJudgments: [{
+      requirementId: "R1",
+      status: "met",
+      requestRefs: ["flow.request"],
+      requirementRefs: ["spec.json#R1"],
+      diffRefs: ["diff:src/demo.js"],
+      repairRefs: ["acceptance:no-repair"],
+      testRefs: ["test-execute-result.json#R1"],
+      missingEvidence: [],
+    }],
+  });
+  assert.equal(artifact.verdict, "pass");
+  assert.deepEqual(artifact.hardBlockers, []);
+});
+
+test("acceptance-review resolves a blocking preimplementation handoff from applied repair evidence", () => {
+  const fixture = prepareSpecRoot();
+  prepareAcceptanceEvidence(fixture);
+  const blockingFinding = {
+    findingId: "spec-blocking",
+    summary: "Define stable branch authority",
+    fingerprint: "e".repeat(64),
+    evidenceRefs: ["spec-review.json#spec-blocking"],
+  };
+  const evidence = new ReviewEvidence({
+    phase: "spec",
+    taskId: null,
+    treeSha: "5".repeat(40),
+    provenance: {
+      provider: "fixture-provider",
+      invocationId: "acceptance-applied-spec-repair",
+      capturedAt: "2026-07-24T00:00:00.000Z",
+    },
+    disposition: new ReviewDisposition({
+      value: "REJECTED",
+      blockingFindings: [blockingFinding],
+    }),
+  });
+  const canonicalEvidenceRef = `review-evidence/${evidence.identity.evidenceDigest}.json`;
+  writeFile(fixture.specDir, canonicalEvidenceRef, evidence.canonicalText);
+  writeJson(fixture.specDir, "spec-repair.json", {
+    version: 1,
+    phase: "spec-repair",
+    sourceReview: "spec-triage.json",
+    summary: "Applied the required clarification.",
+    items: [{
+      title: blockingFinding.summary,
+      decision: "applied",
+      rationale: "The current spec now defines the authority.",
+    }],
+  });
+  const state = {
+    spec: fixture.specPath,
+    runId: "run-test",
+    planRewindAt: null,
+    request: "Verify applied preimplementation repair evidence.",
+  };
+  applyReviewEvidenceTransition(state, evidence, { configuredSemanticMaxAttempts: 4 });
+  const context = buildAcceptanceReviewContext({
+    root: fixture.root,
+    state,
+    diff: "diff --git a/src/demo.js b/src/demo.js\n",
+  });
+
+  assert.equal(context.mechanicalBlockers.length, 0);
+  assert.equal(context.deferredFindings.length, 1);
+  assert.equal(context.deferredFindings[0].finalDisposition, "fixed");
+  assert.deepEqual(context.deferredFindings[0].evidenceRefs, [
+    `${canonicalEvidenceRef}#${blockingFinding.findingId}`,
+    "spec-repair.json#items[0]",
+  ]);
 });
 
 test("acceptance-review deduplicates flow findings and review handoffs by fingerprint", () => {

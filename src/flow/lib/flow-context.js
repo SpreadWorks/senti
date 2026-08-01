@@ -22,13 +22,24 @@ import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { findStepById } from "./step-tree.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
+const DISPATCH_INVOCATION_ENV = "SENTI_FLOW_DISPATCH_INVOCATION_ID";
+
+function dispatchInvocationIdFromEnvironment() {
+  const value = process.env[DISPATCH_INVOCATION_ENV];
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 function resolveTargetSelection(input = {}) {
-  const selectRunId = input.expectRunId ?? input.expectRunID ?? null;
-  const specToken = input.expectSpec ?? null;
+  const binding = input.expectBinding == null
+    ? null
+    : new FlowTargetExpectation({ expectBinding: input.expectBinding }).binding;
+  const selectRunId = input.expectRunId ?? input.expectRunID ?? binding?.runId ?? null;
+  const specToken = input.expectSpec ?? binding?.spec ?? null;
   const selectSpecId = specToken ? specIdFromPath(specToken) : null;
-  const selectIssue = input.expectIssue ?? null;
-  const selectNoIssue = input.expectNoIssue === true;
+  const selectIssue = input.expectIssue ?? binding?.issue ?? null;
+  const selectNoIssue = input.expectNoIssue === true || (binding != null && binding.issue == null);
   if (selectRunId == null && selectSpecId == null && selectIssue == null && !selectNoIssue) return null;
   return { selectRunId, selectSpecId, selectIssue, selectNoIssue };
 }
@@ -231,5 +242,6 @@ export function resolveFlowContext(container, options = {}) {
     authorityRoot,
     flowResolutionError,
     worktreeFlowProvenance,
+    dispatchInvocationId: dispatchInvocationIdFromEnvironment(),
   };
 }

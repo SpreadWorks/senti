@@ -4,6 +4,7 @@ import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 import { Envelope } from "../../lib/flow-envelope.js";
+import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { findActiveNode, flowLeafIdsBetween } from "../definition.js";
 import {
@@ -312,14 +313,7 @@ class StaleTestEvidenceAuthority {
 }
 
 function requireExactGuards(ctx, state) {
-  const missing = [];
-  if (ctx.expectRunId == null) missing.push("--expect-run-id");
-  if (ctx.expectSpec == null) missing.push("--expect-spec");
-  if (state.issue == null) {
-    if (ctx.expectNoIssue !== true) missing.push("--expect-no-issue");
-  } else if (ctx.expectIssue == null) {
-    missing.push("--expect-issue");
-  }
+  const missing = missingExactTargetGuardNames(ctx, state);
   if (missing.length > 0) {
     return Envelope.fail(
       "run",

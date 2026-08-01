@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-triage.json",
+  "summary": "Defined non-worktree branch authority using stable persisted Flow identity while retaining moving Git state as lifecycle validation.",
+  "items": [
+    {
+      "title": "Branch authority is required but not defined against existing branch-flow state",
+      "target": "R1, R2, R4, R5, R10",
+      "decision": "applied",
+      "rationale": "The spec now binds branch mode, canonical main-repository execution root, featureBranch, and baseBranch, and explicitly leaves ref OIDs and process HEAD to existing lifecycle checks so valid commits do not stale the binding.",
+      "evidence": "spec.json requirements R1/R2/R4/R5/R10, acceptance_criteria, overview.decisions, and clarifications now define and test the branch authority tuple.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[R1].desc",
+        "requirements[R2].desc",
+        "requirements[R4].desc",
+        "requirements[R5].desc",
+        "requirements[R10].desc",
+        "acceptance_criteria",
+        "clarifications"
+      ]
+    }
+  ]
+}

@@ -8,31 +8,16 @@ Before presenting any choice to the user, you MUST run `senti flow get status` a
 - If the current flow `runId` is known, prefer `senti flow get status <runId>` so the check reads the target flow instead of an unrelated current context.
 - `active: true` is not by itself a reason to stop a new flow start. Parallel flows are allowed when the new target is addressed by an explicit preparing `runId` and verified with target-aware status.
 - When starting a new flow while another flow is active, record the `runId` returned by `senti flow set init`; before and after `senti flow prepare --run-id <runId>`, verify the target with `senti flow get status <runId> --expect-run-id <runId>` plus every known `--expect-issue` and `--expect-spec` guard.
-- After a dispatcher target `runId` is known, all target-sensitive dispatcher continuation commands for that flow must carry `--expect-run-id <runId>` plus every known `--expect-issue` and `--expect-spec` guard. This applies to `senti flow get next-action`, target-bound `senti flow get context` reads, target-bound `senti flow get prompt ...` reads such as `plan.approval`, `senti flow run ...`, and active-flow-mutating `senti flow set ...` commands.
+- After a dispatcher target is selected, target-sensitive dispatcher continuation commands for that flow must use the CLI-generated opaque `--expect-binding <token>` returned by the Flow command. Do not assemble runId, Issue, or spec guards for normal dispatcher continuation.
 - If the user explicitly continues an existing flow and the target Issue is known, run `senti flow get status <runId> --expect-run-id <runId> --expect-issue <n>` when `runId` is known. Without a target `runId`, use bare status for display and do not treat another active flow as authorization to continue it.
 - If the user explicitly continues an existing spec target, run `senti flow get status --expect-spec <spec>` before dispatcher actions.
 - If the user explicitly continues an existing runId target for dispatcher continuation, run `senti flow get status <runId> --expect-run-id <runId>` before dispatcher actions.
-- Treat `ACTIVE_FLOW_MISMATCH` as a no-mutation boundary, then distinguish a
-  locally generated runId transcription error from a true target mismatch:
-  - A transcription error is recoverable only for the same read-only
-    `senti flow get status <selectedRunId> ...` command when all of the
-    following hold: `<selectedRunId>` equals the exact `targetRunId` previously
-    returned by a successful CLI response; `data.activeRunId` also equals that
-    value; the only unequal expected/active identity pair is
-    `expectedRunId`/`activeRunId`; and every supplied Issue/spec guard pair
-    matches.
-  - For that case, rebuild both the positional selector and
-    `--expect-run-id` from the stored `targetRunId`, preserve the matching
-    Issue/spec guards, and retry the same read-only status command once in the
-    same turn. Do not ask the user or run any mutating
-    command before this retry passes.
-  - If the corrected status passes, continue the existing Flow in the same
-    turn. If it fails again, or any Issue/spec/selected-run identity differs,
-    STOP before `next-action`, `repair`, `run`, `finalize`, `cleanup`, or file
-    edits. `autoApprove` and `requires_approval` never bypass a true mismatch.
-- Store runId values returned by the CLI as opaque tokens. Build
-  `targetGuardArgs` once from those stored tokens and reuse them verbatim;
-  never retype, shorten, reconstruct, or infer a runId from a branch, path, or
+- Treat `ACTIVE_FLOW_MISMATCH` as a no-mutation boundary. Do not retry a
+  target-sensitive command by editing guard strings; refresh target authority
+  through the CLI and continue only when the returned directive or command is
+  for the intended Flow.
+- Store runId and binding values returned by the CLI as opaque tokens. Never
+  shorten, reconstruct, or infer a runId or binding from a branch, path, or
   prose.
 - A preparing flow still reports `autoApprove: false` in status; use the `senti flow set auto on --run-id <runId>` response and `senti flow prepare --run-id <runId>` inheritance for prelude auto mode.
 - Bare `senti flow get status` remains valid for current-context display and for detecting whether any active flow exists before a runId is known.

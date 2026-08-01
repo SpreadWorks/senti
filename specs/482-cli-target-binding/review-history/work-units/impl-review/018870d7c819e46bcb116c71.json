@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "018870d7c819e46bcb116c71",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0004",
+    "parentUnitId": null,
+    "targetFiles": [
+      "src/flow/lib/review-failure.js",
+      "src/flow/lib/run-acceptance-review.js",
+      "src/flow/lib/run-dispatch.js"
+    ],
+    "inputHash": "a82dbb834bcbad206f4f085fcf03692b631ee1a1b4a7e8c122243caa8f7186c5",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "018870d7c819e46bcb116c71"
+  },
+  "targetFiles": [
+    "src/flow/lib/review-failure.js",
+    "src/flow/lib/run-acceptance-review.js",
+    "src/flow/lib/run-dispatch.js"
+  ],
+  "inputHash": "a82dbb834bcbad206f4f085fcf03692b631ee1a1b4a7e8c122243caa8f7186c5",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T21:44:01.883Z",
+  "finishedAt": "2026-07-31T21:44:01.883Z",
+  "rawResponse": "### 1. Clarify Dispatch Invocation ID Lifetime\n**File:** `src/flow/lib/run-dispatch.js`  \n**Requirement:** R6  \n**Issue:** `dispatchInvocationId` is generated once before the dispatch loop, then reused for every agent call in `dispatchContinuation`. The name reads like a single dispatcher invocation, but it is attached to each worker execution environment, which makes the intended lifetime ambiguous.  \n**Suggestion:** Either rename it to reflect loop-wide scope, such as `dispatchSessionId`, or generate it inside the loop if each agent call should receive a unique invocation id. This keeps the recovery/context-compaction contract easier to reason about.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Clarify Dispatch Invocation ID Lifetime",
+        "body": "**File:** `src/flow/lib/run-dispatch.js`  \n**Requirement:** R6  \n**Issue:** `dispatchInvocationId` is generated once before the dispatch loop, then reused for every agent call in `dispatchContinuation`. The name reads like a single dispatcher invocation, but it is attached to each worker execution environment, which makes the intended lifetime ambiguous.  \n**Suggestion:** Either rename it to reflect loop-wide scope, such as `dispatchSessionId`, or generate it inside the loop if each agent call should receive a unique invocation id. This keeps the recovery/context-compaction contract easier to reason about.",
+        "file": "src/flow/lib/run-dispatch.js",
+        "requirementId": "R6"
+      }
+    ]
+  }
+}

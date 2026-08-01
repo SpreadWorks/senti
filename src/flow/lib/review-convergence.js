@@ -7,6 +7,7 @@ export const MAX_REVIEW_FINDINGS = 100;
 export const MAX_REVIEW_AUTHORED_STRING_CHARS = 4000;
 
 const REVIEW_DISPOSITIONS = new Set(["PASS", "ADVISORY", "REJECTED"]);
+const REVIEW_FINDING_DISPOSITIONS = new Set(["must-fix", "informational", "deferred"]);
 const REVIEW_TOOLING_STAGES = new Set([
   "startup",
   "communication",
@@ -147,6 +148,12 @@ export class ReviewFinding {
     this.evidenceRefs = freezeArray(input.evidenceRefs.map((value, index) => (
       requireFindingText(value, `evidenceRefs[${index}]`)
     )));
+    this.disposition = input.disposition == null
+      ? null
+      : requireString(input.disposition, "disposition");
+    if (this.disposition != null && !REVIEW_FINDING_DISPOSITIONS.has(this.disposition)) {
+      throw new Error(`invalid review finding disposition: ${this.disposition}`);
+    }
     Object.freeze(this);
   }
 
@@ -156,6 +163,7 @@ export class ReviewFinding {
       summary: this.summary,
       fingerprint: this.fingerprint,
       evidenceRefs: [...this.evidenceRefs],
+      ...(this.disposition == null ? {} : { disposition: this.disposition }),
     };
   }
 }
@@ -246,11 +254,40 @@ export class ReviewEvidenceIdentity {
 }
 
 export class ReviewRecoveryIdentity {
-  constructor({ treeSha, targetStateDigest = null } = {}) {
+  constructor({
+    runId = null,
+    hasIssue = null,
+    issue = null,
+    spec = null,
+    phase = null,
+    taskId = null,
+    treeSha,
+    targetStateDigest = null,
+    targetBindingDigest = null,
+    dispatchInvocationId = null,
+  } = {}) {
+    this.runId = runId == null ? null : requireString(runId, "runId");
+    this.hasIssue = hasIssue == null ? null : requireBoolean(hasIssue, "hasIssue");
+    this.issue = issue == null ? null : requireInteger(issue, "issue", { min: 1 });
+    if (this.hasIssue === false && this.issue != null) {
+      throw new Error("no-Issue review recovery identity cannot include issue");
+    }
+    if (this.hasIssue === true && this.issue == null) {
+      throw new Error("Issue-bearing review recovery identity requires issue");
+    }
+    this.spec = spec == null ? null : requireString(spec, "spec");
+    this.phase = phase == null ? null : requireString(phase, "phase");
+    this.taskId = requireNullableTaskId(taskId);
     this.treeSha = requireTreeSha(treeSha);
     this.targetStateDigest = targetStateDigest == null
       ? null
       : requireSha256(targetStateDigest, "targetStateDigest");
+    this.targetBindingDigest = targetBindingDigest == null
+      ? null
+      : requireSha256(targetBindingDigest, "targetBindingDigest");
+    this.dispatchInvocationId = dispatchInvocationId == null
+      ? null
+      : requireString(dispatchInvocationId, "dispatchInvocationId");
     Object.freeze(this);
   }
 
@@ -258,12 +295,21 @@ export class ReviewRecoveryIdentity {
     if (!(previous instanceof ReviewRecoveryIdentity)) {
       throw new Error("previous review recovery identity must be a ReviewRecoveryIdentity");
     }
-    return this.treeSha !== previous.treeSha
-      || (
-        this.targetStateDigest != null
-        && previous.targetStateDigest != null
-        && this.targetStateDigest !== previous.targetStateDigest
-      );
+    for (const field of [
+      "runId",
+      "hasIssue",
+      "issue",
+      "spec",
+      "phase",
+      "taskId",
+      "treeSha",
+      "targetStateDigest",
+      "targetBindingDigest",
+    ]) {
+      if (this[field] == null || previous[field] == null) continue;
+      if (this[field] !== previous[field]) return true;
+    }
+    return false;
   }
 }
 
@@ -787,7 +833,8 @@ function convergenceStateForTargetDigest(record, targetStateDigest) {
     evidence: null,
     finalizedEvidenceAvailable: false,
     handoffFindings: [],
-    blocker: stored.toolingOutcome ? stored.blocker : null,
+    blocker: null,
+    toolingOutcome: null,
   });
 }
 
@@ -805,12 +852,28 @@ class ReviewRecoveryMutation {
     this.phase = requireString(input.phase, "phase");
     this.taskId = requireNullableTaskId(input.taskId);
     this.previousIdentity = new ReviewRecoveryIdentity({
+      runId: input.expectedRunId,
+      hasIssue: Object.hasOwn(input, "expectedIssue"),
+      issue: input.expectedIssue,
+      spec: input.expectedSpec,
+      phase: this.phase,
+      taskId: this.taskId,
       treeSha: input.previousTreeSha,
       targetStateDigest: input.previousTargetStateDigest,
+      targetBindingDigest: input.previousTargetBindingDigest,
+      dispatchInvocationId: input.previousDispatchInvocationId,
     });
     this.nextIdentity = new ReviewRecoveryIdentity({
+      runId: input.expectedRunId,
+      hasIssue: Object.hasOwn(input, "expectedIssue"),
+      issue: input.expectedIssue,
+      spec: input.expectedSpec,
+      phase: this.phase,
+      taskId: this.taskId,
       treeSha: input.nextTreeSha,
       targetStateDigest: input.nextTargetStateDigest,
+      targetBindingDigest: input.nextTargetBindingDigest,
+      dispatchInvocationId: input.nextDispatchInvocationId,
     });
     this.nextTargetState = input.nextTargetState == null
       ? null
@@ -859,6 +922,12 @@ class ReviewRecoveryMutation {
     ) {
       throw new Error("review recovery target-state identity no longer matches");
     }
+    if (
+      this.previousIdentity.targetBindingDigest != null
+      && records[index].targetBindingDigest !== this.previousIdentity.targetBindingDigest
+    ) {
+      throw new Error("review recovery target binding identity no longer matches");
+    }
     const current = storedConvergenceState(records[index]);
     return { records, index, current };
   }
@@ -870,6 +939,12 @@ class ReviewRecoveryMutation {
       ...recovered.toJSON(),
       ...(this.nextIdentity.targetStateDigest != null && {
         targetStateDigest: this.nextIdentity.targetStateDigest,
+      }),
+      ...(this.nextIdentity.targetBindingDigest != null && {
+        targetBindingDigest: this.nextIdentity.targetBindingDigest,
+      }),
+      ...(this.nextIdentity.dispatchInvocationId != null && {
+        dispatchInvocationId: this.nextIdentity.dispatchInvocationId,
       }),
       ...(this.nextTargetState != null && { targetState: this.nextTargetState.toJSON() }),
     };
@@ -909,6 +984,10 @@ export class ReviewToolingRecoveryMutation extends ReviewRecoveryMutation {
       previousTargetStateDigest: reviewRecord.targetStateDigest,
       nextTargetStateDigest,
       nextTargetState,
+      previousTargetBindingDigest: reviewRecord.targetBindingDigest,
+      nextTargetBindingDigest: reviewRecord.targetBindingDigest,
+      previousDispatchInvocationId: reviewRecord.dispatchInvocationId,
+      nextDispatchInvocationId: reviewRecord.dispatchInvocationId,
       expectedRunId: flowState.runId,
       expectedSpec: flowState.spec,
       ...(Object.hasOwn(flowState, "issue") && {
@@ -1256,7 +1335,7 @@ export class ReviewConvergenceStore {
 
 export function resolveReviewOperationForFlowState(
   flowState,
-  { phase, taskId = null, resolveTreeSha } = {},
+  { phase, taskId = null, resolveTreeSha, resolveTargetStateDigest = null, targetBindingDigest = null } = {},
 ) {
   const scopedRecords = convergenceRecords(flowState).filter((entry) => (
     entry.phase === phase && (entry.taskId ?? null) === (taskId ?? null)
@@ -1276,7 +1355,13 @@ export function resolveReviewOperationForFlowState(
     treeSha,
   }));
   if (matches.length === 0) return null;
-  const state = storedConvergenceState(matches[matches.length - 1]);
+  const record = matches[matches.length - 1];
+  if (targetBindingDigest != null && record.targetBindingDigest !== targetBindingDigest) {
+    return null;
+  }
+  const targetStateDigest = resolveTargetStateDigest == null ? null : requireSha256(resolveTargetStateDigest());
+  if (targetStateDigest != null && record.targetStateDigest !== targetStateDigest) return null;
+  const state = convergenceStateForTargetDigest(record, targetStateDigest);
   return resolveReviewPermittedOperation(state);
 }
 

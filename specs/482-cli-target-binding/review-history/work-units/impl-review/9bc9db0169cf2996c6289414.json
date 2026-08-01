@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "cross-check",
+  "unitId": "9bc9db0169cf2996c6289414",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "cross-check",
+    "stableOrderKey": "cross-check-ead731c40bb79b87",
+    "parentUnitId": null,
+    "targetFiles": [
+      ".agents/skills/senti.flow/SKILL.md",
+      "src/flow/lib/base-command.js",
+      "src/flow/lib/flow-context.js",
+      "src/flow/lib/review-convergence.js",
+      "src/flow/lib/run-recover-existing-implementation.js",
+      "src/flow/lib/run-review.js",
+      "src/flow/registry.js",
+      "src/lib/flow-manager.js",
+      "src/skills/partials/core-principle.md",
+      "tests/unit/flow/finding-disposition-policy.test.js",
+      "tests/unit/flow/run-review-advisory.test.js",
+      "tests/unit/flow/step-outcome.test.js"
+    ],
+    "inputHash": "ead731c40bb79b87de96857e7729ccda93a00458825e0a0b7d452a072aebb3db",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-cross-check-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "9bc9db0169cf2996c6289414"
+  },
+  "targetFiles": [
+    ".agents/skills/senti.flow/SKILL.md",
+    "src/flow/lib/base-command.js",
+    "src/flow/lib/flow-context.js",
+    "src/flow/lib/review-convergence.js",
+    "src/flow/lib/run-recover-existing-implementation.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/registry.js",
+    "src/lib/flow-manager.js",
+    "src/skills/partials/core-principle.md",
+    "tests/unit/flow/finding-disposition-policy.test.js",
+    "tests/unit/flow/run-review-advisory.test.js",
+    "tests/unit/flow/step-outcome.test.js"
+  ],
+  "inputHash": "ead731c40bb79b87de96857e7729ccda93a00458825e0a0b7d452a072aebb3db",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-cross-check-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T06:01:17.767Z",
+  "finishedAt": "2026-07-31T06:01:17.767Z",
+  "rawResponse": "### 1. Centralize Guarded Command Formatting\n**File:** `src/flow/lib/next-action-directive.js`\n**Requirement:** R3\n**Issue:** Guarded command construction is being introduced in multiple places: `next-action-directive.js`, `get-next-action.js`, and `finalization-outbox-recovery.js` each appear to handle `binding.guardCommand(...)` versus legacy guard flags. This creates a cross-file interface inconsistency where some paths derive commands from `FlowTargetBinding` while others still fall back to state-derived flags.\n**Suggestion:** Introduce one shared helper or method, preferably owned by `FlowTargetBinding` or the directive layer, for producing guarded executable command text. Route normal next-action directives, recovery directives, and finalization recovery commands through that single path.\n\n### 2. Consolidate Exact Target Guard Failure Handling\n**File:** `src/flow/lib/run-recover-existing-implementation.js`\n**Requirement:** R4\n**Issue:** `run-recover-existing-implementation.js`, `run-recover-review-pass.js`, and `run-reopen-draft.js` all retain local wrappers around `missingExactTargetGuardNames()` that build similar `ACTIVE_FLOW_MISMATCH` failure envelopes. The helper name also differs across files, with `validateCorrectionGuards()` diverging from `requireExactGuards()`.\n**Suggestion:** Add a shared exact-target guard failure helper that computes missing guards and returns the standard mismatch envelope. Use it from all three command files, and align local naming around exact target guards.\n\n### 3. Normalize Target Binding Authority Construction\n**File:** `src/flow/lib/base-command.js`\n**Requirement:** R4\n**Issue:** Binding authority inputs are constructed across several files using closely related but differently named concepts: `mainRoot`, `authorityRoot`, `worktreePath`, `hookCtx.mainRoot`, and `hookCtx.root`. This makes the interface between dispatcher context, command context, and target binding validation easy to misuse.\n**Suggestion:** Create a single authority/context builder, such as `bindingContextForCommand(ctx, input)`, and use explicit names like `canonicalMainRoot` and `executionAuthorityRoot` at the boundary. Keep the validation payload shape centralized.\n\n### 4. Align Binding Token Ownership Between Code And Skills\n**File:** `.agents/skills/senti.flow/SKILL.md`\n**Requirement:** R13\n**Issue:** The skill documentation repeatedly instructs agents to use `--expect-binding <token>`, while code changes introduce generated bindings and refreshed command guards. The docs do not clearly state that the latest CLI-returned binding replaces previous bindings during the dispatcher loop.\n**Suggestion:** Add a canonical rule in the dispatcher instructions: after each successful Flow command, the latest CLI-returned binding is the only current binding for subsequent target-sensitive commands. Then reference that term instead of repeating raw `--expect-binding <token>` text throughout the skill files.\n\n### 5. Use Consistent Environment Variable Constants\n**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `DISPATCH_INVOCATION_ENV` names one dispatcher environment variable, but `SENTI_FLOW_TARGET_BINDING` is hardcoded directly in `executionEnvironment()`. These are paired parts of the dispatcher-target binding contract, but only one is centralized.\n**Suggestion:** Add a `TARGET_BINDING_ENV` constant and use computed keys for both dispatcher environment entries.\n\n### 6. Keep Review Recovery Identity Semantics Consistent\n**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity construction is duplicated, and related code in `set-retry.js` treats `dispatchInvocationId` as part of identity comparison. That creates a cross-file semantic mismatch: invocation IDs are audit metadata in one place but identity-changing input in another.\n**Suggestion:** Extract a shared recovery identity constructor and define the identity comparison field list once. Exclude `dispatchInvocationId` from unchanged-target identity checks while still preserving previous/next invocation IDs as audit fields.\n\n### 7. Unify Test Fixture And Helper Naming Around Target Binding\n**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several tests introduce broad or duplicated helpers for binding, dispatch invocation capture, repository setup, and provider event construction. The names and setup patterns vary across files, making it harder to see which tests assert target binding behavior versus generic fixture mechanics.\n**Suggestion:** Rename generic helpers like `binding()` to intent-specific names such as `targetBinding()`, and extract repeated event/repository/dispatch setup into focused local helpers where duplicated across nearby tests.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Centralize Guarded Command Formatting",
+        "body": "**File:** `src/flow/lib/next-action-directive.js`\n**Requirement:** R3\n**Issue:** Guarded command construction is being introduced in multiple places: `next-action-directive.js`, `get-next-action.js`, and `finalization-outbox-recovery.js` each appear to handle `binding.guardCommand(...)` versus legacy guard flags. This creates a cross-file interface inconsistency where some paths derive commands from `FlowTargetBinding` while others still fall back to state-derived flags.\n**Suggestion:** Introduce one shared helper or method, preferably owned by `FlowTargetBinding` or the directive layer, for producing guarded executable command text. Route normal next-action directives, recovery directives, and finalization recovery commands through that single path.",
+        "file": "src/flow/lib/next-action-directive.js",
+        "requirementId": "R3"
+      },
+      {
+        "title": "2. Consolidate Exact Target Guard Failure Handling",
+        "body": "**File:** `src/flow/lib/run-recover-existing-implementation.js`\n**Requirement:** R4\n**Issue:** `run-recover-existing-implementation.js`, `run-recover-review-pass.js`, and `run-reopen-draft.js` all retain local wrappers around `missingExactTargetGuardNames()` that build similar `ACTIVE_FLOW_MISMATCH` failure envelopes. The helper name also differs across files, with `validateCorrectionGuards()` diverging from `requireExactGuards()`.\n**Suggestion:** Add a shared exact-target guard failure helper that computes missing guards and returns the standard mismatch envelope. Use it from all three command files, and align local naming around exact target guards.",
+        "file": "src/flow/lib/run-recover-existing-implementation.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "3. Normalize Target Binding Authority Construction",
+        "body": "**File:** `src/flow/lib/base-command.js`\n**Requirement:** R4\n**Issue:** Binding authority inputs are constructed across several files using closely related but differently named concepts: `mainRoot`, `authorityRoot`, `worktreePath`, `hookCtx.mainRoot`, and `hookCtx.root`. This makes the interface between dispatcher context, command context, and target binding validation easy to misuse.\n**Suggestion:** Create a single authority/context builder, such as `bindingContextForCommand(ctx, input)`, and use explicit names like `canonicalMainRoot` and `executionAuthorityRoot` at the boundary. Keep the validation payload shape centralized.",
+        "file": "src/flow/lib/base-command.js",
+        "requirementId": "R4"
+      },
+      {
+        "title": "4. Align Binding Token Ownership Between Code And Skills",
+        "body": "**File:** `.agents/skills/senti.flow/SKILL.md`\n**Requirement:** R13\n**Issue:** The skill documentation repeatedly instructs agents to use `--expect-binding <token>`, while code changes introduce generated bindings and refreshed command guards. The docs do not clearly state that the latest CLI-returned binding replaces previous bindings during the dispatcher loop.\n**Suggestion:** Add a canonical rule in the dispatcher instructions: after each successful Flow command, the latest CLI-returned binding is the only current binding for subsequent target-sensitive commands. Then reference that term instead of repeating raw `--expect-binding <token>` text throughout the skill files.",
+        "file": ".agents/skills/senti.flow/SKILL.md",
+        "requirementId": "R13"
+      },
+      {
+        "title": "5. Use Consistent Environment Variable Constants",
+        "body": "**File:** `src/flow/lib/run-dispatch.js`\n**Requirement:** R6\n**Issue:** `DISPATCH_INVOCATION_ENV` names one dispatcher environment variable, but `SENTI_FLOW_TARGET_BINDING` is hardcoded directly in `executionEnvironment()`. These are paired parts of the dispatcher-target binding contract, but only one is centralized.\n**Suggestion:** Add a `TARGET_BINDING_ENV` constant and use computed keys for both dispatcher environment entries.",
+        "file": "src/flow/lib/run-dispatch.js",
+        "requirementId": "R6"
+      },
+      {
+        "title": "6. Keep Review Recovery Identity Semantics Consistent",
+        "body": "**File:** `src/flow/lib/review-convergence.js`\n**Requirement:** R13\n**Issue:** Review recovery identity construction is duplicated, and related code in `set-retry.js` treats `dispatchInvocationId` as part of identity comparison. That creates a cross-file semantic mismatch: invocation IDs are audit metadata in one place but identity-changing input in another.\n**Suggestion:** Extract a shared recovery identity constructor and define the identity comparison field list once. Exclude `dispatchInvocationId` from unchanged-target identity checks while still preserving previous/next invocation IDs as audit fields.",
+        "file": "src/flow/lib/review-convergence.js",
+        "requirementId": "R13"
+      },
+      {
+        "title": "7. Unify Test Fixture And Helper Naming Around Target Binding",
+        "body": "**File:** `tests/unit/flow/next-action-directive.test.js`\n**Requirement:** R3\n**Issue:** Several tests introduce broad or duplicated helpers for binding, dispatch invocation capture, repository setup, and provider event construction. The names and setup patterns vary across files, making it harder to see which tests assert target binding behavior versus generic fixture mechanics.\n**Suggestion:** Rename generic helpers like `binding()` to intent-specific names such as `targetBinding()`, and extract repeated event/repository/dispatch setup into focused local helpers where duplicated across nearby tests.",
+        "file": "tests/unit/flow/next-action-directive.test.js",
+        "requirementId": "R3"
+      }
+    ]
+  }
+}

@@ -49,6 +49,11 @@ import {
 } from "./impl-repair-artifacts.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
+import {
+  ExternalBlockedOutcome,
+  nextStepAttemptNumber,
+  recordStepAttempt,
+} from "./step-outcome.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -1573,6 +1578,16 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       ),
       result: "fail",
     };
+    recordStepAttempt(ctx, {
+      stepId: "final-regression",
+      attempt: nextStepAttemptNumber(ctx.flowState, "final-regression"),
+      outcome: new ExternalBlockedOutcome({
+        reason: `final-regression failed (${failureKind})`,
+        resumeInstruction: failure.recoveryPolicy.resumeInstruction
+          || "Repair the preserved final-regression failure, then rerun final-regression.",
+      }),
+      result: failureResult,
+    });
     recordEligibleNonblockingAttempt(ctx, "final-regression", failureResult);
     return failureResult;
   }

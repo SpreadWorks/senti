@@ -1,0 +1,131 @@
+[senti] spec-local tests start
+command: node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js
+process.kind: passed
+process.command: node --test specs/482-cli-target-binding/tests/dispatcher-binding.test.js specs/482-cli-target-binding/tests/flow-target-binding.test.js specs/482-cli-target-binding/tests/review-provider-recovery.test.js
+process.started: true
+process.completed: true
+process.exitCode: 0
+process.signal: null
+process.errorCode: null
+process.timedOut: false
+process.stdout.bytes: 3348
+process.stdout.first: TAP version 13
+process.stdout.last: # duration_ms 599.476323
+process.stderr.bytes: 0
+process.stderr.first: null
+process.stderr.last: null
+TAP version 13
+# Subtest: R3: CLI-generated command directives carry the complete opaque binding
+ok 1 - R3: CLI-generated command directives carry the complete opaque binding
+  ---
+  duration_ms: 3.417338
+  type: 'test'
+  ...
+# Subtest: R6: a resumed dispatcher reacquires authority instead of reusing stale binding text
+ok 2 - R6: a resumed dispatcher reacquires authority instead of reusing stale binding text
+  ---
+  duration_ms: 1.86633
+  type: 'test'
+  ...
+# Subtest: R7: worker prompt receives an opaque binding environment without guard transcription
+ok 3 - R7: worker prompt receives an opaque binding environment without guard transcription
+  ---
+  duration_ms: 1.997651
+  type: 'test'
+  ...
+# Subtest: R11: worker prompt preserves the CLI-returned executable command as-is
+ok 4 - R11: worker prompt preserves the CLI-returned executable command as-is
+  ---
+  duration_ms: 0.837124
+  type: 'test'
+  ...
+# Subtest: R11: deployed senti.flow skill matches source and omits the retired transcription contract
+ok 5 - R11: deployed senti.flow skill matches source and omits the retired transcription contract
+  ---
+  duration_ms: 10.191173
+  type: 'test'
+  ...
+# Subtest: R1: captures canonical Flow identity and stable branch authority
+ok 6 - R1: captures canonical Flow identity and stable branch authority
+  ---
+  duration_ms: 3.94314
+  type: 'test'
+  ...
+# Subtest: R2: rejects every changed target or branch-authority field
+ok 7 - R2: rejects every changed target or branch-authority field
+  ---
+  duration_ms: 2.956255
+  type: 'test'
+  ...
+# Subtest: R4: stale binding fails before a target-sensitive mutation callback
+ok 8 - R4: stale binding fails before a target-sensitive mutation callback
+  ---
+  duration_ms: 1.160086
+  type: 'test'
+  ...
+# Subtest: R5: advancing the bound feature ref does not change branch identity
+ok 9 - R5: advancing the bound feature ref does not change branch identity
+  ---
+  duration_ms: 50.504543
+  type: 'test'
+  ...
+# Subtest: R8: no-Issue identity is explicit and rejects an Issue-bearing target
+ok 10 - R8: no-Issue identity is explicit and rejects an Issue-bearing target
+  ---
+  duration_ms: 2.356533
+  type: 'test'
+  ...
+# Subtest: R9: explicit selection requires exactly one matching active Flow
+ok 11 - R9: explicit selection requires exactly one matching active Flow
+  ---
+  duration_ms: 83.981638
+  type: 'test'
+  ...
+# Subtest: R10: finalize boundaries retain lifecycle ref checks behind binding identity
+ok 12 - R10: finalize boundaries retain lifecycle ref checks behind binding identity
+  ---
+  duration_ms: 0.975045
+  type: 'test'
+  ...
+# Subtest: R12: main and managed-worktree invocation roots capture one lock authority
+ok 13 - R12: main and managed-worktree invocation roots capture one lock authority
+  ---
+  duration_ms: 2.344533
+  type: 'test'
+  ...
+# Subtest: R13: stale digest suppresses an old blocker instead of reusing it
+ok 14 - R13: stale digest suppresses an old blocker instead of reusing it
+  ---
+  duration_ms: 3.641779
+  type: 'test'
+  ...
+# Subtest: R13: unchanged input receives one audited recovery per dispatcher invocation
+ok 15 - R13: unchanged input receives one audited recovery per dispatcher invocation
+  ---
+  duration_ms: 2.413813
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 599.476323
+exitCode: 0
+[senti] requirement R1 result pass
+[senti] requirement R2 result pass
+[senti] requirement R3 result pass
+[senti] requirement R4 result pass
+[senti] requirement R5 result pass
+[senti] requirement R6 result pass
+[senti] requirement R7 result pass
+[senti] requirement R8 result pass
+[senti] requirement R9 result pass
+[senti] requirement R10 result pass
+[senti] requirement R11 result pass
+[senti] requirement R12 result pass
+[senti] requirement R13 result pass
+[senti] spec-local tests end

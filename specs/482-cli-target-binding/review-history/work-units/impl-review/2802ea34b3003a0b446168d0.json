@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "impl-review",
+  "kind": "loop-chunk",
+  "unitId": "2802ea34b3003a0b446168d0",
+  "identity": {
+    "phase": "impl-review",
+    "kind": "loop-chunk",
+    "stableOrderKey": "chunk-0011",
+    "parentUnitId": null,
+    "targetFiles": [
+      "tests/unit/flow/retry-exhaustion-defer.test.js",
+      "tests/unit/flow/retry-recovery-convergence.test.js",
+      "tests/unit/flow/rewind-test-evidence.test.js"
+    ],
+    "inputHash": "161e42299ef9a9503fb9acc2598401b6b8216cb2ea4f38af4257ba56bd42799f",
+    "commandId": "flow.impl.review.propose",
+    "providerIdentity": "flow.impl.review.propose",
+    "promptVersion": "impl-review-loop-v1",
+    "schemaVersion": "impl-review-proposals-v1",
+    "unitId": "2802ea34b3003a0b446168d0"
+  },
+  "targetFiles": [
+    "tests/unit/flow/retry-exhaustion-defer.test.js",
+    "tests/unit/flow/retry-recovery-convergence.test.js",
+    "tests/unit/flow/rewind-test-evidence.test.js"
+  ],
+  "inputHash": "161e42299ef9a9503fb9acc2598401b6b8216cb2ea4f38af4257ba56bd42799f",
+  "providerIdentity": "flow.impl.review.propose",
+  "promptVersion": "impl-review-loop-v1",
+  "schemaVersion": "impl-review-proposals-v1",
+  "status": "success",
+  "attemptCount": 1,
+  "startedAt": "2026-07-31T22:30:42.204Z",
+  "finishedAt": "2026-07-31T22:30:42.204Z",
+  "rawResponse": "### 1. Extract Shared Review Handoff Fixture Setup\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The two new handoff tests duplicate a long setup pattern: finding object, `ReviewEvidence`, canonical evidence ref, file write, state creation, transition application, and acceptance context creation. This makes future changes to review evidence shape more error-prone.  \n**Suggestion:** Add a small local helper such as `prepareReviewHandoffContext({ fixture, phase, disposition, finding, request, repairArtifact })` and use it in both tests.\n\n### 2. Avoid Repeating Upgrade Artifact Literal\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The upgrade evidence test writes an `upgrade-result.json` object and then repeats the same object verbatim inside `assert.deepEqual`. This duplicates the expected contract and increases maintenance cost if the artifact schema changes.  \n**Suggestion:** Store the artifact in a named constant, write that constant with `writeJson`, and assert `artifact: upgradeArtifact`.\n\n### 3. Rename Informational Finding To Match Domain Term\n**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The variable `informationalFinding` is passed as an `advisoryFindings` entry and the test title refers to “legacy advisory review handoffs.” The mixed terminology makes the test intent slightly harder to scan.  \n**Suggestion:** Rename `informationalFinding` to `advisoryFinding` or adjust the test title/fixture consistently around “informational” if that is the canonical domain term.\n\n### 4. Simplify Review Recovery Identity Assertion\n**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R1  \n**Issue:** The new test constructs two `ReviewRecoveryIdentity` instances inline inside one assertion, which obscures the actual behavior under test.  \n**Suggestion:** Assign them to named locals like `currentIdentity` and `previousIdentity`, then assert `currentIdentity.changedFrom(previousIdentity) === false`. This matches the style of behavior-focused tests and makes failures easier to inspect.",
+  "success": {
+    "proposals": [
+      {
+        "title": "1. Extract Shared Review Handoff Fixture Setup",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The two new handoff tests duplicate a long setup pattern: finding object, `ReviewEvidence`, canonical evidence ref, file write, state creation, transition application, and acceptance context creation. This makes future changes to review evidence shape more error-prone.  \n**Suggestion:** Add a small local helper such as `prepareReviewHandoffContext({ fixture, phase, disposition, finding, request, repairArtifact })` and use it in both tests.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "2. Avoid Repeating Upgrade Artifact Literal",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The upgrade evidence test writes an `upgrade-result.json` object and then repeats the same object verbatim inside `assert.deepEqual`. This duplicates the expected contract and increases maintenance cost if the artifact schema changes.  \n**Suggestion:** Store the artifact in a named constant, write that constant with `writeJson`, and assert `artifact: upgradeArtifact`.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "3. Rename Informational Finding To Match Domain Term",
+        "body": "**File:** `tests/unit/flow/retry-exhaustion-defer.test.js`  \n**Requirement:** R1  \n**Issue:** The variable `informationalFinding` is passed as an `advisoryFindings` entry and the test title refers to “legacy advisory review handoffs.” The mixed terminology makes the test intent slightly harder to scan.  \n**Suggestion:** Rename `informationalFinding` to `advisoryFinding` or adjust the test title/fixture consistently around “informational” if that is the canonical domain term.",
+        "file": "tests/unit/flow/retry-exhaustion-defer.test.js",
+        "requirementId": "R1"
+      },
+      {
+        "title": "4. Simplify Review Recovery Identity Assertion",
+        "body": "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`  \n**Requirement:** R1  \n**Issue:** The new test constructs two `ReviewRecoveryIdentity` instances inline inside one assertion, which obscures the actual behavior under test.  \n**Suggestion:** Assign them to named locals like `currentIdentity` and `previousIdentity`, then assert `currentIdentity.changedFrom(previousIdentity) === false`. This matches the style of behavior-focused tests and makes failures easier to inspect.",
+        "file": "tests/unit/flow/retry-recovery-convergence.test.js",
+        "requirementId": "R1"
+      }
+    ]
+  }
+}

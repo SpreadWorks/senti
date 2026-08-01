@@ -786,6 +786,30 @@ function metricsForImplVerdict(verdict) {
 }
 
 describe("review subprocess retry", () => {
+  it("keeps deterministic local validation failures out of provider recovery", () => {
+    const failure = ReviewFailure.fromSubprocessResult({
+      phase: "spec",
+      result: {
+        status: 1,
+        stderr: [
+          "Error: spec.json failed schema validation: overview.modules[0].text is required",
+          "    at runReview (src/flow/commands/review.js:4295:3)",
+        ].join("\n"),
+      },
+    });
+
+    assert.equal(failure.classification, "subprocess_failure");
+  });
+
+  it("still recognizes explicit provider diagnostics", () => {
+    const failure = ReviewFailure.fromMessage({
+      phase: "spec",
+      message: "provider=codex | profile=codex/gpt | exit=1",
+    });
+
+    assert.equal(failure.classification, "provider_failure");
+  });
+
   it("retries impl schema failures within the tooling limit and preserves diagnostics", async () => {
     let calls = 0;
     const result = await runCmdWithRetry(() => {

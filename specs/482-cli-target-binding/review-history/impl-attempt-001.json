@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-07-31T04:11:28.298Z",
+  "verdict": "REJECTED",
+  "summary": {
+    "blocking": 1,
+    "nonBlocking": 0,
+    "total": 1
+  },
+  "blockingFindings": [
+    {
+      "findingKey": "binding-capture-mode-not-validated",
+      "title": "FlowTargetBinding can be captured with an authority mode that contradicts the active Flow state",
+      "failureMode": "missing_acceptance_requirement",
+      "file": "src/lib/flow-target-guard.js",
+      "requirementId": "R2",
+      "issue": "`FlowTargetBinding.capture()` trusts the caller-supplied `mode` and never checks it against the active `flowState.worktree` value. A managed-worktree Flow can therefore be bound as `branch`/`local`, or a normal branch Flow can be bound as `worktree`, as long as the supplied directories satisfy the authority constructor. That means command generation can proceed with a binding that does not represent the active Flow authority.",
+      "suggestion": "In `FlowTargetBinding.capture()` or `FlowExecutionAuthority.capture()`, derive or validate the authority mode from `flowState.worktree` before constructing the binding. Reject `mode: \"worktree\"` unless the active Flow is a worktree Flow, and reject `branch`/`local` when the active Flow is managed-worktree backed.",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires the constructor path to reject mismatches against the active Flow authority before command generation. Because the current capture path can mint an opaque binding for the wrong authority class, stale or incorrect dispatch commands can be generated instead of being blocked at the boundary.",
+      "findingId": "affe96a79defd8ab91890358cd11d04336961c0715bf68903af6a8e4fd121b1a",
+      "fingerprint": "affe96a79defd8ab91890358cd11d04336961c0715bf68903af6a8e4fd121b1a",
+      "repeatCount": 1
+    }
+  ],
+  "nonBlockingImprovements": [],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  },
+  "repairFingerprint": "7da4fa7e9b3126bf4c74db68cf45c6c1c5e9391fdeabdf29e5782c5e3dcb6e6f",
+  "reviewedTree": "7da4fa7e9b3126bf4c74db68cf45c6c1c5e9391fdeabdf29e5782c5e3dcb6e6f",
+  "reviewedHead": "80356e35a40b4254c32ecb327050c260a8d679bd",
+  "runId": "b92c91db-5c67-4044-8f77-33b600ba1415",
+  "planRewindAt": null,
+  "taskId": "T-1",
+  "target": "specs/482-cli-target-binding/tasks/T-1.md",
+  "contractSummary": {
+    "targetStep": "impl-review",
+    "artifactPath": "specs/482-cli-target-binding/impl-review.json",
+    "verdict": "REJECTED",
+    "result": "REJECTED",
+    "blockingCount": 1,
+    "failureKind": null,
+    "nextAction": null,
+    "completionKind": "normal",
+    "progressSignature": "22689d57c1ece6bdc77f0afa993fa1c00c9e6da8d5f59e94f278cd082a3127d4"
+  },
+  "sourceArtifact": "impl-review.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "affe96a79defd8ab91890358cd11d04336961c0715bf68903af6a8e4fd121b1a",
+      "findingId": "affe96a79defd8ab91890358cd11d04336961c0715bf68903af6a8e4fd121b1a",
+      "phase": "impl",
+      "sourceArtifact": "impl-review.json",
+      "attempt": 1,
+      "severity": "blocking",
+      "title": "FlowTargetBinding can be captured with an authority mode that contradicts the active Flow state",
+      "body": "`FlowTargetBinding.capture()` trusts the caller-supplied `mode` and never checks it against the active `flowState.worktree` value. A managed-worktree Flow can therefore be bound as `branch`/`local`, or a normal branch Flow can be bound as `worktree`, as long as the supplied directories satisfy the authority constructor. That means command generation can proceed with a binding that does not represent the active Flow authority.",
+      "category": "missing_acceptance_requirement",
+      "fingerprint": "affe96a79defd8ab91890358cd11d04336961c0715bf68903af6a8e4fd121b1a",
+      "disposition": "must-fix",
+      "rationale": "T-1 requires the constructor path to reject mismatches against the active Flow authority before command generation. Because the current capture path can mint an opaque binding for the wrong authority class, stale or incorrect dispatch commands can be generated instead of being blocked at the boundary.",
+      "requirementId": "R2",
+      "repeatCount": 1
+    }
+  ]
+}

@@ -31,6 +31,8 @@ const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
 const DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS = 250;
 const PROCESS_DEATH_POLL_MS = 10;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
+const MAX_EXECUTION_ENVIRONMENT_VARIABLES = 64;
+const MAX_EXECUTION_ENVIRONMENT_BYTES = 64 * 1024;
 const MAX_RETRY = 5;
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
@@ -60,6 +62,33 @@ function buildAgentMetricEntry(phase, { usage, responseChars, model, durationMs,
       ...(usage.cost_usd != null && { cost: usage.cost_usd }),
     }),
   };
+}
+
+function normalizedExecutionEnvironment(value) {
+  if (value == null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("agent executionEnvironment must be an object");
+  }
+  const entries = Object.entries(value);
+  if (entries.length > MAX_EXECUTION_ENVIRONMENT_VARIABLES) {
+    throw new Error(`agent executionEnvironment must contain at most ${MAX_EXECUTION_ENVIRONMENT_VARIABLES} variables`);
+  }
+  const environment = {};
+  let totalBytes = 0;
+  for (const [name, entry] of entries) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      throw new Error(`invalid agent execution environment variable: ${name}`);
+    }
+    if (typeof entry !== "string" || entry.includes("\0")) {
+      throw new Error(`agent execution environment variable ${name} must be a NUL-free string`);
+    }
+    totalBytes += Buffer.byteLength(name) + Buffer.byteLength(entry);
+    if (totalBytes > MAX_EXECUTION_ENVIRONMENT_BYTES) {
+      throw new Error(`agent executionEnvironment must not exceed ${MAX_EXECUTION_ENVIRONMENT_BYTES} bytes`);
+    }
+    environment[name] = entry;
+  }
+  return environment;
 }
 
 function shouldPersistFinalizeMetricToSidecar(flowManager, context) {
@@ -325,7 +354,10 @@ class Agent {
       : promptedArgs;
 
     const finalArgs = [...prefix, ...workDirInjected, ...schemaSuffix];
-    const env = { ...process.env };
+    const env = {
+      ...process.env,
+      ...normalizedExecutionEnvironment(options.executionEnvironment),
+    };
     delete env.CLAUDECODE;
 
     const threshold = this._config.agent?.stdinFallbackThreshold ?? DEFAULT_STDIN_FALLBACK_THRESHOLD;
