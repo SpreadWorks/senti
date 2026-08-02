@@ -221,7 +221,7 @@ const TASK_GATE_TASK_SPEC = `specs/${TASK_GATE_SPEC_ID}/tasks/T-1.md`;
 
 function taskGateState() {
   return {
-    spec: TASK_GATE_SPEC,
+    specId: TASK_GATE_SPEC_ID,
     runId: "run-task-gate-evidence",
     planRewindAt: null,
     baseBranch: "main",
@@ -298,7 +298,7 @@ async function executeTaskGate(root, state, skipGuardrail = true) {
     root,
     flowState: state,
     config: {},
-  }, root, "task", "task-impl", skipGuardrail);
+  }, root, root, "task", "task-impl", skipGuardrail);
 }
 
 describe("task gate scenario-validity evidence through task scope", () => {

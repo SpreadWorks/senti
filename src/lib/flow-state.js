@@ -4,6 +4,8 @@ import { FlowStateRevision } from "./flow-state-atomic-writer.js";
 import { RecoveryFailureLedger } from "../flow/lib/recovery-contract.js";
 import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
 import { UserResolutionLedger } from "../flow/lib/recovery-composition.js";
+import { FlowSpecId } from "./flow-spec-id.js";
+import { isLocatedFlowState } from "./flow-workspace.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -11,7 +13,7 @@ function isPlainObject(value) {
   return value !== null
     && typeof value === "object"
     && !Array.isArray(value)
-    && Object.getPrototypeOf(value) === Object.prototype;
+    && (Object.getPrototypeOf(value) === Object.prototype || isLocatedFlowState(value));
 }
 
 function invariant(condition, message) {
@@ -79,11 +81,18 @@ export class FlowState {
   constructor(value, { revision = null } = {}) {
     invariant(isPlainObject(value), "flow state must be an object");
     invariant(typeof value.runId === "string" && value.runId.trim() !== "", "flow state runId is required");
-    invariant(
-      (typeof value.spec === "string" && value.spec.trim() !== "")
-        || (value.lifecycle === "preparing" && value.spec === null),
-      "flow state spec must identify a spec or an unprepared flow",
-    );
+    if (value.lifecycle === "preparing") {
+      invariant(value.specId === null, "preparing flow state specId must be null");
+    } else {
+      try {
+        FlowSpecId.from(value.specId);
+      } catch {
+        throw new FlowStateInvariantError("flow state specId must identify a spec");
+      }
+    }
+    invariant(!Object.hasOwn(value, "spec"), "flow state must not contain the removed spec field");
+    invariant(!Object.hasOwn(value, "specPath"), "flow state must not persist a derived specPath");
+    invariant(!Object.hasOwn(value, "specRoot"), "flow state must not persist the configured spec root");
     invariant(Array.isArray(value.tasks), "flow state tasks must be an array");
     invariant(Object.hasOwn(value, "currentTaskId"), "flow state currentTaskId is required");
     invariant(
@@ -144,7 +153,7 @@ export class FlowState {
       const hasIssue = Object.hasOwn(value, "issue") && value.issue != null;
       invariant(revision.matchesState(value), "flow state revision does not match state content");
       invariant(identity.runId === value.runId, "flow state revision runId does not match state");
-      invariant(identity.spec === value.spec, "flow state revision spec does not match state");
+      invariant(identity.specId === value.specId, "flow state revision specId does not match state");
       invariant(identity.hasIssue === hasIssue, "flow state revision Issue presence does not match state");
       invariant(!hasIssue || identity.issue === Number(value.issue), "flow state revision Issue does not match state");
     }

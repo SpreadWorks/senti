@@ -15,6 +15,7 @@ import {
 } from "./recovery-decision.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -24,7 +25,7 @@ function requireString(value, field) {
 function targetExpectation(target) {
   return new FlowTargetExpectation({
     expectRunId: target.runId,
-    expectSpec: target.spec,
+    expectSpec: target.specId,
     ...(target.issue == null ? { expectNoIssue: true } : { expectIssue: target.issue }),
   });
 }
@@ -286,7 +287,7 @@ export class RecoveryIssueLogDelivery {
 
   deliver(plan) {
     if (!(plan instanceof RecoveryTransitionPlan)) throw new Error("recovery transition plan is required for delivery");
-    const state = this.flowManager.loadReadOnly(plan.expectation.spec);
+    const state = this.flowManager.loadReadOnly(plan.expectation.specId);
     if (!state || plan.expectation.mismatchAgainst(state)) {
       throw new RecoveryTransitionError("RECOVERY_TARGET_MISMATCH", "recovery target is unavailable for issue-log delivery");
     }
@@ -299,7 +300,7 @@ export class RecoveryIssueLogDelivery {
       appended = this.issueLogStoreFactory({
         root: this.root,
         mainRoot: this.mainRoot,
-        spec: state.spec,
+        spec: relativeFlowSpecFile(state),
       }).append(plan.decision.toIssueLogEntry(), plan.outboxIdentity.idempotencyKey);
     } catch (error) {
       this.#markFailed(plan, error);

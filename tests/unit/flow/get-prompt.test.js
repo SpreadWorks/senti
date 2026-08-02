@@ -22,7 +22,7 @@ describe("flow get prompt", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -59,7 +59,7 @@ describe("flow get prompt", () => {
   function addSecondFlowState(dir) {
     const specId = "002-second";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",

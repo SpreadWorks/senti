@@ -271,7 +271,7 @@ describe("appendIssueLogFromGateResult (REQ-4)", () => {
       const ctx = {
         root: tmp,
         phase,
-        flowState: { spec: specRel },
+        flowState: { specId: "0001-test" },
         gitState: { headSha: "h", worktreeHash: "w" },
       };
       const result = {
@@ -313,7 +313,7 @@ describe("appendIssueLogFromGateResult (REQ-4)", () => {
       fs.mkdirSync(specDir, { recursive: true });
       fs.writeFileSync(path.join(specDir, "spec.json"), "{}");
 
-      const ctx = { root: tmp, phase, flowState: { spec: specRel } };
+      const ctx = { root: tmp, phase, flowState: { specId: "0001-test" } };
       const result = {
         result: "fail",
         artifacts: {

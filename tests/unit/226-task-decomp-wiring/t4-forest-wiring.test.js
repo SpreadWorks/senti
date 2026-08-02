@@ -82,7 +82,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("sync-spec-tasks transcribes spec.json task.parent to flow.json task.parent", () => {
     tmp = createTmpDir();
     setupFlow(tmp, {
-      spec: "specs/226-forest/spec.json",
+      specId: "226-forest",
       tasks: [flowTask("T-seed")],
     });
     writeSpecJson(tmp, "specs/226-forest/spec.json", baseSpec([
@@ -100,7 +100,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
   it("flat (parent=null) tasks are preserved as-is", () => {
     tmp = createTmpDir();
     setupFlow(tmp, {
-      spec: "specs/226-flat/spec.json",
+      specId: "226-flat",
       tasks: [flowTask("T-seed")],
     });
     writeSpecJson(tmp, "specs/226-flat/spec.json", baseSpec([
@@ -232,7 +232,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
       flowTask("C2", "in_progress", "P"),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-propagation/spec.json",
+      specId: "226-propagation",
       tasks,
       currentTaskId: "C2",
     });
@@ -254,7 +254,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
       flowTask("Leaf", "in_progress", "Mid"),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-recursive/spec.json",
+      specId: "226-recursive",
       tasks,
       currentTaskId: "Leaf",
     });
@@ -274,7 +274,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
       flowTask("T-2", "pending", null),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-no-promote/spec.json",
+      specId: "226-no-promote",
       tasks,
       currentTaskId: "T-1",
     });
@@ -296,7 +296,7 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
       flowTask("C", "pending", null),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-flat-complete/spec.json",
+      specId: "226-flat-complete",
       tasks,
       currentTaskId: "B",
     });

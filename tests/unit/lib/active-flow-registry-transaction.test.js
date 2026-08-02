@@ -37,7 +37,7 @@ describe("active-flow registry transaction", () => {
     const originalLstat = fs.lstatSync;
     for (const bytes of [
       "{malformed\n",
-      `${JSON.stringify([{ spec: "441-unknown", mode: "local", extra: true }])}\n`,
+      `${JSON.stringify([{ specId: "441-unknown", mode: "local", extra: true }])}\n`,
     ]) {
       fs.writeFileSync(registryPath, bytes);
       let reads = 0;
@@ -60,7 +60,7 @@ describe("active-flow registry transaction", () => {
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-reader", "local");
     const registryPath = path.join(root, ".senti", ".active-flow");
-    const expected = [{ spec: "441-reader", mode: "local" }];
+    const expected = [{ specId: "441-reader", mode: "local" }];
     const originalOpen = fs.openSync;
     let nested = null;
     let interleaved = false;
@@ -86,10 +86,10 @@ describe("active-flow registry transaction", () => {
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-old", "local");
     const registryPath = path.join(root, ".senti", ".active-flow");
-    const oldDocument = [{ spec: "441-old", mode: "local" }];
+    const oldDocument = [{ specId: "441-old", mode: "local" }];
     const newDocument = [
-      { spec: "441-old", mode: "local" },
-      { spec: "442-new", mode: "branch" },
+      { specId: "441-old", mode: "local" },
+      { specId: "442-new", mode: "branch" },
     ];
     const observations = [];
     const originalRename = fs.renameSync;
@@ -121,7 +121,7 @@ describe("active-flow registry transaction", () => {
     registry.add("441-old", "local");
     const registryPath = path.join(root, ".senti", ".active-flow");
     const replacementPath = path.join(root, ".senti", ".active-flow.replacement");
-    const expected = [{ spec: "442-new", mode: "branch" }];
+    const expected = [{ specId: "442-new", mode: "branch" }];
     fs.writeFileSync(replacementPath, `${JSON.stringify(expected, null, 2)}\n`);
     const originalOpen = fs.openSync;
     let replaced = false;
@@ -146,7 +146,7 @@ describe("active-flow registry transaction", () => {
     registry.add("441-old", "local");
     const registryPath = path.join(root, ".senti", ".active-flow");
     const replacementPath = path.join(root, ".senti", ".active-flow.replacement");
-    const expected = [{ spec: "442-new", mode: "branch" }];
+    const expected = [{ specId: "442-new", mode: "branch" }];
     fs.writeFileSync(replacementPath, `${JSON.stringify(expected, null, 2)}\n`);
     const originalRead = fs.readFileSync;
     let replaced = false;
@@ -229,8 +229,8 @@ describe("active-flow registry transaction", () => {
     assert.equal(nestedError?.code, "ACTIVE_FLOW_REGISTRY_BUSY");
     second.add("443-second", "worktree");
     assert.deepEqual(registry.load(), [
-      { spec: "442-existing", mode: "local" },
-      { spec: "443-second", mode: "worktree" },
+      { specId: "442-existing", mode: "local" },
+      { specId: "443-second", mode: "worktree" },
     ]);
   });
 
@@ -243,7 +243,7 @@ describe("active-flow registry transaction", () => {
 
     registry.park("453-target");
     assert.deepEqual(registry.load(), [
-      { spec: "454-other", mode: "worktree" },
+      { specId: "454-other", mode: "worktree" },
     ]);
 
     registry.park("454-other");
@@ -351,7 +351,7 @@ describe("active-flow registry transaction", () => {
     assert.equal(git("branch", "feature-unrelated").status, 0);
     const registryPath = path.join(root, ".senti", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
-    const bytes = `${JSON.stringify([{ spec: "feature-*", mode: "branch" }])}\n`;
+    const bytes = `${JSON.stringify([{ specId: "feature-*", mode: "branch" }])}\n`;
     fs.writeFileSync(registryPath, bytes);
     const branchesBefore = git("for-each-ref", "--format=%(refname):%(objectname)", "refs/heads").stdout;
 
@@ -414,7 +414,11 @@ describe("active-flow registry transaction", () => {
     const registryPath = path.join(root, ".senti", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     for (const mode of ["worktree", "branch"]) {
-      const bytes = `${JSON.stringify([{ spec: `441-${mode}`, mode }], null, 2)}\n`;
+      const specId = `441-${mode}`;
+      const statePath = path.join(root, "specs", specId, "flow.json");
+      fs.mkdirSync(path.dirname(statePath), { recursive: true });
+      fs.writeFileSync(statePath, "{}\n");
+      const bytes = `${JSON.stringify([{ specId, mode }], null, 2)}\n`;
       fs.writeFileSync(registryPath, bytes);
       assert.throws(
         () => new ActiveFlowRegistry({ mainRoot: root }).cleanStale(),

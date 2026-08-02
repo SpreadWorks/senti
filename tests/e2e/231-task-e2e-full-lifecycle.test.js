@@ -267,7 +267,7 @@ function setupFixture(tmp) {
     runId: `run-${SPEC_ID}`,
   });
   setupFlow(tmp, {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: `run-${SPEC_ID}`,
     request: "Implement numeric addition through the complete CLI lifecycle.",
     baseBranch: "main",

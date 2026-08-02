@@ -18,7 +18,7 @@ describe("resolveActiveFlow", () => {
 
   function setupFlow(dir, specId = "001-test", issue = Number(specId.slice(0, 3))) {
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: `feature/${specId}`,
       runId: `run-${specId}`,
@@ -39,7 +39,7 @@ describe("resolveActiveFlow", () => {
     const result = makeFlowManager(tmp).resolveActiveFlow(state);
     assert.ok(result);
     assert.equal(result.specId, "001-test");
-    assert.deepEqual(result.state.spec, state.spec);
+    assert.equal(result.state.specId, state.specId);
   });
 
   it("accepts an exact AND selector set against a preloaded flow", () => {
@@ -159,7 +159,7 @@ describe("resolveActiveFlow", () => {
       const specDir = path.join(tmp, "specs", specId);
       fs.mkdirSync(specDir, { recursive: true });
       fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-        spec: `specs/${specId}/spec.json`,
+        specId: specId,
         baseBranch: "main",
         featureBranch: `feature/${specId}`,
         steps: buildInitialSteps(),
@@ -178,7 +178,7 @@ describe("resolveActiveFlow", () => {
     setupFlow(tmp, "001-first");
     // Add a second active flow
     const state2 = {
-      spec: "specs/002-second/spec.json",
+      specId: "002-second",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -199,7 +199,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.json",
+      specId: "002-second",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -219,7 +219,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.json",
+      specId: "002-second",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",
@@ -239,7 +239,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     const state2 = {
-      spec: "specs/002-second/spec.json",
+      specId: "002-second",
       baseBranch: "main",
       featureBranch: "feature/002-second",
       runId: "run-002-second",

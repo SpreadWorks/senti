@@ -22,7 +22,7 @@ test("integration finding gate rejects an issue-log repair claim without bound r
     }, null, 2)}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({
         blockingFindings: [{
@@ -39,7 +39,7 @@ test("integration finding gate rejects an issue-log repair claim without bound r
         nonBlockingImprovements: [],
       }),
     });
-    const state = { spec: specPath, currentTaskId: null };
+    const state = { specId: "demo", currentTaskId: null };
     const missing = evaluateReviewFindingGateReadiness({
       root,
       state,
@@ -108,7 +108,7 @@ test("integration finding gate honors an all-reject implementation triage", asyn
     }, null, 2)}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(["src/example.js"]),
       reviewOutput: JSON.stringify({
         blockingFindings: [{
@@ -126,7 +126,7 @@ test("integration finding gate honors an all-reject implementation triage", asyn
       }),
     });
     const review = JSON.parse(fs.readFileSync(path.join(specDir, "impl-review.json"), "utf8"));
-    const fingerprint = buildRepairFingerprint({ root, specPath, state: { spec: specPath } });
+    const fingerprint = buildRepairFingerprint({ root, specPath, state: { specId: "demo" } });
     assert.equal(review.repairFingerprint, fingerprint.hash);
     prepareImplTriageArtifact({
       specDir,
@@ -138,7 +138,7 @@ test("integration finding gate honors an all-reject implementation triage", asyn
 
     const readiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, currentTaskId: null },
+      state: { specId: "demo", currentTaskId: null },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -160,7 +160,7 @@ test("finding gate retains unresolved must-fix obligations from review history",
     }, null, 2)}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({
         blockingFindings: [{
@@ -179,14 +179,14 @@ test("finding gate retains unresolved must-fix obligations from review history",
     });
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
     });
 
     const readiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, currentTaskId: null },
+      state: { specId: "demo", currentTaskId: null },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -198,7 +198,7 @@ test("finding gate retains unresolved must-fix obligations from review history",
     assert.throws(
       () => evaluateReviewFindingGateReadiness({
         root,
-        state: { spec: specPath, currentTaskId: null },
+        state: { specId: "demo", currentTaskId: null },
         phase: "integration",
         issueLog: { entries: [] },
       }),
@@ -219,7 +219,7 @@ test("finding gate supersedes historical obligations after review evidence chang
     }, null, 2)}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({
         blockingFindings: [{
@@ -240,14 +240,14 @@ test("finding gate supersedes historical obligations after review evidence chang
     fs.writeFileSync(path.join(root, "src", "reviewed-change.js"), "export const reviewed = true;\n");
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
     });
 
     const readiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, currentTaskId: null },
+      state: { specId: "demo", currentTaskId: null },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -262,7 +262,7 @@ test("finding gate supersedes historical obligations after review evidence chang
 
     const legacyReadiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, currentTaskId: null },
+      state: { specId: "demo", currentTaskId: null },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -282,7 +282,7 @@ test("finding gate ignores legacy advisory-only history with stale finding ident
     })}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(["src/example.js"]),
       reviewOutput: JSON.stringify({
         blockingFindings: [],
@@ -308,14 +308,14 @@ test("finding gate ignores legacy advisory-only history with stale finding ident
     fs.writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath },
+      flow: { specId: "demo" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
     });
 
     const readiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, currentTaskId: null },
+      state: { specId: "demo", currentTaskId: null },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -333,12 +333,12 @@ test("finding gate fails closed for a missing or malformed review artifact", () 
     fs.mkdirSync(path.join(root, "specs/demo"), { recursive: true });
     fs.writeFileSync(path.join(root, specPath), `${JSON.stringify({ requirements: [] })}\n`);
     assert.throws(
-      () => evaluateReviewFindingGateReadiness({ root, state: { spec: specPath }, phase: "integration" }),
+      () => evaluateReviewFindingGateReadiness({ root, state: { specId: "demo" }, phase: "integration" }),
       /review artifact is missing/,
     );
     fs.writeFileSync(path.join(root, "specs/demo/impl-review.json"), "{}\n");
     assert.throws(
-      () => evaluateReviewFindingGateReadiness({ root, state: { spec: specPath }, phase: "integration" }),
+      () => evaluateReviewFindingGateReadiness({ root, state: { specId: "demo" }, phase: "integration" }),
       /version must be 1/,
     );
   } finally {
@@ -356,7 +356,7 @@ test("finding gate ignores obligations from an earlier run", async () => {
     })}\n`);
     await runImplReview({
       root,
-      flow: { spec: specPath, runId: "run-old" },
+      flow: { specId: "demo", runId: "run-old" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({
         blockingFindings: [{
@@ -375,14 +375,14 @@ test("finding gate ignores obligations from an earlier run", async () => {
     });
     await runImplReview({
       root,
-      flow: { spec: specPath, runId: "run-new" },
+      flow: { specId: "demo", runId: "run-new" },
       touchedFiles: new Set(),
       reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
     });
 
     const readiness = evaluateReviewFindingGateReadiness({
       root,
-      state: { spec: specPath, runId: "run-new" },
+      state: { specId: "demo", runId: "run-new" },
       phase: "integration",
       issueLog: { entries: [] },
     });
@@ -415,13 +415,13 @@ test("plan rewind starts a fresh fingerprint retry count", async () => {
       }],
       nonBlockingImprovements: [],
     });
-    const originalCycle = { spec: specPath, runId: "run-1" };
+    const originalCycle = { specId: "demo", runId: "run-1" };
     await runImplReview({ root, flow: originalCycle, touchedFiles: new Set(), reviewOutput });
     await runImplReview({ root, flow: originalCycle, touchedFiles: new Set(), reviewOutput });
     await runImplReview({ root, flow: originalCycle, touchedFiles: new Set(), reviewOutput });
 
     const rewoundCycle = {
-      spec: specPath,
+      specId: "demo",
       runId: "run-1",
       planRewinds: [{ rewoundAt: "2026-07-19T12:00:00.000Z" }],
     };

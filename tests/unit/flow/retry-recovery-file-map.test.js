@@ -75,7 +75,7 @@ describe("integration gate retry recovery file-map evidence", () => {
     const root = setupRepo();
     cleanup.push(root);
     const flowState = {
-      spec: SPEC_PATH,
+      specId: "001-test",
       baseBranch: "main",
       reviewRecoveryBaselines: [],
     };
@@ -119,7 +119,7 @@ describe("implementation review retry recovery evidence", () => {
     cleanup.push(root);
     const testPath = `${SPEC_DIR}/tests/final-regression.test.js`;
     writeFile(root, testPath, "test('initial', () => {});\n");
-    const flowState = { spec: SPEC_PATH, baseBranch: "main", reviewRecoveryBaselines: [] };
+    const flowState = { specId: "001-test", baseBranch: "main", reviewRecoveryBaselines: [] };
     const source = resolveRecoveryEvidenceSource({ kind: "review", canonicalPhase: "impl", specDir: SPEC_DIR });
     assert.ok(source.includes(testPath));
 
@@ -148,7 +148,7 @@ describe("spec gate retry recovery evidence", () => {
   it("migrates a pre-support stopped gate once, then requires changed spec evidence", () => {
     const root = setupRepo();
     cleanup.push(root);
-    const flowState = { spec: SPEC_PATH, baseBranch: "main", reviewRecoveryBaselines: [] };
+    const flowState = { specId: "001-test", baseBranch: "main", reviewRecoveryBaselines: [] };
     const source = resolveRecoveryEvidenceSource({
       kind: "gate",
       canonicalPhase: "spec",

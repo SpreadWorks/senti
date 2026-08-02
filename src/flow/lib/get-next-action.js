@@ -31,6 +31,7 @@ import {
 } from "./task-scope.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import {
   NONBLOCKING_SOURCE_STEPS,
   retryResetTimestampForStep,
@@ -159,8 +160,8 @@ function injectPersistentRules(baseContent, target, state) {
 
 function buildContextDescriptor(kinds, target, state) {
   const paths = {};
-  if (state.spec && kinds.includes("spec") && target.scope !== "task") {
-    paths.spec = state.spec;
+  if (state.specId && kinds.includes("spec") && target.scope !== "task") {
+    paths.specId = state.specId;
   }
   if (target.scope === "task" && kinds.includes("task_spec")) {
     const task = state.tasks.find((t) => t.id === target.taskId);
@@ -259,7 +260,7 @@ function captureNextActionBinding(ctx, state) {
   } catch (error) {
     const resumedFromMainAfterWorktreeRemoval = state.worktree === true
       && ctx.mainRoot
-      && path.resolve(ctx.root) === path.resolve(ctx.mainRoot);
+      && path.resolve(ctx.executionRoot || ctx.root) === path.resolve(ctx.mainRoot);
     if (resumedFromMainAfterWorktreeRemoval) return null;
     throw error;
   }
@@ -441,7 +442,7 @@ function buildNextActionResult(
     reviewOperation = resolveReviewOperationForFlowState(state, {
       phase: reviewPhase,
       taskId: target.taskId,
-      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.root, state.spec),
+      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.executionRoot || ctx.root, relativeFlowSpecFile(state)),
     });
     reviewTargetChanged = reviewOperation == null && (
       state.reviewConvergence?.records || []

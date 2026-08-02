@@ -27,7 +27,7 @@ function captureInput(repository, overrides = {}) {
   const flowState = {
     runId: "binding-unit-run",
     issue: 483,
-    spec: "specs/482-cli-target-binding/spec.json",
+    specId: "482-cli-target-binding",
     featureBranch: "feature/482-cli-target-binding",
     baseBranch: "main",
     worktree: false,

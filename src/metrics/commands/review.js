@@ -10,6 +10,7 @@ import path from "node:path";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
+import { DEFAULT_FLOW_SPEC_DIR } from "../../lib/flow-workspace.js";
 
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
@@ -207,7 +208,7 @@ async function maybeReadJson(filePath) {
 }
 
 async function listSpecDirs(root) {
-  const specsDir = path.join(root, "specs");
+  const specsDir = root;
   let stat;
   try {
     stat = await fs.stat(specsDir);
@@ -383,8 +384,8 @@ async function loadLatestFindings(spec, historyFindings) {
   return findings;
 }
 
-export async function loadReviewMetricsArtifacts(root) {
-  const specs = await listSpecDirs(root);
+export async function loadReviewMetricsArtifacts(root, specRoot = DEFAULT_FLOW_SPEC_DIR) {
+  const specs = await listSpecDirs(path.join(root, specRoot));
   const findings = [];
   const repairs = [];
   const guardrails = [];
@@ -698,7 +699,10 @@ async function runReviewMetrics(rawArgs, container) {
   if (opts.search != null && (search.length < 1 || search.length > 256)) {
     usageError("--search must be a trimmed string from 1 to 256 characters");
   }
-  const loaded = await loadReviewMetricsArtifacts(container.get("root"));
+  const loaded = await loadReviewMetricsArtifacts(
+    container.get("mainRoot"),
+    container.get("flowSpecRoot").toString(),
+  );
   process.stdout.write(`${render(aggregateReviewMetrics(loaded, { search }), format)}\n`);
 }
 

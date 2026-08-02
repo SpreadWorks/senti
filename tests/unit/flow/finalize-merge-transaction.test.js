@@ -9,7 +9,7 @@ import {
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { checkoutNewBranch, commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { runGit } from "../../../src/lib/git-helpers.js";
-import { RepairArtifactRegistry } from "../../../src/flow/lib/repair-state-identity.js";
+import { FinalizeFlowArtifactRegistry } from "../../../src/flow/lib/repair-state-identity.js";
 
 function git(root, args) {
   const result = runGit(["-C", root, ...args]);
@@ -128,17 +128,23 @@ describe("FinalizeMergeTransaction", () => {
     const specPath = "specs/001-test/spec.json";
     fs.mkdirSync(path.join(root, "specs", "001-test"), { recursive: true });
     fs.writeFileSync(path.join(root, "specs", "001-test", "flow.json"), "{\"outbox\":[]}\n");
+    fs.mkdirSync(path.join(root, "specs", "001-test", "tasks"), { recursive: true });
+    fs.mkdirSync(path.join(root, "specs", "001-test", "tests"), { recursive: true });
+    fs.writeFileSync(path.join(root, "specs", "001-test", "tasks", "T-1.md"), "# T-1\n");
+    fs.writeFileSync(path.join(root, "specs", "001-test", "tests", "R1.test.js"), "// R1\n");
     fs.writeFileSync(path.join(root, "specs", "001-test", "operator-notes.txt"), "retain me\n");
 
     assert.throws(
       () => transaction(root, {
-        flowArtifactRegistry: new RepairArtifactRegistry(specPath),
+        flowArtifactRegistry: new FinalizeFlowArtifactRegistry(specPath),
       }).execute(),
       (error) => (
         error instanceof FinalizeMergeTransactionError
         && error.code === "MERGE_FEATURE_DIRTY"
         && error.data.paths.includes("specs/001-test/operator-notes.txt")
         && !error.data.paths.includes("specs/001-test/flow.json")
+        && !error.data.paths.includes("specs/001-test/tasks/T-1.md")
+        && !error.data.paths.includes("specs/001-test/tests/R1.test.js")
       ),
     );
   });

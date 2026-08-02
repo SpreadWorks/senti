@@ -27,9 +27,9 @@ export const WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE = path.join(
   ".flow-identity.publication.binding.tmp",
 );
 
-const BINDING_VERSION = 1;
-const BINDING_KEYS = Object.freeze(["version", "runId", "issue", "spec", "worktreePath"]);
-const IDENTITY_KEYS = Object.freeze(["runId", "issue", "spec", "worktreePath"]);
+const BINDING_VERSION = 2;
+const BINDING_KEYS = Object.freeze(["version", "runId", "issue", "specId", "worktreePath"]);
+const IDENTITY_KEYS = Object.freeze(["runId", "issue", "specId", "worktreePath"]);
 const ISSUE_TRANSITION_VERSION = 1;
 const ISSUE_TRANSITION_KEYS = Object.freeze([
   "version",
@@ -82,15 +82,12 @@ function canonicalDirectory(input) {
   return canonical;
 }
 
-function normalizedSpecPath(input) {
-  if (typeof input !== "string") throw new Error("worktree flow identity spec is required");
-  const portable = input.replace(/\\/g, "/");
-  const match = /^specs\/([^/]+)\/spec\.json$/.exec(portable);
-  if (portable !== input || path.posix.normalize(portable) !== portable || !match) {
-    throw new Error(`worktree flow identity spec must match specs/<id>/spec.json: ${input}`);
+function normalizedSpecId(input) {
+  try {
+    return FlowSpecId.from(input).toString();
+  } catch {
+    throw new Error(`worktree flow identity specId is invalid: ${input}`);
   }
-  FlowSpecId.from(match[1]);
-  return portable;
 }
 
 function normalizedIssue(input, source) {
@@ -238,13 +235,9 @@ export class WorktreeFlowIdentity {
     }
     this.runId = input.runId;
     this.issue = normalizedIssue(input.issue, input);
-    this.spec = normalizedSpecPath(input.spec);
+    this.specId = normalizedSpecId(input.specId);
     this.worktreePath = canonicalDirectory(input.worktreePath);
     Object.freeze(this);
-  }
-
-  get specId() {
-    return this.spec.split("/")[1];
   }
 
   withIssue(issue) {
@@ -255,7 +248,7 @@ export class WorktreeFlowIdentity {
     return other instanceof WorktreeFlowIdentity
       && this.runId === other.runId
       && this.issue === other.issue
-      && this.spec === other.spec
+      && this.specId === other.specId
       && this.worktreePath === other.worktreePath;
   }
 
@@ -267,11 +260,11 @@ export class WorktreeFlowIdentity {
     if (
       state.runId !== this.runId
       || stateIssue !== this.issue
-      || state.spec !== this.spec
+      || state.specId !== this.specId
       || state.worktree !== true
     ) {
       throw new Error(
-        `worktree flow binding does not match flow state: expected ${this.runId}/${this.issue}/${this.spec}`,
+        `worktree flow binding does not match flow state: expected ${this.runId}/${this.issue}/${this.specId}`,
       );
     }
     return state;
@@ -281,7 +274,7 @@ export class WorktreeFlowIdentity {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       worktreePath: this.worktreePath,
     };
   }
@@ -339,7 +332,7 @@ export class WorktreeFlowIssueTransition {
     }
     if (
       original.runId !== next.runId
-      || original.spec !== next.spec
+      || original.specId !== next.specId
       || original.worktreePath !== next.worktreePath
       || original.issue === next.issue
     ) {

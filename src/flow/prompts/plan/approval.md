@@ -1,6 +1,6 @@
    - **Do NOT re-run gate.** The gate already passed in step 8.
    - Run `senti flow get prompt plan.approval <targetGuardArgs>`. This renders `spec.md` from the gate-passed `spec.json` for human reading.
-   - Present the FULL rendered spec text (`specs/<spec-id>/spec.md`) to the user.
+   - Present the FULL rendered `spec.md` from the active Flow's configured spec directory to the user.
    - The user reads the gate-passed final spec and approves.
    - Wait for approval before any implementation.
    - Persist the approval to spec.json (do NOT hand-edit `## User Confirmation` — `spec render` regenerates that section from spec.json):

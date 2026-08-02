@@ -7,8 +7,9 @@ import {
   RepositoryFlowOperationLock,
 } from "./repository-maintenance-lock.js";
 import { FlowSpecId } from "./flow-spec-id.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecLocation, FlowSpecRoot } from "./flow-workspace.js";
 
-const LOCK_VERSION = 2;
+const LOCK_VERSION = 3;
 const LOCK_KIND = "flow-state-writer";
 const MAX_TEMP_ATTEMPTS = 3;
 const MAX_LOCK_BYTES = 64 * 1024;
@@ -73,9 +74,13 @@ function assertBoundSpecId(boundSpecId) {
   }
 }
 
-export function flowStatePath(root, boundSpecId) {
+export function flowStatePath(root, boundSpecId, specRoot = DEFAULT_FLOW_SPEC_DIR) {
   assertBoundSpecId(boundSpecId);
-  return path.join(path.resolve(root), "specs", boundSpecId, STATE_FILE);
+  return new FlowSpecLocation({
+    repositoryRoot: path.resolve(root),
+    specRoot,
+    specId: boundSpecId,
+  }).flowStateFile;
 }
 
 function assertRealDirectory(directory, label) {
@@ -96,15 +101,18 @@ function assertRealDirectory(directory, label) {
   }
 }
 
-function prepareFlowStateDirectories(root, boundSpecId) {
+function prepareFlowStateDirectories(root, boundSpecId, specRoot) {
   assertBoundSpecId(boundSpecId);
   if (typeof root !== "string" || root === "") throw authorityError("atomic writer root is required");
   const canonicalRoot = path.resolve(root);
   assertRealDirectory(canonicalRoot, "root");
-  const directories = [
-    [path.join(canonicalRoot, "specs"), "specs directory"],
-    [path.join(canonicalRoot, "specs", boundSpecId), "spec directory"],
-  ];
+  const location = new FlowSpecLocation({ repositoryRoot: canonicalRoot, specRoot, specId: boundSpecId });
+  let current = canonicalRoot;
+  const directories = location.relativeRoot.split("/").map((segment) => {
+    current = path.join(current, segment);
+    return [current, "spec root directory"];
+  });
+  directories.push([location.directory, "spec directory"]);
   for (const [directory, label] of directories) {
     try {
       fs.mkdirSync(directory, { mode: 0o755 });
@@ -121,7 +129,11 @@ class FlowStateIdentity {
       throw authorityError(`${label} requires a non-empty runId`);
     }
     this.runId = state.runId;
-    this.spec = state.spec;
+    try {
+      this.specId = FlowSpecId.from(state.specId).toString();
+    } catch {
+      throw authorityError(`${label} requires a valid specId`);
+    }
     this.hasIssue = Object.hasOwn(state, "issue") && state.issue != null;
     this.issue = this.hasIssue ? Number(state.issue) : null;
     if (this.hasIssue && (!Number.isSafeInteger(this.issue) || this.issue < 1)) {
@@ -133,7 +145,7 @@ class FlowStateIdentity {
   sameImmutableTarget(other) {
     return other instanceof FlowStateIdentity
       && this.runId === other.runId
-      && this.spec === other.spec;
+      && this.specId === other.specId;
   }
 
   sameIssue(other) {
@@ -174,14 +186,19 @@ export class FlowStateRevision {
 }
 
 export class FlowStatePathAuthority {
-  constructor({ root, boundSpecId, requireExisting = true }) {
+  constructor({ root, boundSpecId, specRoot = DEFAULT_FLOW_SPEC_DIR, requireExisting = true }) {
     assertBoundSpecId(boundSpecId);
     this.root = this.#canonicalRoot(root);
     this.specId = boundSpecId;
-    this.spec = `specs/${boundSpecId}/spec.json`;
-    this.specsDirectory = path.join(this.root, "specs");
-    this.specDirectory = path.join(this.specsDirectory, boundSpecId);
-    this.statePath = flowStatePath(this.root, boundSpecId);
+    this.specRoot = FlowSpecRoot.from(specRoot);
+    this.location = new FlowSpecLocation({
+      repositoryRoot: this.root,
+      specRoot: this.specRoot,
+      specId: boundSpecId,
+    });
+    this.specsDirectory = this.location.root;
+    this.specDirectory = this.location.directory;
+    this.statePath = this.location.flowStateFile;
     this.lockPath = path.join(this.specDirectory, ".flow.json.writer.lock");
     assertRealDirectory(this.specsDirectory, "specs directory");
     assertRealDirectory(this.specDirectory, "spec directory");
@@ -205,14 +222,9 @@ export class FlowStatePathAuthority {
     if (new.target === FlowStatePathAuthority) Object.freeze(this);
   }
 
-  assertExactSpec(spec, label) {
-    if (
-      typeof spec !== "string"
-      || spec !== this.spec
-      || spec !== path.posix.normalize(spec)
-      || !/^specs\/[^/]+\/spec\.json$/.test(spec)
-    ) {
-      throw authorityError(`${label} spec must exactly match bound authority ${this.spec}`);
+  assertExactSpecId(specId, label) {
+    if (specId !== this.specId) {
+      throw authorityError(`${label} specId must exactly match bound authority ${this.specId}`);
     }
   }
 
@@ -260,7 +272,7 @@ export class FlowStateWriteAuthority extends FlowStatePathAuthority {
     allowIssueTransition = false,
   }) {
     super(pathAuthority
-      ? { root: pathAuthority.root, boundSpecId: pathAuthority.specId }
+      ? { root: pathAuthority.root, boundSpecId: pathAuthority.specId, specRoot: pathAuthority.specRoot }
       : { root, boundSpecId });
     if (!expectedOriginal || typeof expectedOriginal !== "object") {
       throw authorityError("atomic flow state replacement requires expectedOriginal");
@@ -268,8 +280,8 @@ export class FlowStateWriteAuthority extends FlowStatePathAuthority {
     if (!nextState || typeof nextState !== "object") {
       throw authorityError("atomic flow state replacement requires next state");
     }
-    this.assertExactSpec(expectedOriginal.spec, "expected original");
-    this.assertExactSpec(nextState.spec, "next state");
+    this.assertExactSpecId(expectedOriginal.specId, "expected original");
+    this.assertExactSpecId(nextState.specId, "next state");
     this.expectedIdentity = new FlowStateIdentity(expectedOriginal, "expected original");
     this.nextIdentity = new FlowStateIdentity(nextState, "next state");
     if (!this.expectedIdentity.sameImmutableTarget(this.nextIdentity)) {
@@ -618,7 +630,8 @@ class FlowStateWriterLock {
       kind: LOCK_KIND,
       processIdentity: this.processIdentity,
       root: this.authority.root,
-      spec: this.authority.spec,
+      specId: this.authority.specId,
+      specRoot: this.authority.specRoot.toString(),
       statePath: this.authority.statePath,
       ...(this.transitionAuthority && { transitionId: this.transitionAuthority.transitionId }),
     };
@@ -695,7 +708,8 @@ class FlowStateWriterLock {
       owner.version !== LOCK_VERSION
       || owner.kind !== LOCK_KIND
       || owner.root !== this.authority.root
-      || owner.spec !== this.authority.spec
+      || owner.specId !== this.authority.specId
+      || owner.specRoot !== this.authority.specRoot.toString()
       || owner.statePath !== this.authority.statePath
     ) {
       throw new Error("flow writer lock authority is invalid");
@@ -735,6 +749,7 @@ export class FlowStateCreator {
   constructor({
     root,
     mainRoot = root,
+    specRoot = DEFAULT_FLOW_SPEC_DIR,
     boundSpecId,
     state,
     faultInjector = () => {},
@@ -743,12 +758,12 @@ export class FlowStateCreator {
     allowProcessOwnerBorrow = false,
     processIdentitySource = new ProcessIdentitySource(),
   }) {
-    const expectedSpec = `specs/${boundSpecId}/spec.json`;
     assertBoundSpecId(boundSpecId);
-    if (state?.spec !== expectedSpec) {
-      throw authorityError(`new state spec must exactly match bound authority ${expectedSpec}`);
+    if (state?.specId !== boundSpecId) {
+      throw authorityError(`new state specId must exactly match bound authority ${boundSpecId}`);
     }
     this.root = root;
+    this.specRoot = FlowSpecRoot.from(specRoot);
     this.boundSpecId = boundSpecId;
     this.authority = null;
     this.identity = new FlowStateIdentity(state, "new state");
@@ -766,13 +781,14 @@ export class FlowStateCreator {
   create() {
     this.repositoryOperation.acquire();
     try {
-      prepareFlowStateDirectories(this.root, this.boundSpecId);
+      prepareFlowStateDirectories(this.root, this.boundSpecId, this.specRoot);
       this.authority = new FlowStatePathAuthority({
         root: this.root,
         boundSpecId: this.boundSpecId,
+        specRoot: this.specRoot,
         requireExisting: false,
       });
-      this.authority.assertExactSpec(this.identity.spec, "new state");
+      this.authority.assertExactSpecId(this.identity.specId, "new state");
       return this.#create();
     } finally {
       this.repositoryOperation.release();
@@ -820,6 +836,7 @@ export class AtomicFlowStateWriter {
   constructor({
     root,
     mainRoot = root,
+    specRoot = DEFAULT_FLOW_SPEC_DIR,
     boundSpecId,
     expectedOriginal,
     nextState,
@@ -834,7 +851,7 @@ export class AtomicFlowStateWriter {
     writerOwnerToken = null,
     writerOwnerTempName = null,
   }) {
-    this.pathAuthority = new FlowStatePathAuthority({ root, boundSpecId });
+    this.pathAuthority = new FlowStatePathAuthority({ root, boundSpecId, specRoot });
     this.replacementAuthority = expectedOriginal == null && nextState == null
       ? null
       : new FlowStateWriteAuthority({
@@ -885,6 +902,43 @@ export class AtomicFlowStateWriter {
       throw new AggregateError(
         [primary, releaseError],
         "committed flow state recovery and repository barrier release both failed",
+        { cause: primary },
+      );
+    }
+    if (primary) throw primary;
+    if (releaseError) throw releaseError;
+  }
+
+  assertWritable() {
+    this.repositoryOperation.acquire();
+    let primary = null;
+    try {
+      this.lock.acquire();
+    } catch (error) {
+      primary = error;
+    }
+    const cleanup = this.lock.release();
+    if (primary == null && cleanup.errors.length > 0) {
+      primary = new AggregateError(cleanup.errors, "flow state writer probe cleanup failed", {
+        cause: cleanup.errors[0],
+      });
+    } else if (primary != null && cleanup.errors.length > 0) {
+      primary = new AggregateError(
+        [primary, ...cleanup.errors],
+        "flow state writer probe and cleanup both failed",
+        { cause: primary },
+      );
+    }
+    let releaseError = null;
+    try {
+      this.repositoryOperation.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primary && releaseError) {
+      throw new AggregateError(
+        [primary, releaseError],
+        "flow state writer probe and repository barrier release both failed",
         { cause: primary },
       );
     }

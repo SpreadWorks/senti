@@ -598,9 +598,6 @@ function resolveFinalizeLifecycle(input) {
       }),
     );
   }
-  if (command === "finalize-commit") {
-    actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitDurableArtifacts" }));
-  }
   actions.push(new SetStepStatus({
     step: command,
     status: "done",
@@ -609,9 +606,6 @@ function resolveFinalizeLifecycle(input) {
     suppressAutoPromotion: command === "finalize-merge",
   }));
   actions.push(new CompleteOutboxEffect({ step: command }));
-  if (command === "finalize-cleanup") {
-    actions.push(new RunLifecycleHook({ module: "finalize", handler: "commitFinalizeCompletion" }));
-  }
   return actions;
 }
 

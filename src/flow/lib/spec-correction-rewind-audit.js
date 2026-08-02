@@ -32,7 +32,7 @@ const CHAIN_KEYS = Object.freeze(["entryCount", "headDigest", "version"]);
 const PREVIOUS_STATE_KEYS = Object.freeze(["activeStep", "currentTaskId", "stepStatuses", "taskStatuses"]);
 const RESULTING_STATE_KEYS = Object.freeze(["activeStep", "currentTaskId", "stepStatuses", "tasks"]);
 const INVALIDATED_RESULT_KEYS = Object.freeze(["approvals", "flowSteps", "tasks"]);
-const TARGET_KEYS = Object.freeze(["issue", "runId", "spec"]);
+const TARGET_KEYS = Object.freeze(["issue", "runId", "specId"]);
 const FLOW_STEP_RESULT_REQUIRED_KEYS = Object.freeze(["id", "status"]);
 const FLOW_STEP_RESULT_OPTIONAL_KEYS = Object.freeze(["finishedAt", "runtimeLog", "startedAt"]);
 const TASK_RESULT_REQUIRED_KEYS = Object.freeze([
@@ -187,12 +187,12 @@ function assertExecutionMetadata(value, path) {
 function validateTarget(target, state, path) {
   assertExactKeys(target, TARGET_KEYS, [], path);
   assertString(target.runId, `${path}.runId`);
-  assertString(target.spec, `${path}.spec`);
+  assertString(target.specId, `${path}.specId`);
   if (target.issue !== null && (!Number.isSafeInteger(target.issue) || target.issue < 1)) {
     invalid(`${path}.issue`, "must be a positive integer or null");
   }
   const issue = state.issue == null ? null : Number(state.issue);
-  if (target.runId !== state.runId || target.spec !== state.spec || target.issue !== issue) {
+  if (target.runId !== state.runId || target.specId !== state.specId || target.issue !== issue) {
     invalid(path, "does not match the active flow identity");
   }
 }
@@ -582,7 +582,7 @@ export class PlanRewindAuditHistory {
       audit.category !== CATEGORY
       || audit.reason !== reason
       || audit.target.runId !== state.runId
-      || audit.target.spec !== state.spec
+      || audit.target.specId !== state.specId
       || audit.target.issue !== (state.issue == null ? null : Number(state.issue))
     ) {
       return null;

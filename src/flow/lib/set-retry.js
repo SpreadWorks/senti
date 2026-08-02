@@ -22,6 +22,7 @@ import {
 } from "./review-convergence.js";
 import { resolveImplReviewScope } from "./task-scope.js";
 import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import {
   RetryRecoveryInput,
   RetryRecoveryGrantError,
@@ -91,9 +92,11 @@ function latestReviewConvergenceRecord(flowState, phase, taskId) {
 }
 
 function currentReviewTargetState(ctx) {
+  const specPath = relativeFlowSpecFile(ctx.flowState);
   return ReviewTargetState.fromRepairFingerprint(buildRepairFingerprint({
-    root: ctx.root,
-    specPath: ctx.flowState.spec,
+    root: ctx.executionRoot || ctx.root,
+    artifactRoot: ctx.root,
+    specPath,
     state: ctx.flowState,
   }));
 }
@@ -106,8 +109,8 @@ function currentReviewRecoveryIdentity(ctx, targetState) {
     runId: ctx.flowState.runId,
     hasIssue: Object.hasOwn(ctx.flowState, "issue"),
     issue: ctx.flowState.issue,
-    spec: ctx.flowState.spec,
-    treeSha: resolveCurrentReviewTreeSha(ctx.root, ctx.flowState.spec),
+    specId: ctx.flowState.specId,
+    treeSha: resolveCurrentReviewTreeSha(ctx.executionRoot || ctx.root, relativeFlowSpecFile(ctx.flowState)),
     targetStateDigest: targetState.digest,
     targetBindingDigest,
     dispatchInvocationId: ctx.dispatchInvocationId ?? null,
@@ -116,7 +119,7 @@ function currentReviewRecoveryIdentity(ctx, targetState) {
 
 function reviewTargetPathMatcher(flowState, phase) {
   if (phase === "impl") return () => true;
-  const specPath = String(flowState.spec).replaceAll("\\", "/");
+  const specPath = relativeFlowSpecFile(flowState);
   const specDir = specPath.slice(0, specPath.lastIndexOf("/"));
   if (phase === "test") {
     return (candidate) => candidate === specPath || candidate.startsWith(`${specDir}/tests/`);
@@ -131,7 +134,7 @@ function unchangedReviewConvergenceTarget(ctx, phase, taskId, currentIdentity, c
     runId: ctx.flowState.runId,
     hasIssue: Object.hasOwn(ctx.flowState, "issue"),
     issue: ctx.flowState.issue,
-    spec: ctx.flowState.spec,
+    specId: ctx.flowState.specId,
     phase,
     taskId,
     treeSha: current.treeSha,
@@ -164,7 +167,7 @@ function reviewRecoveryMutation({ ctx, reviewRecord, phase, taskId, currentIdent
       nextTargetStateDigest: currentIdentity.targetStateDigest,
       nextTargetState: currentTargetState.toJSON(),
       expectedRunId: ctx.flowState.runId,
-      expectedSpec: ctx.flowState.spec,
+      expectedSpecId: ctx.flowState.specId,
       previousTargetBindingDigest: reviewRecord.targetBindingDigest ?? null,
       nextTargetBindingDigest: currentIdentity.targetBindingDigest,
       previousDispatchInvocationId: reviewRecord.dispatchInvocationId ?? null,
@@ -275,7 +278,7 @@ export default class SetRetryCommand extends FlowCommand {
       try {
         const reset = applyRetryReset({
           root: ctx.root,
-          spec: ctx.flowState.spec,
+          specId: ctx.flowState.specId,
           flowManager: ctx.flowManager,
           input: op.input,
           expectedAttempts: op.attemptsBefore,

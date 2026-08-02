@@ -33,7 +33,7 @@ function guards(state) {
   return [
     "--expect-run-id", state.runId,
     "--expect-no-issue",
-    "--expect-spec", state.spec,
+    "--expect-spec", state.specId,
   ];
 }
 
@@ -53,13 +53,13 @@ test("nonblocking policy keeps normal Flow ownership", () => {
     fs.writeFileSync(path.join(root, `specs/${specId}/impl-review.json`), evidence);
 
     const state = moveFlowToStep(makeFlowState({
-      spec,
+      specId,
       runId: "run-477-nonblocking-e2e",
       baseBranch: "main",
       featureBranch: "main",
     }), "impl-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
     initGitRepo(root);
     commitAll(root, "initial flow fixture");
 
@@ -127,13 +127,13 @@ test("nonblocking test-review continuation creates an acceptance disposition han
     fs.writeFileSync(path.join(root, `specs/${specId}/test-review.json`), evidence);
 
     const state = moveFlowToStep(makeFlowState({
-      spec,
+      specId,
       runId: "run-477-test-review-nonblocking-e2e",
       baseBranch: "main",
       featureBranch: "main",
     }), "test-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
     initGitRepo(root);
     commitAll(root, "initial test-review flow fixture");
 
@@ -208,7 +208,7 @@ test("strict semantic exhaustion completes its acceptance handoff without adviso
       blockingFindings: [finding],
     });
     const state = moveFlowToStep(makeFlowState({
-      spec,
+      specId,
       runId: "run-481-strict-review-exhaustion-e2e",
       baseBranch: "main",
       featureBranch: "main",
@@ -216,7 +216,7 @@ test("strict semantic exhaustion completes its acceptance handoff without adviso
       tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
     }), "test-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
     initGitRepo(root);
     commitAll(root, "initial exhausted review fixture");
 
@@ -306,13 +306,13 @@ test("scenario-validity block records refreshed evidence after nonblocking activ
     });
     writeJson(root, spec, { requirements: [] });
     const state = moveFlowToStep(makeFlowState({
-      spec,
+      specId,
       runId: "run-477-scenario-validity-nonblocking-e2e",
       baseBranch: "main",
       featureBranch: "main",
     }), "scenario-validity");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ spec: specId, mode: "local" }]);
+    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
     initGitRepo(root);
     commitAll(root, "initial flow fixture");
 

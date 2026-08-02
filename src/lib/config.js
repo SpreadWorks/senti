@@ -9,6 +9,7 @@ import path from "path";
 import { ProviderRegistry } from "./provider.js";
 import { validateSchema } from "./schema-validate.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
+import { flowSpecRootFromConfig } from "./flow-workspace.js";
 
 /** Default concurrency for parallel file processing. */
 export const DEFAULT_CONCURRENCY = 5;
@@ -221,6 +222,7 @@ const CONFIG_SCHEMA = {
     flow: {
       type: "object",
       properties: {
+        specDir: { type: "string", minLength: 1 },
         merge: { type: "string", enum: ["squash", "ff-only", "merge"] },
         repairFingerprint: {
           type: "object",
@@ -402,6 +404,12 @@ export function validate(raw, options = {}) {
     if (raw.test.finalRegressionTimeout != null && !Number.isInteger(raw.test.finalRegressionTimeout)) {
       errors.push("'test.finalRegressionTimeout' must be a positive integer number of seconds");
     }
+  }
+
+  try {
+    flowSpecRootFromConfig(raw);
+  } catch (error) {
+    errors.push(error.message);
   }
 
   if (raw.plugin) validatePluginConfig(raw.plugin, errors);

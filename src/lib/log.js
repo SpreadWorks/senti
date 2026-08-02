@@ -201,21 +201,21 @@ export class Logger {
     if (Object.hasOwn(entry || {}, "flowContext")) {
       const ctx = entry.flowContext;
       return {
-        spec: ctx?.spec ?? null,
+        specId: ctx?.specId ?? null,
         sentiPhase: ctx?.sentiPhase ?? null,
         taskId: ctx?.taskId ?? null,
       };
     }
     if (!this.#flowManager || this.#resolvingContext) {
-      return { spec: null, sentiPhase: null, taskId: null };
+      return { specId: null, sentiPhase: null, taskId: null };
     }
     this.#resolvingContext = true;
     try {
       const ctx = this.#flowManager.resolveCurrentContext();
-      return { spec: ctx.spec ?? null, sentiPhase: ctx.sentiPhase ?? null, taskId: ctx.taskId ?? null };
+      return { specId: ctx.specId ?? null, sentiPhase: ctx.sentiPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
       process.stderr.write(`[senti] Logger: flow state read failed: ${err.message}\n`);
-      return { spec: null, sentiPhase: null, taskId: null };
+      return { specId: null, sentiPhase: null, taskId: null };
     } finally {
       this.#resolvingContext = false;
     }
@@ -253,7 +253,7 @@ export class Logger {
         type: "agent",
         phase: "start",
         requestId: entry.requestId,
-        spec: startCtx.spec,
+        specId: startCtx.specId,
         sentiPhase: startCtx.sentiPhase,
         taskId: startCtx.taskId,
         callerFile: caller.callerFile,
@@ -276,7 +276,7 @@ export class Logger {
       ts: new Date().toISOString(),
       context: {
         entryCommand: this.#entryCommand,
-        spec: ctx.spec,
+        specId: ctx.specId,
         sentiPhase: ctx.sentiPhase,
         taskId: ctx.taskId,
         callerFile: caller.callerFile,
@@ -323,7 +323,7 @@ export class Logger {
       type: "agent",
       phase: "end",
       requestId: entry.requestId,
-      spec: ctx.spec,
+      specId: ctx.specId,
       sentiPhase: ctx.sentiPhase,
       taskId: ctx.taskId,
       callerFile: caller.callerFile,

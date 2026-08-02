@@ -49,7 +49,9 @@ describe("getStepInstructions (loader contract)", () => {
     it("spec-triage records apply/drop decisions and evidence for every blocking finding", () => {
       const content = getStepInstructions("plan.spec-triage");
 
-      assert.match(content, /Always write `specs\/<spec-id>\/spec-triage\.json`/);
+      assert.match(content, /active Flow's configured spec directory/);
+      assert.match(content, /Always write `spec-triage\.json` in that directory/);
+      assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.match(content, /Do not edit `spec\.json`/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
       assert.match(content, /`decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
@@ -61,8 +63,9 @@ describe("getStepInstructions (loader contract)", () => {
     it("spec-repair applies only triaged apply items", () => {
       const content = getStepInstructions("plan.spec-repair");
 
-      assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
-      assert.match(content, /Read `specs\/<spec-id>\/spec-triage\.json` first/);
+      assert.match(content, /active Flow's configured spec directory/);
+      assert.match(content, /Always write `spec-repair\.json` in that directory/);
+      assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.match(content, /Treat only `items\[\]` entries with `decision: "apply"` as the repair input/);
       assert.match(content, /Do not re-triage review findings in this step/);
       assert.match(content, /For every triage item with `decision: "apply"`/);

@@ -32,6 +32,7 @@ import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -170,7 +171,7 @@ function activeReviewStep(state, flowActive) {
   return flowActive;
 }
 
-function buildStatusReviewViews(state, active, root) {
+function buildStatusReviewViews(state, active, root, executionRoot = root) {
   const reviewPhase = reviewPhaseForStepId(active?.id);
   if (!reviewPhase) return null;
   const resolvedMax = resolveActiveStepMaxAttempts(state, active);
@@ -185,7 +186,7 @@ function buildStatusReviewViews(state, active, root) {
   const reviewAction = resolveReviewActionForFlowState(state, {
     phase: reviewPhase,
     taskId,
-    resolveTreeSha: () => resolveCurrentReviewTreeSha(root, state.spec),
+    resolveTreeSha: () => resolveCurrentReviewTreeSha(executionRoot, relativeFlowSpecFile(state)),
   });
   return reviewAction ? { reviewAction } : null;
 }
@@ -199,8 +200,8 @@ function buildStatusRetryRecoveryView(root, flowState, input) {
 }
 
 function buildFinalRegressionStatus(root, state) {
-  if (!state?.spec) return null;
-  const resultPath = path.join(path.dirname(path.resolve(root, state.spec)), "final-regression-result.json");
+  if (!state?.specId) return null;
+  const resultPath = path.join(path.dirname(path.resolve(root, relativeFlowSpecFile(state))), "final-regression-result.json");
   if (!fs.existsSync(resultPath)) return null;
   const artifact = validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8")));
   return {
@@ -247,6 +248,7 @@ function validateRunId(runId) {
 }
 
 function buildStatusOutput(state, root, options = {}) {
+  const executionRoot = options.executionRoot || root;
   const details = options.details === true;
   const phase = state.steps ? derivePhase(state) : null;
   // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
@@ -256,12 +258,16 @@ function buildStatusOutput(state, root, options = {}) {
   const active = findLatestInProgressLeaf(leafSteps);
   const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
   const totalSteps = leafSteps.length;
-  const requirements = loadSpecRequirements(root, state.spec);
+  const requirements = state.specId
+    ? loadSpecRequirements(root, relativeFlowSpecFile(state))
+    : [];
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;
-  const reviewViews = buildStatusReviewViews(state, activeReviewStep(state, active), root);
+  const reviewViews = state.specId
+    ? buildStatusReviewViews(state, activeReviewStep(state, active), root, executionRoot)
+    : null;
   const reviewAction = reviewViews?.reviewAction || null;
-  const gateViews = buildStatusGateViews(state, active, root);
+  const gateViews = state.specId ? buildStatusGateViews(state, active, root) : null;
   const retryRecovery = gateViews?.retryRecovery || null;
   const recoveryDiagnostics = (
     reviewAction
@@ -275,7 +281,7 @@ function buildStatusOutput(state, root, options = {}) {
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
-  const deferredFindings = state.spec
+  const deferredFindings = state.specId
     ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state), flowState: state })
     : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
   const finalRegression = buildFinalRegressionStatus(root, state);
@@ -284,7 +290,7 @@ function buildStatusOutput(state, root, options = {}) {
 
   const output = {
     active: completion.active,
-    spec: state.spec,
+    specId: state.specId,
     baseBranch: state.baseBranch,
     featureBranch: state.featureBranch,
     worktree: state.worktree || false,
@@ -349,7 +355,10 @@ export default class GetStatusCommand extends FlowCommand {
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }
-      const status = buildStatusOutput(state, ctx.root, options);
+      const status = buildStatusOutput(state, ctx.root, {
+        ...options,
+        executionRoot: ctx.executionRoot || ctx.root,
+      });
       try {
         const positionalExpectation = new FlowTargetExpectation({ expectRunId: runId });
         const positionalMismatch = positionalExpectation.mismatchAgainst(state);
@@ -392,7 +401,10 @@ export default class GetStatusCommand extends FlowCommand {
     if (!ctx.flowState) {
       return { active: false };
     }
-    const status = buildStatusOutput(ctx.flowState, ctx.root, options);
+    const status = buildStatusOutput(ctx.flowState, ctx.root, {
+      ...options,
+      executionRoot: ctx.executionRoot || ctx.root,
+    });
     return targetMismatchEnvelopeForInput({
       type: "get",
       key: "status",

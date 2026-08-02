@@ -10,6 +10,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { appendFiles } from "./req-map.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 export default class SetFilesCommand extends FlowCommand {
   execute(ctx) {
@@ -19,11 +20,12 @@ export default class SetFilesCommand extends FlowCommand {
       return Envelope.fail("set", "files", "INVALID_USAGE", "usage: flow set files <reqId> <path...>");
     }
 
-    const specDir = resolveSpecDir(path.resolve(ctx.root, ctx.flowState.spec));
+    const specPath = relativeFlowSpecFile(ctx.flowState);
+    const specDir = resolveSpecDir(path.resolve(ctx.root, specPath));
 
     let map;
     try {
-      map = appendFiles(specDir, reqId, paths, ctx.root, ctx.flowState.spec);
+      map = appendFiles(specDir, reqId, paths, ctx.root, specPath);
     } catch (err) {
       if (err.code === "INVALID_REQ_ID") {
         return Envelope.fail("set", "files", "INVALID_REQ_ID", err.message);

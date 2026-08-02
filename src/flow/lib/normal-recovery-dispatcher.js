@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 import {
   FlowRecoveryTransition,
@@ -119,10 +120,11 @@ export class NormalRecoveryValidatorRegistry {
       Object.freeze(this);
       return;
     }
-    const specDir = path.dirname(state.spec);
+    const specPath = relativeFlowSpecFile(state);
+    const specDir = path.dirname(specPath);
     const currentFingerprint = buildRepairFingerprint({
       root,
-      specPath: state.spec,
+      specPath,
       state,
     }).hash;
     const validator = new UpgradeEvidenceRecoveryValidator({

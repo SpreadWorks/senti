@@ -183,7 +183,7 @@ async function dispatchRecovery(fixture, overrides = {}) {
   let exitCode = null;
   const input = {
     expectRunId: RUN_ID,
-    expectSpec: SPEC_PATH,
+    expectSpec: SPEC_ID,
     expectIssue: String(ISSUE),
     ...overrides,
   };
@@ -410,7 +410,7 @@ function prepareFixture({
       ? "T-1"
       : null;
   const state = moveFlowToStep(makeFlowState({
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: RUN_ID,
     issue: ISSUE,
     baseBranch: "main",
@@ -1105,7 +1105,7 @@ describe("public stale test evidence recovery", () => {
     });
     for (const [caseName, overrides] of [
       ["matrix-d-mismatched-run", { expectRunId: "another-run" }],
-      ["matrix-d-mismatched-spec", { expectSpec: "specs/foreign/spec.json" }],
+      ["matrix-d-mismatched-spec", { expectSpec: "foreign" }],
       ["matrix-d-mismatched-issue", { expectIssue: "999" }],
     ]) {
       await assertRejectedWithoutMutation({

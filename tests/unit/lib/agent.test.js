@@ -279,13 +279,13 @@ describe("Agent.call() — prompt cache policy", () => {
       "count+=1;fs.writeFileSync(file,String(count));",
       "process.stdout.write('provider-'+count);",
     ].join("");
-    const spec = "specs/cache/spec.json";
+    const specId = "cache";
     const decisions = [];
     const flowManager = {
       resolveCurrentContext() {
-        return { spec, taskId: null, sentiPhase: "impl" };
+        return { specId, taskId: null, sentiPhase: "impl" };
       },
-      loadActiveFlows() { return [{ spec }]; },
+      loadActiveFlows() { return [{ specId }]; },
       appendMetric() {},
       accumulateAgentMetrics() {},
     };

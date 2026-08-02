@@ -14,7 +14,7 @@ function initGateProject(tmp, { specId = "001-test" } = {}) {
   initGitRepo(tmp);
   commitAll(tmp, "init");
   setupFlowAtStep(tmp, "spec-gate", {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     featureBranch: `feature/${specId}`,
   });
   writeJson(tmp, ".senti/config.json", {

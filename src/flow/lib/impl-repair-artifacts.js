@@ -33,6 +33,11 @@ import {
   writeRepairDelta,
   writeRepairFingerprintManifest,
 } from "./repair-state-identity.js";
+import {
+  cloneLocatedFlowState,
+  flowStateSpecLocation,
+  relativeFlowSpecFile,
+} from "../../lib/flow-workspace.js";
 
 export const IMPL_REPAIR_ARTIFACT_FILE = "impl-repair.json";
 export const IMPL_TRIAGE_ARTIFACT_FILE = "impl-triage.json";
@@ -44,9 +49,12 @@ const WORKFLOW_ARTIFACT_PATH_PREFIXES = Object.freeze([
   ".senti/",
   ".tmp/",
   "docs/",
-  "specs/",
 ]);
-const SPEC_TEST_SOURCE_PATH = /^specs\/[^/]+\/tests\/.+\.(?:[cm]?js|ts)$/;
+
+function specDirectoryForState(root, state) {
+  return flowStateSpecLocation(state)?.directory
+    || path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
+}
 
 export const EVIDENCE_FILE_BY_STEP = Object.freeze({
   "test-execute": "test-execute-result.json",
@@ -383,8 +391,8 @@ export class ValidatedAppliedFindingRepairPurpose extends ImplRepairPurpose {
     Object.freeze(this);
   }
 
-  recordEvidence({ root, specPath, sourceStep, entry }) {
-    recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry });
+  recordEvidence({ root, artifactRoot = root, specPath, sourceStep, entry }) {
+    recordAppliedFindingRepairEvidence({ root, artifactRoot, specPath, sourceStep, entry });
   }
 }
 
@@ -402,7 +410,7 @@ export class TestEvidenceRefreshPurpose extends ImplRepairPurpose {
 export class ImplRepairTargetIdentity {
   constructor(input = {}) {
     this.runId = requireString(input.runId, "target.runId");
-    this.spec = normalizeRepairPath(input.spec);
+    this.specId = requireString(input.specId, "target.specId");
     this.hasIssue = Object.hasOwn(input, "issue") && input.issue != null;
     this.issue = this.hasIssue ? Number(input.issue) : null;
     if (this.hasIssue && !Number.isSafeInteger(this.issue)) {
@@ -414,7 +422,7 @@ export class ImplRepairTargetIdentity {
   static fromState(state) {
     return new ImplRepairTargetIdentity({
       runId: state.runId,
-      spec: state.spec,
+      specId: state.specId,
       ...(Object.hasOwn(state, "issue") && state.issue != null
         ? { issue: state.issue }
         : {}),
@@ -439,7 +447,7 @@ export class ImplRepairTargetIdentity {
   toJSON() {
     return {
       runId: this.runId,
-      spec: this.spec,
+      specId: this.specId,
       ...(this.hasIssue ? { issue: this.issue } : {}),
     };
   }
@@ -578,10 +586,10 @@ export class ImplRepairTransitionIntent extends StepTransitionCommitIntent {
 
 export class RepairStateMigration {
   constructor(input = {}) {
-    if (input.version !== 2) throw new Error("repair state migration version must be 2");
-    this.version = 2;
+    if (input.version !== 3) throw new Error("repair state migration version must be 3");
+    this.version = 3;
     this.runId = requireString(input.runId, "runId");
-    this.specPath = normalizeRepairPath(input.specPath);
+    this.specId = requireString(input.specId, "specId");
     if (input.sourceVersion !== LEGACY_REPAIR_STATE_VERSION) {
       throw new Error(`repair state migration sourceVersion must be ${LEGACY_REPAIR_STATE_VERSION}`);
     }
@@ -618,7 +626,7 @@ export class RepairStateMigration {
     return {
       version: this.version,
       runId: this.runId,
-      specPath: this.specPath,
+      specId: this.specId,
       sourceVersion: this.sourceVersion,
       ...(this.sourceFingerprint == null ? {} : { sourceFingerprint: this.sourceFingerprint }),
       targetVersion: this.targetVersion,
@@ -644,9 +652,10 @@ export function collectRepairFingerprintPaths({ root, specPath, state = null }) 
   return buildRepairFingerprint({ root, specPath, state }).entries.map((entry) => entry.path);
 }
 
-export function buildRepairFingerprint({ root, specPath, state = null, truncated = false }) {
+export function buildRepairFingerprint({ root, artifactRoot = null, specPath, state = null, truncated = false }) {
   if (truncated) throw new Error("truncated repair fingerprint is not valid evidence");
-  return buildRepairStateManifest({ root, specPath, state });
+  const resolvedSpecPath = specPath ?? (state == null ? null : relativeFlowSpecFile(state));
+  return buildRepairStateManifest({ root, artifactRoot, specPath: resolvedSpecPath, state });
 }
 
 export function stampRepairFingerprint({ root, specPath, state = null, artifact, fingerprint = null }) {
@@ -668,10 +677,15 @@ export function assertRepairFingerprint({ artifact, fingerprint, label = "artifa
   return artifact;
 }
 
-export function assertCurrentRepairEvidenceFiles({ root, state, specDir, files }) {
+export function assertCurrentRepairEvidenceFiles({ root, artifactRoot = root, state, specDir, files }) {
   const existing = files.filter((file) => fs.existsSync(path.join(specDir, file)));
   if (existing.length === 0) return null;
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const fingerprint = buildRepairFingerprint({
+    root,
+    artifactRoot,
+    specPath: relativeFlowSpecFile(state),
+    state,
+  });
   for (const file of existing) {
     assertRepairFingerprint({ artifact: readJson(path.join(specDir, file)), fingerprint, label: file });
   }
@@ -1128,7 +1142,7 @@ class TestEvidenceRefreshTransitionAuthority extends ImplRepairPrecommitAuthorit
     transaction.target.assertState(state);
     const observed = buildRepairFingerprint({
       root: this.root,
-      specPath: transaction.target.spec,
+      specPath: relativeFlowSpecFile(state),
       state,
     });
     if (observed.hash !== transaction.currentManifest.hash) {
@@ -1367,13 +1381,13 @@ export function completeTestEvidenceRefresh({
   lock.acquire();
   try {
     const activeState = state || flowManager.load();
-    const specParent = path.dirname(activeState.spec);
+    const specParent = path.dirname(relativeFlowSpecFile(activeState));
     const inferredRoot = path.resolve(
       specDir,
       ...specParent.split(/[\\/]/).filter((part) => part && part !== ".").map(() => ".."),
     );
     const executionRoot = root || inferredRoot;
-    if (path.dirname(path.resolve(executionRoot, activeState.spec)) !== path.resolve(specDir)) {
+    if (specDirectoryForState(executionRoot, activeState) !== path.resolve(specDir)) {
       throw new Error("test evidence refresh spec directory does not match the active flow");
     }
     const transactionPath = path.join(specDir, REPAIR_TRANSACTION_FILE);
@@ -1402,7 +1416,7 @@ export function completeTestEvidenceRefresh({
     }
     const current = buildRepairFingerprint({
       root: executionRoot,
-      specPath: activeState.spec,
+      specPath: relativeFlowSpecFile(activeState),
       state: activeState,
     });
     if (expectedCurrentFingerprint && current.hash !== expectedCurrentFingerprint) {
@@ -1515,12 +1529,12 @@ export function completeLateAppliedFindingRepair({
     throw new Error("late applied-finding repair requires the impl-repair lifecycle authority");
   }
   const activeState = state || flowManager.load();
-  const resolvedSpecDir = path.resolve(specDir || path.dirname(path.resolve(root, activeState.spec)));
+  const resolvedSpecDir = path.resolve(specDir || specDirectoryForState(root, activeState));
   const appliedFindingIds = requireStringArray(sourceFindingIds, "sourceFindingIds");
   const previous = readRepairFingerprintManifest(resolvedSpecDir);
   const current = buildRepairFingerprint({
     root,
-    specPath: activeState.spec,
+    specPath: relativeFlowSpecFile(activeState),
     state: activeState,
   });
   const existing = readImplRepairLedger(resolvedSpecDir) || new ImplRepairLedger({ version: 2, entries: [] });
@@ -1610,10 +1624,14 @@ export function appendImplRepairEntry({ specDir, entry }) {
   return { path: file, artifact };
 }
 
-function isDurableRepairEvidencePath(root, relativePath) {
+function isDurableRepairEvidencePath(root, relativePath, specPath) {
+  const specDirectory = path.posix.dirname(specPath.split(path.sep).join("/"));
+  const isSpecArtifact = relativePath.startsWith(`${specDirectory}/`);
+  const isSpecTestSource = relativePath.startsWith(`${specDirectory}/tests/`)
+    && /\.(?:[cm]?js|ts)$/.test(relativePath);
   if (
-    WORKFLOW_ARTIFACT_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
-    && !SPEC_TEST_SOURCE_PATH.test(relativePath)
+    (WORKFLOW_ARTIFACT_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix)) || isSpecArtifact)
+    && !isSpecTestSource
   ) return false;
   const repositoryRoot = path.resolve(root);
   const candidate = path.resolve(repositoryRoot, relativePath);
@@ -1628,8 +1646,8 @@ function isDurableRepairEvidencePath(root, relativePath) {
   }
 }
 
-function repairEvidenceFile({ root, specPath, entry }) {
-  const specDir = path.dirname(path.resolve(root, specPath));
+function repairEvidenceFile({ root, artifactRoot = root, specPath, entry }) {
+  const specDir = path.dirname(path.resolve(artifactRoot, specPath));
   const delta = new RepairDeltaArtifact(readJson(path.join(specDir, entry.changedPathsRef)));
   if (
     delta.id !== entry.id
@@ -1639,7 +1657,7 @@ function repairEvidenceFile({ root, specPath, entry }) {
   ) {
     throw new Error(`repair evidence delta does not match entry ${entry.id}`);
   }
-  const file = delta.changedPaths.find((candidate) => isDurableRepairEvidencePath(root, candidate));
+  const file = delta.changedPaths.find((candidate) => isDurableRepairEvidencePath(root, candidate, specPath));
   if (!file) {
     throw new Error(`repair evidence for ${entry.id} requires a materialized repository file`);
   }
@@ -1692,9 +1710,15 @@ function normalizedReviewFindingId(finding) {
   );
 }
 
-export function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep, entry }) {
-  const specDir = path.dirname(path.resolve(root, specPath));
-  const repairFile = repairEvidenceFile({ root, specPath, entry });
+export function recordAppliedFindingRepairEvidence({
+  root,
+  artifactRoot = root,
+  specPath,
+  sourceStep,
+  entry,
+}) {
+  const specDir = path.dirname(path.resolve(artifactRoot, specPath));
+  const repairFile = repairEvidenceFile({ root, artifactRoot, specPath, entry });
   const { review, reviewedTree, reviewedHead, phase, taskId } = repairProofValidationContext({ specDir, entry });
   const findings = [
     ...(Array.isArray(review.blockingFindings) ? review.blockingFindings : []),
@@ -1719,7 +1743,7 @@ export function recordAppliedFindingRepairEvidence({ root, specPath, sourceStep,
       taskId,
       timestamp: entry.createdAt,
     });
-    appendIssueLogEntry(root, specPath, {
+    appendIssueLogEntry(artifactRoot, specPath, {
       step: sourceStep,
       reason: entry.reason,
       trigger: "impl-repair completed for an applied review finding",
@@ -1833,7 +1857,7 @@ function assertMatchingMigrationBaseline(state, baseline) {
 }
 
 function applyRepairMigrationState(state, migration) {
-  if (state.runId !== migration.runId || state.spec !== migration.specPath) {
+  if (state.runId !== migration.runId || state.specId !== migration.specId) {
     throw new Error("repair state migration authority no longer matches the active flow");
   }
   if (state.repairBaseline) {
@@ -1984,13 +2008,13 @@ function commitRepairStateMigration({
     flowManager.mutate((next) => applyRepairMigrationState(next, migration));
     manifest.replace();
     evidence.replace();
-    appendIssueLogEntry(root, migration.specPath, {
+    appendIssueLogEntry(root, relativeFlowSpecFile(state), {
       step: "test-execute",
       reason: `legacy repair fingerprint evidence migrated from version ${migration.sourceVersion} to ${migration.targetVersion}`,
       trigger: "automatic fail-closed repair fingerprint migration",
       resolution: `Pinned ${migration.baseline.commitOid} and invalidated ${migration.invalidations.length} downstream artifact(s).`,
       normalizedFindingId: `repair-state-migration-v${migration.targetVersion}`,
-      repairRef: { files: [migration.specPath] },
+      repairRef: { files: [relativeFlowSpecFile(state)] },
       taskId: null,
       timestamp: migration.createdAt,
     }, `repair-state-migration:${migration.runId}`);
@@ -2030,18 +2054,19 @@ function commitRepairStateMigration({
     }
     throw error;
   }
-  const migratedState = structuredClone(state);
+  const migratedState = cloneLocatedFlowState(state);
   return applyRepairMigrationState(migratedState, migration);
 }
 
 export function ensureRepairFingerprintContract({
   root,
+  artifactRoot = root,
   state,
   flowManager,
   continueAfterMigration = false,
 }) {
   if (!state?.runId) return { state, migrated: false };
-  const specDir = path.dirname(path.resolve(root, state.spec));
+  const specDir = specDirectoryForState(artifactRoot, state);
   const migrationFile = path.join(specDir, REPAIR_MIGRATION_FILE);
   const persisted = fs.existsSync(migrationFile)
     ? new RepairStateMigration(readJson(migrationFile))
@@ -2052,7 +2077,7 @@ export function ensureRepairFingerprintContract({
     : null;
   const observedCurrent = migrationInput == null
     ? null
-    : buildRepairFingerprint({ root, specPath: state.spec, state });
+    : buildRepairFingerprint({ root, artifactRoot, specPath: relativeFlowSpecFile(state), state });
 
   if (persisted?.recordPhase === "completed"
     && migrationInput instanceof RepairFingerprintManifest
@@ -2085,9 +2110,9 @@ export function ensureRepairFingerprintContract({
       if (state.repairBaseline) {
         assertMatchingMigrationBaseline(state, migrationInput.baseline);
         migration = migration || new RepairStateMigration({
-          version: 2,
+          version: 3,
           runId: state.runId,
-          specPath: state.spec,
+          specId: state.specId,
           sourceVersion: LEGACY_REPAIR_STATE_VERSION,
           sourceFingerprint: migrationInput.hash,
           targetVersion: REPAIR_STATE_VERSION,
@@ -2109,9 +2134,9 @@ export function ensureRepairFingerprintContract({
           useMergeBase: true,
         });
         migration = migration || new RepairStateMigration({
-          version: 2,
+          version: 3,
           runId: state.runId,
-          specPath: state.spec,
+          specId: state.specId,
           sourceVersion: LEGACY_REPAIR_STATE_VERSION,
           targetVersion: REPAIR_STATE_VERSION,
           baseline,
@@ -2136,9 +2161,9 @@ export function ensureRepairFingerprintContract({
         useMergeBase: true,
       });
       migration = new RepairStateMigration({
-        version: 2,
+        version: 3,
         runId: state.runId,
-        specPath: state.spec,
+        specId: state.specId,
         sourceVersion: LEGACY_REPAIR_STATE_VERSION,
         targetVersion: REPAIR_STATE_VERSION,
         baseline,
@@ -2206,8 +2231,9 @@ function commitRepairTransaction({
 }) {
   const journal = transaction instanceof ImplRepairTransaction ? transaction : new ImplRepairTransaction(transaction);
   journal.target.assertState(state);
+  const artifactRoot = flowStateSpecLocation(state)?.repositoryRoot || root;
   const { entry, ledger, currentManifest: manifest } = journal;
-  const observed = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const observed = buildRepairFingerprint({ root, specPath: relativeFlowSpecFile(state), state });
   const persistedEntry = readImplRepairLedger(specDir)?.entries.at(-1);
   const ledgerAlreadyContainsEntry = persistedEntry != null
     && JSON.stringify(persistedEntry.toJSON()) === JSON.stringify(entry.toJSON());
@@ -2230,7 +2256,8 @@ function commitRepairTransaction({
     faultInjector?.({ phase: "after-invalidation" });
     journal.purpose.recordEvidence({
       root,
-      specPath: state.spec,
+      artifactRoot,
+      specPath: relativeFlowSpecFile(state),
       sourceStep: journal.sourceStep,
       entry,
     });
@@ -2265,7 +2292,7 @@ function prepareImplRepairTransaction({ root, state, specDir, resetStepIds }) {
   const appliedFindingIds = triage.items.filter((item) => item.decision === "apply").map((item) => item.findingId);
   if (appliedFindingIds.length === 0) throw new Error("impl-repair requires at least one apply disposition");
   const previousFingerprint = readRepairFingerprintManifest(specDir);
-  const currentFingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const currentFingerprint = buildRepairFingerprint({ root, specPath: relativeFlowSpecFile(state), state });
   if (currentFingerprint.hash === previousFingerprint.hash) throw new Error("impl-repair fingerprint did not change");
   const changedPaths = changedRepairPaths(previousFingerprint, currentFingerprint);
   if (changedPaths.length === 0) throw new Error("impl-repair changed paths must be non-empty");
@@ -2404,7 +2431,7 @@ export function commitImplRepairEffects({
   specId = null,
   precommitAuthority = null,
 }) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
+  const specDir = specDirectoryForState(root, state);
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
@@ -2423,7 +2450,7 @@ export function commitImplRepairEffects({
 }
 
 export function completeImplRepair({ root, state, flowManager = null, resetStepIds, faultInjector = null }) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
+  const specDir = specDirectoryForState(root, state);
   const lock = new RepairRunLock(specDir);
   lock.acquire();
   try {
@@ -2449,7 +2476,7 @@ export function completeImplRepair({ root, state, flowManager = null, resetStepI
 }
 
 export function recoverImplRepairTransaction({ root, state, flowManager }) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
+  const specDir = specDirectoryForState(root, state);
   if (state.implRepairTransaction != null) {
     return commitImplRepairEffects({
       root,

@@ -34,6 +34,7 @@ import {
   assertCurrentRepairEvidenceFiles,
   ensureRepairFingerprintContract,
 } from "./impl-repair-artifacts.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { advisorySummary } from "./nonblocking.js";
 
 function withAdvisorySummary(report, state) {
@@ -165,15 +166,20 @@ export class RunReportCommand extends FlowCommand {
 
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const dryRun = ctx.dryRun || false;
     const state = ctx.flowState;
-    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
+    ensureRepairFingerprintContract({ root: executionRoot, artifactRoot: root, state, flowManager: ctx.flowManager });
+    const specPath = relativeFlowSpecFile(state);
 
-    const persistedReportPath = path.join(path.dirname(path.resolve(root, state.spec)), "report.json");
+    const persistedReportPath = path.join(path.dirname(path.resolve(root, specPath)), "report.json");
     if (state.issue && fs.existsSync(persistedReportPath)) {
-      const persistedReport = loadPersistedReport(root, state.spec);
+      const persistedReport = loadPersistedReport(root, specPath);
       if (hasPendingDelivery(persistedReport, ctx.flowOutboxEntry?.idempotencyKey)) {
-        RunReportCommand.validateFinalEvidence(persistedReport, { root });
+        RunReportCommand.validateFinalEvidence(persistedReport, {
+          root: executionRoot,
+          artifactRoot: root,
+        });
         return this.resumeDelivery(ctx);
       }
     }
@@ -183,13 +189,14 @@ export class RunReportCommand extends FlowCommand {
       throw new Error("baseBranch not set in flow.json");
     }
 
-    const { diffStat: implDiffStat, commitMessages } = collectGitSummary(root, baseBranch);
+    const { diffStat: implDiffStat, commitMessages } = collectGitSummary(executionRoot, baseBranch);
 
-    const redolog = loadRequiredIssueLog(root, state.spec);
+    const redolog = loadRequiredIssueLog(root, specPath);
 
-    const specDir = path.dirname(path.resolve(root, state.spec));
+    const specDir = path.dirname(path.resolve(root, specPath));
     assertCurrentRepairEvidenceFiles({
-      root,
+      root: executionRoot,
+      artifactRoot: root,
       state,
       specDir,
       files: ["test-execute-result.json", "test-result-review.json", "retro.json"],
@@ -242,7 +249,11 @@ export class RunReportCommand extends FlowCommand {
       implDiffStat,
       commitMessages,
     }), state);
-    const binding = ReportBinding.fromSourcePaths({ root, sourcePaths: reportSourcePaths(root, specDir) });
+    const binding = ReportBinding.fromSourcePaths({
+      root: executionRoot,
+      artifactRoot: root,
+      sourcePaths: reportSourcePaths(root, specDir),
+    });
     const boundReport = {
       ...report,
       data: {
@@ -250,7 +261,10 @@ export class RunReportCommand extends FlowCommand {
         binding: binding.toJSON(),
       },
     };
-    RunReportCommand.validateFinalEvidence(boundReport, { root });
+    RunReportCommand.validateFinalEvidence(boundReport, {
+      root: executionRoot,
+      artifactRoot: root,
+    });
 
     if (dryRun) {
       return {
@@ -263,14 +277,14 @@ export class RunReportCommand extends FlowCommand {
     let persistedReport;
     if (!state.issue) {
       persistedReport = withDelivery(boundReport, deliveryState("not_required"));
-      saveReport(root, state.spec, persistedReport);
+      saveReport(root, specPath, persistedReport);
     } else {
       const pendingReport = withDelivery(boundReport, deliveryState("pending", null, ctx.flowOutboxEntry?.idempotencyKey));
-      saveReport(root, state.spec, pendingReport);
+      saveReport(root, specPath, pendingReport);
       const delivery = postReportToIssue({ root, state, report: pendingReport, flowOutboxEntry: ctx.flowOutboxEntry });
       if (!delivery.ok) {
         persistedReport = withDelivery(pendingReport, deliveryState("pending", delivery.reason, ctx.flowOutboxEntry?.idempotencyKey));
-        saveReport(root, state.spec, persistedReport);
+        saveReport(root, specPath, persistedReport);
         throw new Error(`failed to post report to issue #${state.issue}: ${delivery.reason}`);
       }
       issueComment = {
@@ -279,10 +293,10 @@ export class RunReportCommand extends FlowCommand {
         resumed: delivery.posted.resumed,
       };
       persistedReport = withDelivery(boundReport, deliveryState("done", null, ctx.flowOutboxEntry?.idempotencyKey));
-      saveReport(root, state.spec, persistedReport);
+      saveReport(root, specPath, persistedReport);
     }
 
-    const specRelDir = path.dirname(state.spec);
+    const specRelDir = path.dirname(specPath);
     return {
       result: "ok",
       changed: [path.join(specRelDir, "report.json")],
@@ -292,26 +306,31 @@ export class RunReportCommand extends FlowCommand {
 
   async resumeDelivery(ctx) {
     const { root, flowState: state } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     if (!state.issue) throw new Error("report delivery retry requires a linked issue");
-    const report = loadPersistedReport(root, state.spec);
+    const specPath = relativeFlowSpecFile(state);
+    const report = loadPersistedReport(root, specPath);
     if (hasCompletedDelivery(report, ctx.flowOutboxEntry?.idempotencyKey)) {
       return deliverySuccess(report, completedIssueComment(state, ctx.flowOutboxEntry, true), []);
     }
     if (!hasPendingDelivery(report, ctx.flowOutboxEntry?.idempotencyKey)) {
       throw new Error("report delivery retry requires a pending or unsent report");
     }
-    RunReportCommand.validateFinalEvidence(report, { root });
+    RunReportCommand.validateFinalEvidence(report, {
+      root: executionRoot,
+      artifactRoot: root,
+    });
     const delivery = postReportToIssue({ root, state, report, flowOutboxEntry: ctx.flowOutboxEntry });
     if (!delivery.ok) {
-      saveReport(root, state.spec, withDelivery(report, deliveryState("pending", delivery.reason, ctx.flowOutboxEntry?.idempotencyKey)));
+      saveReport(root, specPath, withDelivery(report, deliveryState("pending", delivery.reason, ctx.flowOutboxEntry?.idempotencyKey)));
       throw new Error(`failed to post report to issue #${state.issue}: ${delivery.reason}`);
     }
     const deliveredReport = withDelivery(report, deliveryState("done", null, ctx.flowOutboxEntry?.idempotencyKey));
-    saveReport(root, state.spec, deliveredReport);
+    saveReport(root, specPath, deliveredReport);
     return deliverySuccess(
       deliveredReport,
       completedIssueComment(state, ctx.flowOutboxEntry, delivery.posted.resumed),
-      [path.join(path.dirname(state.spec), "report.json")],
+      [path.join(path.dirname(specPath), "report.json")],
     );
   }
 }

@@ -22,7 +22,7 @@ test("plan rewind public values enforce supported stages and bounds", () => {
   const request = new PlanRewindRequest({
     runId: "run-434",
     issue: 434,
-    spec: "specs/319-guarded-plan-rewind/spec.json",
+    specId: "319-guarded-plan-rewind",
     sourceStage: "impl-gate",
     destinationStep: "draft",
     reason: "Clarify approved wording",

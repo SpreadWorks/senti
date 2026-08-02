@@ -38,13 +38,14 @@ function setupMainAndWorktree() {
   return { mainRoot, worktreePath };
 }
 
-function writeFlowState(worktreePath) {
+function writeFlowState(mainRoot) {
   const specId = "001-test";
-  const specDir = path.join(worktreePath, "specs", specId);
+  const specDir = path.join(mainRoot, "specs", specId);
   fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.md"), "# spec\n## Goal\nx\n## Scope\ny\n");
+  fs.writeFileSync(path.join(specDir, "spec.json"), '{"requirements":[]}\n');
   const state = {
-    spec: `specs/${specId}/spec.md`,
+    specId,
+    runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     worktree: true,
@@ -59,7 +60,7 @@ function writeFlowState(worktreePath) {
 
 function prepareWorktreeCommandCtx() {
   const { mainRoot, worktreePath } = setupMainAndWorktree();
-  const state = writeFlowState(worktreePath);
+  const state = writeFlowState(mainRoot);
   const flowManager = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true });
   const ctx = {
     root: worktreePath,

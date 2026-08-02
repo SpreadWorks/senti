@@ -16,6 +16,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadSpecJson, saveSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
 import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const NOTES_MAX_LENGTH = 2000;
 
@@ -65,13 +66,14 @@ export default class SetApprovalCommand extends FlowCommand {
       userApproval.notes = ctx.notes;
     }
 
-    const specPath = path.resolve(ctx.root, ctx.flowState.spec);
+    const relativeSpecPath = relativeFlowSpecFile(ctx.flowState);
+    const specPath = path.resolve(ctx.root, relativeSpecPath);
     const jsonPath = resolveSpecJsonPath(specPath);
     const spec = loadSpecJson(jsonPath, { validate: false });
     spec.user_approval = userApproval;
     const renderPlan = buildSpecViewPlan({
       root: ctx.root,
-      specPath: ctx.flowState.spec,
+      specPath: relativeSpecPath,
       spec,
     });
     saveSpecJson(jsonPath, spec, { validate: false });

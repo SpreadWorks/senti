@@ -140,7 +140,7 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
 
   const baseline = buildRepairFingerprint({ root: tmp, specPath });
   const state = moveFlowToStep(makeFlowState({
-    spec: specPath,
+    specId: "demo",
     repairBaseline: baseline.baseline.toJSON(),
   }), "impl-repair");
   const flowManager = mutableFlowManager(state);
@@ -234,7 +234,7 @@ test("stale evidence refresh clears an active impl-repair leaf before restarting
 
   const baseline = buildRepairFingerprint({ root: tmp, specPath });
   const state = moveFlowToStep(makeFlowState({
-    spec: specPath,
+    specId: "demo",
     repairBaseline: baseline.baseline.toJSON(),
   }), "impl-repair");
   const flowManager = mutableFlowManager(state);

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
+import { FlowSpecId } from "../../lib/flow-spec-id.js";
 import { findStepById } from "./step-tree.js";
 
 const DIGEST = /^[a-f0-9]{64}$/;
@@ -70,11 +71,10 @@ function clonedJson(value) {
 }
 
 export class RecoveryTarget {
-  constructor({ runId, issue = null, spec, stepId, attemptId }) {
+  constructor({ runId, issue = null, specId, stepId, attemptId }) {
     this.runId = requireString(runId, "recovery target runId", { max: 300 });
     this.issue = requireIssue(issue);
-    this.spec = normalizeRepositoryPath(spec, "recovery target spec");
-    if (!this.spec.startsWith("specs/")) throw new Error("recovery target spec must be inside specs/");
+    this.specId = FlowSpecId.from(specId).toString();
     this.stepId = requireString(stepId, "recovery target stepId", { pattern: IDENTIFIER, max: 128 });
     this.attemptId = requireString(attemptId, "recovery target attemptId", {
       pattern: ATTEMPT_IDENTIFIER,
@@ -87,7 +87,7 @@ export class RecoveryTarget {
     return other instanceof RecoveryTarget
       && this.runId === other.runId
       && this.issue === other.issue
-      && this.spec === other.spec
+      && this.specId === other.specId
       && this.stepId === other.stepId
       && this.attemptId === other.attemptId;
   }
@@ -96,7 +96,7 @@ export class RecoveryTarget {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       stepId: this.stepId,
       attemptId: this.attemptId,
     };
@@ -516,7 +516,7 @@ export class RecoveryFailureRecordStore {
     }
     const target = new FlowTargetExpectation({
       expectRunId: next.target.runId,
-      expectSpec: next.target.spec,
+      expectSpec: next.target.specId,
       ...(next.target.issue == null
         ? { expectNoIssue: true }
         : { expectIssue: next.target.issue }),

@@ -15,7 +15,7 @@ import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
 import { translate } from "./i18n.js";
 import { FlowManager } from "./flow-manager.js";
-import { FinalizeCleanupPathResolver } from "./finalize-cleanup-paths.js";
+import { FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR } from "./finalize-cleanup-paths.js";
 import { DataSource } from "../docs/lib/data-source.js";
 import { Scannable } from "../docs/lib/scan-source.js";
 import {
@@ -35,6 +35,7 @@ import { stripBlockComments, extractArrayBody, extractTopLevelKeys, extractQuote
 import { getLangHandler } from "../docs/lib/lang-factory.js";
 import { hasPathPrefix, hasSegmentPath, hasAnyPathPrefix } from "./path-match.js";
 import { parseTOML } from "../docs/lib/toml-parser.js";
+import { flowSpecRootFromConfig } from "./flow-workspace.js";
 
 export class Container {
   constructor() {
@@ -97,17 +98,12 @@ export const container = new Container();
  * `logDir` is computed once here and reused by Logger.
  */
 function buildPaths(root, config, opts = {}) {
-  const cleanupPaths = opts.cleanupPaths || new FinalizeCleanupPathResolver({
-    enabled: opts.finalizeCleanupDurablePaths,
-    worktreeRoot: root,
-    mainRoot: opts.mainRoot,
-    inWorktree: opts.inWorktree,
-  });
-  const agentWorkDir = cleanupPaths.agentWorkDir(
-    resolveWorkDir(root, config, opts),
-  );
+  const durableRoot = opts.durableRoot ? path.resolve(opts.durableRoot) : null;
+  const agentWorkDir = durableRoot
+    ? path.join(durableRoot, FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR)
+    : resolveWorkDir(root, config, opts);
   const logDir = config?.logs?.dir
-    ? cleanupPaths.relocatePath(path.resolve(root, config.logs.dir))
+    ? path.resolve(durableRoot || root, config.logs.dir)
     : path.join(agentWorkDir, "logs");
   return Object.freeze({
     root,
@@ -133,8 +129,8 @@ function buildPaths(root, config, opts = {}) {
  * @param {Object} [opts]
  * @param {string} [opts.entryCommand] - Full argv string for Logger metadata
  * @param {string} [opts.agentWorkDirOverride] - Per-invocation agent work dir
- * @param {boolean} [opts.finalizeCleanupDurablePaths] - Relocate cleanup logs
- *   that would otherwise be written under the deleted worktree.
+ * @param {boolean} [opts.finalizeCleanupDurablePaths] - Keep cleanup logs under
+ *   repository authority after the managed worktree is removed.
  * @param {boolean} [opts.allowInvalidConfig] - Initialize with null config so
  *   migration commands can repair config that strict validation rejects.
  */
@@ -166,15 +162,16 @@ export function initContainer(opts = {}) {
 
   const inWorktree = isInsideWorktree(root);
   const mainRoot = inWorktree ? getMainRepoPath(root) : root;
-  const cleanupPaths = new FinalizeCleanupPathResolver({
-    enabled: opts.finalizeCleanupDurablePaths,
-    worktreeRoot: root,
-    mainRoot,
-    inWorktree,
-  });
+  const mainConfig = inWorktree
+    ? loadConfig(mainRoot, { allowMissingType: true })
+    : config;
+  const flowSpecRoot = flowSpecRootFromConfig(mainConfig);
+  const durableFinalizeRoot = opts.finalizeCleanupDurablePaths === true && inWorktree
+    ? mainRoot
+    : null;
   const paths = buildPaths(root, config, {
     agentWorkDirOverride: opts.agentWorkDirOverride,
-    cleanupPaths,
+    durableRoot: durableFinalizeRoot,
   });
 
   container.register("root", root);
@@ -182,16 +179,18 @@ export function initContainer(opts = {}) {
   container.register("paths", paths);
   container.register("inWorktree", inWorktree);
   container.register("mainRoot", mainRoot);
-  const flowManager = new FlowManager({ root, mainRoot, inWorktree });
+  container.register("flowSpecRoot", flowSpecRoot);
+  const flowManager = new FlowManager({ root, mainRoot, inWorktree, specRoot: flowSpecRoot });
   container.register("flowManager", flowManager);
-  const loggerFlowManager = cleanupPaths.flowManager(flowManager);
-
+  const loggerFlowManager = durableFinalizeRoot
+    ? flowManager.forRoot(durableFinalizeRoot)
+    : flowManager;
   const logger = new Logger({
     logDir: paths.logDir,
     enabled: configLoaded && config?.logs?.enabled === true,
     entryCommand: opts.entryCommand ?? null,
     flowManager: loggerFlowManager,
-    cwd: cleanupPaths.authorityRoot,
+    cwd: durableFinalizeRoot || root,
   });
   container.register("logger", logger);
   if (configLoaded) {

@@ -21,7 +21,7 @@ function setupCtx(tmp, { phase, metrics, baseBranch = "main" }) {
       root: tmp,
       phase,
       config: { flow: { retry: { max: 3 } } },
-      flowState: { spec: specRel, baseBranch, metrics: metrics || [] },
+      flowState: { specId: "0001-test", baseBranch, metrics: metrics || [] },
     },
     specDir,
   };

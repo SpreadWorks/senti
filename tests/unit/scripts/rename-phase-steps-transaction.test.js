@@ -30,7 +30,7 @@ function commitAll(root) {
 
 function legacyFlow(specId) {
   const state = makeFlowState({
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     featureBranch: `feature/${specId}`,
   });
   const queue = [...state.steps];

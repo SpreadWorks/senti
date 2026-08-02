@@ -22,7 +22,7 @@ describe("flow get resolve-context (extended fields)", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -99,13 +99,13 @@ describe("flow get resolve-context (extended fields)", () => {
     const result = runResolveContext(tmp, [
       "--expect-run-id", state.runId,
       "--expect-issue", String(state.issue),
-      "--expect-spec", state.spec,
+      "--expect-spec", state.specId,
     ]);
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.activeFlow, "001-test");
     assert.equal(envelope.data.issue, state.issue);
-    assert.equal(envelope.data.spec, state.spec);
+    assert.equal(envelope.data.specId, state.specId);
   });
 
   it("returns ACTIVE_FLOW_MISMATCH for each mismatching target guard", () => {
@@ -114,7 +114,7 @@ describe("flow get resolve-context (extended fields)", () => {
     const mismatches = [
       ["--expect-run-id", "run-other"],
       ["--expect-issue", "430"],
-      ["--expect-spec", "specs/002-other/spec.json"],
+      ["--expect-spec", "002-other"],
     ];
 
     for (const args of mismatches) {

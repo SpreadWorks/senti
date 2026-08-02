@@ -37,7 +37,7 @@ function target() {
   return {
     runId: "run-recovery-contract",
     issue: 656,
-    spec: "specs/recovery-contract/spec.json",
+    specId: "recovery-contract",
     stepId: "impl-gate",
     attemptId: "attempt-001",
   };
@@ -230,7 +230,7 @@ describe("validator-owned recovery contract", () => {
   it("persists records in flow.json without introducing a policy snapshot", () => {
     tmp = createTmpDir("recovery-contract-");
     const state = setupFlow(tmp, {
-      spec: "specs/recovery-contract/spec.json",
+      specId: "recovery-contract",
       runId: target().runId,
       issue: target().issue,
     });
@@ -254,7 +254,7 @@ describe("validator-owned recovery contract", () => {
   it("records only a freshly reproduced failure under the exact active target", () => {
     tmp = createTmpDir("recovery-contract-rerun-");
     setupFlow(tmp, {
-      spec: "specs/recovery-contract/spec.json",
+      specId: "recovery-contract",
       runId: target().runId,
       issue: target().issue,
     });
@@ -290,7 +290,7 @@ describe("validator-owned recovery contract", () => {
   it("does not mutate normal Flow state when recollected validator input now passes", () => {
     tmp = createTmpDir("recovery-contract-rerun-pass-");
     setupFlow(tmp, {
-      spec: "specs/recovery-contract/spec.json",
+      specId: "recovery-contract",
       runId: target().runId,
       issue: target().issue,
     });
@@ -323,7 +323,7 @@ describe("validator-owned recovery contract", () => {
   it("does not adopt a rerun result when the exact Flow target changed", () => {
     tmp = createTmpDir("recovery-contract-rerun-target-");
     setupFlow(tmp, {
-      spec: "specs/recovery-contract/spec.json",
+      specId: "recovery-contract",
       runId: target().runId,
       issue: target().issue,
     });

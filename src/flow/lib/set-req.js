@@ -11,6 +11,7 @@ import { FlowCommand } from "./base-command.js";
 import { VALID_REQ_STATUSES } from "../../lib/constants.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadSpecRequirements, updateSpecRequirementStatus } from "../../lib/spec-json.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 function resolveRequirementIndex(root, specPath, rawRef) {
   const ref = String(rawRef);
@@ -30,7 +31,8 @@ export default class SetReqCommand extends FlowCommand {
       return Envelope.fail("set", "req", "INVALID_USAGE", "usage: flow set req <reqId|zeroBasedIndex> <status>");
     }
 
-    const index = resolveRequirementIndex(ctx.root, ctx.flowState.spec, rawRef);
+    const specPath = relativeFlowSpecFile(ctx.flowState);
+    const index = resolveRequirementIndex(ctx.root, specPath, rawRef);
     if (index == null) {
       return Envelope.fail(
         "set",
@@ -49,7 +51,7 @@ export default class SetReqCommand extends FlowCommand {
       );
     }
 
-    const requirement = updateSpecRequirementStatus(ctx.root, ctx.flowState.spec, index, status);
+    const requirement = updateSpecRequirementStatus(ctx.root, specPath, index, status);
 
     return { index, reqId: requirement.id ?? null, status };
   }

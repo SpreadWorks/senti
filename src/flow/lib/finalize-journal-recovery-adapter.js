@@ -4,10 +4,32 @@ import {
   RecoveryUnavailable,
 } from "./recovery-contract.js";
 import {
-  FinalizeTeardownPhase,
-  readPersistedFinalizeTeardownTransaction,
+  readPersistedFinalizeCleanupJournal,
   RunFinalizeCleanupCommand,
 } from "./run-finalize-cleanup.js";
+
+const FINALIZE_JOURNAL_PHASES = new Set([
+  "prepared",
+  "worktree-removed",
+  "branch-deleted",
+  "validated",
+  "pointer-written",
+  "completed",
+]);
+
+class FinalizeJournalPhase {
+  constructor(name) {
+    this.name = requireString(name, "finalize journal phase", { max: 100 });
+    if (!FINALIZE_JOURNAL_PHASES.has(this.name)) {
+      throw new Error(`unknown finalize journal phase: ${this.name}`);
+    }
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof FinalizeJournalPhase ? value : new FinalizeJournalPhase(value);
+  }
+}
 
 function requireString(value, field, { max = 4_096 } = {}) {
   if (typeof value !== "string" || value.trim() === "" || value.length > max) {
@@ -64,10 +86,10 @@ function unavailableForError(error) {
 
 /** The durable identity shared by the Flow state and Issue #473 teardown journal. */
 export class FinalizeJournalIdentity {
-  constructor({ runId, issue = null, spec, featureBranch, baseBranch }) {
+  constructor({ runId, issue = null, specId, featureBranch, baseBranch }) {
     this.runId = requireString(runId, "finalize journal runId", { max: 300 });
     this.issue = requireIssue(issue, "finalize journal issue");
-    this.spec = requireString(spec, "finalize journal spec", { max: 4_096 });
+    this.specId = requireString(specId, "finalize journal specId", { max: 300 });
     this.featureBranch = requireString(featureBranch, "finalize journal featureBranch", { max: 300 });
     this.baseBranch = requireString(baseBranch, "finalize journal baseBranch", { max: 300 });
     Object.freeze(this);
@@ -81,7 +103,7 @@ export class FinalizeJournalIdentity {
     return other instanceof FinalizeJournalIdentity
       && this.runId === other.runId
       && this.issue === other.issue
-      && this.spec === other.spec
+      && this.specId === other.specId
       && this.featureBranch === other.featureBranch
       && this.baseBranch === other.baseBranch;
   }
@@ -89,7 +111,7 @@ export class FinalizeJournalIdentity {
   targetExpectation() {
     return new FlowTargetExpectation({
       expectRunId: this.runId,
-      expectSpec: this.spec,
+      expectSpec: this.specId,
       ...(this.issue == null ? { expectNoIssue: true } : { expectIssue: this.issue }),
     });
   }
@@ -98,7 +120,7 @@ export class FinalizeJournalIdentity {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       featureBranch: this.featureBranch,
       baseBranch: this.baseBranch,
     };
@@ -112,7 +134,7 @@ export class FinalizeJournalSnapshot {
     this.identity = identity instanceof FinalizeJournalIdentity
       ? identity
       : new FinalizeJournalIdentity(identity);
-    this.phase = FinalizeTeardownPhase.from(phase);
+    this.phase = FinalizeJournalPhase.from(phase);
     if (transaction == null || typeof transaction !== "object") {
       throw new Error("finalize journal snapshot transaction is required");
     }
@@ -159,9 +181,15 @@ export class FinalizeJournalReader {
 
 /** Reads, but never creates or changes, Issue #473's durable journal. */
 export class PersistedFinalizeJournalReader extends FinalizeJournalReader {
-  read(mainRoot, state) {
-    const transaction = readPersistedFinalizeTeardownTransaction(mainRoot, state);
-    return transaction == null ? null : FinalizeJournalSnapshot.fromTransaction(transaction);
+  read(_mainRoot, state) {
+    const journal = readPersistedFinalizeCleanupJournal(state);
+    if (journal == null) return null;
+    return new FinalizeJournalSnapshot({
+      transactionId: journal.runId,
+      identity: state,
+      phase: journal.phase,
+      transaction: journal,
+    });
   }
 }
 

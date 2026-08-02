@@ -72,6 +72,9 @@ describe("issue-log recording does not increment gateRetry (REQ-4)", () => {
 });
 
 describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
   it("checkNoProgressSinceLastFail returns Envelope.fail without touching metrics", () => {
     const flowState = { metrics: [{ phase: "task-impl", counter: "gateRetry", delta: 1 }] };
     const issueLog = {
@@ -92,7 +95,10 @@ describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
   });
 
   it("checkRetryBelowMax returns Envelope.fail without incrementing counter", () => {
+    tmp = createTmpDir();
+    fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     const flowState = {
+      specId: "001-test",
       metrics: [
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
@@ -101,7 +107,7 @@ describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
       ],
     };
-    const ctx = { flowState, config: {}, root: "/tmp", phase: "task-impl" };
+    const ctx = { flowState, config: {}, root: tmp, phase: "task-impl" };
     const result = checkRetryBelowMax(ctx, "task-impl");
     assert.ok(result, "expected a rejection envelope");
     assert.equal(result.ok, false);
@@ -140,8 +146,14 @@ describe("warnGateRetryBudget includes breakdown (REQ-1)", () => {
 });
 
 describe("checkRetryBelowMax includes breakdown in exhaustion message (REQ-2)", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
   it("envelope messages contain counter breakdown", () => {
+    tmp = createTmpDir();
+    fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     const flowState = {
+      specId: "001-test",
       metrics: [
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
@@ -150,7 +162,7 @@ describe("checkRetryBelowMax includes breakdown in exhaustion message (REQ-2)", 
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
       ],
     };
-    const ctx = { flowState, config: {}, root: "/tmp", phase: "task-impl" };
+    const ctx = { flowState, config: {}, root: tmp, phase: "task-impl" };
     const result = checkRetryBelowMax(ctx, "task-impl");
     assert.ok(result);
     const allMessages = result.errors[0].messages.join("\n");

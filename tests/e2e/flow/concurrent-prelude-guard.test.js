@@ -75,11 +75,15 @@ describe("e2e — concurrent flow prelude isolation", () => {
       "--expect-run-id", runId,
       "--expect-issue", "12",
     ]);
-    assert.equal(preStatus.status, 0, preStatus.stderr);
+    assert.equal(
+      preStatus.status,
+      0,
+      `stdout:\n${preStatus.stdout}\nstderr:\n${preStatus.stderr}`,
+    );
     const preStatusData = JSON.parse(preStatus.stdout.trim()).data;
     assert.equal(preStatusData.runId, runId);
     assert.equal(preStatusData.issue, 12);
-    assert.equal(preStatusData.spec, null);
+    assert.equal(preStatusData.specId, null);
 
     const prepareRes = runCli(tmp, [
       "flow", "prepare",
@@ -111,18 +115,18 @@ describe("e2e — concurrent flow prelude isolation", () => {
       "flow", "get", "status", runId,
       "--expect-run-id", runId,
       "--expect-issue", "12",
-      "--expect-spec", envelope.data.spec,
+      "--expect-spec", envelope.data.specId,
     ]);
     assert.equal(postStatus.status, 0, postStatus.stderr);
     const postStatusData = JSON.parse(postStatus.stdout.trim()).data;
     assert.equal(postStatusData.runId, runId);
     assert.equal(postStatusData.issue, 12);
-    assert.equal(postStatusData.spec, envelope.data.spec);
+    assert.equal(postStatusData.specId, envelope.data.specId);
 
     const targetArgs = [
       "--expect-run-id", runId,
       "--expect-issue", "12",
-      "--expect-spec", envelope.data.spec,
+      "--expect-spec", envelope.data.specId,
     ];
     const nextAction = runCli(tmp, [
       "flow", "get", "next-action",
@@ -146,7 +150,7 @@ describe("e2e — concurrent flow prelude isolation", () => {
       true,
       "target-bound set command must mutate the second flow",
     );
-    const issue11Flow = JSON.parse(fs.readFileSync(path.join(issue11Worktree, issue11Data.artifacts.specDir, "flow.json"), "utf8"));
+    const issue11Flow = JSON.parse(fs.readFileSync(path.join(tmp, issue11Data.artifacts.specDir, "flow.json"), "utf8"));
     assert.equal(
       (issue11Flow.notes || []).some((note) => note.text === "target-bound dispatcher note"),
       false,
@@ -166,12 +170,12 @@ describe("e2e — concurrent flow prelude isolation", () => {
 
     const activeFlows = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", ".active-flow"), "utf8"));
     assert.equal(
-      activeFlows.some((entry) => entry.mode === "worktree" && entry.spec === issue11Data.artifacts.specDir.split("/").at(-1)),
+      activeFlows.some((entry) => entry.mode === "worktree" && entry.specId === issue11Data.specId),
       true,
       "first worktree flow must remain active",
     );
     assert.equal(
-      activeFlows.some((entry) => entry.mode === "local" && entry.spec === specDir.split("/").at(-1)),
+      activeFlows.some((entry) => entry.mode === "local" && entry.specId === envelope.data.specId),
       true,
       "second local flow must be registered active",
     );
@@ -180,7 +184,7 @@ describe("e2e — concurrent flow prelude isolation", () => {
   it("rejects bare prepare while another flow is active", () => {
     setupProject(tmp);
     setupFlow(tmp, {
-      spec: "specs/011-active/spec.json",
+      specId: "011-active",
       featureBranch: "main",
       issue: 11,
       runId: "issue-11-run",

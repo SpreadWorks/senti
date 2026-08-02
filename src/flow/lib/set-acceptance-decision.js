@@ -7,6 +7,7 @@ export default class SetAcceptanceDecisionCommand extends FlowCommand {
     if (!choice) throw new Error("usage: flow set acceptance-decision --choice <choice>");
     return applyAcceptanceDecision({
       root: ctx.root,
+      executionRoot: ctx.executionRoot || ctx.root,
       flowManager: ctx.flowManager,
       choice,
     });

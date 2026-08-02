@@ -73,9 +73,8 @@ const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 const UPGRADE_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse", "missing", "stale"]));
 const UPGRADE_AUTHORITY_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse"]));
 const PLACEHOLDER_JSON_HASHES = Object.freeze(new Set([
-  // specs/258-gate-artifact-validation/tests writes this exact fixture to
-  // prove known hand-written artifact samples are rejected even when their
-  // schema shape is otherwise valid.
+  // A spec-local fixture writes this exact value to prove known hand-written
+  // artifact samples are rejected even when their schema shape is valid.
   "09e1a0d50aa55acadc486dc5e9119809ca40405f9cb3ff3018dbcdd94ad95513",
 ]));
 const INTEGRATION_TRUST_INPUTS = Object.freeze([
@@ -117,10 +116,6 @@ const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
 const TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   TEMP_SUMMARY_RELATIVE,
 ]);
-const IMPLEMENTATION_COMMIT_EXCLUDED_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
-  ...DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS,
-  ...TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS,
-]);
 const REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   ...DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS.filter((pattern) => ![
     SCENARIO_VALIDITY_RESULT_FILE,
@@ -129,11 +124,6 @@ const REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   ].includes(pattern)),
   ...TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS,
 ]);
-
-function testArtifactPathspecs(specId, relativePatterns) {
-  const base = path.posix.join("specs", specId);
-  return relativePatterns.map((p) => path.posix.join(base, p));
-}
 
 function normalizeRepoPath(filePath) {
   return String(filePath || "").split(path.sep).join("/");
@@ -551,14 +541,6 @@ export class UpgradeEvidenceRecovery {
   }
 }
 
-export function durableTestArtifactPathspecs(specId) {
-  return testArtifactPathspecs(specId, DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS);
-}
-
-export function implementationCommitExcludedTestArtifactPathspecs(specId) {
-  return testArtifactPathspecs(specId, IMPLEMENTATION_COMMIT_EXCLUDED_TEST_ARTIFACT_RELATIVE_PATTERNS);
-}
-
 export function tempRequirementSummaryPath(specDir) {
   return path.join(specDir, TEMP_SUMMARY_RELATIVE);
 }
@@ -968,7 +950,7 @@ function assertScenarioValidityTestFilePath(root, specDir, testFile) {
   const testDir = path.join(specDir, "tests");
   const relative = path.relative(testDir, testPath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`test file must be under specs/<spec>/tests: ${testFile}`);
+    throw new Error(`test file must be under the resolved spec tests directory: ${testFile}`);
   }
   if (!SCENARIO_VALIDITY_TEST_FILE_RE.test(path.basename(testPath))) {
     throw new Error(`test file must match scenario-validity test pattern: ${testFile}`);
@@ -1471,12 +1453,6 @@ export function finalRegressionWorktreeFingerprint(root, { pathspecExcludes = []
     .update("\0unstaged\0")
     .update(unstaged);
   for (const relativePath of untracked) {
-    // Preserve the final-regression contract: newly created Flow-managed
-    // directories contribute their path set but not mutable artifact bytes.
-    if (
-      pathspecExcludes.length === 0
-      && (relativePath.startsWith("specs/") || relativePath.startsWith(".senti/"))
-    ) continue;
     const absolutePath = path.join(root, relativePath);
     const stat = fs.lstatSync(absolutePath);
     if (!stat.isFile() || stat.isSymbolicLink()) continue;
@@ -1497,11 +1473,11 @@ export class FinalRegressionRepositoryBinding {
     Object.freeze(this);
   }
 
-  static capture(root) {
+  static capture(root, options = {}) {
     return new FinalRegressionRepositoryBinding({
       headSha: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
       treeSha: execFileSync("git", ["write-tree"], { cwd: root, encoding: "utf8" }).trim(),
-      worktreeSha256: finalRegressionWorktreeFingerprint(root),
+      worktreeSha256: finalRegressionWorktreeFingerprint(root, options),
     });
   }
 
@@ -1527,7 +1503,7 @@ function resolveFinalRegressionRawOutputPath(root, rawOutputPath) {
   return resolved;
 }
 
-export function validateFinalRegressionEvidence({ root, artifact }) {
+export function validateFinalRegressionEvidence({ root, artifact, repositoryBindingOptions = {} }) {
   try {
     validateFinalRegressionResult(artifact);
     const binding = artifact.executionBinding;
@@ -1544,7 +1520,7 @@ export function validateFinalRegressionEvidence({ root, artifact }) {
     }
     if (artifact.completed) {
       const recordedRepository = new FinalRegressionRepositoryBinding(binding);
-      const currentRepository = FinalRegressionRepositoryBinding.capture(root);
+      const currentRepository = FinalRegressionRepositoryBinding.capture(root, repositoryBindingOptions);
       if (recordedRepository.headSha !== currentRepository.headSha) throw new Error("execution binding HEAD is stale");
       if (recordedRepository.treeSha !== currentRepository.treeSha) throw new Error("execution binding tree is stale");
       if (recordedRepository.worktreeSha256 !== currentRepository.worktreeSha256) throw new Error("execution binding worktree is stale");
@@ -1573,7 +1549,7 @@ export function validateFinalRegressionEvidence({ root, artifact }) {
   }
 }
 
-export function validateExplicitFinalRegressionProceed({ root, artifact }) {
+export function validateExplicitFinalRegressionProceed({ root, artifact, repositoryBindingOptions = {} }) {
   try {
     validateFinalRegressionResult(artifact);
     if (artifact.selectedAction !== "explicit-record-and-proceed" || artifact.completed !== true) {
@@ -1595,7 +1571,7 @@ export function validateExplicitFinalRegressionProceed({ root, artifact }) {
     for (const field of ["rawOutputSha256", "headSha", "treeSha"]) {
       if (binding[field] !== artifact.executionBinding?.[field]) throw new Error(`operator ${field} mismatch`);
     }
-    return validateFinalRegressionEvidence({ root, artifact });
+    return validateFinalRegressionEvidence({ root, artifact, repositoryBindingOptions });
   } catch (err) {
     return finalRegressionEvidenceFailure(err.message);
   }
@@ -1816,10 +1792,19 @@ function rawLineCount(file) {
   return text.split(/\r?\n/).length;
 }
 
-function resolveRawFile(root, specDir, rawOutputPath) {
+export function isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath) {
+  if (!root || !specDir || typeof rawOutputPath !== "string") return false;
+  const normalized = rawOutputPath.split(path.sep).join("/");
+  const relativeSpecDir = path.relative(root, specDir).split(path.sep).join("/");
+  return normalized === relativeSpecDir || normalized.startsWith(`${relativeSpecDir}/`);
+}
+
+export function resolveRawFile(root, specDir, rawOutputPath) {
   if (!rawOutputPath) return null;
   if (path.isAbsolute(rawOutputPath)) return rawOutputPath;
-  if (rawOutputPath.startsWith("specs/")) return path.resolve(root || process.cwd(), rawOutputPath);
+  if (isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath)) {
+    return path.resolve(root || process.cwd(), rawOutputPath);
+  }
   return path.resolve(specDir || root || process.cwd(), rawOutputPath);
 }
 
@@ -1894,7 +1879,7 @@ function canonicalTestExecuteArtifact(artifact) {
       result: entry.result || entry.status || "fail",
       evidence: {
         command: entry.command || "node --test",
-        test_file: entry.test_file || entry.testFile || "specs/fixture/tests/fixture.test.js",
+        test_file: entry.test_file || entry.testFile || "",
         test_name: entry.test_name || entry.testName || `${entry.id}: fixture`,
         raw_output_lines: testExecuteEvidenceRange(entry),
       },
@@ -1945,7 +1930,7 @@ export async function completeTestExecuteArtifactChange({ root, specDir, artifac
   if (!artifact?.regression) addCompletionIssue(issueCodes, "regression-evidence-missing");
   if (rawOutputPath
     && !rawOutputPath.startsWith(`${TESTS_RAW_DIR_RELATIVE}/`)
-    && !rawOutputPath.startsWith("specs/")) {
+    && !isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath)) {
     addCompletionIssue(issueCodes, "placeholder-permission-missing");
   }
 
@@ -2219,6 +2204,7 @@ function validateRequiredTrustInputs(specDir, requiredTrustInputs) {
 
 export function validateIntegrationArtifactTrust({
   root,
+  executionRoot = root,
   specDir,
   phase = "integration",
   specPath = null,
@@ -2233,7 +2219,7 @@ export function validateIntegrationArtifactTrust({
 
   try {
     const upgradeEvidence = validateUpgradeEvidenceForGate({
-      root,
+      root: executionRoot,
       specDir,
       baseBranch,
       currentFingerprint,
@@ -2256,7 +2242,7 @@ export function validateIntegrationArtifactTrust({
 
     const result = validateTestExecuteResultV2(resultArtifact.value);
     const review = validateTestResultReview(reviewArtifact.value);
-    validateFileMap(fileMapArtifact.value, { root, requirements });
+    validateFileMap(fileMapArtifact.value, { root: executionRoot, requirements });
 
     const sentinelPermission = enforcePlaceholderPermissionArtifactForHit(specDir, phase, scanPlaceholderSentinels(result, review, config));
     if (sentinelPermission) return sentinelPermission;
@@ -2269,7 +2255,7 @@ export function validateIntegrationArtifactTrust({
       specDir,
     });
     assertIntegrationRegressionAuthority({
-      root,
+      root: executionRoot,
       state,
       specDir,
       config,

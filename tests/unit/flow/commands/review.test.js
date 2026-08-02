@@ -1365,7 +1365,7 @@ function createMandatoryLoopReviewFixture(prefix, file) {
   }, null, 2)}\n`);
   return {
     root,
-    flow: { spec: "specs/demo/spec.json" },
+    flow: { specId: "demo" },
     reviewOutput: loopProposalsToImplReviewJson([{
       title: "Extract shared branch",
       body: "Extract the duplicated branch.",
@@ -1545,7 +1545,7 @@ describe("impl review structured artifact helpers", () => {
       }));
       await runImplReview({
         root: tmp,
-        flow: { spec: "specs/demo/spec.json" },
+        flow: { specId: "demo" },
         touchedFiles: new Set(["src/example.js"]),
         reviewOutput: JSON.stringify({
           blockingFindings: [],
@@ -1590,7 +1590,7 @@ describe("impl review structured artifact helpers", () => {
       }));
       await runImplReview({
         root: tmp,
-        flow: { spec: "specs/demo/spec.json" },
+        flow: { specId: "demo" },
         touchedFiles: new Set(["src/example.js"]),
         reviewOutput: JSON.stringify({
           blockingFindings: [{
@@ -1847,7 +1847,7 @@ describe("impl review structured artifact helpers", () => {
 
       const result = await runImplReview({
         root: fixture,
-        flow: { spec: "specs/demo/spec.json" },
+        flow: { specId: "demo" },
         touchedFiles: new Set(["src/example.js"]),
         taskSpec: { task: { id: "T-1" }, relPath: "specs/demo/tasks/T-1.md" },
         reviewOutput,
@@ -1914,7 +1914,7 @@ describe("impl review structured artifact helpers", () => {
         disposition: "must-fix",
         rationale: "R4 requires a machine-readable artifact.",
       };
-      const flow = { spec: "specs/demo/spec.json" };
+      const flow = { specId: "demo" };
       const reviewOutput = JSON.stringify({
         blockingFindings: [finding, { ...finding }],
         nonBlockingImprovements: [],
@@ -1955,7 +1955,7 @@ describe("impl review structured artifact helpers", () => {
         disposition: "must-fix",
         rationale: "R1 makes this branch mandatory.",
       };
-      const flow = { spec: "specs/demo/spec.json" };
+      const flow = { specId: "demo" };
       await runImplReview({
         root: tmp,
         flow,
@@ -2009,7 +2009,7 @@ describe("impl review structured artifact helpers", () => {
       }, null, 2)}\n`);
       const result = await runImplReview({
         root: tmp,
-        flow: { spec: "specs/demo/spec.json" },
+        flow: { specId: "demo" },
         touchedFiles: new Set(["src/example.js"]),
         reviewOutput: JSON.stringify({
           blockingFindings: [],
@@ -2054,7 +2054,7 @@ describe("impl review structured artifact helpers", () => {
       };
       await runImplReview({
         root: tmp,
-        flow: { spec: "specs/demo/spec.json" },
+        flow: { specId: "demo" },
         touchedFiles: new Set(["src/example.js"]),
         reviewOutput: JSON.stringify({
           blockingFindings: [
@@ -2146,7 +2146,7 @@ describe("resolveReviewTarget untracked spec tests", () => {
     fs.writeFileSync(join(tmp, "specs/demo/tests/bounded-recovery.test.js"), "// spec: R1\n");
     fs.writeFileSync(join(tmp, "specs/demo/issue-log.json"), '{"entries":[]}\n');
 
-    const target = await resolveReviewTarget(tmp, { spec: "specs/demo/spec.json" }, baseSha);
+    const target = await resolveReviewTarget(tmp, { specId: "demo" }, baseSha);
 
     assert.ok(target.untrackedFiles.has("specs/demo/tests/bounded-recovery.test.js"));
     assert.match(target.diff, /bounded-recovery\.test\.js/);
@@ -2181,7 +2181,7 @@ describe("resolveReviewTarget untracked spec tests", () => {
     const exclusions = ["specs/"];
     const target = await resolveReviewTarget(
       tmp,
-      { spec: "specs/demo/spec.json" },
+      { specId: "demo" },
       baseSha,
       createReviewExcludeMatcher({ root: tmp, exclusions }),
       exclusions,

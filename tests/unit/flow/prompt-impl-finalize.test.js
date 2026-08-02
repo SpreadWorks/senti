@@ -16,7 +16,7 @@ const FLOW_CMD = join(process.cwd(), "src/flow.js");
 function setupFlowState(dir) {
   const specId = "001-test";
   const state = {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/001-test",

@@ -46,7 +46,7 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
     tmp = createTmpDir();
     // Start with a single seed task; spec.json adds T-1 and T-2.
     setupFlow(tmp, {
-      spec: "specs/215-flow-task-decomposition/spec.json",
+      specId: "215-flow-task-decomposition",
       tasks: [{ id: "T-seed", title: "seed", goal: "seed", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     });
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", baseSpec([
@@ -68,7 +68,7 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
   it("REQ-2: preserves existing tasks on second approval (differential sync)", () => {
     tmp = createTmpDir();
     setupFlow(tmp, {
-      spec: "specs/215-flow-task-decomposition/spec.json",
+      specId: "215-flow-task-decomposition",
       tasks: [{
         id: "T-1", spec: "specs/215-flow-task-decomposition/tasks/T-1.md",
         origin: "plan", parent: null, status: "done", steps: [], requirements: [], summary: "done",
@@ -97,7 +97,7 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
   it("REQ-6: derives added_round correctly on round bump", () => {
     tmp = createTmpDir();
     setupFlow(tmp, {
-      spec: "specs/215-flow-task-decomposition/spec.json",
+      specId: "215-flow-task-decomposition",
       tasks: [
         { id: "T-1", spec: "x", origin: "plan", parent: null, status: "done", steps: [], requirements: [], summary: null },
       ],
@@ -115,7 +115,7 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
 
   it("no-op when spec.json has no tasks[]", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, { spec: "specs/215-flow-task-decomposition/spec.json" });
+    setupFlow(tmp, { specId: "215-flow-task-decomposition" });
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", {
       goal: "", scope: { in: [], out: [] }, constraints: [], design_principles: [],
       overview: { modules: [], data_flow: [], decisions: [] },

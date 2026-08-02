@@ -38,7 +38,7 @@ function setupRevalidationFixture() {
 
   const baseline = buildRepairFingerprint({ root: tmp, specPath: SPEC_PATH });
   const state = moveFlowToStep(makeFlowState({
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: "run-implementation-revalidation",
     repairBaseline: baseline.baseline.toJSON(),
   }), "impl-gate");
@@ -62,7 +62,7 @@ function target() {
   return {
     runId: "run-implementation-revalidation",
     issue: null,
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     stepId: "impl-gate",
     attemptId: "impl-gate-001",
   };

@@ -92,9 +92,9 @@ function normalizedExecutionEnvironment(value) {
 }
 
 function shouldPersistFinalizeMetricToSidecar(flowManager, context) {
-  if (!flowManager || !context?.spec || !String(context.sentiPhase || "").startsWith("finalize-")) return false;
+  if (!flowManager || !context?.specId || !String(context.sentiPhase || "").startsWith("finalize-")) return false;
   try {
-    const state = flowManager.loadReadOnly(context.spec);
+    const state = flowManager.loadReadOnly(context.specId);
     return state?.worktree === true;
   } catch (_) {
     return false;
@@ -105,7 +105,7 @@ async function persistFinalizeMetricToSidecar(flowManager, context, metric) {
   const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
   recordFinalizeCleanupPostCommandMetadata({
     flowManager,
-    specId: context.spec,
+    specId: context.specId,
     metrics: [metric],
   });
 }
@@ -299,7 +299,7 @@ class Agent {
     if (!context) return null;
     const cache = new AgentPromptCache({
       root: this._paths.root || process.cwd(),
-      specId: context.spec,
+      specId: context.specId,
     });
     const key = this._buildPromptCacheKeyForTest(resolved, prompt, options);
     return { cache, key, context };
@@ -1062,11 +1062,11 @@ function resolvePromptCacheContext(flowManager) {
   if (!flowManager) return null;
   try {
     const context = flowManager.resolveCurrentContext();
-    if (!context?.spec) return null;
+    if (!context?.specId) return null;
     const activeFlows = typeof flowManager.loadActiveFlows === "function"
       ? flowManager.loadActiveFlows()
       : [];
-    if (!activeFlows.some((entry) => entry.spec === context.spec)) return null;
+    if (!activeFlows.some((entry) => entry.specId === context.specId)) return null;
     return context;
   } catch (_) {
     return null;
@@ -1089,7 +1089,7 @@ async function recordPromptCacheHit({ flowManager, context, provider, profileKey
       await persistFinalizeMetricToSidecar(flowManager, context, metric);
       return;
     }
-    flowManager.appendMetric(metric, { specId: context.spec, taskId: context.taskId ?? null });
+    flowManager.appendMetric(metric, { specId: context.specId, taskId: context.taskId ?? null });
   } catch (err) {
     process.stderr.write(`[senti] agent: cache-hit metric failed: ${err.message}\n`);
   }

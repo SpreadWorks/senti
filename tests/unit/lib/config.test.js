@@ -86,6 +86,25 @@ describe("loadConfig", () => {
     assert.throws(() => loadConfig(tmp), /flow\.hooks\.CustomHook: must be string/);
   });
 
+  it("accepts only repository-relative normalized flow.specDir values", () => {
+    tmp = createTmpDir();
+    const base = {
+      lang: "ja",
+      type: "sample-command",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+    };
+    writeJson(tmp, ".senti/config.json", {
+      ...base,
+      flow: { specDir: "flow-artifacts/specs" },
+    });
+    assert.equal(loadConfig(tmp).flow.specDir, "flow-artifacts/specs");
+
+    for (const specDir of ["/tmp/specs", "../specs", "specs//nested", "specs\\nested"]) {
+      writeJson(tmp, ".senti/config.json", { ...base, flow: { specDir } });
+      assert.throws(() => loadConfig(tmp), /flow\.specDir/);
+    }
+  });
+
   it("throws when config is missing", () => {
     tmp = createTmpDir();
     assert.throws(() => loadConfig(tmp), /Missing file/);

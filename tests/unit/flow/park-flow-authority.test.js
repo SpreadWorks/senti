@@ -27,7 +27,6 @@ function createRoot() {
 function createManagedFlow(root, specId, issue = 453) {
   const worktreePath = path.join(root, ".senti", "worktree", `feature-${specId}`);
   fs.mkdirSync(worktreePath, { recursive: true });
-  const spec = `specs/${specId}/spec.json`;
   const runId = `run-${specId}`;
   const manager = new FlowManager({
     root: worktreePath,
@@ -36,7 +35,7 @@ function createManagedFlow(root, specId, issue = 453) {
     specId,
   });
   const state = {
-    spec,
+    specId,
     runId,
     ...(issue == null ? {} : { issue }),
     baseBranch: "main",
@@ -51,10 +50,10 @@ function createManagedFlow(root, specId, issue = 453) {
   new WorktreeFlowBindingStore({ worktreePath }).save(new WorktreeFlowIdentity({
     runId,
     issue,
-    spec,
+    specId,
     worktreePath,
   }));
-  const specDir = path.join(worktreePath, "specs", specId);
+  const specDir = path.join(root, "specs", specId);
   fs.writeFileSync(path.join(specDir, "spec.json"), "{}\n");
   fs.writeFileSync(path.join(specDir, "spec-review.json"), "{\"verdict\":\"pass\"}\n");
   fs.writeFileSync(path.join(specDir, "spec-gate.json"), "{\"verdict\":\"pass\"}\n");
@@ -64,7 +63,6 @@ function createManagedFlow(root, specId, issue = 453) {
     worktreePath,
     manager,
     specId,
-    spec,
     runId,
     issue,
     flowPath: path.join(specDir, "flow.json"),
@@ -78,7 +76,7 @@ function createManagedFlow(root, specId, issue = 453) {
 function exactIdentity(flow, overrides = {}) {
   return new ParkedFlowIdentity({
     expectRunId: flow.runId,
-    expectSpec: flow.spec,
+    expectSpec: flow.specId,
     ...(flow.issue == null ? { expectNoIssue: true } : { expectIssue: flow.issue }),
     ...overrides,
   });
@@ -131,13 +129,13 @@ describe("managed worktree flow park authority", () => {
     const receipt = target.manager.parkActiveFlow(exactIdentity(target)).toJSON();
 
     assert.deepEqual(new ActiveFlowRegistry({ mainRoot: root }).load(), [
-      { spec: other.specId, mode: "worktree" },
+      { specId: other.specId, mode: "worktree" },
     ]);
     assert.deepEqual(snapshot(Object.keys(targetFiles)), targetFiles);
     assert.deepEqual(receipt, {
       parked: true,
       changed: true,
-      identity: { runId: target.runId, spec: target.spec, issue: 453 },
+      identity: { runId: target.runId, specId: target.specId, issue: 453 },
       mode: "worktree",
       executionRoot: target.worktreePath,
       resume: {
@@ -145,7 +143,7 @@ describe("managed worktree flow park authority", () => {
         argv: [
           "flow", "resume", "--parked",
           "--expect-run-id", target.runId,
-          "--expect-spec", target.spec,
+          "--expect-spec", target.specId,
           "--expect-issue", "453",
         ],
       },
@@ -185,7 +183,7 @@ describe("managed worktree flow park authority", () => {
     assert.equal(second.changed, false);
     assert.deepEqual(fs.readFileSync(registryPath(root)), registryAfterFirst);
     assert.deepEqual(new ActiveFlowRegistry({ mainRoot: root }).load(), [
-      { spec: flow.specId, mode: "worktree" },
+      { specId: flow.specId, mode: "worktree" },
     ]);
     assert.deepEqual(snapshot(Object.keys(nonPointerBefore)), nonPointerBefore);
   });
@@ -194,9 +192,9 @@ describe("managed worktree flow park authority", () => {
     const root = createRoot();
     const flow = createManagedFlow(root, "453-identity", 453);
     for (const input of [
-      { expectSpec: flow.spec, expectIssue: 453 },
+      { expectSpec: flow.specId, expectIssue: 453 },
       { expectRunId: flow.runId, expectIssue: 453 },
-      { expectRunId: flow.runId, expectSpec: flow.spec },
+      { expectRunId: flow.runId, expectSpec: flow.specId },
     ]) {
       assert.throws(
         () => new ParkedFlowIdentity(input),
@@ -206,7 +204,7 @@ describe("managed worktree flow park authority", () => {
 
     for (const overrides of [
       { expectRunId: "run-foreign" },
-      { expectSpec: "specs/999-foreign/spec.json" },
+      { expectSpec: "999-foreign" },
       { expectIssue: 999 },
       { expectIssue: undefined, expectNoIssue: true },
     ]) {
@@ -242,7 +240,7 @@ describe("managed worktree flow park authority", () => {
     const localSpecId = "455-local";
     const local = new FlowManager({ root, mainRoot: root, inWorktree: false, specId: localSpecId });
     local.create({
-      spec: `specs/${localSpecId}/spec.json`,
+      specId: localSpecId,
       runId: "run-local",
       issue: 455,
       baseBranch: "main",
@@ -317,7 +315,7 @@ describe("managed worktree flow park authority", () => {
         parked: true,
         flowManager: flow.manager,
         expectRunId: flow.runId,
-        expectSpec: flow.spec,
+        expectSpec: flow.specId,
         expectIssue: flow.issue,
       });
       assert.equal(result.resumed, true);

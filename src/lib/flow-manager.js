@@ -2,7 +2,7 @@
  * src/lib/flow-manager.js
  *
  * Facade for Spec-Driven Development flow state management. Owns:
- *   - FlowStore             : specs/<NNN>/flow.json I/O + mutations
+ *   - FlowStore             : configured spec-root flow.json I/O + mutations
  *   - ActiveFlowRegistry    : .senti/.active-flow pointer
  *   - PreparingFlowStore    : .senti/.active-flow.<runId> transient state
  *
@@ -17,11 +17,12 @@ import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
-import { PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
+import { PREPARING_SCAN_LIMIT } from "./flow-helpers.js";
 import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
 
 const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "local"]);
 
@@ -32,7 +33,7 @@ export class ResolvedFlowTarget {
     if (!mainRoot) throw new Error("resolved flow target main root is required");
     if (!authorityRoot) throw new Error("resolved flow target authority root is required");
     this.state = state;
-    this.specId = state.spec ? specIdFromPath(state.spec) : specId;
+    this.specId = state.specId ?? specId;
     this.worktreePath = worktreePath;
     this.mainRoot = mainRoot;
     this.authorityRoot = authorityRoot;
@@ -56,7 +57,7 @@ export class ResolvedFlowTarget {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) return null;
     if (this.preparing && expectation.binding) {
       return expectation.mismatchAgainst(this.state) || {
-        expectedSpec: specIdFromPath(expectation.binding.spec),
+        expectedSpec: expectation.binding.specId,
         activeSpec: null,
       };
     }
@@ -84,36 +85,36 @@ export class ResolvedFlowTarget {
 export class ActiveFlowIdentityEntry {
   constructor({ entry, state } = {}) {
     if (!entry || typeof entry !== "object") throw new Error("active flow identity entry is required");
-    if (typeof entry.spec !== "string" || entry.spec.trim() === "") {
-      throw new Error("active flow identity spec is required");
+    if (typeof entry.specId !== "string" || entry.specId.trim() === "") {
+      throw new Error("active flow identity specId is required");
     }
     if (!ACTIVE_FLOW_MODES.has(entry.mode)) throw new Error("active flow identity mode is invalid");
     if (!state || typeof state !== "object" || typeof state.runId !== "string" || state.runId.trim() === "") {
-      throw new Error(`active flow identity state is unavailable for ${entry.spec}`);
+      throw new Error(`active flow identity state is unavailable for ${entry.specId}`);
     }
-    if (specIdFromPath(state.spec) !== entry.spec) {
-      throw new Error(`active flow identity spec mismatch for ${entry.spec}`);
+    if (state.specId !== entry.specId) {
+      throw new Error(`active flow identity specId mismatch for ${entry.specId}`);
     }
     const issue = state.issue == null ? null : Number(state.issue);
     if (issue != null && (!Number.isSafeInteger(issue) || issue < 1)) {
-      throw new Error(`active flow identity issue is invalid for ${entry.spec}`);
+      throw new Error(`active flow identity issue is invalid for ${entry.specId}`);
     }
     this.runId = state.runId;
     this.issue = issue;
-    this.spec = entry.spec;
+    this.specId = entry.specId;
     this.mode = entry.mode;
     Object.freeze(this);
   }
 
   get key() {
-    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.spec}\u0000${this.mode}`;
+    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.specId}\u0000${this.mode}`;
   }
 
   toJSON() {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       mode: this.mode,
     };
   }
@@ -172,7 +173,7 @@ export class ParkedFlowIdentity {
       : new FlowTargetExpectation(input);
     if (
       expectation.runId == null
-      || expectation.spec == null
+      || expectation.specId == null
       || (expectation.issue == null && expectation.issueAbsent !== true)
     ) {
       throw new ParkedFlowError(
@@ -181,7 +182,7 @@ export class ParkedFlowIdentity {
       );
     }
     this.runId = expectation.runId;
-    this.specId = expectation.spec;
+    this.specId = expectation.specId;
     this.issue = expectation.issue;
     this.issueAbsent = expectation.issueAbsent;
     this.expectation = expectation;
@@ -203,7 +204,7 @@ export class ParkedFlowIdentity {
   guardArgv() {
     return [
       "--expect-run-id", this.runId,
-      "--expect-spec", `specs/${this.specId}/spec.json`,
+      "--expect-spec", this.specId,
       ...(this.issueAbsent
         ? ["--expect-no-issue"]
         : ["--expect-issue", String(this.issue)]),
@@ -213,7 +214,7 @@ export class ParkedFlowIdentity {
   toJSON() {
     return {
       runId: this.runId,
-      spec: `specs/${this.specId}/spec.json`,
+      specId: this.specId,
       issue: this.issue,
     };
   }
@@ -268,7 +269,7 @@ function flowTargetSummary(expectation) {
     expectation.runId && `runId ${expectation.runId}`,
     expectation.issue && `Issue #${expectation.issue}`,
     expectation.issueAbsent && "no Issue",
-    expectation.spec && `spec ${expectation.spec}`,
+    expectation.specId && `spec ${expectation.specId}`,
   ].filter(Boolean).join(", ");
 }
 
@@ -279,7 +280,7 @@ function flowTargetErrorData(expectation, matchCount) {
     ...((expectation.issue != null || expectation.issueAbsent) && {
       expectedIssue: expectation.issue,
     }),
-    ...(expectation.spec != null && { expectedSpec: expectation.spec }),
+    ...(expectation.specId != null && { expectedSpec: expectation.specId }),
   };
 }
 
@@ -309,7 +310,7 @@ class ActiveFlowMismatchError extends Error {
 
 class CapturedFlowTargetMutation {
   constructor(expectation, mutate) {
-    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.spec == null) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.specId == null) {
       throw new Error("captured flow target mutation requires an exact target with a spec");
     }
     if (typeof mutate !== "function") {
@@ -366,6 +367,7 @@ export class FlowManager {
     mainRoot,
     inWorktree,
     specId = null,
+    specRoot = DEFAULT_FLOW_SPEC_DIR,
     bindingFaultInjector = () => {},
     processIdentitySource,
   }) {
@@ -373,15 +375,17 @@ export class FlowManager {
     this._mainRoot = mainRoot;
     this._inWorktree = inWorktree;
     this._boundSpecId = specId;
+    this._workspace = new FlowWorkspace({ repositoryRoot: mainRoot, executionRoot: root, specRoot });
     this._bindingFaultInjector = bindingFaultInjector;
     this._processIdentitySource = processIdentitySource;
     this._usesWorktreeFlowBinding = isManagedFlowWorktree(root, mainRoot, inWorktree);
-    this._activeFlows = new ActiveFlowRegistry({ mainRoot });
+    this._activeFlows = new ActiveFlowRegistry({ mainRoot, specRoot: this._workspace.specRoot });
     this._preparing = new PreparingFlowStore({ mainRoot });
     this._store = new FlowStore({
       root,
       mainRoot,
       inWorktree,
+      specRoot: this._workspace.specRoot,
       activeFlowsProvider: () => this._activeFlows,
     });
     this._worktreeBinding = this._usesWorktreeFlowBinding
@@ -391,6 +395,10 @@ export class FlowManager {
           ...(processIdentitySource && { processIdentitySource }),
         })
       : null;
+  }
+
+  get specRoot() {
+    return this._workspace.specRoot;
   }
 
   // ── flow.json (FlowStore) ───────────────────────────────────────────────────
@@ -414,7 +422,7 @@ export class FlowManager {
     // target-bound without publishing the flow in the shared active registry.
     // Managed worktrees continue to derive authority from their binding file.
     if (!this._worktreeBinding && this._boundSpecId == null) {
-      this._boundSpecId = specIdFromPath(state.spec);
+      this._boundSpecId = state.specId;
     }
     return created;
   }
@@ -424,13 +432,13 @@ export class FlowManager {
 
   #bindLoadedState(state) {
     if (state != null && this._boundSpecId == null) {
-      this._boundSpecId = specIdFromPath(state.spec);
+      this._boundSpecId = state.specId;
     }
     return state;
   }
   mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
   captureExactTarget(expectation) {
-    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.spec == null) {
+    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.specId == null) {
       throw new Error("exact flow target with a spec is required for capture");
     }
     this.resolveExplicitFlowTargetForRead(expectation);
@@ -450,9 +458,10 @@ export class FlowManager {
     return this._store.mutate((current) => {
       if (expectation.mismatchAgainst(current)) throw new ActiveFlowMismatchError(expectation, current);
       return mutator(current);
-    }, { ...opts, specId: expectation.spec });
+    }, { ...opts, specId: expectation.specId });
   }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
+  specLocation(specId) { return this._workspace.forSpec(withSpecIdArgDefault(specId, this._boundSpecId)); }
   pathForCurrent() { return this._store.pathForCurrent(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
   flowStatePath() { return this._store.pathForCurrent(); }
@@ -473,6 +482,7 @@ export class FlowManager {
       mainRoot: this._mainRoot,
       inWorktree: root !== this._mainRoot,
       specId: opts.specId,
+      specRoot: this._workspace.specRoot,
       bindingFaultInjector: opts.bindingFaultInjector ?? this._bindingFaultInjector,
       ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
     });
@@ -585,17 +595,17 @@ export class FlowManager {
 
   /**
    * Resolve the current flow context for logging / metric accumulation.
-   * Returns { spec, sentiPhase } derived from the active flow.json; both are
+   * Returns { specId, sentiPhase } derived from the active flow.json; both are
    * null when no active flow is present (expected outside Spec-Driven Development contexts).
    */
   resolveCurrentContext() {
     const state = this.load();
-    if (!state) return { spec: null, sentiPhase: null, taskId: null };
-    const spec = specIdFromPath(state.spec) ?? null;
+    if (!state) return { specId: null, sentiPhase: null, taskId: null };
+    const specId = state.specId ?? null;
     const inProgress = findInProgressLeaf(state.steps);
     const sentiPhase = inProgress?.id ?? null;
     const taskId = state.currentTaskId ?? null;
-    return { spec, sentiPhase, taskId };
+    return { specId, sentiPhase, taskId };
   }
 
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────
@@ -605,9 +615,9 @@ export class FlowManager {
   snapshotActiveFlowIdentities(options) {
     const registrySnapshot = this.snapshotActiveFlows(options);
     const entries = registrySnapshot.entries.map((entry) => {
-      const resolved = this._loadActiveFlowState(entry.spec, entry.mode);
+      const resolved = this._loadActiveFlowState(entry.specId, entry.mode);
       if (!resolved?.state) {
-        throw new Error(`active flow identity state is unavailable for ${entry.spec}`);
+        throw new Error(`active flow identity state is unavailable for ${entry.specId}`);
       }
       return new ActiveFlowIdentityEntry({ entry, state: resolved.state });
     });
@@ -615,6 +625,7 @@ export class FlowManager {
   }
   addActiveFlow(specId, mode, options) { return this._activeFlows.add(specId, mode, options); }
   removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
+  assertFlowStateWritable(specId, options) { return this._store.assertWritable(specId, options); }
   cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }
 
   parkActiveFlow(identity, options = {}) {
@@ -626,7 +637,7 @@ export class FlowManager {
     }
     return this.#withParkedFlowOperation(options, (operationOwnerToken) => {
       const resolved = this.#resolveParkedWorktreeOwned(identity);
-      const entry = this._activeFlows.load().find((candidate) => candidate.spec === identity.specId);
+      const entry = this._activeFlows.load().find((candidate) => candidate.specId === identity.specId);
       if (!entry) {
         throw new ParkedFlowError(
           "FLOW_PARK_TARGET_ABSENT",
@@ -661,7 +672,7 @@ export class FlowManager {
     }
     return this.#withParkedFlowOperation(options, (operationOwnerToken) => {
       const resolved = this.#resolveParkedWorktreeOwned(identity);
-      const entry = this._activeFlows.load().find((candidate) => candidate.spec === identity.specId);
+      const entry = this._activeFlows.load().find((candidate) => candidate.specId === identity.specId);
       if (entry && entry.mode !== "worktree") {
         throw new ParkedFlowError(
           "FLOW_PARK_ACTIVE_CONFLICT",
@@ -693,7 +704,7 @@ export class FlowManager {
       const flows = this._activeFlows.load();
       const current = this._store._resolveCurrentFlow(flows);
       if (!current) return;
-      specId = current.spec;
+      specId = current.specId;
     }
     this._activeFlows.remove(specId, options);
   }
@@ -795,7 +806,7 @@ export class FlowManager {
   #explicitFlowTargets() {
     const candidates = [];
     for (const entry of this._activeFlows.load()) {
-      const resolved = this._loadActiveFlowState(entry.spec);
+      const resolved = this._loadActiveFlowState(entry.specId);
       if (!resolved?.state) continue;
       const target = new ResolvedFlowTarget({
         state: resolved.state,
@@ -838,7 +849,7 @@ export class FlowManager {
   resolveActiveFlow(flowState, opts = {}) {
     const expectation = activeFlowExpectation(opts);
     if (flowState) {
-      const specId = specIdFromPath(flowState.spec);
+      const specId = flowState.specId;
       let worktreePath = null;
       if (flowState.worktree) {
         const candidate = this._store.resolveWorktreePaths(flowState).worktreePath;
@@ -881,11 +892,11 @@ export class FlowManager {
     }
 
     if (activeFlows.length === 1) {
-      const resolved = this._loadActiveFlowState(activeFlows[0].spec);
+      const resolved = this._loadActiveFlowState(activeFlows[0].specId);
       if (resolved) return resolved;
     } else if (activeFlows.length > 1) {
       throw new Error(
-        `multiple active flows: ${activeFlows.map((f) => `${f.spec} (${f.mode})`).join(", ")}. Pass --spec <specId> to select one.`,
+        `multiple active flows: ${activeFlows.map((f) => `${f.specId} (${f.mode})`).join(", ")}. Pass --spec <specId> to select one.`,
       );
     }
 
@@ -899,49 +910,38 @@ export class FlowManager {
   _resolveActiveFlowsByState(activeFlows, predicate) {
     const matches = [];
     for (const entry of activeFlows) {
-      const resolved = this._loadActiveFlowState(entry.spec);
+      const resolved = this._loadActiveFlowState(entry.specId);
       if (resolved?.state && predicate(resolved.state)) matches.push(resolved);
     }
     return matches;
   }
 
   /**
-   * Load an active flow's state, redirecting to its worktree's specs/ dir
-   * when the flow is registered as worktree mode. Returns null if the
-   * spec's flow.json cannot be found in either location.
+   * Load one active flow from the single base-side state authority. A managed
+   * worktree is execution metadata only and is never a state fallback.
    *
    * @param {string} specId
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
-  _loadActiveFlowState(specId, registeredMode = null) {
-    let state = this._store.load(specId);
-    let worktreePath = null;
-
-    // worktree mode: the flow.json lives inside the worktree, not main repo.
-    // First check the active-flows registry to know whether to look there.
+  _loadActiveFlowState(specId) {
+    const state = this._store.load(specId);
     if (!state) {
-      const mode = registeredMode ?? this._activeFlows.load().find((entry) => entry.spec === specId)?.mode;
-      if (mode === "worktree") {
-        const probe = path.join(sentiDir(this._mainRoot), "worktree", `feature-${specId}`);
-        if (fs.existsSync(probe)) {
-          const wtManager = this.forRoot(probe, { specId });
-          state = wtManager.load(specId);
-          if (state) worktreePath = probe;
-        }
-      }
+      const statePath = this._store.pathFor(specId);
+      const error = new Error(
+        `active flow state is missing at the configured spec root: ${statePath}. `
+        + "Restore flow.specDir or resolve the active flow explicitly before continuing.",
+      );
+      error.code = "ACTIVE_FLOW_STATE_AUTHORITY_MISSING";
+      error.specId = specId;
+      error.statePath = statePath;
+      throw error;
     }
-
-    if (state?.worktree && !worktreePath) {
+    let worktreePath = null;
+    if (state.worktree) {
       const resolved = this._store.resolveWorktreePaths(state);
       const candidate = resolved.worktreePath;
-      if (candidate && fs.existsSync(candidate)) {
-        worktreePath = candidate;
-        const wtManager = this.forRoot(worktreePath, { specId });
-        state = wtManager.load(specId);
-      }
+      if (candidate && fs.existsSync(candidate)) worktreePath = candidate;
     }
-
-    if (!state) return null;
     return { state, specId, worktreePath };
   }
 
@@ -954,8 +954,8 @@ export class FlowManager {
     const activeFlows = this._activeFlows.load();
     const limit = Math.min(activeFlows.length, PREPARING_SCAN_LIMIT);
     for (let i = 0; i < limit; i++) {
-      const resolved = this._loadActiveFlowState(activeFlows[i].spec);
-      const state = resolved?.state || this._store.loadReadOnly(activeFlows[i].spec);
+      const resolved = this._loadActiveFlowState(activeFlows[i].specId);
+      const state = resolved?.state || this._store.loadReadOnly(activeFlows[i].specId);
       if (state?.runId === runId) return state;
     }
     const preparing = this._preparing.load(runId);
@@ -968,9 +968,9 @@ export class FlowManager {
     return this._worktreeBinding.withLock(() => {
       const identity = this._worktreeBinding.loadOwned().identity;
       const requested = withSpecIdArgDefault(specId, this._boundSpecId);
-      if (requested != null && specIdFromPath(requested) !== identity.specId) {
+      if (requested != null && requested !== identity.specId) {
         throw new Error(
-          `worktree flow binding spec mismatch: ${requested} != ${identity.spec}`,
+          `worktree flow binding specId mismatch: ${requested} != ${identity.specId}`,
         );
       }
       const state = readOnly
@@ -992,8 +992,8 @@ export class FlowManager {
       result = this._worktreeBinding.withLock((bindingOwnerToken) => {
         this.#recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken);
         const identity = this._worktreeBinding.loadOwned().identity;
-        if (opts.specId != null && specIdFromPath(opts.specId) !== identity.specId) {
-          throw new Error(`worktree flow binding spec mismatch: ${opts.specId} != ${identity.spec}`);
+        if (opts.specId != null && opts.specId !== identity.specId) {
+          throw new Error(`worktree flow binding specId mismatch: ${opts.specId} != ${identity.specId}`);
         }
         const currentState = this._store.load(identity.specId);
         identity.assertFlowState(currentState);

@@ -33,6 +33,7 @@ import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 import { runFlowCommandHooks } from "../lib/plugin-registry.js";
 import { appendIssueLogEntry } from "./lib/set-issue-log.js";
+import { relativeFlowSpecFile } from "../lib/flow-workspace.js";
 import {
   DecisionOutcome,
   DeferOutcome,
@@ -106,7 +107,7 @@ export function assertDraftReviewRegistryHookBoundary() {
 
 /**
  * Resolve the FlowManager scoped to the main repo for merge-onward post hooks.
- * After finalize-merge runs, the main repo gains its own specs/<id>/flow.json
+ * Flow state remains under the main repo's configured spec root throughout.
  * (squash-merged from the worktree). Post hooks must update that file — not
  * the now-stale worktree copy — so authority is switched via forRoot().
  */
@@ -542,7 +543,7 @@ class RegistryLifecycleAdapter {
     if (handler === "writeEmptyDraftReviewRouteArtifacts") {
       const route = draftReviewRouteForRetryPhase(args?.retryPhase);
       if (!route) return;
-      const specDir = path.dirname(path.resolve(this.ctx.root, this.ctx.flowState.spec));
+      const specDir = path.dirname(path.resolve(this.ctx.root, relativeFlowSpecFile(this.ctx.flowState)));
       writeEmptyDraftReviewRouteArtifacts({ specDir, route });
       return;
     }
@@ -558,6 +559,7 @@ class RegistryLifecycleAdapter {
       this.ctx.finalizeMergeMetadataPreflight = finalize.assertFinalizeMergeMetadataMutationSafe({
         root: this.ctx.root,
         specId: this.ctx.specId,
+        specRoot: this.ctx.specRoot?.toString(),
       });
       return;
     }
@@ -565,10 +567,12 @@ class RegistryLifecycleAdapter {
       const metadataPreflight = finalize.readFinalizeMergeMetadataPreflight({
         root: this.ctx.root,
         specId: this.ctx.specId,
+        specRoot: this.ctx.specRoot?.toString(),
       });
       if (finalize.hasFinalizeMergeTargetExternalDirty({
         root: this.ctx.root,
         specId: this.ctx.specId,
+        specRoot: this.ctx.specRoot?.toString(),
         preflight: metadataPreflight,
       })) {
         return;
@@ -581,6 +585,7 @@ class RegistryLifecycleAdapter {
         finalize.commitFinalizeMergeMetadataIfSafe({
           root: this.ctx.root,
           specId: this.ctx.specId,
+          specRoot: this.ctx.specRoot?.toString(),
           preflight: metadataPreflight,
           includeFlowJson: true,
           message: "chore: reset downstream finalize steps for retry",
@@ -598,14 +603,11 @@ class RegistryLifecycleAdapter {
       if (!worktreePath || !fs.existsSync(worktreePath)) switchToMainRepoFlowAuthority(this.ctx);
       return;
     }
-    if (handler === "commitDurableArtifacts") {
-      await finalize.commitDurableFinalizeArtifacts(this.ctx);
-      return;
-    }
     if (handler === "commitFinalizeCompletion") {
       finalize.commitFinalizeCompletion({
         root: this.ctx.root,
         specId: this.ctx.specId,
+        specRoot: this.ctx.specRoot?.toString(),
         idempotencyKey: this.ctx.flowOutboxEntry?.idempotencyKey,
       });
       return;
@@ -676,16 +678,22 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
   const snapshot = Array.isArray(ctx.flowState?.plugins?.flowCommandHooks) ? ctx.flowState.plugins.flowCommandHooks : [];
   if (!command || snapshot.length === 0) return;
   const hook = pluginHookForLifecycle(input?.event, err);
-  const hookResult = await runFlowCommandHooks(ctx.root, snapshot, {
+  const hookResult = await runFlowCommandHooks(ctx.executionRoot || ctx.root, snapshot, {
     command: pluginCommandName(command),
     hook,
-    flow: { spec: ctx.flowState?.spec, issue: ctx.flowState?.issue, runId: ctx.flowState?.runId },
+    flow: {
+      specId: ctx.flowState?.specId,
+      specRoot: ctx.specRoot?.toString(),
+      issue: ctx.flowState?.issue,
+      runId: ctx.flowState?.runId,
+    },
     result: result || { ok: false, error: err?.message },
+    artifactRepositoryRoot: ctx.repositoryRoot || ctx.root,
   });
-  if (hookResult.issueLogEntries.length && ctx.flowState?.spec) {
+  if (hookResult.issueLogEntries.length && ctx.flowState?.specId) {
     for (const entry of hookResult.issueLogEntries) {
       tryAppendIssueLog(() => {
-        appendIssueLogEntry(ctx.root, ctx.flowState.spec, {
+        appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), {
           step: "plugin-hook",
           reason: entry.reason,
           trigger: `${command}.${hook}`,
@@ -1485,7 +1493,7 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: senti flow run finalize-commit [options]",
         "",
-        "Commit implementation changes and durable finalization artifacts.",
+        "Commit implementation changes from the execution worktree.",
         "",
         "Options:",
         "  --message <msg>  Custom commit message",
@@ -1599,15 +1607,28 @@ export const FLOW_COMMANDS = {
           command: finalizeCommand("cleanup"),
         });
       },
-      // The command body completes the cleanup step, outbox, and durable final
-      // commit before deleting its worktree. A dispatcher post hook would run
-      // after that deletion and cannot safely load worktree-owned modules.
+      // The command body removes the worktree before returning. The dispatcher
+      // then records the closed runtime log and commits the shared spec + docs
+      // from repository-owned modules before clearing the active entry.
       async onError(ctx, err) {
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "finalize:onError",
           command: finalizeCommand("cleanup"),
         }, null, err);
       },
+    },
+    abort: {
+      helpKey: "flow.run.abort",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-abort.js"),
+      args: { flags: withTargetGuardFlags(["--force"]), options: [...FLOW_RUN_OPTIONS] },
+      help: [
+        "Usage: senti flow run abort [--force]",
+        "",
+        "Remove only the selected flow worktree, feature branch, shared spec directory, and active entry.",
+        "--force permits removal of a dirty isolated worktree; unrelated base-checkout changes are never removed.",
+      ].join("\n"),
     },
     sync: {
       helpKey: "flow.run.sync",
@@ -1651,7 +1672,7 @@ export const FLOW_COMMANDS = {
         "preserves source/tasks/artifacts, and invalidates prior approval/evidence.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
         "",
-        "Task-level events remain recorded in specs/<spec>/issue-log.json;",
+        "Task-level events remain recorded under the configured spec root in <spec>/issue-log.json;",
         "flow-level events are atomically audited in flow.json planRewinds.",
       ].join("\n"),
     },
@@ -1725,13 +1746,13 @@ export const FLOW_COMMANDS = {
         "Usage: senti flow run test-execute",
         "",
         "Execute the project's test runner via AI agent and persist:",
-        "  specs/<spec>/test-execute-result.json (machine-readable summary)",
-        "  specs/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
+        "  <configured-spec-root>/<spec>/test-execute-result.json (machine-readable summary)",
+        "  <configured-spec-root>/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
       ].join("\n"),
       async post(ctx) {
         const path = await import("node:path");
         const { readJsonStrict, validateTestExecuteResultV2 } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
         validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
         tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post" });
       },
@@ -1747,8 +1768,8 @@ export const FLOW_COMMANDS = {
         "Usage: senti flow run scenario-validity",
         "",
         "Execute pre-implementation spec-local tests and persist:",
-        "  specs/<spec>/scenario-validity-result.json",
-        "  specs/<spec>/tests/.raw/scenario-validity.log",
+        "  <configured-spec-root>/<spec>/scenario-validity-result.json",
+        "  <configured-spec-root>/<spec>/tests/.raw/scenario-validity.log",
       ].join("\n"),
       post(ctx, result) {
         if (result?.result === "pass") {
@@ -1769,12 +1790,12 @@ export const FLOW_COMMANDS = {
         "Usage: senti flow run test-result-review",
         "",
         "Verify test-execute-result.json integrity against raw output and code.",
-        "Persists specs/<spec>/test-result-review.json and test-result-review.md.",
+        "Persists test-result-review.json and test-result-review.md under the configured spec root.",
       ].join("\n"),
       async post(ctx) {
         const path = await import("node:path");
         const { readJsonStrict, validateTestResultReview } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
         const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
         if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
         tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post" });
@@ -1807,7 +1828,7 @@ export const FLOW_COMMANDS = {
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
         if (ctx.flowState?.nonblocking?.enabled === true) {
-          const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+          const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
           const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "retro.json"), "utf8"));
           if (Number(artifact?.summary?.not_done || 0) > 0) return;
         }
@@ -1830,7 +1851,7 @@ export const FLOW_COMMANDS = {
         "Usage: senti flow run final-regression [--record-and-proceed --record-category <category> --record-evidence <text> --remaining-risk <text>]",
         "",
         "Run the full project-level regression command after retro and before finalize.",
-        "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
+        "Persists final-regression-result.json and tests/.raw/final-regression-attempt-<N>.log under the configured spec root (zero-padded to at least three digits).",
         "A current-diff failure may be recorded only as out_of_scope with explicit evidence and remaining risk.",
       ].join("\n"),
       async post(ctx, result) {
@@ -1840,7 +1861,7 @@ export const FLOW_COMMANDS = {
         ) return;
         const path = await import("node:path");
         const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
         const artifact = validateFinalRegressionResult(readJsonStrict(path.join(specDir, "final-regression-result.json")));
         const failedRecorded = artifact.result === "fail"
           && result?.result === "fail"
@@ -1874,7 +1895,7 @@ export const FLOW_COMMANDS = {
         "Usage: senti flow run acceptance-review",
         "",
         "Evaluate original request satisfaction after retro and before final-regression.",
-        "Persists specs/<spec>/acceptance-review.json and routes pass/non-pass verdicts.",
+        "Persists acceptance-review.json under the configured spec root and routes pass/non-pass verdicts.",
       ].join("\n"),
     },
     // report generates a work report from the current flow state.

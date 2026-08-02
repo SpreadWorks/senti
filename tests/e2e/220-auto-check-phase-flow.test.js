@@ -105,7 +105,7 @@ describe("e2e — phase-aware auto-check flow (spec 220)", () => {
     const steps = buildInitialSteps();
     findStepById(steps, "approval").status = "done";
     makeFlowManager(tmp).create({
-      spec: "specs/050-approved/spec.json",
+      specId: "050-approved",
       runId: "run-050-approved",
       baseBranch: "main",
       featureBranch: "feature/050-approved",

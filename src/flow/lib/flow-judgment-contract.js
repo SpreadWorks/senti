@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { IMPL_GATE_RESULT_FILE, readJsonStrict } from "./test-artifacts.js";
 import {
@@ -343,7 +344,7 @@ export class CompletionValidator {
   }
 }
 
-function deferredEvidenceApplies(specDir, contract, state) {
+function deferredEvidenceApplies(root, specDir, contract, state) {
   const findingsFile = path.join(specDir, "flow-findings.json");
   if (latestPlanRewind(state) && !isPlanArtifactFresh(state, findingsFile, "flow-findings")) {
     return false;
@@ -354,7 +355,7 @@ function deferredEvidenceApplies(specDir, contract, state) {
   } catch {
     return false;
   }
-  const contractArtifact = contractArtifactRelativeToSpec(specDir, contract.artifactPath);
+  const contractArtifact = contractArtifactRelativeToSpec(root, specDir, contract.artifactPath);
   if (!contractArtifact) return false;
   return artifact.entries.some((entry) => (
     entry.completionKind === "deferred"
@@ -365,14 +366,14 @@ function deferredEvidenceApplies(specDir, contract, state) {
   ));
 }
 
-function contractArtifactRelativeToSpec(specDir, artifactPath) {
+function contractArtifactRelativeToSpec(root, specDir, artifactPath) {
   let normalized;
   try {
     normalized = normalizeSourceArtifactPath(artifactPath, "artifactPath");
   } catch {
     return null;
   }
-  const specPrefix = `${path.basename(path.dirname(specDir))}/${path.basename(specDir)}/`;
+  const specPrefix = `${repoRelative(root, specDir)}/`;
   return normalized.startsWith(specPrefix) ? normalized.slice(specPrefix.length) : normalized;
 }
 
@@ -613,7 +614,7 @@ export function saveCompletionOverrideEvidence(specDir, evidence) {
   return overridePath;
 }
 
-export function contractForStepFromSpecDir({ root, specDir, stepId }) {
+export function contractForStepFromSpecDir({ root, executionRoot = root, specDir, stepId }) {
   const artifactFile = TARGET_ARTIFACT_FILE_BY_STEP[stepId];
   if (!artifactFile) throw new Error(`step does not use completion contract: ${stepId}`);
   const artifactPath = path.join(specDir, artifactFile);
@@ -623,7 +624,12 @@ export function contractForStepFromSpecDir({ root, specDir, stepId }) {
     const specPath = path.posix.join(repoRelative(root, specDir), "spec.json");
     const flowStatePath = path.join(specDir, "flow.json");
     const state = fs.existsSync(flowStatePath) ? readJsonStrict(flowStatePath) : null;
-    const currentFingerprint = buildRepairFingerprint({ root, specPath, state });
+    const currentFingerprint = buildRepairFingerprint({
+      root: executionRoot,
+      artifactRoot: root,
+      specPath,
+      state,
+    });
     assertRepairFingerprint({ artifact, fingerprint: currentFingerprint, label: artifactFile });
   }
   if (stepId === "test-review") {
@@ -647,11 +653,17 @@ export function contractForStepFromSpecDir({ root, specDir, stepId }) {
   throw new Error(`unsupported completion contract step: ${stepId}`);
 }
 
-export function validateStepCompletionTransition({ root, state, stepId, requestedStatus }) {
+export function validateStepCompletionTransition({
+  root,
+  executionRoot = root,
+  state,
+  stepId,
+  requestedStatus,
+}) {
   if (requestedStatus !== "done") return null;
   const policy = StepCompletionPolicy.maybeForStep(stepId);
   if (!policy) return null;
-  if (!state?.spec) {
+  if (!state?.specId) {
     return Envelope.fail(
       "set",
       "step",
@@ -668,7 +680,8 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
       },
     );
   }
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  const specPath = relativeFlowSpecFile(state);
+  const specDir = resolveSpecDir(path.resolve(root, specPath));
   const targetArtifact = path.join(specDir, TARGET_ARTIFACT_FILE_BY_STEP[stepId]);
   if (latestPlanRewind(state) && !isPlanArtifactFresh(state, targetArtifact, stepId)) {
     return Envelope.fail(
@@ -681,7 +694,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
   const overridePath = repoRelative(root, completionOverridePath(specDir));
   let contract;
   try {
-    contract = contractForStepFromSpecDir({ root, specDir, stepId });
+    contract = contractForStepFromSpecDir({ root, executionRoot, specDir, stepId });
   } catch (err) {
     return Envelope.fail(
       "set",
@@ -693,7 +706,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
           stepId,
           result: "inconsistent",
           reason: err.message,
-          artifactPath: path.posix.join(path.posix.dirname(state.spec.split(path.sep).join("/")), TARGET_ARTIFACT_FILE_BY_STEP[stepId]),
+          artifactPath: path.posix.join(path.posix.dirname(specPath), TARGET_ARTIFACT_FILE_BY_STEP[stepId]),
           overridePath,
         },
       },
@@ -734,7 +747,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
     contract,
     requestedStatus,
     overrideEvidence,
-    deferredEvidence: deferredEvidenceApplies(specDir, contract, state),
+    deferredEvidence: deferredEvidenceApplies(root, specDir, contract, state),
   });
   if (result.kind === "normal" || result.kind === "override" || result.kind === "deferred") return null;
   if (stepId === "acceptance-review") {
@@ -760,6 +773,7 @@ export function validateStepCompletionTransition({ root, state, stepId, requeste
 export function assertStepCompletionTransitionAllowed(ctx, stepId) {
   const fail = validateStepCompletionTransition({
     root: ctx.root,
+    executionRoot: ctx.executionRoot || ctx.root,
     state: ctx.flowState || ctx.flowManager?.load?.(),
     stepId,
     requestedStatus: "done",

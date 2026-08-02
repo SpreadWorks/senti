@@ -100,7 +100,7 @@ export class PreparingFlowStore {
     const state = {
       runId,
       lifecycle: "preparing",
-      spec: null,
+      specId: null,
       baseBranch: null,
       featureBranch: null,
       worktree: null,

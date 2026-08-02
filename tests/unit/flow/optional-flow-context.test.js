@@ -6,7 +6,7 @@ import { FlowCommand } from "../../../src/flow/lib/base-command.js";
 function makeContainerWithAmbiguousActiveFlows() {
   const container = new Container();
   const selectedState = {
-    spec: "specs/002-demo/spec.md",
+    specId: "002-demo",
     runId: "run-002",
     steps: [],
     tasks: [],
@@ -37,7 +37,7 @@ describe("optional flow context resolution", () => {
     let selectedRoot = null;
     const container = new Container();
     const flowManager = {
-      loadPreparingFlow: (runId) => (runId === "preparing-run" ? { runId, issue: 431, spec: null } : null),
+      loadPreparingFlow: (runId) => (runId === "preparing-run" ? { runId, issue: 431, specId: null } : null),
       forRoot: (root) => {
         selectedRoot = root;
         return flowManager;
@@ -72,7 +72,7 @@ describe("optional flow context resolution", () => {
 
     assert.deepEqual(result, { ok: true });
     assert.equal(captured.flowState, null);
-    assert.deepEqual(captured.preparingFlowState, { runId: "preparing-run", issue: 431, spec: null });
+    assert.deepEqual(captured.preparingFlowState, { runId: "preparing-run", issue: 431, specId: null });
     assert.equal(captured.root, "/repo");
     assert.equal(selectedRoot, "/repo");
     assert.equal(loadCalled, false);
@@ -86,7 +86,7 @@ describe("optional flow context resolution", () => {
       forRoot: () => flowManager,
       load: () => {
         loadCalled = true;
-        return { runId: "unrelated-run", issue: 999, spec: "specs/999-unrelated/spec.json" };
+        return { runId: "unrelated-run", issue: 999, specId: "999-unrelated" };
       },
     };
     container.register("paths", { root: "/repo" });

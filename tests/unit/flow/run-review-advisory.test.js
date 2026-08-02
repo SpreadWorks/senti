@@ -98,7 +98,7 @@ describe("draft review advisory routing", () => {
       execFileSync("git", ["config", "user.name", "Senti tests"], { cwd: root });
       execFileSync("git", ["add", "."], { cwd: root });
       execFileSync("git", ["commit", "-q", "-m", "baseline"], { cwd: root });
-      const flowState = moveFlowToStep(makeFlowState({ spec: specPath }), "draft-questions-review");
+      const flowState = moveFlowToStep(makeFlowState({ specId: "demo" }), "draft-questions-review");
       const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
       flowManager.create(flowState);
       const command = new RunReviewCommand({
@@ -171,7 +171,7 @@ describe("spec review advisory verdict", () => {
         root,
         phase: "spec",
         config: { agent: {} },
-        flowState: { spec: "specs/demo/spec.json", metrics: [], steps: [] },
+        flowState: { specId: "demo", metrics: [], steps: [] },
       });
 
       assert.equal(processOptions.timeout, 900_000);
@@ -211,7 +211,7 @@ describe("spec review advisory verdict", () => {
         phase: "spec",
         dryRun: true,
         config: { agent: {} },
-        flowState: { spec: "specs/demo/spec.json", metrics: [], steps: [] },
+        flowState: { specId: "demo", metrics: [], steps: [] },
       });
 
       assert.equal(finalized, false);
@@ -420,7 +420,7 @@ describe("test-review one-shot verdict routing", () => {
       await FLOW_COMMANDS.run.review.post({
         phase: "test",
         root: tmp,
-        flowState: { spec: "specs/demo/spec.json" },
+        flowState: { specId: "demo" },
         flowManager: {
           appendMetric(payload, opts) { toolingMetrics.push({ payload, opts }); },
           updateStepStatus() { throw new Error("TOOLING_ERROR must not complete test-review"); },
@@ -617,7 +617,7 @@ describe("impl review structured verdict routing", () => {
       const previousFingerprint = buildRepairFingerprint({ root, specPath });
       writeRepairFingerprintManifest(specDir, previousFingerprint);
       const flowState = moveFlowToStep(makeFlowState({
-        spec: specPath,
+        specId: "demo",
         repairBaseline: previousFingerprint.baseline.toJSON(),
       }), "impl-review");
       for (const file of ["test-execute-result.json", "test-result-review.json"]) {
@@ -677,7 +677,7 @@ describe("impl review structured verdict routing", () => {
       const previousFingerprint = buildRepairFingerprint({ root, specPath });
       writeRepairFingerprintManifest(specDir, previousFingerprint);
       const flowState = moveFlowToStep(makeFlowState({
-        spec: specPath,
+        specId: "demo",
         repairBaseline: previousFingerprint.baseline.toJSON(),
       }), "impl-review");
       for (const file of ["test-execute-result.json", "test-result-review.json"]) {

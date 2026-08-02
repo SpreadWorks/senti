@@ -101,7 +101,7 @@ describe("persistOverviewUpdate", () => {
       fs.mkdirSync(tasksDir, { recursive: true });
       fs.writeFileSync(path.join(dir, "spec.md"), "existing spec view\n");
       fs.writeFileSync(path.join(dir, "flow.json"), `${JSON.stringify({
-        spec: "specs/foreign/spec.json",
+        specId: "foreign",
         featureBranch: "feature/foreign",
         issue: 999,
       })}\n`);

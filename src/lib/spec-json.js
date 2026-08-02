@@ -160,7 +160,7 @@ export function enumerateUsableRequirementIds(spec) {
  * callers in the status/resume paths never have to guard the read.
  *
  * @param {string} root - repository or worktree root
- * @param {string|null|undefined} specPath - path stored in flow.json (`state.spec`)
+ * @param {string|null|undefined} specPath - resolved path to the active spec.json
  * @returns {Array<{id?: string, desc: string, priority?: string, status: string}>}
  */
 export function loadSpecRequirements(root, specPath) {
@@ -176,7 +176,7 @@ export function loadSpecRequirements(root, specPath) {
  * Throws when the index is out of range or the spec fails schema validation.
  *
  * @param {string} root - repository or worktree root
- * @param {string} specPath - path stored in flow.json (`state.spec`)
+ * @param {string} specPath - resolved path to the active spec.json
  * @param {number} index - 0-based index into spec.requirements
  * @param {string} status - one of the schema-allowed status values
  */

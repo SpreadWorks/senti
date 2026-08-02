@@ -69,7 +69,7 @@ function prepareWorktree(root, { issue, title }) {
     ...prepared,
     root,
     issue,
-    specId: prepared.spec.split("/")[1],
+    specId: prepared.specId,
   };
 }
 
@@ -77,12 +77,12 @@ function targetArgs(flow) {
   return [
     "--expect-run-id", flow.runId,
     ...(flow.issue == null ? ["--expect-no-issue"] : ["--expect-issue", String(flow.issue)]),
-    "--expect-spec", flow.spec,
+    "--expect-spec", flow.specId,
   ];
 }
 
 function readFlowState(flow) {
-  return JSON.parse(fs.readFileSync(path.join(flow.worktreePath, "specs", flow.specId, "flow.json"), "utf8"));
+  return JSON.parse(fs.readFileSync(path.join(flow.root, "specs", flow.specId, "flow.json"), "utf8"));
 }
 
 function snapshotTarget(flow) {
@@ -94,8 +94,8 @@ function snapshotTarget(flow) {
     mainHead,
     worktreeHead,
     path.join(flow.worktreePath, bindingFile),
-    path.join(flow.worktreePath, "specs", flow.specId, "flow.json"),
-    path.join(flow.worktreePath, "specs", flow.specId, "spec.json"),
+    path.join(flow.root, "specs", flow.specId, "flow.json"),
+    path.join(flow.root, "specs", flow.specId, "spec.json"),
   ];
   return Object.fromEntries(files.map((file) => [
     file,
@@ -113,9 +113,9 @@ function snapshotPendingTransition(flow) {
   const files = [
     markerPath,
     path.join(flow.worktreePath, bindingFile),
-    path.join(flow.worktreePath, "specs", flow.specId, "flow.json"),
-    path.join(flow.worktreePath, "specs", flow.specId, ".flow.json.writer.lock"),
-    path.join(flow.worktreePath, "specs", flow.specId, marker.writerOwnerTempName),
+    path.join(flow.root, "specs", flow.specId, "flow.json"),
+    path.join(flow.root, "specs", flow.specId, ".flow.json.writer.lock"),
+    path.join(flow.root, "specs", flow.specId, marker.writerOwnerTempName),
   ];
   return Object.fromEntries(files.map((file) => [
     file,
@@ -167,8 +167,8 @@ describe("worktree command identity", () => {
         "get", "status", flow.runId, ...targetArgs(flow),
       ]));
       assert.deepEqual(
-        { runId: status.runId, issue: status.issue ?? null, spec: status.spec },
-        { runId: flow.runId, issue, spec: flow.spec },
+        { runId: status.runId, issue: status.issue ?? null, specId: status.specId },
+        { runId: flow.runId, issue, specId: flow.specId },
       );
     }
   });
@@ -179,15 +179,15 @@ describe("worktree command identity", () => {
       const flow = prepareWorktree(root, { issue, title: `mismatch-${issue ?? "no-issue"}` });
       fs.writeFileSync(path.join(root, ".senti", ".current-flow"), "999-unrelated\n");
       const cases = issue == null ? [
-        ["--expect-run-id", "wrong-run", "--expect-no-issue", "--expect-spec", flow.spec],
-        ["--expect-run-id", flow.runId, "--expect-issue", "440", "--expect-spec", flow.spec],
-        ["--expect-run-id", flow.runId, "--expect-no-issue", "--expect-spec", "specs/999-wrong/spec.json"],
+        ["--expect-run-id", "wrong-run", "--expect-no-issue", "--expect-spec", flow.specId],
+        ["--expect-run-id", flow.runId, "--expect-issue", "440", "--expect-spec", flow.specId],
+        ["--expect-run-id", flow.runId, "--expect-no-issue", "--expect-spec", "999-wrong"],
       ] : [
-        ["--expect-run-id", "wrong-run", "--expect-issue", "440", "--expect-spec", flow.spec],
-        ["--expect-run-id", flow.runId, "--expect-issue", "999", "--expect-spec", flow.spec],
-        ["--expect-run-id", flow.runId, "--expect-no-issue", "--expect-spec", flow.spec],
-        ["--expect-run-id", flow.runId, "--expect-issue", "440", "--expect-spec", "specs/999-wrong/spec.json"],
-        ["--expect-run-id", "wrong-run", "--expect-issue", "999", "--expect-spec", "specs/999-wrong/spec.json"],
+        ["--expect-run-id", "wrong-run", "--expect-issue", "440", "--expect-spec", flow.specId],
+        ["--expect-run-id", flow.runId, "--expect-issue", "999", "--expect-spec", flow.specId],
+        ["--expect-run-id", flow.runId, "--expect-no-issue", "--expect-spec", flow.specId],
+        ["--expect-run-id", flow.runId, "--expect-issue", "440", "--expect-spec", "999-wrong"],
+        ["--expect-run-id", "wrong-run", "--expect-issue", "999", "--expect-spec", "999-wrong"],
       ];
 
       for (const args of cases) {
@@ -204,7 +204,7 @@ describe("worktree command identity", () => {
         "get", "runtime-log",
         "--expect-run-id", "wrong-runtime-run",
         ...(issue == null ? ["--expect-no-issue"] : ["--expect-issue", String(issue)]),
-        "--expect-spec", flow.spec,
+        "--expect-spec", flow.specId,
         "--format", "json",
       ]);
       assert.notEqual(runtimeMismatch.status, 0);
@@ -219,7 +219,7 @@ describe("worktree command identity", () => {
     const mismatchedTarget = [
       "--expect-run-id", "wrong-required-run",
       "--expect-issue", "999",
-      "--expect-spec", "specs/999-wrong/spec.json",
+      "--expect-spec", "999-wrong",
     ];
 
     for (const command of [
@@ -261,7 +261,7 @@ describe("worktree command identity", () => {
       "--run-id", flow.runId,
       "--expect-run-id", "wrong-run",
       "--expect-issue", "999",
-      "--expect-spec", "specs/999-wrong/spec.json",
+      "--expect-spec", "999-wrong",
     ]);
 
     assert.notEqual(result.status, 0);
@@ -337,8 +337,8 @@ describe("worktree command identity", () => {
       "get", "status", flow.runId, ...targetArgs(flow),
     ]));
     assert.deepEqual(
-      { runId: restarted.runId, issue: restarted.issue ?? null, spec: restarted.spec },
-      { runId: flow.runId, issue: null, spec: flow.spec },
+      { runId: restarted.runId, issue: restarted.issue ?? null, specId: restarted.specId },
+      { runId: flow.runId, issue: null, specId: flow.specId },
     );
 
     const resumed = expectSuccess(runFlow(root, ["resume", "--spec", flow.specId]));
@@ -408,12 +408,12 @@ describe("worktree command identity", () => {
       "get", "status", flow.runId,
       "--expect-run-id", flow.runId,
       "--expect-issue", "440",
-      "--expect-spec", flow.spec,
+      "--expect-spec", flow.specId,
     ]));
     assert.equal(restarted.issue, 440);
   });
 
-  it("retains binding provenance after main becomes state authority", () => {
+  it("retains binding provenance while base remains state authority", () => {
     const root = createProject();
     const bound = prepareWorktree(root, { issue: null, title: "post-merge-bound" });
     const other = prepareWorktree(root, { issue: 441, title: "post-merge-other" });
@@ -437,16 +437,14 @@ describe("worktree command identity", () => {
       mainFlow: fs.readFileSync(mainFlowPath),
       binding: fs.readFileSync(bindingPath),
     };
-    const rejected = runFlow(bound.worktreePath, [
+    const updated = expectSuccess(runFlow(bound.worktreePath, [
       "set", "issue", "440", ...targetArgs(bound),
-    ]);
-    assert.notEqual(rejected.status, 0);
-    assert.equal(
-      rejected.envelope?.errors?.[0]?.code,
-      "WORKTREE_FLOW_BINDING_AUTHORITY_MISMATCH",
-    );
-    assert.deepEqual(fs.readFileSync(mainFlowPath), before.mainFlow);
-    assert.deepEqual(fs.readFileSync(bindingPath), before.binding);
+    ]));
+    assert.equal(updated.issue, 440);
+    assert.notDeepEqual(fs.readFileSync(mainFlowPath), before.mainFlow);
+    assert.notDeepEqual(fs.readFileSync(bindingPath), before.binding);
+    assert.equal(JSON.parse(fs.readFileSync(mainFlowPath, "utf8")).issue, 440);
+    assert.equal(JSON.parse(fs.readFileSync(bindingPath, "utf8")).issue, 440);
   });
 
   it("keeps the modern registry-wide explicit resolver allowlist exact", () => {
@@ -466,6 +464,7 @@ describe("worktree command identity", () => {
       "run.dispatch",
       "run.direct",
       "run.finalize-cleanup",
+      "run.abort",
       "run.start-task",
       "run.complete-task",
     ]);
@@ -481,8 +480,8 @@ describe("worktree command identity", () => {
       expectSuccess(runFlow(flow.worktreePath, ["get", "status"])),
     ]) {
       assert.deepEqual(
-        { runId: result.runId, issue: result.issue, spec: result.spec },
-        { runId: flow.runId, issue: 440, spec: flow.spec },
+        { runId: result.runId, issue: result.issue, specId: result.specId },
+        { runId: flow.runId, issue: 440, specId: flow.specId },
       );
     }
 

@@ -22,7 +22,7 @@ function manager(root, specId = null) {
 
 function state(marker, overrides = {}) {
   return {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
     runId: "run-shared-flow-writer",
@@ -132,11 +132,12 @@ function spawnHolder(root, original, operation, barrier, release) {
 function writeLock(root, processIdentity) {
   const lock = path.join(path.dirname(statePath(root)), ".flow.json.writer.lock");
   fs.writeFileSync(lock, `${JSON.stringify({
-    version: 2,
+    version: 3,
     kind: "flow-state-writer",
     processIdentity,
     root: fs.realpathSync(root),
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
+    specRoot: "specs",
     statePath: fs.realpathSync(statePath(root)),
   }, null, 2)}\n`, { mode: 0o600 });
   return lock;
@@ -247,7 +248,7 @@ describe("Issue #441 shared flow state writer", () => {
 
     for (const [field, value] of [
       ["runId", "run-other"],
-      ["spec", `specs/${OTHER_SPEC_ID}/spec.json`],
+      ["specId", OTHER_SPEC_ID],
       ["issue", 999],
     ]) {
       const before = bytes(statePath(tmp));
@@ -261,7 +262,7 @@ describe("Issue #441 shared flow state writer", () => {
 
     for (const [field, value] of [
       ["runId", "run-other"],
-      ["spec", `specs/${OTHER_SPEC_ID}/spec.json`],
+      ["specId", OTHER_SPEC_ID],
       ["issue", 998],
     ]) {
       const tamperedExpected = fm.load();
@@ -370,7 +371,7 @@ describe("Issue #441 shared flow state writer", () => {
       tmp = createTmpDir(`flow-shared-${holderOperation}-${loserOperation}-`);
       const original = setup(tmp);
       const other = state("untargeted", {
-        spec: `specs/${OTHER_SPEC_ID}/spec.json`,
+        specId: OTHER_SPEC_ID,
         featureBranch: `feature/${OTHER_SPEC_ID}`,
         runId: "run-untargeted",
         issue: 442,

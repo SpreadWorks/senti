@@ -12,6 +12,7 @@ import {
   resolveCurrentReviewTreeSha,
 } from "./review-evidence-store.js";
 import { ReviewDisposition, ReviewEvidence } from "./review-convergence.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const PHASE_BY_REVIEW_STEP = Object.freeze({
   "draft-questions-review": "draft-questions",
@@ -114,19 +115,24 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
         "usage: flow set review-evidence --file <path>",
       );
     }
-    const specDir = resolveSpecDir(path.resolve(ctx.root, ctx.flowState.spec));
+    const specPath = relativeFlowSpecFile(ctx.flowState);
+    const specDir = resolveSpecDir(path.resolve(ctx.root, specPath));
     let input;
     let target;
     try {
       input = ReviewEvidenceInput.fromFile({
-        root: ctx.root,
+        root: ctx.executionRoot || ctx.root,
         specDir,
         inputPath: ctx.file,
       });
-      target = currentReviewTarget(ctx.flowState, resolveCurrentReviewTreeSha(ctx.root, ctx.flowState.spec));
+      target = currentReviewTarget(
+        ctx.flowState,
+        resolveCurrentReviewTreeSha(ctx.executionRoot || ctx.root, specPath),
+      );
       const fingerprint = buildRepairFingerprint({
-        root: ctx.root,
-        specPath: ctx.flowState.spec,
+        root: ctx.executionRoot || ctx.root,
+        artifactRoot: ctx.root,
+        specPath,
         state: ctx.flowState,
       });
       target.targetStateDigest = fingerprint.hash;

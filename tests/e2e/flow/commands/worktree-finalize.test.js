@@ -23,10 +23,17 @@ import { execFileSync, execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
-import { makeFlowState, makeFlowManager, replaceFlowState, setupFlow } from "../../../helpers/flow-setup.js";
+import {
+  makeFlowState,
+  makeFlowManager,
+  replaceFlowState,
+  setupFlow,
+  setupFlowConfig,
+} from "../../../helpers/flow-setup.js";
 import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { FlowOutbox, finalizationOutboxIdentity } from "../../../../src/flow/lib/flow-outbox.js";
 import { WorktreeFlowBindingStore, WorktreeFlowIdentity } from "../../../../src/lib/worktree-flow-binding.js";
+import { FlowManager } from "../../../../src/lib/flow-manager.js";
 
 const FLOW_CMD = path.join(process.cwd(), "src/senti.js");
 
@@ -47,7 +54,7 @@ function initGitRepo(tmp) {
 function setupSpecOnlyFlow(tmp) {
   initGitRepo(tmp);
   const state = makeFlowState({
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "main", // spec-only mode
@@ -118,6 +125,7 @@ function setupConflictWorktree(root, origin) {
   gitFile(["init", "--quiet", "--initial-branch=main"], root);
   gitFile(["config", "user.email", "test@example.com"], root);
   gitFile(["config", "user.name", "Test User"], root);
+  setupFlowConfig(root, "en");
   fs.writeFileSync(path.join(root, "conflict.txt"), "base\n");
   fs.writeFileSync(path.join(root, ".gitignore"), ".tmp/\n.senti/.active-flow\n");
   gitFile(["add", "."], root);
@@ -134,7 +142,7 @@ function setupConflictWorktree(root, origin) {
   gitFile(["push", "--quiet", "origin", "main"], root);
 
   const state = activateFinalizeMerge(makeFlowState({
-    spec: "specs/478-test/spec.json",
+    specId: "478-test",
     runId: "run-478-e2e",
     baseBranch: "main",
     featureBranch: "feature/478",
@@ -147,22 +155,29 @@ function setupConflictWorktree(root, origin) {
       reason: "Acceptance-backed quality handling was selected earlier in this Flow.",
     },
   }));
-  const specDir = path.join(worktree, "specs", "478-test");
+  const specDir = path.join(root, "specs", "478-test");
   fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({ goal: "recover merge", scope: { in: [], out: [] }, requirements: [] }) + "\n");
   fs.writeFileSync(path.join(specDir, "spec.md"), "# spec\n## Goal\nrecover merge\n## Scope\n");
-  setupFlow(worktree, state);
-  gitFile(["add", "."], worktree);
-  gitFile(["commit", "--quiet", "-m", "record flow"], worktree);
+  setupFlow(root, state);
   const bindingPath = path.resolve(worktree, gitFile(["rev-parse", "--git-path", "info/exclude"], worktree).trim());
   fs.appendFileSync(bindingPath, "/.senti/flow-identity.json\n");
   new WorktreeFlowBindingStore({ worktreePath: worktree }).save(new WorktreeFlowIdentity({
     runId: state.runId,
     issue: state.issue,
-    spec: state.spec,
+    specId: state.specId,
     worktreePath: worktree,
   }));
   return { worktree, state };
+}
+
+function sharedWorktreeManager(root, worktree, specId = "478-test") {
+  return new FlowManager({
+    root: worktree,
+    mainRoot: root,
+    inWorktree: true,
+    specId,
+  });
 }
 
 describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () => {
@@ -193,7 +208,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
 
     const pointer = path.join(tmp, ".senti", "last-finalized-spec");
     assert.ok(fs.existsSync(pointer), "last-finalized-spec pointer must be written");
-    assert.match(fs.readFileSync(pointer, "utf8"), /specs\/001-test\/spec\.json/);
+    assert.equal(fs.readFileSync(pointer, "utf8").trim(), "001-test");
 
     const activeFlow = path.join(tmp, ".senti", ".active-flow");
     if (fs.existsSync(activeFlow)) {
@@ -277,13 +292,13 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     assert.notEqual(failed.status, 0, failed.stdout);
     assert.match(`${failed.stdout}\n${failed.stderr}`, /git rebase --continue/);
     assert.deepEqual(
-      gitFile(["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"], worktree)
+      gitFile(["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"], tmp)
         .trim().split("\n").sort(),
       ["specs/478-test/flow.json", "specs/478-test/issue-log.json"],
     );
     assert.equal(gitFile(["status", "--porcelain"], worktree).trim(), "");
 
-    const persistedEntry = makeFlowManager(worktree).load().outbox
+    const persistedEntry = sharedWorktreeManager(tmp, worktree).load().outbox
       .find((entry) => entry.stepId === "finalize-merge");
     assert.equal(persistedEntry.failureHistory.at(-1).code, "MERGE_PRE_SYNC_CONFLICT");
     assert.ok(persistedEntry.failureHistory.at(-1).recovery?.baseHead);
@@ -292,7 +307,7 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     // failure and an already-consumed generic exact-recovery receipt. Keep
     // this fixture so upgrades recover a live stranded Flow, not only new
     // failures written by the revised CLI.
-    makeFlowManager(worktree).mutate((flow) => {
+    sharedWorktreeManager(tmp, worktree).mutate((flow) => {
       const entry = flow.outbox.find((candidate) => candidate.stepId === "finalize-merge");
       const failure = entry.failureHistory.at(-1);
       delete failure.code;
@@ -303,15 +318,15 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
         failure: entry.failure,
       };
     });
-    gitFile(["add", "specs/478-test/flow.json"], worktree);
-    gitFile(["commit", "--quiet", "-m", "test: retain legacy finalize recovery"], worktree);
+    gitFile(["add", "specs/478-test/flow.json"], tmp);
+    gitFile(["commit", "--quiet", "-m", "test: retain finalize recovery fixture"], tmp);
 
     const repair = runCliResult(["get", "next-action"], worktree);
     assert.equal(repair.status, 0, `${repair.stdout}\n${repair.stderr}`);
     const repairEnvelope = JSON.parse(repair.stdout);
     assert.equal(repairEnvelope.data.directive.kind, "repair_evidence");
     assert.equal(repairEnvelope.data.directive.actionId, "REPAIR_FINALIZE_MERGE_REBASE");
-    const failedEntry = makeFlowManager(worktree).load().outbox
+    const failedEntry = sharedWorktreeManager(tmp, worktree).load().outbox
       .find((entry) => entry.stepId === "finalize-merge");
     assert.equal(failedEntry.exactRecoveryReceipt.recoveryKey, undefined, "legacy retry receipt remains unaltered before rebase repair");
 
@@ -328,9 +343,13 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
     const recovery = runCliResult(["get", "next-action"], worktree);
     assert.equal(recovery.status, 0, `${recovery.stdout}\n${recovery.stderr}`);
     const recoveryEnvelope = JSON.parse(recovery.stdout);
-    assert.equal(recoveryEnvelope.data.directive.kind, "execute_command");
+    assert.equal(
+      recoveryEnvelope.data.directive.kind,
+      "execute_command",
+      JSON.stringify(recoveryEnvelope, null, 2),
+    );
     assert.equal(recoveryEnvelope.data.directive.actionId, "RECOVER_FINALIZE_MERGE_OUTBOX");
-    const reopenedEntry = makeFlowManager(worktree).load().outbox
+    const reopenedEntry = sharedWorktreeManager(tmp, worktree).load().outbox
       .find((entry) => entry.stepId === "finalize-merge");
     assert.ok(reopenedEntry.exactRecoveryReceipt, "resolved rebase grants the exact retry");
 

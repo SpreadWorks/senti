@@ -21,6 +21,7 @@ import {
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -83,9 +84,10 @@ function aggregate(requirements, summary) {
 export class RunRetroCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const dryRun = ctx.dryRun || false;
     const state = ctx.flowState;
-    const specPath = state.spec;
+    const specPath = relativeFlowSpecFile(state);
     const specDir = resolveSpecDir(path.resolve(root, specPath));
     const retroPath = path.join(specDir, RETRO_FILE);
 
@@ -108,7 +110,12 @@ export class RunRetroCommand extends FlowCommand {
         `${TEST_EXECUTE_RESULT_FILE} not found at ${path.relative(root, resultPath)}: test-execute step has not been run`,
       );
     }
-    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
+    ensureRepairFingerprintContract({
+      root: executionRoot,
+      artifactRoot: root,
+      state,
+      flowManager: ctx.flowManager,
+    });
 
     const review = readJson(reviewPath);
     if (review.verdict !== "pass") {
@@ -121,7 +128,12 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     const result = readJson(resultPath);
-    const fingerprint = buildRepairFingerprint({ root, specPath, state });
+    const fingerprint = buildRepairFingerprint({
+      root: executionRoot,
+      artifactRoot: root,
+      specPath,
+      state,
+    });
     const staleEvidence = StaleTestEvidenceMismatch.detect({
       artifacts: new Map([
         [TEST_EXECUTE_RESULT_FILE, result],
@@ -131,7 +143,7 @@ export class RunRetroCommand extends FlowCommand {
     });
     if (staleEvidence) {
       const refresh = staleEvidence.recoverFromCurrentAuthority({
-        root,
+        root: executionRoot,
         state,
         specDir,
         flowManager: ctx.flowManager,

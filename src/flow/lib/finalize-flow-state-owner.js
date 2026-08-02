@@ -1,19 +1,12 @@
 import path from "node:path";
 
 import { FlowManager } from "../../lib/flow-manager.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
-import {
-  FlowOutbox,
-  FlowOutboxEntry,
-  FlowOutboxStore,
-  finalizationOutboxIdentity,
-} from "./flow-outbox.js";
-import { flattenSteps } from "./step-tree.js";
+import { FlowOutboxStore } from "./flow-outbox.js";
 
 /**
- * Owns every finalize lifecycle mutation. Before merge it binds the active
- * worktree authority; after merge it is explicitly promoted to the main
- * repository. Callers cannot independently choose a flow.json writer.
+ * Owns every finalize lifecycle mutation against the single base-side
+ * flow-state authority. Callers cannot independently choose a flow.json
+ * writer based on the execution checkout.
  */
 export class FinalizeFlowStateOwner {
   constructor({ flowManager, authorityRoot, mainRepoPath, specId }) {
@@ -45,7 +38,7 @@ export class FinalizeFlowStateOwner {
 
   static fromContext(ctx) {
     if (!ctx?.flowManager) throw new Error("finalize flow-state owner requires a flow context");
-    const specId = ctx.specId || specIdFromPath(ctx.flowState?.spec);
+    const specId = ctx.specId || ctx.flowState?.specId;
     const mainRepoPath = ctx.mainRoot || ctx.flowManager._mainRoot || ctx.root;
     const authorityRoot = ctx.root || ctx.flowManager._root;
     const flowManager = typeof ctx.flowManager._root !== "string"
@@ -62,7 +55,7 @@ export class FinalizeFlowStateOwner {
 
   static forMainContext(ctx) {
     if (!ctx?.flowManager) throw new Error("finalize main flow-state owner requires a flow context");
-    const specId = ctx.specId || specIdFromPath(ctx.flowState?.spec);
+    const specId = ctx.specId || ctx.flowState?.specId;
     const existing = ctx.finalizeFlowStateOwner
       || ctx.finalizeCleanupStateResolution?.stateOwner;
     if (existing instanceof FinalizeFlowStateOwner) {
@@ -154,7 +147,7 @@ export class FinalizeFlowStateOwner {
 
   activeFlowIsCleared() {
     return !this.flowManager.loadActiveFlows()
-      .some((entry) => entry.spec === this.specId);
+      .some((entry) => entry.specId === this.specId);
   }
 
   restoreState(snapshot, { operationOwnerToken = null } = {}) {
@@ -165,38 +158,4 @@ export class FinalizeFlowStateOwner {
     });
   }
 
-  mergeWorktreeMetadata(worktreeState, { operationOwnerToken = null } = {}) {
-    const worktreeSteps = flattenSteps(worktreeState.steps || []);
-    const worktreeOutbox = new FlowOutbox(worktreeState.outbox || []);
-    return this.mutate((mainState) => {
-      const mainSteps = flattenSteps(mainState.steps || []);
-      for (const worktreeStep of worktreeSteps) {
-        if (!worktreeStep.runtimeLog) continue;
-        const mainStep = mainSteps.find((step) => step.id === worktreeStep.id);
-        if (!mainStep) continue;
-        const mainSequence = mainStep.runtimeLog?.sequence;
-        const worktreeSequence = worktreeStep.runtimeLog.sequence;
-        if (
-          !mainStep.runtimeLog
-          || (
-            Number.isSafeInteger(worktreeSequence)
-            && worktreeSequence > mainSequence
-          )
-        ) {
-          mainStep.runtimeLog = { ...worktreeStep.runtimeLog };
-        }
-      }
-
-      const cleanupIdentity = finalizationOutboxIdentity(
-        worktreeState,
-        "finalize-cleanup",
-      );
-      const cleanupEntry = worktreeOutbox.find(cleanupIdentity);
-      if (cleanupEntry instanceof FlowOutboxEntry) {
-        const mainOutbox = new FlowOutbox(mainState.outbox || []);
-        mainOutbox.merge(cleanupEntry);
-        mainState.outbox = mainOutbox.toJSON();
-      }
-    }, { operationOwnerToken });
-  }
 }

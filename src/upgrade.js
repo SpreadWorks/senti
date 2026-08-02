@@ -37,6 +37,11 @@ import { normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
 import { DEFAULT_SCAN_POLICY, FileTreeWalker } from "./lib/file-tree-walker.js";
 import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.js";
+import {
+  DEFAULT_FLOW_SPEC_DIR,
+  flowSpecRootFromConfig,
+  relativeFlowSpecFile,
+} from "./lib/flow-workspace.js";
 
 class RenameRule {
   constructor(from, to) {
@@ -53,6 +58,11 @@ export class RenameMigration {
   constructor(root, { walker = new FileTreeWalker(DEFAULT_SCAN_POLICY) } = {}) {
     this.root = root;
     this.walker = walker;
+    try {
+      this.specRoot = flowSpecRootFromConfig(loadConfig(root)).toString();
+    } catch (_) {
+      this.specRoot = DEFAULT_FLOW_SPEC_DIR;
+    }
     this.textRules = [
       new RenameRule(".sdd-forge", ".senti"),
       new RenameRule("senti-forge", "senti"),
@@ -199,7 +209,7 @@ export class RenameMigration {
     if (rel === ".git" || rel.startsWith(".git/")) return true;
     if (segments.includes("node_modules")) return true;
     if (rel === "docs" || rel.startsWith("docs/")) return true;
-    if (rel === "specs" || rel.startsWith("specs/")) return true;
+    if (rel === this.specRoot || rel.startsWith(`${this.specRoot}/`)) return true;
     if (rel === ".tmp" || rel.startsWith(".tmp/")) return true;
     if (rel.startsWith(".claude/projects/")) return true;
     if (rel.startsWith(".sdd-forge/worktree/")) return true;
@@ -260,10 +270,10 @@ function resolveActiveUpgradeFlow(root) {
   if (!container.has("flowManager")) return null;
   try {
     const state = container.get("flowManager").load();
-    if (!state?.spec || !state.baseBranch) return null;
+    if (!state?.specId || !state.baseBranch) return null;
     return {
       state,
-      specDir: path.dirname(path.resolve(root, state.spec)),
+      specDir: path.dirname(path.resolve(root, relativeFlowSpecFile(state))),
     };
   } catch (_) {
     return null;

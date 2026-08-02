@@ -23,6 +23,7 @@ import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLi
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { FlowSpecId } from "../../lib/flow-spec-id.js";
+import { bindFlowStateLocation } from "../../lib/flow-workspace.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { ProcessIdentity, ProcessIdentitySource } from "../../lib/process-identity.js";
@@ -51,7 +52,7 @@ const WORKTREE_FLOW_INTERNAL_IGNORES = Object.freeze([
 ]);
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const WORKTREE_PREPARE_ATTEMPT_FILE = ".worktree-prepare-attempt.json";
-const WORKTREE_PREPARE_ATTEMPT_VERSION = 1;
+const WORKTREE_PREPARE_ATTEMPT_VERSION = 2;
 const WORKTREE_PREPARE_ATTEMPT_KEYS = Object.freeze([
   "version",
   "attemptId",
@@ -61,7 +62,7 @@ const WORKTREE_PREPARE_ATTEMPT_KEYS = Object.freeze([
   "request",
   "branchName",
   "worktreePath",
-  "spec",
+  "specId",
   "expectedOid",
   "preparingPath",
   "preparingBefore",
@@ -79,7 +80,7 @@ function reportWorktreePrepareCheckpoint(ctx, phase, attempt) {
     phase,
     worktreePath: attempt.worktreePath,
     branchName: attempt.branchName,
-    spec: attempt.spec,
+    specId: attempt.specId,
   });
 }
 
@@ -97,8 +98,7 @@ function slugify(input) {
     .slice(0, 48);
 }
 
-function nextIndex(root) {
-  const specsDir = path.join(root, "specs");
+function nextIndex(root, specsDir) {
   let max = 0;
 
   if (fs.existsSync(specsDir)) {
@@ -420,15 +420,11 @@ class WorktreePrepareAttemptRecord {
     if (!path.isAbsolute(value.worktreePath) || path.resolve(value.worktreePath) !== value.worktreePath) {
       throw new Error("worktree prepare attempt worktree path is invalid");
     }
-    const specMatch = /^specs\/([^/]+)\/spec\.json$/.exec(value.spec);
-    if (!specMatch) {
-      throw new Error("worktree prepare attempt spec is invalid");
-    }
-    FlowSpecId.from(specMatch[1]);
+    FlowSpecId.from(value.specId);
     if (!GIT_OBJECT_ID.test(value.expectedOid)) {
       throw new Error("worktree prepare attempt expected OID is invalid");
     }
-    if (!SAFE_RUN_ID.test(value.runId) || value.branchName !== `feature/${specMatch[1]}`) {
+    if (!SAFE_RUN_ID.test(value.runId) || value.branchName !== `feature/${value.specId}`) {
       throw new Error("worktree prepare attempt run or branch is invalid");
     }
     if (value.issue !== null && (!Number.isSafeInteger(value.issue) || value.issue < 1)) {
@@ -471,8 +467,7 @@ class WorktreePrepareAttemptRecord {
     this.request = value.request;
     this.branchName = value.branchName;
     this.worktreePath = value.worktreePath;
-    this.spec = value.spec;
-    this.specDirName = value.spec.split("/")[1];
+    this.specId = value.specId;
     this.expectedOid = value.expectedOid;
     this.preparingPath = value.preparingPath;
     this.preparingBefore = decodedBytes(value.preparingBefore, "preparing before-image");
@@ -486,7 +481,7 @@ class WorktreePrepareAttemptRecord {
     Object.freeze(this);
   }
 
-  static create({ mainRoot, runId, issue, request, branchName, worktreePath, spec, expectedOid, processIdentitySource }) {
+  static create({ mainRoot, runId, issue, request, branchName, worktreePath, specId, expectedOid, processIdentitySource }) {
     const attemptId = crypto.randomUUID();
     const preparingPath = path.join(sentiDir(mainRoot), `.active-flow.${runId}`);
     const rawExclude = runGitTrim(mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
@@ -502,7 +497,7 @@ class WorktreePrepareAttemptRecord {
       request,
       branchName,
       worktreePath,
-      spec,
+      specId,
       expectedOid,
       preparingPath,
       preparingBefore: encodedBytes(preparingBefore),
@@ -523,7 +518,7 @@ class WorktreePrepareAttemptRecord {
       request: this.request,
       branchName: this.branchName,
       worktreePath: this.worktreePath,
-      spec: this.spec,
+      specId: this.specId,
       expectedOid: this.expectedOid,
       preparingPath: this.preparingPath,
       preparingBefore: encodedBytes(this.preparingBefore),
@@ -599,7 +594,10 @@ class WorktreePrepareAttemptJournal {
     if (gitRefOid(this.mainRoot, record.branchName) != null) {
       throw new Error("worktree prepare attempt branch already exists before journal publication");
     }
-    if (flowManager.loadActiveFlows().some((entry) => entry.spec === record.specDirName)) {
+    if (fs.existsSync(flowManager.specLocation(record.specId).directory)) {
+      throw new Error("worktree prepare spec directory exists before journal publication");
+    }
+    if (flowManager.loadActiveFlows().some((entry) => entry.specId === record.specId)) {
       throw new Error("worktree prepare active-flow entry exists before journal publication");
     }
     fs.mkdirSync(path.dirname(this.path), { recursive: true });
@@ -648,7 +646,7 @@ class WorktreePrepareAttemptJournal {
   rollback(record, flowManager, operationOwnerToken) {
     const authority = this.#validateRollback(record, flowManager);
     if (authority.registryOwned) {
-      flowManager.removeActiveFlow(record.specDirName, { operationOwnerToken });
+      flowManager.removeActiveFlow(record.specId, { operationOwnerToken });
     }
     if (authority.preparingMissing && record.preparingBefore != null) {
       new AtomicFile(record.preparingPath).write(record.preparingBefore);
@@ -660,6 +658,10 @@ class WorktreePrepareAttemptJournal {
       } else {
         new AtomicFile(record.excludePath).write(record.excludeBefore);
       }
+    }
+    if (authority.specDirectoryOwned) {
+      fs.rmSync(authority.specDirectory, { recursive: true });
+      fsyncDirectory(path.dirname(authority.specDirectory));
     }
     if (authority.worktree) {
       const removed = runGit(["-C", this.mainRoot, "worktree", "remove", "--force", record.worktreePath]);
@@ -688,7 +690,7 @@ class WorktreePrepareAttemptJournal {
     if (!snapshot || snapshot.record.attemptId !== record.attemptId) {
       throw new Error("worktree prepare attempt journal ownership changed before rollback");
     }
-    const matches = flowManager.loadActiveFlows().filter((entry) => entry.spec === record.specDirName);
+    const matches = flowManager.loadActiveFlows().filter((entry) => entry.specId === record.specId);
     if (matches.length > 1 || (matches.length === 1 && matches[0].mode !== "worktree")) {
       throw new Error("active-flow authority changed before prepare attempt rollback");
     }
@@ -717,35 +719,33 @@ class WorktreePrepareAttemptJournal {
     if (!worktree && branchOid != null && branchOid !== record.expectedOid) {
       throw new Error("worktree prepare attempt branch authority changed from expected OID");
     }
+    const specDirectory = flowManager.specLocation(record.specId).directory;
+    const flowPath = flowManager.pathFor(record.specId);
+    const flowBytes = optionalBytes(flowPath);
+    if (flowBytes != null) {
+      const flow = JSON.parse(flowBytes.toString("utf8"));
+      const flowIssue = Object.hasOwn(flow, "issue") ? flow.issue : null;
+      if (
+        flow.runId !== record.runId
+        || flowIssue !== record.issue
+        || flow.specId !== record.specId
+        || flow.worktree !== true
+      ) {
+        throw new Error("worktree prepare flow authority changed before rollback");
+      }
+    }
     if (worktree) {
       const bindingPath = path.join(record.worktreePath, ".senti", "flow-identity.json");
-      const flowPath = path.join(
-        record.worktreePath,
-        record.spec.replace(/\/spec\.json$/, "/flow.json"),
-      );
       const bindingBytes = optionalBytes(bindingPath);
-      const flowBytes = optionalBytes(flowPath);
       if (bindingBytes != null) {
         const binding = JSON.parse(bindingBytes.toString("utf8"));
         if (
           binding.runId !== record.runId
           || binding.issue !== record.issue
-          || binding.spec !== record.spec
+          || binding.specId !== record.specId
           || binding.worktreePath !== record.worktreePath
         ) {
           throw new Error("worktree prepare binding authority changed before rollback");
-        }
-      }
-      if (flowBytes != null) {
-        const flow = JSON.parse(flowBytes.toString("utf8"));
-        const flowIssue = Object.hasOwn(flow, "issue") ? flow.issue : null;
-        if (
-          flow.runId !== record.runId
-          || flowIssue !== record.issue
-          || flow.spec !== record.spec
-          || flow.worktree !== true
-        ) {
-          throw new Error("worktree prepare flow authority changed before rollback");
         }
       }
     }
@@ -753,6 +753,8 @@ class WorktreePrepareAttemptJournal {
       registryOwned: matches.length === 1,
       preparingMissing: preparing == null,
       excludePublished,
+      specDirectory,
+      specDirectoryOwned: fs.existsSync(specDirectory),
       worktree,
     };
   }
@@ -789,17 +791,19 @@ function ensureWorktreeFlowIdentityIgnored(worktreePath, journal, record) {
 }
 
 export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true, issue = null }) {
-  const specDirName = "001-plugin-hook-snapshot-fixture";
-  const specDir = path.join(root, "specs", specDirName);
+  const specId = "001-plugin-hook-snapshot-fixture";
+  const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+  const location = manager.specLocation(specId);
+  const specDir = location.directory;
   fs.mkdirSync(specDir, { recursive: true });
   const flowPath = path.join(specDir, "flow.json");
   const plans = await hookSnapshotFor(root);
   let featureBranch = null;
-  if (!noBranch) featureBranch = `feature/${specDirName}`;
+  if (!noBranch) featureBranch = `feature/${specId}`;
   const runId = `fixture-${Date.now()}`;
   const repairBaseline = captureRepairBaseline({ root, baseRef: "HEAD", runId });
   const state = {
-    spec: `specs/${specDirName}/spec.json`,
+    specId,
     baseBranch: "main",
     featureBranch,
     runId,
@@ -814,11 +818,12 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
     title,
     plugins: { flowCommandHooks: plans },
   };
-  new FlowManager({ root, mainRoot: root, inWorktree: false }).create(state);
+  manager.create(state);
   const lifecycle = await runFlowCommandWithPluginLifecycle(root, plans, {
     command: "prepare",
-    flow: state,
-    main: async () => ({ ok: true, data: { issue: state.issue, spec: state.spec, runId: state.runId } }),
+    flow: { ...state, specRoot: location.relativeRoot },
+    artifactRepositoryRoot: root,
+    main: async () => ({ ok: true, data: { issue: state.issue, specId: state.specId, runId: state.runId } }),
   });
   return { flowPath: path.relative(root, flowPath).split(path.sep).join("/"), lifecycle };
 }
@@ -830,6 +835,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
   async execute(ctx) {
     const { root, flowManager } = ctx;
+    const currentExecutionRoot = fs.realpathSync(ctx.executionRoot || root);
 
     let title = ctx.title || "";
     const base = ctx.base || "";
@@ -860,7 +866,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       }
       issue = retryAttempt.issue;
       request = retryAttempt.request;
-      if (!title) title = retryAttempt.specDirName.replace(/^[0-9]{3}-/, "");
+      if (!title) title = retryAttempt.specId.replace(/^[0-9]{3}-/, "");
     } else {
       ({ issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request));
     }
@@ -874,7 +880,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
           active: {
             runId: ctx.flowState.runId || null,
             issue: ctx.flowState.issue || null,
-            spec: ctx.flowState.spec || null,
+            specId: ctx.flowState.specId || null,
           },
         },
       );
@@ -889,7 +895,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
           active: {
             runId: ctx.flowState.runId || null,
             issue: ctx.flowState.issue || null,
-            spec: ctx.flowState.spec || null,
+            specId: ctx.flowState.specId || null,
           },
           requested: {
             runId: runIdArg,
@@ -907,20 +913,20 @@ export class RunPrepareSpecCommand extends FlowCommand {
     if (!config) {
       throw new Error("config.json not found");
     }
-    const resolvedBase = base || detectBaseBranch(root);
+    const resolvedBase = base || detectBaseBranch(currentExecutionRoot);
 
     // Determine branching strategy
-    const inWorktree = isInsideWorktree(root);
+    const inWorktree = isInsideWorktree(currentExecutionRoot);
     const skipBranch = noBranch || inWorktree;
     const useWorktree = !skipBranch && useWorktreeFlag;
 
     // Dirty worktree only matters for the `git checkout -b` path: switching
     // branches in-place would drag uncommitted changes into the new branch.
     // `git worktree add` creates an isolated checkout from the base branch
-    // tip, and `skipBranch` only writes new files under specs/<idx>-<slug>/ —
+    // tip, and `skipBranch` only writes new files under the configured spec root —
     // both cases leave existing dirty files untouched.
     if (!dryRun && !skipBranch && !useWorktree) {
-      const { dirty, dirtyFiles } = getWorktreeStatus(root);
+      const { dirty, dirtyFiles } = getWorktreeStatus(currentExecutionRoot);
       const blockingDirtyFiles = dirtyFiles.filter((file) => {
         const rel = file.replace(/^[ AMDRCU?!]{2}\s+/, "");
         return !rel.startsWith(".tmp/");
@@ -929,7 +935,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         throw new Error(`dirty worktree: ${blockingDirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
       }
     }
-    if (!skipBranch) ensureBaseBranch(root, resolvedBase);
+    if (!skipBranch) ensureBaseBranch(currentExecutionRoot, resolvedBase);
 
     const slug = slugify(title) || "feature";
     const attemptJournal = !dryRun && useWorktree
@@ -940,7 +946,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       (!runIdArg || pendingAttempt.runId !== runIdArg)
       || pendingAttempt.issue !== (issue ? Number(issue) : null)
       || pendingAttempt.request !== request
-      || !pendingAttempt.specDirName.endsWith(`-${slug}`)
+      || !pendingAttempt.specId.endsWith(`-${slug}`)
     )) {
       throw new Error("stale worktree prepare attempt does not match this exact retry target");
     }
@@ -948,21 +954,22 @@ export class RunPrepareSpecCommand extends FlowCommand {
       throw new Error("stale worktree prepare attempt base revision does not match this exact retry target");
     }
     const idx = pendingAttempt
-      ? pendingAttempt.specDirName.slice(0, 3)
-      : String(nextIndex(root)).padStart(3, "0");
+      ? pendingAttempt.specId.slice(0, 3)
+      : String(nextIndex(root, (ctx.specRoot ?? flowManager.specRoot).resolve(mainRoot))).padStart(3, "0");
     const branchName = `feature/${idx}-${slug}`;
-    const specDirName = `${idx}-${slug}`;
+    const specId = `${idx}-${slug}`;
 
     // Determine where spec files live
     const worktreePath = useWorktree
       ? path.join(sentiDir(root), "worktree", branchName.replace(/\//g, "-"))
       : null;
-    const specRoot = useWorktree ? worktreePath : root;
-    const specDir = path.join(specRoot, "specs", specDirName);
+    const executionRoot = useWorktree ? worktreePath : currentExecutionRoot;
+    const specLocation = flowManager.specLocation(specId);
+    const specDir = specLocation.directory;
     const draftPath = path.join(specDir, "draft.json");
 
     if (!dryRun && useWorktree) {
-      const requiredFileIssues = checkRequiredWorktreeBranchFiles(root, resolvedBase);
+      const requiredFileIssues = checkRequiredWorktreeBranchFiles(currentExecutionRoot, resolvedBase);
       if (requiredFileIssues.length > 0) {
         return requiredWorktreeFilesEnvelope(requiredFileIssues);
       }
@@ -973,13 +980,13 @@ export class RunPrepareSpecCommand extends FlowCommand {
       return {
         result: "dry-run",
         changed: [],
-        artifacts: { specDir: `specs/${specDirName}`, branch: branchName, worktree: worktreePath, mode },
+        artifacts: { specDir: specLocation.relativeDirectory, branch: branchName, worktree: worktreePath, mode },
         next: null,
         output: [
           `[dry-run] mode: ${mode}`,
           `[dry-run] base: ${resolvedBase}`,
           `[dry-run] branch: ${branchName}`,
-          `[dry-run] spec dir: specs/${specDirName}`,
+          `[dry-run] spec dir: ${specLocation.relativeDirectory}`,
         ].join("\n"),
       };
     }
@@ -1023,12 +1030,12 @@ export class RunPrepareSpecCommand extends FlowCommand {
     // Helper: write flow.json state
     const flowRunId = runIdArg || pendingAttempt?.runId || flowManager.generateRunId();
     recoverRepairBaselinePublications({
-      root,
+      root: currentExecutionRoot,
       mainRoot,
       excludeRunId: flowRunId,
     });
     repairBaselinePublication = beginRepairBaselinePublication({
-      root,
+      root: currentExecutionRoot,
       mainRoot,
       baseRef: resolvedBase,
       runId: flowRunId,
@@ -1055,7 +1062,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         draftStep.startedAt = new Date().toISOString();
       }
       const state = {
-        spec: `specs/${specDirName}/spec.json`,
+        specId,
         baseBranch: resolvedBase,
         featureBranch: branchName,
         runId: flowRunId,
@@ -1074,14 +1081,16 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...extra,
       };
       try {
-        state.plugins = { flowCommandHooks: await hookSnapshotFor(specRoot) };
+        bindFlowStateLocation(state, specLocation);
+        state.plugins = { flowCommandHooks: await hookSnapshotFor(executionRoot) };
         const createdSourceFiles = writePrepareFiles();
-        const lifecycle = await runFlowCommandWithPluginLifecycle(specRoot, state.plugins.flowCommandHooks, {
+        const lifecycle = await runFlowCommandWithPluginLifecycle(executionRoot, state.plugins.flowCommandHooks, {
           command: "prepare",
-          flow: state,
+          flow: { ...state, specRoot: specLocation.relativeRoot },
+          artifactRepositoryRoot: mainRoot,
           main: async () => {
-            flowManager.forRoot(specRoot).create(state, { operationOwnerToken });
-            return { ok: true, data: { issue: state.issue, spec: state.spec, runId: state.runId } };
+            flowManager.forRoot(executionRoot, { specId }).create(state, { operationOwnerToken });
+            return { ok: true, data: { issue: state.issue, specId: state.specId, runId: state.runId } };
           },
         });
         if (!lifecycle.ok) {
@@ -1099,15 +1108,15 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     const changed = [
-      `specs/${specDirName}/spec.json`,
-      `specs/${specDirName}/draft.json`,
+      specLocation.relativeSpecFile,
+      specLocation.relativeArtifact("draft.json"),
     ];
     const createdFileLines = [
-      `created spec source: specs/${specDirName}/spec.json`,
-      `created draft: specs/${specDirName}/draft.json`,
+      `created spec source: ${specLocation.relativeSpecFile}`,
+      `created draft: ${specLocation.relativeArtifact("draft.json")}`,
     ];
     const fillAndGateNext = [
-      `fill specs/${specDirName}/draft.json`,
+      `fill ${specLocation.relativeArtifact("draft.json")}`,
       `run: senti flow run gate --phase draft`,
       `start implementation`,
     ];
@@ -1117,7 +1126,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       let worktreeAttempt = null;
       let attemptPublished = false;
       try {
-        const expectedWorktreeOid = runGitTrim(root, ["rev-parse", resolvedBase]);
+        const expectedWorktreeOid = runGitTrim(currentExecutionRoot, ["rev-parse", resolvedBase]);
         worktreeAttempt = WorktreePrepareAttemptRecord.create({
           mainRoot,
           runId: flowRunId,
@@ -1125,27 +1134,27 @@ export class RunPrepareSpecCommand extends FlowCommand {
           request,
           branchName,
           worktreePath,
-          spec: `specs/${specDirName}/spec.json`,
+          specId,
           expectedOid: expectedWorktreeOid,
           processIdentitySource: attemptJournal.processIdentitySource,
         });
         attemptJournal.begin(worktreeAttempt, flowManager);
         attemptPublished = true;
         reportWorktreePrepareCheckpoint(ctx, "after-journal-publication", worktreeAttempt);
-        runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
+        runGitTrim(mainRoot, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
         attemptJournal.assertGitCreated(worktreeAttempt);
         reportWorktreePrepareCheckpoint(ctx, "after-worktree-add", worktreeAttempt);
         ensureWorktreeFlowIdentityIgnored(worktreePath, attemptJournal, worktreeAttempt);
         reportWorktreePrepareCheckpoint(ctx, "after-exclusion-registration", worktreeAttempt);
-        syncPluginRuntimeToWorktree(root, worktreePath);
+        syncPluginRuntimeToWorktree(currentExecutionRoot, worktreePath);
         await onHook("PostWorktree", { CWD: worktreePath });
         await writeFlowState({ worktree: true }, writeSpecFiles);
         reportWorktreePrepareCheckpoint(ctx, "after-planning-state-publication", worktreeAttempt);
-        runDocsScanAndValidate(specRoot);
+        runDocsScanAndValidate(executionRoot);
         const identity = new WorktreeFlowIdentity({
           runId: flowRunId,
           issue: issue ? Number(issue) : null,
-          spec: `specs/${specDirName}/spec.json`,
+          specId,
           worktreePath,
         });
         new WorktreeFlowBindingStore({
@@ -1162,7 +1171,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         }
         resolvedIdentity.assertFlowState(worktreeManager.load(resolvedIdentity.specId));
         flowManager.cleanStaleFlows({ operationOwnerToken });
-        flowManager.addActiveFlow(specDirName, "worktree", { operationOwnerToken });
+        flowManager.addActiveFlow(specId, "worktree", { operationOwnerToken });
         reportWorktreePrepareCheckpoint(ctx, "after-registry-publication", worktreeAttempt);
         if (runIdArg) flowManager.deletePreparingFlow(runIdArg);
         reportWorktreePrepareCheckpoint(ctx, "after-preparing-flow-removal", worktreeAttempt);
@@ -1173,7 +1182,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         if (attemptPublished) {
           try {
             attemptJournal.rollback(worktreeAttempt, flowManager, operationOwnerToken);
-            rollbackRepairBaselinePublication({ root, mainRoot, publication: repairBaselinePublication });
+            rollbackRepairBaselinePublication({ root: currentExecutionRoot, mainRoot, publication: repairBaselinePublication });
           } catch (rollbackError) {
             throw new AggregateError(
               [publicationError, rollbackError],
@@ -1196,8 +1205,8 @@ export class RunPrepareSpecCommand extends FlowCommand {
     } else if (skipBranch) {
       flowManager.cleanStaleFlows({ operationOwnerToken });
       await writeFlowState({}, writeSpecFiles);
-      runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "local", { operationOwnerToken });
+      runDocsScanAndValidate(executionRoot);
+      flowManager.addActiveFlow(specId, "local", { operationOwnerToken });
       lines.push(
         ...createdFileLines,
         "",
@@ -1206,10 +1215,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     } else {
       flowManager.cleanStaleFlows({ operationOwnerToken });
-      runGitTrim(root, ["checkout", "-b", branchName, resolvedBase]);
+      runGitTrim(currentExecutionRoot, ["checkout", "-b", branchName, resolvedBase]);
       await writeFlowState({}, writeSpecFiles);
-      runDocsScanAndValidate(specRoot);
-      flowManager.addActiveFlow(specDirName, "branch", { operationOwnerToken });
+      runDocsScanAndValidate(executionRoot);
+      flowManager.addActiveFlow(specId, "branch", { operationOwnerToken });
       lines.push(
         `created branch: ${branchName} (from ${resolvedBase})`,
         ...createdFileLines,
@@ -1227,11 +1236,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
       result: "ok",
       runId: flowRunId,
       issue: issue ? Number(issue) : null,
-      spec: `specs/${specDirName}/spec.json`,
+      specId,
       worktreePath,
       changed,
       artifacts: {
-        specDir: `specs/${specDirName}`,
+        specDir: specLocation.relativeDirectory,
         branch: branchName,
         worktree: worktreePath,
         mode: useWorktree ? "worktree" : (skipBranch ? "spec-only" : "branch"),
@@ -1242,7 +1251,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     } catch (error) {
       if (repairBaselinePublication && !repairBaselinePublished) {
         try {
-          rollbackRepairBaselinePublication({ root, mainRoot, publication: repairBaselinePublication });
+          rollbackRepairBaselinePublication({ root: currentExecutionRoot, mainRoot, publication: repairBaselinePublication });
         } catch (cleanupError) {
           throw new AggregateError(
             [error, cleanupError],

@@ -2,7 +2,7 @@
  * src/flow/lib/set-issue.js
  *
  * Set the GitHub issue number in flow.json and cache the issue body
- * to specs/<spec>/issue.md (spec 225 R9).
+ * to issue.md under the resolved spec directory (spec 225 R9).
  *
  * ctx.number — issue number (string or number)
  */
@@ -12,7 +12,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 import { fetchNormalizedIssueBody, writeIssueMd } from "./issue-body-cache.js";
-import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 export default class SetIssueCommand extends FlowCommand {
   execute(ctx) {
@@ -42,25 +42,9 @@ export default class SetIssueCommand extends FlowCommand {
       );
     }
 
-    if (
-      ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance
-      && !ctx.worktreeFlowProvenance.stateUsesBindingAuthority
-    ) {
-      return Envelope.fail(
-        "set",
-        "issue",
-        "WORKTREE_FLOW_BINDING_AUTHORITY_MISMATCH",
-        "Issue mutation is unavailable after flow state authority moved away from its bound worktree.",
-        {
-          bindingAuthorityRoot: ctx.worktreeFlowProvenance.identity.worktreePath,
-          stateAuthorityRoot: ctx.worktreeFlowProvenance.stateAuthorityRoot,
-        },
-      );
-    }
-
     ctx.flowManager.setIssue(num, resolveCommandRouteOptions(ctx));
 
-    const specRel = ctx.flowState?.spec;
+    const specRel = ctx.flowState?.specId ? relativeFlowSpecFile(ctx.flowState) : null;
     if (specRel) {
       const body = fetchNormalizedIssueBody(num, ctx.root);
       if (body) {

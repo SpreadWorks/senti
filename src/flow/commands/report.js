@@ -14,6 +14,7 @@ import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
 import { buildBoundedBroadModeHistory } from "../lib/task-scope.js";
 import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
 import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const MAX_REPORT_TASK_ROWS = 100;
 const MAX_REPORT_FIELD_CHARS = 240;
@@ -102,22 +103,22 @@ export class ReportBinding {
     };
   }
 
-  static fromSourcePaths({ root, sourcePaths }) {
+  static fromSourcePaths({ root, artifactRoot = root, sourcePaths }) {
     const target = currentGitTarget(root);
     const sourceArtifacts = sourcePaths.map((sourcePath) => {
-      const absolutePath = path.resolve(root, sourcePath);
+      const absolutePath = path.resolve(artifactRoot, sourcePath);
       const bytes = fs.readFileSync(absolutePath);
       return {
-        path: path.relative(root, absolutePath).split(path.sep).join("/"),
+        path: path.relative(artifactRoot, absolutePath).split(path.sep).join("/"),
         sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
       };
     });
     return new ReportBinding({ ...target, sourceArtifacts });
   }
 
-  static validate(binding, { root, current = null }) {
+  static validate(binding, { root, artifactRoot = root, current = null }) {
     const parsed = new ReportBinding(binding);
-    const normalizedSources = parsed.sourceArtifacts.map((source) => normalizeSourceArtifact(root, source));
+    const normalizedSources = parsed.sourceArtifacts.map((source) => normalizeSourceArtifact(artifactRoot, source));
     const sourcePaths = new Set();
     for (const source of normalizedSources) {
       if (sourcePaths.has(source.path)) throw reportBindingInvalid("source artifact paths must be unique");
@@ -130,7 +131,7 @@ export class ReportBinding {
     for (const source of normalizedSources) {
       let bytes;
       try {
-        bytes = fs.readFileSync(path.resolve(root, source.path));
+        bytes = fs.readFileSync(path.resolve(artifactRoot, source.path));
       } catch {
         throw reportBindingStale(`source artifact is unavailable: ${source.path}`);
       }
@@ -285,7 +286,10 @@ export function generateReport(input) {
 
   // Issue log
   const entries = issueLog?.entries || [];
-  const issueLogData = new IssueLogSummary({ entries, specPath: state?.spec }).toReportData();
+  const issueLogData = new IssueLogSummary({
+    entries,
+    specPath: state?.specId ? relativeFlowSpecFile(state) : null,
+  }).toReportData();
 
   // Metrics (derive from the single source of truth: buildMetricsSummary)
   const summary = buildMetricsSummary(state.metrics || []);

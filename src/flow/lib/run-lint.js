@@ -10,7 +10,7 @@ import { FlowCommand } from "./base-command.js";
 
 export class RunLintCommand extends FlowCommand {
   async execute(ctx) {
-    const { root } = ctx;
+    const root = ctx.executionRoot || ctx.root;
 
     // Resolve base branch from flow state if not provided
     let base = ctx.base || "";

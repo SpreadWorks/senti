@@ -776,8 +776,8 @@ async function runToken(rawArgs, container) {
     usageError(`Unknown format: ${format}`);
   }
 
-  const root = container.get("root");
-  const specsDir = path.join(root, "specs");
+  const root = container.get("mainRoot");
+  const specsDir = container.get("flowSpecRoot").resolve(root);
   const metricsOutputPath = path.join(root, ".senti", "output", "metrics.json");
 
   let specsStat;

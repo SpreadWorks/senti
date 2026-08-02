@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { isDeepStrictEqual } from "node:util";
 
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -509,6 +510,7 @@ class SpecTaskRequirementIndex {
 class MaterialRepairCandidateSet {
   constructor({
     root,
+    artifactRoot = root,
     state,
     issueLog,
     gateArtifact,
@@ -574,11 +576,12 @@ class MaterialRepairCandidateSet {
         ),
       }));
     }
-    const spec = capture(path.resolve(root, state.spec), state.spec).value;
+    const specPath = relativeFlowSpecFile(state);
+    const spec = capture(path.resolve(artifactRoot, specPath), specPath).value;
     const tasks = new SpecTaskRequirementIndex(spec);
     const document = new IssueLogDocument(issueLog);
-    const registry = new RepairArtifactRegistry(state.spec);
-    const specPrefix = `${path.posix.dirname(state.spec.replaceAll("\\", "/"))}/`;
+    const registry = new RepairArtifactRegistry(specPath);
+    const specPrefix = `${path.posix.dirname(specPath)}/`;
     const references = new Map();
     let candidateEntries = 0;
     let aggregateRefs = 0;
@@ -862,7 +865,7 @@ function completeMaterialRepair({
 function flowIdentity(state) {
   return Object.freeze({
     runId: state.runId,
-    spec: state.spec,
+    specId: state.specId,
     hasIssue: Object.hasOwn(state, "issue") && state.issue != null,
     issue: state.issue == null ? null : Number(state.issue),
   });
@@ -871,7 +874,7 @@ function flowIdentity(state) {
 function sameFlowIdentity(left, right) {
   return (
     left.runId === right.runId
-    && left.spec === right.spec
+    && left.specId === right.specId
     && left.hasIssue === right.hasIssue
     && left.issue === right.issue
   );
@@ -880,6 +883,7 @@ function sameFlowIdentity(left, right) {
 class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
   constructor({
     root,
+    artifactRoot,
     specDir,
     specId,
     state,
@@ -893,6 +897,7 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
   }) {
     super();
     this.root = root;
+    this.artifactRoot = artifactRoot;
     this.specDir = specDir;
     this.specId = specId;
     this.originalState = structuredClone(state);
@@ -907,7 +912,7 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
     Object.freeze(this);
   }
 
-  static capture({ root, state, specId, gitRunner = runGit }) {
+  static capture({ root, executionRoot = root, state, specId, gitRunner = runGit }) {
     const files = [];
     const captureFile = (file, label) => {
       const snapshot = SecureBoundedFileSnapshot.capture(file, label);
@@ -923,7 +928,8 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
     };
     try {
       const blockerAuthority = assertFlowLevelImplGateBlocked(state);
-      const specDir = path.dirname(path.resolve(root, state.spec));
+      const specPath = relativeFlowSpecFile(state);
+      const specDir = path.dirname(path.resolve(root, specPath));
       const issueLog = capture(path.join(specDir, ISSUE_LOG), ISSUE_LOG);
       if (!Array.isArray(issueLog.value.entries)) {
         reject("STALE_TEST_EVIDENCE_BLOCKER_MISMATCH", `${ISSUE_LOG} entries must be an array`);
@@ -933,7 +939,7 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
       const execute = capture(path.join(specDir, TEST_EXECUTE_RESULT), TEST_EXECUTE_RESULT);
       const review = capture(path.join(specDir, TEST_RESULT_REVIEW), TEST_RESULT_REVIEW);
       const authority = new StaleTestEvidenceAuthority({
-        specPath: state.spec,
+        specPath,
         executeArtifact: execute.value,
         reviewArtifact: review.value,
       });
@@ -1002,7 +1008,8 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
         }
         gateArtifact ||= capture(path.join(specDir, IMPL_GATE_RESULT), IMPL_GATE_RESULT);
         materialCandidates = new MaterialRepairCandidateSet({
-          root,
+          root: executionRoot,
+          artifactRoot: root,
           state,
           issueLog: issueLog.value,
           gateArtifact,
@@ -1012,7 +1019,12 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
           captureFile,
         });
       }
-      const current = buildRepairFingerprint({ root, specPath: state.spec, state });
+      const current = buildRepairFingerprint({
+        root: executionRoot,
+        artifactRoot: root,
+        specPath,
+        state,
+      });
       if (authority.fingerprint !== previous.hash) {
         reject(
           "STALE_TEST_EVIDENCE_AUTHORITY_MISMATCH",
@@ -1037,7 +1049,7 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
       let materialRepair = null;
       if (materialCandidates !== null) {
         materialRepair = new MaterialRepairEvidenceAuthority({
-          root,
+          root: executionRoot,
           state,
           previous,
           candidates: materialCandidates,
@@ -1045,9 +1057,10 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
         });
       }
       return new StaleTestEvidenceAuthoritySnapshot({
-        root,
+        root: executionRoot,
+        artifactRoot: root,
         specDir,
-        specId: specId || state.spec.split("/")[1],
+        specId: specId || state.specId,
         state,
         files,
         issueLog: issueLog.snapshot,
@@ -1142,7 +1155,11 @@ class StaleTestEvidenceAuthoritySnapshot extends ImplRepairPrecommitAuthority {
     for (const file of this.files) file.assertCurrent();
     const observed = buildRepairFingerprint({
       root: this.root,
-      specPath: this.identity.spec,
+      artifactRoot: this.artifactRoot,
+      specPath: path.posix.join(
+        path.relative(this.artifactRoot, this.specDir).replaceAll("\\", "/"),
+        "spec.json",
+      ),
       state,
     });
     if (
@@ -1251,6 +1268,7 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
     try {
       snapshot = StaleTestEvidenceAuthoritySnapshot.capture({
         root: ctx.root,
+        executionRoot: ctx.executionRoot || ctx.root,
         state,
         specId: ctx.specId,
         gitRunner: this.container.has("staleTestEvidenceRecoveryGitRunner")
@@ -1292,7 +1310,7 @@ export default class RunRewindTestEvidenceCommand extends FlowCommand {
         });
       }
       commitImplRepairEffects({
-        root: ctx.root,
+        root: ctx.executionRoot || ctx.root,
         state,
         flowManager: ctx.flowManager,
         transaction: completed.transaction,

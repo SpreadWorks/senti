@@ -35,7 +35,7 @@ function setupProject(tmp, scriptBody, extraFlowState = {}) {
     root: tmp,
     config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
     flowState: {
-      spec: `${SPEC_DIR}/spec.md`,
+      specId: "001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       ...extraFlowState,
@@ -133,13 +133,13 @@ describe("flow run final-regression", () => {
     });
     writeRepairFingerprintManifest(path.join(tmp, SPEC_DIR), previous);
     const state = moveFlowToStep(makeFlowState({
-      spec: `${SPEC_DIR}/spec.json`,
+      specId: "001-test",
       repairBaseline: previous.baseline.toJSON(),
     }), "final-regression");
     writeFile(tmp, "src/repair.js", "export const repaired = true;\n");
     const current = buildRepairFingerprint({
       root: tmp,
-      specPath: state.spec,
+      specPath: `${SPEC_DIR}/spec.json`,
       state,
     });
     writeFile(tmp, `${SPEC_DIR}/test-execute-result.json`, JSON.stringify({

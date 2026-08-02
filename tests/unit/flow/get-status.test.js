@@ -21,7 +21,7 @@ describe("flow get status", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       runId: "run-001-test",
@@ -53,7 +53,7 @@ describe("flow get status", () => {
     assert.equal(envelope.ok, true);
     assert.equal(envelope.type, "get");
     assert.equal(envelope.key, "status");
-    assert.ok(envelope.data.spec);
+    assert.equal(envelope.data.specId, "001-test");
     assert.ok(Array.isArray(envelope.data.steps));
   });
 
@@ -86,7 +86,7 @@ describe("flow get status", () => {
     setupFlowState(tmp);
     const secondSpec = "002-second";
     makeFlowManager(tmp).create({
-      spec: `specs/${secondSpec}/spec.json`,
+      specId: secondSpec,
       baseBranch: "main",
       featureBranch: `feature/${secondSpec}`,
       runId: "run-002-second",
@@ -111,7 +111,7 @@ describe("flow get status", () => {
     });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
-    assert.equal(envelope.data.spec, `specs/${secondSpec}/spec.json`);
+    assert.equal(envelope.data.specId, secondSpec);
     assert.equal(envelope.data.runId, "run-002-second");
   });
 

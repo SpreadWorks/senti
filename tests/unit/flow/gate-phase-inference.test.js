@@ -389,7 +389,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps: [
@@ -425,7 +425,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
 
     const state = {
       runId: "run-001-test",
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps: [

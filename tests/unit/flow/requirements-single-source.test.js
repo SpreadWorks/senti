@@ -44,7 +44,7 @@ function writeSpecJson(tmp, specId, specJson) {
 
 function setupFlow(tmp, specId) {
   const state = {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,

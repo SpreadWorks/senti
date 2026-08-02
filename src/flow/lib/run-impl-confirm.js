@@ -11,6 +11,7 @@ import { runGit } from "../../lib/git-helpers.js";
 import { VALID_IMPL_CONFIRM_MODES } from "../../lib/constants.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 /**
  * Get files changed between base branch and HEAD.
@@ -48,13 +49,15 @@ function summarizeRequirements(requirements) {
 export class RunImplConfirmCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const state = ctx.flowState;
 
     const mode = ctx.mode || "overview";
     if (!VALID_IMPL_CONFIRM_MODES.includes(mode)) {
       throw new Error(`invalid mode: ${mode} (valid: ${VALID_IMPL_CONFIRM_MODES.join(", ")})`);
     }
-    const requirements = summarizeRequirements(loadSpecRequirements(root, state.spec));
+    const specPathRelative = relativeFlowSpecFile(state);
+    const requirements = summarizeRequirements(loadSpecRequirements(root, specPathRelative));
 
     // Determine readiness
     const allDone = requirements.total > 0 && requirements.done === requirements.total;
@@ -62,7 +65,7 @@ export class RunImplConfirmCommand extends FlowCommand {
 
     let files = [];
     if (mode === "detail") {
-      files = getChangedFiles(root, state.baseBranch);
+      files = getChangedFiles(executionRoot, state.baseBranch);
     }
 
     // Determine next step
@@ -76,7 +79,7 @@ export class RunImplConfirmCommand extends FlowCommand {
     }
 
     // Check spec file for additional context
-    const specPath = path.resolve(root, state.spec);
+    const specPath = path.resolve(root, specPathRelative);
     let specExists = false;
     try {
       specExists = fs.existsSync(specPath);
@@ -89,7 +92,7 @@ export class RunImplConfirmCommand extends FlowCommand {
         mode,
         requirements,
         files: mode === "detail" ? files : undefined,
-        spec: state.spec,
+        specId: state.specId,
         specExists,
         baseBranch: state.baseBranch,
         featureBranch: state.featureBranch,

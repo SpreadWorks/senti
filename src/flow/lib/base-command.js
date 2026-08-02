@@ -79,8 +79,8 @@ export class FlowCommand extends Command {
         input,
         flowState: ctx.preparingFlowState ?? ctx.flowState,
         mainRoot: ctx.mainRoot || ctx.root,
-        authorityRoot: ctx.root,
-        worktreePath: ctx.flowState?.worktree === true ? ctx.root : undefined,
+        authorityRoot: ctx.executionRoot || ctx.root,
+        worktreePath: ctx.flowState?.worktree === true ? (ctx.executionRoot || ctx.root) : undefined,
         context: ctx,
       });
       if (mismatch) {

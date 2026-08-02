@@ -57,6 +57,7 @@ export default class GetCheckCommand extends FlowCommand {
 
   execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const target = ctx.target;
 
     if (!target) {
@@ -68,7 +69,7 @@ export default class GetCheckCommand extends FlowCommand {
     }
 
     if (target === "dirty") {
-      return checkDirty(root);
+      return checkDirty(executionRoot);
     }
 
     if (target === "gh") {

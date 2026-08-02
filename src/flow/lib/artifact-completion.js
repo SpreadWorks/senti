@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 export class ArtifactCompletionSuccess {
   static [Symbol.hasInstance](value) {
@@ -234,8 +235,8 @@ export function getProducerCompletionAdapter(surface) {
 
 export function specDirFromInput({ root, state, specDir }) {
   if (specDir) return specDir;
-  if (!state?.spec) throw new Error("state.spec is required");
-  return path.dirname(path.resolve(root, state.spec));
+  if (!state?.specId) throw new Error("state.specId is required");
+  return path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
 }
 
 export function fileExists(file) {

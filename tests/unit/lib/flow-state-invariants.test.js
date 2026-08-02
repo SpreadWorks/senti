@@ -14,7 +14,7 @@ const SPEC_ID = "420-flow-state";
 
 function state() {
   return {
-    spec: `specs/${SPEC_ID}/spec.json`,
+    specId: SPEC_ID,
     runId: "run-420",
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,

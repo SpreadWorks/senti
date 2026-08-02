@@ -41,7 +41,7 @@ describe("recover existing implementation", () => {
 
     const state = moveFlowToStep(makeFlowState({
       runId: "run-existing-implementation",
-      spec: SPEC_PATH,
+      specId: SPEC_ID,
       featureBranch: "feature/001-existing-implementation",
       planRewinds: [{ sourceStage: "acceptance-review", destinationStep: "draft" }],
     }), "scenario-validity");
@@ -69,7 +69,7 @@ describe("recover existing implementation", () => {
       flowState: activeState,
       flowManager: manager,
       expectRunId: activeState.runId,
-      expectSpec: activeState.spec,
+      expectSpec: activeState.specId,
       expectNoIssue: true,
     });
 

@@ -1,7 +1,6 @@
 import { resolveScopedGateStepId } from "./gate-step.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { flattenSteps } from "./step-tree.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
 
 function requireObject(value, field) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -36,7 +35,7 @@ export class GateMutationOwner {
     this.flowState = requireObject(flowState, "flowState");
     this.phase = requireString(phase, "phase");
     this.stepId = resolveScopedGateStepId(this.flowState, this.phase);
-    this.specId = this.flowState.spec ? specIdFromPath(this.flowState.spec) : null;
+    this.specId = this.flowState.specId || null;
     const currentTask = this.flowState.currentTaskId == null
       ? null
       : this.flowState.tasks?.find((task) => task.id === this.flowState.currentTaskId) || null;

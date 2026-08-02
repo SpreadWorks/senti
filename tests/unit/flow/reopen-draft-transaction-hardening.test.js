@@ -9,7 +9,6 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const SPEC_ID = "441-single-state-atomic";
-const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 const DEAD_PID = 2_147_483_647;
 
 function baseManager(root) {
@@ -22,7 +21,7 @@ function boundManager(root) {
 
 function state(marker, overrides = {}) {
   return {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
     runId: "run-single-state-atomic",
@@ -96,7 +95,7 @@ function waitForExit(child) {
 
 function writeStaleLock(root, overrides = {}) {
   fs.writeFileSync(lockPath(root), `${JSON.stringify({
-    version: 2,
+    version: 3,
     kind: "flow-state-writer",
     processIdentity: {
       pid: DEAD_PID,
@@ -105,7 +104,8 @@ function writeStaleLock(root, overrides = {}) {
       ownerToken: "11111111-1111-4111-8111-111111111111",
     },
     root: fs.realpathSync(root),
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
+    specRoot: "specs",
     statePath: fs.realpathSync(flowPath(root)),
     ...overrides,
   }, null, 2)}\n`, { mode: 0o600 });
@@ -136,21 +136,21 @@ describe("Issue #441 bound atomic flow writer", () => {
     assert.deepEqual(writerTemps(tmp), []);
   });
 
-  it("rejects foreign and non-normalized state specs before mutation", () => {
-    for (const [name, expectedSpec, nextSpec] of [
-      ["foreign expected", "specs/999-foreign/spec.json", SPEC_PATH],
-      ["foreign next", SPEC_PATH, "specs/999-foreign/spec.json"],
-      ["dotdot expected", "specs/../441-single-state-atomic/spec.json", SPEC_PATH],
-      ["dotdot next", SPEC_PATH, "specs/../441-single-state-atomic/spec.json"],
-      ["backslash next", SPEC_PATH, `specs\\${SPEC_ID}\\spec.json`],
+  it("rejects foreign and non-normalized state spec IDs before mutation", () => {
+    for (const [name, expectedSpecId, nextSpecId] of [
+      ["foreign expected", "999-foreign", SPEC_ID],
+      ["foreign next", SPEC_ID, "999-foreign"],
+      ["dotdot expected", "../441-single-state-atomic", SPEC_ID],
+      ["dotdot next", SPEC_ID, "../441-single-state-atomic"],
+      ["slash next", SPEC_ID, `nested/${SPEC_ID}`],
     ]) {
       tmp = createTmpDir(`reopen-authority-${name.replaceAll(" ", "-")}-`);
       const original = setup(tmp);
       const before = bytes(flowPath(tmp));
       assert.throws(
         () => boundManager(tmp).saveAtomic(
-          state("new", { spec: nextSpec }),
-          { expectedOriginal: { ...original, spec: expectedSpec } },
+          state("new", { specId: nextSpecId }),
+          { expectedOriginal: { ...original, specId: expectedSpecId } },
         ),
         (err) => err.code === "FLOW_STATE_ATOMIC_AUTHORITY_INVALID",
         name,

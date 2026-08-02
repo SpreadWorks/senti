@@ -6,6 +6,7 @@ import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
 import { collectTestCommandSources, selectTestCommandSource } from "../../lib/test-command-sources.js";
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
 export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
@@ -845,7 +846,7 @@ export function listRegressionChangedFiles({ root, state }) {
 
 export function classifyRegression({ root, state, analysis, config, changedFiles = null }) {
   changedFiles ||= listRegressionChangedFiles({ root, state });
-  const activeSpec = path.dirname(normalizePath(state.spec));
+  const activeSpec = path.dirname(normalizePath(relativeFlowSpecFile(state)));
   const projectPaths = config?.test?.projectPaths || [];
   const analysisFiles = analysis && typeof analysis === "object"
     ? projectFilePathsFromAnalysis(analysis, { strict: false })

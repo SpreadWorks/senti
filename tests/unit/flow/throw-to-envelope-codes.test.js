@@ -52,7 +52,7 @@ function createTmpProject(agentResponse) {
 
 function createFlowState(tmp, extra = {}) {
   const state = {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
@@ -228,14 +228,19 @@ describe("R3: flow set argument validation → structured codes (table-driven)",
 // ---------------------------------------------------------------------------
 
 describe("R1b: checkRetryBelowMax returns envelope with ESCALATE_RETRY_EXHAUSTED", () => {
+  let tmp;
+  afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
+
   it("returns ok:false envelope with phase/attempts/max data when budget exhausted", async () => {
+    tmp = createTmpProject(null);
     const { checkRetryBelowMax } = await import("../../../src/flow/lib/run-gate.js");
     const phase = "task-impl";
     // task-gate maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
     const ctx = {
-      root: process.cwd(),
+      root: tmp,
       config: {},
       flowState: {
+        specId: "001-test",
         metrics: Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 })),
       },
     };

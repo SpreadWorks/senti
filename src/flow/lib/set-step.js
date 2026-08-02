@@ -25,6 +25,7 @@ import {
 } from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
 import { findStepById } from "./step-tree.js";
 import {
@@ -33,6 +34,7 @@ import {
   completeTestExecuteArtifactChange,
   completeTestResultReviewArtifactChange,
   readJsonStrict,
+  resolveRawFile,
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
 import {
@@ -161,7 +163,7 @@ function missingCurrentAppliedFindingIds(specDir, ledger = readImplRepairLedger(
 
 function missingGateObservedFindingIds({ root, state, specDir, ledger = readImplRepairLedger(specDir) }) {
   const repaired = new Set(ledger?.entries.flatMap((entry) => entry.sourceFindingIds) || []);
-  const observed = loadIssueLog(root, state.spec).entries
+  const observed = loadIssueLog(root, relativeFlowSpecFile(state)).entries
     .map((entry) => MISSING_REPAIR_EVIDENCE_REASON.exec(String(entry?.reason || ""))?.[1] || null)
     .filter((findingId) => findingId !== null && repaired.has(findingId));
   const missing = [...new Set(observed)];
@@ -188,7 +190,7 @@ function validateBlockedImplRepairRecovery({ root, state }) {
     );
   }
   try {
-    const specDir = resolveSpecDir(path.resolve(root, state.spec));
+    const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(state)));
     const ledger = readImplRepairLedger(specDir);
     assertLateAppliedFindingRecoveryAvailable(ledger);
     try {
@@ -221,10 +223,10 @@ function collectSideEffects(stepId) {
  */
 function preValidateTestStep(ctx) {
   const state = ctx.flowManager.load();
-  if (!state?.spec) return null;
+  if (!state?.specId) return null;
   let specJson;
   try {
-    specJson = loadSpecJson(path.resolve(ctx.root, state.spec), { validate: false });
+    specJson = loadSpecJson(path.resolve(ctx.root, relativeFlowSpecFile(state)), { validate: false });
   } catch (err) {
     return Envelope.fail(
       "set",
@@ -234,7 +236,7 @@ function preValidateTestStep(ctx) {
       { violations: [] },
     );
   }
-  const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+  const specDir = resolveSpecDir(path.resolve(ctx.root, relativeFlowSpecFile(state)));
   const result = validateTestHeaders({ specDir, spec: specJson });
   if (result.ok) return null;
   return Envelope.fail(
@@ -250,7 +252,7 @@ function preValidateApprovalStep({ root, state }) {
   if (!latestPlanRewind(state)) return null;
   let spec;
   try {
-    spec = loadSpecJson(path.resolve(root, state.spec), { validate: false });
+    spec = loadSpecJson(path.resolve(root, relativeFlowSpecFile(state)), { validate: false });
   } catch (error) {
     return Envelope.fail("set", "step", "STALE_PLAN_APPROVAL", error.message);
   }
@@ -284,7 +286,7 @@ function preValidateApprovalStep({ root, state }) {
 
 function validatePostHookManagedStep(ctx, id) {
   const state = ctx.flowManager.load();
-  if (!state?.spec) {
+  if (!state?.specId) {
     return Envelope.fail(
       "set",
       "step",
@@ -292,13 +294,13 @@ function validatePostHookManagedStep(ctx, id) {
       `${id} cannot be marked done without an active flow spec`,
     );
   }
-  const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+  const specDir = resolveSpecDir(path.resolve(ctx.root, relativeFlowSpecFile(state)));
   try {
     if (id === "test-execute") {
       validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
     } else if (id === "retro") {
       assertIntegrationRegressionEvidence({
-        root: ctx.root,
+        root: ctx.executionRoot || ctx.root,
         state,
         specDir,
         config: container.has("config") ? (container.get("config") || {}) : {},
@@ -346,8 +348,8 @@ class ImplementEvidenceEligibility {
 
 export async function preValidateImplementStepCompletion({ root, state, requestedStatus } = {}) {
   if (requestedStatus !== "done") return null;
-  if (!state?.spec) return implementFailure(["durable-artifact-missing"], ["active flow spec is required"]);
-  const specPath = path.resolve(root, state.spec);
+  if (!state?.specId) return implementFailure(["durable-artifact-missing"], ["active flow spec is required"]);
+  const specPath = path.resolve(root, relativeFlowSpecFile(state));
   const specDir = resolveSpecDir(specPath);
   let spec;
   try {
@@ -431,9 +433,7 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
         for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
       }
       const rawOutputPath = artifact.rawOutputPath || artifact.raw_output_path;
-      const rawPath = rawOutputPath?.startsWith("specs/")
-        ? path.resolve(root, rawOutputPath)
-        : path.resolve(specDir, rawOutputPath || "");
+      const rawPath = resolveRawFile(root, specDir, rawOutputPath || "");
       if (rawOutputPath && !fs.existsSync(rawPath)) {
         addImplementIssue(issueCodes, "durable-artifact-missing");
       }
@@ -548,7 +548,7 @@ export default class SetStepCommand extends FlowCommand {
         if (fail) return fail;
       }
       if (id === "impl-triage") {
-        const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+        const specDir = resolveSpecDir(path.resolve(ctx.root, relativeFlowSpecFile(state)));
         const completed = completeImplTriage({ specDir });
         if (!completed.requiresRepair) {
           const plan = resolveLifecyclePlan({
@@ -566,8 +566,9 @@ export default class SetStepCommand extends FlowCommand {
         }
       }
       if (id === "impl-repair") {
+        const executionRoot = ctx.executionRoot || ctx.root;
         const completed = completeImplRepair({
-          root: ctx.root,
+          root: executionRoot,
           state,
           resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
         });
@@ -585,7 +586,7 @@ export default class SetStepCommand extends FlowCommand {
           taskId: null,
         }, new ImplRepairTransitionIntent(completed.transaction));
         commitImplRepairEffects({
-          root: ctx.root,
+          root: executionRoot,
           state,
           flowManager: ctx.flowManager,
           transaction: completed.transaction,
@@ -602,7 +603,13 @@ export default class SetStepCommand extends FlowCommand {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });
         if (fail) return fail;
       }
-      const fail = validateStepCompletionTransition({ root: ctx.root, state, stepId: id, requestedStatus: status });
+      const fail = validateStepCompletionTransition({
+        root: ctx.root,
+        executionRoot: ctx.executionRoot || ctx.root,
+        state,
+        stepId: id,
+        requestedStatus: status,
+      });
       if (fail) return fail;
     }
     if (status === "done" && ["test-execute", "retro"].includes(id)) {
@@ -637,7 +644,7 @@ export default class SetStepCommand extends FlowCommand {
         try {
           const state = ctx.flowManager.load();
           if (state?.autoDesired === true && state?.autoApprove !== true) {
-            const paths = { root: ctx.root, specPath: state.spec };
+            const paths = { root: ctx.root, specPath: relativeFlowSpecFile(state) };
             const resolved = resolveAutoCheckInput(state, paths);
             let verdict;
             if (resolved.skip) {

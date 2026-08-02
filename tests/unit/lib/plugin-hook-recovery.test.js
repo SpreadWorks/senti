@@ -57,7 +57,7 @@ test("persisted hook policy resumes cleanup when the installed hook predates pol
     }], {
       command: "finalize-cleanup",
       hook: "post",
-      flow: { spec: "specs/001-recovery/spec.json" },
+      flow: { specId: "001-recovery" },
       result: { ok: true },
     });
 

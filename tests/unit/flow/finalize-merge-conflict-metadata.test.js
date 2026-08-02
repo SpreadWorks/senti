@@ -37,7 +37,7 @@ function setupFixture() {
   git("init", "--quiet", root);
   git("-C", root, "config", "user.email", "test@example.com");
   git("-C", root, "config", "user.name", "Test User");
-  const state = setupFlow(root, { spec: "specs/test-spec/spec.json" });
+  const state = setupFlow(root, { specId: "test-spec" });
   git("-C", root, "add", ".");
   git("-C", root, "commit", "--quiet", "-m", "test: initial flow");
   const manager = makeFlowManager(root);
@@ -94,4 +94,26 @@ test("external dirtiness prevents finalize-merge outbox mutation", async () => {
   );
   assert.deepEqual(manager.load().outbox, before.outbox);
   assert.deepEqual(manager.load().steps, before.steps);
+});
+
+test("Flow-owned analysis output remains deferred without blocking finalize-merge", async () => {
+  const { manager, state, specId } = setupFixture();
+  fs.mkdirSync(path.join(root, ".senti", "output"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senti", "output", "analysis.json"), "{\"entries\":[]}\n");
+
+  await FLOW_COMMANDS.run["finalize-merge"].pre({
+    flowManager: manager,
+    flowState: state,
+    root,
+    specId,
+  });
+
+  const entry = new FlowOutbox(manager.load().outbox)
+    .find(finalizationOutboxIdentity(manager.load(), "finalize-merge"));
+  assert.equal(entry?.status, "pending");
+  assert.equal(fs.existsSync(path.join(root, ".senti", "output", "analysis.json")), true);
+  assert.match(
+    git("-C", root, "status", "--porcelain", "--untracked-files=all"),
+    /\.senti\/output\/analysis\.json/,
+  );
 });

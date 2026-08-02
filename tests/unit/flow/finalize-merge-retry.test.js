@@ -19,7 +19,6 @@
  */
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import path from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
@@ -69,7 +68,7 @@ function beginFinalizeMergeOutbox(fm, state) {
 }
 
 function specIdFromState(state) {
-  return path.basename(path.dirname(state.spec));
+  return state.specId;
 }
 
 function skipFinalizeStep(fm, specId, stepId) {

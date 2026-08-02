@@ -7,6 +7,7 @@ import {
 } from "./impl-repair-artifacts.js";
 import { RecoveryTarget } from "./recovery-contract.js";
 import { findStepById } from "./step-tree.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 
 const DIGEST = /^[a-f0-9]{64}$/;
 const IDENTIFIER = /^[a-z][a-z0-9-]{0,127}$/;
@@ -45,7 +46,7 @@ function assertTargetMatchesState(target, state) {
   if (
     state.runId !== target.runId
     || issueOf(state) !== target.issue
-    || state.spec !== target.spec
+    || state.specId !== target.specId
   ) {
     throw new Error("implementation revalidation target authority changed");
   }
@@ -198,7 +199,8 @@ export class ImplementationRevalidation {
     if (!flowManager || typeof flowManager.updateStepStatus !== "function") {
       throw new Error("implementation revalidation requires the normal Flow lifecycle authority");
     }
-    const expectedSpecDir = path.dirname(path.resolve(executionRoot, state.spec));
+    const expectedSpecDir = flowStateSpecLocation(state)?.directory;
+    if (!expectedSpecDir) throw new Error("implementation revalidation spec location is unavailable");
     const resolvedSpecDir = path.resolve(specDir || expectedSpecDir);
     if (resolvedSpecDir !== expectedSpecDir) {
       throw new Error("implementation revalidation spec directory does not match the exact active Flow target");

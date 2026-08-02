@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { RunPrepareSpecCommand } from "../../../src/flow/lib/run-prepare-spec.js";
 import { iterateAnalysisCategories } from "../../../src/docs/lib/analysis-entry.js";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
 import { RepositoryFlowOperationLock } from "../../../src/lib/repository-maintenance-lock.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 
@@ -94,7 +94,12 @@ export default function register(api) {
 }
 
 function prepareContext(root, config, { runId = "run-440", issue = 440 } = {}) {
-  const flowManager = makeFlowManager(root);
+  const flowManager = new FlowManager({
+    root,
+    mainRoot: root,
+    inWorktree: false,
+    specRoot: config.flow?.specDir,
+  });
   flowManager.createPreparingFlow(runId, {
     ...(issue == null ? {} : { issue }),
     ...(issue == null ? {} : { issueBody: `Issue #${issue} body` }),
@@ -221,13 +226,13 @@ describe("worktree prepare binding transaction", () => {
     assert.deepEqual(resolutions.at(-1), {
       runId: "run-440",
       issue: 440,
-      spec: result.spec,
+      specId: result.specId,
       worktreePath: fs.realpathSync(result.worktreePath),
     });
     assert.equal(ctx.flowManager.loadPreparingFlow("run-440"), null);
     assert.deepEqual(
       JSON.parse(fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8")),
-      [{ spec: "001-binding-transaction", mode: "worktree" }],
+      [{ specId: "001-binding-transaction", mode: "worktree" }],
     );
   });
 
@@ -278,7 +283,7 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(result.issue, null);
     const binding = JSON.parse(fs.readFileSync(path.join(result.worktreePath, ".senti", "flow-identity.json"), "utf8"));
     assert.equal(binding.issue, null);
-    const flowPath = path.join(result.worktreePath, result.spec.replace(/\/spec\.json$/, "/flow.json"));
+    const flowPath = path.join(root, "specs", result.specId, "flow.json");
     assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(flowPath, "utf8")), "issue"), false);
   });
 
@@ -286,9 +291,9 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const manager = ctx.flowManager.forRoot(result.worktreePath, { specId: result.spec.split("/")[1] });
+    const manager = ctx.flowManager.forRoot(result.worktreePath, { specId: result.specId });
 
-    manager.setIssue(440, { specId: result.spec.split("/")[1] });
+    manager.setIssue(440, { specId: result.specId });
 
     assert.equal(manager.resolveWorktreeBinding().issue, 440);
     assert.equal(manager.load().issue, 440);
@@ -301,9 +306,9 @@ describe("worktree prepare binding transaction", () => {
       {
         runId: restarted.load().runId,
         issue: restarted.load().issue,
-        spec: restarted.load().spec,
+        specId: restarted.load().specId,
       },
-      { runId: result.runId, issue: 440, spec: result.spec },
+      { runId: result.runId, issue: 440, specId: result.specId },
     );
   });
 
@@ -311,7 +316,7 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue-committed", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specId = result.spec.split("/")[1];
+    const specId = result.specId;
     const manager = ctx.flowManager.forRoot(result.worktreePath, { specId });
     let injected = false;
 
@@ -342,7 +347,7 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue-killed", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specId = result.spec.split("/")[1];
+    const specId = result.specId;
     const flowManagerUrl = pathToFileURL(path.join(repoRoot, "src/lib/flow-manager.js")).href;
     const script = `
       import { FlowManager } from ${JSON.stringify(flowManagerUrl)};
@@ -366,7 +371,7 @@ describe("worktree prepare binding transaction", () => {
     ]);
     assert.equal(stopped.signal, "SIGKILL");
 
-    const specDirectory = path.join(result.worktreePath, "specs", specId);
+    const specDirectory = path.join(root, "specs", specId);
     const markerPath = path.join(
       result.worktreePath,
       ".senti",
@@ -417,7 +422,7 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue-lock-killed", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specId = result.spec.split("/")[1];
+    const specId = result.specId;
     const flowManagerUrl = pathToFileURL(path.join(repoRoot, "src/lib/flow-manager.js")).href;
     const script = `
       import { FlowManager } from ${JSON.stringify(flowManagerUrl)};
@@ -441,7 +446,7 @@ describe("worktree prepare binding transaction", () => {
     ]);
     assert.equal(stopped.signal, "SIGKILL");
 
-    const specDirectory = path.join(result.worktreePath, "specs", specId);
+    const specDirectory = path.join(root, "specs", specId);
     const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
     const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
     assert.equal(fs.existsSync(markerPath), true);
@@ -473,7 +478,7 @@ describe("worktree prepare binding transaction", () => {
       const { root, config } = createProject();
       const ctx = prepareContext(root, config, { runId: `run-writer-${phase}`, issue: null });
       const result = await new RunPrepareSpecCommand().execute(ctx);
-      const specId = result.spec.split("/")[1];
+      const specId = result.specId;
       const stopped = killSetIssueAtWriterPhase({
         root,
         worktreePath: result.worktreePath,
@@ -482,7 +487,7 @@ describe("worktree prepare binding transaction", () => {
       });
       assert.equal(stopped.signal, "SIGKILL");
 
-      const specDirectory = path.join(result.worktreePath, "specs", specId);
+      const specDirectory = path.join(root, "specs", specId);
       const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
       const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
       const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
@@ -518,7 +523,7 @@ describe("worktree prepare binding transaction", () => {
       const { root, config } = createProject();
       const ctx = prepareContext(root, config, { runId: `run-writer-${publicationAttack}`, issue: null });
       const result = await new RunPrepareSpecCommand().execute(ctx);
-      const specId = result.spec.split("/")[1];
+      const specId = result.specId;
       const stopped = killSetIssueAtWriterPhase({
         root,
         worktreePath: result.worktreePath,
@@ -527,7 +532,7 @@ describe("worktree prepare binding transaction", () => {
       });
       assert.equal(stopped.signal, "SIGKILL");
 
-      const specDirectory = path.join(result.worktreePath, "specs", specId);
+      const specDirectory = path.join(root, "specs", specId);
       const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
       const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
       const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
@@ -568,7 +573,7 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue-lock-mismatch", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specId = result.spec.split("/")[1];
+    const specId = result.specId;
     const flowManagerUrl = pathToFileURL(path.join(repoRoot, "src/lib/flow-manager.js")).href;
     const script = `
       import { FlowManager } from ${JSON.stringify(flowManagerUrl)};
@@ -591,7 +596,7 @@ describe("worktree prepare binding transaction", () => {
     ]);
     assert.equal(stopped.signal, "SIGKILL");
 
-    const specDirectory = path.join(result.worktreePath, "specs", specId);
+    const specDirectory = path.join(root, "specs", specId);
     const flowPath = path.join(specDirectory, "flow.json");
     const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
     const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
@@ -623,7 +628,7 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-set-issue-marker-killed", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specId = result.spec.split("/")[1];
+    const specId = result.specId;
     const flowManagerUrl = pathToFileURL(path.join(repoRoot, "src/lib/flow-manager.js")).href;
     const script = `
       import { FlowManager } from ${JSON.stringify(flowManagerUrl)};
@@ -673,7 +678,7 @@ describe("worktree prepare binding transaction", () => {
       const result = await new RunPrepareSpecCommand().execute(ctx);
       let injected = false;
       const manager = ctx.flowManager.forRoot(result.worktreePath, {
-        specId: result.spec.split("/")[1],
+        specId: result.specId,
         bindingFaultInjector: ({ phase }) => {
           if (fault === "binding" && !injected && phase === "before-binding-temp-write") {
             injected = true;
@@ -684,7 +689,7 @@ describe("worktree prepare binding transaction", () => {
 
       assert.throws(
         () => manager.setIssue(440, {
-          specId: result.spec.split("/")[1],
+          specId: result.specId,
           faultInjector: ({ phase }) => {
             if (fault === "flow" && !injected && phase === "before-state-temp-write") {
               injected = true;
@@ -703,12 +708,12 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-contention", issue: null });
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const manager = ctx.flowManager.forRoot(result.worktreePath, { specId: result.spec.split("/")[1] });
+    const manager = ctx.flowManager.forRoot(result.worktreePath, { specId: result.specId });
     const competing = new RepositoryFlowOperationLock({ mainRoot: root });
     competing.acquire();
     try {
       assert.throws(
-        () => manager.setIssue(440, { specId: result.spec.split("/")[1] }),
+        () => manager.setIssue(440, { specId: result.specId }),
         (error) => error.code === "REPOSITORY_FLOW_OPERATION_BUSY",
       );
     } finally {
@@ -724,7 +729,17 @@ describe("worktree prepare binding transaction", () => {
       const ctx = prepareContext(root, config, { issue: null });
       const registryPath = path.join(root, ".senti", ".active-flow");
       const currentPath = path.join(root, ".senti", ".current-flow");
-      const preexisting = [{ spec: "900-preexisting", mode: "branch" }];
+      ctx.flowManager.create(makeFlowState({
+        specId: "900-preexisting",
+        runId: "run-900-preexisting",
+        featureBranch: "feature/900-preexisting",
+      }));
+      ctx.flowManager.create(makeFlowState({
+        specId: "901-concurrent",
+        runId: "run-901-concurrent",
+        featureBranch: "feature/901-concurrent",
+      }));
+      const preexisting = [{ specId: "900-preexisting", mode: "local" }];
       fs.writeFileSync(registryPath, `${JSON.stringify(preexisting, null, 2)}\n`);
       fs.writeFileSync(currentPath, "999-unrelated\n");
       const beforeCurrent = fileBytes(currentPath);
@@ -742,7 +757,7 @@ describe("worktree prepare binding transaction", () => {
             injected = true;
             fs.writeFileSync(registryPath, `${JSON.stringify([
               ...preexisting,
-              { spec: "901-concurrent", mode: "branch" },
+              { specId: "901-concurrent", mode: "local" },
             ], null, 2)}\n`);
             throw new Error(
               fault === "write"
@@ -760,7 +775,7 @@ describe("worktree prepare binding transaction", () => {
       assert.equal(fileBytes(currentPath), beforeCurrent);
       assert.deepEqual(JSON.parse(fs.readFileSync(registryPath, "utf8")), [
         ...preexisting,
-        { spec: "901-concurrent", mode: "branch" },
+        { specId: "901-concurrent", mode: "local" },
       ]);
       const preparing = ctx.flowManager.loadPreparingFlow("run-440");
       assert.equal(Object.hasOwn(preparing, "issue"), false);
@@ -835,7 +850,7 @@ describe("worktree prepare binding transaction", () => {
 
     const result = await new RunPrepareSpecCommand().execute(ctx);
 
-    assert.equal(result.spec, "specs/002-binding-transaction/spec.json");
+    assert.equal(result.specId, "002-binding-transaction");
     assert.equal(git(root, ["rev-parse", "feature/001-binding-transaction"]), foreignOid);
     assert.equal(fs.readFileSync(foreignFlowPath, "utf8"), "preserve sequential flow bytes\n");
   });
@@ -850,7 +865,7 @@ describe("worktree prepare binding transaction", () => {
       "feature-001-binding-transaction",
     );
     const registryPath = path.join(root, ".senti", ".active-flow");
-    const registryBytes = `${JSON.stringify([{ spec: "900-foreign", mode: "branch" }], null, 2)}\n`;
+    const registryBytes = `${JSON.stringify([{ specId: "900-foreign", mode: "branch" }], null, 2)}\n`;
     fs.writeFileSync(registryPath, registryBytes);
     const originalAcquire = RepositoryFlowOperationLock.prototype.acquire;
     let injected = false;
@@ -945,11 +960,12 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config);
     const result = await new RunPrepareSpecCommand().execute(ctx);
-    const specDir = path.join(result.worktreePath, "specs", "001-binding-transaction");
+    const specDir = path.join(root, "specs", result.specId);
 
     for (const relative of ["spec.json", "draft.json", "issue.md", "flow.json"]) {
       assert.equal(fs.existsSync(path.join(specDir, relative)), true, relative);
     }
+    assert.equal(fs.existsSync(path.join(result.worktreePath, "specs", result.specId)), false);
     assert.equal(fs.readFileSync(path.join(result.worktreePath, "post-worktree.marker"), "utf8"), "ok");
     assert.deepEqual(
       fs.readFileSync(path.join(result.worktreePath, ".senti", "config.local.json")),
@@ -966,13 +982,33 @@ describe("worktree prepare binding transaction", () => {
     );
     const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
     assert.deepEqual(
-      { runId: flow.runId, issue: flow.issue, spec: flow.spec, worktree: flow.worktree },
-      { runId: "run-440", issue: 440, spec: result.spec, worktree: true },
+      { runId: flow.runId, issue: flow.issue, specId: flow.specId, worktree: flow.worktree },
+      { runId: "run-440", issue: 440, specId: result.specId, worktree: true },
     );
     assert.ok(flow.plugins.flowCommandHooks.some((hook) => hook.pluginId === "workflow" && hook.command === "prepare"));
     assert.deepEqual(
       JSON.parse(fs.readFileSync(path.join(specDir, "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8")),
       { issue: 440, flowIntegration: "enable", postWorktreeSeen: true },
+    );
+  });
+
+  it("writes a configured spec root only in the base repository", async () => {
+    const { root, config } = createProject();
+    config.flow.specDir = "flow-artifacts/specs";
+    fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify(config, null, 2));
+    git(root, ["add", ".senti/config.json"]);
+    git(root, ["commit", "-m", "configure flow artifact root"]);
+    const result = await new RunPrepareSpecCommand().execute(prepareContext(root, config));
+    assert.equal(result?.result, "ok", JSON.stringify(result));
+    const specDir = path.join(root, "flow-artifacts", "specs", result.specId);
+
+    for (const relative of ["spec.json", "draft.json", "issue.md", "flow.json"]) {
+      assert.equal(fs.existsSync(path.join(specDir, relative)), true, relative);
+    }
+    assert.equal(fs.existsSync(path.join(root, "specs", result.specId)), false);
+    assert.equal(
+      fs.existsSync(path.join(result.worktreePath, "flow-artifacts", "specs", result.specId)),
+      false,
     );
   });
 

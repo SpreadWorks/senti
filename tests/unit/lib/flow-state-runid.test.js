@@ -9,7 +9,7 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 function makeState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
     worktree: false,
@@ -57,14 +57,14 @@ describe("flow-state runId management", () => {
     tmp = createTmpDir();
     const states = [
       makeState(),
-      makeState({ spec: "specs/002-other/spec.json", featureBranch: "feature/002-other" }),
+      makeState({ specId: "002-other", featureBranch: "feature/002-other" }),
     ];
     for (const state of states) {
       assert.throws(
         () => makeFlowManager(tmp).create(state),
         (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED",
       );
-      assert.equal(fs.existsSync(join(tmp, state.spec, "..", "flow.json")), false);
+      assert.equal(fs.existsSync(join(tmp, "specs", state.specId, "flow.json")), false);
     }
   });
 
@@ -98,7 +98,7 @@ function makePreparingState(runId, overrides = {}) {
   return {
     runId,
     lifecycle: "preparing",
-    spec: null,
+    specId: null,
     baseBranch: null,
     featureBranch: null,
     worktree: null,
@@ -133,7 +133,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
     const raw = JSON.parse(fs.readFileSync(join(sentiDir, `.active-flow.${runId}`), "utf8"));
     assert.equal(raw.runId, runId);
     assert.equal(raw.lifecycle, "preparing");
-    assert.equal(raw.spec, null);
+    assert.equal(raw.specId, null);
     assert.equal(raw.baseBranch, null);
     assert.equal(raw.featureBranch, null);
     assert.equal(raw.worktree, null);

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
 
 // "unreadable" represents both directory reads and file metadata reads.
 const LIMIT_KINDS = new Set(["depth", "directory-entries", "files", "unreadable"]);
@@ -35,17 +36,22 @@ const FRESHNESS_EXCLUDED_DIRECTORY_NAMES = new Set([
  * Defines the repository paths that cannot affect generated documentation.
  */
 export class FreshnessSourcePolicy {
-  constructor(name = "freshness-source", rootRelativePath = "") {
+  constructor(name = "freshness-source", rootRelativePath = "", specRoot = DEFAULT_FLOW_SPEC_DIR) {
     if (typeof name !== "string" || name.trim() === "") {
       throw new Error("FreshnessSourcePolicy name must be a non-empty string");
     }
     this.name = name;
     this.rootRelativePath = normalizeRelative(rootRelativePath).replace(/^\.\/$/, "");
+    this.specRoot = FlowSpecRoot.from(specRoot).toString();
     Object.freeze(this);
   }
 
   forRelativeRoot(rootRelativePath) {
-    return new FreshnessSourcePolicy(this.name, rootRelativePath);
+    return new FreshnessSourcePolicy(this.name, rootRelativePath, this.specRoot);
+  }
+
+  withSpecRoot(specRoot) {
+    return new FreshnessSourcePolicy(this.name, this.rootRelativePath, specRoot);
   }
 
   shouldEnterDirectory(relativePath) {
@@ -54,11 +60,12 @@ export class FreshnessSourcePolicy {
       .join("/");
     const segments = repositoryRelativePath.split("/");
     if (segments.some((segment) => FRESHNESS_EXCLUDED_DIRECTORY_NAMES.has(segment))) return false;
-    if (segments[0] !== "specs") return true;
+    const specSegments = this.specRoot.split("/");
+    if (!specSegments.every((segment, index) => segments[index] === segment)) return true;
 
-    const [, , third, fourth] = segments;
-    if (segments.length === 3 && ["review-history", "review-evidence"].includes(third)) return false;
-    return !(segments.length === 4 && third === "tests" && fourth === ".raw");
+    const artifactSegments = segments.slice(specSegments.length + 1);
+    if (artifactSegments.length === 1 && ["review-history", "review-evidence"].includes(artifactSegments[0])) return false;
+    return !(artifactSegments.length === 2 && artifactSegments[0] === "tests" && artifactSegments[1] === ".raw");
   }
 }
 

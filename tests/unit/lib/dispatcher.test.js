@@ -205,7 +205,7 @@ describe("dispatcher (unified runner)", () => {
           argv: [
             "--expect-run-id", "wrong-run",
             "--expect-issue", "430",
-            "--expect-spec", "specs/demo/spec.json",
+            "--expect-spec", "demo",
           ],
           envelopeType: "run",
           envelopeKey: "guarded",
@@ -213,11 +213,11 @@ describe("dispatcher (unified runner)", () => {
           stdout: (chunk) => out.push(chunk),
           setExitCode: () => {},
           buildHookCtx: () => ({
-            specId: "specs/demo/spec.json",
+            specId: "demo",
             flowState: {
               runId: "run-430",
               issue: 430,
-              spec: "specs/demo/spec.json",
+              specId: "demo",
               currentTaskId: null,
               steps: [{ id: "test-review", status: "in_progress" }],
               tasks: [],
@@ -332,7 +332,7 @@ describe("dispatcher (unified runner)", () => {
           setExitCode: () => {},
           buildHookCtx: () => ({
             flowState: null,
-            preparingFlowState: { runId: "run-431", issue: 431, spec: null },
+            preparingFlowState: { runId: "run-431", issue: 431 },
             flowManager: {
               setStepRuntimeLog() { calls.metadata += 1; },
             },
@@ -524,7 +524,7 @@ describe("dispatcher (unified runner)", () => {
             stdout: (chunk) => out.push(chunk),
             setExitCode: () => {},
             buildHookCtx: () => ({
-              specId: "specs/demo/spec.json",
+              specId: "demo",
               flowState: testCase.flowState,
               flowManager,
             }),
@@ -533,7 +533,7 @@ describe("dispatcher (unified runner)", () => {
           const call = calls.at(-1);
           assert.equal(call.stepId, testCase.stepId);
           assert.deepEqual(call.opts, {
-            specId: "specs/demo/spec.json",
+            specId: "demo",
             taskId: testCase.taskId,
           });
         }

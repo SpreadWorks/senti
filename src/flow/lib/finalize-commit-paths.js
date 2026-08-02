@@ -1,0 +1,32 @@
+import path from "node:path";
+import { FlowSpecLocation } from "../../lib/flow-workspace.js";
+
+export const FINALIZE_DOCUMENTATION_PATHS = Object.freeze([
+  "docs",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
+  ".senti/output/analysis.json",
+]);
+
+export const FINALIZE_PRE_MERGE_DEFERRED_PATHS = Object.freeze([
+  ".senti/output/analysis.json",
+]);
+
+export class FinalizeCommitPathSet {
+  constructor({ repositoryRoot, specRoot, specId }) {
+    this.location = new FlowSpecLocation({ repositoryRoot, specRoot, specId });
+    this.specDirectory = this.location.relativeDirectory;
+    this.documentationPaths = FINALIZE_DOCUMENTATION_PATHS;
+    Object.freeze(this);
+  }
+
+  get completionPaths() {
+    return [this.specDirectory, ...this.documentationPaths];
+  }
+
+  get implementationExclusions() {
+    return [this.location.relativeRoot, ...this.documentationPaths]
+      .map((entry) => `:(exclude)${entry}${path.extname(entry) ? "" : "/**"}`);
+  }
+}

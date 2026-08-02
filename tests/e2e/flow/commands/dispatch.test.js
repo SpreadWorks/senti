@@ -19,6 +19,10 @@ import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.j
 
 const SENTI = path.resolve("src/senti.js");
 
+function specPath(state) {
+  return `specs/${state.specId}/spec.json`;
+}
+
 function installWorker(root, { delayMs = 75 } = {}) {
   const worker = path.join(root, "serial-worker.mjs");
   const count = path.join(root, "worker-count.txt");
@@ -60,7 +64,8 @@ function installWorker(root, { delayMs = 75 } = {}) {
 function installReviewRecoveryWorker(root, state) {
   const worker = path.join(root, "review-recovery-worker.mjs");
   const count = path.join(root, ".tmp", "review-recovery-count.txt");
-  const testFile = path.join(root, path.dirname(state.spec), "tests", "recovery.test.mjs");
+  const targetSpecPath = specPath(state);
+  const testFile = path.join(root, path.dirname(targetSpecPath), "tests", "recovery.test.mjs");
   fs.writeFileSync(worker, [
     'import fs from "node:fs";',
     'import {spawnSync} from "node:child_process";',
@@ -78,7 +83,7 @@ function installReviewRecoveryWorker(root, state) {
     "  const result=spawnSync(process.execPath,[",
     `    ${JSON.stringify(SENTI)},'flow','run','review','--phase','test',`,
     `    '--expect-run-id',${JSON.stringify(state.runId)},`,
-    `    '--expect-spec',${JSON.stringify(state.spec)}`,
+    `    '--expect-spec',${JSON.stringify(state.specId)}`,
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(result.status!==0){",
     "    process.stderr.write(result.stderr||result.stdout);",
@@ -115,7 +120,7 @@ function dispatchArgs(state, extra = []) {
     "--expect-run-id",
     state.runId,
     "--expect-spec",
-    state.spec,
+    state.specId,
     ...extra,
   ];
 }
@@ -242,10 +247,11 @@ describe("flow dispatch CLI", () => {
       featureBranch: "main",
       metrics: [],
     });
-    const specDir = path.join(root, path.dirname(state.spec));
+    const targetSpecPath = specPath(state);
+    const specDir = path.join(root, path.dirname(targetSpecPath));
     const testsDir = path.join(specDir, "tests");
     fs.mkdirSync(testsDir, { recursive: true });
-    fs.writeFileSync(path.join(root, state.spec), `${JSON.stringify({
+    fs.writeFileSync(path.join(root, targetSpecPath), `${JSON.stringify({
       goal: "Verify rejected review continuation.",
       background: "",
       scope: { in: ["Review recovery"], out: [] },
@@ -280,10 +286,10 @@ describe("flow dispatch CLI", () => {
     installReviewRecoveryWorker(root, state);
     initGitRepo(root);
     commitAll(root, "initial rejected review fixture");
-    const treeSha = resolveCurrentReviewTreeSha(root, state.spec);
+    const treeSha = resolveCurrentReviewTreeSha(root, targetSpecPath);
     const targetStateDigest = buildRepairFingerprint({
       root,
-      specPath: state.spec,
+      specPath: targetSpecPath,
       state,
     }).hash;
     makeFlowManager(root).mutate((flow) => {
@@ -321,7 +327,7 @@ describe("flow dispatch CLI", () => {
       "--expect-run-id",
       state.runId,
       "--expect-spec",
-      state.spec,
+      state.specId,
     ], invocationOptions(root));
     assert.notEqual(bypass.status, 0);
     assert.equal(JSON.parse(bypass.stdout).errors[0].code, "FLOW_STEP_TRANSITION_INVALID");

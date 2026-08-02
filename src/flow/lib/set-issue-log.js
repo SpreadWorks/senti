@@ -1,7 +1,7 @@
 /**
  * src/flow/lib/set-issue-log.js
  *
- * Record an issue-log entry in specs/<spec>/issue-log.json.
+ * Record an issue-log entry under the configured spec root.
  *
  * ctx.step               — step ID (required)
  * ctx.reason             — why the entry was recorded (required)
@@ -17,9 +17,10 @@ import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 import { resolveTaskIdForEntry } from "../../lib/flow-store.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { IssueLogStore } from "./issue-log-store.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 /**
- * Load issue-log.json from specs/<spec>/ directory.
+ * Load issue-log.json from the resolved spec directory.
  * @param {string} root - project root
  * @param {string} specPath - relative spec path
  * @returns {{ entries: Object[] }}
@@ -131,7 +132,7 @@ export default class SetIssueLogCommand extends FlowCommand {
       timestamp: new Date().toISOString(),
     };
 
-    const result = appendIssueLogEntry(root, state.spec, entry);
+    const result = appendIssueLogEntry(root, relativeFlowSpecFile(state), entry);
 
     return { entry: result.entry, total: result.total };
   }

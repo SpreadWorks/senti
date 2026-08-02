@@ -17,6 +17,7 @@ import {
   buildInitialTaskSteps as buildTaskStepsFromDef,
 } from "../flow/definition.js";
 import { flattenSteps } from "../flow/lib/step-tree.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecLocation } from "./flow-workspace.js";
 
 export const ACTIVE_FLOW_FILE = ".active-flow";
 export const PREPARING_PREFIX = ".active-flow.";
@@ -49,31 +50,30 @@ export const TASK_PHASE_MAP = Object.fromEntries(
 );
 
 /**
- * Extract the spec name (e.g. "152-add-logger-to-callsites") from a flow object or state.
- * Both `flow.spec` and `state.spec` hold a relative path like "specs/152-.../spec.json".
+ * Read the explicit spec identity from a flow object or state.
  *
- * @param {{ spec?: string }|null|undefined} flowOrState
+ * @param {{ specId?: string }|null|undefined} flowOrState
  * @returns {string|null}
  */
 export function getSpecName(flowOrState) {
-  if (!flowOrState?.spec) return null;
-  return path.basename(path.dirname(flowOrState.spec));
+  return flowOrState?.specId ?? null;
 }
 
 /**
  * Resolve the absolute spec directory from a flow state and repo root.
- * Returns null if `state.spec` is missing.
+ * Returns null if `state.specId` is missing.
  *
- * @param {{ spec?: string }|null|undefined} flowOrState
+ * @param {{ specId?: string }|null|undefined} flowOrState
  * @param {string} root - Repository root (absolute)
  * @returns {string|null}
  */
-export function getSpecDir(flowOrState, root) {
-  if (!flowOrState?.spec) return null;
-  const specPath = path.isAbsolute(flowOrState.spec)
-    ? flowOrState.spec
-    : path.join(root, flowOrState.spec);
-  return path.dirname(specPath);
+export function getSpecDir(flowOrState, root, specRoot = DEFAULT_FLOW_SPEC_DIR) {
+  if (!flowOrState?.specId) return null;
+  return new FlowSpecLocation({
+    repositoryRoot: root,
+    specRoot,
+    specId: flowOrState.specId,
+  }).directory;
 }
 
 /**
@@ -269,17 +269,4 @@ export function completeTaskAndPromoteInState(state, taskId, checkpoint = () => 
   const promoted = promoteNextPending(state);
   checkpoint({ phase: "after-next-task-promotion", taskId, promotedTaskId: promoted });
   return promoted;
-}
-
-/**
- * Extract spec ID from spec path.
- * e.g. "specs/086-migrate-flow-state/spec.md" → "086-migrate-flow-state"
- * @param {string} specPath
- * @returns {string}
- */
-export function specIdFromPath(specPath) {
-  const parts = specPath.replace(/\\/g, "/").split("/");
-  const idx = parts.indexOf("specs");
-  if (idx >= 0 && idx + 1 < parts.length) return parts[idx + 1];
-  return parts[0];
 }

@@ -1,4 +1,3 @@
-import path from "node:path";
 import {
   FlowOutbox,
   FlowOutboxRecoveryClaim,
@@ -14,6 +13,8 @@ import {
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { FinalizeFlowArtifactRegistry } from "./repair-state-identity.js";
 
 const FINALIZATION_COMMANDS = Object.freeze({
   "finalize-commit": "finalize-commit",
@@ -34,8 +35,8 @@ function refreshCommand(state, binding) {
 }
 
 function featureMetadataPaths(state) {
-  if (typeof state.spec !== "string" || state.spec === "") return [];
-  const specDirectory = path.posix.dirname(state.spec.replaceAll("\\", "/"));
+  if (!state?.specId) return [];
+  const specDirectory = path.posix.dirname(relativeFlowSpecFile(state));
   return [
     `${specDirectory}/flow.json`,
     `${specDirectory}/issue-log.json`,
@@ -126,7 +127,9 @@ export class FinalizationOutboxRecovery {
         idempotencyKey: entry.idempotencyKey,
       });
     }
-    const root = this.target.stepId === "finalize-sync" ? mainRoot : this.ctx.root;
+    const root = this.target.stepId === "finalize-sync"
+      ? mainRoot
+      : (this.ctx.executionRoot || this.ctx.root);
     return hasOutboxCommit({ root, ref: "HEAD", idempotencyKey: entry.idempotencyKey });
   }
 
@@ -141,7 +144,7 @@ export class FinalizationOutboxRecovery {
     const { baseRef, baseHead } = recovery;
     const featureRoot = this.state.worktree === true
       ? (this.ctx.flowManager.resolveWorktreePaths(this.state).worktreePath || this.ctx.root)
-      : this.ctx.root;
+      : (this.ctx.executionRoot || this.ctx.root);
     const ancestry = runGit([
       "-C",
       featureRoot,
@@ -179,7 +182,7 @@ export class FinalizationOutboxRecovery {
     const baseRef = `${configuredPushRemote()}/${this.state.baseBranch}`;
     const featureRoot = this.state.worktree === true
       ? (this.ctx.flowManager.resolveWorktreePaths(this.state).worktreePath || this.ctx.root)
-      : this.ctx.root;
+      : (this.ctx.executionRoot || this.ctx.root);
     const baseHead = runGit(["-C", featureRoot, "rev-parse", baseRef]);
     if (!baseHead.ok || baseHead.stdout.trim() === "") return null;
     return { baseRef, baseHead: baseHead.stdout.trim() };
@@ -187,13 +190,18 @@ export class FinalizationOutboxRecovery {
 
   #inspectMergeReadiness() {
     try {
+      const flowArtifactRegistry = new FinalizeFlowArtifactRegistry(relativeFlowSpecFile(this.state));
       new FinalizeMergeTransaction({
-        featureRoot: this.ctx.root,
+        featureRoot: this.ctx.executionRoot || this.ctx.root,
         mainRoot: mainRootFor(this.ctx, this.state),
         baseBranch: this.state.baseBranch,
         featureBranch: this.state.featureBranch,
         commitMessage: "senti finalize merge recovery inspection",
-      }).inspect({ allowFeatureMetadataPaths: featureMetadataPaths(this.state) });
+        flowArtifactRegistry,
+      }).inspect({
+        allowFeatureMetadataPaths: featureMetadataPaths(this.state),
+        flowArtifactRegistry,
+      });
       return null;
     } catch (error) {
       return {
@@ -211,3 +219,4 @@ export class FinalizationOutboxRecovery {
 export function resolveFinalizationOutboxRecovery(ctx, state, target, binding = null) {
   return new FinalizationOutboxRecovery({ ctx, state, target, binding }).resolve();
 }
+import path from "node:path";

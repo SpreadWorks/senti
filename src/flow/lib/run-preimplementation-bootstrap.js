@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 import { Envelope } from "../../lib/flow-envelope.js";
 import { findActiveNode } from "../definition.js";
@@ -117,7 +118,7 @@ function buildRecoveryTransition(state) {
 }
 
 function buildPreimplementationBootstrapPlan({ root, state }) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
+  const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
   return new PreimplementationBootstrapPlan({
     invalidPaths: readPreflightInvalidPaths(specDir),
     transition: buildRecoveryTransition(state),

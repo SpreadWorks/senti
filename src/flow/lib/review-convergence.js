@@ -258,7 +258,7 @@ export class ReviewRecoveryIdentity {
     runId = null,
     hasIssue = null,
     issue = null,
-    spec = null,
+    specId = null,
     phase = null,
     taskId = null,
     treeSha,
@@ -275,7 +275,7 @@ export class ReviewRecoveryIdentity {
     if (this.hasIssue === true && this.issue == null) {
       throw new Error("Issue-bearing review recovery identity requires issue");
     }
-    this.spec = spec == null ? null : requireString(spec, "spec");
+    this.specId = specId == null ? null : requireString(specId, "specId");
     this.phase = phase == null ? null : requireString(phase, "phase");
     this.taskId = requireNullableTaskId(taskId);
     this.treeSha = requireTreeSha(treeSha);
@@ -299,7 +299,7 @@ export class ReviewRecoveryIdentity {
       "runId",
       "hasIssue",
       "issue",
-      "spec",
+      "specId",
       "phase",
       "taskId",
       "treeSha",
@@ -855,7 +855,7 @@ class ReviewRecoveryMutation {
       runId: input.expectedRunId,
       hasIssue: Object.hasOwn(input, "expectedIssue"),
       issue: input.expectedIssue,
-      spec: input.expectedSpec,
+      specId: input.expectedSpecId,
       phase: this.phase,
       taskId: this.taskId,
       treeSha: input.previousTreeSha,
@@ -867,7 +867,7 @@ class ReviewRecoveryMutation {
       runId: input.expectedRunId,
       hasIssue: Object.hasOwn(input, "expectedIssue"),
       issue: input.expectedIssue,
-      spec: input.expectedSpec,
+      specId: input.expectedSpecId,
       phase: this.phase,
       taskId: this.taskId,
       treeSha: input.nextTreeSha,
@@ -887,7 +887,7 @@ class ReviewRecoveryMutation {
     this.previousTreeSha = this.previousIdentity.treeSha;
     this.nextTreeSha = this.nextIdentity.treeSha;
     this.expectedRunId = requireString(input.expectedRunId, "expectedRunId");
-    this.expectedSpec = requireString(input.expectedSpec, "expectedSpec");
+    this.expectedSpecId = requireString(input.expectedSpecId, "expectedSpecId");
     this.expectedHasIssue = Object.hasOwn(input, "expectedIssue");
     this.expectedIssue = input.expectedIssue;
   }
@@ -896,7 +896,7 @@ class ReviewRecoveryMutation {
     requireObject(flowState, "flow state");
     if (
       flowState.runId !== this.expectedRunId
-      || flowState.spec !== this.expectedSpec
+      || flowState.specId !== this.expectedSpecId
       || Object.hasOwn(flowState, "issue") !== this.expectedHasIssue
       || (this.expectedHasIssue && flowState.issue !== this.expectedIssue)
     ) {
@@ -989,7 +989,7 @@ export class ReviewToolingRecoveryMutation extends ReviewRecoveryMutation {
       previousDispatchInvocationId: reviewRecord.dispatchInvocationId,
       nextDispatchInvocationId: reviewRecord.dispatchInvocationId,
       expectedRunId: flowState.runId,
-      expectedSpec: flowState.spec,
+      expectedSpecId: flowState.specId,
       ...(Object.hasOwn(flowState, "issue") && {
         expectedIssue: flowState.issue,
       }),

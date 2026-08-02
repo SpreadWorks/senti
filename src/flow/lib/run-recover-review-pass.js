@@ -6,6 +6,7 @@ import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { collectFlowLeafIds, findActiveNode } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
 import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
@@ -20,7 +21,7 @@ import {
 import { flowReviewRouteForPhase } from "./review-route.js";
 import { findStepById } from "./step-tree.js";
 
-const REVIEW_PASS_RECOVERY_VERSION = 1;
+const REVIEW_PASS_RECOVERY_VERSION = 2;
 const FLOW_LEAF_IDS = Object.freeze(collectFlowLeafIds());
 
 function stableStringify(value) {
@@ -398,7 +399,7 @@ export class CanonicalReviewPassRecoveryPlan {
     return (state.canonicalReviewPassRecoveries || []).find((receipt) => (
       receipt?.version === REVIEW_PASS_RECOVERY_VERSION
       && receipt.runId === state.runId
-      && receipt.spec === state.spec
+      && receipt.specId === state.specId
       && receipt.phase === this.phase
       && receipt.evidenceDigest === this.canonicalRecord.evidenceDigest
       && receipt.projectionDigest === this.projectionDigest
@@ -416,7 +417,7 @@ export class CanonicalReviewPassRecoveryPlan {
       version: REVIEW_PASS_RECOVERY_VERSION,
       runId: this.state.runId,
       issue: this.state.issue ?? null,
-      spec: this.state.spec,
+      specId: this.state.specId,
       phase: this.phase,
       treeSha: this.currentTreeSha,
       targetStateDigest: this.targetState.digest,
@@ -487,6 +488,7 @@ export class CanonicalReviewPassRecoveryPlan {
 
 export function inspectCanonicalReviewPassRecovery({
   root,
+  executionRoot = root,
   state,
   phase = "spec",
   includeHealthy = false,
@@ -496,13 +498,15 @@ export function inspectCanonicalReviewPassRecovery({
   if (!state || !active) return null;
   if (!latestPassAttempt(state, route)) return null;
 
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  const specPath = relativeFlowSpecFile(state);
+  const specDir = resolveSpecDir(path.resolve(root, specPath));
   if (route.triageFile && fs.existsSync(path.join(specDir, route.triageFile))) return null;
 
-  const currentTreeSha = resolveCurrentReviewTreeSha(root, state.spec);
+  const currentTreeSha = resolveCurrentReviewTreeSha(executionRoot, specPath);
   const fingerprint = buildRepairFingerprint({
-    root,
-    specPath: state.spec,
+    root: executionRoot,
+    artifactRoot: root,
+    specPath,
     state,
   });
   const targetState = ReviewTargetState.fromRepairFingerprint(fingerprint);
@@ -572,6 +576,7 @@ export default class RunRecoverReviewPassCommand extends FlowCommand {
     try {
       const plan = inspectCanonicalReviewPassRecovery({
         root: ctx.root,
+        executionRoot: ctx.executionRoot || ctx.root,
         state,
         phase: ctx.phase || "spec",
         includeHealthy: true,

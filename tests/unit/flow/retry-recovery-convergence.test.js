@@ -43,7 +43,7 @@ function setupInterruptedRecovery(root, specId) {
   fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(path.join(specDir, "spec.json"), '{"revision":1}\n');
   const state = makeFlowState({
-    spec,
+    specId,
     runId: `run-${specId}`,
     featureBranch: `feature/${specId}`,
     metrics: [{ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null }],
@@ -68,7 +68,7 @@ function setupInterruptedRecovery(root, specId) {
   fs.writeFileSync(path.join(specDir, "spec.json"), '{"revision":2}\n');
   const input = {
     root,
-    spec,
+    specId,
     flowManager,
     resolveConfiguredMaxAttempts: () => 1,
     input: {
@@ -142,7 +142,7 @@ describe("retry recovery authority convergence", () => {
     fs.mkdirSync(path.join(root, "specs", "active-gate"), { recursive: true });
     fs.writeFileSync(path.join(root, "specs", "active-gate", "spec.json"), "{}\n");
     const flowState = makeFlowState({
-      spec: "specs/active-gate/spec.json",
+      specId: "active-gate",
       metrics: Array.from({ length: 5 }, () => ({
         phase: "task-impl",
         counter: "gateRetry",
@@ -171,7 +171,7 @@ describe("retry recovery authority convergence", () => {
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(root, spec), '{"revision":1}\n');
     const state = makeFlowState({
-      spec,
+      specId: "spec-gate",
       runId: "run-spec-gate",
       metrics: [{ phase: "spec", counter: "gateRetry", delta: 1 }],
       stepAttempts: [new StepAttempt({
@@ -205,7 +205,7 @@ describe("retry recovery authority convergence", () => {
 
     applyRetryReset({
       root,
-      spec,
+      specId: state.specId,
       flowManager,
       input: {
         action: "reset",
@@ -252,7 +252,7 @@ describe("retry recovery authority convergence", () => {
     const previousTreeSha = "1".repeat(40);
     const nextTreeSha = "2".repeat(40);
     const state = makeFlowState({
-      spec,
+      specId: "review-tooling",
       runId: "run-review-tooling",
       metrics: [{ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null }],
       reviewConvergence: {
@@ -306,7 +306,7 @@ describe("retry recovery authority convergence", () => {
 
     applyRetryReset({
       root,
-      spec,
+      specId: state.specId,
       flowManager,
       input: {
         action: "reset",
@@ -328,7 +328,7 @@ describe("retry recovery authority convergence", () => {
           previousTreeSha,
           nextTreeSha,
           expectedRunId: state.runId,
-          expectedSpec: spec,
+          expectedSpecId: state.specId,
         }).apply(flowState);
       },
     });
@@ -353,7 +353,7 @@ describe("retry recovery authority convergence", () => {
     const previousTreeSha = "4".repeat(40);
     const nextTreeSha = "5".repeat(40);
     const state = makeFlowState({
-      spec,
+      specId: "review-semantic",
       runId: "run-review-semantic",
       metrics: [{ phase: "spec", counter: "reviewRetry", delta: 1, taskId: null }],
       reviewConvergence: {
@@ -396,7 +396,7 @@ describe("retry recovery authority convergence", () => {
 
     applyRetryReset({
       root,
-      spec,
+      specId: state.specId,
       flowManager,
       input: {
         action: "reset",
@@ -418,7 +418,7 @@ describe("retry recovery authority convergence", () => {
           previousTreeSha,
           nextTreeSha,
           expectedRunId: state.runId,
-          expectedSpec: spec,
+          expectedSpecId: state.specId,
         }).apply(flowState);
       },
     });
@@ -440,7 +440,7 @@ describe("retry recovery authority convergence", () => {
     const nextTargetStateDigest = "6".repeat(64);
     const spec = "specs/review-target-state/spec.json";
     const state = makeFlowState({
-      spec,
+      specId: "review-target-state",
       runId: "run-review-target-state",
       reviewConvergence: {
         version: 1,
@@ -477,7 +477,7 @@ describe("retry recovery authority convergence", () => {
       previousTargetStateDigest,
       nextTargetStateDigest,
       expectedRunId: state.runId,
-      expectedSpec: spec,
+      expectedSpecId: state.specId,
     }).apply(state);
 
     const recovered = state.reviewConvergence.records[0];
@@ -510,7 +510,7 @@ describe("retry recovery authority convergence", () => {
 
   it("recovers an exhausted rejected review after result recording lost its evidence reference", () => {
     const state = makeFlowState({
-      spec: "specs/review-tooling/spec.json",
+      specId: "review-tooling",
       runId: "run-review-tooling",
       reviewConvergence: {
         version: 1,
@@ -544,7 +544,7 @@ describe("retry recovery authority convergence", () => {
       previousTreeSha: "8".repeat(40),
       nextTreeSha: "a".repeat(40),
       expectedRunId: state.runId,
-      expectedSpec: state.spec,
+      expectedSpecId: state.specId,
     }).apply(state);
 
     const recovered = state.reviewConvergence.records[0];
@@ -557,7 +557,7 @@ describe("retry recovery authority convergence", () => {
 
   it("grants one retry when prior rejected evidence belongs to a newer review tree", () => {
     const state = makeFlowState({
-      spec: "specs/review-new-tree/spec.json",
+      specId: "review-new-tree",
       runId: "run-review-new-tree",
       reviewConvergence: {
         version: 1,
@@ -584,7 +584,7 @@ describe("retry recovery authority convergence", () => {
       previousTreeSha: "b".repeat(64),
       nextTreeSha: "d".repeat(64),
       expectedRunId: state.runId,
-      expectedSpec: state.spec,
+      expectedSpecId: state.specId,
     }).apply(state);
 
     const recovered = state.reviewConvergence.records[0];
@@ -722,7 +722,7 @@ describe("retry recovery authority convergence", () => {
       } else {
         const foreignDir = path.join(root, "specs", "foreign");
         fs.renameSync(fixture.specDir, foreignDir);
-        flowState.spec = "specs/foreign/spec.json";
+        flowState.specId = "foreign";
         fixture.specDir = foreignDir;
         fixture.privatePath = path.join(foreignDir, ".retry-recovery.transaction.json");
         fixture.publicPath = path.join(foreignDir, "retry-recovery.json");

@@ -181,7 +181,7 @@ export class PlanRewindRequest {
       fail("PLAN_REWIND_INVALID_REQUEST", "issue must be a positive safe integer");
     }
     this.issue = input.issue;
-    this.spec = requireString(input.spec, "spec", PLAN_REWIND_LIMITS.maxPathChars);
+    this.specId = requireString(input.specId, "specId", PLAN_REWIND_LIMITS.maxPathChars);
     this.sourceStage = requireString(input.sourceStage, "sourceStage", 100);
     this.destinationStep = requireString(input.destinationStep, "destinationStep", 100);
     try {
@@ -203,7 +203,7 @@ export class PlanRewindRequest {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       sourceStage: this.sourceStage,
       destinationStep: this.destinationStep,
       reason: this.reason,
@@ -233,7 +233,7 @@ export class PlanRewindRecord {
       ? input.invalidatedEvidence
       : new PlanRewindEvidenceInventory(input.invalidatedEvidence || []);
     this.reason = request.reason;
-    this.target = Object.freeze({ runId: request.runId, issue: request.issue, spec: request.spec });
+    this.target = Object.freeze({ runId: request.runId, issue: request.issue, specId: request.specId });
     this.sourceStage = request.sourceStage;
     this.destinationStep = request.destinationStep;
     this.rewoundAt = request.rewoundAt;
@@ -366,7 +366,7 @@ function resetLeaf(step, status) {
 }
 
 function assertIdentity(state, request) {
-  if (state.runId !== request.runId || state.issue !== request.issue || state.spec !== request.spec) {
+  if (state.runId !== request.runId || state.issue !== request.issue || state.specId !== request.specId) {
     fail("ACTIVE_FLOW_MISMATCH", "plan rewind target does not match flow state");
   }
 }
@@ -417,7 +417,7 @@ export function applyPlanRewind(state, rawRequest, rawEvidence = []) {
   const identityBefore = {
     runId: next.runId,
     issue: next.issue,
-    spec: next.spec,
+    specId: next.specId,
     baseBranch: next.baseBranch,
     featureBranch: next.featureBranch,
     worktree: next.worktree,

@@ -53,7 +53,7 @@ function testResultReviewArtifact(repairFingerprint) {
 
 function setupPostHookFlow(root, stepId) {
   const state = setupFlow(root, {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     tasks: [{
       id: "T-1",
       title: "task",

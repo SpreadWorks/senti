@@ -1,7 +1,7 @@
    - Repair the draft after `draft-coverage-triage` classifies draft coverage review findings.
-   - Read `specs/<spec-id>/draft-coverage-triage.json` first. Treat only `items[]` entries with `decision: "apply"` as the repair input.
+   - Read `draft-coverage-triage.json` from the active Flow's configured spec directory first. Treat only `items[]` entries with `decision: "apply"` as the repair input.
    - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.
-   - Always write `specs/<spec-id>/draft-coverage-repair.json` before completing this step. This file is the audit log for actual `draft.json` mutations applied from triage decisions.
+   - Always write `draft-coverage-repair.json` in that directory before completing this step. This file is the audit log for actual `draft.json` mutations applied from triage decisions.
    - If `draft-coverage-triage.json` is missing, invalid, or contains no `decision: "apply"` items, do not rewrite unrelated draft content. Write `draft-coverage-repair.json` with an empty `items[]`, a concise `summary`, then set `draft.json.approval.approved` to true and `draft.json.approval.confirmedAt` to the repair time when there is no `requires_user_decision` item.
    - Apply the triaged findings once. Update `draft.json` so each `decision: "apply"` item is resolved in the smallest appropriate field.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.

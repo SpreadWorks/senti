@@ -1,7 +1,6 @@
 import { Command } from "../../lib/command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { runtimeLogFileForContext } from "../../lib/runtime-log.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
 import {
   FlowTargetExpectation,
   targetMismatchEnvelopeForInput,
@@ -93,7 +92,7 @@ export default class GetRuntimeLogCommand extends Command {
       const sequence = parsedRunId.sequence ?? explicitSequence;
       const file = runtimeLogFileForContext({
         root: ctx.root,
-        specId: targetState.spec ? specIdFromPath(targetState.spec) : null,
+        specId: targetState.specId || null,
       });
       const block = file.select({
         sequence,

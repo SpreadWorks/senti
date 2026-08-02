@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import { getFlowNode } from "../definition.js";
 import { findStepById, flattenSteps } from "./step-tree.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 function isStepDone(state, stepId) {
   const steps = state?.steps;
@@ -85,8 +86,8 @@ export function resolvePersistedAutoCheckTrust(state, paths = {}) {
       reason: "persisted auto-check is missing a passing goalGate marker",
     };
   }
-  if (!isDraftGateDone(state)) return null;
-  const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.json");
+  if (!isDraftGateDone(state) || !state?.specId) return null;
+  const draft = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "draft.json");
   if (!draft) return null;
   if (!parseDraftGoal(draft)) return buildGoalMissingVerdict();
   return null;
@@ -104,8 +105,8 @@ function buildBaseInput(state, paths = {}) {
     return parts.join("\n").trim();
   }
 
-  if (state?.spec) {
-    const fileBody = loadSpecSiblingText(paths.root, state.spec, "issue.md", { warnOnError: true });
+  if (state?.specId) {
+    const fileBody = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "issue.md", { warnOnError: true });
     if (fileBody) {
       parts.push(fileBody);
       return parts.join("\n").trim();
@@ -120,7 +121,7 @@ function buildBaseInput(state, paths = {}) {
  * Resolve the input payload for auto-check based on flow state phase.
  *
  * @param {object} state - flow state (active flow.json or preparing record)
- * @param {object} [paths] - { root: string, specPath: string|null }
+ * @param {object} [paths] - { root: string }
  * @returns {{skip: true, reason: string} | {skip: false, text: string}}
  */
 export function resolveAutoCheckInput(state, paths = {}) {
@@ -128,8 +129,8 @@ export function resolveAutoCheckInput(state, paths = {}) {
     return { skip: true, reason: "spec approved" };
   }
   const base = buildBaseInput(state, paths);
-  if (isDraftGateDone(state)) {
-    const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.json");
+  if (isDraftGateDone(state) && state?.specId) {
+    const draft = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "draft.json");
     if (draft) {
       if (!parseDraftGoal(draft)) {
         return { fail: true, verdict: buildGoalMissingVerdict() };

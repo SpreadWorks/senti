@@ -222,7 +222,8 @@ describe("ProcessOwnedLock failure semantics", () => {
   it("preserves retry operation body and release failures in deterministic order", () => {
     const root = createTmpDir("retry-body-release-failure-");
     roots.push(root);
-    const spec = "specs/441-lock/spec.json";
+    const specId = "441-lock";
+    const spec = `specs/${specId}/spec.json`;
     const specDir = path.join(root, path.dirname(spec));
     fs.mkdirSync(specDir, { recursive: true });
     const artifactPath = path.join(specDir, RECOVERY_ARTIFACT_FILE);
@@ -241,8 +242,11 @@ describe("ProcessOwnedLock failure semantics", () => {
       assert.throws(
         () => applyRetryReset({
           root,
-          spec,
-          flowManager: { mutate() {} },
+          specId,
+          flowManager: {
+            mutate() {},
+            specLocation() { return { relativeSpecFile: spec }; },
+          },
           resolveConfiguredMaxAttempts: () => 1,
           input: {
             action: "reset",

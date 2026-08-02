@@ -56,18 +56,20 @@ import {
   recoverImplRepairTransaction,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
 
 const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 const NO_TESTS_DECLARED_REASON = "no_tests_declared";
 
-function recordPrerequisiteIssue(root, state, err) {
+function recordPrerequisiteIssue(root, executionRoot, state, err) {
   let changedFileCount = null;
   try {
-    changedFileCount = listChangedFilesDetailed({ cwd: root, baseBranch: state.baseBranch || "main" }).length;
+    changedFileCount = listChangedFilesDetailed({ cwd: executionRoot, baseBranch: state.baseBranch || "main" }).length;
   } catch (_) {
     changedFileCount = null;
   }
-  appendIssueLogEntry(root, state.spec, {
+  appendIssueLogEntry(root, relativeFlowSpecFile(state), {
     step: "test-execute",
     reason: `test-execute prerequisite failed before normal v2 artifact creation: ${err.message || String(err)}`,
     failureKind: "prerequisite",
@@ -111,7 +113,7 @@ function appendRaw(lines, sectionLines) {
   return { start_line: start, end_line: lines.length };
 }
 
-async function runSpecLocalTests(root, specDir, timeoutMs) {
+export async function runSpecLocalTests({ repositoryRoot, executionRoot, specDir, timeoutMs }) {
   const files = listSpecTestFiles(specDir);
   if (files.length === 0) {
     return {
@@ -120,8 +122,16 @@ async function runSpecLocalTests(root, specDir, timeoutMs) {
       result: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" },
     };
   }
-  const argv = ["node", "--test", ...files.map((file) => path.relative(root, file))];
-  const result = await runProcessDetailed({ argv, env: {}, source: "spec-local-tests" }, { cwd: root, timeoutMs });
+  const execution = new SharedSpecTestExecution({
+    repositoryRoot,
+    executionRoot,
+    specRoot: path.dirname(specDir),
+  });
+  const argv = execution.nodeArgv(["--test", ...files.map((file) => path.relative(executionRoot, file))]);
+  const result = await runProcessDetailed(
+    { argv, env: execution.environment, source: "spec-local-tests" },
+    { cwd: executionRoot, timeoutMs },
+  );
   return { command: argv.join(" "), noTestsDeclared: false, result };
 }
 
@@ -256,19 +266,22 @@ function buildRequiredRegression({ root, classification, rootCommand, command, r
 export default class RunTestExecuteCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const config = container.get("config") || {};
     recoverImplRepairTransaction({
-      root,
+      root: executionRoot,
       state: ctx.flowState,
       flowManager: ctx.flowManager,
     });
     const { state } = ensureRepairFingerprintContract({
-      root,
+      root: executionRoot,
+      artifactRoot: root,
       state: ctx.flowState,
       flowManager: ctx.flowManager,
       continueAfterMigration: true,
     });
-    const specDir = resolveSpecDir(path.resolve(root, state.spec));
+    const specPath = relativeFlowSpecFile(state);
+    const specDir = resolveSpecDir(path.resolve(root, specPath));
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
     let tempSummaryWritten = false;
@@ -280,7 +293,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const spec = readJsonStrict(path.join(specDir, "spec.json"));
       const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
       const testableRequirements = testableRequirementsForSummary(requirements);
-      const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
+      const analysisPath = path.join(sentiOutputDir(executionRoot), "analysis.json");
       if (!fs.existsSync(analysisPath)) {
         throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
       }
@@ -288,7 +301,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
 
       const timeoutMs = resolveTestTimeoutSeconds(config) * 1000;
       const rawLines = [];
-      const specLocal = await runSpecLocalTests(root, specDir, timeoutMs);
+      const specLocal = await runSpecLocalTests({
+        repositoryRoot: root,
+        executionRoot,
+        specDir,
+        timeoutMs,
+      });
       if (specLocal.result.spawnError && !specLocal.result.started) {
         throw new Error(`spec-local test command failed to start: ${specLocal.result.spawnError}`);
       }
@@ -319,18 +337,18 @@ export default class RunTestExecuteCommand extends FlowCommand {
         requirements,
       });
 
-      const changedFiles = listRegressionChangedFiles({ root, state });
-      const classification = classifyRegression({ root, state, analysis, config, changedFiles });
+      const changedFiles = listRegressionChangedFiles({ root: executionRoot, state });
+      const classification = classifyRegression({ root: executionRoot, state, analysis, config, changedFiles });
       const regressionPlan = planTestExecuteRegression(classification, config);
       let regression;
       if (!regressionPlan.run) {
-        regression = buildSkippedRegression(root, regressionPlan.classification);
+        regression = buildSkippedRegression(executionRoot, regressionPlan.classification);
       } else {
-        const rootCommand = discoverRegressionCommand(root, config);
+        const rootCommand = discoverRegressionCommand(executionRoot, config);
         const command = regressionPlan.classification.mode === "targeted"
           ? rootCommand.withTargets(regressionPlan.classification.targetPaths)
           : rootCommand;
-        const result = await runProcessDetailed(command, { cwd: root, timeoutMs });
+        const result = await runProcessDetailed(command, { cwd: executionRoot, timeoutMs });
         if (result.spawnError && !result.started) {
           throw new Error(`project regression command failed to start: ${result.spawnError}`);
         }
@@ -343,7 +361,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
           `result: ${regressionResult}`,
           `[senti] project regression end result=${regressionResult}`,
         ]);
-        regression = buildRequiredRegression({ root, classification: regressionPlan.classification, rootCommand, command, result, range });
+        regression = buildRequiredRegression({ root: executionRoot, classification: regressionPlan.classification, rootCommand, command, result, range });
       }
 
       fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");
@@ -354,7 +372,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
         summary: persistedSummary,
         regression,
       };
-      const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+      const fingerprint = buildRepairFingerprint({
+        root: executionRoot,
+        artifactRoot: root,
+        specPath,
+        state,
+      });
       writeRepairEvidenceArtifact({
         specDir,
         stepId: "test-execute",
@@ -382,7 +405,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
     } catch (err) {
       const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
       if (!fs.existsSync(resultPath)) {
-        recordPrerequisiteIssue(root, state, err);
+        recordPrerequisiteIssue(root, executionRoot, state, err);
       }
       throw err;
     } finally {

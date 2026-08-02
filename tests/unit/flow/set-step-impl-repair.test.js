@@ -72,7 +72,7 @@ describe("set step impl-repair completion", () => {
 
     const state = {
       runId: "run-impl-repair-intent-recovery",
-      spec: SPEC_PATH,
+      specId: "001-test",
       steps: [{ id: "impl-repair", status: "in_progress" }],
       tasks: [],
       currentTaskId: null,
@@ -133,7 +133,7 @@ describe("set step impl-repair completion", () => {
 
     const state = {
       runId: "run-impl-repair-intent-recovery",
-      spec: SPEC_PATH,
+      specId: "001-test",
       steps: [{ id: "impl-repair", status: "in_progress" }],
       tasks: [],
       currentTaskId: null,
@@ -197,7 +197,7 @@ describe("set step impl-repair completion", () => {
 
     const state = moveFlowToStep(makeFlowState({
       runId: "run-blocked-impl-repair",
-      spec: SPEC_PATH,
+      specId: "001-test",
       issue: 7,
       tasks: [],
       currentTaskId: null,
@@ -285,7 +285,7 @@ describe("set step impl-repair completion", () => {
 
     const state = moveFlowToStep(makeFlowState({
       runId: "run-gate-evidence-recovery",
-      spec: SPEC_PATH,
+      specId: "001-test",
       issue: 7,
       tasks: [],
       currentTaskId: null,
@@ -387,7 +387,7 @@ describe("set step impl-triage completion", () => {
 
     const state = {
       runId: "run-impl-triage-terminal-target",
-      spec: SPEC_PATH,
+      specId: "001-test",
       steps: [
         { id: "impl-triage", status: "in_progress" },
         { id: "impl-repair", status: "done" },

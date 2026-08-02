@@ -23,7 +23,7 @@ describe("flow set step", () => {
   function setupFlowState(dir) {
     const specId = "001-test";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -93,7 +93,7 @@ describe("flow set step", () => {
     await command.execute({
       id: "draft",
       status: "skipped",
-      specId: "specs/demo/spec.json",
+      specId: "demo",
       flowManager,
     });
     flowManager.state.steps[0].status = "done";
@@ -101,7 +101,7 @@ describe("flow set step", () => {
     await command.execute({
       id: "task-impl",
       status: "skipped",
-      specId: "specs/demo/spec.json",
+      specId: "demo",
       flowManager,
     });
 
@@ -112,15 +112,15 @@ describe("flow set step", () => {
       status: transition.requestedStatus,
       opts,
     })), [
-      { stepId: "draft", status: "skipped", opts: { specId: "specs/demo/spec.json", taskId: null } },
-      { stepId: "task-impl", status: "skipped", opts: { specId: "specs/demo/spec.json", taskId: "T-1" } },
+      { stepId: "draft", status: "skipped", opts: { specId: "demo", taskId: null } },
+      { stepId: "task-impl", status: "skipped", opts: { specId: "demo", taskId: "T-1" } },
     ]);
   });
 
   it("rejects a current step whose completion is owned by a definition lifecycle", async () => {
     const updates = [];
     const state = {
-      spec: "specs/demo/spec.json",
+      specId: "demo",
       currentTaskId: null,
       steps: [{ id: "scenario-validity", status: "in_progress" }],
       tasks: [],

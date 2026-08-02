@@ -46,7 +46,7 @@ function normalizeRepositoryPath(value, field) {
 function targetExpectation(target) {
   return new FlowTargetExpectation({
     expectRunId: target.runId,
-    expectSpec: target.spec,
+    expectSpec: target.specId,
     ...(target.issue == null ? { expectNoIssue: true } : { expectIssue: target.issue }),
   });
 }

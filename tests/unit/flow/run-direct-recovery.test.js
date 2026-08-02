@@ -16,7 +16,7 @@ afterEach(() => {
 test("flow run direct reports normal recovery availability without creating a second Flow state", () => {
   root = createTmpDir("run-direct-recovery-");
   const state = setupFlowAtStep(root, "impl-gate", {
-    spec: "specs/run-direct-recovery/spec.json",
+    specId: "run-direct-recovery",
     runId: "run-direct-recovery",
     issue: 656,
   });
@@ -25,7 +25,7 @@ test("flow run direct reports normal recovery availability without creating a se
     "flow", "run", "direct",
     "--expect-run-id", state.runId,
     "--expect-issue", String(state.issue),
-    "--expect-spec", state.spec,
+    "--expect-spec", state.specId,
   ], {
     cwd: root,
     encoding: "utf8",

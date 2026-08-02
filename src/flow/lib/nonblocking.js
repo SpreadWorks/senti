@@ -12,6 +12,7 @@ import {
   RepositoryFlowOperationLock,
   resolveRepositoryLockRoot,
 } from "../../lib/repository-maintenance-lock.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { findStepById } from "./step-tree.js";
 import { findActiveNode } from "../definition.js";
 import { completeTaskAndPromoteInState } from "../../lib/flow-helpers.js";
@@ -64,8 +65,8 @@ function sha256(value) {
 }
 
 function specDir(root, state) {
-  if (!state?.spec) throw new Error("active flow spec is required");
-  return path.dirname(path.resolve(root, state.spec));
+  if (!state?.specId) throw new Error("active flow spec is required");
+  return path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
 }
 
 function artifact(root, state, name) {
@@ -885,7 +886,7 @@ export function recordNonBlockingDecision({
   return withOperationLock(root, (operationOwnerToken) => {
     const issueLog = issueLogStoreFactory({
       root,
-      spec: initial.spec,
+      spec: relativeFlowSpecFile(initial),
       mainRoot: resolveRepositoryLockRoot(root),
       operationOwnerToken,
     });

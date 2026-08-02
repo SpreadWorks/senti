@@ -69,7 +69,7 @@ function prepareRecoveryFixture(root, { phase, activeStepId }) {
   const state = moveFlowToStep(makeFlowState({
     runId: RUN_ID,
     issue: ISSUE,
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     featureBranch: "feature/review-pass-recovery",
   }), activeStepId);
   const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);

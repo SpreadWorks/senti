@@ -1,11 +1,11 @@
    - Run `senti flow run scenario-validity`.
    - Phase split: `plan/test` writes tests only, this `plan/scenario-validity` step performs pre-implementation runtime validity, `plan/test-review` performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local and targeted verification, and `impl/final-regression` performs default full project regression.
-   - This step runs only `specs/<spec>/tests/` files whose basenames match `*.test.js`, `*.spec.js`, `*.test.ts`, `*.spec.ts`, `*.test.mjs`, or `*.spec.mjs`.
+   - This step runs only files under `<configured-spec-root>/<specId>/tests/` whose basenames match `*.test.js`, `*.spec.js`, `*.test.ts`, `*.spec.ts`, `*.test.mjs`, or `*.spec.mjs`.
    - It must not run the project-wide regression suite. Default full project regression remains in `impl/final-regression` after implementation.
    - Before executing tests, the command checks implementation-target changes with `git diff --name-only <baseBranch> -- src/ tests/ package.json .senti/config.json`. Any returned disallowed path blocks as `invalid_test`.
    - Outputs:
-     - `specs/<spec>/scenario-validity-result.json`
-     - `specs/<spec>/tests/.raw/scenario-validity.log`
+     - `<configured-spec-root>/<specId>/scenario-validity-result.json`
+     - `<configured-spec-root>/<specId>/tests/.raw/scenario-validity.log`
    - A passing scenario-validity result requires every testable requirement to classify as `expected_fail`.
    - Blocking classifications are `unexpected_pass`, `invalid_test`, `skipped`, and `not_run`.
    - If the command blocks, fix the spec-local tests or remove disallowed implementation-target changes, then rerun this step. Do not start implementation while scenario-validity is blocked.

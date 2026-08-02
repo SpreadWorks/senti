@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { fileURLToPath } from "node:url";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
@@ -125,20 +126,20 @@ class AcceptanceDecisionRegistryEntry {
   constructor(input = {}) {
     this.runId = requireString(input.runId, "active-flow entry.runId");
     this.issue = requireNullableIssue(input.issue, "active-flow entry.issue");
-    this.spec = requireString(input.spec, "active-flow entry.spec");
+    this.specId = requireString(input.specId, "active-flow entry.specId");
     this.mode = requireString(input.mode, "active-flow entry.mode");
     Object.freeze(this);
   }
 
   get key() {
-    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.spec}\u0000${this.mode}`;
+    return `${this.runId}\u0000${this.issue ?? "none"}\u0000${this.specId}\u0000${this.mode}`;
   }
 
   toJSON() {
     return {
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       mode: this.mode,
     };
   }
@@ -148,13 +149,13 @@ class AcceptanceDecisionTargetIdentity {
   constructor(state) {
     this.runId = requireString(state?.runId, "active flow runId");
     this.issue = requireNullableIssue(state?.issue, "active flow issue");
-    this.spec = requireString(state?.spec, "active flow spec");
+    this.specId = requireString(state?.specId, "active flow specId");
     this.expectation = new FlowTargetExpectation({
       expectRunId: this.runId,
       ...(this.issue === null ? { expectNoIssue: true } : { expectIssue: this.issue }),
-      expectSpec: this.spec,
+      expectSpec: this.specId,
     });
-    this.specId = this.expectation.spec;
+    this.specId = this.expectation.specId;
     Object.freeze(this);
   }
 
@@ -1473,9 +1474,10 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
   };
 }
 
-export function buildAcceptanceReviewContext({ root, state, diff }) {
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+export function buildAcceptanceReviewContext({ root, executionRoot = root, state, diff }) {
+  const specPath = relativeFlowSpecFile(state);
+  const specDir = resolveSpecDir(path.resolve(root, specPath));
+  const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
   const requirements = requirementList(specDir);
   const deferredFindings = buildDeferredFindingsFromEvidence(specDir, state);
   const deferredSources = inspectDeferredSources(specDir, deferredFindings, state);
@@ -1597,21 +1599,23 @@ function resetSteps(state, ids, inProgress = null) {
 }
 
 function acceptanceArtifactPath(state) {
-  return path.posix.join(path.posix.dirname(state.spec.split(path.sep).join("/")), ACCEPTANCE_REVIEW_ARTIFACT_FILE);
+  return path.posix.join(path.posix.dirname(relativeFlowSpecFile(state)), ACCEPTANCE_REVIEW_ARTIFACT_FILE);
 }
 
 export function applyAcceptanceReviewResult({
   root,
+  executionRoot = root,
   flowManager,
   artifact,
   evidenceRefresh = null,
 }) {
   const state = flowManager.load();
-  if (!state?.spec) throw new Error("active flow spec is required");
-  ensureRepairFingerprintContract({ root, state, flowManager });
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  if (!state?.specId) throw new Error("active flow specId is required");
+  ensureRepairFingerprintContract({ root: executionRoot, state, flowManager });
+  const specPath = relativeFlowSpecFile(state);
+  const specDir = resolveSpecDir(path.resolve(root, specPath));
   const requirements = requirementList(specDir);
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
   if (requireString(artifact.repairFingerprint, "repairFingerprint") !== fingerprint.hash) {
     throw new Error("acceptance-review repairFingerprint does not match current inputs");
   }
@@ -1696,7 +1700,7 @@ export function applyAcceptanceReviewResult({
 }
 
 function appendRiskDecisionIssue(root, state, appendIssueLog) {
-  appendIssueLog(root, state.spec, {
+  appendIssueLog(root, relativeFlowSpecFile(state), {
     step: "acceptance-decision",
     reason: "User explicitly selected accept_risk_and_continue for unresolved acceptance risk.",
     trigger: "flow set acceptance-decision",
@@ -1712,15 +1716,27 @@ function appendRollbackError(rollbackError, cause) {
     : new AggregateError([rollbackError, cause], "acceptance decision rollback failed", { cause: rollbackError });
 }
 
-export function applyAcceptanceDecision({ root, flowManager, choice, appendIssueLog = appendIssueLogEntry }) {
+export function applyAcceptanceDecision({
+  root,
+  executionRoot = root,
+  flowManager,
+  choice,
+  appendIssueLog = appendIssueLogEntry,
+}) {
   if (!USER_DECISION_CHOICES.has(choice)) throw new Error(`invalid acceptance decision choice: ${choice}`);
   const state = flowManager.load();
-  if (!state?.spec) throw new Error("active flow spec is required");
+  if (!state?.specId) throw new Error("active flow specId is required");
   const registrySnapshot = state.worktree
     ? AcceptanceDecisionRegistrySnapshot.capture(flowManager, state)
     : null;
-  ensureRepairFingerprintContract({ root, state, flowManager });
-  const specDir = resolveSpecDir(path.resolve(root, state.spec));
+  ensureRepairFingerprintContract({
+    root: executionRoot,
+    artifactRoot: root,
+    state,
+    flowManager,
+  });
+  const specPath = relativeFlowSpecFile(state);
+  const specDir = resolveSpecDir(path.resolve(root, specPath));
   const issueLogSnapshot = AcceptanceDecisionIssueLogSnapshot.capture(specDir);
   const file = path.join(specDir, ACCEPTANCE_REVIEW_ARTIFACT_FILE);
   const artifact = readJson(file);
@@ -1729,7 +1745,12 @@ export function applyAcceptanceDecision({ root, flowManager, choice, appendIssue
   if (artifact.verdict !== "user_decision_required") {
     throw new Error(`acceptance-decision is not available for verdict: ${artifact.verdict}`);
   }
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const fingerprint = buildRepairFingerprint({
+    root: executionRoot,
+    artifactRoot: root,
+    specPath,
+    state,
+  });
   assertRepairFingerprint({ artifact, fingerprint, label: ACCEPTANCE_REVIEW_ARTIFACT_FILE });
   const userDecision = { choice, decidedAt: new Date().toISOString() };
   artifact.userDecision = userDecision;

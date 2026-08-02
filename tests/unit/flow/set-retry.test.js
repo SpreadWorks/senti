@@ -12,6 +12,7 @@ import { moveFlowToStep, makeFlowManager, makeFlowState } from "../../helpers/fl
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const roots = [];
+const SPEC_PATH = "specs/001-retry/spec.json";
 
 afterEach(() => {
   for (const root of roots.splice(0)) removeTmpDir(root);
@@ -49,7 +50,7 @@ test("review retry reset includes an uncommitted target-state change in review i
   initializeRepository(root);
 
   const state = moveFlowToStep(makeFlowState({
-    spec: "specs/001-retry/spec.json",
+    specId: "001-retry",
     runId: "retry-target-state",
     metrics: Array.from({ length: 5 }, () => ({
       phase: "test",
@@ -58,8 +59,8 @@ test("review retry reset includes an uncommitted target-state change in review i
       taskId: null,
     })),
   }), "test-review");
-  const treeSha = resolveCurrentReviewTreeSha(root, state.spec);
-  const targetState = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
+  const targetState = buildRepairFingerprint({ root, specPath: SPEC_PATH, state });
   const targetStateDigest = targetState.hash;
   state.reviewConvergence = {
     version: 1,
@@ -101,7 +102,7 @@ test("review retry reset includes an uncommitted target-state change in review i
   git(root, ["commit", "-m", "track flow state"]);
 
   fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 2;\n");
-  const changedTreeSha = resolveCurrentReviewTreeSha(root, state.spec);
+  const changedTreeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
   assert.notEqual(changedTreeSha, treeSha);
 
   const command = new SetRetryCommand();
@@ -183,7 +184,7 @@ test("review retry reset accepts a changed canonical digest when the exhausted r
   initializeRepositoryWithUntrackedSpec(root);
 
   const state = moveFlowToStep(makeFlowState({
-    spec: "specs/001-retry/spec.json",
+    specId: "001-retry",
     runId: "retry-tooling-target-state",
     metrics: Array.from({ length: 4 }, () => ({
       phase: "spec",
@@ -192,8 +193,8 @@ test("review retry reset accepts a changed canonical digest when the exhausted r
       taskId: null,
     })),
   }), "spec-review");
-  const treeSha = resolveCurrentReviewTreeSha(root, state.spec);
-  const targetState = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
+  const targetState = buildRepairFingerprint({ root, specPath: SPEC_PATH, state });
   state.reviewConvergence = {
     version: 1,
     records: [{
@@ -236,11 +237,11 @@ test("review retry reset accepts a changed canonical digest when the exhausted r
   const flowManager = makeFlowManager(root);
   flowManager.create(state);
 
-  fs.writeFileSync(path.join(root, state.spec), '{"revision":2}\n');
-  const nextTreeSha = resolveCurrentReviewTreeSha(root, state.spec);
+  fs.writeFileSync(path.join(root, SPEC_PATH), '{"revision":2}\n');
+  const nextTreeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
   const nextTargetState = buildRepairFingerprint({
     root,
-    specPath: state.spec,
+    specPath: SPEC_PATH,
     state: flowManager.load(),
   });
   assert.equal(nextTreeSha, treeSha);

@@ -35,7 +35,7 @@ test("preimplementation bootstrap records the preflight recovery and resumes imp
   });
   const state = moveFlowToStep(makeFlowState({
     runId: "bootstrap-run",
-    spec,
+    specId: "001-bootstrap",
     repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
@@ -48,7 +48,7 @@ test("preimplementation bootstrap records the preflight recovery and resumes imp
     flowState: activeState,
     flowManager: manager,
     expectRunId: activeState.runId,
-    expectSpec: activeState.spec,
+    expectSpec: activeState.specId,
     expectNoIssue: true,
   });
 
@@ -73,7 +73,7 @@ test("next action dispatches persisted preimplementation bootstrap recovery", as
   const state = moveFlowToStep(makeFlowState({
     runId: "bootstrap-run",
     issue: 473,
-    spec,
+    specId: "001-bootstrap",
     repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
@@ -90,7 +90,7 @@ test("next action dispatches persisted preimplementation bootstrap recovery", as
   assert.equal(result.directive.actionId, "RECOVER_PREIMPLEMENTATION_BOOTSTRAP");
   assert.match(result.directive.nextAction, /^senti flow run preimplementation-bootstrap /);
   assert.match(result.directive.nextAction, /--expect-run-id 'bootstrap-run'/);
-  assert.match(result.directive.nextAction, /--expect-spec 'specs\/001-bootstrap\/spec.json'/);
+  assert.match(result.directive.nextAction, /--expect-spec '001-bootstrap'/);
   assert.match(result.directive.nextAction, /--expect-issue 473/);
 });
 
@@ -100,7 +100,7 @@ test("preimplementation bootstrap rejects a missing preflight block", () => {
   writeJson(tmp, spec, { goal: "Reject missing evidence.", requirements: [] });
   const state = moveFlowToStep(makeFlowState({
     runId: "bootstrap-run",
-    spec,
+    specId: "001-bootstrap",
     repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
@@ -112,7 +112,7 @@ test("preimplementation bootstrap rejects a missing preflight block", () => {
     flowState: manager.loadReadOnly(),
     flowManager: manager,
     expectRunId: state.runId,
-    expectSpec: state.spec,
+    expectSpec: state.specId,
     expectNoIssue: true,
   });
 

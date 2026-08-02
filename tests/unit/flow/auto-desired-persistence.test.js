@@ -59,7 +59,7 @@ function createTmpProject(agentResponse = lowResponse()) {
 
 function createFlowState(tmp, extra = {}) {
   const state = {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",

@@ -119,7 +119,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       root: tmp,
       dryRun: true,
       flowState: {
-        spec: `specs/${specId}/spec.json`,
+        specId: specId,
         baseBranch: "main",
         requirements: [],
       },
@@ -143,7 +143,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       root: tmp,
       dryRun: true,
       flowState: {
-        spec: `specs/${specId}/spec.json`,
+        specId: specId,
         baseBranch: "main",
         requirements: [],
       },
@@ -166,7 +166,7 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
     const specDir = writeSpec(tmp, specId, [
       { id: "R1", desc: "first", priority: "must", status: "pending" },
     ]);
-    const state = moveFlowToStep(makeFlowState({ spec: specPath }), "retro");
+    const state = moveFlowToStep(makeFlowState({ specId }), "retro");
     const previous = buildRepairFingerprint({ root: tmp, specPath, state });
     state.repairBaseline = previous.baseline.toJSON();
     writeRepairFingerprintManifest(specDir, previous);

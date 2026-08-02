@@ -16,7 +16,7 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "specs/001-alpha/flow.json", makeFlowState({
-      spec: "specs/001-alpha/spec.json",
+      specId: "001-alpha",
       runId: "test-run",
       metrics: [],
       tasks: [],
@@ -41,7 +41,7 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     });
     writeJson(tmp, "specs/001-alpha/flow.json", makeFlowState({
-      spec: "specs/001-alpha/spec.json",
+      specId: "001-alpha",
       runId: "test-run",
       tasks: [],
       currentTaskId: null,

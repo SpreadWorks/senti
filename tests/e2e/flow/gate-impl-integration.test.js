@@ -150,7 +150,7 @@ function setupFixture(tmp, {
     metrics.push({ phase: "task-impl", counter: "gateRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
   }
   const flowState = makeFlowState({
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
@@ -163,9 +163,9 @@ function setupFixture(tmp, {
   moveFlowToStep(flowState, "impl-gate");
   writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
 
-  // Active flow pointer — format is `[{ spec: <specId>, mode }]`.
+  // Active flow pointer — format is `[{ specId: <specId>, mode }]`.
   writeJson(tmp, ".senti/.active-flow", [
-    { spec: SPEC_ID, mode: "local" },
+    { specId: SPEC_ID, mode: "local" },
   ]);
 
   if (integrationTrustRequirementIds) {

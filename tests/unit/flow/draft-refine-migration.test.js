@@ -15,7 +15,7 @@ function writeFlowWithoutDraftRefine(tmp, overrides = {}) {
   const plan = steps.find((s) => s.id === "plan");
   plan.children = plan.children.filter((s) => s.id !== "draft-refine");
   const state = {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps,
@@ -58,7 +58,7 @@ describe("legacy draft-refine flow-state rejection", () => {
     const specDir = path.join(tmp, "specs", specId);
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       baseBranch: "main",
       featureBranch: "feature/001-test",
       steps,

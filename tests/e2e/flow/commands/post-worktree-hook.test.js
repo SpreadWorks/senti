@@ -70,14 +70,15 @@ describe("flow prepare PostWorktree hook", () => {
 
     assert.equal(marker.cwd, worktreePath);
     assert.equal(marker.specs, false);
-    assert.ok(fs.existsSync(path.join(worktreePath, envelope.data.artifacts.specDir, "spec.json")));
+    assert.ok(fs.existsSync(path.join(tmp, envelope.data.artifacts.specDir, "spec.json")));
+    assert.equal(fs.existsSync(path.join(worktreePath, envelope.data.artifacts.specDir)), false);
   });
 
   it("continues prepare when PostWorktree exits non-zero", () => {
     tmp = setupProject("node -e \"process.stderr.write('expected hook failure'); process.exit(9)\"");
 
     const envelope = runPrepare(tmp, "post-worktree-failure");
-    const specPath = path.join(envelope.data.artifacts.worktree, envelope.data.artifacts.specDir, "spec.json");
+    const specPath = path.join(tmp, envelope.data.artifacts.specDir, "spec.json");
 
     assert.equal(envelope.ok, true);
     assert.ok(fs.existsSync(specPath));
@@ -132,7 +133,7 @@ export default function register(api) {
 
     const envelope = runPrepare(tmp, "worktree-plugin-runtime", ["--issue", "123"]);
     const worktreePath = envelope.data.artifacts.worktree;
-    const specDir = path.join(worktreePath, envelope.data.artifacts.specDir);
+    const specDir = path.join(tmp, envelope.data.artifacts.specDir);
     const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
     const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8"));
 

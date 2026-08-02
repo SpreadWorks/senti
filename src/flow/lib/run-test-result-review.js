@@ -27,6 +27,7 @@ import {
   ensureRepairFingerprintContract,
   writeRepairEvidenceArtifact,
 } from "./impl-repair-artifacts.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 function pass(check, detail) {
   return { check, result: "pass", detail };
@@ -106,17 +107,19 @@ function writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint }
 export default class RunTestResultReviewCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const state = ctx.flowState;
-    const specDir = resolveSpecDir(path.resolve(root, state.spec));
+    const specPath = relativeFlowSpecFile(state);
+    const specDir = resolveSpecDir(path.resolve(root, specPath));
     const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     if (!fs.existsSync(resultPath)) throw new Error(`${TEST_EXECUTE_RESULT_FILE} not found at ${resultPath}: test-execute step has not been run`);
     if (!fs.existsSync(rawOutputPath)) throw new Error(`${RAW_OUTPUT_RELATIVE} not found at ${rawOutputPath}: test-execute raw log is missing`);
-    ensureRepairFingerprintContract({ root, state, flowManager: ctx.flowManager });
+    ensureRepairFingerprintContract({ root: executionRoot, artifactRoot: root, state, flowManager: ctx.flowManager });
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
     const loadedResult = readJsonStrict(resultPath);
-    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+    const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
     assertRepairFingerprint({ artifact: loadedResult, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
     const rawOutputText = readRawOutputText(rawOutputPath);
     const rawLines = rawOutputText.split(/\r?\n/);

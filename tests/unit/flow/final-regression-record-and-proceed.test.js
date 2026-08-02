@@ -31,7 +31,7 @@ function setupProject(tmp, scriptBody) {
     root: tmp,
     config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
     flowState: {
-      spec: `${SPEC_DIR}/spec.md`,
+      specId: "001-record-proceed",
       baseBranch: "main",
       featureBranch: "feature/001-record-proceed",
     },
@@ -181,7 +181,7 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
       const specDir = "specs/001";
       const updated = [];
       const flowState = moveFlowToStep(makeFlowState({
-        spec: `${specDir}/spec.json`,
+        specId: "001",
         runId: "run-final-regression-recorded",
         tasks: [],
         currentTaskId: null,
@@ -231,7 +231,7 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
     assert.match(prompt, /auto(?:Approve| mode).*recommended action/i);
 
     const { data, text } = generateReport({
-      state: { spec: "specs/001/spec.md", steps: [], metrics: [], tasks: [] },
+      state: { specId: "001", steps: [], metrics: [], tasks: [] },
       results: { finalRegression: failedRecordedArtifact() },
       issueLog: { entries: [] },
       implDiffStat: null,

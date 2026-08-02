@@ -280,7 +280,7 @@ const docsDefinitionData = [
   ["forge", "../docs/commands/forge.js", "Iterative docs improvement (AI agent)", "Usage: senti docs forge --prompt \"...\" [options]", "ui:help.commands.docs forge"],
   ["review", "../docs/commands/review.js", "Docs quality check", "Usage: senti docs review [<docs-dir>]", "ui:help.commands.docs review"],
   ["translate", "../docs/commands/translate.js", "Translate docs to non-default languages", "Usage: senti docs translate [options]", "ui:help.commands.docs translate"],
-  ["changelog", "../docs/commands/changelog.js", "Generate change_log.md from specs/", "Usage: senti docs changelog [--dry-run] [<output-file>]", "ui:help.commands.docs changelog"],
+  ["changelog", "../docs/commands/changelog.js", "Generate change_log.md from the configured spec root", "Usage: senti docs changelog [--dry-run] [<output-file>]", "ui:help.commands.docs changelog"],
   ["agents", "../docs/commands/agents.js", "Update AGENTS.md PROJECT section", "Usage: senti docs agents [--dry-run]", "ui:help.commands.docs agents"],
 ];
 

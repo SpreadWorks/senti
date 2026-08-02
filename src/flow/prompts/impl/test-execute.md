@@ -4,7 +4,7 @@
      - `targeted`: run targeted project regression only when changed files are configured by `test.projectPaths`.
      - `explicit-full`: run full project regression only when `.senti/config.json` explicitly sets `test.testExecuteRegression: "full"`.
      - `deferred final-regression`: record deferred full regression evidence when full regression is not explicitly enabled here; `impl/final-regression` owns the default full project regression point.
-   - **Downstream artifact use:** `test-result-review`, `impl-review`, `impl-gate`, and `retro` read `specs/<spec>/test-execute-result.json` and `specs/<spec>/tests/.raw/test-execution.log`; they MUST NOT re-run tests.
+   - **Downstream artifact use:** `test-result-review`, `impl-review`, `impl-gate`, and `retro` read `test-execute-result.json` and `tests/.raw/test-execution.log` from the active Flow's configured spec directory; they MUST NOT re-run tests.
    - **Test command discovery:** Determine the test runner from the project's declarative configuration in this priority order:
      1. `.senti/config.json` top-level `test.command`
      2. `package.json` `scripts.test`, executed as argv `["npm","test","--"]`
@@ -14,22 +14,22 @@
    - If no supported command can be determined for a required project regression, do NOT guess. Fail before writing a normal `test-execute-result.json` and record the prerequisite failure in issue-log.
    - **Verbose execution:** Run the test command with verbose / non-quiet flags so individual test names appear in output (`--reporter spec`, `--verbose`, `jest --verbose`, `pytest -v`, etc.). Do not summarize; preserve raw output verbatim.
    - **Outputs:**
-     - `specs/<spec>/test-execute-result.json` (machine-readable summary, schema = `src/flow/schemas/test-execute-result.schema.json`)
-     - `specs/<spec>/tests/.raw/test-execution.log` (raw stdout/stderr concatenation)
+     - `<configured-spec-root>/<specId>/test-execute-result.json` (machine-readable summary, schema = `src/flow/schemas/test-execute-result.schema.json`)
+     - `<configured-spec-root>/<specId>/tests/.raw/test-execution.log` (raw stdout/stderr concatenation)
      - The result file is overwritten unconditionally on each invocation. No caching.
    - **Result schema (canonical):**
      ```json
      {
        "version": "2",
-       "raw_output_path": "specs/<spec>/tests/.raw/test-execution.log",
+       "raw_output_path": "<configured-spec-root>/<specId>/tests/.raw/test-execution.log",
        "summary": [
          {
            "id": "R1",
            "result": "pass",
            "evidence": {
-             "test_file": "specs/<spec>/tests/foo.test.js",
+             "test_file": "<configured-spec-root>/<specId>/tests/foo.test.js",
              "test_name": "R1: parser accepts valid header",
-             "command": "node --test specs/<spec>/tests/foo.test.js",
+             "command": "node --test <configured-spec-root>/<specId>/tests/foo.test.js",
              "raw_output_lines": { "start_line": 12, "end_line": 18 }
            }
          }

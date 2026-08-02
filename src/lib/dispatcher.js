@@ -214,24 +214,37 @@ async function persistFinalizeCleanupPostReturnMetadata({
   hookCtx,
   metadata,
   commandModule,
+  commitCompletion = false,
 }) {
-  if (envelopeKey !== "finalize-cleanup" || !metadata || !hookCtx?.flowManager || !hookCtx?.specId) return;
+  if (envelopeKey !== "finalize-cleanup" || !hookCtx?.flowManager || !hookCtx?.specId) return;
   const state = hookCtx.flowState || hookCtx.flowManager.loadReadOnly(hookCtx.specId);
-  if (!state?.worktree) return;
-  const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(state);
-  if (!mainRepoPath) return;
-  const recordFinalizeCleanupPostCommandMetadata = commandModule?.recordFinalizeCleanupPostCommandMetadata;
-  if (typeof recordFinalizeCleanupPostCommandMetadata !== "function") {
-    throw new Error("finalize-cleanup command module has no post-command metadata recorder");
+  let retainedMetadata = null;
+  if (metadata && state) {
+    const { mainRepoPath } = hookCtx.flowManager.resolveWorktreePaths(state);
+    const repositoryRoot = mainRepoPath || hookCtx.flowManager.specLocation(hookCtx.specId).repositoryRoot;
+    const recordFinalizeCleanupPostCommandMetadata = commandModule?.recordFinalizeCleanupPostCommandMetadata;
+    if (typeof recordFinalizeCleanupPostCommandMetadata !== "function") {
+      throw new Error("finalize-cleanup command module has no post-command metadata recorder");
+    }
+    const stateOwner = FinalizeFlowStateOwner.forMainContext({
+      ...hookCtx,
+      mainRoot: repositoryRoot,
+    });
+    retainedMetadata = recordFinalizeCleanupPostCommandMetadata({
+      flowManager: stateOwner.flowManager,
+      specId: hookCtx.specId,
+      runtimeLog: metadata.toStepMetadata(),
+    });
   }
-  const stateOwner = FinalizeFlowStateOwner.forMainContext({
-    ...hookCtx,
-    mainRoot: mainRepoPath,
-  });
-  recordFinalizeCleanupPostCommandMetadata({
-    flowManager: stateOwner.flowManager,
+  if (!commitCompletion) return;
+  const commitFinalizeCleanupPostCommandMetadata = commandModule?.commitFinalizeCleanupPostCommandMetadata;
+  if (typeof commitFinalizeCleanupPostCommandMetadata !== "function") {
+    throw new Error("finalize-cleanup command module has no post-command completion committer");
+  }
+  commitFinalizeCleanupPostCommandMetadata({
+    flowManager: hookCtx.flowManager,
     specId: hookCtx.specId,
-    runtimeLog: metadata.toStepMetadata(),
+    writtenPaths: retainedMetadata?.writtenPaths || [],
   });
 }
 
@@ -580,6 +593,12 @@ export async function dispatch({
       const commandInput = hookCtx.flowOutboxEntry
         ? { ...input, flowOutboxEntry: hookCtx.flowOutboxEntry }
         : input;
+      if (
+        envelopeKey === "finalize-cleanup"
+        && typeof mod.commitFinalizeCleanupPostCommandMetadata === "function"
+      ) {
+        commandInput._deferFinalizeCompletionCommit = true;
+      }
       result = await cmd.run(container, commandInput);
     } catch (err) {
       caught = err;
@@ -604,6 +623,9 @@ export async function dispatch({
     // post hooks advance step status / counters assuming success, which would
     // fire incorrectly on a judgment-result rejection.
     const skipPost = result instanceof Envelope && result.ok === false;
+    const deferFinalizeCompletion = !skipPost
+      && envelopeKey === "finalize-cleanup"
+      && typeof mod.commitFinalizeCleanupPostCommandMetadata === "function";
     if (skipPost && hookCtx.flowOutboxEntry && entry.onError) {
       const failure = new Error(
         result.errors.flatMap((item) => item.messages || []).join("; ") || `${envelopeKey || "command"} failed`,
@@ -655,6 +677,28 @@ export async function dispatch({
         }
       }
     }
+    if (deferFinalizeCompletion) {
+      closeRuntimeLog();
+      try {
+        await persistFinalizeCleanupPostReturnMetadata({
+          envelopeKey,
+          hookCtx,
+          metadata: closedRuntimeLogMetadata,
+          commandModule: mod,
+          commitCompletion: true,
+        });
+      } catch (completionError) {
+        postFailed = true;
+        if (mode === "envelope") {
+          envelope.addFatal(
+            "FINALIZE_COMPLETION_COMMIT_FAILED",
+            completionError.message || String(completionError),
+          );
+        } else {
+          writeErr(`[finalize completion] ${completionError.message || completionError}\n`);
+        }
+      }
+    }
     if (mode === "envelope") {
       settleTypedStepOutcome(envelope, result);
       if (envelope.ok === false) {
@@ -668,12 +712,14 @@ export async function dispatch({
       setExit(1);
     }
     closeRuntimeLog();
-    await persistFinalizeCleanupPostReturnMetadata({
-      envelopeKey,
-      hookCtx,
-      metadata: closedRuntimeLogMetadata,
-      commandModule: mod,
-    });
+    if (!deferFinalizeCompletion) {
+      await persistFinalizeCleanupPostReturnMetadata({
+        envelopeKey,
+        hookCtx,
+        metadata: closedRuntimeLogMetadata,
+        commandModule: mod,
+      });
+    }
     persistRuntimeLogMetadata(result);
     if (restoreStreams) restoreStreams();
     return;

@@ -7,6 +7,8 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { DEFAULT_TEST_TIMEOUT_SECONDS } from "./test-regression.js";
 import { RepairStateError, resolveRepairBaselineAuthority } from "./repair-state-identity.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
 import {
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RESULT_FILE,
@@ -44,17 +46,18 @@ export async function discoverScenarioValidityTestFiles({ specDir }) {
     .sort();
 }
 
-function activeSpecPrefix(specId) {
-  return `specs/${specId}/`;
+function activeSpecPrefix(specDirectory) {
+  const normalized = normalizePath(specDirectory).replace(/\/$/, "");
+  return `${normalized}/`;
 }
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function isAllowedScenarioValidityPath(specId, filePath) {
+function isAllowedScenarioValidityPath(specDirectory, filePath) {
   const normalized = normalizePath(filePath);
-  const prefix = activeSpecPrefix(specId);
+  const prefix = activeSpecPrefix(specDirectory);
   if (normalized.startsWith(`${prefix}tests/`)) return true;
   if (normalized === `${prefix}spec.json`) return true;
   if (normalized === `${prefix}draft.json`) return true;
@@ -63,12 +66,12 @@ function isAllowedScenarioValidityPath(specId, filePath) {
   return new RegExp(`^${escapeRegExp(prefix)}draft-review-\\d+\\.md$`).test(normalized);
 }
 
-export function validateScenarioValidityPreflightPaths({ specId, changedFiles }) {
+export function validateScenarioValidityPreflightPaths({ specDirectory, changedFiles }) {
   const invalidPaths = changedFiles
     .map((entry) => typeof entry === "string" ? entry : entry.path)
     .filter(Boolean)
     .map(normalizePath)
-    .filter((filePath) => !isAllowedScenarioValidityPath(specId, filePath));
+    .filter((filePath) => !isAllowedScenarioValidityPath(specDirectory, filePath));
   return { ok: invalidPaths.length === 0, invalidPaths };
 }
 
@@ -107,12 +110,13 @@ export function listScenarioValidityPreflightFiles({ root, baselineRef }) {
   });
 }
 
-export async function runScenarioValidityProcess({ argv, cwd, timeoutMs }) {
+export async function runScenarioValidityProcess({ argv, cwd, timeoutMs, env = {} }) {
   try {
     const result = await runCmdAsync(argv[0], argv.slice(1), {
       cwd,
       timeout: timeoutMs,
       maxBuffer: 20 * 1024 * 1024,
+      env: { ...process.env, ...env },
     });
     const spawnError = result.errorCode && result.errorCode !== "ETIMEDOUT"
       ? `${result.errorCode}: ${result.stderr || argv[0]}`
@@ -194,15 +198,21 @@ function processInvalid(process, rawText) {
   return Boolean(process.spawnError || process.signal || process.timedOut || /SyntaxError|ERR_MODULE|Cannot find module|ReferenceError/i.test(rawText));
 }
 
-async function runScenarioValidityTestFiles({ root, files, timeoutMs }) {
+export async function runScenarioValidityTestFiles({ root, repositoryRoot = root, specDir, files, timeoutMs }) {
+  const execution = new SharedSpecTestExecution({
+    repositoryRoot,
+    executionRoot: root,
+    specRoot: path.dirname(specDir),
+  });
   const records = [];
   for (const file of files) {
     const rel = normalizePath(path.relative(root, file));
-    const argv = ["node", rel];
+    const argv = execution.nodeArgv([rel]);
     const process = await runScenarioValidityProcess({
       argv,
       cwd: root,
       timeoutMs,
+      env: execution.environment,
     });
     records.push({
       file,
@@ -291,10 +301,11 @@ export default class RunScenarioValidityCommand extends FlowCommand {
 
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const state = ctx.flowState;
     const config = ctx.config || this.container?.get?.("config") || {};
-    const specDir = resolveSpecDir(path.resolve(root, state.spec));
-    const specId = path.basename(specDir);
+    const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(state)));
+    const specId = state.specId;
     const resultPath = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
     const rawOutputPath = path.join(specDir, SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE);
     const blockedResult = (message, code = "SCENARIO_VALIDITY_BLOCKED", details = null) => Envelope.fail(
@@ -341,7 +352,7 @@ export default class RunScenarioValidityCommand extends FlowCommand {
 
     let baseline;
     try {
-      baseline = resolveRepairBaselineAuthority({ root, flowState: state });
+      baseline = resolveRepairBaselineAuthority({ root: executionRoot, flowState: state });
     } catch (error) {
       if (!(error instanceof RepairStateError)) throw error;
       writeScenarioValidityFallbackArtifacts({
@@ -359,8 +370,11 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       });
     }
     const baselineRef = baseline.ref;
-    const changedFiles = listScenarioValidityPreflightFiles({ root, baselineRef });
-    const preflight = validateScenarioValidityPreflightPaths({ specId, changedFiles });
+    const changedFiles = listScenarioValidityPreflightFiles({ root: executionRoot, baselineRef });
+    const preflight = validateScenarioValidityPreflightPaths({
+      specDirectory: normalizePath(path.relative(root, specDir)),
+      changedFiles,
+    });
     if (!preflight.ok) {
       const range = appendRaw(rawLines, [
         "[senti] scenario-validity preflight block",
@@ -402,7 +416,13 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       || config?.test?.timeout
       || config?.agent?.timeout
       || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
-    const fileRecords = await this.scenarioTestExecutor({ root, files, timeoutMs });
+    const fileRecords = await this.scenarioTestExecutor({
+      root: executionRoot,
+      repositoryRoot: root,
+      specDir,
+      files,
+      timeoutMs,
+    });
       const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
       const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
       const scenarioProcess = fileRecords.length === 0

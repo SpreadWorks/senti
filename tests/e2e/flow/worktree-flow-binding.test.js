@@ -75,10 +75,10 @@ describe("worktree flow identity binding contract", () => {
       const flow = prepareWorktree(root, issue);
       const bindingPath = path.join(flow.worktreePath, bindingRelativePath);
       assert.deepEqual(JSON.parse(fs.readFileSync(bindingPath, "utf8")), {
-        version: 1,
+        version: 2,
         runId: flow.runId,
         issue,
-        spec: flow.spec,
+        specId: flow.specId,
         worktreePath: fs.realpathSync(flow.worktreePath),
       });
     }
@@ -89,20 +89,20 @@ describe("worktree flow identity binding contract", () => {
     const flow = prepareWorktree(root, 440);
     const bindingPath = path.join(flow.worktreePath, bindingRelativePath);
     const valid = {
-      version: 1,
+      version: 2,
       runId: flow.runId,
       issue: 440,
-      spec: flow.spec,
+      specId: flow.specId,
       worktreePath: fs.realpathSync(flow.worktreePath),
     };
     const invalid = [
       "{not-json\n",
-      JSON.stringify({ version: 1, runId: flow.runId }),
+      JSON.stringify({ version: 2, runId: flow.runId }),
       JSON.stringify({ ...valid, issue: "440" }),
       JSON.stringify({ ...valid, issue: 0 }),
-      JSON.stringify({ ...valid, spec: `specs/../${flow.spec.split("/")[1]}/spec.json` }),
+      JSON.stringify({ ...valid, specId: "../binding-contract" }),
       JSON.stringify({ ...valid, worktreePath: root }),
-      JSON.stringify({ ...valid, version: 2 }),
+      JSON.stringify({ ...valid, version: 1 }),
     ];
 
     fs.writeFileSync(path.join(root, ".senti", ".current-flow"), "999-unrelated\n");
@@ -112,7 +112,7 @@ describe("worktree flow identity binding contract", () => {
         "get", "status", flow.runId,
         "--expect-run-id", flow.runId,
         "--expect-issue", "440",
-        "--expect-spec", flow.spec,
+        "--expect-spec", flow.specId,
       ]);
       assert.notEqual(result.status, 0, content);
       assert.match(
@@ -134,7 +134,7 @@ describe("worktree flow identity binding contract", () => {
       "get", "status", flow.runId,
       "--expect-run-id", flow.runId,
       "--expect-issue", "440",
-      "--expect-spec", flow.spec,
+      "--expect-spec", flow.specId,
     ]);
 
     assert.notEqual(result.status, 0);

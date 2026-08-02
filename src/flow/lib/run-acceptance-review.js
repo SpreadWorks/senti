@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { resolveMergeBase, runGit } from "../../lib/git-helpers.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { container } from "../../lib/container.js";
@@ -152,8 +153,9 @@ function untrackedDiff(root, fingerprint, registry) {
 }
 
 export function implementationDiff(root, state) {
-  const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
-  const registry = new RepairArtifactRegistry(state.spec);
+  const specPath = relativeFlowSpecFile(state);
+  const fingerprint = buildRepairFingerprint({ root, specPath, state });
+  const registry = new RepairArtifactRegistry(specPath);
   const baseRef = resolveMergeBase(root, state.baseBranch);
   const result = runGit([
     "diff",
@@ -169,7 +171,7 @@ export function implementationDiff(root, state) {
   }
   if (!result.ok) throw new Error(`failed to build acceptance diff: ${result.stderr || result.stdout}`);
   const diff = appendWithinDiffBudget(result.stdout, untrackedDiff(root, fingerprint, registry), "untrackedTotal");
-  const verified = buildRepairFingerprint({ root, specPath: state.spec, state });
+  const verified = buildRepairFingerprint({ root, specPath, state });
   if (verified.hash !== fingerprint.hash) {
     throw new Error("repair state changed while building acceptance diff");
   }
@@ -405,11 +407,18 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
 
   async execute(ctx) {
     const state = ctx.flowManager.load();
-    ensureRepairFingerprintContract({ root: ctx.root, state, flowManager: ctx.flowManager });
+    const executionRoot = ctx.executionRoot || ctx.root;
+    ensureRepairFingerprintContract({
+      root: executionRoot,
+      artifactRoot: ctx.root,
+      state,
+      flowManager: ctx.flowManager,
+    });
     const context = buildAcceptanceReviewContext({
       root: ctx.root,
+      executionRoot,
       state,
-      diff: implementationDiff(ctx.root, state),
+      diff: implementationDiff(executionRoot, state),
     });
     const fixture = this.responseSource.load(context);
     let artifact;
@@ -450,6 +459,7 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
     }
     const result = applyAcceptanceReviewResult({
       root: ctx.root,
+      executionRoot,
       flowManager: ctx.flowManager,
       artifact,
       evidenceRefresh: context.evidenceRefresh,

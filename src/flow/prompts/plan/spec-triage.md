@@ -1,7 +1,7 @@
    - Classify the blocking findings from `spec-review` before any spec repair work.
-   - Read `specs/<spec-id>/spec-review.json` first. Treat only `blockingFindings[]` as triage input. `nonBlockingImprovements[]` are advisory memory only.
+   - Read `spec-review.json` from the active Flow's configured spec directory first. Treat only `blockingFindings[]` as triage input. `nonBlockingImprovements[]` are advisory memory only.
    - Do not edit `spec.json`, `spec.md`, task files, or tests in this step. This step decides what should be repaired; the next `spec-repair` step performs the edits.
-   - Always write `specs/<spec-id>/spec-triage.json` before completing this step.
+   - Always write `spec-triage.json` in that directory before completing this step.
    - If `spec-review.json` is missing, invalid, or contains no blocking findings, write `spec-triage.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step spec-triage done`.
    - For every `blockingFindings[]` entry, add one `spec-triage.json.items[]` entry with:
      - `title`: copied from the finding.

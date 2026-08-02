@@ -1,10 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
-
 import { Envelope } from "../../lib/flow-envelope.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { bindFlowStateLocation } from "../../lib/flow-workspace.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
-import { getFlowBranchLeafIds } from "../definition.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { findStepById } from "./step-tree.js";
 
@@ -14,11 +10,11 @@ class FinalizeFlowIdentity {
     if (typeof state.runId !== "string" || state.runId.trim() === "") {
       throw new Error(`${label} flow state requires runId`);
     }
-    if (typeof state.spec !== "string" || state.spec.trim() === "") {
-      throw new Error(`${label} flow state requires spec`);
+    if (typeof state.specId !== "string" || state.specId.trim() === "") {
+      throw new Error(`${label} flow state requires specId`);
     }
     this.runId = state.runId;
-    this.spec = state.spec;
+    this.specId = state.specId;
     this.issue = state.issue ?? null;
     this.featureBranch = state.featureBranch ?? null;
     this.baseBranch = state.baseBranch ?? null;
@@ -29,7 +25,7 @@ class FinalizeFlowIdentity {
   equals(other) {
     return other instanceof FinalizeFlowIdentity
       && this.runId === other.runId
-      && this.spec === other.spec
+      && this.specId === other.specId
       && String(this.issue ?? "") === String(other.issue ?? "")
       && this.featureBranch === other.featureBranch
       && this.baseBranch === other.baseBranch
@@ -39,41 +35,12 @@ class FinalizeFlowIdentity {
   toJSON() {
     return {
       runId: this.runId,
-      spec: this.spec,
+      specId: this.specId,
       issue: this.issue,
       featureBranch: this.featureBranch,
       baseBranch: this.baseBranch,
       worktree: this.worktree,
     };
-  }
-}
-
-class FinalizeCleanupStepSnapshot {
-  constructor(step) {
-    if (!step || step.id !== "finalize-cleanup") {
-      throw new Error("finalize-cleanup step snapshot is invalid");
-    }
-    this.value = structuredClone(step);
-    Object.freeze(this.value);
-    Object.freeze(this);
-  }
-
-  insertInto(state) {
-    if (findStepById(state.steps || [], "finalize-cleanup")) return false;
-    const finalize = findStepById(state.steps || [], "finalize");
-    if (!finalize || !Array.isArray(finalize.children)) {
-      throw new Error("finalize step group is missing from main flow state");
-    }
-    const order = getFlowBranchLeafIds("finalize");
-    const cleanupIndex = order.indexOf("finalize-cleanup");
-    if (cleanupIndex < 0) throw new Error("finalize-cleanup is not registered in the flow definition");
-    const nextExistingId = order.slice(cleanupIndex + 1)
-      .find((id) => finalize.children.some((step) => step.id === id));
-    const insertAt = nextExistingId == null
-      ? finalize.children.length
-      : finalize.children.findIndex((step) => step.id === nextExistingId);
-    finalize.children.splice(insertAt, 0, structuredClone(this.value));
-    return true;
   }
 }
 
@@ -83,25 +50,23 @@ export class FinalizeCleanupStateResolution {
     stateOwner,
     worktreePath,
     mainRepoPath,
-    cleanupStepSnapshot,
   }) {
     this.state = state;
     this.stateOwner = stateOwner;
     this.worktreePath = worktreePath;
     this.mainRepoPath = mainRepoPath;
-    this.cleanupStepSnapshot = cleanupStepSnapshot;
     Object.freeze(this);
   }
 
   static resolve(ctx) {
     const selectedState = ctx.flowState;
-    const specId = specIdFromPath(selectedState?.spec);
+    const specId = selectedState?.specId;
     if (!specId) {
       return Envelope.fail(
         "run",
         "finalize-cleanup",
         "FINALIZE_FLOW_STATE_MISMATCH",
-        "The selected flow does not have a canonical spec path.",
+        "The selected flow does not have a specId.",
       );
     }
     const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
@@ -126,19 +91,7 @@ export class FinalizeCleanupStateResolution {
     const worktreePath = ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance
       ? ctx.worktreeFlowProvenance.identity.worktreePath
       : selectedPaths.worktreePath;
-    let worktreeState = null;
-    if (worktreePath && fs.existsSync(worktreePath)) {
-      worktreeState = ctx.flowManager
-        .forRoot(worktreePath, { specId })
-        .loadReadOnly(specId);
-    }
-    const worktreeIdentity = worktreeState
-      ? new FinalizeFlowIdentity(worktreeState, "worktree")
-      : null;
-    const activeState = worktreeState || selectedState;
-    const activeIdentity = worktreeIdentity || selectedIdentity;
-
-    if (!mainIdentity.equals(activeIdentity)) {
+    if (!mainIdentity.equals(selectedIdentity)) {
       return Envelope.fail(
         "run",
         "finalize-cleanup",
@@ -150,45 +103,36 @@ export class FinalizeCleanupStateResolution {
         {
           selected: selectedIdentity.toJSON(),
           main: mainIdentity.toJSON(),
-          active: activeIdentity.toJSON(),
+          active: selectedIdentity.toJSON(),
         },
       );
     }
 
     const mainCleanup = findStepById(mainState.steps || [], "finalize-cleanup");
-    const activeCleanup = findStepById(activeState.steps || [], "finalize-cleanup");
-    const cleanupStep = mainCleanup || activeCleanup;
+    const cleanupStep = mainCleanup;
     if (!cleanupStep) {
       return Envelope.fail(
         "run",
         "finalize-cleanup",
         "FINALIZE_CLEANUP_STEP_MISSING",
         [
-          "finalize-cleanup is registered in the current flow definition but is absent from both main and active flow state.",
+          "finalize-cleanup is registered in the current flow definition but is absent from the base-side flow state.",
           "No finalize step, commit, active-flow, worktree, branch, or Git history cleanup was attempted.",
         ],
         { specId, runId: mainIdentity.runId },
       );
     }
 
-    const operationalState = structuredClone(activeState);
-    operationalState.state = {
-      ...(activeState.state || {}),
-      ...(mainState.state || {}),
-    };
     return new FinalizeCleanupStateResolution({
-      state: operationalState,
+      state: bindFlowStateLocation(
+        structuredClone(mainState),
+        stateOwner.flowManager.specLocation(specId),
+      ),
       stateOwner,
       worktreePath,
       mainRepoPath,
-      cleanupStepSnapshot: mainCleanup ? null : new FinalizeCleanupStepSnapshot(cleanupStep),
     });
   }
 
-  ensureCleanupStep(operationOwnerToken) {
-    if (!this.cleanupStepSnapshot) return;
-    this.stateOwner.mutate((state) => {
-      this.cleanupStepSnapshot.insertInto(state);
-    }, { operationOwnerToken });
-  }
+  ensureCleanupStep() {}
 }

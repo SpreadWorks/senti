@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { latestPlanRewind } from "./plan-rewind.js";
 
 export const FLOW_FINDINGS_FILE = "flow-findings.json";
@@ -217,8 +218,8 @@ export function writeFlowFindingsArtifact(specDir, artifact) {
 }
 
 export function specDirFromFlowState(root, flowState) {
-  if (!flowState?.spec) throw new Error("flowState.spec is required");
-  return resolveSpecDir(path.resolve(root, flowState.spec));
+  if (!flowState?.specId) throw new Error("flowState.specId is required");
+  return resolveSpecDir(path.resolve(root, relativeFlowSpecFile(flowState)));
 }
 
 function nextFindingId(existing) {

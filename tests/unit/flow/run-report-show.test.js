@@ -23,8 +23,7 @@ describe("flow report show — resolve + read", () => {
 
   it("AC1: resolves latest report.json from pointer and returns its text field", () => {
     tmp = createTmpDir("senti-report-show-");
-    const specRel = "specs/001-demo/spec.json";
-    writeFile(tmp, POINTER_REL_PATH, specRel + "\n");
+    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     const reportText = "  Report\n\n  Implementation\n──\n    feat: demo\n";
     writeFile(
       tmp,
@@ -38,6 +37,17 @@ describe("flow report show — resolve + read", () => {
       path.join(tmp, "specs/001-demo/report.json"),
     );
     assert.equal(readReportText(reportPath), reportText);
+  });
+
+  it("resolves a report from a configured spec root", () => {
+    tmp = createTmpDir("senti-report-show-configured-root-");
+    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
+    writeFile(tmp, "flow-artifacts/specs/001-demo/report.json", JSON.stringify({ data: {}, text: "ok" }));
+
+    assert.equal(
+      resolveLatestReportPath(tmp, "flow-artifacts/specs"),
+      path.join(tmp, "flow-artifacts/specs/001-demo/report.json"),
+    );
   });
 
   it("AC2: throws NO_POINTER when the pointer file is absent", () => {
@@ -59,7 +69,7 @@ describe("flow report show — resolve + read", () => {
 
   it("AC3: throws NO_REPORT when pointer exists but report.json is missing", () => {
     tmp = createTmpDir("senti-report-show-no-report-");
-    writeFile(tmp, POINTER_REL_PATH, "specs/001-demo/spec.json\n");
+    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     assert.throws(
       () => resolveLatestReportPath(tmp),
       (err) => err.code === "NO_REPORT" && /report\.json not found/.test(err.message),

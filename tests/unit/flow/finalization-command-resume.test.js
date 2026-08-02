@@ -39,8 +39,9 @@ function setupFinalizationRepo(root, flowOverrides = {}) {
     runId: flowOverrides.runId || "run-test",
   });
   const state = setupFlow(root, { repairBaseline: repairBaseline.toJSON(), ...flowOverrides });
-  writeFile(root, state.spec, JSON.stringify({ requirements: [] }, null, 2));
-  writeFile(root, path.join(path.dirname(state.spec), "issue-log.json"), "{\n  \"entries\": []\n}\n");
+  const specPath = `specs/${state.specId}/spec.json`;
+  writeFile(root, specPath, JSON.stringify({ requirements: [] }, null, 2));
+  writeFile(root, path.join(path.dirname(specPath), "issue-log.json"), "{\n  \"entries\": []\n}\n");
   writeFile(root, "src-change.js", "export const changed = true;\n");
   return { state, flowManager: makeFlowManager(root) };
 }
@@ -112,7 +113,7 @@ describe("finalization command crash resumption", () => {
       const { state, flowManager } = setupFinalizationRepo(root);
       const entry = pendingEntry(state, "report");
       const ctx = { root, flowState: state, flowManager, flowOutboxEntry: entry };
-      const reportPath = path.join(root, path.dirname(state.spec), "report.json");
+      const reportPath = path.join(root, "specs", state.specId, "report.json");
 
       const first = await new RunReportCommand().execute(ctx);
       assert.equal(first.result, "ok");

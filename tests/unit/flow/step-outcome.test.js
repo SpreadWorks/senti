@@ -198,7 +198,7 @@ describe("typed step outcomes", () => {
 
       const reviewState = moveFlowToStep(makeFlowState({
         runId: "run-review-419",
-        spec,
+        specId: "419-outcome",
         currentTaskId: null,
         tasks: [],
         metrics: [],
@@ -225,7 +225,7 @@ describe("typed step outcomes", () => {
 
       const gateState = moveFlowToStep(makeFlowState({
         runId: "run-gate-419",
-        spec,
+        specId: "419-outcome",
         currentTaskId: null,
         tasks: [],
         metrics: [],
@@ -279,14 +279,14 @@ describe("typed step outcomes", () => {
       });
       const flowState = {
         runId: "run-next-419",
-        spec: "specs/419-next/spec.json",
+        specId: "419-next",
         steps,
         tasks: [],
         currentTaskId: null,
         metrics: [],
         stepAttempts: [blocked.toJSON()],
       };
-      writeJson(root, flowState.spec, { requirements: [] });
+      writeJson(root, `specs/${flowState.specId}/spec.json`, { requirements: [] });
 
       const result = await new GetNextActionCommand().execute({
         root,
@@ -337,14 +337,14 @@ describe("typed step outcomes", () => {
       });
       const flowState = {
         runId: "run-reactivated-419",
-        spec: "specs/419-reactivated/spec.json",
+        specId: "419-reactivated",
         steps,
         tasks: [],
         currentTaskId: null,
         metrics: [],
         stepAttempts: [blocked.toJSON(), recovery.toJSON()],
       };
-      writeJson(root, flowState.spec, { requirements: [] });
+      writeJson(root, `specs/${flowState.specId}/spec.json`, { requirements: [] });
 
       const result = await new GetNextActionCommand().execute({
         root,

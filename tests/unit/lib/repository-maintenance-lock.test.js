@@ -135,7 +135,7 @@ describe("repository maintenance lock", () => {
     tmp = createTmpDir("repository-maintenance-flow-state-");
     const specId = "441-maintenance";
     const state = {
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-maintenance",
       baseBranch: "main",
       featureBranch: `feature/${specId}`,

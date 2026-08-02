@@ -108,12 +108,12 @@ export default class SetAutoCommand extends FlowCommand {
     let autoCheck = state?.autoCheck || null;
     const trusted = !!autoCheck;
     if (trusted) {
-      const paths = { root: ctx.root, specPath: preparingMode ? null : state?.spec };
+      const paths = { root: ctx.root };
       const trustFailure = resolvePersistedAutoCheckTrust(state, paths);
       if (trustFailure) autoCheck = trustFailure;
     }
     if (!autoCheck) {
-      const paths = { root: ctx.root, specPath: preparingMode ? null : state?.spec };
+      const paths = { root: ctx.root };
       const resolved = resolveAutoCheckInput(state, paths);
       if (resolved.skip) {
         autoCheck = buildSkipVerdict();

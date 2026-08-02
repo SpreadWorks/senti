@@ -151,7 +151,7 @@ function setupFlow(root, {
     }
   }
   const state = {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
     runId: "run-441",
@@ -178,7 +178,7 @@ function setupFlow(root, {
     new WorktreeFlowBindingStore({ worktreePath: root }).save(new WorktreeFlowIdentity({
       runId: state.runId,
       issue: Object.hasOwn(state, "issue") ? state.issue : null,
-      spec: state.spec,
+      specId: state.specId,
       worktreePath: root,
     }));
   }
@@ -192,7 +192,7 @@ function targetInput(overrides = {}) {
     category: "spec-correction",
     expectRunId: "run-441",
     expectIssue: "441",
-    expectSpec: SPEC_PATH,
+    expectSpec: SPEC_ID,
     _envelopeType: "run",
     _envelopeKey: "reopen-draft",
     ...overrides,
@@ -527,7 +527,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       ["missing spec", { expectSpec: undefined }, "TARGET_GUARDS_REQUIRED"],
       ["missing issue", { expectIssue: undefined }, "TARGET_GUARDS_REQUIRED"],
       ["wrong run", { expectRunId: "wrong" }, "ACTIVE_FLOW_MISMATCH"],
-      ["wrong spec", { expectSpec: "specs/999-wrong/spec.json" }, "ACTIVE_FLOW_MISMATCH"],
+      ["wrong spec", { expectSpec: "999-wrong" }, "ACTIVE_FLOW_MISMATCH"],
       ["wrong issue", { expectIssue: "999" }, "ACTIVE_FLOW_MISMATCH"],
       ["zero issue", { expectIssue: "0" }, "ARGS_ERROR"],
       ["negative issue", { expectIssue: "-1" }, "ARGS_ERROR"],
@@ -809,7 +809,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(taskAfter.currentTaskId, taskBefore.currentTaskId);
   });
 
-  it("uses the dispatcher-resolved bound worktree authority without reloading main", async () => {
+  it("uses the dispatcher-resolved base artifact authority without reloading by path", async () => {
     tmp = createTmpDir("reopen-dispatch-authority-");
     const worktree = path.join(tmp, ".senti", "worktree", `feature-${SPEC_ID}`);
     const { files } = setupFlow(worktree, { mainRoot: tmp, inWorktree: true });
@@ -835,7 +835,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
         "--category", "spec-correction",
         "--reason", targetInput().reason,
         "--expect-run-id", "run-441",
-        "--expect-spec", SPEC_PATH,
+        "--expect-spec", SPEC_ID,
         "--expect-issue", "441",
       ],
       envelopeType: "run",
@@ -853,11 +853,12 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
     assert.equal(exitCode, 0, JSON.stringify(envelope));
     assert.equal(envelope.ok, true);
     const worktreeAfter = snapshot(files);
-    assert.notEqual(worktreeAfter.flow, worktreeBefore.flow);
+    assert.deepEqual(worktreeAfter, worktreeBefore);
+    const mainAfter = snapshot(mainFiles);
+    assert.notEqual(mainAfter.flow, mainBefore.flow);
     for (const key of ["spec", "issueLog", "draft", "evidence", "source"]) {
-      assert.equal(worktreeAfter[key], worktreeBefore[key], key);
+      assert.equal(mainAfter[key], mainBefore[key], key);
     }
-    assert.deepEqual(snapshot(mainFiles), mainBefore);
     assert.notEqual(FLOW_COMMANDS.run["reopen-draft"].explicitTargetResolution, true);
     assert.equal(FLOW_COMMANDS.get["runtime-log"].explicitTargetResolution, true);
   });

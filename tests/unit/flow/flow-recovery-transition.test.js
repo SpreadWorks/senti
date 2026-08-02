@@ -65,7 +65,7 @@ function createInput({ specId, runId, issue, digest = null }) {
     target: {
       runId,
       issue,
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       stepId: "impl-gate",
       attemptId: "impl-gate-attempt-001",
     },
@@ -85,7 +85,7 @@ function buildFixture({ verifier = null, expectedRegistryRevision = undefined } 
   const runId = "run-recovery-transition";
   const issue = 656;
   setupFlowAtStep(tmp, "impl-gate", {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId,
     issue,
   });
@@ -157,7 +157,7 @@ describe("flow recovery transition", () => {
     new FlowRecoveryTransition({ flowManager: fixture.manager, mainRoot: tmp }).apply(fixture.plan);
     const delivered = new RecoveryIssueLogDelivery({ flowManager: fixture.manager, root: tmp }).deliver(fixture.plan);
     const state = readState(fixture);
-    const issueLog = new IssueLogStore({ root: tmp, spec: state.spec }).read().toJSON();
+    const issueLog = new IssueLogStore({ root: tmp, spec: `specs/${state.specId}/spec.json` }).read().toJSON();
 
     assert.ok(delivered instanceof RecoveryDeliveryDone);
     assert.equal(delivered.appended, true);
@@ -180,7 +180,7 @@ describe("flow recovery transition", () => {
     assert.equal(new FlowOutbox(state.outbox).find(fixture.plan.outboxIdentity).status, "failed");
     const retried = new RecoveryIssueLogDelivery({ flowManager: fixture.manager, root: tmp }).deliver(fixture.plan);
     state = readState(fixture);
-    const issueLog = new IssueLogStore({ root: tmp, spec: state.spec }).read().toJSON();
+    const issueLog = new IssueLogStore({ root: tmp, spec: `specs/${state.specId}/spec.json` }).read().toJSON();
 
     assert.ok(retried instanceof RecoveryDeliveryDone);
     assert.equal(new FlowOutbox(state.outbox).find(fixture.plan.outboxIdentity).status, "done");

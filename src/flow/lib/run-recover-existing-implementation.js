@@ -9,6 +9,7 @@ import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
 import { latestPlanRewind } from "./plan-rewind.js";
 import { FlowCommand } from "./base-command.js";
 import { ExplicitRecoveryTransition } from "./step-transition-policy.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
 const RECOVERY_ENTRYPOINT = "existing-implementation-revalidation";
@@ -128,10 +129,10 @@ export default class RunRecoverExistingImplementationCommand extends FlowCommand
     if (guardFailure) return guardFailure;
     try {
       const eligibility = assertEligibility(state);
-      const specDir = path.dirname(path.resolve(ctx.root, state.spec));
+      const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(state)));
       const invalidPaths = readScenarioValidityResult(specDir);
       const result = completeTestEvidenceRefresh({
-        root: ctx.root,
+        root: ctx.executionRoot || ctx.root,
         state,
         specDir,
         flowManager: ctx.flowManager,

@@ -5,7 +5,7 @@
  * active Spec-Driven Development flows in this repository. Used by FlowManager.
  *
  * @typedef {Object} ActiveFlowEntry
- * @property {string} spec - spec ID (e.g. "086-migrate-flow-state")
+ * @property {string} specId - spec ID (e.g. "086-migrate-flow-state")
  * @property {"worktree"|"branch"|"local"} mode
  */
 
@@ -22,6 +22,7 @@ import {
   resolveRepositoryLockRoot,
 } from "./repository-maintenance-lock.js";
 import { FlowSpecId } from "./flow-spec-id.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
 
 const REGISTRY_LOCK_FILE = ".active-flow.lock";
 const VALID_MODES = new Set(["worktree", "branch", "local"]);
@@ -31,10 +32,10 @@ function activeFlowPath(mainRoot) {
 }
 
 class ActiveFlowEntry {
-  constructor({ spec, mode }) {
-    ActiveFlowEntry.assertValidSpecId(spec);
+  constructor({ specId, mode }) {
+    ActiveFlowEntry.assertValidSpecId(specId);
     if (!VALID_MODES.has(mode)) throw new Error("active-flow entry.mode is invalid");
-    this.spec = spec;
+    this.specId = specId;
     this.mode = mode;
     Object.freeze(this);
   }
@@ -44,33 +45,33 @@ class ActiveFlowEntry {
       value == null
       || typeof value !== "object"
       || Array.isArray(value)
-      || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(["mode", "spec"])
+      || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(["mode", "specId"])
     ) {
       throw new Error("active-flow entry has an invalid schema");
     }
     return new ActiveFlowEntry(value);
   }
 
-  static assertValidSpecId(spec) {
+  static assertValidSpecId(specId) {
     try {
-      FlowSpecId.from(spec);
+      FlowSpecId.from(specId);
     } catch {
-      throw new Error("active-flow entry.spec is invalid");
+      throw new Error("active-flow entry.specId is invalid");
     }
   }
 
   toJSON() {
-    return { spec: this.spec, mode: this.mode };
+    return { specId: this.specId, mode: this.mode };
   }
 }
 
 class ActiveFlowDocument {
   constructor(entries = []) {
     this.entries = entries.map((entry) => entry instanceof ActiveFlowEntry ? entry : ActiveFlowEntry.fromStored(entry));
-    const specs = new Set();
+    const specIds = new Set();
     for (const entry of this.entries) {
-      if (specs.has(entry.spec)) throw new Error(`active-flow contains duplicate spec: ${entry.spec}`);
-      specs.add(entry.spec);
+      if (specIds.has(entry.specId)) throw new Error(`active-flow contains duplicate specId: ${entry.specId}`);
+      specIds.add(entry.specId);
     }
   }
 
@@ -80,19 +81,19 @@ class ActiveFlowDocument {
   }
 
   add(specId, mode) {
-    const existing = this.entries.find((entry) => entry.spec === specId);
+    const existing = this.entries.find((entry) => entry.specId === specId);
     if (existing?.mode === mode) return false;
     if (existing) {
       const error = new Error(`active-flow mode conflicts for spec: ${specId}`);
       error.code = "ACTIVE_FLOW_REGISTRY_MODE_CONFLICT";
       throw error;
     }
-    this.entries.push(new ActiveFlowEntry({ spec: specId, mode }));
+    this.entries.push(new ActiveFlowEntry({ specId, mode }));
     return true;
   }
 
   remove(specId) {
-    const filtered = this.entries.filter((entry) => entry.spec !== specId);
+    const filtered = this.entries.filter((entry) => entry.specId !== specId);
     const changed = filtered.length !== this.entries.length;
     this.entries = filtered;
     return changed;
@@ -290,8 +291,9 @@ export class ActiveFlowRegistry {
    * @param {Object} opts
    * @param {string} opts.mainRoot - main repo root (resolved from worktree if applicable)
    */
-  constructor({ mainRoot, processIdentitySource } = {}) {
+  constructor({ mainRoot, specRoot = DEFAULT_FLOW_SPEC_DIR, processIdentitySource } = {}) {
     this._mainRoot = resolveRepositoryLockRoot(mainRoot);
+    this._specRoot = FlowSpecRoot.from(specRoot);
     this._processIdentitySource = processIdentitySource;
     const rootErrorFactory = (status, message, { lockPath, cause } = {}) => {
       const error = new Error(message, { cause });
@@ -395,10 +397,21 @@ export class ActiveFlowRegistry {
     return this.#withMutationLock(() => {
       const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
       const valid = snapshot.document.entries.filter((entry) => {
-        const branch = `feature/${entry.spec}`;
+        const statePath = flowStatePath(this._mainRoot, entry.specId, this._specRoot);
+        if (!localFlowExists(statePath)) {
+          const error = new Error(
+            `active flow state is missing at the configured spec root: ${statePath}. `
+            + "Restore flow.specDir or resolve the active flow explicitly before continuing.",
+          );
+          error.code = "ACTIVE_FLOW_STATE_AUTHORITY_MISSING";
+          error.specId = entry.specId;
+          error.statePath = statePath;
+          throw error;
+        }
+        const branch = `feature/${entry.specId}`;
         if (entry.mode === "worktree") return worktreeExists(this._mainRoot, branch);
         if (entry.mode === "branch") return branchExists(this._mainRoot, branch);
-        return localFlowExists(flowStatePath(this._mainRoot, entry.spec));
+        return true;
       });
       if (valid.length !== snapshot.document.entries.length) {
         const document = new ActiveFlowDocument(valid);

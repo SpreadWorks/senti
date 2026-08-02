@@ -1,6 +1,5 @@
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { runtimeLogFileForContext } from "../../lib/runtime-log.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { FlowOutbox, finalizationOutboxIdentity } from "./flow-outbox.js";
@@ -11,7 +10,7 @@ import { findStepById } from "./step-tree.js";
 function incompleteRuntimeLog(root, state) {
   const file = runtimeLogFileForContext({
     root,
-    specId: specIdFromPath(state.spec),
+    specId: state.specId,
   });
   const block = file.blocks()
     .filter((candidate) => (

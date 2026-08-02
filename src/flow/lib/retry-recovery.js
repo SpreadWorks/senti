@@ -8,11 +8,10 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
-import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
+import { flowStateSpecLocation, relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
@@ -67,7 +66,7 @@ const RECOVERY_TRANSACTION_KEYS = Object.freeze([
   "rejection", "createdAt", "updatedAt",
 ]);
 const RECOVERY_REQUEST_KEYS = Object.freeze([
-  "runId", "spec", "hasIssue", "issue", "kind", "phase", "canonicalPhase", "reason",
+  "runId", "specId", "hasIssue", "issue", "kind", "phase", "canonicalPhase", "reason",
   "attempts", "maxAttempts", "changedEvidence",
 ]);
 
@@ -252,12 +251,12 @@ function loadAuthoritativeRecoveryAuthority(root, flowState) {
   if (typeof root !== "string" || root.trim() === "") {
     throw new Error("retry recovery root authority is required");
   }
-  if (typeof flowState?.spec !== "string" || flowState.spec.trim() === "") {
-    throw new Error("retry recovery spec authority is required");
+  if (typeof flowState?.specId !== "string" || flowState.specId.trim() === "") {
+    throw new Error("retry recovery specId authority is required");
   }
-  const authority = loadRecoveryAuthority(root, flowState.spec);
+  const authority = loadRecoveryAuthority(root, relativeFlowSpecFile(flowState));
   if (authority.transaction) {
-    assertTransactionAuthority(authority.transaction, flowState.spec, flowState);
+    assertTransactionAuthority(authority.transaction, flowState.specId, flowState);
     const expectedFingerprint = recoveryFingerprint({
       request: authority.transaction.request,
       expectedFlowRevision: authority.transaction.expectedFlowRevision,
@@ -874,7 +873,7 @@ export function buildCurrentRecoveryFingerprint({ root, flowState, kind, canonic
   const source = resolveRecoveryEvidenceSource({
     kind,
     canonicalPhase,
-    specDir: specDirFor(flowState.spec),
+    specDir: specDirFor(relativeFlowSpecFile(flowState)),
   });
   let paths = [];
   let truncated = false;
@@ -935,7 +934,7 @@ export function buildRecoveryEligibilityForState({ root, flowState, kind, phase,
       ? resolveRecoveryEvidenceSource({
           kind,
           canonicalPhase: target.canonicalPhase,
-          specDir: specDirFor(flowState.spec),
+          specDir: specDirFor(relativeFlowSpecFile(flowState)),
         })
       : null,
   });
@@ -1069,7 +1068,7 @@ export class RetryRecoveryOperationLock {
 class RetryRecoveryRequestSnapshot {
   constructor(input = {}) {
     this.runId = requireString(input.runId, "runId");
-    this.spec = requireString(input.spec, "spec");
+    this.specId = requireString(input.specId, "specId");
     this.hasIssue = input.hasIssue === true;
     this.issue = this.hasIssue ? Number(input.issue) : null;
     this.kind = requireString(input.kind, "kind");
@@ -1111,7 +1110,7 @@ class RetryRecoveryRequestSnapshot {
   toJSON() {
     return {
       runId: this.runId,
-      spec: this.spec,
+      specId: this.specId,
       hasIssue: this.hasIssue,
       issue: this.issue,
       kind: this.kind,
@@ -1306,10 +1305,9 @@ function recoveryFingerprint({ request, expectedFlowRevision }) {
     .digest("hex");
 }
 
-function flowRevision(root, spec) {
-  const specId = specIdFromPath(spec);
-  if (!specId) throw new Error(`retry recovery spec path is invalid: ${spec}`);
-  const statePath = flowStatePath(root, specId);
+function flowRevision(flowState) {
+  const statePath = flowStateSpecLocation(flowState)?.flowStateFile;
+  if (!statePath) throw new Error("retry recovery flow state location is unavailable");
   const content = fs.readFileSync(statePath);
   return {
     digest: crypto.createHash("sha256").update(content).digest("hex"),
@@ -1317,11 +1315,10 @@ function flowRevision(root, spec) {
   };
 }
 
-function currentObservation({ root, spec, flowManager, recoveryInput, resolveConfiguredMaxAttempts }) {
-  const specId = specIdFromPath(spec);
+function currentObservation({ root, spec, specId, flowManager, recoveryInput, resolveConfiguredMaxAttempts }) {
   const flowState = flowManager.loadReadOnly(specId);
   if (!flowState) throw new Error(`retry recovery flow state is unavailable: ${spec}`);
-  const revision = flowRevision(root, spec);
+  const revision = flowRevision(flowState);
   const attempts = countRetry(flowState.metrics, recoveryInput.kind, recoveryInput.canonicalPhase);
   const configuredMax = resolveConfiguredMaxAttempts(flowState, recoveryInput.canonicalPhase);
   const maxAttempts = resolveRecoveryMaxAttempts({
@@ -1342,7 +1339,7 @@ function currentObservation({ root, spec, flowManager, recoveryInput, resolveCon
   });
   const request = new RetryRecoveryRequestSnapshot({
     runId: flowState.runId,
-    spec: flowState.spec,
+    specId: flowState.specId,
     hasIssue: Object.hasOwn(flowState, "issue"),
     issue: flowState.issue,
     kind: recoveryInput.kind,
@@ -1361,7 +1358,7 @@ function assertExpectedRequest(input, observation, recoveryInput) {
     && (!input.expectedHasIssue || Number(input.expectedIssue) === Number(observation.flowState.issue));
   if (
     input.expectedRunId !== observation.flowState.runId
-    || input.spec !== observation.flowState.spec
+    || input.specId !== observation.flowState.specId
     || !sameIssue
   ) {
     throw retryRequestError(
@@ -1386,12 +1383,12 @@ function assertExpectedRequest(input, observation, recoveryInput) {
   }
 }
 
-function assertTransactionAuthority(transaction, spec, flowState) {
+function assertTransactionAuthority(transaction, specId, flowState) {
   if (!transaction) return;
   const sameIssue = transaction.request.hasIssue === Object.hasOwn(flowState, "issue")
     && (!transaction.request.hasIssue || Number(flowState.issue) === transaction.request.issue);
   if (
-    transaction.request.spec !== spec
+    transaction.request.specId !== specId
     || transaction.request.runId !== flowState.runId
     || !sameIssue
   ) {
@@ -1502,7 +1499,7 @@ function applyNormalRetryReset({ input, flowManager, recoveryInput, observation 
   flowManager.mutate((flowState, writerContext) => {
     assertFreshRecoveryTarget(flowState, recoveryInput, {
       runId: observation.request.runId,
-      spec: observation.request.spec,
+      specId: observation.request.specId,
       hasIssue: observation.request.hasIssue,
       issue: observation.request.issue,
     });
@@ -1579,7 +1576,7 @@ function assertFreshRecoveryTarget(flowState, input, expected) {
     && (!expected.hasIssue || Number(flowState.issue) === expected.issue);
   if (
     flowState.runId !== expected.runId
-    || flowState.spec !== expected.spec
+    || flowState.specId !== expected.specId
     || !sameIssue
   ) {
     throw new RetryRecoveryGrantError(
@@ -1649,7 +1646,7 @@ function assertEvaluatorOnlyRepairEvidence({
 
 export function applyRetryReset(input = {}) {
   const root = requireString(input.root, "root");
-  const spec = requireString(input.spec, "spec");
+  const specId = requireString(input.specId, "specId");
   const flowManager = input.flowManager;
   if (!flowManager || typeof flowManager.mutate !== "function") {
     throw new Error("flowManager is required");
@@ -1657,6 +1654,7 @@ export function applyRetryReset(input = {}) {
   if (typeof input.resolveConfiguredMaxAttempts !== "function") {
     throw new Error("resolveConfiguredMaxAttempts is required");
   }
+  const spec = flowManager.specLocation(specId).relativeSpecFile;
   const recoveryInput = input.input instanceof RetryRecoveryInput
     ? input.input
     : new RetryRecoveryInput(input.input || {});
@@ -1679,6 +1677,7 @@ export function applyRetryReset(input = {}) {
     const issueLogStore = new IssueLogStore({
       root,
       spec,
+      specId,
       faultInjector: input.issueLogFaultInjector,
       processIdentitySource: input.processIdentitySource,
     });
@@ -1693,7 +1692,7 @@ export function applyRetryReset(input = {}) {
       recoveryInput,
       resolveConfiguredMaxAttempts: input.resolveConfiguredMaxAttempts,
     });
-    assertTransactionAuthority(authority.transaction, spec, observation.flowState);
+    assertTransactionAuthority(authority.transaction, specId, observation.flowState);
     assertEvaluatorOnlyRepairEvidence({
       root,
       flowState: observation.flowState,
@@ -1753,7 +1752,7 @@ export function applyRetryReset(input = {}) {
       emitRecoveryPhase(input, "after-pending", record);
     }
 
-    let fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+    let fresh = flowManager.loadReadOnly(specId);
     let convergence = assertRecoveryConvergence({
       record,
       artifact,
@@ -1765,7 +1764,7 @@ export function applyRetryReset(input = {}) {
         flowManager.mutate((flowState, writerContext) => {
           const expected = {
             runId: record.request.runId,
-            spec: record.request.spec,
+            specId: record.request.specId,
             hasIssue: record.request.hasIssue,
             issue: record.request.issue,
           };
@@ -1882,7 +1881,7 @@ export function applyRetryReset(input = {}) {
           passThroughError: (error) => error instanceof RetryRecoveryGrantError,
         });
       } catch (error) {
-        fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+        fresh = flowManager.loadReadOnly(specId);
         if (matchingFlowGrants(fresh, record.grant).length === 0) {
           record = record.reject({
               code: error.code || "FLOW_MUTATION_FAILED",
@@ -1892,7 +1891,7 @@ export function applyRetryReset(input = {}) {
         }
         throw error;
       }
-      fresh = flowManager.loadReadOnly(specIdFromPath(spec));
+      fresh = flowManager.loadReadOnly(specId);
       emitRecoveryPhase(input, "after-flow-commit", record);
     }
 
@@ -1920,7 +1919,7 @@ export function applyRetryReset(input = {}) {
     const finalConvergence = assertRecoveryConvergence({
       record,
       artifact: finalArtifact,
-      flowState: flowManager.loadReadOnly(specIdFromPath(spec)),
+      flowState: flowManager.loadReadOnly(specId),
       issueDocument: issueLogStore.read().document,
     });
     if (!finalConvergence.flow || !finalConvergence.issue || !finalConvergence.published) {

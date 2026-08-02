@@ -52,7 +52,7 @@ function seedActiveFlow(tmp, { steps, issue, request, draftBody } = {}) {
     fs.writeFileSync(path.join(specDir, "draft.json"), draftBody);
   }
   makeFlowManager(tmp).create({
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",

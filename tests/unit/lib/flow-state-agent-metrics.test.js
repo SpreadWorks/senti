@@ -25,7 +25,7 @@ function makeUsage({ input = 100, output = 50, cacheRead = 20, cacheCreation = 1
 
 function setupFlow(dir, phase = "draft") {
   const specId = "001-test";
-  const state = makeFlowState({ spec: `specs/${specId}/spec.json` });
+  const state = makeFlowState({ specId: specId });
   if (flattenSteps(state.steps).some((step) => step.id === phase)) {
     moveFlowToStep(state, phase);
   }

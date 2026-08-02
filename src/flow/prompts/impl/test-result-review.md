@@ -1,9 +1,9 @@
    - **Goal:** verify the integrity of `test-execute-result.json` against the raw output log and the actual code. Detect hallucination (fabricated results) by cross-referencing.
    - **Inputs:**
-     - `specs/<spec>/test-execute-result.json` (executor's claimed result)
-     - `specs/<spec>/tests/.raw/test-execution.log` (raw stdout/stderr)
-     - `specs/<spec>/spec.json` (testable requirement IDs)
-     - actual test files under `specs/<spec>/tests/`
+     - `<configured-spec-root>/<specId>/test-execute-result.json` (executor's claimed result)
+     - `<configured-spec-root>/<specId>/tests/.raw/test-execution.log` (raw stdout/stderr)
+     - `<configured-spec-root>/<specId>/spec.json` (testable requirement IDs)
+     - actual test files under `<configured-spec-root>/<specId>/tests/`
    - **Required check items (verify ALL):**
      1. **file_path_exists** — every `evidence.test_file` exists in the actual code; `evidence.test_name` appears in that file.
      2. **req_id_in_output** — every requirement reported as `pass` has its requirement ID (R-N) appearing in the raw output (test name or output line).
@@ -12,8 +12,8 @@
      5. **summary_completeness** — every testable requirement (from `spec.json`, `requirements[].testable !== false`) is present in `summary[]` exactly once. No missing IDs, no duplicates, no unknown IDs.
      6. **project_regression_verification** — `test-execute-result.json` version `"2"` contains a valid `regression` object; required targeted or explicitly enabled regressions have raw start/end markers and non-required/deferred regressions have a valid category/reason/classified_paths snapshot.
    - **Outputs:**
-     - `specs/<spec>/test-result-review.json` (machine-readable verdict, schema = `src/flow/schemas/test-result-review.schema.json`)
-     - `specs/<spec>/test-result-review.md` (human-readable verdict + checked_items)
+     - `<configured-spec-root>/<specId>/test-result-review.json` (machine-readable verdict, schema = `src/flow/schemas/test-result-review.schema.json`)
+     - `<configured-spec-root>/<specId>/test-result-review.md` (human-readable verdict + checked_items)
    - **Result schema (canonical):**
      ```json
      {
@@ -26,8 +26,8 @@
          { "check": "summary_completeness", "result": "pass", "detail": "all testable requirements present" },
          { "check": "project_regression_verification", "result": "pass", "detail": "v2 regression evidence verified" }
        ],
-       "result_file_path": "specs/<spec>/test-execute-result.json",
-       "raw_output_path": "specs/<spec>/tests/.raw/test-execution.log"
+       "result_file_path": "<configured-spec-root>/<specId>/test-execute-result.json",
+       "raw_output_path": "<configured-spec-root>/<specId>/tests/.raw/test-execution.log"
      }
      ```
    - **Verdict semantics:**

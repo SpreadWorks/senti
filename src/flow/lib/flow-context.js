@@ -4,22 +4,14 @@
  * Pure function that assembles flow-specific context fields from the shared
  * dependency container. Replaces the former resolveCtx() in src/flow.js.
  *
- * Authority resolution (spec 251):
- *   The cwd-side flow.json holds metadata (worktree/spec/featureBranch) which
- *   stays valid across the merge boundary. After finalize-merge has run, the
- *   main repo also gains its own `specs/<id>/flow.json` (squash-merged from
- *   the worktree). From that point on, post hooks and reads must operate on
- *   the main repo's flow.json — not the worktree's stale copy. We pick the
- *   authority by checking for the main repo flow.json on disk: a non-circular
- *   signal that does not depend on the cwd-side state itself.
+ * Flow state and artifacts always live under the main repository's configured
+ * spec root. `root`/`repositoryRoot` identify that artifact authority, while
+ * `executionRoot` identifies the checkout where source commands run.
  */
 
-import fs from "fs";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
-import { flowStatePath } from "../../lib/flow-state-atomic-writer.js";
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
-import { findStepById } from "./step-tree.js";
+import { FlowSpecLocation, flowSpecRootFromConfig } from "../../lib/flow-workspace.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
 const DISPATCH_INVOCATION_ENV = "SENTI_FLOW_DISPATCH_INVOCATION_ID";
@@ -36,8 +28,7 @@ function resolveTargetSelection(input = {}) {
     ? null
     : new FlowTargetExpectation({ expectBinding: input.expectBinding }).binding;
   const selectRunId = input.expectRunId ?? input.expectRunID ?? binding?.runId ?? null;
-  const specToken = input.expectSpec ?? binding?.spec ?? null;
-  const selectSpecId = specToken ? specIdFromPath(specToken) : null;
+  const selectSpecId = input.expectSpec ?? binding?.specId ?? null;
   const selectIssue = input.expectIssue ?? binding?.issue ?? null;
   const selectNoIssue = input.expectNoIssue === true || (binding != null && binding.issue == null);
   if (selectRunId == null && selectSpecId == null && selectIssue == null && !selectNoIssue) return null;
@@ -54,24 +45,14 @@ function preparingRunIdSelection(input = {}) {
 function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   if (!runId || typeof baseFlowManager.loadPreparingFlow !== "function") return null;
   const state = baseFlowManager.loadPreparingFlow(runId);
-  const authorityRoot = mainRoot || paths.root;
-  const flowManager = typeof baseFlowManager.forRoot === "function"
-    ? baseFlowManager.forRoot(authorityRoot)
-    : baseFlowManager;
+  const authorityRoot = paths.root || mainRoot;
   return {
-    flowManager,
+    flowManager: baseFlowManager.forRoot(authorityRoot),
     flowState: null,
     preparingFlowState: state || MISSING_PREPARING_FLOW_STATE,
     authorityRoot,
     flowResolutionError: null,
   };
-}
-
-function mainStateOwnsPostMergeFlow(mainState, worktreeState) {
-  if (findStepById(mainState?.steps || [], "finalize-merge")?.status === "done") {
-    return true;
-  }
-  return JSON.stringify(mainState?.steps || []) === JSON.stringify(worktreeState?.steps || []);
 }
 
 function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, options) {
@@ -89,33 +70,15 @@ function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, opt
       flowResolutionError: error,
     };
   }
-  const flowState = baseFlowManager.load(identity.specId);
-  if (mainRoot) {
-    const mainFlowPath = flowStatePath(mainRoot, identity.specId);
-    if (fs.existsSync(mainFlowPath)) {
-      const mainManager = baseFlowManager.forRoot(mainRoot, { specId: identity.specId });
-      const mainState = mainManager.load(identity.specId);
-      if (mainStateOwnsPostMergeFlow(mainState, flowState)) {
-        identity.assertFlowState(mainState);
-        return {
-          flowManager: mainManager,
-          flowState: mainState,
-          preparingFlowState: null,
-          authorityRoot: mainRoot,
-          flowResolutionError: null,
-          worktreeFlowProvenance: new WorktreeFlowProvenance(identity, mainRoot),
-        };
-      }
-    }
-  }
   const flowManager = baseFlowManager.forRoot(paths.root, { specId: identity.specId });
+  const flowState = flowManager.load(identity.specId);
   return {
     flowManager,
     flowState,
     preparingFlowState: null,
     authorityRoot: paths.root,
     flowResolutionError: null,
-    worktreeFlowProvenance: new WorktreeFlowProvenance(identity, paths.root),
+    worktreeFlowProvenance: new WorktreeFlowProvenance(identity, mainRoot),
   };
 }
 
@@ -190,25 +153,6 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
     return { flowManager: baseFlowManager, flowState: null, authorityRoot: null, flowResolutionError: null };
   }
 
-  if (container.get("inWorktree") && cwdState.worktree && mainRoot) {
-    const specId = specIdFromPath(cwdState.spec);
-    if (specId) {
-      const mainFlowPath = flowStatePath(mainRoot, specId);
-      if (fs.existsSync(mainFlowPath)) {
-        const mainManager = baseFlowManager.forRoot(mainRoot, { specId });
-        const mainState = mainManager.load(specId);
-        if (mainStateOwnsPostMergeFlow(mainState, cwdState)) {
-          return {
-            flowManager: mainManager,
-            flowState: mainState,
-            authorityRoot: mainRoot,
-            flowResolutionError: null,
-          };
-        }
-      }
-    }
-  }
-
   return { flowManager: baseFlowManager, flowState: cwdState, authorityRoot: paths.root, flowResolutionError: null };
 }
 
@@ -229,15 +173,30 @@ export function resolveFlowContext(container, options = {}) {
     mainRoot,
     options,
   );
+  const executionRoot = authorityRoot || paths.root;
+  const config = container.get("config");
+  const specRoot = container.has("flowSpecRoot")
+    ? container.get("flowSpecRoot")
+    : flowSpecRootFromConfig(config);
+  const specLocation = flowState
+    ? (typeof flowManager.specLocation === "function"
+        ? flowManager.specLocation(flowState.specId)
+        : new FlowSpecLocation({ repositoryRoot: mainRoot, specRoot, specId: flowState.specId }))
+    : null;
   return {
-    root: authorityRoot || paths.root,
+    root: mainRoot,
     mainRoot,
-    config: container.get("config"),
+    config,
     paths,
     flowManager,
     flowState,
     preparingFlowState,
-    specId: flowState ? specIdFromPath(flowState.spec) : null,
+    specId: flowState?.specId ?? null,
+    specLocation,
+    specRoot,
+    repositoryRoot: mainRoot,
+    artifactRoot: mainRoot,
+    executionRoot,
     inWorktree: container.get("inWorktree"),
     authorityRoot,
     flowResolutionError,

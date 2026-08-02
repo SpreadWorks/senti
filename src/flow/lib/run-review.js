@@ -9,6 +9,7 @@ import { PKG_DIR } from "../../lib/cli.js";
 import { runCmd } from "../../lib/process.js";
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { AgentTimeout } from "../../lib/agent-timeout.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import {
@@ -150,7 +151,7 @@ function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {
   if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return false;
   let persisted = false;
   ctx.flowManager.mutate((state) => {
-    if (!state?.spec) return;
+    if (!state?.specId) return;
     persistCurrentRecoveryBaseline({
       root: ctx.root,
       flowState: state,
@@ -447,17 +448,18 @@ function reviewRetryExhaustionDeferralPlan({
   treeSha = null,
   targetStateDigest = null,
 }) {
-  if (!root || !flowState?.spec) return null;
+  if (!root || !flowState?.specId) return null;
+  const specPath = relativeFlowSpecFile(flowState);
   const sourceArtifact = REVIEW_SOURCE_ARTIFACT_BY_PHASE[phase];
   if (!sourceArtifact) return null;
   const specDir = specDirFromFlowState(root, flowState);
   const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
   if (!artifact) return null;
   if (treeSha != null || targetStateDigest != null) {
-    const currentTreeSha = treeSha || resolveReviewTargetTreeSha(root, flowState.spec);
+    const currentTreeSha = treeSha || resolveReviewTargetTreeSha(root, specPath);
     const currentTargetStateDigest = targetStateDigest || buildRepairFingerprint({
       root,
-      specPath: flowState.spec,
+      specPath,
       state: flowState,
     }).hash;
     if (!reviewArtifactMatchesCanonicalTarget({
@@ -541,7 +543,7 @@ function tryDeferReviewRetryExhaustion(
   attempts,
   { treeSha = null, targetStateDigest = null } = {},
 ) {
-  if (!ctx?.root || !ctx?.flowState?.spec || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
+  if (!ctx?.root || !ctx?.flowState?.specId || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
   const stepId = reviewStepId(ctx, phase);
   const taskId = phase === IMPL_REVIEW_PHASE
     ? ctx.flowState.currentTaskId ?? null
@@ -767,7 +769,7 @@ export { REVIEW_PHASE_KEYS };
 export function resetImplEvidenceAfterReviewProposals(ctx, result) {
   if (ctx?.phase) return false;
   if ((result?.artifacts?.proposalCount ?? 0) <= 0) return false;
-  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
   ctx.flowManager.mutate((state) => {
     resetImplEvidenceStateAfterReviewProposals({ specDir, flowState: state });
   });
@@ -973,7 +975,7 @@ export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   if (ctx?.phase !== "test") return;
   if (!result?.artifacts?.toolingOutcome) return;
   const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
-  appendIssueLogEntry(ctx.root, ctx.flowState?.spec, {
+  appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), {
     step: "test-review",
     phase: "test",
     failureKind: "tooling_failure",
@@ -1198,13 +1200,14 @@ function sourceArtifactPhase(phase) {
 }
 
 function resolveCurrentReviewTreeSha(ctx) {
-  return resolveReviewTargetTreeSha(ctx.root, ctx.flowState.spec);
+  return resolveReviewTargetTreeSha(ctx.executionRoot || ctx.root, relativeFlowSpecFile(ctx.flowState));
 }
 
 function resolveCurrentReviewRepairFingerprint(ctx) {
   return buildRepairFingerprint({
-    root: ctx.root,
-    specPath: ctx.flowState.spec,
+    root: ctx.executionRoot || ctx.root,
+    artifactRoot: ctx.root,
+    specPath: relativeFlowSpecFile(ctx.flowState),
     state: ctx.flowState,
   }).hash;
 }
@@ -1321,7 +1324,7 @@ export function persistReviewPostHookToolingFailure(ctx, result, error) {
 export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
   if (!/lock|busy|atomic stale/i.test(String(error?.message || error))) return null;
   const phase = reviewPhaseKeyForCtx(ctx, result?.artifacts?.phase || ctx.phase);
-  if (result?.artifacts?.taskId != null || !ctx?.flowManager || !ctx?.flowState?.spec) return null;
+  if (result?.artifacts?.taskId != null || !ctx?.flowManager || !ctx?.flowState?.specId) return null;
   const artifactPath = result?.changed?.find((entry) => entry.endsWith(canonicalArtifactName(phase)));
   if (!artifactPath || !fs.existsSync(path.resolve(ctx.root, artifactPath))) return null;
   const source = JSON.parse(fs.readFileSync(path.resolve(ctx.root, artifactPath), "utf8"));
@@ -1341,7 +1344,7 @@ export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
   }
   const state = { phase, taskId: null, treeSha, targetStateDigest };
   const registrar = new ReviewEvidenceRegistrar({
-    store: new ReviewEvidenceStore({ root: ctx.root, specDir: path.dirname(path.resolve(ctx.root, ctx.flowState.spec)) }),
+    store: new ReviewEvidenceStore({ root: ctx.root, specDir: path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState))) }),
   });
   let registration;
   recoverFinalizedFlowReviewEvidence({
@@ -1381,7 +1384,7 @@ function completedReviewLifecycleReplay(ctx, {
   const artifactPhase = sourceArtifactPhase(phase);
   if (artifactPhase !== phase) {
     const artifactPath = path.join(
-      path.dirname(path.resolve(ctx.root, ctx.flowState.spec)),
+      path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState))),
       canonicalArtifactName(phase),
     );
     const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
@@ -1530,13 +1533,13 @@ function persistCanonicalReviewArtifact(
   expectedOriginal = null,
 ) {
   if (result?.artifacts?.toolingOutcome) return null;
-  if (!ctx?.flowManager || !ctx?.flowState?.spec) {
+  if (!ctx?.flowManager || !ctx?.flowState?.specId) {
     const error = new Error("successful review execution requires convergence flow context");
     error.code = "REVIEW_CONVERGENCE_CONTEXT_REQUIRED";
     throw error;
   }
   const artifactName = canonicalArtifactName(phase);
-  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
   const artifactPath = path.join(specDir, artifactName);
   if ((!Array.isArray(result.changed) || result.changed.length === 0) && fs.existsSync(artifactPath)) {
     result.changed = [path.relative(ctx.root, artifactPath).split(path.sep).join("/")];
@@ -1596,7 +1599,7 @@ function persistCanonicalReviewArtifact(
   });
   const targetState = ReviewTargetState.fromRepairFingerprint(buildRepairFingerprint({
     root: ctx.root,
-    specPath: ctx.flowState.spec,
+    specPath: relativeFlowSpecFile(ctx.flowState),
     state: ctx.flowState,
   }));
   if (targetState.digest !== repairFingerprint) {
@@ -2168,6 +2171,7 @@ export class RunReviewCommand extends FlowCommand {
 
   async execute(ctx) {
     const { root } = ctx;
+    const executionRoot = ctx.executionRoot || root;
     const phase = ctx.phase || null;
     const dryRun = ctx.dryRun === true;
 
@@ -2186,7 +2190,8 @@ export class RunReviewCommand extends FlowCommand {
       && ctx.flowState.currentTaskId == null
     ) {
       ensureRepairFingerprintContract({
-        root,
+        root: executionRoot,
+        artifactRoot: root,
         state: ctx.flowState,
         flowManager: ctx.flowManager,
       });
@@ -2231,14 +2236,15 @@ export class RunReviewCommand extends FlowCommand {
       });
     }
     if (isImplementationReviewPhase(phase) && !taskReviewSpec) {
-      const specDir = path.dirname(path.resolve(root, ctx.flowState.spec));
+      const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(ctx.flowState)));
       const fingerprint = buildRepairFingerprint({
-        root,
-        specPath: ctx.flowState.spec,
+        root: executionRoot,
+        artifactRoot: root,
+        specPath: relativeFlowSpecFile(ctx.flowState),
         state: ctx.flowState,
       });
       const evidenceRefresh = checkImplReviewTestArtifacts({
-        root,
+        root: executionRoot,
         state: ctx.flowState,
         specDir,
         fingerprint,
@@ -2287,7 +2293,7 @@ export class RunReviewCommand extends FlowCommand {
     let res;
     try {
       res = await runCmdWithRetry(
-        () => this.runCommand("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
+        () => this.runCommand("node", [scriptPath, ...args], { cwd: executionRoot, timeout: timeoutMs }),
         { phase: persistedPhase, retryCount: 0 },
       );
     } catch (error) {

@@ -14,6 +14,7 @@ import {
   PluginInstaller,
 } from "./plugin-installer.js";
 import { runCmd, assertOk } from "./process.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecLocation } from "./flow-workspace.js";
 
 const ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
 const SHA_RE = /^[0-9a-f]{40}$/;
@@ -1218,25 +1219,26 @@ function pluginConfigFor(root, pluginId) {
   }
 }
 
-function artifactRoot(root, pluginId, flow = {}, { requireSpec = false } = {}) {
-  if (flow?.pluginArtifactRoot) {
-    return path.resolve(root, normalizeRel(flow.pluginArtifactRoot, "flow plugin artifact root"), pluginId);
-  }
-  if (flow?.spec) {
-    const specPath = normalizeRel(flow.spec, "flow spec path");
-    return path.join(root, path.dirname(specPath), "plugin-artifacts", pluginId);
-  }
+function artifactRoot(root, pluginId, flow = {}, {
+  requireSpec = false,
+  artifactRepositoryRoot = root,
+} = {}) {
   if (flow?.specId) {
     const specId = normalizeRel(String(flow.specId), "flow spec id");
     if (specId.includes("/") || specId.includes("\\")) {
       throw new Error(`flow spec id must be a single directory name: ${flow.specId}`);
     }
-    return path.join(root, "specs", specId, "plugin-artifacts", pluginId);
+    const specRoot = normalizeRel(String(flow.specRoot || DEFAULT_FLOW_SPEC_DIR), "flow spec root");
+    return new FlowSpecLocation({
+      repositoryRoot: path.resolve(artifactRepositoryRoot),
+      specRoot,
+      specId,
+    }).artifact("plugin-artifacts", pluginId);
   }
   if (requireSpec) {
-    throw new Error(`plugin hook artifact context requires flow.spec for ${pluginId}`);
+    throw new Error(`plugin hook artifact context requires flow.specId for ${pluginId}`);
   }
-  return path.join(sentiDir(root), "plugin-artifacts", pluginId);
+  return path.join(sentiDir(artifactRepositoryRoot), "plugin-artifacts", pluginId);
 }
 
 function artifactHelpers(root, pluginId, flow = {}, options = {}) {
@@ -1260,6 +1262,7 @@ function artifactHelpers(root, pluginId, flow = {}, options = {}) {
 
 function buildPluginContext({
   root,
+  artifactRepositoryRoot = root,
   pluginId,
   pluginRoot,
   commandPath,
@@ -1292,7 +1295,10 @@ function buildPluginContext({
     agent,
     flow,
     result,
-    artifacts: artifactHelpers(root, pluginId, flow, { requireSpec: requireSpecArtifacts }),
+    artifacts: artifactHelpers(root, pluginId, flow, {
+      requireSpec: requireSpecArtifacts,
+      artifactRepositoryRoot,
+    }),
     envelope: buildPluginApi().Envelope,
   };
 }
@@ -1369,7 +1375,13 @@ function isEnvelopeLike(value) {
   return value && typeof value === "object" && typeof value.ok === "boolean" && Array.isArray(value.errors);
 }
 
-export async function runFlowCommandHooks(root, snapshot, { command, hook, flow = {}, result = {} } = {}) {
+export async function runFlowCommandHooks(root, snapshot, {
+  command,
+  hook,
+  flow = {},
+  result = {},
+  artifactRepositoryRoot = root,
+} = {}) {
   try {
     snapshot = normalizeHookSnapshot(snapshot);
   } catch (error) {
@@ -1388,7 +1400,15 @@ export async function runFlowCommandHooks(root, snapshot, { command, hook, flow 
       throw new FlowCommandHookIntegrityError(error);
     }
     const { HookClass, pluginRoot } = loaded;
-    const context = buildPluginContext({ root, pluginId: plan.pluginId, pluginRoot, flow, result, requireSpecArtifacts: true });
+    const context = buildPluginContext({
+      root,
+      artifactRepositoryRoot,
+      pluginId: plan.pluginId,
+      pluginRoot,
+      flow,
+      result,
+      requireSpecArtifacts: true,
+    });
     try {
       const instance = new HookClass();
       const hookResult = await instance.run(context);
@@ -1417,11 +1437,28 @@ export async function runFlowCommandHooks(root, snapshot, { command, hook, flow 
   return { ok: true, outcome, warnings, issueLogEntries, hookData, followUps };
 }
 
-export async function runFlowCommandWithPluginLifecycle(root, snapshot, { command, main, flow = {} } = {}) {
-  const pre = await runFlowCommandHooks(root, snapshot, { command, hook: "pre", flow, result: {} });
+export async function runFlowCommandWithPluginLifecycle(root, snapshot, {
+  command,
+  main,
+  flow = {},
+  artifactRepositoryRoot = root,
+} = {}) {
+  const pre = await runFlowCommandHooks(root, snapshot, {
+    command,
+    hook: "pre",
+    flow,
+    result: {},
+    artifactRepositoryRoot,
+  });
   if (!pre.ok) return pluginLifecycleFailure(pre, null);
   const result = await main();
-  const post = await runFlowCommandHooks(root, snapshot, { command, hook: "post", flow, result });
+  const post = await runFlowCommandHooks(root, snapshot, {
+    command,
+    hook: "post",
+    flow,
+    result,
+    artifactRepositoryRoot,
+  });
   if (!post.ok) return pluginLifecycleFailure(post, result, pre);
   return composePluginLifecycleResult(result, pre, post, result?.ok !== false);
 }

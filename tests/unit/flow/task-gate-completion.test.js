@@ -66,7 +66,7 @@ function setupTaskGate(root, specId, taskCount, { spec = validSpec() } = {}) {
     task(specId, `T-${index + 1}`, index === 0 ? "in_progress" : "pending")
   ));
   const state = moveFlowToStep(makeFlowState({
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     featureBranch: `feature/${specId}`,
     tasks,
@@ -313,7 +313,7 @@ describe("atomic task-gate completion", () => {
       `${JSON.stringify(validSpec(), null, 2)}\n`,
     );
     const state = moveFlowToStep(makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: `run-${specId}`,
       featureBranch: `feature/${specId}`,
       tasks: [task(specId, "T-1", "done")],
@@ -324,7 +324,6 @@ describe("atomic task-gate completion", () => {
     manager.addActiveFlow(specId, "branch");
     const fingerprint = buildRepairFingerprint({
       root: tmp,
-      specPath: state.spec,
       state: manager.loadReadOnly(specId),
     });
     fs.writeFileSync(path.join(specDir, "impl-gate-result.json"), `${JSON.stringify({

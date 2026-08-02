@@ -184,7 +184,7 @@ export function guardFlagsForState(state) {
   const shellToken = (value) => `'${String(value).replaceAll("'", "'\"'\"'")}'`;
   return [
     ...(state.runId ? [`--expect-run-id ${shellToken(state.runId)}`] : []),
-    ...(state.spec ? [`--expect-spec ${shellToken(state.spec)}`] : []),
+    ...(state.specId ? [`--expect-spec ${shellToken(state.specId)}`] : []),
     ...(Object.hasOwn(state, "issue")
       ? [state.issue == null ? "--expect-no-issue" : `--expect-issue ${state.issue}`]
       : []),

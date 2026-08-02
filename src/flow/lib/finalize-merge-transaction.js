@@ -118,8 +118,11 @@ function operationPath(root, name) {
 }
 
 function activeOperation(root) {
-  for (const name of ["MERGE_HEAD", "REBASE_HEAD", "CHERRY_PICK_HEAD"]) {
+  for (const name of ["MERGE_HEAD", "CHERRY_PICK_HEAD"]) {
     if (fs.existsSync(operationPath(root, name))) return name;
+  }
+  for (const name of ["rebase-merge", "rebase-apply"]) {
+    if (fs.existsSync(operationPath(root, name))) return "REBASE_HEAD";
   }
   return null;
 }
@@ -308,7 +311,8 @@ export class FinalizeMergeTransaction {
       }
       const status = worktreeStatus(targetRoot)
         .withoutFlowRuntimeArtifacts()
-        .excludingDescendants(registeredNestedWorktreePaths(targetRoot, worktreeRecords));
+        .excludingDescendants(registeredNestedWorktreePaths(targetRoot, worktreeRecords))
+        .excludingOwnedBy(flowArtifactRegistry);
       if (!status.clean) {
         throw new FinalizeMergeTransactionError({
           code: "MERGE_TARGET_DIRTY",
@@ -457,7 +461,8 @@ export class FinalizeMergeTransaction {
       }
       const status = worktreeStatus(targetRoot)
         .withoutFlowRuntimeArtifacts()
-        .excludingDescendants(registeredNestedWorktreePaths(targetRoot, worktreeRecords));
+        .excludingDescendants(registeredNestedWorktreePaths(targetRoot, worktreeRecords))
+        .excludingOwnedBy(this.flowArtifactRegistry);
       if (!status.clean) {
         throw new FinalizeMergeTransactionError({
           code: "MERGE_TARGET_DIRTY",

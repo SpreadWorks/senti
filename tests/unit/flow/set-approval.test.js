@@ -58,7 +58,7 @@ function setupSpec(tmp, specId, extras = {}) {
   fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson, null, 2));
   fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
   const state = {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: `feature/${specId}`,

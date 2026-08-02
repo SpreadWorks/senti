@@ -61,7 +61,7 @@ function createTmpProject(agentResponse = passResponse()) {
 
 function createFlowState(tmp, request = "add a progress bar") {
   const state = {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-001-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
@@ -221,7 +221,7 @@ describe("flow set auto", () => {
     const approvalStep = findStepById(steps, "approval");
     approvalStep.status = "done";
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -281,7 +281,7 @@ describe("flow set auto", () => {
     const steps = buildInitialSteps();
     findStepById(steps, "draft-gate").status = "done";
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -325,7 +325,7 @@ describe("flow set auto", () => {
     const steps = buildInitialSteps();
     findStepById(steps, "draft-gate").status = "done";
     makeFlowManager(tmp).create({
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -372,7 +372,7 @@ describe("flow set auto", () => {
 
     const REQUEST_MARKER = "ORIGINAL_REQUEST_TEXT_MARKER_12345";
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -593,7 +593,7 @@ describe("flow set auto", () => {
     const { dir, capturePath } = createCapturingProject();
     tmp = dir;
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -636,7 +636,7 @@ describe("flow set auto", () => {
     const { dir, capturePath } = createCapturingProject();
     tmp = dir;
     const state = {
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-001-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",

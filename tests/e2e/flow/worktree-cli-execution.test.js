@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe("global CLI execution from a managed worktree", () => {
-  it("uses the worktree CLI source and configuration instead of the global checkout", () => {
+  it("uses the worktree CLI source while retaining the base artifact configuration authority", () => {
     const { root, worktreePath } = createFixture();
     const worktreeCli = path.join(worktreePath, "src", "senti.js");
     const worktreeSource = fs.readFileSync(worktreeCli, "utf8");
@@ -71,8 +71,6 @@ describe("global CLI execution from a managed worktree", () => {
         "process.stderr.write('[worktree-cli]\\n');\nconst rawArgs = process.argv.slice(2);",
       ),
     );
-    fs.writeFileSync(path.join(root, ".senti", "config.json"), "not valid JSON");
-
     const result = invokeGlobalCli(root, worktreePath);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);

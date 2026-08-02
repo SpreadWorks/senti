@@ -24,7 +24,7 @@ function flowState(overrides = {}) {
   return {
     runId: "run-finalize-replay",
     issue: 473,
-    spec: "specs/473/spec.json",
+    specId: "473",
     featureBranch: "feature/473",
     baseBranch: "main",
     ...overrides,
@@ -228,8 +228,7 @@ test("Issue #473 cleanup refuses to create a journal when replay requires a pers
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "FINALIZE_TEARDOWN_JOURNAL_MISSING");
-    const recoveryDirectory = path.join(root, ".senti", "recovery", "finalize-cleanup");
-    assert.deepEqual(fs.readdirSync(recoveryDirectory).filter((entry) => entry.endsWith(".json")), []);
+    assert.equal(fs.existsSync(path.join(root, "specs", "473", "finalize-cleanup.json")), false);
   } finally {
     removeTmpDir(root);
   }

@@ -1,4 +1,3 @@
-import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import {
@@ -9,11 +8,13 @@ import {
   outboxCommitMarker,
   runMigrationHook,
 } from "./run-finalize.js";
-import { implementationCommitExcludedTestArtifactPathspecs } from "./test-artifacts.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { FinalizeCommitPathSet } from "./finalize-commit-paths.js";
 
 export class RunFinalizeCommitCommand extends FlowCommand {
   async execute(ctx) {
-    const { root } = ctx;
+    const root = ctx.executionRoot || ctx.root;
+    const artifactRoot = ctx.repositoryRoot || ctx.root;
     const state = ctx.flowState;
     const message = ctx.message || "";
     const idempotencyKey = ctx.flowOutboxEntry?.idempotencyKey || null;
@@ -54,16 +55,17 @@ export class RunFinalizeCommitCommand extends FlowCommand {
       };
     }
 
-    runMigrationHook(root, state.spec);
-    const specId = specIdFromPath(state.spec);
+    runMigrationHook(artifactRoot, relativeFlowSpecFile(state), root);
+    const specId = state.specId;
     ctx.flowManager.saveFinalizedAt(specId, new Date().toISOString());
 
-    // Stage everything except durable finalization artifacts. The finalize
-    // lifecycle commits those separately before confirming this outbox entry.
-    runGit(["add", "-A"], { cwd: root });
-    const excludePathspecs = implementationCommitExcludedTestArtifactPathspecs(specId);
-    const resetArgs = ["reset", "HEAD", "--", ...excludePathspecs];
-    runGit(resetArgs, { cwd: root });
+    const commitPaths = new FinalizeCommitPathSet({
+      repositoryRoot: artifactRoot,
+      specRoot: ctx.specRoot,
+      specId,
+    });
+    const add = runGit(["add", "-A", "--", ".", ...commitPaths.implementationExclusions], { cwd: root });
+    if (!add.ok) throw new Error(`failed to stage implementation paths: ${add.stderr || add.stdout}`);
 
     const msg = message || `feat: ${state.featureBranch || "finalize"}`;
     const markerArgs = idempotencyKey ? ["-m", outboxCommitMarker(idempotencyKey)] : [];

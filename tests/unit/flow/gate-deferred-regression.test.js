@@ -78,7 +78,7 @@ describe("integration gate deferred regression evidence", () => {
       root: tmp,
       specDir,
       specPath: "specs/001-test/spec.json",
-      state: { spec: "specs/001-test/spec.json" },
+      state: { specId: "001-test" },
     });
 
     assert.equal(result.ok, true, result.reason);

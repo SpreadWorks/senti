@@ -1,14 +1,13 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { specIdFromPath } from "./flow-helpers.js";
+import { FlowSpecId } from "./flow-spec-id.js";
 import { Envelope } from "./flow-envelope.js";
 
 const MAX_TARGET_TOKEN_LENGTH = 300;
 const MAX_FLOW_TARGET_BINDING_TOKEN_BYTES = 32 * 1024;
-const FLOW_TARGET_BINDING_VERSION = 1;
+const FLOW_TARGET_BINDING_VERSION = 2;
 const FLOW_TARGET_BINDING_MODES = new Set(["branch", "local", "worktree"]);
-const CANONICAL_SPEC = /^specs\/([^/]+)\/spec\.json$/;
 
 function normalizedToken(value, field) {
   if (value == null) return null;
@@ -29,7 +28,12 @@ function normalizedIssue(value) {
 
 function normalizedSpec(value) {
   const token = normalizedToken(value, "--expect-spec");
-  return token == null ? null : specIdFromPath(token);
+  if (token == null) return null;
+  try {
+    return FlowSpecId.from(token).toString();
+  } catch {
+    throw new Error("--expect-spec must be a literal specId");
+  }
 }
 
 function normalizedRunId(value) {
@@ -41,7 +45,7 @@ function activeIssueOf(state) {
 }
 
 function activeSpecOf(state) {
-  return state?.spec ? specIdFromPath(state.spec) : null;
+  return state?.specId ?? null;
 }
 
 function activeRunIdOf(state) {
@@ -72,17 +76,6 @@ function canonicalDirectory(input, field) {
     throw new Error(`${field} must be a canonical real directory: ${resolved}`);
   }
   return canonical;
-}
-
-function canonicalSpecPath(input) {
-  if (typeof input !== "string" || input.includes("\\")) {
-    throw new Error("FlowTargetBinding spec must use a canonical POSIX path");
-  }
-  const match = CANONICAL_SPEC.exec(input);
-  if (!match || path.posix.normalize(input) !== input || specIdFromPath(input) !== match[1]) {
-    throw new Error("FlowTargetBinding spec must match specs/<specId>/spec.json");
-  }
-  return input;
 }
 
 function flowIssue(state) {
@@ -229,7 +222,7 @@ function bindingMismatch(expected, active) {
   for (const [field, expectedKey, activeKey] of [
     ["runId", "expectedRunId", "activeRunId"],
     ["issue", "expectedIssue", "activeIssue"],
-    ["spec", "expectedSpec", "activeSpec"],
+    ["specId", "expectedSpec", "activeSpec"],
   ]) {
     if (expected[field] !== active[field]) {
       mismatches[expectedKey] = expected[field];
@@ -257,7 +250,7 @@ function bindingMismatch(expected, active) {
 }
 
 export class FlowTargetBinding {
-  constructor({ version = FLOW_TARGET_BINDING_VERSION, runId, issue, spec, authority }) {
+  constructor({ version = FLOW_TARGET_BINDING_VERSION, runId, issue, specId, authority }) {
     if (version !== FLOW_TARGET_BINDING_VERSION) {
       throw new Error(`unsupported FlowTargetBinding version: ${version}`);
     }
@@ -265,7 +258,8 @@ export class FlowTargetBinding {
     this.runId = normalizedRunId(runId);
     if (this.runId == null) throw new Error("FlowTargetBinding runId is required");
     this.issue = flowIssue({ issue });
-    this.spec = canonicalSpecPath(spec);
+    this.specId = normalizedSpec(specId);
+    if (this.specId == null) throw new Error("FlowTargetBinding specId is required");
     this.authority = authority instanceof FlowExecutionAuthority
       ? authority
       : FlowExecutionAuthority.fromStored(authority);
@@ -277,7 +271,7 @@ export class FlowTargetBinding {
     return new FlowTargetBinding({
       runId: flowState.runId,
       issue: flowIssue(flowState),
-      spec: flowState.spec,
+      specId: flowState.specId,
       authority: FlowExecutionAuthority.capture({
         ...input,
         flowState,
@@ -292,8 +286,8 @@ export class FlowTargetBinding {
     return FlowTargetBinding.capture({
       flowState,
       mainRoot: ctx.mainRoot || ctx.root,
-      authorityRoot: ctx.root,
-      worktreePath: flowState?.worktree === true ? ctx.root : undefined,
+      authorityRoot: ctx.executionRoot || ctx.root,
+      worktreePath: flowState?.worktree === true ? (ctx.executionRoot || ctx.root) : undefined,
     });
   }
 
@@ -369,7 +363,7 @@ export class FlowTargetBinding {
       version: this.version,
       runId: this.runId,
       issue: this.issue,
-      spec: this.spec,
+      specId: this.specId,
       authority: this.authority.toJSON(),
     };
   }
@@ -385,7 +379,7 @@ export class FlowTargetExpectation {
     if (this.issue != null && this.issueAbsent) {
       throw new Error("--expect-issue and --expect-no-issue cannot be used together");
     }
-    this.spec = normalizedSpec(input.expectSpec);
+    this.specId = normalizedSpec(input.expectSpec);
     this.runId = normalizedRunId(input.expectRunId ?? input.expectRunID);
     if (this.binding) {
       const mismatch = this.mismatchAgainst(this.binding.toJSON());
@@ -400,7 +394,7 @@ export class FlowTargetExpectation {
     return this.binding == null
       && this.issue == null
       && !this.issueAbsent
-      && this.spec == null
+      && this.specId == null
       && this.runId == null;
   }
 
@@ -410,7 +404,7 @@ export class FlowTargetExpectation {
     const binding = this.binding;
     const expectedIssue = this.issue ?? binding?.issue ?? null;
     const expectsNoIssue = this.issueAbsent || (binding != null && binding.issue == null);
-    const expectedSpec = this.spec ?? (binding ? specIdFromPath(binding.spec) : null);
+    const expectedSpec = this.specId ?? binding?.specId ?? null;
     const expectedRunId = this.runId ?? binding?.runId ?? null;
     const activeIssue = activeIssueOf(state);
     const activeSpec = activeSpecOf(state);

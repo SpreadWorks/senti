@@ -16,7 +16,7 @@ function createTmpProject() {
 
 function createFlowState(tmp) {
   const state = {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",

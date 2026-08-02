@@ -250,7 +250,7 @@ export default class RunAutoCheckCommand extends FlowCommand {
   async execute(ctx) {
     // Active flow path: state is already loaded; resolve input from state phase
     if (ctx.flowManager && ctx.flowState) {
-      const paths = { root: ctx.root, specPath: ctx.flowState.spec };
+      const paths = { root: ctx.root };
       const resolved = resolveAutoCheckInput(ctx.flowState, paths);
       if (resolved.skip) {
         const verdict = buildSkipVerdict();

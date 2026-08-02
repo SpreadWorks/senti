@@ -75,10 +75,10 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       steps: stepsWith(["draft-gate"]),
     };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+    const out = resolveAutoCheckInput(state, { root: tmp });
     assert.equal(out.skip, false);
     assert.ok(out.text.includes("DRAFT_MARKER"));
     assert.ok(out.text.includes("implement X"));
@@ -89,10 +89,10 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       steps: stepsWith(["draft-gate"]),
     };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+    const out = resolveAutoCheckInput(state, { root: tmp });
     assert.equal(out.skip, false);
     assert.ok(!out.text.includes("DRAFT_MARKER"));
     assert.ok(out.text.includes("implement X"));
@@ -119,10 +119,10 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       steps: stepsWith(["draft-gate", "approval"]),
     };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+    const out = resolveAutoCheckInput(state, { root: tmp });
     assert.equal(out.skip, true);
   });
 
@@ -162,10 +162,10 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
       const state = {
         issue: 88,
         request: "implement Z",
-        spec: "specs/225-test/spec.md",
+        specId: "225-test",
         steps: stepsWith([]),
       };
-      const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+      const out = resolveAutoCheckInput(state, { root: tmp });
       assert.equal(out.skip, false);
       assert.ok(out.text.includes("ISSUE_MD_MARKER"));
       assert.ok(out.text.includes("implement Z"));
@@ -175,10 +175,10 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
       const state = {
         issue: 99,
         request: "implement W",
-        spec: "specs/225-test/spec.md",
+        specId: "225-test",
         steps: stepsWith([]),
       };
-      const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+      const out = resolveAutoCheckInput(state, { root: tmp });
       assert.equal(out.skip, false);
       assert.ok(out.text.includes("implement W"));
       assert.ok(out.text.includes("99"));

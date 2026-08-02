@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { FlowManager } from "../../lib/flow-manager.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
 import { buildInitialTaskSteps, promoteNextPending } from "../../lib/flow-helpers.js";
 import {
@@ -78,14 +79,14 @@ export function prepareSpecTaskSync({ root, state }) {
   if (!state || typeof state !== "object") {
     throw new StepTransitionError("active flow state is required for spec task sync");
   }
-  if (typeof state.spec !== "string" || state.spec.trim() === "") {
-    throw new StepTransitionError("active flow spec path is required for spec task sync");
+  if (typeof state.specId !== "string" || state.specId.trim() === "") {
+    throw new StepTransitionError("active flow spec id is required for spec task sync");
   }
   if (!Array.isArray(state.tasks)) {
     throw new StepTransitionError("active flow tasks must be an array");
   }
 
-  const absSpecPath = path.isAbsolute(state.spec) ? state.spec : path.join(root, state.spec);
+  const absSpecPath = path.join(root, relativeFlowSpecFile(state));
   const spec = loadSpecJson(absSpecPath);
   const collection = new TaskCollection(spec.tasks ?? []);
   const existingIds = new Set(state.tasks.map((task) => task.id));

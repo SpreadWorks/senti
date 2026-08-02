@@ -13,6 +13,7 @@ import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { flattenSteps } from "./step-tree.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const SKILL_BY_PHASE = { sync: "senti.flow-sync" };
 const DEFAULT_SKILL = "senti.flow";
@@ -41,7 +42,8 @@ export function buildResolvedFlowContext(ctx) {
 
   const { state, specId, worktreePath } = resolved;
   const mainRepoPath = mainRoot;
-  const flowJsonPath = path.resolve(root, `specs/${specId}/flow.json`);
+  const specLocation = flowManager.specLocation(specId);
+  const flowJsonPath = specLocation.flowStateFile;
 
   const steps = state.steps || [];
   const phase = derivePhase(state);
@@ -55,7 +57,7 @@ export function buildResolvedFlowContext(ctx) {
   let goal = null;
   let scope = null;
   const effectiveRoot = worktreePath && fs.existsSync(worktreePath) ? worktreePath : mainRepoPath;
-  const specPath = path.resolve(effectiveRoot, state.spec);
+  const specPath = specLocation.specFile;
   try {
     const specJson = loadSpecJson(specPath, { validate: false });
     goal = typeof specJson.goal === "string" && specJson.goal.trim() ? specJson.goal.trim() : null;
@@ -75,7 +77,7 @@ export function buildResolvedFlowContext(ctx) {
     worktreePath,
     activeFlow: specId,
     flowJsonPath,
-    spec: state.spec,
+    specId: state.specId,
     baseBranch: state.baseBranch,
     featureBranch: state.featureBranch,
     worktree: state.worktree || false,
@@ -86,7 +88,7 @@ export function buildResolvedFlowContext(ctx) {
     request: state.request || null,
     goal,
     scope,
-    requirements: loadSpecRequirements(effectiveRoot, state.spec),
+    requirements: loadSpecRequirements(mainRepoPath, relativeFlowSpecFile(state)),
     notes: state.notes || [],
     dirty,
     dirtyFiles,

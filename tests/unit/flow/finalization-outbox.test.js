@@ -151,7 +151,7 @@ describe("resumable finalization outbox", () => {
       store.begin(identity);
       const failure = "issue comment idempotencyKey is required";
       store.fail(identity, new Error(failure));
-      const flowPath = path.join(root, state.spec.replace(/spec\.json$/, "flow.json"));
+      const flowPath = path.join(root, "specs", state.specId, "flow.json");
       const before = fs.readFileSync(flowPath);
       const mutate = flowManager.mutate.bind(flowManager);
       flowManager.mutate = (mutator, options = {}) => mutate(mutator, {

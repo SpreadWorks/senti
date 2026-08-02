@@ -163,7 +163,6 @@ export class SpecRenderContext {
     }
     const title = path.basename(resolvedSpecDir);
     const relativeSpecPath = path.relative(resolvedRoot, resolvedSpecJsonPath);
-    const selectedSpec = toPosixPath(relativeSpecPath);
     const isRepoRelative = relativeSpecPath !== ".."
       && !relativeSpecPath.startsWith(`..${path.sep}`)
       && !path.isAbsolute(relativeSpecPath);
@@ -172,7 +171,7 @@ export class SpecRenderContext {
 
     if (fs.existsSync(flowPath)) {
       const state = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-      if (isRepoRelative && state.spec === selectedSpec) matchingFlow = state;
+      if (isRepoRelative && state.specId === title) matchingFlow = state;
     }
 
     this.#meta = new SpecRenderMeta({
@@ -187,8 +186,4 @@ export class SpecRenderContext {
   toRenderMeta() {
     return this.#meta;
   }
-}
-
-function toPosixPath(filePath) {
-  return filePath.split(path.sep).join("/");
 }

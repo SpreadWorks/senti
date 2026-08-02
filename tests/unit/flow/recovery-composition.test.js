@@ -36,7 +36,7 @@ function target() {
   return {
     runId: "run-recovery-composition",
     issue: 656,
-    spec: "specs/recovery-composition/spec.json",
+    specId: "recovery-composition",
     stepId: "impl-gate",
     attemptId: "impl-gate-001",
   };
@@ -84,7 +84,7 @@ function revalidationPlan() {
   const state = moveFlowToStep(makeFlowState({
     runId: target().runId,
     issue: target().issue,
-    spec: target().spec,
+    specId: target().specId,
   }), "impl-gate");
   return new ImplementationRevalidationPlan({
     target: target(),
@@ -148,7 +148,7 @@ describe("recovery composition", () => {
     setupFlow(tmp, {
       runId: target().runId,
       issue: target().issue,
-      spec: target().spec,
+      specId: target().specId,
     });
     const record = semanticRecord();
     const manager = makeFlowManager(tmp);

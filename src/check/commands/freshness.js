@@ -210,13 +210,16 @@ async function newestMtime(
  * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
  * @returns {Promise<FreshnessResult>}
  */
-async function checkFreshness(workRoot, srcRoot, { policy = DEFAULT_SCAN_POLICY } = {}) {
+async function checkFreshness(workRoot, srcRoot, {
+  policy = DEFAULT_SCAN_POLICY,
+  sourcePolicy: configuredSourcePolicy = FRESHNESS_SOURCE_POLICY,
+} = {}) {
   const docsDir = path.join(workRoot, "docs");
   const sourceRelativeToWork = path.relative(workRoot, srcRoot);
   const sourcePolicy = (
     !sourceRelativeToWork.startsWith(`..${path.sep}`)
     && !path.isAbsolute(sourceRelativeToWork)
-  ) ? FRESHNESS_SOURCE_POLICY.forRelativeRoot(sourceRelativeToWork) : FRESHNESS_SOURCE_POLICY;
+  ) ? configuredSourcePolicy.forRelativeRoot(sourceRelativeToWork) : configuredSourcePolicy;
 
   try {
     await fs.promises.access(docsDir);
@@ -310,7 +313,9 @@ async function runFreshnessCheck(rawArgs, container) {
 
   const workRoot = container.get("root");
   const srcRoot = sourceRoot();
-  const result = await checkFreshness(workRoot, srcRoot);
+  const result = await checkFreshness(workRoot, srcRoot, {
+    sourcePolicy: FRESHNESS_SOURCE_POLICY.withSpecRoot(container.get("flowSpecRoot")),
+  });
 
   if (format === "json") {
     process.stdout.write(JSON.stringify(result, null, 2) + "\n");

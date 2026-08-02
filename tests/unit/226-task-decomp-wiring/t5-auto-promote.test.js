@@ -139,7 +139,7 @@ describe("T-5: auto-promote function and callers", () => {
     tmp = createTmpDir();
     // Set up a flow with no tasks synced yet (just a seed task).
     setupFlow(tmp, {
-      spec: "specs/226-test-sync/spec.json",
+      specId: "226-test-sync",
       tasks: [makeDoneTask("T-seed")],
       currentTaskId: null,
     });
@@ -220,7 +220,7 @@ describe("T-5: auto-promote function and callers", () => {
       },
     ];
     setupFlow(tmp, {
-      spec: "specs/226-gate-impl/spec.json",
+      specId: "226-gate-impl",
       baseBranch: "main",
       featureBranch: "feature/226-gate-impl",
       steps,
@@ -312,7 +312,7 @@ describe("T-5: auto-promote function and callers", () => {
       makePendingTask("T-2"),
     ];
     setupFlow(tmp, {
-      spec: "specs/226-complete-sep/spec.json",
+      specId: "226-complete-sep",
       tasks,
       currentTaskId: "T-1",
     });

@@ -1,38 +1,14 @@
 import path from "path";
-import fs from "fs";
 import { runCmd } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
 import { runGit } from "../../lib/git-helpers.js";
-import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { FlowCommand } from "./base-command.js";
-import {
-  hasOutboxCommit,
-  outboxCommitMarker,
-} from "./run-finalize.js";
+import { hasOutboxCommit } from "./run-finalize.js";
+import { FINALIZE_DOCUMENTATION_PATHS } from "./finalize-commit-paths.js";
 import {
   FinalizeSyncDiagnostic,
   FinalizeSyncExecutionError,
 } from "./finalize-sync-diagnostics.js";
-
-function commitOutcome(result) {
-  if (result.ok) return { status: "done" };
-  const output = result.stderr || result.stdout || "";
-  if (/nothing to commit|no changes added to commit/i.test(output)) {
-    return { status: "skipped", message: "nothing to commit" };
-  }
-  return null;
-}
-
-function pathsToStage(root, candidates, trackedOutput) {
-  const existing = candidates.filter((candidate) => fs.existsSync(path.join(root, candidate)));
-  const tracked = String(trackedOutput || "").split("\n").filter(Boolean);
-  return [...new Set([
-    ...existing,
-    ...tracked.filter((candidate) => !existing.some((existingPath) => (
-      candidate === existingPath || candidate.startsWith(`${existingPath}/`)
-    ))),
-  ])];
-}
 
 export class RunFinalizeSyncCommand extends FlowCommand {
   constructor({
@@ -54,8 +30,6 @@ export class RunFinalizeSyncCommand extends FlowCommand {
     const { mainRepoPath } = ctx.flowManager.resolveWorktreePaths(state);
 
     const syncCwd = (state.worktree && mainRepoPath) ? mainRepoPath : root;
-    const operation = new RepositoryFlowOperationLock({ mainRoot: syncCwd });
-    const token = operation.acquire();
     try {
       const diagnostics = [];
       const idempotencyKey = ctx.flowOutboxEntry?.idempotencyKey || null;
@@ -79,21 +53,11 @@ export class RunFinalizeSyncCommand extends FlowCommand {
           SENTI_SOURCE_ROOT: syncCwd,
         },
       }));
-      const stageCandidates = ["docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".senti/output/analysis.json"];
-      const trackedRes = run("git-ls-files", () => this.git(["ls-files", "--", ...stageCandidates], { cwd: syncCwd }));
-      const stagePaths = pathsToStage(syncCwd, stageCandidates, trackedRes.stdout);
-      if (stagePaths.length > 0) {
-        run("git-add", () => this.git(["add", "--", ...stagePaths], { cwd: syncCwd }));
-      }
-      const statRes = run("git-diff-stat", () => this.git(["diff", "--cached", "--stat"], { cwd: syncCwd }));
-      const nameRes = run("git-diff-name", () => this.git(["diff", "--cached", "--name-only"], { cwd: syncCwd }));
-      const markerArgs = idempotencyKey ? ["-m", outboxCommitMarker(idempotencyKey)] : [];
-      const commitRes = this.git(["commit", "-m", "docs: sync documentation", ...markerArgs], { cwd: syncCwd });
-      diagnostics.push(new FinalizeSyncDiagnostic({ phase: "git-commit", result: commitRes }));
-      const outcome = commitOutcome(commitRes);
-      if (!outcome) throw new FinalizeSyncExecutionError({ phase: "git-commit", diagnostics });
+      const statRes = run("git-diff-stat", () => this.git(["diff", "--stat", "--", ...FINALIZE_DOCUMENTATION_PATHS], { cwd: syncCwd }));
+      const nameRes = run("git-diff-name", () => this.git(["diff", "--name-only", "--", ...FINALIZE_DOCUMENTATION_PATHS], { cwd: syncCwd }));
       return {
-        ...outcome,
+        status: nameRes.stdout.trim() ? "done" : "skipped",
+        ...(!nameRes.stdout.trim() && { message: "nothing to commit" }),
         ...(statRes.stdout.trim() && { diffStat: statRes.stdout.trim() }),
         ...(nameRes.stdout.trim() && { diffSummary: nameRes.stdout.trim() }),
         diagnostics: diagnostics.map((entry) => entry.toJSON()),
@@ -104,8 +68,6 @@ export class RunFinalizeSyncCommand extends FlowCommand {
         error.data.diagnostics.push(new FinalizeSyncDiagnostic({ phase: "git-status-after-failure", result: status }).toJSON());
       }
       throw error;
-    } finally {
-      operation.release();
     }
   }
 }

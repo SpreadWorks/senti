@@ -151,14 +151,14 @@ function prepareWorktree(root, issue, title) {
     ...prepared,
     root,
     issue,
-    specId: prepared.spec.split("/")[1],
+    specId: prepared.specId,
   };
 }
 
 function targetArgs(flow) {
   return [
     "--expect-run-id", flow.runId,
-    "--expect-spec", flow.spec,
+    "--expect-spec", flow.specId,
     ...(flow.issue == null
       ? ["--expect-no-issue"]
       : ["--expect-issue", String(flow.issue)]),
@@ -179,8 +179,8 @@ function snapshotFiles(files) {
 function authorityFiles(flow) {
   return [
     path.join(flow.worktreePath, ".senti", "flow-identity.json"),
-    path.join(flow.worktreePath, "specs", flow.specId, "flow.json"),
-    path.join(flow.worktreePath, "specs", flow.specId, "spec.json"),
+    path.join(flow.root, "specs", flow.specId, "flow.json"),
+    path.join(flow.root, "specs", flow.specId, "spec.json"),
   ];
 }
 
@@ -218,7 +218,7 @@ describe("flow park and exact parked resume", () => {
 
     diagnostic.expectation("concurrent:park-target", "active registry retains only the unrelated worktree pointer");
     assert.deepEqual(JSON.parse(fs.readFileSync(registryPath(root), "utf8")), [
-      { spec: other.specId, mode: "worktree" },
+      { specId: other.specId, mode: "worktree" },
     ]);
     diagnostic.expectation("concurrent:park-target", "binding, flow state, and spec bytes remain unchanged for both worktrees");
     assert.deepEqual(snapshotFiles(protectedFiles), filesBefore);
@@ -228,7 +228,7 @@ describe("flow park and exact parked resume", () => {
     assert.deepEqual(parked, {
       parked: true,
       changed: true,
-      identity: { runId: target.runId, spec: target.spec, issue: 453 },
+      identity: { runId: target.runId, specId: target.specId, issue: 453 },
       mode: "worktree",
       executionRoot: fs.realpathSync(target.worktreePath),
       resume: {
@@ -257,8 +257,8 @@ describe("flow park and exact parked resume", () => {
     assert.equal(resumed.changed, true);
     diagnostic.expectation("concurrent:resume-exact", "active registry contains the unrelated and restored worktree pointers");
     assert.deepEqual(JSON.parse(fs.readFileSync(registryPath(root), "utf8")), [
-      { spec: other.specId, mode: "worktree" },
-      { spec: target.specId, mode: "worktree" },
+      { specId: other.specId, mode: "worktree" },
+      { specId: target.specId, mode: "worktree" },
     ]);
     const registryAfterResume = fs.readFileSync(registryPath(root));
     const retry = expectSuccess(runSenti(
@@ -288,7 +288,7 @@ describe("flow park and exact parked resume", () => {
     const originalIdentity = new WorktreeFlowIdentity({
       runId: flow.runId,
       issue: null,
-      spec: flow.spec,
+      specId: flow.specId,
       worktreePath: fs.realpathSync(flow.worktreePath),
     });
     const pending = WorktreeFlowIssueTransition.create(
@@ -319,9 +319,9 @@ describe("flow park and exact parked resume", () => {
     fs.rmSync(pendingPath);
 
     for (const [name, incomplete] of [
-      ["missing-run-id", ["--expect-spec", flow.spec, "--expect-no-issue"]],
+      ["missing-run-id", ["--expect-spec", flow.specId, "--expect-no-issue"]],
       ["missing-spec", ["--expect-run-id", flow.runId, "--expect-no-issue"]],
-      ["missing-issue-identity", ["--expect-run-id", flow.runId, "--expect-spec", flow.spec]],
+      ["missing-issue-identity", ["--expect-run-id", flow.runId, "--expect-spec", flow.specId]],
     ]) {
       const step = `no-issue:park-incomplete:${name}`;
       const before = snapshotFiles([registryPath(root), ...files]);
@@ -338,7 +338,7 @@ describe("flow park and exact parked resume", () => {
     const mismatch = runSenti("no-issue:park-mismatched-run", flow.worktreePath, [
       "flow", "park",
       "--expect-run-id", "foreign-run",
-      "--expect-spec", flow.spec,
+      "--expect-spec", flow.specId,
       "--expect-no-issue",
     ]);
     diagnostic.expectation("no-issue:park-mismatched-run", "park with a mismatched runId exits non-zero");
@@ -359,7 +359,7 @@ describe("flow park and exact parked resume", () => {
     assert.deepEqual(parked.resume.argv, [
       "flow", "resume", "--parked",
       "--expect-run-id", flow.runId,
-      "--expect-spec", flow.spec,
+      "--expect-spec", flow.specId,
       "--expect-no-issue",
     ]);
   });

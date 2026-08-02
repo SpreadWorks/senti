@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 import {
   RepairReference,
@@ -108,12 +109,12 @@ export function assessTaskGateRepairEvidence({ root, flowState, issueLogEntries 
     ? flowState.currentTaskId.trim()
     : "";
   if (!taskId) return TaskGateRepairEvidenceAssessment.reject("missing-current-task");
-  if (typeof flowState?.spec !== "string" || flowState.spec.trim() === "") {
+  if (typeof flowState?.specId !== "string" || flowState.specId.trim() === "") {
     return TaskGateRepairEvidenceAssessment.reject("missing-flow-spec");
   }
 
   const repositoryRoot = path.resolve(root);
-  const specPath = path.resolve(repositoryRoot, flowState.spec);
+  const specPath = path.resolve(repositoryRoot, relativeFlowSpecFile(flowState));
   const relativeSpec = path.relative(repositoryRoot, specPath);
   if (relativeSpec.startsWith("..") || path.isAbsolute(relativeSpec)) {
     return TaskGateRepairEvidenceAssessment.reject("invalid-flow-spec-authority");

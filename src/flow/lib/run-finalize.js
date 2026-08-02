@@ -10,7 +10,6 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "path";
 import { runCmd, assertOk } from "../../lib/process.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
@@ -21,11 +20,24 @@ import {
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 import {
-  collectExistingArtifactPathspecs,
-  durableTestArtifactPathspecs,
-} from "./test-artifacts.js";
+  DEFAULT_FLOW_SPEC_DIR,
+  FlowSpecLocation,
+  relativeFlowSpecFile,
+} from "../../lib/flow-workspace.js";
+import { FlowSpecId } from "../../lib/flow-spec-id.js";
+import {
+  FINALIZE_PRE_MERGE_DEFERRED_PATHS,
+  FinalizeCommitPathSet,
+} from "./finalize-commit-paths.js";
 
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+
+function isCommittablePath(root, relativePath) {
+  const tracked = runGit(["-C", root, "ls-files", "--", relativePath]);
+  if (tracked.ok && tracked.stdout.trim() !== "") return true;
+  const ignored = runGit(["-C", root, "check-ignore", "-q", "--", relativePath]);
+  return !ignored.ok && fs.existsSync(path.join(root, relativePath));
+}
 
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
@@ -47,13 +59,14 @@ export function finalizeOnError(stepName, trigger) {
           ]),
         );
       }
-      appendIssueLogEntry(ctx.root, ctx.flowState.spec, entry);
+      appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), entry);
     } catch (e) { console.error("[issue-log hook]", e.message); }
   };
 }
 
-export function writeLastFinalizedPointer(targetRoot, specPath) {
-  if (!targetRoot || !specPath) return;
+export function writeLastFinalizedPointer(targetRoot, specId) {
+  if (!targetRoot || !specId) return;
+  const literalSpecId = FlowSpecId.from(specId).toString();
   const pointerAbs = path.join(targetRoot, LAST_FINALIZED_SPEC_POINTER_REL_PATH);
   const directory = path.dirname(pointerAbs);
   const tempPath = path.join(directory, `.last-finalized-spec.${crypto.randomUUID()}.tmp`);
@@ -62,7 +75,7 @@ export function writeLastFinalizedPointer(targetRoot, specPath) {
   let renamed = false;
   try {
     descriptor = fs.openSync(tempPath, "wx", 0o644);
-    fs.writeFileSync(descriptor, specPath + "\n");
+    fs.writeFileSync(descriptor, literalSpecId + "\n");
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = null;
@@ -126,12 +139,28 @@ export function findOutboxCommit({ root, ref, idempotencyKey }) {
   return GIT_OBJECT_ID.test(commit) ? commit : null;
 }
 
-function getFinalizeMergeAllowedMetadataPaths(specId) {
+function getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR) {
+  const location = new FlowSpecLocation({ repositoryRoot: root, specRoot, specId });
+  const specDirectory = location.relativeDirectory;
   const paths = [
-    `specs/${specId}/flow.json`,
-    `specs/${specId}/issue-log.json`,
+    location.relativeFlowStateFile,
+    location.relativeArtifact("issue-log.json"),
   ];
-  return { paths, pathSet: new Set(paths) };
+  return {
+    paths,
+    pathSet: new Set(paths),
+    deferredPathSet: new Set(FINALIZE_PRE_MERGE_DEFERRED_PATHS),
+    specDirectory,
+  };
+}
+
+function isFinalizeManagedMetadataPath(dirtyPath, allowed) {
+  return dirtyPath === ".senti/.active-flow"
+    || dirtyPath === ".senti/worktree"
+    || dirtyPath.startsWith(".senti/worktree/")
+    || allowed.deferredPathSet.has(dirtyPath)
+    || dirtyPath === allowed.specDirectory
+    || dirtyPath.startsWith(`${allowed.specDirectory}/`);
 }
 
 function walkPorcelainStatusPaths(output, visit) {
@@ -163,13 +192,13 @@ function readFinalizeMergeStatusOutput(root) {
   return res.stdout || "";
 }
 
-function buildFinalizeMergeMetadataPreflight(specId, dirtyPaths) {
-  const allowed = getFinalizeMergeAllowedMetadataPaths(specId);
+function buildFinalizeMergeMetadataPreflight(root, specId, dirtyPaths, specRoot = DEFAULT_FLOW_SPEC_DIR) {
+  const allowed = getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot);
   const metadataDirty = new Set();
   const externalDirtyPaths = [];
   for (const dirtyPath of dirtyPaths) {
-    if (allowed.pathSet.has(dirtyPath)) {
-      metadataDirty.add(dirtyPath);
+    if (isFinalizeManagedMetadataPath(dirtyPath, allowed)) {
+      if (allowed.pathSet.has(dirtyPath)) metadataDirty.add(dirtyPath);
     } else {
       externalDirtyPaths.push(dirtyPath);
     }
@@ -181,13 +210,13 @@ function buildFinalizeMergeMetadataPreflight(specId, dirtyPaths) {
   };
 }
 
-export function readFinalizeMergeMetadataPreflight({ root, specId }) {
-  const allowed = getFinalizeMergeAllowedMetadataPaths(specId);
+export function readFinalizeMergeMetadataPreflight({ root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR }) {
+  const allowed = getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot);
   const metadataDirty = new Set();
   const externalDirtyPaths = [];
   walkPorcelainStatusPaths(readFinalizeMergeStatusOutput(root), (dirtyPath) => {
-    if (allowed.pathSet.has(dirtyPath)) {
-      metadataDirty.add(dirtyPath);
+    if (isFinalizeManagedMetadataPath(dirtyPath, allowed)) {
+      if (allowed.pathSet.has(dirtyPath)) metadataDirty.add(dirtyPath);
       return true;
     }
     externalDirtyPaths.push(dirtyPath);
@@ -200,18 +229,18 @@ export function readFinalizeMergeMetadataPreflight({ root, specId }) {
   };
 }
 
-export function getFinalizeMergeTargetExternalDirtyPaths({ root, specId, dirtyPaths, preflight }) {
+export function getFinalizeMergeTargetExternalDirtyPaths({ root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR, dirtyPaths, preflight }) {
   if (preflight) return preflight.externalDirtyPaths;
-  if (dirtyPaths) return buildFinalizeMergeMetadataPreflight(specId, dirtyPaths).externalDirtyPaths;
-  return readFinalizeMergeMetadataPreflight({ root, specId }).externalDirtyPaths;
+  if (dirtyPaths) return buildFinalizeMergeMetadataPreflight(root, specId, dirtyPaths, specRoot).externalDirtyPaths;
+  return readFinalizeMergeMetadataPreflight({ root, specId, specRoot }).externalDirtyPaths;
 }
 
-export function hasFinalizeMergeTargetExternalDirty({ root, specId, dirtyPaths, preflight }) {
-  return getFinalizeMergeTargetExternalDirtyPaths({ root, specId, dirtyPaths, preflight }).length > 0;
+export function hasFinalizeMergeTargetExternalDirty({ root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR, dirtyPaths, preflight }) {
+  return getFinalizeMergeTargetExternalDirtyPaths({ root, specId, specRoot, dirtyPaths, preflight }).length > 0;
 }
 
-export function assertFinalizeMergeMetadataMutationSafe({ root, specId }) {
-  const preflight = readFinalizeMergeMetadataPreflight({ root, specId });
+export function assertFinalizeMergeMetadataMutationSafe({ root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR }) {
+  const preflight = readFinalizeMergeMetadataPreflight({ root, specId, specRoot });
   if (preflight.externalDirtyPaths.length === 0) return preflight;
 
   const details = preflight.externalDirtyPaths.map((dirtyPath) => {
@@ -234,14 +263,15 @@ export function commitFinalizeMergeMetadataIfSafe({
   specId,
   dirtyPaths,
   preflight,
+  specRoot = DEFAULT_FLOW_SPEC_DIR,
   includeFlowJson = false,
   includeIssueLog = false,
   message = "chore: record finalize metadata before merge",
 }) {
   const metadataPreflight = preflight
     || (dirtyPaths
-      ? buildFinalizeMergeMetadataPreflight(specId, dirtyPaths)
-      : readFinalizeMergeMetadataPreflight({ root, specId }));
+      ? buildFinalizeMergeMetadataPreflight(root, specId, dirtyPaths, specRoot)
+      : readFinalizeMergeMetadataPreflight({ root, specId, specRoot }));
   if (metadataPreflight.externalDirtyPaths.length > 0) {
     return {
       status: "skipped",
@@ -253,7 +283,9 @@ export function commitFinalizeMergeMetadataIfSafe({
   const dirtySet = new Set(metadataPreflight.metadataDirtyPaths);
   if (includeFlowJson) dirtySet.add(metadataPreflight.allowedMetadataPaths[0]);
   if (includeIssueLog) dirtySet.add(metadataPreflight.allowedMetadataPaths[1]);
-  const metadataPaths = metadataPreflight.allowedMetadataPaths.filter((relPath) => dirtySet.has(relPath));
+  const metadataPaths = metadataPreflight.allowedMetadataPaths
+    .filter((relPath) => dirtySet.has(relPath))
+    .filter((relPath) => isCommittablePath(root, relPath));
   if (metadataPaths.length === 0) {
     return { status: "skipped", reason: "no-metadata-dirty" };
   }
@@ -272,63 +304,53 @@ export function commitFinalizeMergeMetadataIfSafe({
  * failed outbox, issue-log entry, and downstream skip states when this runs;
  * this boundary deliberately stages no path outside the active spec.
  */
-export function commitFinalizeMergeConflictMetadata({ root, specId, preflight }) {
+export function commitFinalizeMergeConflictMetadata({ root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR, preflight }) {
   return commitFinalizeMergeMetadataIfSafe({
     root,
     specId,
     preflight,
+    specRoot,
     includeFlowJson: true,
     includeIssueLog: true,
     message: "chore: record finalize metadata after conflict",
   });
 }
 
-class GitPathEntry {
-  constructor(objectId) {
-    if (objectId !== null && !GIT_OBJECT_ID.test(objectId)) {
-      throw new Error("Git path entry object ID is invalid");
-    }
-    this.objectId = objectId;
-    Object.freeze(this);
-  }
-
-  equals(other) {
-    return other instanceof GitPathEntry && this.objectId === other.objectId;
-  }
-
-  static fromIndex(root, filePath) {
-    const result = runGit(["-C", root, "ls-files", "--stage", "--", filePath]);
-    assertOk(result, "failed to inspect finalize completion index entry");
-    const match = /^\d{6} ([a-f0-9]{40}(?:[a-f0-9]{24})?) 0\t/.exec(result.stdout);
-    return new GitPathEntry(match?.[1] || null);
-  }
-
-  static fromTree(root, ref, filePath) {
-    const result = runGit(["-C", root, "ls-tree", ref, "--", filePath]);
-    assertOk(result, "failed to inspect finalize completion tree entry");
-    const match = /^\d{6} blob ([a-f0-9]{40}(?:[a-f0-9]{24})?)\t/.exec(result.stdout);
-    return new GitPathEntry(match?.[1] || null);
-  }
-}
-
 class FinalizeCompletionCommit {
-  constructor({ root, specId, idempotencyKey, additionalPaths = [] }) {
+  constructor({ root, specRoot, specId, idempotencyKey, additionalPaths = [] }) {
     if (!root || !specId) throw new Error("finalize completion root and specId are required");
     if (!Array.isArray(additionalPaths) || additionalPaths.some((entry) => typeof entry !== "string")) {
       throw new Error("finalize completion additional paths are invalid");
     }
     this.root = root;
-    this.stateFile = `specs/${specId}/flow.json`;
-    const allowedAdditionalPaths = new Set([`specs/${specId}/issue-log.json`]);
+    const location = new FlowSpecLocation({ repositoryRoot: root, specRoot, specId });
+    this.stateFile = location.relativeFlowStateFile;
+    const allowedAdditionalPaths = new Set([
+      "agent-metrics.json",
+      "issue-log.json",
+      "notes.json",
+      "plugin-artifacts.json",
+      "recovery-envelope.json",
+      "report-envelope.json",
+      "runtime-log.json",
+    ].map((fileName) => location.relativeArtifact(fileName)));
     if (additionalPaths.some((entry) => !allowedAdditionalPaths.has(entry))) {
       throw new Error("finalize completion additional path is not authorized");
     }
-    this.commitPaths = [...new Set([this.stateFile, ...additionalPaths])];
+    this.commitPaths = new FinalizeCommitPathSet({
+      repositoryRoot: root,
+      specRoot,
+      specId,
+    }).completionPaths;
     this.idempotencyKey = idempotencyKey;
     this.marker = outboxCommitMarker(idempotencyKey);
   }
 
   execute() {
+    this.commitPaths = this.commitPaths.filter((commitPath) => isCommittablePath(this.root, commitPath));
+    if (this.commitPaths.length === 0) {
+      return { status: "skipped", reason: "ignored-flow-artifacts" };
+    }
     const existing = findOutboxCommit({
       root: this.root,
       ref: "HEAD",
@@ -406,10 +428,14 @@ class FinalizeCompletionCommit {
   #reconcileCallerIndex(commit) {
     const parent = this.#gitValue(["rev-parse", `${commit}^`], "finalize completion commit parent");
     for (const commitPath of this.commitPaths) {
-      const caller = GitPathEntry.fromIndex(this.root, commitPath);
-      const before = GitPathEntry.fromTree(this.root, parent, commitPath);
-      const after = GitPathEntry.fromTree(this.root, commit, commitPath);
-      if (!caller.equals(before) || caller.equals(after)) continue;
+      const callerMatchesParent = runGit([
+        "-C", this.root, "diff", "--cached", "--quiet", parent, "--", commitPath,
+      ]);
+      if (!callerMatchesParent.ok) continue;
+      const callerMatchesCommit = runGit([
+        "-C", this.root, "diff", "--cached", "--quiet", commit, "--", commitPath,
+      ]);
+      if (callerMatchesCommit.ok) continue;
       const result = runGit(["-C", this.root, "reset", "--quiet", commit, "--", commitPath]);
       assertOk(result, `failed to reconcile finalize completion index entry: ${commitPath}`);
     }
@@ -422,8 +448,8 @@ class FinalizeCompletionCommit {
   }
 }
 
-export function commitFinalizeCompletion({ root, specId, idempotencyKey, additionalPaths = [] }) {
-  return new FinalizeCompletionCommit({ root, specId, idempotencyKey, additionalPaths }).execute();
+export function commitFinalizeCompletion({ root, specRoot, specId, idempotencyKey, additionalPaths = [] }) {
+  return new FinalizeCompletionCommit({ root, specRoot, specId, idempotencyKey, additionalPaths }).execute();
 }
 
 export function resolveGitCommonDir(root) {
@@ -501,37 +527,11 @@ export function runPreflightChecks({ root, baseBranch, featureBranch, commitStep
 /**
  * Run a one-shot migration script bundled under the CURRENT spec's directory.
  */
-export function runMigrationHook(root, specRelPath) {
+export function runMigrationHook(root, specRelPath, executionRoot = root) {
   if (!specRelPath) return;
   const specDir = path.dirname(specRelPath);
   const scriptPath = path.join(root, specDir, "scripts", "finalize-migration.js");
   if (!fs.existsSync(scriptPath)) return;
-  const res = runCmd("node", [scriptPath], { cwd: root });
+  const res = runCmd("node", [scriptPath], { cwd: executionRoot });
   assertOk(res, `finalize migration script failed: ${scriptPath}`);
-}
-
-/**
- * Commit the durable artifacts produced before finalize-commit. Report
- * generation and Issue delivery belong to the independent report step.
- */
-export async function commitDurableFinalizeArtifacts(ctx) {
-  const { root } = ctx;
-  const state = ctx.flowState;
-  const specAbsPath = state?.spec ? path.resolve(root, state.spec) : null;
-  if (!specAbsPath || !fs.existsSync(specAbsPath)) {
-    throw new Error("cannot commit finalization artifacts: spec missing");
-  }
-
-  const durablePathspecPatterns = durableTestArtifactPathspecs(specIdFromPath(state.spec));
-  const existingDurablePathspecs = collectExistingArtifactPathspecs(root, durablePathspecPatterns);
-  if (existingDurablePathspecs.length > 0) {
-    // Raw execution logs are intentionally ignored by many projects. These
-    // paths were selected from the current spec's fixed durable-artifact
-    // allowlist, so force-add only that bounded evidence set.
-    const addRes = runGit(["add", "--force", "--", ...existingDurablePathspecs], { cwd: root });
-    assertOk(addRes, "failed to stage durable test/report artifacts");
-  }
-  const result = commitOrSkip(["-m", "chore: add finalization artifacts"], { cwd: root });
-  ctx._results = { ...(ctx._results || {}), artifactCommit: result };
-  return result;
 }

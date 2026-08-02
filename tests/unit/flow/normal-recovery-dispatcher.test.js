@@ -37,7 +37,7 @@ test("thin recovery dispatcher consumes one current validator record through the
   root = createTmpDir("normal-recovery-dispatcher-");
   const specId = "normal-recovery";
   const state = setupFlowAtStep(root, "impl-gate", {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: "run-normal-recovery",
     issue: 656,
   });
@@ -47,7 +47,7 @@ test("thin recovery dispatcher consumes one current validator record through the
     target: {
       runId: state.runId,
       issue: state.issue,
-      spec: state.spec,
+      specId: state.specId,
       stepId: "impl-gate",
       attemptId: "impl-gate-attempt-001",
     },
@@ -94,7 +94,7 @@ test("thin recovery dispatcher consumes one current validator record through the
 test("thin recovery dispatcher leaves normal Flow unchanged without one available validator record", () => {
   root = createTmpDir("normal-recovery-unavailable-");
   const state = setupFlowAtStep(root, "impl-gate", {
-    spec: "specs/normal-recovery-unavailable/spec.json",
+    specId: "normal-recovery-unavailable",
     runId: "run-normal-recovery-unavailable",
     issue: 656,
   });

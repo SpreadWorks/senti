@@ -8,7 +8,7 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 function makeState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
@@ -219,7 +219,7 @@ describe("FlowManager task API", () => {
       // Manually write a legacy flow.json without tasks field.
       const p = path.join(tmp, "specs/001-test/flow.json");
       const legacy = {
-        spec: "specs/001-test/spec.json",
+        specId: "001-test",
         baseBranch: "main",
         featureBranch: "feature/001-test",
         worktree: false,

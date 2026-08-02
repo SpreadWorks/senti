@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
 import { UPGRADE_RECOVERY_AUDIT_FILE } from "./upgrade-evidence-paths.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 
 export const REPAIR_STATE_VERSION = 3;
 export const LEGACY_REPAIR_STATE_VERSION = 2;
@@ -606,6 +607,16 @@ export class RepairArtifactRegistry {
       ]),
       ...this.#prefixes.map((prefix) => `:(exclude,top,glob)${prefix}**`),
     ]);
+  }
+}
+
+export class FinalizeFlowArtifactRegistry extends RepairArtifactRegistry {
+  owns(value) {
+    const relPath = normalizeRepairPath(value);
+    return super.owns(relPath)
+      || relPath === this.specPath
+      || relPath.startsWith(`${this.specDir}/tasks/`)
+      || relPath.startsWith(`${this.specDir}/tests/`);
   }
 }
 
@@ -1275,20 +1286,23 @@ function baselineFromStateOrRepository({ root, state, specDir }) {
   return captureRepairBaseline({ root, baseRef, runId: runId || "unbound", useMergeBase: baseRef !== "HEAD", pin: Boolean(runId) });
 }
 
-export function buildRepairStateManifest({ root, specPath, state = null }) {
+export function buildRepairStateManifest({ root, artifactRoot = null, specPath, state = null }) {
   requireString(root, "root");
   const normalizedSpec = normalizeRepairPath(specPath);
   const registry = new RepairArtifactRegistry(normalizedSpec);
+  const resolvedArtifactRoot = path.resolve(
+    artifactRoot || flowStateSpecLocation(state)?.repositoryRoot || root,
+  );
   const boundary = readConfiguredBoundary(root);
   if (!isGitRepository(root)) return buildFilesystemManifest({ root, specPath: normalizedSpec, boundary, registry });
-  const specDir = path.dirname(path.resolve(root, normalizedSpec));
+  const specDir = path.dirname(path.resolve(resolvedArtifactRoot, normalizedSpec));
   const baseline = baselineFromStateOrRepository({ root, state, specDir });
   const skipWorktreePaths = assertSupportedIndexFlags(root);
   const changed = collectGitChangedPaths(root, baseline, boundary);
   collectExplicitTree(root, ".senti/config.json", changed, registry, boundary);
   collectExplicitTree(root, ".senti/config.local.json", changed, registry, boundary);
-  collectExplicitTree(root, normalizedSpec, changed, registry, boundary);
-  collectExplicitTree(root, path.posix.join(path.posix.dirname(normalizedSpec), "tests"), changed, registry, boundary);
+  collectExplicitTree(resolvedArtifactRoot, normalizedSpec, changed, registry, boundary);
+  collectExplicitTree(resolvedArtifactRoot, path.posix.join(path.posix.dirname(normalizedSpec), "tests"), changed, registry, boundary);
   for (const relPath of boundary.include) collectExplicitTree(root, relPath, changed, registry, boundary);
   for (const relPath of [...changed.keys()]) {
     if (registry.owns(relPath)) changed.delete(relPath);
@@ -1303,7 +1317,9 @@ export function buildRepairStateManifest({ root, specPath, state = null }) {
   const index = collectIndexState(root, baseline.objectFormat, changed.keys());
   const entries = [...changed.values()].map((entry) => {
     const indexEntry = index.get(entry.path) || null;
-    const identity = contentIdentity(root, entry.path, indexEntry);
+    const isSpecInput = entry.path === normalizedSpec
+      || entry.path.startsWith(`${path.posix.dirname(normalizedSpec)}/tests/`);
+    const identity = contentIdentity(isSpecInput ? resolvedArtifactRoot : root, entry.path, indexEntry);
     return new CanonicalRepairEntry({
       path: entry.path,
       oldPath: entry.oldPath,

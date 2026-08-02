@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import { join } from "path";
-import { execFileSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 
 const CMD = join(process.cwd(), "src/senti.js");
@@ -135,7 +135,8 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created worktree/);
     assert.match(envelope.data.output, /created branch/);
     const wtPath = join(tmp, ".senti", "worktree", "feature-001-wt-feat");
-    assertPrepareArtifacts(wtPath, "specs/001-wt-feat");
+    assertPrepareArtifacts(tmp, "specs/001-wt-feat");
+    assert.equal(fs.existsSync(join(wtPath, "specs", "001-wt-feat")), false);
 
     // Cleanup worktree
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
@@ -167,29 +168,35 @@ describe("spec init CLI", () => {
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
 
-    const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "auto-feat", "--base", "main"], {
+    const initialized = JSON.parse(execFileSync("node", [
+      CMD, "flow", "set", "init", "--request", "prepare from a generic worktree",
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+    }));
+    const prepared = spawnSync("node", [
+      CMD, "flow", "prepare", "--title", "auto-feat", "--base", "main",
+      "--run-id", initialized.data.runId,
+    ], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: wtPath },
     });
+    assert.equal(prepared.status, 0, `stdout:\n${prepared.stdout}\nstderr:\n${prepared.stderr}`);
+    const result = prepared.stdout;
 
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     // Should detect worktree and create spec-only (no branch)
     assert.ok(!envelope.data.output.includes("created branch"));
     assert.match(envelope.data.output, /created spec/);
-    assertPrepareArtifacts(wtPath, "specs/001-auto-feat");
+    assertPrepareArtifacts(tmp, "specs/001-auto-feat");
+    assert.equal(fs.existsSync(join(wtPath, "specs", "001-auto-feat")), false);
 
-    const specId = envelope.data.spec.split("/")[1];
-    const worktreeFlowPath = join(wtPath, "specs", specId, "flow.json");
-    const worktreeState = JSON.parse(fs.readFileSync(worktreeFlowPath, "utf8"));
-    worktreeState.worktree = true;
-    worktreeState.request = "worktree authority";
-    fs.writeFileSync(worktreeFlowPath, `${JSON.stringify(worktreeState, null, 2)}\n`);
+    const specId = envelope.data.specId;
     const mainSpecDir = join(tmp, "specs", specId);
-    fs.mkdirSync(mainSpecDir, { recursive: true });
-    fs.copyFileSync(join(wtPath, "specs", specId, "spec.json"), join(mainSpecDir, "spec.json"));
+    const mainState = JSON.parse(fs.readFileSync(join(mainSpecDir, "flow.json"), "utf8"));
     fs.writeFileSync(join(mainSpecDir, "flow.json"), `${JSON.stringify({
-      ...worktreeState,
+      ...mainState,
       request: "main authority",
     }, null, 2)}\n`);
 
@@ -201,8 +208,8 @@ describe("spec init CLI", () => {
 
     const secondSpec = "002-positional";
     const secondState = {
-      ...worktreeState,
-      spec: `specs/${secondSpec}/spec.json`,
+      ...mainState,
+      specId: secondSpec,
       runId: "run-positional-second",
       issue: 442,
       worktree: false,
@@ -211,8 +218,8 @@ describe("spec init CLI", () => {
     fs.mkdirSync(join(tmp, "specs", secondSpec), { recursive: true });
     fs.writeFileSync(join(tmp, "specs", secondSpec, "flow.json"), `${JSON.stringify(secondState, null, 2)}\n`);
     fs.writeFileSync(join(tmp, ".senti", ".active-flow"), `${JSON.stringify([
-      { spec: specId, mode: "local" },
-      { spec: secondSpec, mode: "local" },
+      { specId, mode: "local" },
+      { specId: secondSpec, mode: "local" },
     ], null, 2)}\n`);
     fs.writeFileSync(join(tmp, ".senti", ".current-flow"), `${specId}\n`);
     const positional = JSON.parse(execFileSync("node", [
@@ -239,17 +246,23 @@ describe("spec init CLI", () => {
       lang: "en", type: "sample-node-command",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
-    const prepared = JSON.parse(execFileSync("node", [
+    const prepareResult = spawnSync("node", [
       CMD, "flow", "prepare", "--title", "orphan-generic", "--base", "main",
     ], {
       encoding: "utf8",
       env: { ...process.env, SENTI_WORK_ROOT: wtPath },
-    }));
+    });
+    assert.equal(
+      prepareResult.status,
+      0,
+      `stdout:\n${prepareResult.stdout}\nstderr:\n${prepareResult.stderr}`,
+    );
+    const prepared = JSON.parse(prepareResult.stdout);
     fs.rmSync(join(tmp, ".senti", ".active-flow"), { force: true });
 
     try {
       execFileSync("node", [
-        CMD, "flow", "resume", "--spec", prepared.data.spec.split("/")[1],
+        CMD, "flow", "resume", "--spec", prepared.data.specId,
       ], {
         encoding: "utf8",
         env: { ...process.env, SENTI_WORK_ROOT: tmp },

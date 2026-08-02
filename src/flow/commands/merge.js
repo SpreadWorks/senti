@@ -19,7 +19,8 @@ import {
   FinalizeMergeTransaction,
   FinalizeMergeTransactionError,
 } from "../lib/finalize-merge-transaction.js";
-import { RepairArtifactRegistry } from "../lib/repair-state-identity.js";
+import { FinalizeFlowArtifactRegistry } from "../lib/repair-state-identity.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 const MAX_IMPLEMENTATION_SUBJECTS = 50;
 const MAX_SUBJECT_INPUT_CHARS = 4000;
@@ -27,8 +28,6 @@ const MAX_SUBJECT_INPUT_LINES = 20;
 const MAX_IMPLEMENTATION_SUBJECT_OUTPUT_CHARS = MAX_IMPLEMENTATION_SUBJECTS * (MAX_SUBJECT_INPUT_CHARS + 1);
 const SQUASH_MESSAGE_IGNORED_SUBJECTS = new Set([
   "chore: record finalize metadata before merge",
-  "chore: add retro and report",
-  "chore: add finalization artifacts",
 ]);
 
 export class MergeRevalidationRequiredError extends Error {
@@ -138,15 +137,15 @@ function buildPrBody(state, spec) {
  * spec.json by invariant (spec 207 / T8).
  */
 function loadSpec(state, root) {
-  if (!state.spec) return null;
-  const specInput = path.resolve(root, state.spec);
+  if (!state.specId) return null;
+  const specInput = path.resolve(root, relativeFlowSpecFile(state));
   const spec = loadSpecJson(specInput);
   return parseSpec(spec);
 }
 
 function finalizationFeatureArtifactRegistry(state) {
-  if (typeof state.spec !== "string" || state.spec === "") return null;
-  return new RepairArtifactRegistry(state.spec);
+  if (typeof state.specId !== "string" || state.specId === "") return null;
+  return new FinalizeFlowArtifactRegistry(relativeFlowSpecFile(state));
 }
 
 function firstNonEmptySubjectLine(value) {
@@ -235,7 +234,8 @@ function resolveMergeStrategy(state, config, ghAvailable = isGhAvailable) {
  */
 function runMerge(ctx) {
   const { flowState: state, mainRepoPath, idempotencyKey = null } = ctx;
-  const root = ctx.root || container.get("root");
+  const artifactRoot = ctx.root || container.get("root");
+  const executionRoot = ctx.executionRoot || ctx.worktreePath || artifactRoot;
   const { baseBranch, featureBranch, worktree } = state;
 
   const cfg = container.get("config");
@@ -248,8 +248,8 @@ function runMerge(ctx) {
   // PR route
   if (strategy === "pr") {
     const remote = resolveRemote(cfg);
-    const spec = loadSpec(state, root);
-    const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
+    const spec = loadSpec(state, artifactRoot);
+    const fallbackTitle = state.specId?.replace(/^\d+-/, "") || featureBranch;
     const title = buildPrTitle(spec, fallbackTitle);
     const marker = idempotencyKey ? `<!-- senti:${idempotencyKey} -->` : null;
     const body = [buildPrBody(state, spec), marker].filter(Boolean).join("\n\n");
@@ -268,7 +268,7 @@ function runMerge(ctx) {
       if (matches.length > 0) return { strategy: "pr", resumed: true };
     }
 
-    const pushRes = runGit(["push", "-u", remote, featureBranch]);
+    const pushRes = runGit(["-C", executionRoot, "push", "-u", remote, featureBranch]);
     assertOk(pushRes, "git push failed");
     const prRes = runCmd("gh", [
       "pr", "create",
@@ -282,10 +282,10 @@ function runMerge(ctx) {
   }
 
   // Squash merge route
-  const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
+  const fallbackTitle = state.specId?.replace(/^\d+-/, "") || featureBranch;
   let spec = null;
   try {
-    spec = loadSpec(state, root);
+    spec = loadSpec(state, artifactRoot);
   } catch (err) {
     process.stderr.write(`[senti] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
@@ -295,7 +295,7 @@ function runMerge(ctx) {
     const remote = resolveRemote(cfg);
     const beforeSync = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
     assertOk(beforeSync, "failed to capture feature HEAD before pre-merge synchronization");
-    const syncResult = runPreSync({ worktreePath: root, baseBranch, featureBranch, remote });
+    const syncResult = runPreSync({ worktreePath: executionRoot, baseBranch, featureBranch, remote });
     if (syncResult.ok === false) {
       if (syncResult.dirty) {
         throw new FinalizeMergeTransactionError({
@@ -330,7 +330,7 @@ function runMerge(ctx) {
   }
 
   const implementationSubjects = collectImplementationSubjects({
-    cwd: root,
+    cwd: executionRoot,
     baseBranch,
     featureBranch,
   });
@@ -342,8 +342,8 @@ function runMerge(ctx) {
     idempotencyKey,
   });
   return new FinalizeMergeTransaction({
-    featureRoot: root,
-    mainRoot: mainRepoPath || root,
+    featureRoot: executionRoot,
+    mainRoot: mainRepoPath || artifactRoot,
     baseBranch,
     featureBranch,
     commitMessage,
@@ -351,7 +351,7 @@ function runMerge(ctx) {
     operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
     flowArtifactRegistry: finalizationFeatureArtifactRegistry(state),
     promoteFeatureWorktreeToBase: worktree !== true
-      && path.resolve(mainRepoPath || root) === path.resolve(root),
+      && path.resolve(mainRepoPath || artifactRoot) === path.resolve(executionRoot),
   }).execute();
 }
 

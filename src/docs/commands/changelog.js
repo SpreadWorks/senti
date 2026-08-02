@@ -2,14 +2,14 @@
 /**
  * src/docs/commands/changelog.js
  *
- * specs/ を走査して change_log.md を生成する。
+ * 設定された Flow spec root を走査して change_log.md を生成する。
  * 既存ファイルの MANUAL ブロックを保持する。
  */
 
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import { sourceRoot, parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
+import { parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
 import { DEFAULT_LANG } from "../../lib/config.js";
 import { translate } from "../../lib/i18n.js";
 import { Command } from "../../lib/command.js";
@@ -113,10 +113,10 @@ async function runChangelog(rawArgs, container) {
   }
 
   const root = container.get("root");
-  const srcRoot = sourceRoot();
-  const specsDir = path.join(srcRoot, "specs");
+  const specsDir = container.get("flowSpecRoot").resolve(container.get("mainRoot"));
   const outFileArg = args.find((a) => !a.startsWith("-"));
   const outFile = outFileArg || path.join(root, "docs", "change_log.md");
+  const specLinkRoot = path.relative(path.dirname(outFile), specsDir).split(path.sep).join("/") || ".";
 
   const cfgData = container.get("config");
   const lang = cfgData?.docs?.defaultLanguage || cfgData?.lang || DEFAULT_LANG;
@@ -191,7 +191,7 @@ async function runChangelog(rawArgs, container) {
   out.push("| series | latest | status | created | spec |");
   out.push("| --- | --- | --- | --- | --- |");
   for (const e of latestEntries) {
-    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](../specs/${e.dirName}/spec.md) |`);
+    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](${specLinkRoot}/${e.dirName}/spec.md) |`);
   }
   out.push("");
   out.push(t("messages:changelog.sectionAllSpecs"));
@@ -203,10 +203,10 @@ async function runChangelog(rawArgs, container) {
   for (const e of sortedEntries) {
     let fileLinks;
     if (e.links.length > 1) {
-      fileLinks = e.links.map((f) => `[${f}](../specs/${e.dirName}/${f})`).join(", ");
+      fileLinks = e.links.map((f) => `[${f}](${specLinkRoot}/${e.dirName}/${f})`).join(", ");
     } else {
       const f = e.links[0] || "spec.md";
-      fileLinks = `[${f}](../specs/${e.dirName}/${f})`;
+      fileLinks = `[${f}](${specLinkRoot}/${e.dirName}/${f})`;
     }
     out.push(`| \`${e.dirName}\` | ${e.status} | ${e.created} | ${e.title} | ${e.inputLine} | ${fileLinks} |`);
   }

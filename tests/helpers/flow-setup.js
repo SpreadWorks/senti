@@ -73,7 +73,7 @@ export function makeDefaultTask(overrides = {}) {
 
 export function makeFlowState(overrides = {}) {
   return {
-    spec: "specs/001-test/spec.json",
+    specId: "001-test",
     runId: "run-test",
     baseBranch: "main",
     featureBranch: "feature/001-test",
@@ -117,10 +117,10 @@ export function setupFlowAtStep(tmp, stepId, overrides = {}) {
 function persistFlow(tmp, state) {
   const fm = makeFlowManager(tmp);
   fm.create(state);
-  const specId = state.spec.split("/")[1];
+  const specId = state.specId;
   const mode = state.worktree ? "worktree" : state.featureBranch === state.baseBranch ? "local" : "branch";
   fm.addActiveFlow(specId, mode);
-  return state;
+  return fm.loadReadOnly(specId);
 }
 
 export function replaceFlowState(root, state, options = {}) {

@@ -16,6 +16,10 @@ import { WorktreeFlowBindingStore, WorktreeFlowIdentity } from "../../../src/lib
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../../..");
 
+function requiredHookFlow() {
+  return { specId: "001-required-hook", specRoot: "specs" };
+}
+
 async function importFresh(file) {
   return import(`${pathToFileURL(file).href}?t=${Date.now()}-${Math.random()}`);
 }
@@ -85,10 +89,9 @@ function initGitRepo(projectRoot) {
 }
 
 function setupFinalizeFlow(projectRoot, specId) {
-  const spec = `specs/${specId}/spec.json`;
   const featureBranch = `feature/${specId}`;
   const state = setupFlow(projectRoot, {
-    spec,
+    specId,
     runId: `run-${specId}`,
     baseBranch: "master",
     featureBranch,
@@ -116,11 +119,10 @@ async function runFinalize(projectRoot, specId, flowState) {
 }
 
 function setupWorktreeFinalizeFlow(projectRoot, specId) {
-  const spec = `specs/${specId}/spec.json`;
   const featureBranch = `feature/${specId}`;
   const worktreePath = path.join(projectRoot, ".senti", "worktree", specId);
   const state = setupFlow(projectRoot, {
-    spec,
+    specId,
     runId: `run-${specId}`,
     baseBranch: "master",
     featureBranch,
@@ -136,11 +138,11 @@ function setupWorktreeFinalizeFlow(projectRoot, specId) {
   new WorktreeFlowBindingStore({ worktreePath }).save(new WorktreeFlowIdentity({
     runId: state.runId,
     issue: null,
-    spec: state.spec,
+    specId: state.specId,
     worktreePath,
   }));
   const flowManager = new FlowManager({ root: worktreePath, mainRoot: projectRoot, inWorktree: true, specId });
-  return { spec, featureBranch, worktreePath, state: flowManager.loadReadOnly(specId), flowManager, mainFlowManager };
+  return { featureBranch, worktreePath, state: flowManager.loadReadOnly(specId), flowManager, mainFlowManager };
 }
 
 async function runWorktreeFinalize(mainRoot, fixture) {
@@ -248,7 +250,7 @@ test("R1: discovery and snapshots require an explicit known failure policy", asy
   await assert.rejects(
     () => runFlowCommandWithPluginLifecycle(projectRoot, snapshotWithoutPolicy, {
       command: "prepare",
-      flow: { spec: "specs/001-required-hook/spec.json" },
+      flow: requiredHookFlow(),
       main: async () => {
         mainCalls += 1;
         return { ok: true, data: {} };
@@ -269,7 +271,7 @@ test("R2: lifecycle returns a structured outcome instead of warning-code severit
 
   const result = await runFlowCommandWithPluginLifecycle(projectRoot, snapshot, {
     command: "prepare",
-    flow: { spec: "specs/001-required-hook/spec.json" },
+    flow: requiredHookFlow(),
     main: async () => ({ ok: true, data: { mainRan: true } }),
   });
 
@@ -291,7 +293,7 @@ test("R3: required pre-hook failures stop the caller for every business-failure 
 
       const result = await runFlowCommandWithPluginLifecycle(projectRoot, snapshot, {
         command: "gate",
-        flow: { spec: "specs/001-required-hook/spec.json" },
+        flow: requiredHookFlow(),
         main: async () => {
           mainCalls += 1;
           return { ok: true, data: {} };
@@ -314,7 +316,7 @@ test("R4: advisory hook failures retain reporting while the main command continu
 
   const result = await runFlowCommandWithPluginLifecycle(projectRoot, snapshot, {
     command: "prepare",
-    flow: { spec: "specs/001-required-hook/spec.json" },
+    flow: requiredHookFlow(),
     main: async () => ({ ok: true, data: { mainRan: true } }),
   });
 
@@ -338,7 +340,7 @@ test("R4: successful required and advisory hooks preserve hook data and follow-u
       const snapshot = [{ pluginId: "fixture", module: "hooks/prepare.js", className: "FixtureHook", command: "prepare", hook: "post", priority: 0, failurePolicy: policy }];
       const result = await runFlowCommandWithPluginLifecycle(projectRoot, snapshot, {
         command: "prepare",
-        flow: { spec: "specs/001-required-hook/spec.json" },
+        flow: requiredHookFlow(),
         main: async () => ({ ok: true, data: { mainRan: true } }),
       });
       assert.equal(result.ok, true, `${policy} successful hook must preserve main result`);
@@ -358,7 +360,7 @@ test("R5: integrity failures and invalid snapshot policy are hard failures for e
   await assert.rejects(
     () => runFlowCommandWithPluginLifecycle(projectRoot, invalidSnapshot, {
       command: "prepare",
-      flow: { spec: "specs/001-required-hook/spec.json" },
+      flow: requiredHookFlow(),
       main: async () => ({ ok: true, data: {} }),
     }),
     /failure policy.*invalid/i,
@@ -388,7 +390,7 @@ export default function register(api) {
       await assert.rejects(
         () => runFlowCommandWithPluginLifecycle(projectRoot, [{ ...snapshot, failurePolicy: policy }], {
           command: "prepare",
-          flow: { spec: "specs/001-required-hook/spec.json" },
+          flow: requiredHookFlow(),
           main: async () => ({ ok: true, data: {} }),
         }),
         undefined,
@@ -406,7 +408,7 @@ test("R6/R7: required prepare post-hook failure rolls back completed state", asy
   await assertRequiredPrepareHookFailureIsAtomic("post");
 });
 
-test("R6: required finalize-cleanup pre-hook failure leaves command state and Git state unchanged", async () => {
+test("R6: required finalize-cleanup pre-hook failure preserves core state but retains plugin side effects", async () => {
   const projectRoot = createTmpDir("required-hook-finalize-");
   try {
     initGitRepo(projectRoot);
@@ -430,6 +432,11 @@ export default function register(api) {
       command: "finalize-cleanup", hook: "pre", priority: 0, failurePolicy: "required",
     }] };
     replaceFlowState(projectRoot, state, { specId });
+    const pluginArtifactDir = path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture`);
+    fs.mkdirSync(pluginArtifactDir, { recursive: true });
+    for (let index = 0; index < 513; index += 1) {
+      fs.writeFileSync(path.join(pluginArtifactDir, `existing-${String(index).padStart(3, "0")}.txt`), "x");
+    }
     const headBefore = git(projectRoot, ["rev-parse", "HEAD"]);
     const flowBefore = fs.readFileSync(path.join(projectRoot, `specs/${specId}/flow.json`), "utf8");
 
@@ -441,13 +448,17 @@ export default function register(api) {
     assert.equal(fs.readFileSync(path.join(projectRoot, `specs/${specId}/flow.json`), "utf8"), flowBefore, "required failure must not change flow state");
     assert.notEqual(git(projectRoot, ["branch", "--list", `feature/${specId}`]), "", "required failure must not delete feature branch");
     assert.equal(fs.existsSync(path.join(projectRoot, ".senti", "last-finalized-spec")), false, "required failure must not write completion pointer");
-    assert.equal(fs.existsSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/partial.txt`)), false, "required failure must remove hook artifacts");
+    assert.equal(
+      fs.readFileSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/partial.txt`), "utf8"),
+      "partial",
+      "required failure must leave plugin-owned artifacts for plugin-managed recovery",
+    );
   } finally {
     removeTmpDir(projectRoot);
   }
 });
 
-test("R7: required spec-only finalize post-hook failure leaves completion state unchanged", async () => {
+test("R7: required finalize post-hook failure retains plugin-owned artifacts", async () => {
   const projectRoot = createTmpDir("required-hook-finalize-post-");
   try {
     initGitRepo(projectRoot);
@@ -481,8 +492,59 @@ export default function register(api) {
     assert.equal(result.errors[0].code, "PLUGIN_HOOK_REQUIRED_FAILED");
     assert.deepEqual(flowManager.loadActiveFlows(), activeBefore, "required post failure must not clear active flow state");
     assert.equal(fs.readFileSync(path.join(projectRoot, `specs/${specId}/flow.json`), "utf8"), flowBefore, "required post failure must not change flow state");
-    assert.equal(fs.existsSync(path.join(projectRoot, ".senti", "last-finalized-spec")), false, "required post failure must not write completion pointer");
-    assert.equal(fs.existsSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/partial.txt`)), false, "required post failure must remove hook artifacts");
+    assert.equal(git(projectRoot, ["branch", "--list", `feature/${specId}`]), "", "required post failure must not roll back completed branch deletion");
+    assert.equal(
+      fs.readFileSync(path.join(projectRoot, ".senti", "last-finalized-spec"), "utf8").trim(),
+      specId,
+      "required post failure must not roll back the durable completion pointer",
+    );
+    assert.equal(
+      fs.readFileSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/partial.txt`), "utf8"),
+      "partial",
+      "required post failure must leave plugin-owned artifacts for plugin-managed recovery",
+    );
+  } finally {
+    removeTmpDir(projectRoot);
+  }
+});
+
+test("R7: successful finalize-cleanup post hook persists its plugin-owned artifact", async () => {
+  const projectRoot = createTmpDir("required-hook-finalize-post-success-");
+  try {
+    initGitRepo(projectRoot);
+    const specId = "905";
+    const state = setupFinalizeFlow(projectRoot, specId);
+    writeProjectConfig(projectRoot);
+    const hookFile = path.join(projectRoot, ".senti", "plugins", "fixture", "hooks", "finalize.js");
+    fs.mkdirSync(path.dirname(hookFile), { recursive: true });
+    fs.writeFileSync(hookFile, `
+export default function register(api) {
+  return class SuccessfulFinalizePostHook extends api.FlowCommandHook {
+    static command = "finalize-cleanup";
+    static hook = "post";
+    static failurePolicy = "required";
+    async run(context) {
+      await context.artifacts.writeText("completed.txt", "completed");
+      return context.envelope.ok("plugin-hook", "fixture.finalize-cleanup", { recorded: true });
+    }
+  };
+}
+`, "utf8");
+    state.plugins = { flowCommandHooks: [{
+      apiVersion: 1, pluginId: "fixture", module: "hooks/finalize.js", className: "SuccessfulFinalizePostHook",
+      command: "finalize-cleanup", hook: "post", priority: 0, failurePolicy: "required",
+    }] };
+    replaceFlowState(projectRoot, state, { specId });
+
+    const result = await runFinalize(projectRoot, specId, state);
+
+    assert.equal(result.ok, true, "successful post hook must allow finalize-cleanup to complete");
+    assert.equal(
+      fs.readFileSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/completed.txt`), "utf8"),
+      "completed",
+      "successful post hook artifact must remain in plugin-owned storage",
+    );
+    assert.deepEqual(result.data.pluginHooks[0].data, { recorded: true }, "successful post hook data must remain caller-visible");
   } finally {
     removeTmpDir(projectRoot);
   }
@@ -511,7 +573,7 @@ export default function register(api) {
       apiVersion: 1, pluginId: "fixture", module: "hooks/finalize.js", className: "RequiredWorktreeFinalizeHook",
       command: "finalize-cleanup", hook: "pre", priority: 0, failurePolicy: "required",
     }] };
-    replaceFlowState(fixture.worktreePath, fixture.state, { specId });
+    replaceFlowState(projectRoot, fixture.state, { specId });
     const activeBefore = structuredClone(fixture.mainFlowManager.loadActiveFlows());
     const recoveryDir = path.join(projectRoot, ".senti", "recovery", "finalize-cleanup");
 
@@ -522,7 +584,11 @@ export default function register(api) {
     assert.equal(fs.existsSync(fixture.worktreePath), true, "required failure must not remove the worktree");
     assert.equal(fs.existsSync(recoveryDir), false, "required failure must not create a teardown transaction journal");
     assert.deepEqual(fixture.mainFlowManager.loadActiveFlows(), activeBefore, "required failure must not clear active-flow state");
-    assert.equal(fs.existsSync(path.join(fixture.worktreePath, `specs/${specId}/plugin-artifacts/fixture/partial.txt`)), false, "required failure must remove worktree hook artifacts");
+    assert.equal(
+      fs.readFileSync(path.join(projectRoot, `specs/${specId}/plugin-artifacts/fixture/partial.txt`), "utf8"),
+      "partial",
+      "required failure must leave the base-side plugin artifact for plugin-managed recovery",
+    );
   } finally {
     removeTmpDir(projectRoot);
   }
@@ -572,7 +638,7 @@ test("R8: advisory matrix preserves reporting for every business-failure form", 
       const snapshot = [{ pluginId: "fixture", module: "hooks/prepare.js", className: "FixtureHook", command: "prepare", hook: "post", priority: 0, failurePolicy: "advisory" }];
       const result = await runFlowCommandWithPluginLifecycle(projectRoot, snapshot, {
         command: "prepare",
-        flow: { spec: "specs/001-required-hook/spec.json" },
+        flow: requiredHookFlow(),
         main: async () => ({ ok: true, data: { mainRan: true } }),
       });
       assert.equal(result.ok, true, `advisory ${label} must retain main success`);

@@ -20,7 +20,7 @@ describe("flow set metric", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = makeFlowState({ spec: `specs/${specId}/spec.json` });
+    const state = makeFlowState({ specId: specId });
     makeFlowManager(dir).create(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
   }

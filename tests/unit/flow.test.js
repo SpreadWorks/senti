@@ -32,7 +32,7 @@ describe("active-flow pointer", () => {
     makeFlowManager(tmp).addActiveFlow("086-migrate-flow-state", "worktree");
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.equal(flows.length, 1);
-    assert.equal(flows[0].spec, "086-migrate-flow-state");
+    assert.equal(flows[0].specId, "086-migrate-flow-state");
     assert.equal(flows[0].mode, "worktree");
   });
 
@@ -42,8 +42,8 @@ describe("active-flow pointer", () => {
     makeFlowManager(tmp).addActiveFlow("087-other", "branch");
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.equal(flows.length, 2);
-    assert.equal(flows[0].spec, "086-migrate");
-    assert.equal(flows[1].spec, "087-other");
+    assert.equal(flows[0].specId, "086-migrate");
+    assert.equal(flows[1].specId, "087-other");
     assert.equal(flows[1].mode, "branch");
   });
 
@@ -54,7 +54,7 @@ describe("active-flow pointer", () => {
     makeFlowManager(tmp).removeActiveFlow("086-migrate");
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.equal(flows.length, 1);
-    assert.equal(flows[0].spec, "087-other");
+    assert.equal(flows[0].specId, "087-other");
   });
 
   it("removeActiveFlow deletes .active-flow file when last entry is removed", () => {
@@ -80,7 +80,7 @@ describe("active-flow pointer", () => {
     const raw = fs.readFileSync(join(tmp, ".senti", ".active-flow"), "utf8");
     const parsed = JSON.parse(raw);
     assert.ok(Array.isArray(parsed));
-    assert.equal(parsed[0].spec, "086-migrate");
+    assert.equal(parsed[0].specId, "086-migrate");
     assert.equal(parsed[0].mode, "local");
   });
 });
@@ -95,7 +95,7 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -107,7 +107,7 @@ describe("flow-state (specs-based storage)", () => {
   it("saveFlowState does NOT write to .senti/flow.json", () => {
     tmp = createTmpDir();
     const state = makeFlowState({
-      spec: "specs/001-test/spec.json",
+      specId: "001-test",
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -120,7 +120,7 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -133,7 +133,7 @@ describe("flow-state (specs-based storage)", () => {
 
     const loaded = makeFlowManager(tmp).load();
     // Reads preserve the current-schema state without implicit migration.
-    assert.equal(loaded.spec, state.spec);
+    assert.equal(loaded.specId, state.specId);
     assert.equal(loaded.baseBranch, state.baseBranch);
     assert.equal(loaded.featureBranch, state.featureBranch);
     assert.equal(loaded.runId, state.runId);
@@ -148,7 +148,7 @@ describe("flow-state (specs-based storage)", () => {
     tmp = createTmpDir();
     const specId = "001-test";
     const state = makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -175,7 +175,7 @@ describe("flow-state steps and requirements", () => {
   function setupFlow(dir, configure = () => {}) {
     const specId = "001-test";
     const state = makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",
@@ -309,7 +309,7 @@ describe("setIssue", () => {
   function setupFlow(dir) {
     const specId = "001-test";
     const state = makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-test",
       baseBranch: "main",
       featureBranch: "feature/001-test",

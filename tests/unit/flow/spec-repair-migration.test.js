@@ -17,7 +17,7 @@ function writeFlowWithoutSpecRepair(tmp, mutate = () => {}) {
   plan.children = plan.children.filter((s) => s.id !== "spec-repair");
   mutate(steps);
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     baseBranch: "main",
     featureBranch: "feature/001-test",
     steps,

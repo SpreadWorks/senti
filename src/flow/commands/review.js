@@ -15,6 +15,7 @@ import path from "path";
 import crypto from "crypto";
 import { parseArgs, PKG_DIR } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { resolveIncludes } from "../../lib/include.js";
@@ -32,7 +33,7 @@ import {
 async function loadReqMap(root, flow, kind) {
   try {
     const { loadFileMap } = await import("../lib/req-map.js");
-    const specDir = resolveSpecDir(path.resolve(root, flow.spec));
+    const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(flow)));
     if (kind === "test") {
       // spec 249: test coverage is determined by file headers, not test-map.json.
       // Return null to disable the legacy test-map untested warning path; the
@@ -188,7 +189,7 @@ async function resolveReviewTarget(
   // spec 207 / T8: read scope.in from spec.json via the single validated load
   // path. Throws when spec.json is missing or invalid — active flows must
   // have a valid spec.json by invariant.
-  const specInput = path.resolve(root, flow.spec);
+  const specInput = path.resolve(root, relativeFlowSpecFile(flow));
   const spec = loadSpecJson(specInput);
   const scopeFiles = Array.isArray(spec.scope?.in)
     ? spec.scope.in
@@ -210,7 +211,7 @@ async function resolveReviewTarget(
     trackedDiff = collectCommittedAndStagedDiff(root, mergeBase, undefined, exclusions).join("\n");
   }
 
-  const specDir = path.posix.dirname(String(flow.spec).split(path.sep).join("/"));
+  const specDir = path.posix.dirname(relativeFlowSpecFile(flow));
   const specTestPrefix = `${specDir}/tests/`;
   const scopedFiles = new Set(scopeFiles);
   const untrackedDiff = await collectUntrackedDiff(root, {
@@ -401,7 +402,7 @@ function buildDraftSystemPrompt(guardrails = [], options = {}) {
 function buildReviewAcknowledgedRationale(root, flow, guardrails) {
   let spec = null;
   try {
-    if (flow?.spec) spec = loadSpecJson(path.resolve(root, flow.spec));
+    if (flow?.specId) spec = loadSpecJson(path.resolve(root, relativeFlowSpecFile(flow)));
   } catch (err) {
     process.stderr.write(
       `  [review] acknowledged rationale context unavailable: ${err.message}\n`,
@@ -548,7 +549,7 @@ function filterProposalsByScope(proposals, touchedFiles) {
  * @returns {string} absolute path of review.md
  */
 function writeReviewMd(root, flow, results) {
-  const specDir = path.dirname(path.resolve(root, flow.spec));
+  const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(flow)));
   const reviewPath = path.join(specDir, "review.md");
   if (reviewArtifactWritePolicy.enabled) {
     fs.writeFileSync(reviewPath, formatReviewMd(results));
@@ -1002,12 +1003,12 @@ function buildImplReviewPrompt({ requirementFileMap = {}, requirementIds, diff =
 }
 
 function resolveRequirementIds(root, flow) {
-  const spec = loadSpecJson(path.resolve(root, flow.spec), { validate: false });
+  const spec = loadSpecJson(path.resolve(root, relativeFlowSpecFile(flow)), { validate: false });
   return new Set((Array.isArray(spec.requirements) ? spec.requirements : []).map((req) => req.id).filter(Boolean));
 }
 
 function loadImplReviewPolicyContext(root, flow) {
-  const spec = loadSpecJson(path.resolve(root, flow.spec), { validate: false });
+  const spec = loadSpecJson(path.resolve(root, relativeFlowSpecFile(flow)), { validate: false });
   const requirements = new Map(
     (Array.isArray(spec.requirements) ? spec.requirements : [])
       .filter((requirement) => requirement?.id)
@@ -1202,6 +1203,7 @@ function applyImplReviewDispositionPolicy({
 
 async function runImplReviewWithPersistence({
   root,
+  executionRoot = root,
   flow,
   reviewOutput,
   touchedFiles,
@@ -1214,7 +1216,8 @@ async function runImplReviewWithPersistence({
     touchedFiles,
     requirementIds,
   });
-  const specDir = path.dirname(path.resolve(root, flow.spec));
+  const specPath = relativeFlowSpecFile(flow);
+  const specDir = path.dirname(path.resolve(root, specPath));
   const dispositioned = applyImplReviewDispositionPolicy({
     root,
     flow,
@@ -1226,9 +1229,9 @@ async function runImplReviewWithPersistence({
   });
   const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
-  const fingerprint = buildRepairFingerprint({ root, specPath: flow.spec, state: flow });
+  const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state: flow });
   const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
-  const reviewedHead = runGit(["rev-parse", "HEAD"], { cwd: root });
+  const reviewedHead = runGit(["rev-parse", "HEAD"], { cwd: executionRoot });
   artifactJson.reviewedTree = fingerprint.hash;
   if (reviewedHead.ok) artifactJson.reviewedHead = reviewedHead.stdout.trim();
   Object.assign(artifactJson, new ReviewFindingCycle(flow).toJSON());
@@ -1860,17 +1863,17 @@ async function runReviewWithDependencies(options) {
   return result;
 }
 
-async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guardrails, config = {}) {
-  const specInput = path.resolve(root, flow.spec);
+async function runLoopReview(executionRoot, artifactRoot, flow, mergeBase, fileMap, touchedFiles, guardrails, config = {}) {
+  const specInput = path.resolve(artifactRoot, relativeFlowSpecFile(flow));
   const spec = loadSpecJson(specInput);
   const requirementIds = new Set((spec.requirements || []).map((requirement) => requirement.id).filter(Boolean));
   const fileToReqs = invertFileMap(fileMap, spec.requirements || []);
   const specDir = path.dirname(specInput);
-  const matcher = createReviewExcludeMatcher({ root, exclusions: resolveReviewExcludePaths(config) });
+  const matcher = createReviewExcludeMatcher({ root: executionRoot, exclusions: resolveReviewExcludePaths(config) });
   const scopedFiles = new Set(matcher.filter([...touchedFiles]));
-  const rawPerFileDiffs = collectPerFileDiffs(root, mergeBase, scopedFiles);
+  const rawPerFileDiffs = collectPerFileDiffs(executionRoot, mergeBase, scopedFiles);
   const { groups } = prepareLoopReviewInputsWithExclusions({
-    root,
+    root: executionRoot,
     config,
     touchedFiles: scopedFiles,
     perFileDiffs: rawPerFileDiffs,
@@ -1882,7 +1885,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
   const systemPrompt = buildImplLoopReviewSystemPrompt(
     guardrails,
     {
-      ...buildReviewAcknowledgedRationale(root, flow, guardrails),
+      ...buildReviewAcknowledgedRationale(artifactRoot, flow, guardrails),
       requirementIds,
     },
   );
@@ -2783,8 +2786,9 @@ function buildToolingFailureReview({ kind, err, coverageRelPath }) {
  * Run the test review pipeline.
  */
 async function runTestReview(root, flow, config, dryRun) {
-  const specDir = path.dirname(flow.spec);
-  const specInput = path.resolve(root, flow.spec);
+  const specPath = relativeFlowSpecFile(flow);
+  const specDir = path.dirname(specPath);
+  const specInput = path.resolve(root, specPath);
 
   // spec 207 / T8: require spec.json for the test review pipeline. No fallback
   // to spec.md; loadSpecJson throws when spec.json is missing or invalid.
@@ -3409,8 +3413,9 @@ function formatSpecReviewMd(input = {}) {
  * Run the spec review pipeline (propose-only, 1 AI call).
  */
 async function runSpecReview(root, flow, config, dryRun) {
-  const specInput = path.resolve(root, flow.spec);
-  const specDir = path.dirname(flow.spec);
+  const specPath = relativeFlowSpecFile(flow);
+  const specInput = path.resolve(root, specPath);
+  const specDir = path.dirname(specPath);
   const spec = loadSpecJson(specInput);
 
   let analysisData = null;
@@ -3958,7 +3963,7 @@ export function writeReviewAttemptHistory({ specDir, phase, latestBasename, arti
 }
 
 async function runDraftReview(root, flow, config, dryRun) {
-  const specDir = path.dirname(flow.spec);
+  const specDir = path.dirname(relativeFlowSpecFile(flow));
   const specPath = path.resolve(root, specDir);
   const draftPath = path.resolve(specPath, "draft.json");
   const stage = resolveDraftReviewStage(flow);
@@ -4037,6 +4042,7 @@ async function runDraftReview(root, flow, config, dryRun) {
 
 async function runReview(rawArgs) {
   const root = container.get("root");
+  const artifactRoot = container.get("mainRoot");
   const cli = parseArgs(rawArgs, {
     flags: ["--dry-run", "--skip-confirm"],
     options: ["--phase", "--task-spec"],
@@ -4078,19 +4084,19 @@ async function runReview(rawArgs) {
 
   // Draft review pipeline
   if (cli.phase === "draft") {
-    await runDraftReview(root, flow, config, cli.dryRun);
+    await runDraftReview(artifactRoot, flow, config, cli.dryRun);
     return;
   }
 
   // Test review pipeline
   if (cli.phase === "test") {
-    await runTestReview(root, flow, config, cli.dryRun);
+    await runTestReview(artifactRoot, flow, config, cli.dryRun);
     return;
   }
 
   // Spec review pipeline
   if (cli.phase === "spec") {
-    await runSpecReview(root, flow, config, cli.dryRun);
+    await runSpecReview(artifactRoot, flow, config, cli.dryRun);
     return;
   }
 
@@ -4099,7 +4105,7 @@ async function runReview(rawArgs) {
 
   const reviewExclusions = resolveReviewExcludePaths(config);
   const reviewExcludeMatcher = createReviewExcludeMatcher({ root, exclusions: reviewExclusions });
-  const taskSpec = resolveTaskReviewSpec(root, cli.taskSpec);
+  const taskSpec = resolveTaskReviewSpec(artifactRoot, cli.taskSpec);
   const resolvedReviewTarget = await resolveReviewTarget(
     root,
     flow,
@@ -4108,12 +4114,13 @@ async function runReview(rawArgs) {
     reviewExclusions,
   );
   const reviewTarget = taskSpec
-    ? scopeTaskReviewTarget(resolvedReviewTarget, flow.spec)
+    ? scopeTaskReviewTarget(resolvedReviewTarget, relativeFlowSpecFile(flow))
     : resolvedReviewTarget;
   const { diff } = reviewTarget;
   if (!diff) {
     const result = await runImplReview({
-      root,
+      root: artifactRoot,
+      executionRoot: root,
       flow,
       reviewOutput: JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] }),
       touchedFiles: new Set(),
@@ -4135,9 +4142,9 @@ async function runReview(rawArgs) {
   if (taskSpec) {
     console.error(`  [task-review] Reviewing ${taskSpec.relPath}...`);
   } else {
-    fileMap = await loadReqMap(root, flow, "file");
+    fileMap = await loadReqMap(artifactRoot, flow, "file");
     if (!fileMap || Object.keys(fileMap).length === 0) {
-      const spec = loadSpecJson(path.resolve(root, flow.spec), { validate: false });
+      const spec = loadSpecJson(path.resolve(artifactRoot, relativeFlowSpecFile(flow)), { validate: false });
       const files = Array.from(touchedFiles).sort();
       fileMap = Object.fromEntries(
         (Array.isArray(spec.requirements) ? spec.requirements : [])
@@ -4147,8 +4154,12 @@ async function runReview(rawArgs) {
       );
     }
   }
-  const previousReview = loadPreviousImplReviewMemory(root, flow.spec, taskSpec?.task?.id ?? null);
-  const requirementIds = resolveRequirementIds(root, flow);
+  const previousReview = loadPreviousImplReviewMemory(
+    artifactRoot,
+    relativeFlowSpecFile(flow),
+    taskSpec?.task?.id ?? null,
+  );
+  const requirementIds = resolveRequirementIds(artifactRoot, flow);
   const result = await runReviewWithDependencies({
     touchedFiles,
     shouldUseLoopReview: (fileCount) => (
@@ -4157,7 +4168,7 @@ async function runReview(rawArgs) {
       && shouldUseLoopReview(fileCount)
     ),
     runLoopReview: async () => {
-      const proposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails, config);
+      const proposals = await runLoopReview(root, artifactRoot, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails, config);
       return proposals?.toolingOutcome
         ? proposals
         : loopProposalsToImplReviewJson(proposals, requirementIds);
@@ -4181,12 +4192,13 @@ async function runReview(rawArgs) {
         "flow.impl.review.propose",
         buildDraftSystemPrompt(
           reviewGuardrails,
-          buildReviewAcknowledgedRationale(root, flow, reviewGuardrails),
+          buildReviewAcknowledgedRationale(artifactRoot, flow, reviewGuardrails),
         ),
       );
     },
     persistImplReview: (reviewOutput, persistenceStrategy) => persistenceStrategy.persist({
-      root,
+      root: artifactRoot,
+      executionRoot: root,
       flow,
       reviewOutput,
       touchedFiles,

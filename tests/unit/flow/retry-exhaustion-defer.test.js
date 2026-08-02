@@ -233,7 +233,7 @@ test("review retry exhaustion defers semantic findings without prose keyword blo
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: {
@@ -260,7 +260,7 @@ test("canonical semantic exhaustion recovers a flow-level review with an active 
   const treeSha = "b".repeat(40);
   const targetStateDigest = "c".repeat(64);
   const flowState = flowStateAt("test-review", {
-    spec: fixture.specPath,
+    specId: "demo",
     metrics: [],
     currentTaskId: "T-1",
     tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
@@ -326,7 +326,7 @@ test("review retry exhaustion does not defer a source artifact bound to a stale 
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager(updates),
@@ -348,7 +348,7 @@ test("flow-level review post hook counts exhaustion despite an active task curso
     blockingFindings: [semanticFinding("post-hook-semantic")],
   });
   const flowState = flowStateAt("test-review", {
-    spec: fixture.specPath,
+    specId: "demo",
     metrics: retryMetrics("reviewRetry", "test", 4),
     currentTaskId: "T-1",
     tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
@@ -401,7 +401,7 @@ for (const missingField of ["disposition", "rationale"]) {
       () => checkReviewRetryBelowMax({
         root: fixture.root,
         flowState: flowStateAt("test-review", {
-          spec: fixture.specPath,
+          specId: "demo",
           metrics: retryMetrics("reviewRetry", "test"),
         }),
         flowManager: fakeFlowManager([]),
@@ -425,7 +425,7 @@ test("review retry exhaustion groups repeated findings by fingerprint", () => {
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager(updates),
@@ -457,7 +457,7 @@ test("review retry exhaustion excludes informational findings from deferred work
   const result = checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager([]),
@@ -479,7 +479,7 @@ test("deferred findings remain isolated by flow run", () => {
     root: fixture.root,
     flowState: flowStateAt("test-review", {
       runId,
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager([]),
@@ -506,7 +506,7 @@ test("task review producer records an explicit scoped defer outcome at its confi
   const fixture = prepareSpecRoot();
   const flowState = taskReviewState({
     runId: "task-review-bounded",
-    spec: fixture.specPath,
+    specId: "demo",
     stepAttempts: [],
   });
   const updates = [];
@@ -575,7 +575,7 @@ test("gate retry exhaustion defers typed informational findings and blocks struc
   const result = checkGateRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("impl-gate", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("gateRetry", "integration"),
     }),
     flowManager: {
@@ -699,7 +699,7 @@ test("gate types real requirement evaluation failures before retry exhaustion cl
 
 test("gate rejects stale repair claims and tampered typed dispositions", () => {
   const fixture = prepareSpecRoot();
-  const flowState = { spec: fixture.specPath, currentTaskId: null, metrics: [] };
+  const flowState = { specId: "demo", currentTaskId: null, metrics: [] };
   const result = {
     result: "fail",
     artifacts: {
@@ -756,7 +756,7 @@ test("gate retry exhaustion rejects diagnostic-only issue-log evidence at the bo
   const fixture = prepareSpecRoot();
   writeFile(fixture.root, "src/example.js", "export const example = true;\n");
   const flowState = flowStateAt("spec-gate", {
-    spec: fixture.specPath,
+    specId: "demo",
     currentTaskId: null,
     metrics: [],
   });
@@ -840,7 +840,7 @@ test("gate retry exhaustion remains blocked when must-fix repair evidence is mis
   const result = checkGateRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("impl-gate", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("gateRetry", "integration"),
     }),
     flowManager: fakeFlowManager(updates),
@@ -861,7 +861,7 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
   checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager([]),
@@ -877,7 +877,7 @@ test("acceptance-review consumes deferred findings and mirrors final disposition
     }],
   });
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify the deferred demo requirement.",
@@ -929,7 +929,7 @@ test("acceptance-review accepts an audited skipped scenario-validity preconditio
   const fixture = prepareSpecRoot();
   prepareAcceptanceEvidence(fixture);
   const state = makeFlowState({
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     request: "Verify recovered implementation evidence.",
   });
@@ -966,7 +966,7 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
     rawLogPath: "tests/.raw/upgrade.log",
   });
   const state = makeFlowState({
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     request: "Refresh generated skills after changing the source skill.",
   });
@@ -1039,7 +1039,7 @@ test("acceptance-review turns a continued impl-gate failure into an explicit ris
     }],
   });
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify that the continued gate risk is explicitly decided.",
@@ -1098,7 +1098,7 @@ test("acceptance-review verifies a typed nonblocking handoff without reclassifyi
   });
   const source = fs.readFileSync(path.join(fixture.specDir, "test-result-review.json"), "utf8");
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify that unavailable test evidence stays an explicit acceptance risk.",
@@ -1162,14 +1162,14 @@ test("acceptance-review resolves still-open findings after mechanical source ver
   checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager([]),
   }, "test");
   prepareAcceptanceEvidence(fixture);
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify the deferred demo requirement.",
@@ -1242,7 +1242,7 @@ test("acceptance-review preserves the invalid artifact validation detail", () =>
   const context = buildAcceptanceReviewContext({
     root: fixture.root,
     state: makeFlowState({
-      spec: fixture.specPath,
+      specId: "demo",
       request: "Verify the persisted acceptance evidence.",
     }),
     diff: "diff --git a/src/demo.js b/src/demo.js\n",
@@ -1295,7 +1295,7 @@ test("acceptance-review resolves legacy advisory review handoffs without a risk 
   const canonicalEvidenceRef = `review-evidence/${evidence.identity.evidenceDigest}.json`;
   writeFile(fixture.specDir, canonicalEvidenceRef, evidence.canonicalText);
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify informational review handoffs remain non-blocking.",
@@ -1367,7 +1367,7 @@ test("acceptance-review resolves a blocking preimplementation handoff from appli
     }],
   });
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify applied preimplementation repair evidence.",
@@ -1420,7 +1420,7 @@ test("acceptance-review deduplicates flow findings and review handoffs by finger
   const canonicalEvidenceRef = `review-evidence/${evidence.identity.evidenceDigest}.json`;
   writeFile(fixture.specDir, canonicalEvidenceRef, evidence.canonicalText);
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify canonical deferred-finding deduplication.",
@@ -1533,7 +1533,7 @@ test("acceptance-review resolves deferred findings from superseded canonical rev
     advisoryEvidence.canonicalText,
   );
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify deferred findings survive a later implementation review.",
@@ -1584,7 +1584,7 @@ test("acceptance-review rewinds stale fingerprint evidence to test execution", (
   const previousFingerprint = prepareAcceptanceEvidence(fixture);
   writeFile(fixture.root, "src/demo.js", "export const demo = 'acceptance-repaired';\n");
   const state = flowStateAt("acceptance-review", {
-    spec: fixture.specPath,
+    specId: "demo",
     repairBaseline: previousFingerprint.baseline.toJSON(),
     request: "Verify repaired acceptance behavior.",
   });
@@ -1694,7 +1694,7 @@ test("acceptance-review recognizes rejected latest triage after an earlier repai
   const context = buildAcceptanceReviewContext({
     root: fixture.root,
     state: {
-      spec: fixture.specPath,
+      specId: "demo",
       runId: "run-test",
       planRewindAt: null,
       request: "Verify the latest rejected triage.",
@@ -1764,7 +1764,7 @@ test("integration gate rewinds stale fingerprint evidence before semantic evalua
   testResult.summary[0].error = "stale failure fixed by the current implementation";
   fs.writeFileSync(testResultPath, `${JSON.stringify(testResult, null, 2)}\n`);
   const state = flowStateAt("impl-gate", {
-    spec: fixture.specPath,
+    specId: "demo",
     repairBaseline: previousFingerprint.baseline.toJSON(),
     request: "Verify repaired integration gate behavior.",
   });
@@ -1808,7 +1808,7 @@ test("acceptance-review repairs only omitted deferred disposition coverage", () 
   checkReviewRetryBelowMax({
     root: fixture.root,
     flowState: flowStateAt("test-review", {
-      spec: fixture.specPath,
+      specId: "demo",
       metrics: retryMetrics("reviewRetry", "test"),
     }),
     flowManager: fakeFlowManager([]),
@@ -1817,7 +1817,7 @@ test("acceptance-review repairs only omitted deferred disposition coverage", () 
   const context = buildAcceptanceReviewContext({
     root: fixture.root,
     state: {
-      spec: fixture.specPath,
+      specId: "demo",
       runId: "run-test",
       planRewindAt: null,
       request: "Verify the deferred demo requirement.",
@@ -1874,7 +1874,7 @@ test("canonical typed impl review evidence supersedes only the phase artifact fi
     evidence.canonicalText,
   );
   const state = {
-    spec: fixture.specPath,
+    specId: "demo",
     runId: "run-test",
     planRewindAt: null,
     request: "Verify typed review evidence.",

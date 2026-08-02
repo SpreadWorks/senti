@@ -93,7 +93,7 @@ function gateRetryCount(flowState) {
 
 function makeFlowState(buildInitialSteps) {
   return {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: "run-runtime-evaluator-recovery",
     baseBranch: "main",
     featureBranch: "feature/runtime-evaluator-recovery",

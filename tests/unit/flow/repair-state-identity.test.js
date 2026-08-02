@@ -70,7 +70,7 @@ function initRepository({ config = {} } = {}) {
   return {
     baseline,
     state: {
-      spec: "specs/demo/spec.json",
+      specId: "demo",
       baseBranch: "main",
       runId: "run-test",
       repairBaseline: baseline.toJSON(),
@@ -90,7 +90,7 @@ describe("repair state identity", () => {
       ],
     };
     write("app/original.js", "export const value = 2;\n");
-    const current = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const current = buildRepairFingerprint({ root: tmp, state });
     const { hash, ...legacyInput } = current.toJSON();
     const legacy = new LegacyRepairFingerprintManifest({
       ...legacyInput,
@@ -150,8 +150,8 @@ describe("repair state identity", () => {
     write("src/node_modules/tracked.js", "export const tracked = 2;\n");
     write("src/node_modules/ignored.js", "export const ignored = true;\n");
 
-    const first = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
-    const second = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const first = buildRepairFingerprint({ root: tmp, state });
+    const second = buildRepairFingerprint({ root: tmp, state });
     const paths = new Set(first.entries.map((entry) => entry.path));
     const renamed = first.entries.find((entry) => entry.path === "packages/api/renamed.js");
 
@@ -178,28 +178,28 @@ describe("repair state identity", () => {
     }
     write("packages/large.bin", Buffer.alloc(2 * 1024 * 1024, 7));
 
-    const fingerprint = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const fingerprint = buildRepairFingerprint({ root: tmp, state });
     assert.equal(fingerprint.entries.filter((entry) => entry.path.startsWith("packages/generated/")).length, 10_000);
     assert.ok(fingerprint.entries.some((entry) => entry.path === "packages/large.bin"));
   });
 
   it("returns to the original identity when a worktree change is reverted", () => {
     const { state } = initRepository();
-    const before = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const before = buildRepairFingerprint({ root: tmp, state });
     write("app/original.js", "export const value = 2;\n");
-    assert.notEqual(buildRepairFingerprint({ root: tmp, specPath: state.spec, state }).hash, before.hash);
+    assert.notEqual(buildRepairFingerprint({ root: tmp, state }).hash, before.hash);
     write("app/original.js", "export const value = 1;\n");
-    assert.equal(buildRepairFingerprint({ root: tmp, specPath: state.spec, state }).hash, before.hash);
+    assert.equal(buildRepairFingerprint({ root: tmp, state }).hash, before.hash);
   });
 
   it("keeps tool-owned commits out of the canonical hash", () => {
     const { state } = initRepository();
-    const before = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const before = buildRepairFingerprint({ root: tmp, state });
     write("specs/demo/impl-review.json", JSON.stringify({ generated: true }));
     git("add", "specs/demo/impl-review.json");
     git("commit", "-q", "-m", "generated evidence");
 
-    const after = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const after = buildRepairFingerprint({ root: tmp, state });
     assert.notEqual(after.headOid, before.headOid);
     assert.equal(after.hash, before.hash);
   });
@@ -209,7 +209,6 @@ describe("repair state identity", () => {
     write("specs/demo/tests/new.test.js", "export const addedTest = true;\n");
     const beforeCommit = buildRepairFingerprint({
       root: tmp,
-      specPath: state.spec,
       state,
     });
 
@@ -217,7 +216,6 @@ describe("repair state identity", () => {
     git("commit", "-q", "-m", "commit unchanged explicit input content");
     const afterCommit = buildRepairFingerprint({
       root: tmp,
-      specPath: state.spec,
       state,
     });
 
@@ -230,12 +228,12 @@ describe("repair state identity", () => {
     });
     write(".gitignore", "src/node_modules/\nvendor/cache/\n");
     write("vendor/cache/input.dat", "required ignored input\n");
-    const within = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const within = buildRepairFingerprint({ root: tmp, state });
     assert.ok(within.entries.some((entry) => entry.path === "vendor/cache/input.dat"));
 
     write("packages/extra.js", "extra\n");
     assert.throws(
-      () => buildRepairFingerprint({ root: tmp, specPath: state.spec, state }),
+      () => buildRepairFingerprint({ root: tmp, state }),
       /changed path count 7 exceeds configured limit 6.*flow\.repairFingerprint\.maxChangedPaths/,
     );
   });
@@ -251,7 +249,7 @@ describe("repair state identity", () => {
     write("intent.js", "intent\n");
     git("add", "-N", "intent.js");
 
-    const first = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const first = buildRepairFingerprint({ root: tmp, state });
     const deleted = first.entries.find((entry) => entry.path === "src/node_modules/tracked.js");
     assert.equal(deleted.mode, "100644");
     assert.ok(deleted.statuses.includes("worktree:D"));
@@ -264,7 +262,7 @@ describe("repair state identity", () => {
     fs.unlinkSync(path.join(tmp, "link"));
     fs.symlinkSync("second-target", path.join(tmp, "link"));
     git("config", "core.autocrlf", "true");
-    const second = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const second = buildRepairFingerprint({ root: tmp, state });
     assert.notEqual(second.hash, first.hash);
     assert.notEqual(second.environmentHash, first.environmentHash);
   });
@@ -273,7 +271,7 @@ describe("repair state identity", () => {
     const { baseline, state } = initRepository();
     git("update-index", "--assume-unchanged", "app/original.js");
     assert.throws(
-      () => buildRepairFingerprint({ root: tmp, specPath: state.spec, state }),
+      () => buildRepairFingerprint({ root: tmp, state }),
       /assume-unchanged index entry/,
     );
     git("update-index", "--no-assume-unchanged", "app/original.js");
@@ -336,7 +334,7 @@ describe("repair state identity", () => {
     const { state } = initRepository();
     git("update-index", "--skip-worktree", "app/original.js");
     assert.throws(
-      () => buildRepairFingerprint({ root: tmp, specPath: state.spec, state }),
+      () => buildRepairFingerprint({ root: tmp, state }),
       /manual skip-worktree entry/,
     );
   });
@@ -346,11 +344,11 @@ describe("repair state identity", () => {
     git("sparse-checkout", "init", "--cone");
     git("sparse-checkout", "set", "app", "specs", ".senti");
     assert.equal(fs.existsSync(path.join(tmp, "src/node_modules/tracked.js")), false);
-    const sparse = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const sparse = buildRepairFingerprint({ root: tmp, state });
     assert.equal(sparse.entries.some((entry) => entry.path === "src/node_modules/tracked.js"), false);
 
     git("sparse-checkout", "add", "src");
-    const expanded = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const expanded = buildRepairFingerprint({ root: tmp, state });
     assert.notEqual(expanded.environmentHash, sparse.environmentHash);
     assert.notEqual(expanded.hash, sparse.hash);
   });
@@ -374,12 +372,12 @@ describe("repair state identity", () => {
     fs.writeFileSync(path.join(tmp, "deps/lib/value.js"), "export const value = 2;\n");
     execFileSync("git", ["add", "value.js"], { cwd: path.join(tmp, "deps/lib") });
     execFileSync("git", ["commit", "-q", "-m", "advance"], { cwd: path.join(tmp, "deps/lib") });
-    const advanced = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const advanced = buildRepairFingerprint({ root: tmp, state });
     assert.equal(advanced.entries.find((entry) => entry.path === "deps/lib").mode, "160000");
 
     fs.writeFileSync(path.join(tmp, "deps/lib/value.js"), "dirty\n");
     assert.throws(
-      () => buildRepairFingerprint({ root: tmp, specPath: state.spec, state }),
+      () => buildRepairFingerprint({ root: tmp, state }),
       /dirty submodule is not valid repair evidence/,
     );
   });
@@ -403,7 +401,7 @@ describe("repair state identity", () => {
     const diff = implementationDiff(tmp, state);
     assert.match(diff, /backend\/service\.js/);
     assert.doesNotMatch(diff, /must-not-leak|impl-review\.json/);
-    const registry = new RepairArtifactRegistry(state.spec);
+    const registry = new RepairArtifactRegistry("specs/demo/spec.json");
     assert.equal(registry.owns(".senti/.active-flow"), true);
     assert.equal(registry.owns(".senti/.active-flow.other-run"), true);
     assert.equal(registry.owns(".senti/agent-cache/other-flow.json"), true);
@@ -482,7 +480,7 @@ describe("repair state identity", () => {
     assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/repair-fingerprint.json"), "utf8")).version, 3);
     const ledger = readImplRepairLedger(path.join(tmp, "specs/demo"));
     assert.equal(ledger.entries.at(-1).previousHash, legacy.hash);
-    assert.equal(ledger.entries.at(-1).currentHash, buildRepairFingerprint({ root: tmp, specPath: state.spec, state }).hash);
+    assert.equal(ledger.entries.at(-1).currentHash, buildRepairFingerprint({ root: tmp, state }).hash);
   });
 
   it("does not replay a completed retained migration after test execution recreates evidence", async () => {
@@ -586,13 +584,13 @@ describe("bounded repair audit and acceptance prompt", () => {
     writeAt("app/example.js", "export const value = 1;\n");
     const state = {
       runId: `run-${path.basename(root)}`,
-      spec: "specs/demo/spec.json",
+      specId: "demo",
       steps: [
         { id: "impl-repair", status: "in_progress" },
         { id: "test-execute", status: "pending" },
       ],
     };
-    const fingerprint = buildRepairFingerprint({ root, specPath: state.spec, state });
+    const fingerprint = buildRepairFingerprint({ root, state });
     writeAt("specs/demo/impl-review.json", JSON.stringify({
       version: 1,
       phase: "impl",
@@ -624,13 +622,13 @@ describe("bounded repair audit and acceptance prompt", () => {
     write("app/example.js", "export const value = 1;\n");
     const state = {
       runId: "run-repair-transaction",
-      spec: "specs/demo/spec.json",
+      specId: "demo",
       steps: [
         { id: "impl-repair", status: "in_progress" },
         { id: "test-execute", status: "pending" },
       ],
     };
-    const fingerprint = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const fingerprint = buildRepairFingerprint({ root: tmp, state });
     write("specs/demo/impl-review.json", JSON.stringify({
       version: 1,
       phase: "impl",
@@ -782,7 +780,7 @@ describe("bounded repair audit and acceptance prompt", () => {
   it("keeps a five-round 500-path repair audit bounded in the AI request", () => {
     tmp = createTmpDir("repair-projection-");
     const { state } = prepareFilesystemRepair(tmp);
-    const current = buildRepairFingerprint({ root: tmp, specPath: state.spec, state });
+    const current = buildRepairFingerprint({ root: tmp, state });
     const hashFor = (value) => value.toString(16).padStart(64, "0");
     const chain = [hashFor(1), hashFor(2), hashFor(3), hashFor(4), hashFor(5), current.hash];
     const invalidations = [{

@@ -13,6 +13,7 @@ import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
+import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
@@ -320,7 +321,7 @@ class PlanRewindAuditEntry {
     this.reason = reason;
     this.target = {
       runId: state.runId,
-      spec: state.spec,
+      specId: state.specId,
       issue: state.issue == null ? null : Number(state.issue),
     };
     this.previousState = new PlanRewindPreviousState(state, stepIds);
@@ -362,7 +363,7 @@ function validateCorrectionGuards(ctx, state) {
 }
 
 function appendIssueLog(root, state, entry) {
-  appendIssueLogEntry(root, state.spec, { ...entry, timestamp: new Date().toISOString() });
+  appendIssueLogEntry(root, relativeFlowSpecFile(state), { ...entry, timestamp: new Date().toISOString() });
 }
 
 function specCorrectionResult(audit, resetSteps, replacement, options = {}) {
@@ -409,7 +410,7 @@ function auditFailure(err) {
 function loadInvalidatedApproval(root, state) {
   const approvalStep = findStepById(state.steps || [], "approval");
   if (!approvalStep || !hasStepResult(approvalStep)) return null;
-  const specPath = resolveSpecJsonPath(path.resolve(root, state.spec));
+  const specPath = resolveSpecJsonPath(path.resolve(root, relativeFlowSpecFile(state)));
   const spec = loadSpecJson(specPath, { validate: false });
   return new PlanRewindApprovalSnapshot(approvalStep, spec.user_approval ?? null);
 }
@@ -492,7 +493,7 @@ function executeSpecCorrection({ flowManager, root, specId, state, reason }) {
 }
 
 function invalidatedApprovalConfirmedAt(root, state) {
-  const file = path.resolve(root, state.spec);
+  const file = path.resolve(root, relativeFlowSpecFile(state));
   if (!fs.existsSync(file)) return null;
   const spec = JSON.parse(fs.readFileSync(file, "utf8"));
   return typeof spec.user_approval?.confirmed_at === "string"
@@ -510,7 +511,7 @@ function createFlowRewindRequest({ root, state, ctx, reason, sourceStage }) {
   return new PlanRewindRequest({
     runId: state.runId,
     issue: state.issue,
-    spec: state.spec,
+    specId: state.specId,
     sourceStage,
     destinationStep: "draft",
     reason,
@@ -609,7 +610,7 @@ export class RunReopenDraftCommand extends FlowCommand {
         const request = createFlowRewindRequest({ root, state, ctx, reason, sourceStage: previousActiveStep });
         // Validate the complete candidate before walking or hashing artifacts.
         applyPlanRewind(state, request, []);
-        const specDir = path.dirname(path.resolve(root, state.spec));
+        const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
         const evidence = capturePlanRewindEvidence(specDir);
         const draft = findStepById(state.steps || [], "draft");
         const transition = new ExplicitRecoveryTransition({

@@ -1,7 +1,7 @@
 /**
  * src/lib/flow-store.js
  *
- * Owns `specs/<NNN>/flow.json` — the per-spec state file.
+ * Owns `<configured-spec-root>/<specId>/flow.json` — the per-spec state file.
  * Provides load / create / atomic mutation primitives plus targeted setters.
  *
  * Task-aware (cac6/T2): load enforces the new `tasks`/`currentTaskId` schema.
@@ -28,13 +28,18 @@ import {
 } from "./flow-state-atomic-writer.js";
 import { FlowState } from "./flow-state.js";
 import {
-  specIdFromPath,
   TASK_ORIGINS,
   TASK_STATUSES,
   TASK_STEP_STATUSES,
   TASK_REQUIREMENT_STATUSES,
   completeTaskInState,
 } from "./flow-helpers.js";
+import {
+  bindFlowStateLocation,
+  DEFAULT_FLOW_SPEC_DIR,
+  FlowSpecLocation,
+  FlowSpecRoot,
+} from "./flow-workspace.js";
 import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
 import { applyPlanRewind, latestPlanRewind } from "../flow/lib/plan-rewind.js";
@@ -67,17 +72,8 @@ const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
   ]),
 );
 
-function specFlowPath(root, specId) {
-  return flowStatePath(root, specId);
-}
-
-function specIdFromBranch(root) {
-  const res = runGit(["-C", root, "rev-parse", "--abbrev-ref", "HEAD"]);
-  if (!res.ok) return null;
-  const branch = res.stdout.trim();
-  const prefix = "feature/";
-  if (branch.startsWith(prefix)) return branch.slice(prefix.length);
-  return null;
+function specFlowPath(root, specId, specRoot) {
+  return flowStatePath(root, specId, specRoot);
 }
 
 export class FlowStateSchemaUnsupportedError extends Error {
@@ -355,16 +351,16 @@ function readBoundedFlowStateContent(filePath) {
   return fs.readFileSync(filePath);
 }
 
-function parseCurrentFlowState(content, sourcePath) {
+function parseCurrentFlowState(content, sourcePath, repositoryRoot, specRoot, specId) {
   const state = JSON.parse(content.toString("utf8"));
-  return bindCurrentFlowState(state, content, sourcePath);
+  return bindCurrentFlowState(state, content, sourcePath, repositoryRoot, specRoot, specId);
 }
 
-function bindCurrentFlowState(state, content, sourcePath) {
+function bindCurrentFlowState(state, content, sourcePath, repositoryRoot, specRoot, specId) {
   assertCurrentFlowStateSchema(state, sourcePath);
-  const boundSpecId = FlowSpecId.from(path.basename(path.dirname(sourcePath))).toString();
-  if (state.spec !== `specs/${boundSpecId}/spec.json`) {
-    throw schemaUnsupported(`flow-store: flow state spec does not match its bound directory. Path: ${sourcePath}.`);
+  const boundSpecId = FlowSpecId.from(specId).toString();
+  if (state.specId !== boundSpecId) {
+    throw schemaUnsupported(`flow-store: flow state specId does not match its bound directory. Path: ${sourcePath}.`);
   }
   const revision = new FlowStateRevision(content);
   try {
@@ -373,7 +369,11 @@ function bindCurrentFlowState(state, content, sourcePath) {
     throw schemaUnsupported(`flow-store: ${cause.message}. Path: ${sourcePath}.`);
   }
   FLOW_STATE_REVISIONS.set(state, revision);
-  return state;
+  return bindFlowStateLocation(state, new FlowSpecLocation({
+    repositoryRoot,
+    specRoot,
+    specId: boundSpecId,
+  }));
 }
 
 function migrateFlowState(state) {
@@ -458,15 +458,16 @@ export class FlowStore {
    * @param {boolean} opts.inWorktree - pre-resolved worktree flag
    * @param {() => import("./active-flow-registry.js").ActiveFlowRegistry} opts.activeFlowsProvider
    */
-  constructor({ root, mainRoot, inWorktree, activeFlowsProvider }) {
+  constructor({ root, mainRoot, inWorktree, activeFlowsProvider, specRoot = DEFAULT_FLOW_SPEC_DIR }) {
     this._root = root;
     this._mainRoot = mainRoot;
     this._inWorktree = inWorktree;
     this._activeFlowsProvider = activeFlowsProvider;
+    this._specRoot = FlowSpecRoot.from(specRoot);
   }
 
   pathFor(specId) {
-    return specFlowPath(this._root, specId);
+    return specFlowPath(this._mainRoot, specId, this._specRoot);
   }
 
   /**
@@ -478,16 +479,22 @@ export class FlowStore {
   load(specId) {
     const resolvedSpecId = this.#resolveSpecId(specId);
     if (!resolvedSpecId) return null;
-    const resolvedPath = specFlowPath(this._root, resolvedSpecId);
+    const resolvedPath = specFlowPath(this._mainRoot, resolvedSpecId, this._specRoot);
     if (!fs.existsSync(resolvedPath)) return null;
-    return parseCurrentFlowState(readBoundedFlowStateContent(resolvedPath), resolvedPath);
+    return parseCurrentFlowState(
+      readBoundedFlowStateContent(resolvedPath),
+      resolvedPath,
+      this._mainRoot,
+      this._specRoot,
+      resolvedSpecId,
+    );
   }
 
   /**
    * Read-only loader. Enforces the current schema and never mutates storage.
    */
   loadReadOnly(specId) {
-    const p = specFlowPath(this._root, specId);
+    const p = specFlowPath(this._mainRoot, specId, this._specRoot);
     if (!fs.existsSync(p)) return null;
     let content;
     let state;
@@ -498,7 +505,7 @@ export class FlowStore {
       process.stderr.write(`[senti] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
-    return bindCurrentFlowState(state, content, p);
+    return bindCurrentFlowState(state, content, p, this._mainRoot, this._specRoot, specId);
   }
 
   create(state, {
@@ -511,13 +518,18 @@ export class FlowStore {
     const nextState = structuredClone(state);
     if (!Array.isArray(nextState.tasks)) nextState.tasks = [];
     if (!("currentTaskId" in nextState)) nextState.currentTaskId = null;
-    const specId = specIdFromPath(nextState.spec);
-    if (!specId) throw schemaUnsupported("flow-store: new flow state requires a canonical spec path");
-    const p = specFlowPath(this._root, specId);
+    let specId;
+    try {
+      specId = FlowSpecId.from(nextState.specId).toString();
+    } catch {
+      throw schemaUnsupported("flow-store: new flow state requires a canonical specId");
+    }
+    const p = specFlowPath(this._mainRoot, specId, this._specRoot);
     assertCurrentFlowStateSchema(nextState, p);
     return new FlowStateCreator({
-      root: this._root,
+      root: this._mainRoot,
       mainRoot: this._mainRoot,
+      specRoot: this._specRoot,
       boundSpecId: specId,
       state: nextState,
       faultInjector,
@@ -547,8 +559,9 @@ export class FlowStore {
     writerOwnerTempName = null,
   } = {}) {
     const writer = new AtomicFlowStateWriter({
-      root: this._root,
+      root: this._mainRoot,
       mainRoot: this._mainRoot,
+      specRoot: this._specRoot,
       boundSpecId,
       expectedOriginal,
       nextState: state,
@@ -578,8 +591,9 @@ export class FlowStore {
     writerOwnerTempName,
   } = {}) {
     return new AtomicFlowStateWriter({
-      root: this._root,
+      root: this._mainRoot,
       mainRoot: this._mainRoot,
+      specRoot: this._specRoot,
       boundSpecId,
       processIdentitySource,
       maintenanceOwnerToken,
@@ -589,6 +603,23 @@ export class FlowStore {
       writerOwnerToken,
       writerOwnerTempName,
     }).recoverCommittedWrite();
+  }
+
+  assertWritable(specId, {
+    processIdentitySource,
+    maintenanceOwnerToken,
+    operationOwnerToken,
+  } = {}) {
+    return new AtomicFlowStateWriter({
+      root: this._mainRoot,
+      mainRoot: this._mainRoot,
+      specRoot: this._specRoot,
+      boundSpecId: specId,
+      processIdentitySource,
+      maintenanceOwnerToken,
+      operationOwnerToken,
+      allowProcessOwnerBorrow: true,
+    }).assertWritable();
   }
 
   mutate(mutator, opts = {}) {
@@ -608,6 +639,11 @@ export class FlowStore {
       );
     }
     const guardedMutator = (state, context) => {
+      bindFlowStateLocation(state, new FlowSpecLocation({
+        repositoryRoot: this._mainRoot,
+        specRoot: this._specRoot,
+        specId,
+      }));
       if (expectedRevision && expectedRevision.digest !== context.revisionDigest) {
         throw new FlowStateAtomicSaveError(
           "FLOW_STATE_ATOMIC_STALE",
@@ -619,8 +655,9 @@ export class FlowStore {
     const configuredPassThrough = opts.passThroughError
       ?? ((error) => error instanceof FlowStateSchemaUnsupportedError);
     return new AtomicFlowStateWriter({
-      root: this._root,
+      root: this._mainRoot,
       mainRoot: this._mainRoot,
+      specRoot: this._specRoot,
       boundSpecId: specId,
       faultInjector: opts.faultInjector,
       processIdentitySource: opts.processIdentitySource,
@@ -630,7 +667,13 @@ export class FlowStore {
     }).mutate(guardedMutator, {
       parseState: opts.stepIdMigration === true
         ? parseStepIdMigrationState
-        : (content, statePath) => parseCurrentFlowState(content, statePath),
+        : (content, statePath) => parseCurrentFlowState(
+          content,
+          statePath,
+          this._mainRoot,
+          this._specRoot,
+          specId,
+        ),
       validateState: assertCurrentFlowStateSchema,
       onFailure: opts.onFailure,
       passThroughError: (error) => (
@@ -644,7 +687,7 @@ export class FlowStore {
     const flows = this._activeFlowsProvider().load();
     const current = this._resolveCurrentFlow(flows);
     if (!current) return null;
-    return specFlowPath(this._root, current.spec);
+    return specFlowPath(this._mainRoot, current.specId, this._specRoot);
   }
 
   resolveWorktreePaths(state) {
@@ -1017,12 +1060,8 @@ export class FlowStore {
 
   #resolveSpecId(specId) {
     if (specId) return specId;
-    if (this._inWorktree) {
-      const branchSpecId = specIdFromBranch(this._root);
-      if (branchSpecId && fs.existsSync(specFlowPath(this._root, branchSpecId))) return branchSpecId;
-    }
     const current = this._resolveCurrentFlow(this._activeFlowsProvider().load());
-    return current?.spec ?? null;
+    return current?.specId ?? null;
   }
 
   _resolveCurrentFlow(flows) {
@@ -1034,7 +1073,7 @@ export class FlowStore {
     const currentBranch = res.stdout.trim();
 
     for (const entry of flows) {
-      if (currentBranch === `feature/${entry.spec}`) return entry;
+      if (currentBranch === `feature/${entry.specId}`) return entry;
     }
     return null;
   }

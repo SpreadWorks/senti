@@ -54,7 +54,7 @@ function runCli(tmp, args) {
 function setupActiveFlow(tmp, overrides = {}) {
   const specId = "001-test";
   const state = {
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     baseBranch: "main",
     featureBranch: "feature/001-test",
@@ -474,7 +474,7 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.step, "spec-repair");
       assert.equal(envelope.data.action, "write-spec");
       assert.equal(envelope.data.instructions.key, "plan.spec-repair");
-      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.json" });
+      assert.deepEqual(envelope.data.context.paths, { specId: "001-test" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
 
@@ -489,7 +489,7 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.step, "spec-triage");
       assert.equal(envelope.data.action, "write-spec");
       assert.equal(envelope.data.instructions.key, "plan.spec-triage");
-      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.json" });
+      assert.deepEqual(envelope.data.context.paths, { specId: "001-test" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
   });

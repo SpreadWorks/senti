@@ -24,7 +24,7 @@ describe("task-scoped implementation review lifecycle", () => {
     tmp = createTmpDir("task-impl-review-lifecycle-");
     const specId = "443-task-review";
     const state = moveFlowToStep(makeFlowState({
-      spec: `specs/${specId}/spec.json`,
+      specId: specId,
       runId: "run-task-review",
       currentTaskId: "T-1",
       tasks: [makeDefaultTask({

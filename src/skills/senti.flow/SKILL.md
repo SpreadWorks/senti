@@ -83,7 +83,7 @@ B.0. **Initialize flow state**
    - **Input parsing rules** — apply these rules to the user's raw input before running `set init`:
      - `#<number>` → always interpret as a GitHub Issue. Capture the number for `--issue`.
      - `issue <number>` or similar explicit forms → treat as a GitHub Issue.
-     - `spec <number>` or `specs/<number>-...` → treat as a local spec reference (do not pass as `--issue`).
+     - `spec <number>` or a path under the configured spec root → treat as a local spec reference (do not pass as `--issue`).
      - A bare number (e.g., `133`) → ambiguous input. Do not pass as `--issue`; include in the request text so prelude Q1 can disambiguate.
    - Run `senti flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` as the opaque `targetRunId`

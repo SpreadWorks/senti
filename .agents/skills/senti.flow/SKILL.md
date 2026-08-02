@@ -302,7 +302,7 @@ B.0. **Initialize flow state**
    - **Input parsing rules** — apply these rules to the user's raw input before running `set init`:
      - `#<number>` → always interpret as a GitHub Issue. Capture the number for `--issue`.
      - `issue <number>` or similar explicit forms → treat as a GitHub Issue.
-     - `spec <number>` or `specs/<number>-...` → treat as a local spec reference (do not pass as `--issue`).
+     - `spec <number>` or a path under the configured spec root → treat as a local spec reference (do not pass as `--issue`).
      - A bare number (e.g., `133`) → ambiguous input. Do not pass as `--issue`; include in the request text so prelude Q1 can disambiguate.
    - Run `senti flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` as the opaque `targetRunId`
@@ -385,7 +385,7 @@ Note:
 
 Placeholder artifact permission:
 - Do not write placeholder test artifacts to satisfy the flow.
-- If real execution is unavailable and the user explicitly permits a placeholder, record `specs/<spec>/placeholder-permission.json` with `version: 1`, `phase: "integration"`, `approvedByUser: true`, `artifactPaths`, `permissionText`, `reason`, and `createdAt`.
+- If real execution is unavailable and the user explicitly permits a placeholder, record `placeholder-permission.json` under the active Flow's configured spec directory with `version: 1`, `phase: "integration"`, `approvedByUser: true`, `artifactPaths`, `permissionText`, `reason`, and `createdAt`.
 - Without that record, flow-level `impl-gate` rejects the artifact with `ARTIFACT_PLACEHOLDER`.
 
 ### C. Dispatcher loop
@@ -564,7 +564,7 @@ senti flow set issue-log --step <current-step> --reason "<what went wrong>" --tr
 - Do not defer recording — record as soon as the fix is applied.
 - `--reason` and `--step` are required. `--trigger`, `--resolution`, `--guardrail-candidate` are optional but recommended.
 - Minimum length (enforced by the CLI): `--reason` 20 chars (trimmed), optional fields 10 chars (trimmed). Shorter inputs are rejected with a non-zero exit code.
-- This creates `specs/<spec>/issue-log.json`. The file persists with the spec.
+- This creates `issue-log.json` under the active Flow's configured spec directory. The file persists with the spec.
 
 ### When to record
 

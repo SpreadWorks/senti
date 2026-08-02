@@ -38,7 +38,7 @@ function semanticFailure(id = "task-semantic") {
 
 function taskGateState(specId, metrics = []) {
   return makeFlowState({
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     currentTaskId: "T-1",
     metrics,
@@ -232,7 +232,7 @@ test("integration retry mutations retain flow-level impl-gate ownership", () => 
   tmp = createTmpDir("integration-gate-mutation-owner-");
   const specId = "003-integration-gate-owner";
   const state = moveFlowToStep(makeFlowState({
-    spec: `specs/${specId}/spec.json`,
+    specId: specId,
     runId: `run-${specId}`,
     currentTaskId: null,
     tasks: [],

@@ -14,7 +14,7 @@ import { finalizationOutboxIdentity } from "./flow-outbox.js";
 export class RunFinalizeMergeCommand extends FlowCommand {
   async execute(ctx) {
     const state = ctx.flowState;
-    const { root } = ctx;
+    const root = ctx.executionRoot || ctx.root;
     const { worktreePath, mainRepoPath } = ctx.flowManager.resolveWorktreePaths(state);
 
     const { runMerge, resolveMergeStrategy } = await import("../commands/merge.js");

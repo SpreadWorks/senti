@@ -43,5 +43,5 @@
      - `pending` / `approved`: follow the Draft QA Rules empty-field requirement.
      - `answered` / `dropped`: do not create these statuses while generating the initial question list. They are produced only after the one-shot question sanity check, when existing questions are actually answered or intentionally dropped.
    - When the initial question list is complete, proceed to `draft-questions-review`.
-   - Keep `draft.json` in `specs/` (do not delete).
+   - Keep `draft.json` in the active Flow's configured spec directory (do not delete).
    - **On complete**: `senti flow set step draft done`

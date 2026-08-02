@@ -28,7 +28,7 @@ function identityInput(root, issue = 440) {
   return {
     runId: "run-440",
     issue,
-    spec: "specs/321-fix-worktree-flow-identity/spec.json",
+    specId: "321-fix-worktree-flow-identity",
     worktreePath: root,
   };
 }
@@ -46,7 +46,7 @@ describe("WorktreeFlowIdentity", () => {
 
       assert.equal(binding.identity.issue, issue);
       assert.deepEqual(binding.toJSON(), {
-        version: 1,
+        version: 2,
         ...identityInput(fs.realpathSync(root), issue),
       });
     }
@@ -60,14 +60,14 @@ describe("WorktreeFlowIdentity", () => {
       { ...valid, runId: " run-440" },
       { ...valid, runId: "run 440" },
       { ...valid, runId: `run-${"x".repeat(200)}` },
-      { runId: valid.runId, spec: valid.spec, worktreePath: valid.worktreePath },
+      { runId: valid.runId, issue: valid.issue, worktreePath: valid.worktreePath },
       { ...valid, issue: 0 },
       { ...valid, issue: -1 },
       { ...valid, issue: 1.5 },
       { ...valid, issue: "440" },
-      { ...valid, spec: "specs/../321-fix-worktree-flow-identity/spec.json" },
-      { ...valid, spec: "specs\\321-fix-worktree-flow-identity\\spec.json" },
-      { ...valid, spec: "321-fix-worktree-flow-identity" },
+      { ...valid, specId: "../321-fix-worktree-flow-identity" },
+      { ...valid, specId: "specs\\321-fix-worktree-flow-identity\\spec.json" },
+      { ...valid, specId: "specs/321-fix-worktree-flow-identity/spec.json" },
       { ...valid, worktreePath: "relative/path" },
       { ...valid, worktreePath: `${root}${path.sep}.` },
     ];
@@ -79,11 +79,11 @@ describe("WorktreeFlowIdentity", () => {
 
   it("requires the exact current binding schema", () => {
     const root = createWorktreeRoot();
-    const valid = { version: 1, ...identityInput(root) };
+    const valid = { version: 2, ...identityInput(root) };
     for (const value of [
-      { ...valid, version: 2 },
+      { ...valid, version: 1 },
       { ...valid, extra: true },
-      { version: 1, runId: valid.runId },
+      { version: 2, runId: valid.runId },
       [valid],
       null,
     ]) {
@@ -114,9 +114,9 @@ describe("WorktreeFlowIdentity", () => {
     }
     for (const value of [
       { ...valid, original: { ...original, extra: true } },
-      { ...valid, original: { runId: original.runId, issue: original.issue, spec: original.spec } },
+      { ...valid, original: { runId: original.runId, issue: original.issue, specId: original.specId } },
       { ...valid, next: { ...next, extra: true } },
-      { ...valid, next: { runId: next.runId, issue: next.issue, spec: next.spec } },
+      { ...valid, next: { runId: next.runId, issue: next.issue, specId: next.specId } },
     ]) {
       assert.throws(
         () => WorktreeFlowIssueTransition.fromJSON(value),
@@ -419,12 +419,12 @@ describe("WorktreeFlowBindingStore", () => {
     fs.writeFileSync(store.path, "{not-json\n");
     assert.throws(() => store.load(), /JSON/i);
 
-    fs.writeFileSync(store.path, JSON.stringify({ version: 1, ...identityInput(other) }));
+    fs.writeFileSync(store.path, JSON.stringify({ version: 2, ...identityInput(other) }));
     assert.throws(() => store.load(), /path mismatch/i);
 
     fs.rmSync(store.path);
     const target = path.join(root, "binding-target.json");
-    fs.writeFileSync(target, JSON.stringify({ version: 1, ...identityInput(root) }));
+    fs.writeFileSync(target, JSON.stringify({ version: 2, ...identityInput(root) }));
     fs.symlinkSync(target, store.path);
     assert.throws(() => store.load(), /regular file/i);
 

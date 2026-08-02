@@ -31,6 +31,7 @@ import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } fro
 import { SENTI_ANALYSIS_GITATTRIBUTE, normalizeSentiGitattributes } from "./lib/gitattributes.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
 import { ExecutionMode, WritePlan } from "./lib/execution-plan.js";
+import { flowSpecRootFromConfig } from "./lib/flow-workspace.js";
 
 // ---------------------------------------------------------------------------
 // readline helpers
@@ -306,8 +307,7 @@ function ensureProjectDirs(workRoot) {
   const sentiDir = path.join(workRoot, ".senti");
   const outputDir = path.join(sentiDir, "output");
   const docsDir = path.join(workRoot, "docs");
-  const specsDir = path.join(workRoot, "specs");
-  [sentiDir, outputDir, docsDir, specsDir].forEach((d) =>
+  [sentiDir, outputDir, docsDir].forEach((d) =>
     fs.mkdirSync(d, { recursive: true }),
   );
   fs.writeFileSync(path.join(outputDir, ".gitkeep"), "");
@@ -834,6 +834,7 @@ async function main() {
     if (preparedConfig?.plugin) config.plugin = preparedConfig.plugin;
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+    fs.mkdirSync(flowSpecRootFromConfig(config).resolve(workRoot), { recursive: true });
     console.log(t("setup.messages.configGenerated", { path: configPath }));
 
     if (config.agent) {

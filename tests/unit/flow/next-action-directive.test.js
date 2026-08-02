@@ -26,7 +26,7 @@ import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 function flowState() {
   return {
     runId: "run-473",
-    spec: "specs/353-durable-finalize-cleanup/spec.json",
+    specId: "353-durable-finalize-cleanup",
     issue: 473,
   };
 }

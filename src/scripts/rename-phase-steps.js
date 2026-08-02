@@ -6,8 +6,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadConfig } from "../lib/config.js";
 import { FlowSpecId } from "../lib/flow-spec-id.js";
 import { FlowManager } from "../lib/flow-manager.js";
+import { FlowSpecLocation, FlowSpecRoot, flowSpecRootFromConfig } from "../lib/flow-workspace.js";
 import { RepositoryMaintenanceLock } from "../lib/repository-maintenance-lock.js";
 import { ONE_TO_ONE_STEP_RENAMES, renameFlowStateStepIds } from "../lib/step-id-rename.js";
 import { IssueLogStore } from "../flow/lib/issue-log-store.js";
@@ -42,8 +44,9 @@ class RepositoryTopology {
 }
 
 class MigrationPlan {
-  constructor(root) {
+  constructor(root, specRoot) {
     this.root = root;
+    this.specRoot = FlowSpecRoot.from(specRoot);
     this.changes = [];
     this.flowSpecs = [];
     this.fileWrites = [];
@@ -85,6 +88,7 @@ class MigrationPlan {
       root: this.root,
       mainRoot: this.root,
       inWorktree: false,
+      specRoot: this.specRoot,
     });
     this.#preflightIssueLogs();
     this.#preflight(manager, maintenanceOwnerToken);
@@ -201,6 +205,11 @@ function resolveRepositoryTopology(startRoot) {
   return new RepositoryTopology(mainRoot, worktrees);
 }
 
+function configuredSpecRoot(root) {
+  const configPath = path.join(root, ".senti", "config.json");
+  return flowSpecRootFromConfig(fs.existsSync(configPath) ? loadConfig(root) : {});
+}
+
 function readActiveFlows(mainRoot) {
   const registryPath = path.join(mainRoot, ".senti", ".active-flow");
   let stat;
@@ -224,21 +233,22 @@ function readActiveFlows(mainRoot) {
   for (const entry of entries) {
     if (
       !entry || typeof entry !== "object"
-      || typeof entry.spec !== "string" || entry.spec.trim() === ""
+      || typeof entry.specId !== "string" || entry.specId.trim() === ""
       || !["worktree", "branch", "local"].includes(entry.mode)
-      || seen.has(entry.spec)
+      || seen.has(entry.specId)
     ) {
       throw new Error("active-flow registry contains an invalid entry");
     }
-    seen.add(entry.spec);
+    FlowSpecId.from(entry.specId);
+    seen.add(entry.specId);
   }
   return entries;
 }
 
-function flowStateExists(root, specId) {
-  const literalSpecId = FlowSpecId.from(specId).toString();
+function flowStateExists(root, specRoot, specId) {
+  const location = new FlowSpecLocation({ repositoryRoot: root, specRoot, specId });
   try {
-    const stat = fs.lstatSync(path.join(root, "specs", literalSpecId, "flow.json"));
+    const stat = fs.lstatSync(location.flowStateFile);
     return stat.isFile() && !stat.isSymbolicLink();
   } catch (error) {
     if (error.code === "ENOENT") return false;
@@ -246,22 +256,21 @@ function flowStateExists(root, specId) {
   }
 }
 
-function assertRegistryConsistency(topology, activeFlows) {
+function assertRegistryConsistency(topology, activeFlows, specRoot) {
   for (const entry of activeFlows) {
+    if (!flowStateExists(topology.mainRoot, specRoot, entry.specId)) {
+      throw new Error(`active-flow registry/state authority mismatch for ${entry.specId}`);
+    }
     if (entry.mode === "worktree") {
-      const branch = `feature/${entry.spec}`;
+      const branch = `feature/${entry.specId}`;
       const match = topology.worktrees.find((worktree) => worktree.branch === branch);
-      if (!match || !flowStateExists(match.path, entry.spec)) {
-        throw new Error(`active-flow registry/worktree mismatch for ${entry.spec}`);
-      }
-    } else if (!flowStateExists(topology.mainRoot, entry.spec)) {
-      throw new Error(`active-flow registry/main authority mismatch for ${entry.spec}`);
+      if (!match) throw new Error(`active-flow registry/worktree mismatch for ${entry.specId}`);
     }
   }
 }
 
-function assertNoWriterLocks(worktree) {
-  const specsDir = path.join(worktree.path, "specs");
+function assertNoWriterLocks(root, specRoot) {
+  const specsDir = FlowSpecRoot.from(specRoot).resolve(root);
   if (!fs.existsSync(specsDir)) return;
   for (const entry of fs.readdirSync(specsDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
@@ -270,11 +279,11 @@ function assertNoWriterLocks(worktree) {
   }
 }
 
-function assertApplySafety(topology, { checkClean = true } = {}) {
+function assertApplySafety(topology, specRoot, { checkClean = true } = {}) {
   const activeFlows = readActiveFlows(topology.mainRoot);
-  assertRegistryConsistency(topology, activeFlows);
+  assertRegistryConsistency(topology, activeFlows, specRoot);
+  assertNoWriterLocks(topology.mainRoot, specRoot);
   for (const worktree of topology.worktrees) {
-    assertNoWriterLocks(worktree);
     if (checkClean && runGit(worktree.path, [
       "status",
       "--porcelain",
@@ -298,14 +307,19 @@ function readJson(filePath, label, strict) {
   }
 }
 
+function migrationArtifact(plan, id, fileName) {
+  return path.posix.join(plan.specRoot.toString(), id, fileName);
+}
+
 function planFlowJson(dir, id, plan, strict) {
   const flowPath = path.join(dir, "flow.json");
   if (!fs.existsSync(flowPath)) return;
-  const state = readJson(flowPath, `specs/${id}/flow.json`, strict);
+  const label = migrationArtifact(plan, id, "flow.json");
+  const state = readJson(flowPath, label, strict);
   if (!state) return;
   const changes = renameFlowStateStepIds(state);
   if (changes.length === 0) return;
-  for (const change of changes) plan.change(`specs/${id}/flow.json`, change.from, change.to);
+  for (const change of changes) plan.change(label, change.from, change.to);
   plan.flow(id);
   plan.file(flowPath, `${JSON.stringify(state, null, 2)}\n`);
 }
@@ -315,20 +329,20 @@ function planIssueLog(dir, id, plan) {
   if (!fs.existsSync(filePath)) return;
   const snapshot = new IssueLogStore({
     root: plan.root,
-    spec: `specs/${id}/spec.json`,
+    spec: migrationArtifact(plan, id, "spec.json"),
     allowLegacyArray: true,
   }).read();
   const entries = snapshot.document.entries;
   let changed = false;
   for (const entry of entries) {
     if (entry && typeof entry.step === "string" && ONE_TO_ONE_STEP_RENAMES[entry.step]) {
-      plan.change(`specs/${id}/issue-log.json`, `step: ${entry.step}`, `step: ${ONE_TO_ONE_STEP_RENAMES[entry.step]}`);
+      plan.change(migrationArtifact(plan, id, "issue-log.json"), `step: ${entry.step}`, `step: ${ONE_TO_ONE_STEP_RENAMES[entry.step]}`);
       entry.step = ONE_TO_ONE_STEP_RENAMES[entry.step];
       changed = true;
     }
   }
   if (changed) {
-    plan.issueLog(`specs/${id}/spec.json`, snapshot.revision);
+    plan.issueLog(migrationArtifact(plan, id, "spec.json"), snapshot.revision);
     plan.file(filePath, `${JSON.stringify(snapshot.document.toJSON(), null, 2)}\n`);
   }
 }
@@ -337,11 +351,12 @@ function planReportRetro(dir, id, plan, strict) {
   for (const fileName of ["report.json", "retro.json"]) {
     const filePath = path.join(dir, fileName);
     if (!fs.existsSync(filePath)) continue;
-    const data = readJson(filePath, `specs/${id}/${fileName}`, strict);
+    const label = migrationArtifact(plan, id, fileName);
+    const data = readJson(filePath, label, strict);
     if (!data) continue;
     const changes = [];
     const output = transformPathStrings(data, changes);
-    for (const change of changes) plan.change(`specs/${id}/${fileName}`, change.from, change.to);
+    for (const change of changes) plan.change(label, change.from, change.to);
     if (changes.length > 0) plan.file(filePath, `${JSON.stringify(output, null, 2)}\n`);
   }
 }
@@ -354,20 +369,22 @@ function planReviewMarkdown(dir, id, plan) {
   if (output === text) return;
   for (const [from, to] of Object.entries(ONE_TO_ONE_STEP_RENAMES)) {
     const token = new RegExp(`(?<![\\w-])${from}(?![\\w-])`);
-    if (token.test(text) && !token.test(output)) plan.change(`specs/${id}/review.md`, `code/path: ${from}`, `code/path: ${to}`);
+    if (token.test(text) && !token.test(output)) plan.change(migrationArtifact(plan, id, "review.md"), `code/path: ${from}`, `code/path: ${to}`);
   }
   plan.file(filePath, output);
 }
 
-function buildPlan(root, strict) {
-  const plan = new MigrationPlan(root);
-  const specsDir = path.join(root, "specs");
+function buildPlan(root, strict, specRoot = configuredSpecRoot(root)) {
+  const plan = new MigrationPlan(root, specRoot);
+  const specsDir = plan.specRoot.resolve(root);
   if (!fs.existsSync(specsDir)) return plan;
   plan.snapshot(specsDir);
   const entries = fs.readdirSync(specsDir, { withFileTypes: true })
     .sort((left, right) => left.name.localeCompare(right.name));
   for (const entry of entries) {
-    if (entry.isSymbolicLink()) throw new Error(`migration spec directory must not be a symlink: specs/${entry.name}`);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`migration spec directory must not be a symlink: ${path.posix.join(plan.specRoot.toString(), entry.name)}`);
+    }
     if (!entry.isDirectory()) continue;
     const id = FlowSpecId.from(entry.name).toString();
     const dir = path.join(specsDir, id);
@@ -416,6 +433,7 @@ export function applyMigration(requestedRoot, {
   afterPlanBuilt = () => {},
 } = {}) {
   const topology = resolveRepositoryTopology(requestedRoot);
+  const specRoot = configuredSpecRoot(topology.mainRoot);
   const journalPath = path.join(topology.mainRoot, MIGRATION_JOURNAL);
   let journalPresent = false;
   try {
@@ -424,7 +442,7 @@ export function applyMigration(requestedRoot, {
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  assertApplySafety(topology, { checkClean: !journalPresent });
+  assertApplySafety(topology, specRoot, { checkClean: !journalPresent });
   afterInitialSafety(topology);
   const maintenance = new RepositoryMaintenanceLock({ mainRoot: topology.mainRoot });
   maintenance.acquire();
@@ -437,11 +455,11 @@ export function applyMigration(requestedRoot, {
       journalPath: MIGRATION_JOURNAL,
     });
     if (recovery.completed) {
-      result = new MigrationPlan(topology.mainRoot);
+      result = new MigrationPlan(topology.mainRoot, specRoot);
     } else {
       afterMaintenanceAcquired(topology);
-      assertApplySafety(topology);
-      const plan = buildPlan(topology.mainRoot, true);
+      assertApplySafety(topology, specRoot);
+      const plan = buildPlan(topology.mainRoot, true, specRoot);
       afterPlanBuilt(topology, plan);
       plan.apply(maintenance.ownerToken);
       result = plan;
@@ -480,7 +498,9 @@ function main() {
     plan = applyMigration(requestedRoot);
     root = plan.root;
   } else {
-    plan = buildPlan(root, false);
+    const topology = resolveRepositoryTopology(requestedRoot);
+    root = topology.mainRoot;
+    plan = buildPlan(root, false, configuredSpecRoot(root));
   }
   printPlan(plan, apply);
 }

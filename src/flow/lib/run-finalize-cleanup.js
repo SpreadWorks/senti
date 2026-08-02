@@ -1,24 +1,10 @@
 /**
  * src/flow/lib/run-finalize-cleanup.js
  *
- * finalize-cleanup: clear flow state, commit the final flow.json snapshot to
- * the main repo, remove the worktree + feature branch, and embed the finalize
- * Report in the response envelope so the AI dispatcher does not need a follow-
- * up `flow report show` round-trip (spec 251).
- *
- * Spec 253 — orphan commit detection (squash route only):
- *
- * The cleanup body now executes a 4-stage decision flow before the existing
- * teardown transaction:
- *
- *   (A) args validation      — reject mutually-exclusive flags
- *   (B) route routing        — spec-only / PR / unknown skip decisions
- *   (C) orphan guard         — baseline ancestry + SHA comparison
- *   (D) existing teardown    — pending outbox commit → teardown → post-hook completion
- *
- * Stages (A)/(B)/(C) halt before any side effects (worktree, branch, commit,
- * step status remain unchanged on halt). Once stage (D) starts, the original
- * transactional ordering (R5) is preserved.
+ * finalize-cleanup removes the selected worktree and feature branch, then
+ * records completion in the shared base-side spec directory. The dispatcher
+ * closes the runtime log and creates the target-spec + docs completion commit
+ * after this command returns; only then is the active entry cleared.
  *
  * Recovery paths:
  *  - --auto-rescue: cherry-pick orphan commits onto baseBranch on the main
@@ -34,13 +20,7 @@ import crypto from "node:crypto";
 import os from "os";
 import path from "path";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { specIdFromPath } from "../../lib/flow-helpers.js";
-import { FinalizeCleanupPathResolver } from "../../lib/finalize-cleanup-paths.js";
-import {
-  GitCommitPathProbeError,
-  GitCommitPathSet,
-  runGit,
-} from "../../lib/git-helpers.js";
+import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import {
   commitFinalizeCompletion,
@@ -58,7 +38,6 @@ import {
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
 import { FlowCompletion } from "./flow-completion.js";
-import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
   RepositoryFlowOperationLock,
   resolveRepositoryLockRoot,
@@ -69,6 +48,13 @@ import {
 } from "../../lib/worktree-flow-binding.js";
 import { deleteRepairBaselineForFlow } from "./repair-state-identity.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
+import {
+  DEFAULT_FLOW_SPEC_DIR,
+  FlowSpecLocation,
+  FlowSpecRoot,
+  flowStateSpecLocation,
+  relativeFlowSpecFile,
+} from "../../lib/flow-workspace.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -80,27 +66,8 @@ const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"]
 const SUBMODULE_RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_STATUS = ["inspect-status-manually", "clean-submodules-and-retry", "manual-remove-after-review"];
 const SUBMODULE_RECOVERY_OPTIONS_FORCE = ["inspect-worktree-manually", "manual-remove-after-review", "retry-after-fixing-git-error"];
-const FINALIZE_TEARDOWN_VERSION = 7;
-const FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION = 1;
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
-const SHA256 = /^[a-f0-9]{64}$/;
-const FINALIZE_TEARDOWN_TRANSACTION_FILE = /^[a-f0-9]{64}\.json$/;
-const FINALIZE_BEFORE_IMAGE_MAX_FILES = 512;
-const FINALIZE_BEFORE_IMAGE_MAX_DIRECTORIES = 512;
-const FINALIZE_BEFORE_IMAGE_MAX_BYTES = 64 * 1024 * 1024;
-const FINALIZE_TEARDOWN_PHASES = Object.freeze([
-  "prepared",
-  "commit-durable",
-  "index-reconciled",
-  "worktree-removed",
-  "branch-deleted",
-  "validated",
-  "pointer-written",
-  "active-cleared",
-  "completed",
-]);
-const FINALIZE_REPOSITORY_LOCK_FILE = ".repository-finalize.lock";
-const AUTO_RESCUE_CLEANUP_VERSION = 5;
+const AUTO_RESCUE_CLEANUP_VERSION = 6;
 const AUTO_RESCUE_CLEANUP_PHASES = new Set([
   "staged",
   "worktree-added",
@@ -113,131 +80,17 @@ const AUTO_RESCUE_CLEANUP_PHASES = new Set([
   "completed",
 ]);
 
+function requiredSpecLocation(state) {
+  const location = flowStateSpecLocation(state);
+  if (!location) throw new Error("finalize cleanup spec location is unavailable");
+  return location;
+}
+
 function assertExactObjectKeys(value, keys, label) {
   if (value == null || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object`);
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${label} has an invalid schema`);
-}
-
-export class FinalizeTeardownPhase {
-  constructor(name) {
-    if (!FINALIZE_TEARDOWN_PHASES.includes(name)) throw new Error(`invalid finalize teardown phase: ${name}`);
-    this.name = name;
-    this.index = FINALIZE_TEARDOWN_PHASES.indexOf(name);
-    Object.freeze(this);
-  }
-
-  static from(value) {
-    return value instanceof FinalizeTeardownPhase ? value : new FinalizeTeardownPhase(value);
-  }
-
-  atLeast(other) {
-    return this.index >= FinalizeTeardownPhase.from(other).index;
-  }
-}
-
-const FINALIZE_CHECKPOINT_CODE_PREFIX = "FINALIZE_CHECKPOINT:";
-
-export class FinalizeTeardownCheckpoint {
-  constructor({
-    completedPhase,
-    targetPhase,
-    failureCode = null,
-    startedAt = new Date().toISOString(),
-  }) {
-    this.completedPhase = FinalizeTeardownPhase.from(completedPhase);
-    this.targetPhase = FinalizeTeardownPhase.from(targetPhase);
-    if (this.targetPhase.index !== this.completedPhase.index + 1) {
-      throw new Error(
-        `finalize teardown checkpoint must target the next phase: ${this.completedPhase.name} -> ${this.targetPhase.name}`,
-      );
-    }
-    if (failureCode != null && (typeof failureCode !== "string" || failureCode === "")) {
-      throw new Error("finalize teardown checkpoint failureCode is invalid");
-    }
-    if (typeof startedAt !== "string" || startedAt === "") {
-      throw new Error("finalize teardown checkpoint startedAt is invalid");
-    }
-    this.failureCode = failureCode;
-    this.startedAt = startedAt;
-    Object.freeze(this);
-  }
-
-  static fromResult(result) {
-    if (
-      !(result instanceof FinalizeTeardownResult)
-      || typeof result.code !== "string"
-      || !result.code.startsWith(FINALIZE_CHECKPOINT_CODE_PREFIX)
-    ) {
-      return null;
-    }
-    let stored;
-    try {
-      stored = JSON.parse(result.code.slice(FINALIZE_CHECKPOINT_CODE_PREFIX.length));
-    } catch (error) {
-      throw new Error("finalize teardown checkpoint is malformed", { cause: error });
-    }
-    assertExactObjectKeys(
-      stored,
-      ["targetPhase", "failureCode", "startedAt"],
-      "finalize teardown checkpoint",
-    );
-    return new FinalizeTeardownCheckpoint({
-      completedPhase: result.phase,
-      ...stored,
-    });
-  }
-
-  withFailure(failureCode) {
-    return new FinalizeTeardownCheckpoint({
-      completedPhase: this.completedPhase,
-      targetPhase: this.targetPhase,
-      failureCode,
-      startedAt: this.startedAt,
-    });
-  }
-
-  toResult(commitSha = null) {
-    return new FinalizeTeardownResult({
-      phase: this.completedPhase,
-      ok: false,
-      code: `${FINALIZE_CHECKPOINT_CODE_PREFIX}${JSON.stringify({
-        targetPhase: this.targetPhase.name,
-        failureCode: this.failureCode,
-        startedAt: this.startedAt,
-      })}`,
-      commitSha,
-      at: this.startedAt,
-    });
-  }
-}
-
-export class FinalizeTeardownResult {
-  constructor({ phase, ok, code = null, commitSha = null, at = new Date().toISOString() }) {
-    this.phase = FinalizeTeardownPhase.from(phase);
-    this.ok = ok === true;
-    this.code = code == null ? null : String(code);
-    this.commitSha = commitSha == null ? null : String(commitSha);
-    this.at = String(at);
-    Object.freeze(this);
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, ["phase", "ok", "code", "commitSha", "at"], "finalize teardown result");
-    if (typeof value.ok !== "boolean") throw new Error("finalize teardown result.ok must be boolean");
-    return new FinalizeTeardownResult(value);
-  }
-
-  toJSON() {
-    return {
-      phase: this.phase.name,
-      ok: this.ok,
-      code: this.code,
-      commitSha: this.commitSha,
-      at: this.at,
-    };
-  }
 }
 
 class FinalizeDroppedCommit {
@@ -364,1015 +217,6 @@ class FinalizeTeardownAuthorization {
   }
 }
 
-class FinalizeCommitExpectation {
-  constructor({
-    transactionId,
-    targetRoot,
-    headRef,
-    expectedParent,
-    stagedTree,
-    messageHash,
-    baseRef,
-    featureRef,
-    commitPaths,
-    worktreePath = null,
-    worktreeHead = null,
-  }) {
-    if (typeof transactionId !== "string" || transactionId === "") {
-      throw new Error("finalize commit expectation.transactionId is invalid");
-    }
-    if (typeof targetRoot !== "string" || path.resolve(targetRoot) !== targetRoot) {
-      throw new Error("finalize commit expectation.targetRoot is invalid");
-    }
-    if (typeof headRef !== "string" || !headRef.startsWith("refs/heads/")) {
-      throw new Error("finalize commit expectation.headRef is invalid");
-    }
-    for (const [label, value] of Object.entries({ expectedParent, stagedTree, baseRef, featureRef })) {
-      if (!GIT_OBJECT_ID.test(String(value))) throw new Error(`finalize commit expectation.${label} is invalid`);
-    }
-    if (!SHA256.test(String(messageHash))) {
-      throw new Error("finalize commit expectation.messageHash is invalid");
-    }
-    const commitPathSet = new GitCommitPathSet(commitPaths);
-    if (commitPathSet.size === 0) {
-      throw new Error("finalize commit expectation.commitPaths is invalid");
-    }
-    if ((worktreePath == null) !== (worktreeHead == null)) {
-      throw new Error("finalize commit expectation worktree authority is incomplete");
-    }
-    if (worktreePath != null && (typeof worktreePath !== "string" || path.resolve(worktreePath) !== worktreePath)) {
-      throw new Error("finalize commit expectation.worktreePath is invalid");
-    }
-    if (worktreeHead != null && !GIT_OBJECT_ID.test(String(worktreeHead))) {
-      throw new Error("finalize commit expectation.worktreeHead is invalid");
-    }
-    this.transactionId = transactionId;
-    this.targetRoot = targetRoot;
-    this.headRef = headRef;
-    this.expectedParent = expectedParent;
-    this.stagedTree = stagedTree;
-    this.messageHash = messageHash;
-    this.baseRef = baseRef;
-    this.featureRef = featureRef;
-    this.commitPaths = Object.freeze(commitPathSet.toArray());
-    this.worktreePath = worktreePath;
-    this.worktreeHead = worktreeHead;
-    Object.freeze(this);
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, [
-      "transactionId",
-      "targetRoot",
-      "headRef",
-      "expectedParent",
-      "stagedTree",
-      "messageHash",
-      "baseRef",
-      "featureRef",
-      "commitPaths",
-      "worktreePath",
-      "worktreeHead",
-    ], "finalize commit expectation");
-    return new FinalizeCommitExpectation(value);
-  }
-
-  equals(other) {
-    const candidate = other instanceof FinalizeCommitExpectation
-      ? other
-      : FinalizeCommitExpectation.fromStored(other);
-    return JSON.stringify(this.toJSON()) === JSON.stringify(candidate.toJSON());
-  }
-
-  toJSON() {
-    return {
-      transactionId: this.transactionId,
-      targetRoot: this.targetRoot,
-      headRef: this.headRef,
-      expectedParent: this.expectedParent,
-      stagedTree: this.stagedTree,
-      messageHash: this.messageHash,
-      baseRef: this.baseRef,
-      featureRef: this.featureRef,
-      commitPaths: [...this.commitPaths],
-      worktreePath: this.worktreePath,
-      worktreeHead: this.worktreeHead,
-    };
-  }
-}
-
-class FinalizeRebasedWorktreeAuthority {
-  constructor({
-    version,
-    transactionId,
-    sourceExpectationDigest,
-    worktreePath,
-    baseHead,
-    featureHead,
-    worktreeHead,
-    reconciledAt,
-  }) {
-    if (version !== FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION) {
-      throw new Error("unsupported rebased worktree teardown authority version");
-    }
-    if (typeof transactionId !== "string" || transactionId === "") {
-      throw new Error("rebased worktree teardown authority transactionId is invalid");
-    }
-    if (!SHA256.test(String(sourceExpectationDigest))) {
-      throw new Error("rebased worktree teardown authority source expectation is invalid");
-    }
-    if (typeof worktreePath !== "string" || path.resolve(worktreePath) !== worktreePath) {
-      throw new Error("rebased worktree teardown authority worktree path is invalid");
-    }
-    for (const [label, value] of Object.entries({ baseHead, featureHead, worktreeHead })) {
-      if (!GIT_OBJECT_ID.test(String(value))) {
-        throw new Error(`rebased worktree teardown authority ${label} is invalid`);
-      }
-    }
-    if (featureHead !== worktreeHead || featureHead !== baseHead) {
-      throw new Error("rebased worktree teardown authority must bind one rebased HEAD");
-    }
-    if (typeof reconciledAt !== "string" || Number.isNaN(Date.parse(reconciledAt))) {
-      throw new Error("rebased worktree teardown authority reconciliation time is invalid");
-    }
-    this.version = version;
-    this.transactionId = transactionId;
-    this.sourceExpectationDigest = sourceExpectationDigest;
-    this.worktreePath = worktreePath;
-    this.baseHead = baseHead;
-    this.featureHead = featureHead;
-    this.worktreeHead = worktreeHead;
-    this.reconciledAt = reconciledAt;
-    Object.freeze(this);
-  }
-
-  static create({ transaction, expectation, baseHead }) {
-    return new FinalizeRebasedWorktreeAuthority({
-      version: FINALIZE_REBASED_WORKTREE_AUTHORITY_VERSION,
-      transactionId: transaction.transactionId,
-      sourceExpectationDigest: finalizeCommitExpectationDigest(expectation),
-      worktreePath: expectation.worktreePath,
-      baseHead,
-      featureHead: baseHead,
-      worktreeHead: baseHead,
-      reconciledAt: new Date().toISOString(),
-    });
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, [
-      "version",
-      "transactionId",
-      "sourceExpectationDigest",
-      "worktreePath",
-      "baseHead",
-      "featureHead",
-      "worktreeHead",
-      "reconciledAt",
-    ], "rebased worktree teardown authority");
-    return new FinalizeRebasedWorktreeAuthority(value);
-  }
-
-  effectiveExpectation(expectation) {
-    if (!(expectation instanceof FinalizeCommitExpectation)) {
-      throw new Error("rebased worktree teardown authority requires a commit expectation");
-    }
-    if (
-      this.transactionId !== expectation.transactionId
-      || this.sourceExpectationDigest !== finalizeCommitExpectationDigest(expectation)
-      || this.worktreePath !== expectation.worktreePath
-    ) {
-      throw new Error("rebased worktree teardown authority does not match the durable transaction");
-    }
-    return new FinalizeCommitExpectation({
-      ...expectation.toJSON(),
-      featureRef: this.featureHead,
-      worktreeHead: this.worktreeHead,
-    });
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      transactionId: this.transactionId,
-      sourceExpectationDigest: this.sourceExpectationDigest,
-      worktreePath: this.worktreePath,
-      baseHead: this.baseHead,
-      featureHead: this.featureHead,
-      worktreeHead: this.worktreeHead,
-      reconciledAt: this.reconciledAt,
-    };
-  }
-}
-
-class FinalizeFileBeforeImage {
-  constructor({ relativePath, bytes, mode, revision }) {
-    assertFinalizeRelativePath(relativePath, "finalize file before-image path");
-    if (typeof bytes !== "string" || !Number.isInteger(mode) || !SHA256.test(String(revision))) {
-      throw new Error("finalize file before-image is invalid");
-    }
-    const decoded = Buffer.from(bytes, "base64");
-    if (crypto.createHash("sha256").update(decoded).digest("hex") !== revision) {
-      throw new Error("finalize file before-image revision is invalid");
-    }
-    this.relativePath = relativePath;
-    this.bytes = bytes;
-    this.mode = mode;
-    this.revision = revision;
-    Object.freeze(this);
-  }
-
-  static capture(root, filePath, stat) {
-    const bytes = fs.readFileSync(filePath);
-    return new FinalizeFileBeforeImage({
-      relativePath: path.relative(root, filePath),
-      bytes: bytes.toString("base64"),
-      mode: stat.mode & 0o777,
-      revision: crypto.createHash("sha256").update(bytes).digest("hex"),
-    });
-  }
-
-  toJSON() {
-    return {
-      relativePath: this.relativePath,
-      bytes: this.bytes,
-      mode: this.mode,
-      revision: this.revision,
-    };
-  }
-}
-
-class FinalizeDirectoryBeforeImage {
-  constructor({ relativePath, mode }) {
-    assertFinalizeRelativePath(relativePath, "finalize directory before-image path");
-    if (!Number.isInteger(mode)) {
-      throw new Error("finalize directory before-image is invalid");
-    }
-    this.relativePath = relativePath;
-    this.mode = mode;
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return { relativePath: this.relativePath, mode: this.mode };
-  }
-}
-
-class FinalizeTreeBeforeImage {
-  constructor({ rootRelative, rootExisted, sharedState, files, directories }) {
-    assertFinalizeRelativePath(rootRelative, "finalize tree before-image root");
-    if (typeof rootExisted !== "boolean" || typeof sharedState !== "boolean") {
-      throw new Error("finalize tree before-image root authority is invalid");
-    }
-    if (!rootExisted && (files.length > 0 || directories.length > 0 || sharedState)) {
-      throw new Error("absent finalize tree before-image contains entries or shared state");
-    }
-    this.rootRelative = rootRelative;
-    this.rootExisted = rootExisted;
-    this.sharedState = sharedState;
-    this.files = Object.freeze(files.map((entry) => entry instanceof FinalizeFileBeforeImage
-      ? entry
-      : new FinalizeFileBeforeImage(entry)));
-    this.directories = Object.freeze(directories.map((entry) => entry instanceof FinalizeDirectoryBeforeImage
-      ? entry
-      : new FinalizeDirectoryBeforeImage(entry)));
-    if (
-      this.files.length > FINALIZE_BEFORE_IMAGE_MAX_FILES
-      || this.directories.length > FINALIZE_BEFORE_IMAGE_MAX_DIRECTORIES
-    ) {
-      throw new Error("finalize tree before-image exceeds the entry bound");
-    }
-    const ownedPrefix = `${this.rootRelative}${path.sep}`;
-    const paths = [...this.files, ...this.directories].map((entry) => entry.relativePath);
-    if (
-      paths.some((entry) => entry !== this.rootRelative && !entry.startsWith(ownedPrefix))
-      || new Set(paths).size !== paths.length
-    ) {
-      throw new Error("finalize tree before-image has invalid path ownership");
-    }
-    const byteCount = this.files.reduce((total, entry) => total + Buffer.from(entry.bytes, "base64").length, 0);
-    if (byteCount > FINALIZE_BEFORE_IMAGE_MAX_BYTES) {
-      throw new Error("finalize tree before-image exceeds the byte bound");
-    }
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return {
-      rootRelative: this.rootRelative,
-      rootExisted: this.rootExisted,
-      sharedState: this.sharedState,
-      files: this.files.map((entry) => entry.toJSON()),
-      directories: this.directories.map((entry) => entry.toJSON()),
-    };
-  }
-}
-
-class FinalizeIndexLockAuthority {
-  constructor({
-    token,
-    dev = null,
-    ino = null,
-    markerRevision,
-    publishPhase = "marker",
-    expectedIndexRevision = null,
-    expectedIndexMode = null,
-    publicationToken = null,
-    publicationName = null,
-    publicationDev = null,
-    publicationIno = null,
-  }) {
-    if (typeof token !== "string" || !/^[0-9a-f-]{36}$/.test(token)) {
-      throw new Error("finalize caller index lock token is invalid");
-    }
-    if ((dev === null) !== (ino === null)) {
-      throw new Error("finalize caller index lock identity is incomplete");
-    }
-    if (dev !== null && (![dev, ino].every(Number.isSafeInteger) || dev < 0 || ino < 0)) {
-      throw new Error("finalize caller index lock identity is invalid");
-    }
-    if (markerRevision !== FinalizeIndexLockAuthority.revision(FinalizeIndexLockAuthority.marker(token))) {
-      throw new Error("finalize caller index lock marker revision is invalid");
-    }
-    if (!new Set(["marker", "planned", "publishing"]).has(publishPhase)) {
-      throw new Error("finalize caller index lock publish phase is invalid");
-    }
-    if ((publicationDev === null) !== (publicationIno === null)) {
-      throw new Error("finalize caller index publication identity is incomplete");
-    }
-    if (
-      (
-        publishPhase === "marker"
-        && (
-          expectedIndexRevision !== null
-          || expectedIndexMode !== null
-          || publicationToken !== null
-          || publicationName !== null
-          || publicationDev !== null
-        )
-      )
-      || (
-        publishPhase !== "marker"
-        && (
-          dev === null
-          || !SHA256.test(String(expectedIndexRevision))
-          || !Number.isInteger(expectedIndexMode)
-          || expectedIndexMode < 0
-          || expectedIndexMode > 0o777
-          || typeof publicationToken !== "string"
-          || !/^[0-9a-f-]{36}$/.test(publicationToken)
-          || publicationName !== `publication-${publicationToken}.index`
-          || (
-            publishPhase === "planned"
-            && (publicationDev !== null || publicationIno !== null)
-          )
-          || (
-            publishPhase === "publishing"
-            && (
-              ![publicationDev, publicationIno].every(Number.isSafeInteger)
-              || publicationDev < 0
-              || publicationIno < 0
-            )
-          )
-        )
-      )
-    ) {
-      throw new Error("finalize caller index lock publication authority is invalid");
-    }
-    this.token = token;
-    this.dev = dev;
-    this.ino = ino;
-    this.markerRevision = markerRevision;
-    this.publishPhase = publishPhase;
-    this.expectedIndexRevision = expectedIndexRevision;
-    this.expectedIndexMode = expectedIndexMode;
-    this.publicationToken = publicationToken;
-    this.publicationName = publicationName;
-    this.publicationDev = publicationDev;
-    this.publicationIno = publicationIno;
-    Object.freeze(this);
-  }
-
-  static plan() {
-    const token = crypto.randomUUID();
-    return new FinalizeIndexLockAuthority({
-      token,
-      markerRevision: FinalizeIndexLockAuthority.revision(FinalizeIndexLockAuthority.marker(token)),
-    });
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, [
-      "token",
-      "dev",
-      "ino",
-      "markerRevision",
-      "publishPhase",
-      "expectedIndexRevision",
-      "expectedIndexMode",
-      "publicationToken",
-      "publicationName",
-      "publicationDev",
-      "publicationIno",
-    ], "finalize caller index lock authority");
-    return new FinalizeIndexLockAuthority(value);
-  }
-
-  static marker(token) {
-    return Buffer.from(`senti-finalize-index-lock-v1:${token}\n`);
-  }
-
-  static revision(bytes) {
-    return crypto.createHash("sha256").update(bytes).digest("hex");
-  }
-
-  withIdentity(stat) {
-    return new FinalizeIndexLockAuthority({
-      ...this.toJSON(),
-      dev: stat.dev,
-      ino: stat.ino,
-    });
-  }
-
-  planPublication(bytes, mode) {
-    if (this.dev === null) throw new Error("finalize caller index lock needs durable identity before publication");
-    const expectedIndexRevision = FinalizeIndexLockAuthority.revision(bytes);
-    const expectedIndexMode = mode & 0o777;
-    if (
-      this.publishPhase !== "marker"
-      && (
-        this.expectedIndexRevision !== expectedIndexRevision
-        || this.expectedIndexMode !== expectedIndexMode
-      )
-    ) {
-      throw new Error("finalize caller index publication changed after becoming durable");
-    }
-    if (this.publishPhase !== "marker") return this;
-    const publicationToken = crypto.randomUUID();
-    return new FinalizeIndexLockAuthority({
-      ...this.toJSON(),
-      publishPhase: "planned",
-      expectedIndexRevision,
-      expectedIndexMode,
-      publicationToken,
-      publicationName: `publication-${publicationToken}.index`,
-    });
-  }
-
-  ownPublication(publicationStat) {
-    if (
-      this.publishPhase === "marker"
-      || publicationStat == null
-      || ![publicationStat.dev, publicationStat.ino].every(Number.isSafeInteger)
-      || publicationStat.nlink !== 1
-    ) {
-      throw new Error("finalize caller index publication file identity is invalid");
-    }
-    if (
-      this.publishPhase === "publishing"
-      && (
-        this.publicationDev !== publicationStat.dev
-        || this.publicationIno !== publicationStat.ino
-      )
-    ) {
-      throw new Error("finalize caller index publication identity changed after becoming durable");
-    }
-    if (this.publishPhase === "publishing") return this;
-    return new FinalizeIndexLockAuthority({
-      ...this.toJSON(),
-      publishPhase: "publishing",
-      publicationDev: publicationStat.dev,
-      publicationIno: publicationStat.ino,
-    });
-  }
-
-  contentState(bytes) {
-    if (bytes.equals(FinalizeIndexLockAuthority.marker(this.token))) return "marker";
-    if (
-      this.publishPhase === "publishing"
-      && FinalizeIndexLockAuthority.revision(bytes) === this.expectedIndexRevision
-    ) {
-      return "expected-index";
-    }
-    return "foreign";
-  }
-
-  matches(stat) {
-    return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino;
-  }
-
-  matchesPublication(stat) {
-    return (
-      this.publicationDev !== null
-      && stat.dev === this.publicationDev
-      && stat.ino === this.publicationIno
-    );
-  }
-
-  toJSON() {
-    return {
-      token: this.token,
-      dev: this.dev,
-      ino: this.ino,
-      markerRevision: this.markerRevision,
-      publishPhase: this.publishPhase,
-      expectedIndexRevision: this.expectedIndexRevision,
-      expectedIndexMode: this.expectedIndexMode,
-      publicationToken: this.publicationToken,
-      publicationName: this.publicationName,
-      publicationDev: this.publicationDev,
-      publicationIno: this.publicationIno,
-    };
-  }
-}
-
-class FinalizeTempIndexAuthority {
-  constructor({
-    workspacePath,
-    token,
-    dev = null,
-    ino = null,
-    uid = null,
-    ownerDev = null,
-    ownerIno = null,
-    ownerRevision = null,
-  }) {
-    if (
-      typeof workspacePath !== "string"
-      || !path.isAbsolute(workspacePath)
-      || typeof token !== "string"
-      || !/^[0-9a-f-]{36}$/.test(token)
-    ) {
-      throw new Error("finalize temporary index workspace authority is invalid");
-    }
-    const workspaceParent = path.dirname(workspacePath);
-    const recoveryDirectory = path.dirname(workspaceParent);
-    const sentiDirectory = path.dirname(recoveryDirectory);
-    const gitDirectory = path.dirname(sentiDirectory);
-    if (
-      path.basename(workspacePath) !== `senti-finalize-index-${token}`
-      || path.basename(workspaceParent) !== "finalize-index-workspaces"
-      || path.basename(recoveryDirectory) !== "recovery"
-      || path.basename(sentiDirectory) !== "senti"
-      || path.basename(gitDirectory) !== ".git"
-    ) {
-      throw new Error("finalize temporary index workspace path is invalid");
-    }
-    const identity = [dev, ino, uid, ownerDev, ownerIno, ownerRevision];
-    if (identity.some((entry) => entry === null) && identity.some((entry) => entry !== null)) {
-      throw new Error("finalize temporary index workspace identity is incomplete");
-    }
-    if (
-      dev !== null
-      && (
-        ![dev, ino, uid, ownerDev, ownerIno].every(Number.isSafeInteger)
-        || [dev, ino, uid, ownerDev, ownerIno].some((entry) => entry < 0)
-        || !SHA256.test(String(ownerRevision))
-      )
-    ) {
-      throw new Error("finalize temporary index workspace identity is invalid");
-    }
-    this.workspacePath = workspacePath;
-    this.token = token;
-    this.dev = dev;
-    this.ino = ino;
-    this.uid = uid;
-    this.ownerDev = ownerDev;
-    this.ownerIno = ownerIno;
-    this.ownerRevision = ownerRevision;
-    Object.freeze(this);
-  }
-
-  static plan(targetRoot) {
-    const token = crypto.randomUUID();
-    const gitDirectory = fs.realpathSync(path.join(targetRoot, ".git"));
-    return new FinalizeTempIndexAuthority({
-      workspacePath: path.join(
-        gitDirectory,
-        "senti",
-        "recovery",
-        "finalize-index-workspaces",
-        `senti-finalize-index-${token}`,
-      ),
-      token,
-    });
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, [
-      "workspacePath",
-      "token",
-      "dev",
-      "ino",
-      "uid",
-      "ownerDev",
-      "ownerIno",
-      "ownerRevision",
-    ], "finalize temporary index authority");
-    return new FinalizeTempIndexAuthority(value);
-  }
-
-  withIdentity(stat, ownerStat) {
-    if (this.dev !== null) {
-      if (!this.matches(stat) || !this.matchesOwner(ownerStat)) {
-        throw new Error("finalize temporary index workspace durable identity changed");
-      }
-      return this;
-    }
-    return new FinalizeTempIndexAuthority({
-      workspacePath: this.workspacePath,
-      token: this.token,
-      dev: stat.dev,
-      ino: stat.ino,
-      uid: stat.uid,
-      ownerDev: ownerStat.dev,
-      ownerIno: ownerStat.ino,
-      ownerRevision: FinalizeIndexLockAuthority.revision(Buffer.from(`${this.token}\n`)),
-    });
-  }
-
-  matches(stat) {
-    return this.dev !== null && stat.dev === this.dev && stat.ino === this.ino && stat.uid === this.uid;
-  }
-
-  matchesOwner(stat) {
-    return (
-      this.ownerDev !== null
-      && stat.dev === this.ownerDev
-      && stat.ino === this.ownerIno
-      && stat.uid === this.uid
-    );
-  }
-
-  toJSON() {
-    return {
-      workspacePath: this.workspacePath,
-      token: this.token,
-      dev: this.dev,
-      ino: this.ino,
-      uid: this.uid,
-      ownerDev: this.ownerDev,
-      ownerIno: this.ownerIno,
-      ownerRevision: this.ownerRevision,
-    };
-  }
-}
-
-class FinalizeTeardownTransaction {
-  constructor({
-    transactionId,
-    identity,
-    commitRequired = true,
-    authorization,
-    phase = "prepared",
-    result = null,
-    commitExpectation = null,
-    indexLockAuthority = null,
-    tempIndexAuthority = null,
-    beforeImages = [],
-    issueLogIds = [],
-    updatedAt = new Date().toISOString(),
-  }) {
-    if (typeof transactionId !== "string" || transactionId === "") {
-      throw new Error("finalize teardown transactionId is invalid");
-    }
-    this.transactionId = transactionId;
-    if (typeof commitRequired !== "boolean") throw new Error("finalize teardown commitRequired must be boolean");
-    this.commitRequired = commitRequired;
-    this.authorization = authorization instanceof FinalizeTeardownAuthorization
-      ? authorization
-      : FinalizeTeardownAuthorization.fromStored(authorization);
-    const required = ["runId", "spec", "featureBranch", "baseBranch"];
-    if (!identity || required.some((key) => typeof identity[key] !== "string" || identity[key] === "")) {
-      throw new Error("finalize teardown transaction identity is invalid");
-    }
-    this.identity = Object.freeze({
-      runId: identity.runId,
-      spec: identity.spec,
-      issue: identity.issue ?? null,
-      featureBranch: identity.featureBranch,
-      baseBranch: identity.baseBranch,
-    });
-    this.phase = FinalizeTeardownPhase.from(phase);
-    this.result = result == null
-      ? null
-      : (result instanceof FinalizeTeardownResult ? result : new FinalizeTeardownResult(result));
-    this.commitExpectation = commitExpectation == null
-      ? null
-      : (commitExpectation instanceof FinalizeCommitExpectation
-        ? commitExpectation
-        : FinalizeCommitExpectation.fromStored(commitExpectation));
-    this.indexLockAuthority = indexLockAuthority == null
-      ? null
-      : indexLockAuthority instanceof FinalizeIndexLockAuthority
-        ? indexLockAuthority
-        : FinalizeIndexLockAuthority.fromStored(indexLockAuthority);
-    this.tempIndexAuthority = tempIndexAuthority == null
-      ? null
-      : tempIndexAuthority instanceof FinalizeTempIndexAuthority
-        ? tempIndexAuthority
-        : FinalizeTempIndexAuthority.fromStored(tempIndexAuthority);
-    if (!Array.isArray(beforeImages) || beforeImages.length > 2) {
-      throw new Error("finalize teardown before-images are invalid");
-    }
-    this.beforeImages = beforeImages.map((entry) => entry instanceof FinalizeTreeBeforeImage
-      ? entry
-      : new FinalizeTreeBeforeImage(entry));
-    if (!Array.isArray(issueLogIds) || issueLogIds.some((entry) => typeof entry !== "string" || entry === "")) {
-      throw new Error("finalize teardown issue-log IDs are invalid");
-    }
-    this.issueLogIds = [...new Set(issueLogIds)];
-    if (this.commitExpectation && this.commitExpectation.transactionId !== this.transactionId) {
-      throw new Error("finalize commit expectation targets a different transaction");
-    }
-    if (this.commitRequired && this.phase.atLeast("commit-durable")) {
-      if (!this.commitExpectation || !this.result || !GIT_OBJECT_ID.test(String(this.result.commitSha))) {
-        throw new Error("commit-durable finalize teardown requires commit expectation, result, and commitSha");
-      }
-      if (this.result.phase.name !== this.phase.name) {
-        throw new Error("finalize teardown phase and result phase must match");
-      }
-      if (
-        !this.phase.atLeast("index-reconciled")
-        && (this.indexLockAuthority == null || this.tempIndexAuthority == null)
-      ) {
-        throw new Error("commit-durable finalize teardown requires index recovery authority");
-      }
-      if (
-        this.phase.atLeast("index-reconciled")
-        && (this.indexLockAuthority != null || this.tempIndexAuthority != null)
-      ) {
-        throw new Error("index-reconciled finalize teardown retains stale index authority");
-      }
-    } else if (!this.commitRequired) {
-      if (!this.phase.atLeast("validated") || this.commitExpectation || !this.result || this.result.commitSha != null) {
-        throw new Error("spec-only finalize completion transaction has invalid commit authority");
-      }
-      if (this.result.phase.name !== this.phase.name) {
-        throw new Error("finalize teardown phase and result phase must match");
-      }
-    } else if (this.result && this.result.phase.name !== this.phase.name) {
-      throw new Error("finalize teardown phase and result phase must match");
-    }
-    FinalizeTeardownCheckpoint.fromResult(this.result);
-    this.updatedAt = String(updatedAt);
-  }
-
-  static fromStored(value) {
-    assertExactObjectKeys(value, [
-      "version",
-      "transactionId",
-      "commitRequired",
-      "authorization",
-      "identity",
-      "phase",
-      "result",
-      "commitExpectation",
-      "indexLockAuthority",
-      "tempIndexAuthority",
-      "beforeImages",
-      "issueLogIds",
-      "updatedAt",
-    ], "finalize teardown transaction");
-    if (value.version !== FINALIZE_TEARDOWN_VERSION) throw new Error("unsupported finalize teardown transaction version");
-    assertExactObjectKeys(
-      value.identity,
-      ["runId", "spec", "issue", "featureBranch", "baseBranch"],
-      "finalize teardown identity",
-    );
-    return new FinalizeTeardownTransaction({
-      ...value,
-      authorization: FinalizeTeardownAuthorization.fromStored(value.authorization),
-      result: value.result == null ? null : FinalizeTeardownResult.fromStored(value.result),
-      commitExpectation: value.commitExpectation == null
-        ? null
-        : FinalizeCommitExpectation.fromStored(value.commitExpectation),
-    });
-  }
-
-  static create(state, { commitRequired = true, authorization = FinalizeTeardownAuthorization.standard(state) } = {}) {
-    const phase = commitRequired ? "prepared" : "validated";
-    return new FinalizeTeardownTransaction({
-      transactionId: crypto.randomUUID(),
-      identity: finalizeTeardownIdentity(state),
-      commitRequired,
-      authorization,
-      phase,
-      result: commitRequired ? null : new FinalizeTeardownResult({ phase, ok: true }),
-    });
-  }
-
-  matches(state) {
-    return JSON.stringify(this.identity) === JSON.stringify(finalizeTeardownIdentity(state))
-      && this.authorization.mergeStrategy === (state.state?.mergeStrategy ?? null);
-  }
-
-  get checkpoint() {
-    return FinalizeTeardownCheckpoint.fromResult(this.result);
-  }
-
-  beginCheckpoint(phase) {
-    const target = FinalizeTeardownPhase.from(phase);
-    const existing = this.checkpoint;
-    if (existing != null) {
-      if (existing.targetPhase.name !== target.name) {
-        throw new Error(
-          `finalize teardown checkpoint already targets ${existing.targetPhase.name}`,
-        );
-      }
-      return false;
-    }
-    const checkpoint = new FinalizeTeardownCheckpoint({
-      completedPhase: this.phase,
-      targetPhase: target,
-    });
-    this.result = checkpoint.toResult(this.result?.commitSha ?? null);
-    this.updatedAt = new Date().toISOString();
-    return true;
-  }
-
-  advance(phase, { ok = true, code = null, commitSha = this.result?.commitSha ?? null } = {}) {
-    const next = FinalizeTeardownPhase.from(phase);
-    if (next.index < this.phase.index) throw new Error(`finalize teardown phase cannot move backward: ${this.phase.name} -> ${next.name}`);
-    const checkpoint = this.checkpoint;
-    if (checkpoint != null && checkpoint.targetPhase.name !== next.name) {
-      throw new Error(
-        `finalize teardown checkpoint targets ${checkpoint.targetPhase.name}, not ${next.name}`,
-      );
-    }
-    this.phase = next;
-    this.result = new FinalizeTeardownResult({ phase: next, ok, code, commitSha });
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  expectCommit(expectation) {
-    const candidate = expectation instanceof FinalizeCommitExpectation
-      ? expectation
-      : new FinalizeCommitExpectation(expectation);
-    if (candidate.transactionId !== this.transactionId) {
-      throw new Error("finalize commit expectation targets a different transaction");
-    }
-    if (this.commitExpectation && !this.commitExpectation.equals(candidate)) {
-      throw new Error("finalize commit expectation changed after becoming durable");
-    }
-    this.commitExpectation = candidate;
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  planIndexLock() {
-    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize caller index lock is already reconciled");
-    this.indexLockAuthority = FinalizeIndexLockAuthority.plan();
-    this.updatedAt = new Date().toISOString();
-    return this.indexLockAuthority;
-  }
-
-  ownIndexLock(authority) {
-    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize caller index lock is already reconciled");
-    const candidate = authority instanceof FinalizeIndexLockAuthority
-      ? authority
-      : FinalizeIndexLockAuthority.fromStored(authority);
-    if (this.indexLockAuthority != null && candidate.token !== this.indexLockAuthority.token) {
-      throw new Error("finalize caller index lock intent changed");
-    }
-    this.indexLockAuthority = candidate;
-    this.updatedAt = new Date().toISOString();
-  }
-
-  planIndexPublication(bytes, mode) {
-    if (this.phase.atLeast("index-reconciled") || this.indexLockAuthority == null) {
-      throw new Error("finalize caller index lock is unavailable for publication");
-    }
-    this.indexLockAuthority = this.indexLockAuthority.planPublication(bytes, mode);
-    this.updatedAt = new Date().toISOString();
-    return this.indexLockAuthority;
-  }
-
-  ownIndexPublication(publicationStat) {
-    if (this.phase.atLeast("index-reconciled") || this.indexLockAuthority == null) {
-      throw new Error("finalize caller index lock is unavailable for publication");
-    }
-    this.indexLockAuthority = this.indexLockAuthority.ownPublication(publicationStat);
-    this.updatedAt = new Date().toISOString();
-    return this.indexLockAuthority;
-  }
-
-  clearIndexLock() {
-    this.indexLockAuthority = null;
-    this.updatedAt = new Date().toISOString();
-  }
-
-  planTempIndexWorkspace(targetRoot) {
-    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize temporary index workspace is already reconciled");
-    this.tempIndexAuthority = FinalizeTempIndexAuthority.plan(targetRoot);
-    this.updatedAt = new Date().toISOString();
-    return this.tempIndexAuthority;
-  }
-
-  ownTempIndexWorkspace(authority) {
-    if (this.phase.atLeast("index-reconciled")) throw new Error("finalize temporary index workspace is already reconciled");
-    const candidate = authority instanceof FinalizeTempIndexAuthority
-      ? authority
-      : FinalizeTempIndexAuthority.fromStored(authority);
-    if (
-      this.tempIndexAuthority != null
-      && (
-        candidate.token !== this.tempIndexAuthority.token
-        || candidate.workspacePath !== this.tempIndexAuthority.workspacePath
-      )
-    ) {
-      throw new Error("finalize temporary index workspace intent changed");
-    }
-    this.tempIndexAuthority = candidate;
-    this.updatedAt = new Date().toISOString();
-  }
-
-  clearTempIndexWorkspace() {
-    this.tempIndexAuthority = null;
-    this.updatedAt = new Date().toISOString();
-  }
-
-  setBeforeImages(beforeImages) {
-    if (this.phase.name !== "prepared" || this.beforeImages.length > 0) {
-      throw new Error("finalize before-images can only be attached once while prepared");
-    }
-    this.beforeImages = beforeImages.map((entry) => entry instanceof FinalizeTreeBeforeImage
-      ? entry
-      : new FinalizeTreeBeforeImage(entry));
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  ownIssueLogIds(issueLogIds) {
-    if (this.phase.name !== "prepared") throw new Error("finalize issue-log IDs require prepared phase");
-    this.issueLogIds = [...new Set(issueLogIds)];
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  resetPrepared() {
-    this.phase = FinalizeTeardownPhase.from("prepared");
-    this.result = null;
-    this.commitExpectation = null;
-    this.indexLockAuthority = null;
-    this.tempIndexAuthority = null;
-    this.beforeImages = [];
-    this.issueLogIds = [];
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  clearBeforeImages() {
-    this.beforeImages = [];
-    this.issueLogIds = [];
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  fail(code) {
-    const checkpoint = this.checkpoint;
-    this.result = checkpoint == null
-      ? new FinalizeTeardownResult({
-          phase: this.phase,
-          ok: false,
-          code,
-          commitSha: this.result?.commitSha ?? null,
-        })
-      : checkpoint.withFailure(code).toResult(this.result?.commitSha ?? null);
-    this.updatedAt = new Date().toISOString();
-    return this;
-  }
-
-  toJSON() {
-    return {
-      version: FINALIZE_TEARDOWN_VERSION,
-      transactionId: this.transactionId,
-      commitRequired: this.commitRequired,
-      authorization: this.authorization.toJSON(),
-      identity: this.identity,
-      phase: this.phase.name,
-      result: this.result?.toJSON() ?? null,
-      commitExpectation: this.commitExpectation?.toJSON() ?? null,
-      indexLockAuthority: this.indexLockAuthority?.toJSON() ?? null,
-      tempIndexAuthority: this.tempIndexAuthority?.toJSON() ?? null,
-      beforeImages: this.beforeImages.map((entry) => entry.toJSON()),
-      issueLogIds: [...this.issueLogIds],
-      updatedAt: this.updatedAt,
-    };
-  }
-}
-
-function finalizeTeardownIdentity(state) {
-  return {
-    runId: state.runId,
-    spec: state.spec,
-    issue: state.issue ?? null,
-    featureBranch: state.featureBranch,
-    baseBranch: state.baseBranch,
-  };
-}
-
 function gitValue(root, args, label) {
   const result = runGit(["-C", root, ...args]);
   if (!result.ok) {
@@ -1381,1031 +225,10 @@ function gitValue(root, args, label) {
   return result.stdout.trim();
 }
 
-function hashCommitMessage(message) {
-  return crypto.createHash("sha256").update(message).digest("hex");
-}
-
-function finalizeCommitExpectationDigest(expectation) {
-  if (!(expectation instanceof FinalizeCommitExpectation)) {
-    throw new Error("finalize commit expectation digest requires an expectation");
-  }
-  return crypto.createHash("sha256").update(JSON.stringify(expectation.toJSON())).digest("hex");
-}
-
-const FINALIZE_TEMP_INDEX_BASE_NAMES = new Set(["expected.index", "commit.index", "reconcile.index"]);
-const FINALIZE_TEMP_INDEX_NAMES = new Set([
-  ...FINALIZE_TEMP_INDEX_BASE_NAMES,
-  ...[...FINALIZE_TEMP_INDEX_BASE_NAMES].map((name) => `${name}.lock`),
-]);
-const FINALIZE_TEMP_OWNER_FILE = ".owner";
-
-function finalizeTempIndexAuthorityError(message, cause = null) {
-  return Object.assign(new Error(message, cause == null ? undefined : { cause }), {
-    code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
-  });
-}
-
-function fsyncDirectory(directoryPath) {
-  const descriptor = fs.openSync(directoryPath, "r");
-  try {
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
-function assertRealFinalizeFile(filePath, label) {
-  const stat = fs.lstatSync(filePath);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || fs.realpathSync(filePath) !== filePath) {
-    throw new Error(`${label} must be one real file`);
-  }
-  return stat;
-}
-
-function finalizeTempIndexWorkspaceParent(targetRoot) {
-  return path.join(
-    fs.realpathSync(path.join(targetRoot, ".git")),
-    "senti",
-    "recovery",
-    "finalize-index-workspaces",
-  );
-}
-
-function ensureFinalizeTempIndexWorkspaceParent(targetRoot) {
-  const gitDirectory = new RealDirectoryAuthority(fs.realpathSync(path.join(targetRoot, ".git")));
-  gitDirectory.ensure();
-  const sentiDirectory = new RealDirectoryAuthority(path.join(gitDirectory.directory, "senti"), {
-    create: true,
-    parentAuthority: gitDirectory,
-  });
-  sentiDirectory.ensure();
-  const recoveryDirectory = new RealDirectoryAuthority(path.join(sentiDirectory.directory, "recovery"), {
-    create: true,
-    parentAuthority: sentiDirectory,
-  });
-  recoveryDirectory.ensure();
-  const workspaceParent = new RealDirectoryAuthority(
-    path.join(recoveryDirectory.directory, "finalize-index-workspaces"),
-    { create: true, parentAuthority: recoveryDirectory },
-  );
-  workspaceParent.ensure();
-  return workspaceParent;
-}
-
-function readFinalizeDescriptorBytes(descriptor) {
-  const stat = fs.fstatSync(descriptor);
-  const bytes = Buffer.alloc(stat.size);
-  let offset = 0;
-  while (offset < bytes.length) {
-    const count = fs.readSync(descriptor, bytes, offset, bytes.length - offset, offset);
-    if (!Number.isSafeInteger(count) || count <= 0) {
-      throw new Error("finalize descriptor read ended before the journaled size");
-    }
-    offset += count;
-  }
-  return { stat, bytes };
-}
-
-function writeFinalizeDescriptorBytes(descriptor, bytes) {
-  let offset = 0;
-  while (offset < bytes.length) {
-    const count = fs.writeSync(descriptor, bytes, offset, bytes.length - offset, offset);
-    if (!Number.isSafeInteger(count) || count <= 0) {
-      throw new Error("finalize descriptor write made no progress");
-    }
-    offset += count;
-  }
-}
-
-function finalizeIndexAcquireCleanupError(primary, {
-  descriptor,
-  createdIdentity,
-  lockPath,
-  authority,
-}) {
-  const cleanupErrors = [];
-  let descriptorClosed = true;
-  try {
-    fs.closeSync(descriptor);
-  } catch (error) {
-    descriptorClosed = false;
-    cleanupErrors.push(error);
-  }
-  let status = descriptorClosed ? "foreign" : "descriptor-close-failed";
-  let residue = true;
-  let unlinked = false;
-  try {
-    if (!descriptorClosed) throw Object.assign(new Error("created caller index lock descriptor close failed"), {
-      code: "FINALIZE_INDEX_CLEANUP_SKIPPED",
-    });
-    const before = assertRealFinalizeFile(lockPath, "created caller index lock cleanup");
-    const bytes = fs.readFileSync(lockPath);
-    const after = assertRealFinalizeFile(lockPath, "created caller index lock cleanup");
-    const owned = (
-      before.dev === createdIdentity.dev
-      && before.ino === createdIdentity.ino
-      && after.dev === createdIdentity.dev
-      && after.ino === createdIdentity.ino
-      && before.nlink === 1
-      && after.nlink === 1
-      && authority.contentState(bytes) === "marker"
-    );
-    if (owned) {
-      fs.unlinkSync(lockPath);
-      unlinked = true;
-      status = "removed-owned";
-      residue = false;
-      fsyncDirectory(path.dirname(lockPath));
-    }
-  } catch (error) {
-    if (unlinked) {
-      status = "removed-owned-durability-uncertain";
-      cleanupErrors.push(error);
-    } else if (error.code === "ENOENT") {
-      status = "missing";
-      residue = false;
-    } else if (error.code === "FINALIZE_INDEX_CLEANUP_SKIPPED") {
-      // The close failure is already retained; do not inspect or mutate the pathname.
-    } else {
-      status = "inspection-failed";
-      cleanupErrors.push(error);
-    }
-  }
-  const cleanupResidue = Object.freeze({ lockPath, status, residue });
-  if (cleanupErrors.length === 0) {
-    primary.cleanupResidue = cleanupResidue;
-    return primary;
-  }
-  const combined = new AggregateError(
-    [primary, ...cleanupErrors],
-    "caller index lock acquisition and authority cleanup both failed",
-    { cause: primary },
-  );
-  combined.code = primary.code || "FINALIZE_INDEX_RECONCILIATION_FAILED";
-  combined.lockPath = lockPath;
-  combined.cleanupResidue = cleanupResidue;
-  return combined;
-}
-
-class FinalizeTempIndexWorkspace {
-  constructor(authority, targetRoot) {
-    this.authority = authority;
-    this.targetRoot = targetRoot;
-    this.indexPath = path.join(targetRoot, ".git", "index");
-  }
-
-  static acquire(authority, targetRoot) {
-    const marker = `${authority.token}\n`;
-    if (path.dirname(authority.workspacePath) !== finalizeTempIndexWorkspaceParent(targetRoot)) {
-      throw Object.assign(new Error("finalize temporary index workspace targets a different Git authority"), {
-        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
-      });
-    }
-    const workspaceParent = ensureFinalizeTempIndexWorkspaceParent(targetRoot);
-    workspaceParent.assertStable();
-    let created = false;
-    try {
-      fs.mkdirSync(authority.workspacePath, { mode: 0o700 });
-      created = true;
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-    }
-    const stat = fs.lstatSync(authority.workspacePath);
-    if (
-      !stat.isDirectory()
-      || stat.isSymbolicLink()
-      || fs.realpathSync(authority.workspacePath) !== authority.workspacePath
-      || (stat.mode & 0o777) !== 0o700
-      || (typeof process.getuid === "function" && stat.uid !== process.getuid())
-      || (authority.dev !== null && !authority.matches(stat))
-    ) {
-      throw finalizeTempIndexAuthorityError("finalize temporary index workspace authority diverged");
-    }
-    const markerPath = path.join(authority.workspacePath, FINALIZE_TEMP_OWNER_FILE);
-    if (fs.existsSync(markerPath)) {
-      assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-      if (fs.readFileSync(markerPath, "utf8") !== marker) {
-        throw finalizeTempIndexAuthorityError("finalize temporary index owner marker diverged");
-      }
-    } else {
-      if (!created) {
-        throw Object.assign(new Error("finalize temporary index workspace is not owned"), {
-          code: "FINALIZE_TEMP_INDEX_BUSY",
-        });
-      }
-      const descriptor = fs.openSync(markerPath, "wx", 0o600);
-      try {
-        fs.writeFileSync(descriptor, marker);
-        fs.fsyncSync(descriptor);
-      } finally {
-        fs.closeSync(descriptor);
-      }
-      fsyncDirectory(authority.workspacePath);
-    }
-    const ownerBefore = assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-    const ownerBytes = fs.readFileSync(markerPath);
-    const ownerStat = assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-    if (
-      ownerBefore.dev !== ownerStat.dev
-      || ownerBefore.ino !== ownerStat.ino
-      || ownerStat.uid !== stat.uid
-      || (ownerStat.mode & 0o777) !== 0o600
-      || FinalizeIndexLockAuthority.revision(ownerBytes)
-        !== FinalizeIndexLockAuthority.revision(Buffer.from(marker))
-      || (authority.dev !== null && !authority.matchesOwner(ownerStat))
-      || (
-        authority.dev !== null
-        && FinalizeIndexLockAuthority.revision(ownerBytes) !== authority.ownerRevision
-      )
-    ) {
-      throw finalizeTempIndexAuthorityError("finalize temporary index owner marker authority diverged");
-    }
-    const indexStat = assertRealFinalizeFile(path.join(targetRoot, ".git", "index"), "caller index authority");
-    if (indexStat.dev !== stat.dev) {
-      throw Object.assign(new Error("finalize temporary index workspace is on a different filesystem"), {
-        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
-      });
-    }
-    return new FinalizeTempIndexWorkspace(authority.withIdentity(stat, ownerStat), targetRoot);
-  }
-
-  assertAuthority() {
-    try {
-      const stat = fs.lstatSync(this.authority.workspacePath);
-      if (
-        !stat.isDirectory()
-        || stat.isSymbolicLink()
-        || fs.realpathSync(this.authority.workspacePath) !== this.authority.workspacePath
-        || (stat.mode & 0o777) !== 0o700
-        || !this.authority.matches(stat)
-      ) {
-        throw finalizeTempIndexAuthorityError("finalize temporary index workspace identity changed");
-      }
-      const markerPath = path.join(this.authority.workspacePath, FINALIZE_TEMP_OWNER_FILE);
-      const ownerBefore = assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-      const ownerBytes = fs.readFileSync(markerPath);
-      const ownerStat = assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-      if (
-        ownerBefore.dev !== ownerStat.dev
-        || ownerBefore.ino !== ownerStat.ino
-        || !this.authority.matchesOwner(ownerStat)
-        || (ownerStat.mode & 0o777) !== 0o600
-        || FinalizeIndexLockAuthority.revision(ownerBytes) !== this.authority.ownerRevision
-      ) {
-        throw finalizeTempIndexAuthorityError("finalize temporary index owner marker identity changed");
-      }
-    } catch (error) {
-      if (error.code === "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED") throw error;
-      throw finalizeTempIndexAuthorityError("finalize temporary index workspace authority is unavailable", error);
-    }
-  }
-
-  prepare(name) {
-    if (!FINALIZE_TEMP_INDEX_BASE_NAMES.has(name)) throw new Error("invalid finalize temporary index name");
-    this.assertAuthority();
-    const filePath = path.join(this.authority.workspacePath, name);
-    fs.copyFileSync(this.indexPath, filePath, fs.constants.COPYFILE_EXCL);
-    fs.chmodSync(filePath, 0o600);
-    assertRealFinalizeFile(filePath, "finalize temporary index");
-    return filePath;
-  }
-
-  remove(name, publicationName = null) {
-    if (!FINALIZE_TEMP_INDEX_NAMES.has(name) && name !== publicationName) {
-      throw new Error("invalid finalize temporary index name");
-    }
-    this.assertAuthority();
-    const filePath = path.join(this.authority.workspacePath, name);
-    try {
-      assertRealFinalizeFile(filePath, "finalize temporary index");
-      fs.unlinkSync(filePath);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-  }
-
-  assertPublicationEntries(authority) {
-    this.assertAuthority();
-    if (
-      !(authority instanceof FinalizeIndexLockAuthority)
-      || authority.publishPhase === "marker"
-      || typeof authority.publicationName !== "string"
-    ) {
-      throw new Error("finalize index publication plan is unavailable");
-    }
-    const allowed = new Set([
-      ...FINALIZE_TEMP_INDEX_NAMES,
-      FINALIZE_TEMP_OWNER_FILE,
-      authority.publicationName,
-    ]);
-    if (fs.readdirSync(this.authority.workspacePath).some((entry) => !allowed.has(entry))) {
-      throw finalizeTempIndexAuthorityError("finalize temporary index workspace contains foreign entries");
-    }
-  }
-
-  preparePublication(bytes, mode, authority, publicationAuthority) {
-    if (!Buffer.isBuffer(bytes) || !Number.isInteger(mode)) {
-      throw new Error("finalize index publication source is invalid");
-    }
-    publicationAuthority.assertOwned();
-    this.assertPublicationEntries(authority);
-    const filePath = path.join(this.authority.workspacePath, authority.publicationName);
-    if (authority.publishPhase === "planned") {
-      let descriptor;
-      try {
-        descriptor = fs.openSync(
-          filePath,
-          fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW,
-          0o600,
-        );
-      } catch (cause) {
-        if (cause.code !== "EEXIST") {
-          throw Object.assign(new Error("finalize index publication source is busy", { cause }), {
-            code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          });
-        }
-      }
-      if (descriptor != null) {
-        try {
-          writeFinalizeDescriptorBytes(descriptor, bytes);
-          fs.fchmodSync(descriptor, mode & 0o777);
-          fs.fsyncSync(descriptor);
-          const verified = readFinalizeDescriptorBytes(descriptor);
-          if (
-            verified.stat.nlink !== 1
-            || verified.stat.size !== bytes.length
-            || (verified.stat.mode & 0o777) !== (mode & 0o777)
-            || FinalizeIndexLockAuthority.revision(verified.bytes) !== authority.expectedIndexRevision
-          ) {
-            throw new Error("finalize index publication source verification failed");
-          }
-        } finally {
-          fs.closeSync(descriptor);
-        }
-        fsyncDirectory(this.authority.workspacePath);
-      }
-      // A planned nonce path is adopted only while the repository lock and the
-      // journaled workspace remain authoritative; other entries are foreign.
-      return new FinalizeIndexPublicationSource({
-        workspace: this,
-        filePath,
-        indexPath: this.indexPath,
-        stat: assertRealFinalizeFile(filePath, "finalize index publication source"),
-        publicationAuthority,
-      }).assertPlannedAuthority(authority, bytes, mode);
-    }
-    try {
-      const stat = assertRealFinalizeFile(filePath, "finalize index publication source");
-      return new FinalizeIndexPublicationSource({
-        workspace: this,
-        filePath,
-        indexPath: this.indexPath,
-        stat,
-        publicationAuthority,
-      }).assertAuthority(authority, bytes, mode);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    const indexStat = assertRealFinalizeFile(this.indexPath, "published caller index");
-    return new FinalizeIndexPublicationSource({
-      workspace: this,
-      filePath,
-      indexPath: this.indexPath,
-      stat: indexStat,
-      published: true,
-      publicationAuthority,
-    }).assertAuthority(authority, bytes, mode);
-  }
-
-  cleanup(indexAuthority = null, publicationAuthority = null) {
-    publicationAuthority?.assertOwned();
-    this.assertAuthority();
-    const publicationName = indexAuthority?.publicationName ?? null;
-    const allowed = new Set([
-      ...FINALIZE_TEMP_INDEX_NAMES,
-      FINALIZE_TEMP_OWNER_FILE,
-      ...(publicationName == null ? [] : [publicationName]),
-    ]);
-    const entries = fs.readdirSync(this.authority.workspacePath);
-    if (entries.some((entry) => !allowed.has(entry))) {
-      throw Object.assign(new Error("finalize temporary index workspace contains foreign entries"), {
-        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
-      });
-    }
-    for (const entry of entries.filter((candidate) => candidate !== FINALIZE_TEMP_OWNER_FILE)) {
-      this.remove(entry, publicationName);
-    }
-    const markerPath = path.join(this.authority.workspacePath, FINALIZE_TEMP_OWNER_FILE);
-    assertRealFinalizeFile(markerPath, "finalize temporary index owner marker");
-    if (fs.readFileSync(markerPath, "utf8") !== `${this.authority.token}\n`) {
-      throw Object.assign(new Error("finalize temporary index owner marker diverged"), {
-        code: "FINALIZE_TEMP_INDEX_AUTHORITY_FAILED",
-      });
-    }
-    fs.unlinkSync(markerPath);
-    fs.rmdirSync(this.authority.workspacePath);
-    fsyncDirectory(path.dirname(this.authority.workspacePath));
-  }
-}
-
-class FinalizeIndexPublicationSource {
-  constructor({ workspace, filePath, indexPath, stat, published = false, publicationAuthority }) {
-    this.workspace = workspace;
-    this.filePath = filePath;
-    this.indexPath = indexPath;
-    this.stat = stat;
-    this.published = published;
-    this.publicationAuthority = publicationAuthority;
-  }
-
-  assertPlannedAuthority(authority, bytes, mode) {
-    this.publicationAuthority.assertOwned();
-    this.workspace.assertPublicationEntries(authority);
-    const before = assertRealFinalizeFile(this.filePath, "planned finalize index publication source");
-    const sourceBytes = fs.readFileSync(this.filePath);
-    const stat = assertRealFinalizeFile(this.filePath, "planned finalize index publication source");
-    if (
-      authority.publishPhase !== "planned"
-      || before.dev !== stat.dev
-      || before.ino !== stat.ino
-      || stat.nlink !== 1
-      || stat.size !== bytes.length
-      || (stat.mode & 0o777) !== authority.expectedIndexMode
-      || (mode & 0o777) !== authority.expectedIndexMode
-      || FinalizeIndexLockAuthority.revision(sourceBytes) !== authority.expectedIndexRevision
-      || FinalizeIndexLockAuthority.revision(bytes) !== authority.expectedIndexRevision
-    ) {
-      throw Object.assign(new Error("planned finalize index publication source authority diverged"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-      });
-    }
-    this.stat = stat;
-    return this;
-  }
-
-  assertAuthority(authority, bytes, mode) {
-    this.publicationAuthority.assertOwned();
-    this.workspace.assertPublicationEntries(authority);
-    const sourcePath = this.published ? this.indexPath : this.filePath;
-    const before = assertRealFinalizeFile(sourcePath, "finalize index publication source");
-    const sourceBytes = fs.readFileSync(sourcePath);
-    const stat = assertRealFinalizeFile(sourcePath, "finalize index publication source");
-    if (
-      !authority.matchesPublication(stat)
-      || before.dev !== stat.dev
-      || before.ino !== stat.ino
-      || stat.nlink !== 1
-      || stat.size !== bytes.length
-      || (stat.mode & 0o777) !== (mode & 0o777)
-      || FinalizeIndexLockAuthority.revision(sourceBytes) !== authority.expectedIndexRevision
-    ) {
-      throw Object.assign(new Error("finalize index publication source authority diverged"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-      });
-    }
-    this.stat = stat;
-    return this;
-  }
-
-  publish(authority, bytes, mode) {
-    this.assertAuthority(authority, bytes, mode);
-    if (!this.published) {
-      this.publicationAuthority.assertOwned();
-      fs.renameSync(this.filePath, this.indexPath);
-      fsyncDirectory(path.dirname(this.indexPath));
-      this.published = true;
-    }
-    this.assertAuthority(authority, bytes, mode);
-  }
-}
-
-class FinalizeCallerIndexLease {
-  constructor({ authority, targetRoot, descriptor }) {
-    this.authority = authority;
-    this.gitDirectory = path.join(targetRoot, ".git");
-    this.indexPath = path.join(this.gitDirectory, "index");
-    this.lockPath = `${this.indexPath}.lock`;
-    this.descriptor = descriptor;
-  }
-
-  static acquire(authority, targetRoot) {
-    const gitDirectory = path.join(targetRoot, ".git");
-    const indexPath = path.join(gitDirectory, "index");
-    const lockPath = `${indexPath}.lock`;
-    assertRealFinalizeFile(indexPath, "caller index authority");
-    const marker = FinalizeIndexLockAuthority.marker(authority.token);
-    let descriptor;
-    let created = false;
-    let createdIdentity = null;
-    try {
-      descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
-      created = true;
-      createdIdentity = fs.fstatSync(descriptor);
-    } catch (cause) {
-      if (cause.code !== "EEXIST") {
-        throw Object.assign(new Error("caller index lock acquisition failed", { cause }), {
-          code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
-          lockPath,
-        });
-      }
-      if (authority.dev === null) {
-        throw Object.assign(new Error("caller index lock is busy"), {
-          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          lockPath,
-        });
-      }
-      try {
-        assertRealFinalizeFile(lockPath, "caller index lock");
-        descriptor = fs.openSync(lockPath, fs.constants.O_RDWR | fs.constants.O_NOFOLLOW);
-      } catch (error) {
-        if (error.code?.startsWith("FINALIZE_")) throw error;
-        throw Object.assign(new Error("caller index lock is busy", { cause: error }), {
-          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          lockPath,
-        });
-      }
-    }
-    try {
-      if (created) {
-        fs.writeFileSync(descriptor, marker);
-        fs.fsyncSync(descriptor);
-        fsyncDirectory(gitDirectory);
-      }
-      const { stat: descriptorStat, bytes: currentBytes } = readFinalizeDescriptorBytes(descriptor);
-      const pathStat = assertRealFinalizeFile(lockPath, "caller index lock");
-      if (
-        descriptorStat.dev !== pathStat.dev
-        || descriptorStat.ino !== pathStat.ino
-        || (authority.dev !== null && !authority.matches(descriptorStat))
-        || authority.contentState(currentBytes) === "foreign"
-      ) {
-        throw Object.assign(new Error("caller index lock is busy"), {
-          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          lockPath,
-        });
-      }
-      return new FinalizeCallerIndexLease({
-        authority: authority.withIdentity(descriptorStat),
-        targetRoot,
-        descriptor,
-      });
-    } catch (error) {
-      if (created) {
-        throw finalizeIndexAcquireCleanupError(error, {
-          descriptor,
-          createdIdentity,
-          lockPath,
-          authority,
-        });
-      }
-      try {
-        fs.closeSync(descriptor);
-      } catch (cleanupError) {
-        const combined = new AggregateError(
-          [error, cleanupError],
-          "caller index lock acquisition and descriptor cleanup both failed",
-          { cause: error },
-        );
-        combined.code = error.code || "FINALIZE_INDEX_RECONCILIATION_FAILED";
-        combined.lockPath = lockPath;
-        throw combined;
-      }
-      throw error;
-    }
-  }
-
-  assertAuthority() {
-    const descriptorStat = fs.fstatSync(this.descriptor);
-    const pathStat = assertRealFinalizeFile(this.lockPath, "caller index lock");
-    if (
-      descriptorStat.dev !== pathStat.dev
-      || descriptorStat.ino !== pathStat.ino
-      || !this.authority.matches(pathStat)
-    ) {
-      throw Object.assign(new Error("caller index lock authority changed"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-        lockPath: this.lockPath,
-      });
-    }
-  }
-
-  authorizePublication(authority) {
-    if (!(authority instanceof FinalizeIndexLockAuthority) || !this.authority.matches(authority)) {
-      throw new Error("finalize caller index publication authority changed identity");
-    }
-    this.authority = authority;
-  }
-
-  publish(bytes, mode, publicationSource) {
-    this.assertAuthority();
-    if (!(publicationSource instanceof FinalizeIndexPublicationSource)) {
-      throw new Error("finalize index publication source is unavailable");
-    }
-    if (
-      this.authority.publishPhase !== "publishing"
-      || FinalizeIndexLockAuthority.revision(bytes) !== this.authority.expectedIndexRevision
-      || (mode & 0o777) !== this.authority.expectedIndexMode
-    ) {
-      throw new Error("finalize caller index publication lacks durable content authority");
-    }
-    const { stat, bytes: currentBytes } = readFinalizeDescriptorBytes(this.descriptor);
-    const contentState = this.authority.contentState(currentBytes);
-    if (contentState === "foreign") {
-      throw Object.assign(new Error("caller index lock content is busy"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-        lockPath: this.lockPath,
-      });
-    }
-    if (contentState === "marker") {
-      fs.ftruncateSync(this.descriptor, 0);
-      writeFinalizeDescriptorBytes(this.descriptor, bytes);
-      fs.fchmodSync(this.descriptor, this.authority.expectedIndexMode);
-      fs.fsyncSync(this.descriptor);
-    } else if ((stat.mode & 0o777) !== this.authority.expectedIndexMode) {
-      throw Object.assign(new Error("caller index lock mode is busy"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-        lockPath: this.lockPath,
-      });
-    }
-    const verified = readFinalizeDescriptorBytes(this.descriptor);
-    if (
-      verified.stat.dev !== this.authority.dev
-      || verified.stat.ino !== this.authority.ino
-      || verified.stat.size !== bytes.length
-      || (verified.stat.mode & 0o777) !== this.authority.expectedIndexMode
-      || this.authority.contentState(verified.bytes) !== "expected-index"
-    ) {
-      throw Object.assign(new Error("caller index lock publication verification failed"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
-        lockPath: this.lockPath,
-      });
-    }
-    this.assertAuthority();
-    publicationSource.publish(this.authority, bytes, mode);
-    this.assertAuthority();
-    fs.closeSync(this.descriptor);
-    this.descriptor = null;
-    const lockBefore = assertRealFinalizeFile(this.lockPath, "published caller index lock cleanup");
-    const lockBytes = fs.readFileSync(this.lockPath);
-    const lockStat = assertRealFinalizeFile(this.lockPath, "published caller index lock cleanup");
-    if (
-      !this.authority.matches(lockStat)
-      || lockBefore.dev !== lockStat.dev
-      || lockBefore.ino !== lockStat.ino
-      || this.authority.contentState(lockBytes) !== "expected-index"
-    ) {
-      throw Object.assign(new Error("published caller index lock cleanup authority diverged"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-        lockPath: this.lockPath,
-      });
-    }
-    fs.unlinkSync(this.lockPath);
-    fsyncDirectory(this.gitDirectory);
-  }
-
-  release() {
-    this.assertAuthority();
-    fs.closeSync(this.descriptor);
-    this.descriptor = null;
-    fs.unlinkSync(this.lockPath);
-    fsyncDirectory(this.gitDirectory);
-  }
-
-  detach() {
-    if (this.descriptor == null) return;
-    fs.closeSync(this.descriptor);
-    this.descriptor = null;
-  }
-}
-
-function buildExpectedPathspecTree(targetRoot, expectedParent, commitPaths, workspace) {
-  const tempIndex = workspace.prepare("expected.index");
-  const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
-  let primaryError = null;
-  let tree = null;
-  try {
-    const read = runGit(["-C", targetRoot, "read-tree", expectedParent], { env });
-    if (!read.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index read-tree failed", read);
-    fs.chmodSync(tempIndex, 0o600);
-    const add = runGit(["-C", targetRoot, "add", "-A", "--", ...commitPaths], { env });
-    if (!add.ok) throw gitFailure("FINALIZE_TREE_BUILD_FAILED", "temporary index git add failed", add);
-    tree = gitValueWithOptions(targetRoot, ["write-tree"], "finalize staged tree", { env });
-  } catch (error) {
-    primaryError = error;
-  }
-  let cleanupError = null;
-  try {
-    workspace.remove("expected.index");
-  } catch (error) {
-    cleanupError = error;
-  }
-  try {
-    workspace.remove("expected.index.lock");
-  } catch (error) {
-    if (cleanupError == null) cleanupError = error;
-  }
-  if (primaryError && cleanupError) {
-    throw new AggregateError(
-      [primaryError, cleanupError],
-      "finalize expected tree construction and cleanup both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  if (cleanupError) throw cleanupError;
-  return tree;
-}
-
-function runIsolatedFinalizeCommit({ targetRoot, expectedParent, commitMessage, commitPaths, workspace }) {
-  const tempIndex = workspace.prepare("commit.index");
-  const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
-  let result = null;
-  let primaryError = null;
-  try {
-    const readTree = runGit(["-C", targetRoot, "read-tree", expectedParent], { env });
-    if (!readTree.ok) {
-      result = { stage: "read-tree", result: readTree };
-    } else {
-      fs.chmodSync(tempIndex, 0o600);
-      const add = runGit(["-C", targetRoot, "add", "-A", "--", ...commitPaths], { env });
-      if (!add.ok) {
-        result = { stage: "add", result: add };
-      } else {
-        const writeTree = runGit(["-C", targetRoot, "write-tree"], { env });
-        if (!writeTree.ok) {
-          result = { stage: "write-tree", result: writeTree };
-        } else {
-          const commit = runGit([
-            "-C", targetRoot, "commit", "-m", commitMessage, "--only", "--", ...commitPaths,
-          ], { env });
-          result = { stage: "commit", result: commit };
-        }
-      }
-    }
-  } catch (error) {
-    primaryError = error;
-  }
-  const cleanupErrors = [];
-  try {
-    workspace.remove("commit.index");
-  } catch (error) {
-    cleanupErrors.push(error);
-  }
-  try {
-    workspace.remove("commit.index.lock");
-  } catch (error) {
-    cleanupErrors.push(error);
-  }
-  if (primaryError && cleanupErrors.length > 0) {
-    throw new AggregateError(
-      [primaryError, ...cleanupErrors],
-      "isolated finalize index operation and cleanup both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  return { ...result, cleanupErrors };
-}
-
-function isolatedIndexFailure(primaryError, isolatedCommit) {
-  if (isolatedCommit.cleanupErrors.length === 0) return primaryError;
-  return new AggregateError(
-    [primaryError, ...isolatedCommit.cleanupErrors],
-    "isolated finalize index operation and cleanup both failed",
-    { cause: primaryError },
-  );
-}
-
-function throwIsolatedIndexCleanup(isolatedCommit) {
-  if (isolatedCommit.cleanupErrors.length === 0) return;
-  throw new AggregateError(
-    isolatedCommit.cleanupErrors,
-    "isolated finalize index cleanup failed",
-    { cause: isolatedCommit.cleanupErrors[0] },
-  );
-}
-
-class FinalizeIndexEntry {
-  constructor({ mode, objectId, relativePath }) {
-    if (!/^\d{6}$/.test(String(mode)) || !GIT_OBJECT_ID.test(String(objectId))) {
-      throw new Error("finalize index entry authority is invalid");
-    }
-    assertFinalizeRelativePath(relativePath, "finalize index entry path");
-    this.mode = String(mode);
-    this.objectId = objectId;
-    this.relativePath = relativePath;
-    Object.freeze(this);
-  }
-
-  equals(other) {
-    return other instanceof FinalizeIndexEntry
-      && this.mode === other.mode
-      && this.objectId === other.objectId
-      && this.relativePath === other.relativePath;
-  }
-}
-
-class FinalizeIndexSnapshot {
-  constructor(entries) {
-    this.entries = new Map();
-    for (const entry of entries) {
-      if (this.entries.has(entry.relativePath)) {
-        throw new Error(`finalize index contains non-stage-zero authority: ${entry.relativePath}`);
-      }
-      this.entries.set(entry.relativePath, entry);
-    }
-  }
-
-  entry(relativePath) {
-    return this.entries.get(relativePath) ?? null;
-  }
-
-  matches(relativePath, other) {
-    const left = this.entry(relativePath);
-    const right = other.entry(relativePath);
-    return left == null ? right == null : left.equals(right);
-  }
-}
-
-function parseFinalizeIndexSnapshot(output, { tree = false } = {}) {
-  const entries = [];
-  for (const line of output.split("\n").filter(Boolean)) {
-    const match = tree
-      ? /^(\d{6}) blob ([a-f0-9]{40}(?:[a-f0-9]{24})?)\t(.+)$/.exec(line)
-      : /^(\d{6}) ([a-f0-9]{40}(?:[a-f0-9]{24})?) 0\t(.+)$/.exec(line);
-    if (!match) throw new Error(`finalize index authority output is invalid: ${line}`);
-    entries.push(new FinalizeIndexEntry({
-      mode: match[1],
-      objectId: match[2],
-      relativePath: match[3],
-    }));
-  }
-  return new FinalizeIndexSnapshot(entries);
-}
-
-function readFinalizeIndex(targetRoot, commitPaths, env = undefined) {
-  const result = runGit(["-C", targetRoot, "ls-files", "--stage", "--", ...commitPaths], { env });
-  if (!result.ok) throw gitFailure("FINALIZE_INDEX_RECONCILIATION_FAILED", "caller index probe failed", result);
-  return parseFinalizeIndexSnapshot(result.stdout);
-}
-
-function readFinalizeTree(targetRoot, treeish, commitPaths) {
-  const result = runGit(["-C", targetRoot, "ls-tree", treeish, "--", ...commitPaths]);
-  if (!result.ok) throw gitFailure("FINALIZE_INDEX_RECONCILIATION_FAILED", "caller index tree probe failed", result);
-  return parseFinalizeIndexSnapshot(result.stdout, { tree: true });
-}
-
-class FinalizeIndexPublication {
-  constructor(bytes, mode) {
-    if (!Buffer.isBuffer(bytes) || !Number.isInteger(mode)) {
-      throw new Error("finalize index publication is invalid");
-    }
-    this.bytes = Buffer.from(bytes);
-    this.mode = mode & 0o777;
-    Object.freeze(this);
-  }
-
-  publish(lease, source) {
-    lease.publish(this.bytes, this.mode, source);
-  }
-}
-
-function prepareFinalizeCallerIndexReconciliation(expectation, workspace) {
-  const { targetRoot, expectedParent, commitPaths } = expectation;
-  const indexPath = path.join(targetRoot, ".git", "index");
-  let indexStat;
-  try {
-    indexStat = fs.lstatSync(indexPath);
-  } catch (cause) {
-    throw Object.assign(new Error("caller index authority is unavailable", { cause }), {
-      code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
-    });
-  }
-  if (!indexStat.isFile() || indexStat.isSymbolicLink() || fs.realpathSync(indexPath) !== indexPath) {
-    throw Object.assign(new Error("caller index authority must be one real file"), {
-      code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
-    });
-  }
-  let tempPrepared = false;
-  let primaryError = null;
-  let publication = null;
-  try {
-    const current = readFinalizeIndex(targetRoot, commitPaths);
-    const parent = readFinalizeTree(targetRoot, expectedParent, commitPaths);
-    const committed = readFinalizeTree(targetRoot, "HEAD", commitPaths);
-    const updatePaths = commitPaths.filter((relativePath) => (
-      current.matches(relativePath, parent)
-      && !current.matches(relativePath, committed)
-    ));
-    if (updatePaths.length > 0) {
-      const tempIndex = workspace.prepare("reconcile.index");
-      tempPrepared = true;
-      const env = { ...process.env, GIT_INDEX_FILE: tempIndex };
-      const reset = runGit(["-C", targetRoot, "reset", "--quiet", "HEAD", "--", ...updatePaths], { env });
-      if (!reset.ok) {
-        throw gitFailure("FINALIZE_INDEX_RECONCILIATION_FAILED", "caller index reconciliation failed", reset);
-      }
-      fs.chmodSync(tempIndex, 0o600);
-      const reconciled = readFinalizeIndex(targetRoot, commitPaths, env);
-      for (const relativePath of updatePaths) {
-        if (!reconciled.matches(relativePath, committed)) {
-          throw Object.assign(new Error(`caller index reconciliation diverged: ${relativePath}`), {
-            code: "FINALIZE_INDEX_RECONCILIATION_FAILED",
-          });
-        }
-      }
-      const bytes = fs.readFileSync(tempIndex);
-      workspace.remove("reconcile.index");
-      tempPrepared = false;
-      publication = new FinalizeIndexPublication(bytes, indexStat.mode);
-    }
-  } catch (error) {
-    primaryError = error;
-  }
-  const cleanupErrors = [];
-  if (tempPrepared) {
-    try { workspace.remove("reconcile.index"); } catch (error) { cleanupErrors.push(error); }
-  }
-  try { workspace.remove("reconcile.index.lock"); } catch (error) { cleanupErrors.push(error); }
-  if (primaryError && cleanupErrors.length > 0) {
-    throw new AggregateError(
-      [primaryError, ...cleanupErrors],
-      "caller index reconciliation and cleanup both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  if (cleanupErrors.length > 0) {
-    throw new AggregateError(cleanupErrors, "caller index reconciliation cleanup failed", {
-      cause: cleanupErrors[0],
-    });
-  }
-  return publication;
-}
-
-function gitValueWithOptions(root, args, label, options) {
-  const result = runGit(["-C", root, ...args], options);
-  if (!result.ok) {
-    throw new Error(`${label} could not be resolved: ${result.stderr || result.stdout || "unknown git error"}`);
-  }
-  return result.stdout.trim();
-}
-
-function buildCommitExpectation({
-  transaction,
-  targetRoot,
-  state,
-  commitMessage,
-  commitPaths,
-  workspace,
-  worktreePath = null,
-}) {
-  const resolvedTargetRoot = fs.realpathSync(targetRoot);
-  const resolvedWorktreePath = worktreePath == null ? null : fs.realpathSync(worktreePath);
-  const headRef = gitValue(resolvedTargetRoot, ["symbolic-ref", "-q", "HEAD"], "finalize HEAD ref");
-  const expectedParent = gitValue(resolvedTargetRoot, ["rev-parse", "HEAD"], "finalize parent");
-  let resolvedCommitPaths;
-  try {
-    resolvedCommitPaths = GitCommitPathSet.resolve({
-      root: resolvedTargetRoot,
-      treeish: expectedParent,
-      candidates: commitPaths,
-    }).toArray();
-  } catch (error) {
-    if (!(error instanceof GitCommitPathProbeError)) throw error;
-    throw gitFailure(
-      "FINALIZE_TREE_BUILD_FAILED",
-      "finalize parent path probe failed",
-      error.result,
-    );
-  }
-  const expectation = new FinalizeCommitExpectation({
-    transactionId: transaction.transactionId,
-    targetRoot: resolvedTargetRoot,
-    headRef,
-    expectedParent,
-    stagedTree: buildExpectedPathspecTree(
-      resolvedTargetRoot,
-      expectedParent,
-      resolvedCommitPaths,
-      workspace,
-    ),
-    messageHash: hashCommitMessage(commitMessage),
-    baseRef: gitValue(resolvedTargetRoot, ["rev-parse", state.baseBranch], "finalize base ref"),
-    featureRef: gitValue(resolvedTargetRoot, ["rev-parse", state.featureBranch], "finalize feature ref"),
-    commitPaths: resolvedCommitPaths,
-    worktreePath: resolvedWorktreePath,
-    worktreeHead: resolvedWorktreePath == null
-      ? null
-      : gitValue(resolvedWorktreePath, ["rev-parse", "HEAD"], "finalize worktree HEAD"),
-  });
-  if (expectation.headRef !== `refs/heads/${state.baseBranch}`) {
-    throw new Error(`finalize HEAD must be the configured base branch: ${state.baseBranch}`);
-  }
-  if (expectation.expectedParent !== expectation.baseRef) {
-    throw new Error("finalize HEAD parent must equal the configured base ref");
-  }
-  return expectation;
+function gitFailure(code, message, result) {
+  const error = new Error(`${message}: ${result.stderr || result.stdout || "unknown git error"}`);
+  error.code = code;
+  return error;
 }
 
 function assertInitialFinalizeGitAuthority({ targetRoot, state, worktreePath = null }) {
@@ -2424,285 +247,6 @@ function assertInitialFinalizeGitAuthority({ targetRoot, state, worktreePath = n
   }
 }
 
-function assertCommitExpectationFresh(expectation, input) {
-  const current = buildCommitExpectation({
-    transaction: { transactionId: expectation.transactionId },
-    ...input,
-  });
-  if (!expectation.equals(current)) {
-    const error = new Error("finalize commit authority diverged after the expectation became durable");
-    error.code = "FINALIZE_COMMIT_AUTHORITY_DIVERGED";
-    throw error;
-  }
-}
-
-function inspectExpectedCommit(expectation, { targetRoot, state }) {
-  const resolvedTargetRoot = fs.realpathSync(targetRoot);
-  if (resolvedTargetRoot !== expectation.targetRoot) {
-    throw new Error("finalize commit target root diverged from durable expectation");
-  }
-  const head = gitValue(resolvedTargetRoot, ["rev-parse", "HEAD"], "finalize HEAD");
-  if (head === expectation.expectedParent) return { adopted: false, head };
-  const headRef = gitValue(resolvedTargetRoot, ["symbolic-ref", "-q", "HEAD"], "finalize HEAD ref");
-  const parents = gitValue(resolvedTargetRoot, ["show", "-s", "--format=%P", head], "finalize commit parent")
-    .split(/\s+/)
-    .filter(Boolean);
-  const tree = gitValue(resolvedTargetRoot, ["show", "-s", "--format=%T", head], "finalize commit tree");
-  const message = gitValue(resolvedTargetRoot, ["show", "-s", "--format=%B", head], "finalize commit message");
-  const featureRef = gitValue(resolvedTargetRoot, ["rev-parse", state.featureBranch], "finalize feature ref");
-  const baseHead = gitValue(resolvedTargetRoot, ["rev-parse", state.baseBranch], "finalize base ref");
-  const matches = headRef === expectation.headRef
-    && parents.length === 1
-    && parents[0] === expectation.expectedParent
-    && tree === expectation.stagedTree
-    && hashCommitMessage(message) === expectation.messageHash
-    && featureRef === expectation.featureRef
-    && baseHead === head;
-  if (!matches) {
-    throw new Error("repository HEAD diverged from the durable finalize commit expectation");
-  }
-  return { adopted: true, head };
-}
-
-function assertFeatureAuthority(transaction, { mainRepoPath, state, expectation = transaction.commitExpectation }) {
-  const current = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize feature ref");
-  if (current !== expectation.featureRef) {
-    throw new Error("finalize feature ref diverged from durable teardown authority");
-  }
-}
-
-function assertWorktreeAuthority(transaction, {
-  mainRepoPath,
-  state,
-  expectation = transaction.commitExpectation,
-}) {
-  if (expectation.worktreePath == null) return;
-  if (!fs.existsSync(expectation.worktreePath) || fs.realpathSync(expectation.worktreePath) !== expectation.worktreePath) {
-    throw new Error("finalize worktree path diverged from durable teardown authority");
-  }
-  const worktreeHead = gitValue(expectation.worktreePath, ["rev-parse", "HEAD"], "finalize worktree HEAD");
-  if (worktreeHead !== expectation.worktreeHead || worktreeHead !== expectation.featureRef) {
-    throw new Error("finalize worktree HEAD diverged from durable teardown authority");
-  }
-  assertFeatureAuthority(transaction, { mainRepoPath, state, expectation });
-}
-
-function rebasedWorktreeOrphanEnvelope({
-  baseHead,
-  featureHead,
-  orphan,
-  state,
-}) {
-  return Envelope.fail(
-    "run",
-    "finalize-cleanup",
-    "ORPHAN_COMMITS_DETECTED",
-    [
-      `Rebased feature commits detected on ${state.featureBranch} (${orphan.count} commit(s) beyond the rebased base).`,
-      "These commits are not reachable from the current base branch and would be dropped by branch deletion.",
-      "Recovery options:",
-      "  - cherry-pick: re-run with --auto-rescue to preserve the commits on the base branch",
-      "  - abort: leave the worktree and feature branch as-is and inspect/handle manually",
-      "  - force-continue: re-run with --force to delete the branch (commits will be lost; recorded to issue-log)",
-    ],
-    {
-      recordedSha: baseHead,
-      currentSha: featureHead,
-      count: orphan.count,
-      truncated: orphan.truncated,
-      orphanCommits: orphan.commits,
-      baseBranch: state.baseBranch,
-      featureBranch: state.featureBranch,
-      recoveryOptions: RECOVERY_OPTIONS_DETECT,
-    },
-  );
-}
-
-function rebasedWorktreeAutoRescueFailure({ rescue, state, baseHead, featureHead }) {
-  const messages = rescue.code === "CHERRY_PICK_CONFLICT"
-    ? [
-      "Cherry-pick of rebased feature commits produced a conflict.",
-      "The worktree and feature branch were retained for manual recovery.",
-    ]
-    : [
-      "Preserving rebased feature commits before teardown did not complete.",
-      rescue.message || `Auto-rescue stopped with ${rescue.code || "an unknown error"}.`,
-    ];
-  return Envelope.fail(
-    "run",
-    "finalize-cleanup",
-    rescue.code || "REBASED_WORKTREE_AUTO_RESCUE_FAILED",
-    messages,
-    {
-      recordedSha: baseHead,
-      currentSha: featureHead,
-      baseBranch: state.baseBranch,
-      featureBranch: state.featureBranch,
-      recoveryOptions: RECOVERY_OPTIONS_RESCUE_FAIL,
-      conflictFiles: rescue.conflictFiles || [],
-      dirtyFiles: rescue.dirtyFiles || [],
-    },
-  );
-}
-
-function reconcileRebasedWorktreeAuthority({
-  ctx,
-  transaction,
-  authorityStore,
-  mainRepoPath,
-  state,
-  specId,
-}) {
-  const expectation = transaction.commitExpectation;
-  if (expectation?.worktreePath == null) return { expectation };
-  if (transaction.phase.atLeast("worktree-removed")) return { expectation };
-
-  const checkpoint = transaction.checkpoint;
-  if (
-    checkpoint?.targetPhase.name === "worktree-removed"
-    && !pathExistsStrict(expectation.worktreePath)
-  ) {
-    // The worktree deletion can be durable even when persisting its completion
-    // checkpoint fails. The journaled checkpoint is the only authority that
-    // permits retry to advance without probing the deleted worktree again.
-    return { expectation };
-  }
-  if (!pathExistsStrict(expectation.worktreePath)) {
-    const error = new Error(
-      `finalize worktree is missing before its recorded deletion: ${expectation.worktreePath}`,
-    );
-    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
-    throw error;
-  }
-  if (!featureBranchExists(mainRepoPath, state.featureBranch)) {
-    const error = new Error(
-      `finalize feature branch is missing before worktree deletion: ${state.featureBranch}`,
-    );
-    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
-    throw error;
-  }
-
-  const persisted = authorityStore.read();
-  if (persisted != null) {
-    return { expectation: persisted.effectiveExpectation(expectation) };
-  }
-
-  const featureHead = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize feature ref");
-  const worktreeHead = gitValue(expectation.worktreePath, ["rev-parse", "HEAD"], "finalize worktree HEAD");
-  if (featureHead === expectation.featureRef && worktreeHead === expectation.worktreeHead) {
-    return { expectation };
-  }
-  if (!transaction.phase.atLeast("index-reconciled") || transaction.phase.atLeast("worktree-removed")) {
-    throw new Error("finalize worktree authority changed outside the recoverable teardown phase");
-  }
-  if (featureHead !== worktreeHead) {
-    throw new Error("finalize feature and worktree HEAD diverged during rebased teardown recovery");
-  }
-  assertCommitReachableFromBase(transaction, { mainRepoPath, state });
-  let baseHead = gitValue(mainRepoPath, ["rev-parse", state.baseBranch], "finalize base ref");
-  if (featureHead === baseHead) {
-    const authority = FinalizeRebasedWorktreeAuthority.create({
-      transaction,
-      expectation,
-      baseHead,
-    });
-    authorityStore.write(authority);
-    return { expectation: authority.effectiveExpectation(expectation) };
-  }
-
-  const featureExtendsBase = runGit([
-    "-C",
-    mainRepoPath,
-    "merge-base",
-    "--is-ancestor",
-    baseHead,
-    state.featureBranch,
-  ]);
-  if (!featureExtendsBase.ok) {
-    throw new Error("finalize rebased worktree authority is not based on the current base branch");
-  }
-  const orphan = readOrphanCommits(mainRepoPath, baseHead, state.featureBranch);
-  if (!orphan.ok) {
-    return {
-      env: Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "ORPHAN_LISTING_FAILED",
-        `Failed to list rebased feature commits: ${orphan.reason}`,
-      ),
-    };
-  }
-  if (orphan.count === 0) {
-    throw new Error("rebased worktree authority could not prove the feature branch is at base HEAD");
-  }
-  if (ctx.autoRescue !== true) {
-    return {
-      env: rebasedWorktreeOrphanEnvelope({ baseHead, featureHead, orphan, state }),
-    };
-  }
-  const rescue = runAutoRescue({
-    mainRepoPath,
-    baseBranch: state.baseBranch,
-    baseline: baseHead,
-    featureBranch: state.featureBranch,
-    specId,
-    allowFinalizeMetadata: true,
-  });
-  if (!rescue.ok) {
-    return { env: rebasedWorktreeAutoRescueFailure({ rescue, state, baseHead, featureHead }) };
-  }
-  const rebase = runGit(["-C", expectation.worktreePath, "rebase", state.baseBranch]);
-  if (!rebase.ok) {
-    return {
-      env: Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "REBASED_WORKTREE_REBASE_FAILED",
-        [
-          "Preserved feature commits were applied to the base branch, but the managed worktree could not be rebased onto that base.",
-          rebase.stderr || rebase.stdout || "git rebase failed",
-          "The worktree and feature branch were retained for recovery.",
-        ],
-      ),
-    };
-  }
-  baseHead = gitValue(mainRepoPath, ["rev-parse", state.baseBranch], "finalize rescued base ref");
-  const rebasedFeatureHead = gitValue(mainRepoPath, ["rev-parse", state.featureBranch], "finalize rescued feature ref");
-  const rebasedWorktreeHead = gitValue(expectation.worktreePath, ["rev-parse", "HEAD"], "finalize rescued worktree HEAD");
-  if (rebasedFeatureHead !== baseHead || rebasedWorktreeHead !== baseHead) {
-    throw new Error("finalize auto-rescue did not restore the rebased worktree to base HEAD");
-  }
-  const authority = FinalizeRebasedWorktreeAuthority.create({
-    transaction,
-    expectation,
-    baseHead,
-  });
-  authorityStore.write(authority);
-  return {
-    expectation: authority.effectiveExpectation(expectation),
-    rescued: orphan.commits,
-    completionAdditionalPaths: [`specs/${specId}/issue-log.json`],
-  };
-}
-
-function assertCommitReachableFromBase(transaction, { mainRepoPath, state }) {
-  const commitSha = transaction.result?.commitSha;
-  if (!GIT_OBJECT_ID.test(String(commitSha))) {
-    throw new Error("finalize commit authority is unavailable");
-  }
-  const reachable = runGit([
-    "-C",
-    mainRepoPath,
-    "merge-base",
-    "--is-ancestor",
-    commitSha,
-    state.baseBranch,
-  ]);
-  if (!reachable.ok) {
-    throw new Error("finalize commit is no longer reachable from base HEAD");
-  }
-}
-
 function pathExistsStrict(filePath) {
   try {
     fs.lstatSync(filePath);
@@ -2713,20 +257,7 @@ function pathExistsStrict(filePath) {
   }
 }
 
-function assertFeatureBranchAbsent(mainRepoPath, featureBranch) {
-  if (!featureBranchExists(mainRepoPath, featureBranch)) return;
-  throw new Error(`finalize persisted reality diverged: feature branch remains: ${featureBranch}`);
-}
-
-function featureBranchExists(mainRepoPath, featureBranch) {
-  const ref = `refs/heads/${featureBranch}`;
-  const result = runGit(["-C", mainRepoPath, "show-ref", "--verify", "--quiet", ref]);
-  if (result.ok) return true;
-  if (result.status === 1) return false;
-  throw new Error(`finalize feature branch absence could not be verified: ${result.stderr || result.stdout || "git probe failed"}`);
-}
-
-function assertPointerReality(reportRoot, spec) {
+function assertPointerReality(reportRoot, specId) {
   const pointerPath = path.join(reportRoot, ".senti", "last-finalized-spec");
   let stat;
   try {
@@ -2737,55 +268,9 @@ function assertPointerReality(reportRoot, spec) {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
     throw new Error("finalize persisted pointer reality is not one real file");
   }
-  if (fs.readFileSync(pointerPath, "utf8").trim() !== spec) {
+  if (fs.readFileSync(pointerPath, "utf8").trim() !== specId) {
     throw new Error("finalize persisted pointer reality targets a different spec");
   }
-}
-
-function assertActiveFlowCleared(ctx, specId) {
-  if (!activeFlowIsCleared(ctx, specId)) {
-    throw new Error(`finalize persisted active-flow reality still contains ${specId}`);
-  }
-}
-
-function activeFlowIsCleared(ctx, specId) {
-  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
-  return stateOwner.activeFlowIsCleared();
-}
-
-function assertPersistedTeardownReality(transaction, ctx, {
-  worktreePath,
-  mainRepoPath,
-  targetRoot,
-  reportRoot,
-  specId,
-}) {
-  const state = ctx.flowState;
-  const gitRoot = mainRepoPath || targetRoot;
-  if (transaction.phase.atLeast("worktree-removed") && state.worktree && worktreePath) {
-    const validation = validateTeardown({
-      worktreePath,
-      mainRepoPath: gitRoot,
-      featureBranch: "",
-      specId,
-      checkBranch: false,
-    });
-    if (!validation.ok) throw new Error(`finalize persisted worktree reality diverged: ${validation.reasons.join("; ")}`);
-  }
-  if (transaction.phase.atLeast("branch-deleted")) {
-    assertFeatureBranchAbsent(gitRoot, state.featureBranch);
-  }
-  if (transaction.phase.atLeast("validated")) {
-    const validation = validateTeardown({
-      worktreePath,
-      mainRepoPath: gitRoot,
-      featureBranch: state.featureBranch,
-      specId,
-    });
-    if (!validation.ok) throw new Error(`finalize persisted teardown reality diverged: ${validation.reasons.join("; ")}`);
-  }
-  if (transaction.phase.atLeast("pointer-written")) assertPointerReality(reportRoot, state.spec);
-  if (transaction.phase.atLeast("active-cleared")) assertActiveFlowCleared(ctx, specId);
 }
 
 function ensureRealDirectory(directory) {
@@ -2802,305 +287,13 @@ function ensureRealDirectory(directory) {
   }
 }
 
-class FinalizeRepositoryOperationLock {
-  constructor(mainRoot) {
-    this.mainRoot = fs.realpathSync(resolveRepositoryLockRoot(mainRoot));
-    const errorFactory = (status, message, { lockPath, cause } = {}) => {
-      const error = new Error(message, { cause });
-      error.code = status === "live"
-        ? "FINALIZE_REPOSITORY_BUSY"
-        : `FINALIZE_REPOSITORY_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
-      error.lockPath = lockPath;
-      return error;
-    };
-    const rootAuthority = new RealDirectoryAuthority(this.mainRoot, { errorFactory });
-    const directoryAuthority = new RealDirectoryAuthority(path.join(this.mainRoot, ".senti"), {
-      create: true,
-      parentAuthority: rootAuthority,
-      errorFactory,
-    });
-    this.lock = new ProcessOwnedLock({
-      directoryAuthority,
-      fileName: FINALIZE_REPOSITORY_LOCK_FILE,
-      kind: "repository-finalize-operation",
-      authority: { mainRoot: this.mainRoot },
-      errorFactory,
-    });
-  }
-
-  acquire() {
-    return this.lock.acquire({ claimStale: true });
-  }
-
-  release() {
-    this.lock.release();
-  }
-}
-
-async function withFinalizeRepositoryOperation(lock, body) {
-  try {
-    lock.acquire();
-  } catch (error) {
-    if (error.code === "FINALIZE_REPOSITORY_BUSY") {
-      return Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        error.code,
-        "Another finalize-cleanup process owns this repository operation.",
-        { lockPath: error.lockPath },
-      );
-    }
-    throw error;
-  }
-  let result;
-  let primaryError = null;
-  try {
-    result = await body();
-  } catch (error) {
-    primaryError = error;
-  }
-  let releaseError = null;
-  try {
-    lock.release();
-  } catch (error) {
-    releaseError = error;
-  }
-  if (primaryError && releaseError) {
-    throw new AggregateError(
-      [primaryError, releaseError],
-      "finalize repository operation and lock release both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  if (releaseError) throw releaseError;
-  return result;
-}
-
-class FinalizeTeardownTransactionStore {
-  constructor(mainRoot, state, {
-    commitRequired = true,
-    authorization = FinalizeTeardownAuthorization.standard(state),
-  } = {}) {
-    const identity = finalizeTeardownIdentity(state);
-    const token = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
-    this.mainRoot = fs.realpathSync(mainRoot);
-    this.directory = path.join(this.mainRoot, ".senti", "recovery", "finalize-cleanup");
-    ensureRealDirectory(this.directory);
-    this.path = path.join(this.directory, `${token}.json`);
-    this.file = new AtomicJsonFile(this.path);
-    this.state = state;
-    this.commitRequired = commitRequired;
-    this.authorization = authorization;
-    this.revision = null;
-    this.owned = false;
-    const errorFactory = (status, message, { lockPath, cause } = {}) => {
-      const error = new Error(message, { cause });
-      error.code = status === "live"
-        ? "FINALIZE_TEARDOWN_BUSY"
-        : `FINALIZE_TEARDOWN_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
-      error.lockPath = lockPath;
-      return error;
-    };
-    this.lock = new ProcessOwnedLock({
-      directoryAuthority: new RealDirectoryAuthority(this.directory, { errorFactory }),
-      fileName: `${token}.lock`,
-      kind: "finalize-teardown-operation",
-      authority: {
-        mainRoot: this.mainRoot,
-        transactionPath: this.path,
-        flowIdentity: identity,
-      },
-      errorFactory,
-    });
-  }
-
-  static pathFor(mainRoot, state) {
-    const identity = finalizeTeardownIdentity(state);
-    const token = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
-    return path.join(path.resolve(mainRoot), ".senti", "recovery", "finalize-cleanup", `${token}.json`);
-  }
-
-  hasExisting() {
-    this.#assertOwned();
-    return this.#readSnapshot().value != null;
-  }
-
-  acquire() {
-    this.lock.acquire({ claimStale: true });
-    this.owned = true;
-  }
-
-  release() {
-    try {
-      this.lock.release();
-    } finally {
-      this.owned = false;
-    }
-  }
-
-  loadOrCreate() {
-    this.#assertOwned();
-    const snapshot = this.#readSnapshot();
-    this.revision = snapshot.revision;
-    if (snapshot.value == null) this.#assertNoForeignTargetJournal();
-    const transaction = snapshot.value == null
-      ? FinalizeTeardownTransaction.create(this.state, {
-        commitRequired: this.commitRequired,
-        authorization: this.authorization,
-      })
-      : FinalizeTeardownTransaction.fromStored(snapshot.value);
-    if (!transaction.matches(this.state)) throw new Error("finalize teardown transaction targets a different flow");
-    if (transaction.commitRequired !== this.commitRequired) {
-      throw new Error("finalize teardown transaction mode changed");
-    }
-    return transaction;
-  }
-
-  write(transaction) {
-    this.#assertOwned();
-    const current = this.#readSnapshot();
-    if (current.revision !== this.revision) {
-      const error = new Error("finalize teardown transaction revision changed concurrently");
-      error.code = "FINALIZE_TEARDOWN_REVISION_CONFLICT";
-      throw error;
-    }
-    this.file.write(transaction.toJSON());
-    this.revision = this.#readSnapshot().revision;
-  }
-
-  remove() {
-    this.#assertOwned();
-    const current = this.#readSnapshot();
-    if (current.revision !== this.revision || current.value == null) {
-      const error = new Error("finalize teardown transaction revision changed before removal");
-      error.code = "FINALIZE_TEARDOWN_REVISION_CONFLICT";
-      throw error;
-    }
-    let descriptor = null;
-    try {
-      fs.unlinkSync(this.path);
-      descriptor = fs.openSync(this.directory, "r");
-      fs.fsyncSync(descriptor);
-    } finally {
-      if (descriptor != null) fs.closeSync(descriptor);
-    }
-    this.revision = null;
-  }
-
-  #assertOwned() {
-    if (!this.owned) throw new Error("finalize teardown transaction lock is required");
-  }
-
-  #readSnapshot() {
-    return this.#readSnapshotAt(this.path);
-  }
-
-  #assertNoForeignTargetJournal() {
-    const expected = finalizeTeardownIdentity(this.state);
-    for (const entry of fs.readdirSync(this.directory, { withFileTypes: true })) {
-      if (
-        !FINALIZE_TEARDOWN_TRANSACTION_FILE.test(entry.name)
-        || path.join(this.directory, entry.name) === this.path
-      ) continue;
-      const candidate = this.#readSnapshotAt(path.join(this.directory, entry.name)).value;
-      const transaction = FinalizeTeardownTransaction.fromStored(candidate);
-      if (
-        transaction.identity.spec !== expected.spec
-        && transaction.identity.featureBranch !== expected.featureBranch
-      ) {
-        continue;
-      }
-      const error = new Error(
-        "finalize teardown target identity changed while another transaction remains authoritative",
-      );
-      error.code = "FINALIZE_TEARDOWN_TARGET_MISMATCH";
-      throw error;
-    }
-  }
-
-  #readSnapshotAt(filePath) {
-    let stat;
-    try {
-      stat = fs.lstatSync(filePath);
-    } catch (error) {
-      if (error.code === "ENOENT") return { revision: null, value: null };
-      throw error;
-    }
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
-      throw new Error(`finalize teardown transaction must be one real non-hardlinked file: ${filePath}`);
-    }
-    const descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
-    try {
-      const opened = fs.fstatSync(descriptor);
-      if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink !== 1 || !opened.isFile()) {
-        throw new Error(`finalize teardown transaction identity changed while reading: ${filePath}`);
-      }
-      const bytes = fs.readFileSync(descriptor);
-      return {
-        revision: crypto.createHash("sha256").update(bytes).digest("hex"),
-        value: JSON.parse(bytes.toString("utf8")),
-      };
-    } finally {
-      fs.closeSync(descriptor);
-    }
-  }
-}
-
-class FinalizeRebasedWorktreeAuthorityStore {
-  constructor(transactionStore) {
-    if (!(transactionStore instanceof FinalizeTeardownTransactionStore)) {
-      throw new Error("rebased worktree authority requires a teardown transaction store");
-    }
-    this.transactionStore = transactionStore;
-    this.path = `${transactionStore.path}.rebind.json`;
-    this.file = new AtomicJsonFile(this.path);
-  }
-
-  read() {
-    let stat;
-    try {
-      stat = fs.lstatSync(this.path);
-    } catch (error) {
-      if (error.code === "ENOENT") return null;
-      throw error;
-    }
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
-      throw new Error("rebased worktree teardown authority must be one real non-hardlinked file");
-    }
-    const descriptor = fs.openSync(this.path, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
-    try {
-      const opened = fs.fstatSync(descriptor);
-      if (opened.dev !== stat.dev || opened.ino !== stat.ino || opened.nlink !== 1 || !opened.isFile()) {
-        throw new Error("rebased worktree teardown authority identity changed while reading");
-      }
-      return FinalizeRebasedWorktreeAuthority.fromStored(JSON.parse(fs.readFileSync(descriptor, "utf8")));
-    } finally {
-      fs.closeSync(descriptor);
-    }
-  }
-
-  write(authority) {
-    if (!(authority instanceof FinalizeRebasedWorktreeAuthority)) {
-      throw new Error("rebased worktree authority is invalid");
-    }
-    this.file.write(authority.toJSON());
-  }
-}
-
-export function readPersistedFinalizeTeardownTransaction(mainRoot, state) {
-  const transactionPath = FinalizeTeardownTransactionStore.pathFor(mainRoot, state);
-  const stored = new AtomicJsonFile(transactionPath).read(null);
-  return stored == null ? null : FinalizeTeardownTransaction.fromStored(stored);
-}
-
-function buildReportField(mainRoot) {
+function buildReportField(mainRoot, specRoot) {
   // The embedded cleanup report is the same report-show text generated from
   // validated v2 test-execute-result/test-result-review artifacts, including
   // projectRegression data. Missing or malformed report data is surfaced as
   // REPORT_MISSING instead of fabricated.
   try {
-    const path = resolveLatestReportPath(mainRoot);
+    const path = resolveLatestReportPath(mainRoot, specRoot);
     const text = readReportText(path);
     return { report: { path, text }, missing: null };
   } catch (err) {
@@ -3108,8 +301,8 @@ function buildReportField(mainRoot) {
   }
 }
 
-function attachReport(env, mainRoot) {
-  const { report, missing } = buildReportField(mainRoot);
+function attachReport(env, mainRoot, specRoot) {
+  const { report, missing } = buildReportField(mainRoot, specRoot);
   env.data.report = report;
   if (missing) {
     env.addWarning("REPORT_MISSING", missing.message);
@@ -3118,9 +311,13 @@ function attachReport(env, mainRoot) {
 }
 
 class AutoRescueIssueLogAllowance {
-  constructor({ mainRepoPath, specId, idempotencyKey }) {
+  constructor({ mainRepoPath, specRoot, specId, idempotencyKey }) {
     this.mainRepoPath = mainRepoPath;
-    this.relativePath = `specs/${specId}/issue-log.json`;
+    this.relativePath = new FlowSpecLocation({
+      repositoryRoot: mainRepoPath,
+      specRoot,
+      specId,
+    }).relativeArtifact("issue-log.json");
     this.idempotencyKey = idempotencyKey;
   }
 
@@ -3162,11 +359,12 @@ class AutoRescueIssueLogAllowance {
 }
 
 class FinalizeFlowMetadataAllowance {
-  constructor({ mainRepoPath, specId }) {
+  constructor({ mainRepoPath, specRoot, specId }) {
     this.mainRepoPath = mainRepoPath;
     this.specId = specId;
-    this.flowPath = `specs/${specId}/flow.json`;
-    this.issueLogPath = `specs/${specId}/issue-log.json`;
+    const location = new FlowSpecLocation({ repositoryRoot: mainRepoPath, specRoot, specId });
+    this.flowPath = location.relativeFlowStateFile;
+    this.issueLogPath = location.relativeArtifact("issue-log.json");
   }
 
   allowsCurrentFlowState() {
@@ -3181,7 +379,9 @@ class FinalizeFlowMetadataAllowance {
       && typeof current === "object"
       && current.runId != null
       && typeof current.runId === "string"
-      && current.spec === `specs/${this.specId}/spec.json`
+      && current.specId === this.specId
+      && !Object.hasOwn(current, "spec")
+      && !Object.hasOwn(current, "specPath")
       && typeof current.baseBranch === "string"
       && typeof current.featureBranch === "string"
       && Array.isArray(current.steps)
@@ -3231,10 +431,11 @@ function listMainRepoDirtyFiles(
   mainRepoPath,
   specId,
   allowedIssueLogId = null,
-  { allowFinalizeMetadata = false } = {},
+  { allowFinalizeMetadata = false, specRoot = DEFAULT_FLOW_SPEC_DIR } = {},
 ) {
-  const issueLogPath = `specs/${specId}/issue-log.json`;
-  const flowPath = `specs/${specId}/flow.json`;
+  const location = new FlowSpecLocation({ repositoryRoot: mainRepoPath, specRoot, specId });
+  const issueLogPath = location.relativeArtifact("issue-log.json");
+  const flowPath = location.relativeFlowStateFile;
   const res = runGit([
     "-C",
     mainRepoPath,
@@ -3256,7 +457,7 @@ function listMainRepoDirtyFiles(
     .filter((line) => line.trim() !== "")
     .map((line) => line.slice(3));
   const metadataAllowance = allowFinalizeMetadata
-    ? new FinalizeFlowMetadataAllowance({ mainRepoPath, specId })
+    ? new FinalizeFlowMetadataAllowance({ mainRepoPath, specRoot, specId })
     : null;
   const flowStatus = runGit([
     "-C",
@@ -3292,6 +493,7 @@ function listMainRepoDirtyFiles(
   if (issueStatus.stdout.trim()) {
     const allowance = new AutoRescueIssueLogAllowance({
       mainRepoPath,
+      specRoot,
       specId,
       idempotencyKey: allowedIssueLogId,
     });
@@ -3302,7 +504,8 @@ function listMainRepoDirtyFiles(
   return dirtyFiles;
 }
 
-function listOtherDirtyFlowJsonPaths(mainRepoPath, specId) {
+function listOtherDirtyFlowJsonPaths(mainRepoPath, specRoot, specId) {
+  const normalizedSpecRoot = FlowSpecRoot.from(specRoot).toString();
   const res = runGit([
     "-C",
     mainRepoPath,
@@ -3310,12 +513,16 @@ function listOtherDirtyFlowJsonPaths(mainRepoPath, specId) {
     "--porcelain",
     "--untracked-files=all",
     "--",
-    ":(glob)specs/*/flow.json",
+    `:(glob)${normalizedSpecRoot}/*/flow.json`,
   ]);
   if (!res.ok) {
     throw new Error(res.stderr || res.stdout || "git status failed");
   }
-  const targetPath = `specs/${specId}/flow.json`;
+  const targetPath = new FlowSpecLocation({
+    repositoryRoot: mainRepoPath,
+    specRoot: normalizedSpecRoot,
+    specId,
+  }).relativeFlowStateFile;
   const paths = [];
   const seen = new Set();
   for (const line of res.stdout.split("\n")) {
@@ -3328,10 +535,10 @@ function listOtherDirtyFlowJsonPaths(mainRepoPath, specId) {
   return paths;
 }
 
-function attachOtherFlowMetadataWarning(env, mainRepoPath, specId) {
+function attachOtherFlowMetadataWarning(env, mainRepoPath, specRoot, specId) {
   let paths;
   try {
-    paths = listOtherDirtyFlowJsonPaths(mainRepoPath, specId);
+    paths = listOtherDirtyFlowJsonPaths(mainRepoPath, specRoot, specId);
   } catch (err) {
     env.addWarning(
       "OTHER_FLOW_METADATA_STATUS_FAILED",
@@ -3721,23 +928,15 @@ export function recordFinalizeCleanupPostCommandMetadata({
   operationOwnerToken = null,
 } = {}) {
   if (!flowManager) throw new Error("flowManager is required");
-  const state = flowManager.loadReadOnly(specId) || { worktree: false };
-  const { worktreePath, mainRepoPath } = flowManager.resolveWorktreePaths(state);
-  const mainRoot = mainRepoPath || flowManager._mainRoot || flowManager._root;
-  const resolver = new FinalizeCleanupPathResolver({
-    enabled: true,
-    worktreeRoot: worktreePath,
-    mainRoot,
-    inWorktree: Boolean(worktreePath && mainRepoPath),
-  });
+  const specLocation = flowManager.specLocation(specId);
+  const mainRoot = specLocation.repositoryRoot;
   const writtenPaths = [];
   const surfaces = new Set();
   const callerVisible = {};
 
   function writeSurface(surface, fileName, payload) {
     if (payload == null) return null;
-    const owner = resolver.cleanupSurfaceOwner(surface, { specId });
-    const filePath = owner.path || resolver.postCommandMetadataPath(fileName, { specId });
+    const filePath = specLocation.artifact(fileName);
     writeJsonFile(filePath, payload);
     writtenPaths.push(filePath);
     surfaces.add(surface);
@@ -3746,8 +945,7 @@ export function recordFinalizeCleanupPostCommandMetadata({
 
   function appendSurfaceEntries(surface, fileName, key, entries) {
     if (!Array.isArray(entries) || entries.length === 0) return null;
-    const owner = resolver.cleanupSurfaceOwner(surface, { specId });
-    const filePath = owner.path || resolver.postCommandMetadataPath(fileName, { specId });
+    const filePath = specLocation.artifact(fileName);
     let existing = [];
     if (fs.existsSync(filePath)) {
       const current = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -3769,15 +967,14 @@ export function recordFinalizeCleanupPostCommandMetadata({
     appendSurfaceEntries("notes", "notes.json", "entries", notes);
   }
   if (issueLogEntries.length > 0) {
-    const specPath = state.spec || `specs/${specId}/spec.json`;
-    const owner = resolver.cleanupSurfaceOwner("issue-log", { specId });
+    const specPath = specLocation.relativeSpecFile;
     const timestamp = new Date().toISOString();
     new IssueLogStore({ root: mainRoot, spec: specPath, operationOwnerToken }).appendMany(issueLogEntries.map((entry) => {
       const normalized = { ...entry, timestamp: entry?.timestamp || timestamp };
       const idempotencyKey = finalizeLifecycleIssueLogId(entry);
       return { entry: normalized, idempotencyKey };
     }));
-    writtenPaths.push(owner.path);
+    writtenPaths.push(specLocation.artifact("issue-log.json"));
     surfaces.add("issue-log");
   }
   if (pluginArtifacts.length > 0) {
@@ -3812,87 +1009,31 @@ function finalizeLifecycleIssueLogId(entry) {
     .digest("hex")}`;
 }
 
-function restoreFinalizeIssueLog(root, state, image, issueLogIds, authorization, operationOwnerToken) {
-  const policy = new FinalizeBeforeImageRestorePolicy(image.rootRelative);
-  const issueImage = image.files.find((entry) => entry.relativePath === policy.issueLogPath);
-  if (image.directories.some((entry) => entry.relativePath === policy.issueLogPath)) return;
-  const ownedIds = [
-    ...issueLogIds,
-    ...(authorization.route === "forced" ? [authorization.auditId] : []),
-  ];
-  if (ownedIds.length === 0 && issueImage == null) return;
-  const store = new IssueLogStore({
-    root,
-    spec: state.spec,
-    operationOwnerToken,
-  });
-  store.restoreOwnedMutation({
-    idempotencyKeys: ownedIds,
-    before: issueImage == null
-      ? { exists: false, bytes: null, mode: null }
-      : { exists: true, bytes: issueImage.bytes, mode: issueImage.mode },
-  });
-}
-
 export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
   const completion = new FlowCompletion(state).toJSON();
+  const specLocation = requiredSpecLocation(state);
   const inCleanupWorktree = Boolean(state?.worktree && worktreePath && mainRepoPath);
   if (!inCleanupWorktree) {
     return {
       root,
-      flow: { ...state, completion },
-      artifactPath: `specs/${specId}`,
+      artifactRepositoryRoot: specLocation.repositoryRoot,
+      flow: { ...state, completion, specRoot: specLocation.relativeRoot },
+      artifactPath: specLocation.relativeDirectory,
     };
   }
 
-  const resolver = new FinalizeCleanupPathResolver({
-    enabled: true,
-    worktreeRoot: worktreePath,
-    mainRoot: mainRepoPath,
-    inWorktree: true,
-  });
-  const owner = resolver.cleanupSurfaceOwner("plugin-artifact", { specId });
-  const artifactDir = path.join(path.dirname(owner.path), "plugin-artifacts");
+  const artifactDir = specLocation.artifact("plugin-artifacts");
   const artifactPath = path.relative(mainRepoPath, artifactDir).split(path.sep).join("/");
   return {
-    root: mainRepoPath,
-    flow: { ...state, completion, pluginArtifactRoot: artifactPath },
+    root: worktreePath,
+    artifactRepositoryRoot: mainRepoPath,
+    flow: { ...state, completion, specRoot: specLocation.relativeRoot },
     artifactPath,
   };
 }
 
 function finalizeCleanupPrePluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
-  const inCleanupWorktree = Boolean(state?.worktree && worktreePath && mainRepoPath);
-  if (!inCleanupWorktree) {
-    return finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId });
-  }
-
-  const artifactPath = path.join(path.dirname(state.spec), "plugin-artifacts");
-  return {
-    root: worktreePath,
-    flow: {
-      ...state,
-      completion: new FlowCompletion(state).toJSON(),
-      pluginArtifactRoot: artifactPath,
-    },
-    artifactPath,
-    restorePluginArtifactsAfterHooks: true,
-  };
-}
-
-function removeFinalizePluginArtifacts(pluginContext, state) {
-  const artifactRoot = pluginContext.flow.pluginArtifactRoot
-    || path.join(path.dirname(state.spec), "plugin-artifacts");
-  fs.rmSync(path.resolve(pluginContext.root, artifactRoot), { recursive: true, force: true });
-}
-
-function captureFinalizePluginArtifacts(pluginContext, state) {
-  const artifactRoot = pluginContext.flow.pluginArtifactRoot
-    || path.join(path.dirname(state.spec), "plugin-artifacts");
-  return captureFinalizeTreeAt(
-    pluginContext.root,
-    path.relative(pluginContext.root, path.resolve(pluginContext.root, artifactRoot)),
-  );
+  return finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId });
 }
 
 function finalizePluginLifecycleFailure(error) {
@@ -3928,34 +1069,13 @@ function composeFinalizePluginLifecycle(pre, post) {
   };
 }
 
-function attachFinalizePluginLifecycle(env, pluginLifecycle) {
-  env.data = {
-    ...(env.data || {}),
-    pluginHooks: pluginLifecycle.data.pluginHooks,
-    followUps: pluginLifecycle.data.followUps,
-    pluginLifecycle,
-  };
-  for (const warning of pluginLifecycle.warnings) {
-    env.addWarning(warning.code || "PLUGIN_HOOK_WARNING", warning.message || JSON.stringify(warning));
-  }
-  return env;
-}
-
+/**
+ * Plugin side effects are outside the finalize-cleanup transaction boundary.
+ * A pre hook may inspect state and veto cleanup, but senti does not snapshot or
+ * restore files or external systems changed by the plugin. Plugins that choose
+ * to mutate state own idempotency, retry, recovery, and cleanup for that work.
+ */
 async function runFinalizePreHooks(pluginContext, state) {
-  // Flow command hooks receive a scoped artifact API. Their transactional
-  // boundary is the spec's plugin-artifacts tree. In a managed worktree the
-  // tree is restored after hooks run, so a later teardown failure cannot turn
-  // hook output or a pre-existing tracked artifact into dirty residue.
-  const artifactBeforeImage = pluginContext.restorePluginArtifactsAfterHooks
-    ? captureFinalizePluginArtifacts(pluginContext, state)
-    : null;
-  const restorePluginArtifacts = () => {
-    if (artifactBeforeImage != null) {
-      restoreFinalizeTree(pluginContext.root, artifactBeforeImage);
-    } else {
-      removeFinalizePluginArtifacts(pluginContext, state);
-    }
-  };
   let pluginPre;
   try {
     pluginPre = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
@@ -3963,23 +1083,27 @@ async function runFinalizePreHooks(pluginContext, state) {
       hook: "pre",
       flow: pluginContext.flow,
       result: {},
+      artifactRepositoryRoot: pluginContext.artifactRepositoryRoot || pluginContext.root,
     });
   } catch (err) {
-    if (artifactBeforeImage != null) restorePluginArtifacts();
     return { ok: false, env: finalizePluginLifecycleFailure(err) };
   }
   if (!pluginPre.ok) {
-    restorePluginArtifacts();
     return { ok: false, env: finalizeRequiredPluginHookFailure(pluginPre) };
   }
-  if (artifactBeforeImage != null || pluginContext.discardArtifactsOnSuccess) restorePluginArtifacts();
   return { ok: true, pluginPre };
 }
 
+/**
+ * Post-hook side effects are plugin-owned as well. A required failure remains
+ * typed and stops Flow completion, but does not roll back plugin artifacts or
+ * core cleanup that already crossed its durable teardown boundaries.
+ */
 async function runFinalizePostHooks(pluginContext, state, pluginPre, result) {
   try {
     const pluginPost = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
       command: "finalize-cleanup", hook: "post", flow: pluginContext.flow, result,
+      artifactRepositoryRoot: pluginContext.artifactRepositoryRoot || pluginContext.root,
     });
     return { ok: true, pluginLifecycle: composeFinalizePluginLifecycle(pluginPre, pluginPost) };
   } catch (err) {
@@ -4033,14 +1157,9 @@ function appendIssueLog(mainRepoPath, specPath, entry, idempotencyKey, { operati
   return idempotencyKey;
 }
 
-function restoreIssueLog(mainRepoPath, specPath, idempotencyKey, { operationOwnerToken = null } = {}) {
-  if (!idempotencyKey) return;
-  new IssueLogStore({ root: mainRepoPath, spec: specPath, operationOwnerToken }).compensate(idempotencyKey);
-}
-
 function appendForcedFinalizeAudit(root, state, authorization, { operationOwnerToken = null } = {}) {
   const droppedCommits = authorization.droppedCommits.map((commit) => commit.toJSON());
-  appendIssueLog(root, state.spec, {
+  appendIssueLog(root, relativeFlowSpecFile(state), {
     step: "finalize-cleanup",
     reason: "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
     trigger: "senti flow run finalize-cleanup --force",
@@ -4080,7 +1199,7 @@ function finalizeAuditId(kind, state, details = {}) {
     .update(JSON.stringify({
       kind,
       runId: state.runId,
-      spec: state.spec,
+      specId: state.specId,
       issue: state.issue ?? null,
       ...details,
     }))
@@ -4333,6 +1452,7 @@ class AutoRescueCleanupJournal {
         "baseBranch",
         "baseline",
         "featureBranch",
+        "specRoot",
         "specId",
         "allowedIssueLogId",
         "allowFinalizeMetadata",
@@ -4347,6 +1467,7 @@ class AutoRescueCleanupJournal {
     if (typeof identity.allowFinalizeMetadata !== "boolean") {
       throw new Error("auto-rescue finalize metadata allowance is invalid");
     }
+    const specRoot = FlowSpecRoot.from(identity.specRoot).toString();
     if (!AUTO_RESCUE_CLEANUP_PHASES.has(phase)) throw new Error("auto-rescue cleanup phase is invalid");
     if (!GIT_OBJECT_ID.test(expectedBaseSha)) throw new Error("auto-rescue expected base OID is invalid");
     if (expectedUpdatedSha !== null && !GIT_OBJECT_ID.test(expectedUpdatedSha)) {
@@ -4396,7 +1517,11 @@ class AutoRescueCleanupJournal {
       throw new Error("ref-update-prepared auto-rescue journal needs the successful expected OID");
     }
     if (typeof updatedAt !== "string" || updatedAt === "") throw new Error("auto-rescue cleanup timestamp is invalid");
-    this.identity = Object.freeze({ ...identity, mainRepoPath: path.resolve(identity.mainRepoPath) });
+    this.identity = Object.freeze({
+      ...identity,
+      mainRepoPath: path.resolve(identity.mainRepoPath),
+      specRoot,
+    });
     this.phase = phase;
     this.expectedBaseSha = expectedBaseSha;
     this.expectedUpdatedSha = expectedUpdatedSha;
@@ -4639,6 +1764,7 @@ function autoRescueIdentity({
   baseBranch,
   baseline,
   featureBranch,
+  specRoot = DEFAULT_FLOW_SPEC_DIR,
   specId,
   allowedIssueLogId = null,
   allowFinalizeMetadata = false,
@@ -4648,6 +1774,7 @@ function autoRescueIdentity({
     baseBranch,
     baseline,
     featureBranch,
+    specRoot: FlowSpecRoot.from(specRoot).toString(),
     specId,
     allowedIssueLogId,
     allowFinalizeMetadata,
@@ -4800,7 +1927,10 @@ function materializeAutoRescueBase(store, journal, runGitFn) {
       journal.identity.mainRepoPath,
       journal.identity.specId,
       journal.identity.allowedIssueLogId,
-      { allowFinalizeMetadata: journal.identity.allowFinalizeMetadata },
+      {
+        allowFinalizeMetadata: journal.identity.allowFinalizeMetadata,
+        specRoot: journal.identity.specRoot,
+      },
     );
   } catch {
     dirtyFiles = null;
@@ -4820,6 +1950,7 @@ export function runDetachedAutoRescue({
   baseBranch,
   baseline,
   featureBranch,
+  specRoot = DEFAULT_FLOW_SPEC_DIR,
   specId,
   allowedIssueLogId = null,
   allowFinalizeMetadata = false,
@@ -4836,6 +1967,7 @@ export function runDetachedAutoRescue({
     baseBranch,
     baseline,
     featureBranch,
+    specRoot,
     specId,
     allowedIssueLogId,
     allowFinalizeMetadata,
@@ -4998,6 +2130,7 @@ export function runAutoRescue({
   baseBranch,
   baseline,
   featureBranch,
+  specRoot = DEFAULT_FLOW_SPEC_DIR,
   specId,
   allowedIssueLogId = null,
   allowFinalizeMetadata = false,
@@ -5008,6 +2141,7 @@ export function runAutoRescue({
     baseBranch,
     baseline,
     featureBranch,
+    specRoot,
     specId,
     allowedIssueLogId,
     allowFinalizeMetadata,
@@ -5020,6 +2154,7 @@ export function runAutoRescue({
         baseBranch,
         baseline,
         featureBranch,
+        specRoot,
         specId,
         range,
         allowedIssueLogId,
@@ -5038,7 +2173,10 @@ export function runAutoRescue({
 
   let dirtyFiles;
   try {
-    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId, { allowFinalizeMetadata });
+    dirtyFiles = listMainRepoDirtyFiles(mainRepoPath, specId, allowedIssueLogId, {
+      allowFinalizeMetadata,
+      specRoot,
+    });
   } catch (error) {
     return { ok: false, code: error.code || "MAIN_REPO_STATUS_FAILED", message: error.message };
   }
@@ -5052,6 +2190,7 @@ export function runAutoRescue({
       baseBranch,
       baseline,
       featureBranch,
+      specRoot,
       specId,
       range,
       allowedIssueLogId,
@@ -5182,11 +2321,10 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     let result;
     let primaryError = null;
     try {
-      const operation = new FinalizeRepositoryOperationLock(mainRoot);
-      result = await withFinalizeRepositoryOperation(operation, () => this.executeOwned({
+      result = await this.executeOwned({
         ...ctx,
         repositoryOperationOwnerToken: token,
-      }));
+      });
     } catch (error) {
       primaryError = error;
     }
@@ -5220,7 +2358,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     const state = resolution.state;
     const { worktreePath, mainRepoPath } = resolution;
     const { baseBranch, featureBranch, worktree } = state;
-    const specId = specIdFromPath(state.spec);
+    const specId = state.specId;
     const reportRoot = mainRepoPath || root;
 
     // ── Stage (A) — args validation ─────────────────────────────────────────
@@ -5230,17 +2368,18 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       ]);
     }
 
+    const pluginContext = finalizeCleanupPrePluginLifecycleContext({
+      root,
+      state,
+      worktreePath,
+      mainRepoPath,
+      specId,
+    });
+    const preResult = await runFinalizePreHooks(pluginContext, state);
+    if (!preResult.ok) return preResult.env;
+    ctx = { ...ctx, finalizePluginContext: pluginContext, finalizePluginPre: preResult.pluginPre };
+
     if (featureBranch !== baseBranch) {
-      const pluginContext = finalizeCleanupPrePluginLifecycleContext({
-        root,
-        state,
-        worktreePath,
-        mainRepoPath,
-        specId,
-      });
-      const preResult = await runFinalizePreHooks(pluginContext, state);
-      if (!preResult.ok) return preResult.env;
-      ctx = { ...ctx, finalizePluginContext: pluginContext, finalizePluginPre: preResult.pluginPre };
       const resumed = await runPersistedTeardownIfPresent(ctx, {
         worktreePath,
         mainRepoPath,
@@ -5256,28 +2395,15 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       });
     }
 
-    // Spec-only mode: feature branch === base branch. There is no merge to
-    // bake into a commit — just clear active flow state and emit the report.
+    // Spec-only mode has no worktree or feature branch to remove, but shares
+    // the same durable final-state and post-command commit boundary.
     if (featureBranch === baseBranch) {
-      const pluginContext = finalizeCleanupPrePluginLifecycleContext({
-        root,
-        state,
+      return runSharedSpecTeardown(ctx, {
+        worktreePath: null,
         mainRepoPath: ctx.mainRoot || root,
+        reportRoot,
         specId,
       });
-      const preResult = await runFinalizePreHooks(pluginContext, state);
-      if (!preResult.ok) return preResult.env;
-      const { pluginPre } = preResult;
-      const postResult = await runFinalizePostHooks(pluginContext, state, pluginPre, Envelope.ok(
-        "run",
-        "finalize-cleanup",
-        { status: "done", message: "spec-only mode" },
-      ));
-      if (!postResult.ok) return postResult.env;
-      const { pluginLifecycle } = postResult;
-      if (!pluginLifecycle.ok) return finalizeRequiredPluginHookFailure(pluginLifecycle);
-      const result = await runSpecOnlyCompletion(ctx, { reportRoot, specId });
-      return attachFinalizePluginLifecycle(result, pluginLifecycle);
     }
 
     // ── Stage (B) — route routing ───────────────────────────────────────────
@@ -5434,6 +2560,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
         baseBranch,
         baseline,
         featureBranch,
+        specRoot: requiredSpecLocation(state).relativeRoot,
         specId,
         allowedIssueLogId: finalizeAuditId("cherry-pick-conflict", state, { baseline, featureBranch }),
       });
@@ -5455,7 +2582,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       // Rescue failed — record audit log for CHERRY_PICK_CONFLICT, halt.
       if (rescue.code === "CHERRY_PICK_CONFLICT" && mainRepoPath) {
         try {
-          appendIssueLog(mainRepoPath, state.spec, {
+          appendIssueLog(mainRepoPath, relativeFlowSpecFile(state), {
             step: "finalize-cleanup",
             reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
             trigger: "senti flow run finalize-cleanup --auto-rescue",
@@ -5593,46 +2720,6 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
  * Extracted into a function so route routing and the no-op orphan path can
  * fall through to the same authoritative cleanup transaction.
  */
-async function withFinalizeTransactionStore(store, body) {
-  try {
-    store.acquire();
-  } catch (error) {
-    if (error.code === "FINALIZE_TEARDOWN_BUSY") {
-      return Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "FINALIZE_TEARDOWN_BUSY",
-        "Another finalize-cleanup process owns this flow transaction.",
-        { lockPath: error.lockPath },
-      );
-    }
-    throw error;
-  }
-  let result;
-  let primaryError = null;
-  try {
-    result = await body();
-  } catch (error) {
-    primaryError = error;
-  }
-  let releaseError = null;
-  try {
-    store.release();
-  } catch (error) {
-    releaseError = error;
-  }
-  if (primaryError && releaseError) {
-    throw new AggregateError(
-      [primaryError, releaseError],
-      "finalize transaction body and lock release both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  if (releaseError) throw releaseError;
-  return result;
-}
-
 function createFinalizeCleanupCompletionTransition(stateOwner) {
   return createLifecycleStepTransition({
     flowState: stateOwner.loadReadOnly(),
@@ -5651,1302 +2738,339 @@ function completeFinalizeCleanupStep(stateOwner, operationOwnerToken) {
   });
 }
 
-function persistFinalizeTeardownCheckpoint(store, transaction, targetPhase) {
-  const created = transaction.beginCheckpoint(targetPhase);
-  if (created) store.write(transaction);
-  return created;
-}
+const SHARED_FINALIZE_CLEANUP_PHASES = Object.freeze([
+  "prepared",
+  "worktree-removed",
+  "branch-deleted",
+  "validated",
+  "pointer-written",
+  "completed",
+]);
 
-function persistFinalizeTeardownCompletion(store, transaction, completedPhase, options = {}) {
-  transaction.advance(completedPhase, options);
-  store.write(transaction);
-}
+class SharedFinalizeCleanupJournal {
+  constructor({ file, value }) {
+    this.file = file;
+    this.value = value;
+  }
 
-function deleteFeatureBranchAtCheckpoint({
-  store,
-  transaction,
-  mainRepoPath,
-  state,
-  expectation = transaction.commitExpectation,
-}) {
-  const branchExists = featureBranchExists(mainRepoPath, state.featureBranch);
-  if (
-    !branchExists
-    && transaction.checkpoint?.targetPhase.name !== "branch-deleted"
-  ) {
-    const error = new Error(
-      `finalize feature branch is missing before its recorded deletion: ${state.featureBranch}`,
-    );
-    error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
-    throw error;
+  static open(state) {
+    const location = requiredSpecLocation(state);
+    const file = new AtomicJsonFile(location.artifact("finalize-cleanup.json"));
+    const stored = file.read(null);
+    if (stored) {
+      assertExactObjectKeys(stored, [
+        "version",
+        "runId",
+        "specId",
+        "featureBranch",
+        "baseBranch",
+        "worktreePath",
+        "featureSha",
+        "phase",
+        "updatedAt",
+      ], "shared finalize cleanup journal");
+      if (
+        stored.version !== 1
+        || stored.runId !== state.runId
+        || stored.specId !== state.specId
+        || stored.featureBranch !== state.featureBranch
+        || stored.baseBranch !== state.baseBranch
+        || !SHARED_FINALIZE_CLEANUP_PHASES.includes(stored.phase)
+        || !GIT_OBJECT_ID.test(String(stored.featureSha))
+      ) {
+        throw new Error("shared finalize cleanup journal does not match the active flow");
+      }
+    }
+    return new SharedFinalizeCleanupJournal({ file, value: stored });
   }
-  if (branchExists) {
-    assertFeatureAuthority(transaction, { mainRepoPath, state, expectation });
-    assertCommitReachableFromBase(transaction, { mainRepoPath, state });
-  }
-  const checkpointCreated = persistFinalizeTeardownCheckpoint(
-    store,
-    transaction,
-    "branch-deleted",
-  );
-  if (checkpointCreated || branchExists) {
-    const result = deleteFeatureBranchForCleanup({
-      mainRepoPath,
+
+  begin({ state, worktreePath, featureSha }) {
+    if (this.value) return this;
+    this.value = {
+      version: 1,
+      runId: state.runId,
+      specId: state.specId,
       featureBranch: state.featureBranch,
-      expectedSha: expectation.featureRef,
+      baseBranch: state.baseBranch,
+      worktreePath: worktreePath || null,
+      featureSha,
+      phase: "prepared",
+      updatedAt: new Date().toISOString(),
+    };
+    this.file.write(this.value);
+    return this;
+  }
+
+  atLeast(phase) {
+    return SHARED_FINALIZE_CLEANUP_PHASES.indexOf(this.value.phase)
+      >= SHARED_FINALIZE_CLEANUP_PHASES.indexOf(phase);
+  }
+
+  advance(phase) {
+    if (this.atLeast(phase)) return;
+    const current = SHARED_FINALIZE_CLEANUP_PHASES.indexOf(this.value.phase);
+    const next = SHARED_FINALIZE_CLEANUP_PHASES.indexOf(phase);
+    if (next !== current + 1) throw new Error(`invalid shared finalize cleanup transition: ${this.value.phase} -> ${phase}`);
+    this.value = { ...this.value, phase, updatedAt: new Date().toISOString() };
+    this.file.write(this.value);
+  }
+}
+
+export function readPersistedFinalizeCleanupJournal(state) {
+  const journal = SharedFinalizeCleanupJournal.open(state);
+  return journal.value == null ? null : structuredClone(journal.value);
+}
+
+function resolveFeatureSha(root, featureBranch) {
+  const result = runGit(["-C", root, "rev-parse", `refs/heads/${featureBranch}`]);
+  if (!result.ok || !GIT_OBJECT_ID.test(result.stdout.trim())) {
+    throw new Error(`finalize feature branch could not be resolved: ${featureBranch}`);
+  }
+  return result.stdout.trim();
+}
+
+function sharedFinalizeCompletionData(state, pluginLifecycle) {
+  const completion = new FlowCompletion(state);
+  const receipt = completion.toJSON();
+  const syncWarning = finalizeSyncWarning(state);
+  return {
+    data: {
+      status: "done",
+      ...(state.featureBranch === state.baseBranch ? { message: "spec-only mode" } : {}),
+      ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
+      assurance: completion.assurance,
+      ...(receipt.advisorySummary && { advisorySummary: receipt.advisorySummary }),
+      pluginHooks: pluginLifecycle.data?.pluginHooks || [],
+      followUps: pluginLifecycle.data?.followUps || [],
+    },
+    syncWarning,
+  };
+}
+
+function sharedFinalizeJournalReality(journal, { state, worktreePath, gitRoot, reportRoot, specId }) {
+  if (journal.atLeast("worktree-removed")) {
+    const validation = validateTeardown({
+      worktreePath,
+      mainRepoPath: gitRoot,
+      featureBranch: state.featureBranch,
+      specId,
+      checkBranch: journal.atLeast("branch-deleted") && state.featureBranch !== state.baseBranch,
     });
-    if (!result.ok) return result.env;
-  }
-  persistFinalizeTeardownCompletion(store, transaction, "branch-deleted");
-  return null;
-}
-
-function publishFinalizePointerBoundary({
-  checkpointCreated,
-  reportRoot,
-  spec,
-}) {
-  if (
-    !checkpointCreated
-    && pathExistsStrict(path.join(reportRoot, ".senti", "last-finalized-spec"))
-  ) {
-    assertPointerReality(reportRoot, spec);
-  } else {
-    writeLastFinalizedPointer(reportRoot, spec);
-  }
-}
-
-function clearActiveFlowBoundary({
-  checkpointCreated,
-  ctx,
-  specId,
-  gitRoot,
-}) {
-  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
-  if (checkpointCreated || !stateOwner.activeFlowIsCleared()) {
-    deleteRepairBaselineForFlow(gitRoot, ctx.flowState);
-    stateOwner.clearActiveFlow({
-      operationOwnerToken: ctx.repositoryOperationOwnerToken,
-    });
-  }
-}
-
-async function runSpecOnlyCompletion(ctx, { reportRoot, specId }) {
-  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
-  const store = new FinalizeTeardownTransactionStore(reportRoot, ctx.flowState, { commitRequired: false });
-  return withFinalizeTransactionStore(store, async () => {
-    let result;
-    const existed = store.hasExisting();
-    if (!existed && ctx.requirePersistedJournal === true) {
+    if (!validation.ok) {
       return Envelope.fail(
         "run",
         "finalize-cleanup",
-        "FINALIZE_TEARDOWN_JOURNAL_MISSING",
-        "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
+        "FINALIZE_TEARDOWN_JOURNAL_DIVERGED",
+        validation.reasons,
       );
     }
-    const transaction = store.loadOrCreate();
-    if (!existed) store.write(transaction);
-    if (transaction.phase.atLeast("pointer-written")) assertPointerReality(reportRoot, ctx.flowState.spec);
-    if (transaction.phase.atLeast("active-cleared")) assertActiveFlowCleared(ctx, specId);
-    const attachTransaction = (env) => {
-      if (env.data == null) env.data = {};
-      env.data.teardown = transaction.result.toJSON();
-      return env;
-    };
-    if (!transaction.phase.atLeast("pointer-written")) {
-      const checkpointCreated = persistFinalizeTeardownCheckpoint(
-        store,
-        transaction,
-        "pointer-written",
-      );
-      try {
-        publishFinalizePointerBoundary({
-          checkpointCreated,
-          reportRoot,
-          spec: ctx.flowState.spec,
-        });
-      } catch (error) {
-        transaction.fail("FINALIZE_POINTER_WRITE_FAILED");
-        store.write(transaction);
-        result = attachTransaction(Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "FINALIZE_POINTER_WRITE_FAILED",
-          `Spec-only completion pointer publication failed: ${error.message}`,
-          { causeCode: error.code || null },
-        ));
-      }
-      if (!result) {
-        persistFinalizeTeardownCompletion(store, transaction, "pointer-written");
-      }
-    }
-    if (!result && !transaction.phase.atLeast("active-cleared")) {
-      const checkpointCreated = persistFinalizeTeardownCheckpoint(
-        store,
-        transaction,
-        "active-cleared",
-      );
-      try {
-        clearActiveFlowBoundary({
-          checkpointCreated,
-          ctx,
-          specId,
-          gitRoot: ctx.mainRoot || ctx.root,
-        });
-      } catch (error) {
-        transaction.fail("ACTIVE_FLOW_CLEAR_FAILED");
-        store.write(transaction);
-        result = attachTransaction(Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "ACTIVE_FLOW_CLEAR_FAILED",
-          `Spec-only active-flow cleanup failed: ${error.message}`,
-          { causeCode: error.code || null },
-        ));
-      }
-      if (!result) {
-        persistFinalizeTeardownCompletion(store, transaction, "active-cleared");
-      }
-    }
-    if (!result) {
-      const completion = new FlowCompletion(ctx.flowState);
-      const receipt = completion.toJSON();
-      const syncWarning = finalizeSyncWarning(ctx.flowState);
-      const completionData = {
-        status: "done",
-        message: "spec-only mode",
-        ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
-        assurance: completion.assurance,
-        ...(receipt.advisorySummary && { advisorySummary: receipt.advisorySummary }),
-      };
-      if (!transaction.phase.atLeast("completed")) {
-        persistFinalizeTeardownCheckpoint(store, transaction, "completed");
-        completeFinalizeCleanupStep(
-          stateOwner,
-          ctx.repositoryOperationOwnerToken,
-        );
-        const outbox = stateOwner.outbox({
-          operationOwnerToken: ctx.repositoryOperationOwnerToken,
-        });
-        const identity = finalizationOutboxIdentity(ctx.flowState, "finalize-cleanup");
-        outbox.begin(identity);
-        outbox.complete(identity, completionData);
-        persistFinalizeTeardownCompletion(store, transaction, "completed", { commitSha: null });
-      }
-      const env = attachReport(
-        Envelope.ok("run", "finalize-cleanup", completionData),
-        reportRoot,
-      );
-      if (syncWarning) {
-        env.addWarning(
-          "FINALIZE_SYNC_FAILED",
-          `Documentation sync did not complete: ${syncWarning.message}. Run 'senti flow run sync' after inspecting the recorded diagnostics.`,
-        );
-      }
-      result = attachTransaction(env);
-    }
-    return result;
-  });
-}
-
-async function runTeardown(ctx, options) {
-  const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
-  return withFinalizeTransactionStore(
-    store,
-    () => {
-      const existed = store.hasExisting();
-      if (!existed && ctx.requirePersistedJournal === true) {
-        return Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "FINALIZE_TEARDOWN_JOURNAL_MISSING",
-          "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
-        );
-      }
-      return runTeardownTransaction(ctx, options, store);
-    },
-  );
-}
-
-async function runPersistedTeardownIfPresent(ctx, options) {
-  const store = new FinalizeTeardownTransactionStore(options.reportRoot, ctx.flowState);
-  return withFinalizeTransactionStore(store, async () => {
-    if (!store.hasExisting()) return null;
-    return runTeardownTransaction(ctx, options, store);
-  });
-}
-
-function assertFinalizeRelativePath(relativePath, label) {
-  if (
-    typeof relativePath !== "string"
-    || relativePath === ""
-    || path.isAbsolute(relativePath)
-    || path.normalize(relativePath) !== relativePath
-    || relativePath === ".."
-    || relativePath.startsWith(`..${path.sep}`)
-  ) {
-    throw new Error(`${label} is outside the finalize authority`);
   }
-}
-
-function captureFinalizeTreeAt(targetRoot, rootRelative, { sharedState = false, required = false } = {}) {
-  assertFinalizeRelativePath(rootRelative, "finalize tree root");
-  const treeRoot = path.join(targetRoot, rootRelative);
-  const files = [];
-  const directories = [];
-  if (!fs.existsSync(treeRoot)) {
-    if (required) throw new Error(`finalize tree root is absent: ${treeRoot}`);
-    return new FinalizeTreeBeforeImage({
-      rootRelative,
-      rootExisted: false,
-      sharedState: false,
-      files,
-      directories,
-    });
-  }
-  const visit = (directory) => {
-    const stat = fs.lstatSync(directory);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== directory) {
-      throw new Error(`finalize tree directory is not a real authority: ${directory}`);
-    }
-    directories.push(new FinalizeDirectoryBeforeImage({
-      relativePath: path.relative(targetRoot, directory),
-      mode: stat.mode & 0o777,
-    }));
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const target = path.join(directory, entry.name);
-      const targetStat = fs.lstatSync(target);
-      if (targetStat.isDirectory() && !targetStat.isSymbolicLink()) {
-        visit(target);
-      } else if (targetStat.isFile() && !targetStat.isSymbolicLink() && targetStat.nlink === 1) {
-        files.push(FinalizeFileBeforeImage.capture(targetRoot, target, targetStat));
-      } else {
-        throw new Error(`finalize tree entry is not a real non-hardlinked authority: ${target}`);
-      }
-    }
-  };
-  visit(treeRoot);
-  return new FinalizeTreeBeforeImage({
-    rootRelative,
-    rootExisted: true,
-    sharedState,
-    files,
-    directories,
-  });
-}
-
-function captureFinalizeTree(targetRoot, specId) {
-  return captureFinalizeTreeAt(targetRoot, path.join("specs", specId), {
-    sharedState: true,
-    required: true,
-  });
-}
-
-function finalizeChangedFilePaths(targetRoot, beforeImage) {
-  const before = beforeImage instanceof FinalizeTreeBeforeImage
-    ? beforeImage
-    : new FinalizeTreeBeforeImage(beforeImage);
-  const after = captureFinalizeTree(targetRoot, path.basename(before.rootRelative));
-  const beforeFiles = new Map(before.files.map((entry) => [entry.relativePath, entry]));
-  const afterFiles = new Map(after.files.map((entry) => [entry.relativePath, entry]));
-  return [...new Set([...beforeFiles.keys(), ...afterFiles.keys()])]
-    .filter((relativePath) => {
-      const left = beforeFiles.get(relativePath);
-      const right = afterFiles.get(relativePath);
-      return left == null
-        || right == null
-        || left.revision !== right.revision
-        || left.mode !== right.mode;
-    })
-    .sort();
-}
-
-function durableRestoreFile(filePath, bytes, mode) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tempPath = path.join(
-    path.dirname(filePath),
-    `.${path.basename(filePath)}.finalize-restore-${process.pid}-${crypto.randomUUID()}`,
-  );
-  const descriptor = fs.openSync(tempPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY, mode);
-  try {
-    fs.writeFileSync(descriptor, bytes);
-    fs.fchmodSync(descriptor, mode);
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  fs.renameSync(tempPath, filePath);
-  const directoryDescriptor = fs.openSync(path.dirname(filePath), "r");
-  try {
-    fs.fsyncSync(directoryDescriptor);
-  } finally {
-    fs.closeSync(directoryDescriptor);
-  }
-}
-
-function fsyncFinalizeDirectory(directory) {
-  const descriptor = fs.openSync(directory, "r");
-  try {
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
-export class FinalizeBeforeImageRestorePolicy {
-  constructor(rootRelative, sharedState = true) {
-    if (
-      typeof rootRelative !== "string"
-      || rootRelative === ""
-      || path.isAbsolute(rootRelative)
-      || path.normalize(rootRelative) !== rootRelative
-      || rootRelative.split(path.sep).includes("..")
-    ) {
-      throw new Error("finalize restore root authority is invalid");
-    }
-    this.sharedFlowRelativePath = sharedState ? path.join(rootRelative, "flow.json") : null;
-    this.issueLogPath = sharedState ? path.join(rootRelative, "issue-log.json") : null;
-    Object.freeze(this);
-  }
-
-  usesSharedWriter(relativePath) {
-    return relativePath === this.sharedFlowRelativePath || relativePath === this.issueLogPath;
-  }
-
-  allowsRawByteRestore(relativePath) {
-    return !this.usesSharedWriter(relativePath);
-  }
-}
-
-function restoreFinalizeTree(targetRoot, image) {
-  const tree = image instanceof FinalizeTreeBeforeImage ? image : new FinalizeTreeBeforeImage(image);
-  const expectedFiles = new Map(tree.files.map((entry) => [entry.relativePath, entry]));
-  const expectedDirectories = new Map(tree.directories.map((entry) => [entry.relativePath, entry]));
-  const treeRoot = path.join(targetRoot, tree.rootRelative);
-  const currentFiles = [];
-  const currentDirectories = [];
-  const restorePolicy = new FinalizeBeforeImageRestorePolicy(tree.rootRelative, tree.sharedState);
-  const visit = (directory) => {
-    const stat = fs.lstatSync(directory);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== directory) {
-      throw new Error(`finalize restore encountered an unknown directory mutation: ${directory}`);
-    }
-    currentDirectories.push(path.relative(targetRoot, directory));
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const target = path.join(directory, entry.name);
-      const targetStat = fs.lstatSync(target);
-      if (targetStat.isDirectory() && !targetStat.isSymbolicLink()) visit(target);
-      else if (targetStat.isFile() && !targetStat.isSymbolicLink() && targetStat.nlink === 1) {
-        currentFiles.push(path.relative(targetRoot, target));
-      } else {
-        throw new Error(`finalize restore encountered an unknown path mutation: ${target}`);
-      }
-    }
-  };
-  if (fs.existsSync(treeRoot)) visit(treeRoot);
-  if (!tree.rootExisted) {
-    for (const relativePath of currentFiles) {
-      const target = path.join(targetRoot, relativePath);
-      fs.unlinkSync(target);
-      fsyncFinalizeDirectory(path.dirname(target));
-    }
-    for (const relativePath of currentDirectories.sort((a, b) => b.length - a.length)) {
-      const target = path.join(targetRoot, relativePath);
-      fs.rmdirSync(target);
-      fsyncFinalizeDirectory(path.dirname(target));
-    }
-    return;
-  }
-  for (const relativePath of currentFiles) {
-    if (!restorePolicy.allowsRawByteRestore(relativePath)) continue;
-    if (!expectedFiles.has(relativePath)) {
-      const target = path.join(targetRoot, relativePath);
-      fs.unlinkSync(target);
-      fsyncFinalizeDirectory(path.dirname(target));
-    }
-  }
-  for (const directory of [...tree.directories].sort((a, b) => a.relativePath.length - b.relativePath.length)) {
-    const target = path.join(targetRoot, directory.relativePath);
-    const existed = fs.existsSync(target);
-    fs.mkdirSync(target, { recursive: true, mode: directory.mode });
-    fs.chmodSync(target, directory.mode);
-    fsyncFinalizeDirectory(target);
-    if (!existed) fsyncFinalizeDirectory(path.dirname(target));
-  }
-  for (const file of tree.files) {
-    if (!restorePolicy.allowsRawByteRestore(file.relativePath)) continue;
-    durableRestoreFile(path.join(targetRoot, file.relativePath), Buffer.from(file.bytes, "base64"), file.mode);
-  }
-  for (const relativePath of currentDirectories.sort((a, b) => b.length - a.length)) {
-    if (!expectedDirectories.has(relativePath)) {
-      const target = path.join(targetRoot, relativePath);
-      fs.rmdirSync(target);
-      fsyncFinalizeDirectory(path.dirname(target));
-    }
-  }
-  fsyncFinalizeDirectory(treeRoot);
-}
-
-function restorePreparedFinalize(
-  transactionStore,
-  transaction,
-  targetRoot,
-  stateOwner,
-  specId,
-  state,
-  operationOwnerToken,
-) {
-  for (const image of transaction.beforeImages) {
-    restoreFinalizeTree(targetRoot, image);
-    if (!image.sharedState) continue;
-    const restorePolicy = new FinalizeBeforeImageRestorePolicy(image.rootRelative);
-    const flowImage = image.files.find((entry) => entry.relativePath === restorePolicy.sharedFlowRelativePath);
-    if (flowImage) {
-      const beforeBytes = Buffer.from(flowImage.bytes, "base64");
-      const currentBytes = fs.readFileSync(path.join(targetRoot, flowImage.relativePath));
-      if (!currentBytes.equals(beforeBytes)) {
-        stateOwner.restoreState(JSON.parse(beforeBytes.toString("utf8")), {
-          operationOwnerToken,
-        });
-      }
-    }
-    restoreFinalizeIssueLog(
-      targetRoot,
-      state,
-      image,
-      transaction.issueLogIds,
-      transaction.authorization,
-      operationOwnerToken,
-    );
-  }
-  transaction.resetPrepared();
-  transactionStore.write(transaction);
-}
-
-function gitFailure(code, message, result) {
-  const error = new Error(`${message}: ${result.stderr || result.stdout || "unknown git error"}`);
-  error.code = code;
-  return error;
-}
-
-function acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot) {
-  if (transaction.tempIndexAuthority == null) {
-    transaction.planTempIndexWorkspace(targetRoot);
-    transactionStore.write(transaction);
-  } else if (
-    transaction.tempIndexAuthority.dev !== null
-    && !fs.existsSync(transaction.tempIndexAuthority.workspacePath)
-  ) {
-    transaction.planTempIndexWorkspace(targetRoot);
-    transactionStore.write(transaction);
-  }
-  const workspace = FinalizeTempIndexWorkspace.acquire(transaction.tempIndexAuthority, targetRoot);
-  if (transaction.tempIndexAuthority.dev === null) {
-    transaction.ownTempIndexWorkspace(workspace.authority);
+  if (journal.atLeast("pointer-written")) {
     try {
-      transactionStore.write(transaction);
+      assertPointerReality(reportRoot, specId);
     } catch (error) {
-      throw Object.assign(error, { finalizeTempIndexWorkspace: workspace });
-    }
-  }
-  return workspace;
-}
-
-function acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot) {
-  const lockPath = path.join(targetRoot, ".git", "index.lock");
-  const indexPath = path.join(targetRoot, ".git", "index");
-  if (transaction.indexLockAuthority == null) {
-    if (fs.existsSync(lockPath)) {
-      throw Object.assign(new Error("caller index lock is busy"), {
-        code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-        lockPath,
-      });
-    }
-    transaction.planIndexLock();
-    transactionStore.write(transaction);
-  } else if (transaction.indexLockAuthority.dev !== null && !fs.existsSync(lockPath)) {
-    if (transaction.indexLockAuthority.publishPhase === "publishing") {
-      let indexStat;
-      let indexBytes;
-      try {
-        indexStat = assertRealFinalizeFile(indexPath, "published caller index");
-        indexBytes = fs.readFileSync(indexPath);
-      } catch (cause) {
-        throw Object.assign(new Error("published caller index authority is unavailable", { cause }), {
-          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          lockPath,
-        });
-      }
-      if (
-        !transaction.indexLockAuthority.matchesPublication(indexStat)
-        || transaction.indexLockAuthority.contentState(indexBytes) !== "expected-index"
-        || (indexStat.mode & 0o777) !== transaction.indexLockAuthority.expectedIndexMode
-      ) {
-        throw Object.assign(new Error("published caller index authority diverged"), {
-          code: "FINALIZE_INDEX_RECONCILIATION_BUSY",
-          lockPath,
-        });
-      }
-    }
-    transaction.planIndexLock();
-    transactionStore.write(transaction);
-  }
-  const lease = FinalizeCallerIndexLease.acquire(transaction.indexLockAuthority, targetRoot);
-  if (transaction.indexLockAuthority.dev === null) {
-    transaction.ownIndexLock(lease.authority);
-    try {
-      transactionStore.write(transaction);
-    } catch (error) {
-      lease.detach();
-      throw error;
-    }
-  }
-  return lease;
-}
-
-function cleanupFinalizePreparedAuthorities(
-  transactionStore,
-  transaction,
-  targetRoot,
-  { callerIndexLease = null, tempIndexWorkspace = null, publicationAuthority = null } = {},
-) {
-  const indexAuthority = transaction.indexLockAuthority;
-  if (transaction.indexLockAuthority != null) {
-    const lockPath = path.join(targetRoot, ".git", "index.lock");
-    if (callerIndexLease == null && fs.existsSync(lockPath)) {
-      callerIndexLease = FinalizeCallerIndexLease.acquire(transaction.indexLockAuthority, targetRoot);
-    }
-    if (callerIndexLease != null) callerIndexLease.release();
-    transaction.clearIndexLock();
-  }
-  if (transaction.tempIndexAuthority != null) {
-    if (tempIndexWorkspace == null && fs.existsSync(transaction.tempIndexAuthority.workspacePath)) {
-      tempIndexWorkspace = FinalizeTempIndexWorkspace.acquire(transaction.tempIndexAuthority, targetRoot);
-    }
-    if (tempIndexWorkspace != null) tempIndexWorkspace.cleanup(indexAuthority, publicationAuthority);
-    transaction.clearTempIndexWorkspace();
-  }
-}
-
-async function runTeardownTransaction(ctx, options, transactionStore) {
-  const mainRoot = ctx.mainRoot || ctx.flowManager?._mainRoot || ctx.root;
-  // CLI order is repository lock -> finalize transaction lock; this nested
-  // acquisition borrows that owner, so nested teardown work cannot wait into
-  // a deadlock on the outer operation.
-  const publicationAuthority = new RepositoryFlowOperationLock({
-    mainRoot,
-    operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
-  });
-  const ownerToken = publicationAuthority.acquire();
-  let result;
-  let primaryError = null;
-  try {
-    // This lock is the common publication authority for every compliant Senti
-    // writer in one repository. Same-UID processes that bypass Senti's lock
-    // protocol (including monkey-patched tests) are outside this threat model.
-    result = await runTeardownTransactionOwned(
-      { ...ctx, repositoryOperationOwnerToken: ownerToken },
-      options,
-      transactionStore,
-      publicationAuthority,
-    );
-  } catch (error) {
-    primaryError = error;
-  }
-  let releaseError = null;
-  try {
-    publicationAuthority.release();
-  } catch (error) {
-    releaseError = error;
-  }
-  if (primaryError && releaseError) {
-    throw new AggregateError(
-      [primaryError, releaseError],
-      "finalize publication and repository authority release both failed",
-      { cause: primaryError },
-    );
-  }
-  if (primaryError) throw primaryError;
-  if (releaseError) throw releaseError;
-  return result;
-}
-
-async function runTeardownTransactionOwned(
-  ctx,
-  { worktreePath, mainRepoPath, reportRoot, specId },
-  transactionStore,
-  publicationAuthority,
-) {
-  const state = ctx.flowState;
-  const { featureBranch, worktree, baseBranch } = state;
-  let pluginLifecycle = { warnings: [], issueLogEntries: [], data: {} };
-  let retainedCleanupMetadata = null;
-  const pluginContext = ctx.finalizePluginContext || finalizeCleanupPrePluginLifecycleContext({
-    root: ctx.root,
-    state,
-    worktreePath,
-    mainRepoPath,
-    specId,
-  });
-  const preResult = ctx.finalizePluginPre
-    ? { ok: true, pluginPre: ctx.finalizePluginPre }
-    : await runFinalizePreHooks(pluginContext, state);
-  if (!preResult.ok) return preResult.env;
-  const { pluginPre } = preResult;
-  const postPluginContext = finalizeCleanupPluginLifecycleContext({
-    root: ctx.root,
-    state,
-    worktreePath,
-    mainRepoPath,
-    specId,
-  });
-
-  // (i) metadata sync + durable pending cleanup intent.
-  const targetRoot = (worktree && mainRepoPath) ? mainRepoPath : ctx.root;
-  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
-  const transactionExisted = transactionStore.hasExisting();
-  const transaction = transactionStore.loadOrCreate();
-  const rebasedWorktreeAuthorityStore = new FinalizeRebasedWorktreeAuthorityStore(transactionStore);
-  let callerIndexLease = null;
-  let tempIndexWorkspace = null;
-  if (!transactionExisted) transactionStore.write(transaction);
-  if (!transaction.phase.atLeast("commit-durable") && transaction.commitExpectation) {
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "commit-durable");
-    const recovery = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
-    if (recovery.adopted) {
-      transaction.clearBeforeImages();
-      persistFinalizeTeardownCompletion(
-        transactionStore,
-        transaction,
-        "commit-durable",
-        { commitSha: recovery.head },
-      );
-    }
-  }
-  if (!transaction.phase.atLeast("commit-durable") && transaction.beforeImages.length > 0) {
-    cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot, { publicationAuthority });
-    restorePreparedFinalize(
-      transactionStore,
-      transaction,
-      targetRoot,
-      stateOwner,
-      specId,
-      state,
-      ctx.repositoryOperationOwnerToken,
-    );
-  }
-  const gitAuthorityRoot = mainRepoPath || targetRoot;
-  const attachTransaction = (env) => {
-    if (env.data == null) env.data = {};
-    env.data.teardown = transaction.result?.toJSON() ?? new FinalizeTeardownResult({
-      phase: transaction.phase,
-      ok: env.ok,
-      code: env.errors?.[0]?.code ?? null,
-    }).toJSON();
-    return env;
-  };
-  const failBeforeCommit = (env, primaryError = null) => {
-    try {
-      cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot, {
-        callerIndexLease,
-        tempIndexWorkspace,
-        publicationAuthority,
-      });
-      callerIndexLease = null;
-      tempIndexWorkspace = null;
-      restorePreparedFinalize(
-        transactionStore,
-        transaction,
-        targetRoot,
-        stateOwner,
-        specId,
-        state,
-        ctx.repositoryOperationOwnerToken,
-      );
-    } catch (restoreError) {
-      if (primaryError == null) throw restoreError;
-      const error = new AggregateError(
-        [primaryError, restoreError],
-        "finalize pre-commit operation and exact restoration both failed",
-        { cause: primaryError },
-      );
-      error.finalizeRestoreAttempted = true;
-      throw error;
-    }
-    return attachTransaction(env);
-  };
-  if (!transaction.phase.atLeast("commit-durable")) {
-    const cleanupResolver = new FinalizeCleanupPathResolver({
-      enabled: true,
-      worktreeRoot: worktreePath || ctx.root,
-      mainRoot: targetRoot,
-      inWorktree: Boolean(worktree && mainRepoPath),
-    });
-    const sidecarRoot = path.dirname(cleanupResolver.postCommandMetadataPath("metadata.json", { specId }));
-    transaction.setBeforeImages([
-      captureFinalizeTree(targetRoot, specId),
-      captureFinalizeTreeAt(targetRoot, path.relative(targetRoot, sidecarRoot)),
-    ]);
-    transactionStore.write(transaction);
-  }
-  if (transaction.authorization.route === "forced" && !transaction.phase.atLeast("commit-durable")) {
-    try {
-      appendForcedFinalizeAudit(reportRoot, state, transaction.authorization, {
-        operationOwnerToken: ctx.repositoryOperationOwnerToken,
-      });
-    } catch (error) {
-      return failBeforeCommit(Envelope.fail(
+      return Envelope.fail(
         "run",
         "finalize-cleanup",
-        "ISSUE_LOG_AUDIT_FAILED",
-        `Required forced teardown audit append failed: ${error.message}`,
-        { causeCode: error.code || null, auditId: transaction.authorization.auditId },
-      ), error);
+        "FINALIZE_TEARDOWN_JOURNAL_DIVERGED",
+        error.message,
+      );
     }
   }
-  if (transaction.phase.atLeast("branch-deleted")) {
-    assertCommitReachableFromBase(transaction, { mainRepoPath: gitAuthorityRoot, state });
+  return null;
+}
+
+async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRoot, specId, authorization = null }) {
+  const state = ctx.flowState;
+  const gitRoot = mainRepoPath || ctx.root;
+  const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
+  const journal = SharedFinalizeCleanupJournal.open(state);
+  if (journal.value == null && ctx.requirePersistedJournal === true) {
+    return Envelope.fail(
+      "run",
+      "finalize-cleanup",
+      "FINALIZE_TEARDOWN_JOURNAL_MISSING",
+      "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
+    );
   }
-  const failAfterCommit = (env) => {
-    transaction.fail(env.errors?.[0]?.code || "FINALIZE_TEARDOWN_FAILED");
-    transactionStore.write(transaction);
-    return attachTransaction(env);
-  };
-  assertPersistedTeardownReality(transaction, ctx, {
+  if (journal.value == null) {
+    stateOwner.flowManager.assertFlowStateWritable(specId, {
+      operationOwnerToken: ctx.repositoryOperationOwnerToken,
+    });
+  }
+  const featureSha = journal.value?.featureSha || resolveFeatureSha(gitRoot, state.featureBranch);
+  journal.begin({ state, worktreePath, featureSha });
+  const journalDivergence = sharedFinalizeJournalReality(journal, {
+    state,
     worktreePath,
-    mainRepoPath,
-    targetRoot,
+    gitRoot,
     reportRoot,
     specId,
   });
+  if (journalDivergence) return journalDivergence;
 
-  if (!transaction.phase.atLeast("commit-durable")) {
+  if (authorization?.route === "forced" && !journal.atLeast("worktree-removed")) {
     try {
-    // Spec 272: sync unreflected flow metadata (e.g. retry success logs) from
-    // worktree to main before teardown.
-    if (worktree && mainRepoPath && worktreePath && worktreePath !== mainRepoPath) {
-      try {
-        syncMetadataFromWorktreeToMain(
-          worktreePath,
-          mainRepoPath,
-          specId,
-          ctx.repositoryOperationOwnerToken,
-          stateOwner,
-        );
-      } catch (err) {
-        return failBeforeCommit(Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "FINALIZE_METADATA_SYNC_FAILED",
-          [
-            `Finalize metadata sync failed: ${err.message}`,
-            "No finalize step, commit, active-flow, worktree, branch, or Git history cleanup was attempted.",
-            "Resolve the metadata authority or writer lock failure, then retry finalize-cleanup.",
-          ],
-          {
-            specId,
-            worktreePath: ctx.root,
-            mainRepoPath,
-            causeCode: err.code || null,
-          },
-        ), err);
-      }
-    }
-
-    const postResult = await runFinalizePostHooks(postPluginContext, state, pluginPre, {
-      ok: true,
-      data: { specPath: state.spec, issueLogPath: `specs/${specId}/issue-log.json`, artifactPath: postPluginContext.artifactPath },
-    });
-    if (!postResult.ok) return failBeforeCommit(postResult.env, new Error(postResult.env.errors[0].messages[0]));
-    pluginLifecycle = postResult.pluginLifecycle;
-    if (!pluginLifecycle.ok) {
-      const error = Object.assign(new Error(pluginLifecycle.outcome?.failure?.message || "required plugin hook failed"), {
-        code: "PLUGIN_HOOK_REQUIRED_FAILED",
-      });
-      return failBeforeCommit(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        error.code,
-        `Plugin finalize-cleanup lifecycle failed: ${error.message}`,
-        {
-          pluginId: pluginLifecycle.outcome?.failure?.pluginId || null,
-          hook: pluginLifecycle.outcome?.failure?.hook || null,
-          pluginLifecycle,
-        },
-      ), error);
-    }
-
-    if (worktree && mainRepoPath) {
-      transaction.ownIssueLogIds(
-        (pluginLifecycle.issueLogEntries || []).map((entry) => finalizeLifecycleIssueLogId(entry)),
-      );
-      transactionStore.write(transaction);
-      const finalizeCleanupStep = flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup");
-      retainedCleanupMetadata = recordFinalizeCleanupPostCommandMetadata({
-        flowManager: stateOwner.flowManager,
-        specId,
-        metrics: Array.isArray(state.metrics) ? state.metrics : [],
-        runtimeLog: finalizeCleanupStep?.runtimeLog || null,
-        notes: Array.isArray(state.notes) ? state.notes : [],
-        issueLogEntries: pluginLifecycle.issueLogEntries || [],
-        pluginArtifacts: pluginLifecycle.data?.pluginHooks || [],
+      appendForcedFinalizeAudit(reportRoot, state, authorization, {
         operationOwnerToken: ctx.repositoryOperationOwnerToken,
       });
-    }
-
-    const flowJsonRel = `specs/${specId}/flow.json`;
-    ctx.finalizeCleanupStateResolution?.ensureCleanupStep(ctx.repositoryOperationOwnerToken);
-    const cleanupOutbox = stateOwner.outbox({
-      operationOwnerToken: ctx.repositoryOperationOwnerToken,
-    });
-    const cleanupIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
-    cleanupOutbox.begin(cleanupIdentity);
-    cleanupOutbox.touch(cleanupIdentity);
-
-    // (ii) stage + commit. Stage flow.json plus issue-log if present so audit
-    // entries written by --force / CHERRY_PICK_CONFLICT during the same run
-    // become atomically persisted (R14).
-    const commitPaths = finalizeChangedFilePaths(targetRoot, transaction.beforeImages[0]);
-    if (!commitPaths.includes(flowJsonRel)) {
-      throw new Error("finalize flow state mutation is absent from the prepared tree diff");
-    }
-    try {
-      callerIndexLease = acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot);
-      tempIndexWorkspace = acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot);
     } catch (error) {
-      if (
-        error.code === "FINALIZE_INDEX_RECONCILIATION_BUSY"
-        && transaction.indexLockAuthority?.dev === null
-      ) {
-        transaction.clearIndexLock();
-      }
-      if (
-        error.code === "FINALIZE_TEMP_INDEX_BUSY"
-        && transaction.tempIndexAuthority?.dev === null
-      ) {
-        transaction.clearTempIndexWorkspace();
-      }
-      return failBeforeCommit(Envelope.fail(
+      return Envelope.fail(
         "run",
         "finalize-cleanup",
-        error.code || "FINALIZE_INDEX_AUTHORITY_FAILED",
-        error.message,
-        { lockPath: error.lockPath || null },
-      ), error);
-    }
-    const commitMsg = `chore: finalize ${specId}`;
-    const commitExpectation = buildCommitExpectation({
-      transaction,
-      targetRoot,
-      state,
-      commitMessage: commitMsg,
-      commitPaths,
-      workspace: tempIndexWorkspace,
-      worktreePath: worktree && mainRepoPath ? (worktreePath || ctx.root) : null,
-    });
-    transaction.expectCommit(commitExpectation);
-    transactionStore.write(transaction);
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "commit-durable");
-    assertCommitExpectationFresh(transaction.commitExpectation, {
-      targetRoot,
-      state,
-      commitMessage: commitMsg,
-      commitPaths,
-      workspace: tempIndexWorkspace,
-      worktreePath: worktree && mainRepoPath ? (worktreePath || ctx.root) : null,
-    });
-    const isolatedCommit = runIsolatedFinalizeCommit({
-      targetRoot,
-      expectedParent: commitExpectation.expectedParent,
-      commitMessage: commitMsg,
-      commitPaths: commitExpectation.commitPaths,
-      workspace: tempIndexWorkspace,
-    });
-    if (isolatedCommit.stage === "read-tree" && !isolatedCommit.result.ok) {
-      const primary = gitFailure(
-        "FINALIZE_TREE_BUILD_FAILED",
-        "isolated finalize read-tree failed",
-        isolatedCommit.result,
+        "ISSUE_LOG_AUDIT_FAILED",
+        `Forced finalize audit could not be recorded: ${error.message}`,
+        { causeCode: error.code || null },
       );
-      if (isolatedCommit.cleanupErrors.length > 0) throw isolatedIndexFailure(primary, isolatedCommit);
-      return failBeforeCommit(Envelope.fail("run", "finalize-cleanup", primary.code, primary.message), primary);
     }
-    if (isolatedCommit.stage === "add" && !isolatedCommit.result.ok) {
-      const primary = gitFailure("FINALIZE_GIT_ADD_FAILED", "isolated finalize git add failed", isolatedCommit.result);
-      if (isolatedCommit.cleanupErrors.length > 0) throw isolatedIndexFailure(primary, isolatedCommit);
-      return failBeforeCommit(Envelope.fail("run", "finalize-cleanup", primary.code, primary.message), primary);
-    }
-    if (isolatedCommit.stage === "write-tree" && !isolatedCommit.result.ok) {
-      const primary = gitFailure(
-        "FINALIZE_TREE_BUILD_FAILED",
-        "isolated finalize write-tree failed",
-        isolatedCommit.result,
-      );
-      if (isolatedCommit.cleanupErrors.length > 0) throw isolatedIndexFailure(primary, isolatedCommit);
-      return failBeforeCommit(Envelope.fail("run", "finalize-cleanup", primary.code, primary.message), primary);
-    }
-    const commitRes = isolatedCommit.result;
-    if (!commitRes.ok) {
-      const recovery = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
-      if (recovery.adopted) {
-        transaction.clearBeforeImages();
-        persistFinalizeTeardownCompletion(
-          transactionStore,
-          transaction,
-          "commit-durable",
-          { commitSha: recovery.head },
+  }
+
+  if (!journal.atLeast("worktree-removed")) {
+    if (state.worktree && worktreePath && pathExistsStrict(worktreePath)) {
+      const worktreeHead = runGit(["-C", worktreePath, "rev-parse", "HEAD"]);
+      if (!worktreeHead.ok || worktreeHead.stdout.trim() !== journal.value.featureSha) {
+        return Envelope.fail(
+          "run",
+          "finalize-cleanup",
+          "FINALIZE_WORKTREE_HEAD_CHANGED",
+          `Managed worktree HEAD no longer matches ${state.featureBranch}; cleanup retained it for inspection.`,
+          {
+            expectedSha: journal.value.featureSha,
+            actualSha: worktreeHead.ok ? worktreeHead.stdout.trim() : null,
+          },
         );
-      } else {
-        const primary = gitFailure("COMMIT_FAILED", "git commit failed", commitRes);
-        if (isolatedCommit.cleanupErrors.length > 0) throw isolatedIndexFailure(primary, isolatedCommit);
-        return failBeforeCommit(Envelope.fail("run", "finalize-cleanup", "COMMIT_FAILED", [
-          primary.message,
-        ]), primary);
       }
-    } else {
-      const committed = inspectExpectedCommit(transaction.commitExpectation, { targetRoot, state });
-      if (!committed.adopted) {
-        const primary = new Error("finalize commit durability could not be confirmed");
-        primary.code = "COMMIT_DURABILITY_UNCONFIRMED";
-        transaction.fail("COMMIT_DURABILITY_UNCONFIRMED");
-        transactionStore.write(transaction);
-        return failBeforeCommit(Envelope.fail("run", "finalize-cleanup", "COMMIT_DURABILITY_UNCONFIRMED", [
-          "Finalize commit returned success but repository HEAD did not advance.",
-        ]), primary);
-      }
-      transaction.clearBeforeImages();
-      persistFinalizeTeardownCompletion(
-        transactionStore,
-        transaction,
-        "commit-durable",
-        { commitSha: committed.head },
-      );
-    }
-    try {
-      throwIsolatedIndexCleanup(isolatedCommit);
-    } catch (error) {
-      callerIndexLease.detach();
-      callerIndexLease = null;
-      throw error;
-    }
-    } catch (error) {
-      if (error.finalizeRestoreAttempted === true) throw error;
-      if (!transaction.phase.atLeast("commit-durable") && transaction.beforeImages.length > 0) {
-        try {
-          cleanupFinalizePreparedAuthorities(transactionStore, transaction, targetRoot, {
-            callerIndexLease,
-            tempIndexWorkspace,
-            publicationAuthority,
-          });
-          callerIndexLease = null;
-          tempIndexWorkspace = null;
-          restorePreparedFinalize(
-            transactionStore,
-            transaction,
-            targetRoot,
-            stateOwner,
+      const worktreeFlowManager = ctx.flowManager.forRoot(worktreePath, { specId });
+      const expectedBinding = worktreeFlowManager.usesWorktreeFlowBinding()
+        ? new WorktreeFlowIdentity({
+            runId: state.runId,
+            issue: state.issue ?? null,
             specId,
-            state,
-            ctx.repositoryOperationOwnerToken,
-          );
-        } catch (restoreError) {
-          throw new AggregateError(
-            [error, restoreError],
-            "finalize pre-commit operation and exact restoration both failed",
-            { cause: error },
-          );
-        }
-      }
-      throw error;
-    }
-  }
-
-  if (transaction.phase.atLeast("commit-durable") && !transaction.phase.atLeast("index-reconciled")) {
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "index-reconciled");
-    try {
-      if (callerIndexLease == null) {
-        callerIndexLease = acquireFinalizeCallerIndexLease(transactionStore, transaction, targetRoot);
-      }
-      if (tempIndexWorkspace == null) {
-        tempIndexWorkspace = acquireFinalizeTempIndexWorkspace(transactionStore, transaction, targetRoot);
-      }
-      const publication = prepareFinalizeCallerIndexReconciliation(
-        transaction.commitExpectation,
-        tempIndexWorkspace,
-      );
-      if (publication == null) {
-        callerIndexLease.release();
-      } else {
-        publicationAuthority.assertOwned();
-        if (transaction.indexLockAuthority.publishPhase === "marker") {
-          transaction.planIndexPublication(publication.bytes, publication.mode);
-          transactionStore.write(transaction);
-          publicationAuthority.assertOwned();
-        }
-        const publicationSource = tempIndexWorkspace.preparePublication(
-          publication.bytes,
-          publication.mode,
-          transaction.indexLockAuthority,
-          publicationAuthority,
-        );
-        if (transaction.indexLockAuthority.publishPhase === "planned") {
-          transaction.ownIndexPublication(publicationSource.stat);
-          transactionStore.write(transaction);
-          publicationAuthority.assertOwned();
-          callerIndexLease.authorizePublication(transaction.indexLockAuthority);
-          publicationSource.assertAuthority(
-            transaction.indexLockAuthority,
-            publication.bytes,
-            publication.mode,
-          );
-        }
-        publication.publish(callerIndexLease, publicationSource);
-      }
-      callerIndexLease = null;
-      tempIndexWorkspace.cleanup(transaction.indexLockAuthority, publicationAuthority);
-      tempIndexWorkspace = null;
-    } catch (error) {
-      callerIndexLease?.detach();
-      callerIndexLease = null;
-      return failAfterCommit(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        error.code || "FINALIZE_INDEX_RECONCILIATION_FAILED",
-        error.message,
-        { lockPath: error.lockPath || null },
-      ));
-    }
-    transaction.clearIndexLock();
-    transaction.clearTempIndexWorkspace();
-    persistFinalizeTeardownCompletion(
-      transactionStore,
-      transaction,
-      "index-reconciled",
-      { commitSha: transaction.result.commitSha },
-    );
-  }
-
-  const rebasedWorktreeRecovery = reconcileRebasedWorktreeAuthority({
-    ctx,
-    transaction,
-    authorityStore: rebasedWorktreeAuthorityStore,
-    mainRepoPath: gitAuthorityRoot,
-    state,
-    specId,
-  });
-  if (rebasedWorktreeRecovery.env) return attachTransaction(rebasedWorktreeRecovery.env);
-  const effectiveCommitExpectation = rebasedWorktreeRecovery.expectation;
-
-  // (iii) Commit is durable. Resume destructive phases without revisiting the commit.
-  if (!transaction.phase.atLeast("worktree-removed") && worktree && mainRepoPath) {
-    const wtPath = worktreePath || ctx.root;
-    const worktreeExists = pathExistsStrict(wtPath);
-    if (
-      !worktreeExists
-      && transaction.checkpoint?.targetPhase.name !== "worktree-removed"
-    ) {
-      const error = new Error(
-        `finalize worktree is missing before its recorded deletion: ${wtPath}`,
-      );
-      error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
-      throw error;
-    }
-    if (worktreeExists) {
-      if (!featureBranchExists(mainRepoPath, state.featureBranch)) {
-        const error = new Error(
-          `finalize feature branch is missing before worktree deletion: ${state.featureBranch}`,
-        );
-        error.code = "FINALIZE_TEARDOWN_TARGET_MISSING";
-        throw error;
-      }
-      assertWorktreeAuthority(transaction, {
-        mainRepoPath,
-        state,
-        expectation: effectiveCommitExpectation,
+            worktreePath,
+          })
+        : null;
+      const removed = removeWorktreeForCleanup({
+        mainRepoPath: gitRoot,
+        worktreePath,
+        featureBranch: state.featureBranch,
+        force: ctx.force === true,
+        expectedBinding,
       });
-    }
-    const checkpointCreated = persistFinalizeTeardownCheckpoint(
-      transactionStore,
-      transaction,
-      "worktree-removed",
-    );
-    if (!checkpointCreated && !worktreeExists) {
+      if (!removed.ok) return removed.env;
+    } else if (state.worktree && worktreePath) {
       const validation = validateTeardown({
-        worktreePath: wtPath,
-        mainRepoPath,
-        featureBranch,
+        worktreePath,
+        mainRepoPath: gitRoot,
+        featureBranch: state.featureBranch,
         specId,
         checkBranch: false,
       });
       if (!validation.ok) {
-        return failAfterCommit(Envelope.fail(
-          "run",
-          "finalize-cleanup",
-          "WORKTREE_REMOVAL_RECOVERY_FAILED",
-          validation.reasons,
-        ));
+        return Envelope.fail("run", "finalize-cleanup", "WORKTREE_REMOVAL_RECOVERY_FAILED", validation.reasons);
       }
-    } else {
-      const worktreeFlowManager = ctx.flowManager.forRoot(wtPath, { specId });
-      const expectedBinding = worktreeFlowManager.usesWorktreeFlowBinding()
-        ? new WorktreeFlowIdentity({
-            runId: state.runId,
-            issue: Object.hasOwn(state, "issue") ? state.issue : null,
-            spec: state.spec,
-            worktreePath: wtPath,
-          })
-        : null;
-      const authorizedDirtyRootFiles = [path.join(path.dirname(state.spec), "flow.json")];
-      const removeResult = removeWorktreeForCleanup({
-        mainRepoPath,
-        worktreePath: wtPath,
-        featureBranch,
-        force: ctx.force === true,
-        expectedBinding,
-        // flow.json is the active Flow's own state surface. It can legitimately
-        // change while finalization persists metadata; unrelated worktree paths
-        // remain a hard preflight failure.
-        authorizedDirtyRootFiles,
-      });
-      if (!removeResult.ok) return failAfterCommit(removeResult.env);
     }
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "worktree-removed");
-  } else if (!transaction.phase.atLeast("worktree-removed")) {
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "worktree-removed");
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "worktree-removed");
+    journal.advance("worktree-removed");
   }
 
-  if (!transaction.phase.atLeast("branch-deleted")) {
-    const branchFailure = deleteFeatureBranchAtCheckpoint({
-      store: transactionStore,
-      transaction,
-      mainRepoPath: worktree && mainRepoPath ? mainRepoPath : targetRoot,
-      state,
-      expectation: effectiveCommitExpectation,
-    });
-    if (branchFailure) return failAfterCommit(branchFailure);
+  if (!journal.atLeast("branch-deleted")) {
+    if (state.featureBranch !== state.baseBranch) {
+      const branch = runGit(["-C", gitRoot, "rev-parse", "--verify", `refs/heads/${state.featureBranch}`]);
+      if (branch.ok) {
+        const deleted = deleteFeatureBranchForCleanup({
+          mainRepoPath: gitRoot,
+          featureBranch: state.featureBranch,
+          expectedSha: journal.value.featureSha,
+        });
+        if (!deleted.ok) return deleted.env;
+      }
+    }
+    journal.advance("branch-deleted");
   }
 
-  assertCommitReachableFromBase(transaction, { mainRepoPath: gitAuthorityRoot, state });
-
-  if (!transaction.phase.atLeast("validated")) {
+  if (!journal.atLeast("validated")) {
     const validation = validateTeardown({
       worktreePath,
-      mainRepoPath: mainRepoPath || targetRoot,
-      featureBranch,
+      mainRepoPath: gitRoot,
+      featureBranch: state.featureBranch,
       specId,
+      checkBranch: state.featureBranch !== state.baseBranch,
     });
-    if (!validation.ok && validation.probeFailed) {
-      return attachTransaction(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "TEARDOWN_VALIDATION_PROBE_FAILED",
-        [
-          "Teardown validation could not establish Git worktree and branch reality.",
-          ...validation.reasons.map((reason) => `- ${reason}`),
-        ],
-      ));
-    }
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "validated");
     if (!validation.ok) {
-      return failAfterCommit(Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", [
-        "Teardown appeared to succeed but resources remain:",
-        ...validation.reasons.map((r) => `- ${r}`),
-      ]));
+      return Envelope.fail("run", "finalize-cleanup", "TEARDOWN_VALIDATION_FAILED", validation.reasons);
     }
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "validated");
+    journal.advance("validated");
   }
 
-  // (iv) Publish completion only after strict validation. Each durable authority
-  // transition is journaled before the next one begins, so a crash or I/O error
-  // cannot remove every recovery route at once.
-  if (!transaction.phase.atLeast("pointer-written")) {
-    const checkpointCreated = persistFinalizeTeardownCheckpoint(
-      transactionStore,
-      transaction,
-      "pointer-written",
-    );
+  if (!journal.atLeast("pointer-written")) {
     try {
-      publishFinalizePointerBoundary({
-        checkpointCreated,
-        reportRoot,
-        spec: state.spec,
-      });
+      writeLastFinalizedPointer(reportRoot, specId);
     } catch (error) {
-      return failAfterCommit(Envelope.fail(
+      return Envelope.fail(
         "run",
         "finalize-cleanup",
         "FINALIZE_POINTER_WRITE_FAILED",
-        `Finalize commit and teardown are durable, but completion pointer publication failed: ${error.message}`,
+        `Finalize pointer publication failed: ${error.message}`,
         { causeCode: error.code || null },
-      ));
+      );
     }
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "pointer-written");
+    journal.advance("pointer-written");
   }
 
-  if (!transaction.phase.atLeast("active-cleared")) {
-    const checkpointCreated = persistFinalizeTeardownCheckpoint(
-      transactionStore,
-      transaction,
-      "active-cleared",
+  let pluginLifecycle = { ok: true, warnings: [], issueLogEntries: [], data: {} };
+  if (!journal.atLeast("completed")) {
+    const pluginContext = ctx.finalizePluginContext || finalizeCleanupPrePluginLifecycleContext({
+      root: ctx.root,
+      state,
+      worktreePath,
+      mainRepoPath,
+      specId,
+    });
+    const preResult = ctx.finalizePluginPre
+      ? { ok: true, pluginPre: ctx.finalizePluginPre }
+      : await runFinalizePreHooks(pluginContext, state);
+    if (!preResult.ok) return preResult.env;
+    const pluginPre = preResult.pluginPre;
+    const postResult = await runFinalizePostHooks(
+      finalizeCleanupPluginLifecycleContext({ root: ctx.root, state, worktreePath, mainRepoPath, specId }),
+      state,
+      pluginPre,
+      Envelope.ok("run", "finalize-cleanup", { status: "done" }),
     );
-    try {
-      clearActiveFlowBoundary({
-        checkpointCreated,
-        ctx,
-        specId,
-        gitRoot: gitAuthorityRoot,
-      });
-    } catch (error) {
-      return failAfterCommit(Envelope.fail(
-        "run",
-        "finalize-cleanup",
-        "ACTIVE_FLOW_CLEAR_FAILED",
-        `Finalize completion pointer is durable, but active-flow cleanup failed: ${error.message}`,
-        { causeCode: error.code || null },
-      ));
-    }
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "active-cleared");
-  }
-  const completion = new FlowCompletion(state);
-  const completionReceipt = completion.toJSON();
-  const syncWarning = finalizeSyncWarning(state);
-  const completionData = {
-    status: "done",
-    ...(syncWarning ? { outcome: "completed_with_warnings", finalizeWarnings: [syncWarning] } : {}),
-    assurance: completion.assurance,
-    ...(completionReceipt.advisorySummary && { advisorySummary: completionReceipt.advisorySummary }),
-    pluginHooks: pluginLifecycle.data?.pluginHooks || [],
-    followUps: pluginLifecycle.data?.followUps || [],
-    retainedCleanupMetadata: retainedCleanupMetadata
-      ? { surfaces: retainedCleanupMetadata.surfaces }
-      : null,
-  };
-  if (!transaction.phase.atLeast("completed")) {
-    persistFinalizeTeardownCheckpoint(transactionStore, transaction, "completed");
-    completeFinalizeCleanupStep(
-      stateOwner,
-      ctx.repositoryOperationOwnerToken,
-    );
-    const completionOutbox = stateOwner.outbox({
+    if (!postResult.ok) return postResult.env;
+    pluginLifecycle = postResult.pluginLifecycle;
+    if (!pluginLifecycle.ok) return finalizeRequiredPluginHookFailure(pluginLifecycle);
+
+    recordFinalizeCleanupPostCommandMetadata({
+      flowManager: stateOwner.flowManager,
+      specId,
+      metrics: Array.isArray(state.metrics) ? state.metrics : [],
+      runtimeLog: flattenSteps(state.steps || []).find((step) => step.id === "finalize-cleanup")?.runtimeLog || null,
+      notes: Array.isArray(state.notes) ? state.notes : [],
+      issueLogEntries: pluginLifecycle.issueLogEntries || [],
+      pluginArtifacts: pluginLifecycle.data?.pluginHooks || [],
       operationOwnerToken: ctx.repositoryOperationOwnerToken,
     });
-    const completionIdentity = finalizationOutboxIdentity(state, "finalize-cleanup");
-    completionOutbox.begin(completionIdentity);
-    completionOutbox.complete(completionIdentity, completionData);
-    commitFinalizeCompletion({
-      root: targetRoot,
-      specId,
-      idempotencyKey: completionIdentity.idempotencyKey,
-      additionalPaths: rebasedWorktreeRecovery.completionAdditionalPaths || [],
-    });
-    persistFinalizeTeardownCompletion(transactionStore, transaction, "completed");
+    completeFinalizeCleanupStep(stateOwner, ctx.repositoryOperationOwnerToken);
+    const outbox = stateOwner.outbox({ operationOwnerToken: ctx.repositoryOperationOwnerToken });
+    const identity = finalizationOutboxIdentity(state, "finalize-cleanup");
+    const { data: completionData } = sharedFinalizeCompletionData(
+      stateOwner.loadReadOnly(),
+      pluginLifecycle,
+    );
+    outbox.begin(identity);
+    outbox.complete(identity, completionData);
+    journal.advance("completed");
   }
 
+  const completedState = stateOwner.loadReadOnly();
+  const { data: completionData, syncWarning } = sharedFinalizeCompletionData(
+    completedState,
+    pluginLifecycle,
+  );
   const env = attachReport(
     Envelope.ok("run", "finalize-cleanup", completionData),
     reportRoot,
+    requiredSpecLocation(completedState).relativeRoot,
   );
   for (const warning of pluginLifecycle.warnings || []) {
     env.addWarning(warning.code || "PLUGIN_HOOK_WARNING", warning.message || JSON.stringify(warning));
@@ -6957,36 +3081,53 @@ async function runTeardownTransactionOwned(
       `Documentation sync did not complete: ${syncWarning.message}. Run 'senti flow run sync' after inspecting the recorded diagnostics.`,
     );
   }
-  if (worktree && mainRepoPath) {
-    attachOtherFlowMetadataWarning(env, mainRepoPath, specId);
+  if (state.worktree && mainRepoPath) {
+    attachOtherFlowMetadataWarning(env, mainRepoPath, requiredSpecLocation(completedState).relativeRoot, specId);
   }
-  return attachForcedFinalizeContext(attachTransaction(env), transaction.authorization);
+  return env;
 }
 
-/**
- * Sync metadata that must survive worktree removal. Runtime logs can exist only
- * in the worktree after a retry, and the pending cleanup outbox entry is the
- * durable hand-off that lets cleanup resume from the main repository.
- */
-export function syncMetadataFromWorktreeToMain(
-  worktreeRoot,
-  mainRoot,
-  specId,
-  operationOwnerToken = null,
-  stateOwner = null,
-) {
-  const wtPath = path.join(worktreeRoot, "specs", specId, "flow.json");
-  const mainPath = path.join(mainRoot, "specs", specId, "flow.json");
-  if (!fs.existsSync(wtPath) || !fs.existsSync(mainPath)) return;
-
-  const wtState = JSON.parse(fs.readFileSync(wtPath, "utf8"));
-  const owner = stateOwner || FinalizeFlowStateOwner.forMainRepository({
-    mainRepoPath: mainRoot,
-    specId,
-  });
-  owner.mergeWorktreeMetadata(wtState, { operationOwnerToken });
+async function runTeardown(ctx, options) {
+  return runSharedSpecTeardown(ctx, options);
 }
 
+async function runPersistedTeardownIfPresent(ctx, options) {
+  const journalPath = requiredSpecLocation(ctx.flowState).artifact("finalize-cleanup.json");
+  return fs.existsSync(journalPath) ? runSharedSpecTeardown(ctx, options) : null;
+}
+
+export function commitFinalizeCleanupPostCommandMetadata({ flowManager, specId, writtenPaths = [] } = {}) {
+  if (!flowManager) throw new Error("flowManager is required");
+  if (!Array.isArray(writtenPaths)) throw new Error("writtenPaths must be an array");
+  const specLocation = flowManager.specLocation(specId);
+  const repositoryFlowManager = flowManager.forRoot(specLocation.repositoryRoot, { specId });
+  const state = repositoryFlowManager.loadReadOnly(specId);
+  if (!state) throw new Error(`flow state not found: ${specId}`);
+  const root = specLocation.repositoryRoot;
+  const identity = finalizationOutboxIdentity(state, "finalize-cleanup");
+  const additionalPaths = writtenPaths.map((filePath) => path
+    .relative(root, filePath)
+    .split(path.sep)
+    .join("/"));
+  const operation = new RepositoryFlowOperationLock({ mainRoot: root });
+  const operationOwnerToken = operation.acquire();
+  try {
+    const result = commitFinalizeCompletion({
+      root,
+      specRoot: specLocation.relativeRoot,
+      specId,
+      idempotencyKey: identity.idempotencyKey,
+      additionalPaths,
+    });
+    deleteRepairBaselineForFlow(root, state);
+    repositoryFlowManager.removeActiveFlow(specId, { operationOwnerToken });
+    return result;
+  } finally {
+    operation.release();
+  }
+}
+
+/** Validate that teardown removed only the selected managed worktree state. */
 export function validateTeardown({
   worktreePath,
   mainRepoPath,
@@ -7055,13 +3196,7 @@ async function runForcedTeardown(ctx, opts) {
     droppedCount,
     droppedTruncated,
   });
-  const store = new FinalizeTeardownTransactionStore(opts.reportRoot, state, { authorization });
-  const teardown = await withFinalizeTransactionStore(store, async () => {
-    const existed = store.hasExisting();
-    const transaction = store.loadOrCreate();
-    if (!existed) store.write(transaction);
-    return runTeardownTransaction(ctx, opts, store);
-  });
+  const teardown = await runSharedSpecTeardown(ctx, { ...opts, authorization });
   if (!teardown.ok) {
     return teardown;
   }

@@ -164,7 +164,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
 
   it("spec and sentiPhase are resolved via injected flowManager", async () => {
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "153-unified-jsonl-logger", sentiPhase: "gate" }),
+      resolveCurrentContext: () => ({ specId: "153-unified-jsonl-logger", sentiPhase: "gate" }),
     };
     const inst = buildLogger(tmpDir, { flowManager });
     await inst.agent({
@@ -179,7 +179,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     await inst.flush();
 
     const entries = readJsonl(logFile);
-    assert.equal(entries[0].spec, "153-unified-jsonl-logger");
+    assert.equal(entries[0].specId, "153-unified-jsonl-logger");
     assert.equal(entries[0].sentiPhase, "gate");
   });
 
@@ -196,7 +196,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     });
     await inst.flush();
     const entries = readJsonl(logFile);
-    assert.equal(entries[0].spec, null);
+    assert.equal(entries[0].specId, null);
     assert.equal(entries[0].sentiPhase, null);
   });
 

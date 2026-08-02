@@ -106,7 +106,7 @@ describe("nonblocking flow policy", () => {
       const spec = "specs/477-durable-evidence/spec.json";
       writeJson(root, spec, { requirements: [] });
       fs.writeFileSync(path.join(root, "specs/477-durable-evidence/impl-review.json"), '{"verdict":"REJECTED"}\n');
-      const state = moveFlowToStep(makeFlowState({ spec }), "impl-review");
+      const state = moveFlowToStep(makeFlowState({ specId: path.basename(path.dirname(spec)) }), "impl-review");
       const manager = { load: () => state, mutate: (fn) => fn(state) };
       const enabled = activateNonBlockingPolicy({
         root, flowManager: manager,
@@ -136,7 +136,7 @@ describe("nonblocking flow policy", () => {
         }],
       }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-test-review/test-review.json"), evidence);
-      const state = moveFlowToStep(makeFlowState({ spec, stepAttempts: [] }), "test-review");
+      const state = moveFlowToStep(makeFlowState({ specId: path.basename(path.dirname(spec)), stepAttempts: [] }), "test-review");
       const manager = { load: () => state, mutate: (fn) => fn(state) };
       const policy = activateNonBlockingPolicy({
         root,
@@ -202,7 +202,7 @@ describe("nonblocking flow policy", () => {
         toolingOutcome: { reason: "review provider unavailable" },
         blockingFindings: [],
       }, null, 2) + "\n");
-      const state = moveFlowToStep(makeFlowState({ spec }), "test-review");
+      const state = moveFlowToStep(makeFlowState({ specId: path.basename(path.dirname(spec)) }), "test-review");
       const manager = { load: () => state, mutate: (fn) => fn(state) };
       activateNonBlockingPolicy({
         root,
@@ -257,7 +257,7 @@ describe("nonblocking flow policy", () => {
           title: "Inconsistent test-review artifact",
         }],
       }, null, 2) + "\n");
-      const state = moveFlowToStep(makeFlowState({ spec }), "test-review");
+      const state = moveFlowToStep(makeFlowState({ specId: path.basename(path.dirname(spec)) }), "test-review");
       assert.throws(() => activateNonBlockingPolicy({
         root,
         flowManager: { load: () => state, mutate: (fn) => fn(state) },
@@ -352,7 +352,7 @@ describe("nonblocking flow policy", () => {
         path.join(root, "specs/477-activation-offer/impl-review.json"),
         JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n",
       );
-      const state = moveFlowToStep(makeFlowState({ spec }), "impl-review");
+      const state = moveFlowToStep(makeFlowState({ specId: path.basename(path.dirname(spec)) }), "impl-review");
       assert.equal(
         nonblockingActivationOfferForStrictStop(root, state, {
           kind: "repair_evidence",
@@ -384,7 +384,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-nonblocking/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "Repeated review evidence did not converge." },
         stepAttempts: [],
       }), "impl-review");
@@ -439,7 +439,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-identity/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "The normal review cycle did not converge." },
         stepAttempts: [],
       }), "impl-review");
@@ -482,7 +482,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-source-attempt/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "The normal review cycle did not converge." },
       }), "impl-review");
       const checkAttempt = new StepAttempt({
@@ -532,7 +532,7 @@ describe("nonblocking flow policy", () => {
       const spec = "specs/477-missing-evidence/spec.json";
       writeJson(root, spec, { requirements: [] });
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: {
           enabled: true,
           activatedAt: "2026-07-27T00:00:00.000Z",
@@ -573,7 +573,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-stale-artifact/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "The normal review cycle did not converge." },
       }), "impl-review");
       const manager = { load: () => state, mutate: (fn) => fn(state) };
@@ -616,7 +616,7 @@ describe("nonblocking flow policy", () => {
         writeJson(root, spec, { requirements: [] });
         fs.writeFileSync(path.join(root, path.dirname(spec), file), JSON.stringify(value, null, 2) + "\n");
         const state = moveFlowToStep(makeFlowState({
-          spec,
+          specId: path.basename(path.dirname(spec)),
           nonblocking: {
             enabled: true,
             activatedAt: "2026-07-27T00:00:00.000Z",
@@ -650,7 +650,7 @@ describe("nonblocking flow policy", () => {
         JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n",
       );
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: {
           enabled: true,
           activatedAt: "2026-07-27T00:00:00.000Z",
@@ -687,7 +687,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-bounded-text/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "The normal review cycle did not converge." },
       }), "impl-review");
       const manager = { load: () => state, mutate: (fn) => fn(state) };
@@ -720,7 +720,7 @@ describe("nonblocking flow policy", () => {
       const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-persistence/impl-review.json"), evidence);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "The normal review cycle did not converge." },
         stepAttempts: [],
       }), "impl-review");
@@ -801,7 +801,7 @@ describe("nonblocking flow policy", () => {
         const bytes = JSON.stringify(artifact, null, 2) + "\n";
         fs.writeFileSync(path.join(root, path.dirname(spec), file), bytes);
         const state = moveFlowToStep(makeFlowState({
-          spec,
+          specId: path.basename(path.dirname(spec)),
           nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: step, reason: "A normal recovery cycle did not converge." },
           stepAttempts: [],
         }), step);
@@ -832,7 +832,7 @@ describe("nonblocking flow policy", () => {
       const artifact = JSON.stringify({ verdict: "blocked" }, null, 2) + "\n";
       fs.writeFileSync(path.join(root, "specs/477-acceptance-reconcile/acceptance-review.json"), artifact);
       const state = makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: {
           enabled: true,
           activatedAt: "2026-07-27T00:00:00.000Z",
@@ -892,7 +892,7 @@ describe("nonblocking flow policy", () => {
       writeJson(root, spec, { requirements: [] });
       fs.writeFileSync(path.join(root, "specs/477-task-routes/impl-review.json"), '{"verdict":"REJECTED"}\n');
       const reviewState = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         currentTaskId: "T-1",
         tasks: [makeDefaultTask({
           id: "T-1",
@@ -925,7 +925,7 @@ describe("nonblocking flow policy", () => {
 
       fs.writeFileSync(path.join(root, "specs/477-task-routes/task-impl-gate-result.json"), '{"verdict":"fail"}\n');
       const gateState = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         currentTaskId: "T-1",
         tasks: [
           makeDefaultTask({
@@ -1016,7 +1016,7 @@ describe("nonblocking flow policy", () => {
       const first = JSON.stringify({ verdict: "REJECTED", revision: 1 }, null, 2) + "\n";
       fs.writeFileSync(file, first);
       const state = moveFlowToStep(makeFlowState({
-        spec,
+        specId: path.basename(path.dirname(spec)),
         nonblocking: { enabled: true, activatedAt: "2026-07-27T00:00:00.000Z", activatedStep: "impl-review", reason: "Normal repair did not converge." },
         stepAttempts: [],
       }), "impl-review");

@@ -81,7 +81,7 @@ function setupForestFixture(tmp, { step = "implement", tasks = [flowTask("T-1"),
   writeFile(tmp, `specs/${SPEC_ID}/tasks/T-2.md`, "# T-2\n\nDo second thing.\n");
 
   setupFlowAtStep(tmp, step, {
-    spec: SPEC_PATH,
+    specId: SPEC_ID,
     runId: `run-${SPEC_ID}`,
     baseBranch: "main",
     featureBranch: `feature/${SPEC_ID}`,
