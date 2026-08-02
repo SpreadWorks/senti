@@ -473,7 +473,7 @@ class RegistryLifecycleAdapter {
 
   beginOutboxEffect(step) {
     if (this.ctx.dryRun) return null;
-    this.ctx.flowOutboxEntry = this.outboxStore().begin(this.outboxIdentity(step));
+    this.ctx.flowOutboxEntry = this.outboxStore().beginCommand(this.outboxIdentity(step));
     return this.ctx.flowOutboxEntry;
   }
 
@@ -661,6 +661,7 @@ class RegistryLifecycleAdapter {
 }
 
 async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err = null) {
+  if (err?.code === "FINALIZATION_OUTBOX_RECOVERY_REQUIRED") return;
   const attempt = result?.stepAttempt ? StepAttempt.fromStored(result.stepAttempt) : null;
   const plan = resolveLifecyclePlan({
     ...input,

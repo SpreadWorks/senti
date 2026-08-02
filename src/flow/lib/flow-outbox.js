@@ -353,6 +353,27 @@ export class FlowOutboxRecoveryClaim {
   }
 }
 
+export class FlowOutboxRecoveryRequiredError extends Error {
+  constructor(entry) {
+    if (!(entry instanceof FlowOutboxEntry) || entry.status !== "failed") {
+      throw new Error("failed FlowOutboxEntry is required");
+    }
+    super(`Outbox operation ${entry.identity.stepId} is blocked by its unchanged failed entry: ${entry.failure}`);
+    this.name = "FlowOutboxRecoveryRequiredError";
+    this.code = "FINALIZATION_OUTBOX_RECOVERY_REQUIRED";
+    this.retryable = false;
+    this.recoveryHint = "Refresh next-action and use only the exact or durable recovery authorized for this outbox identity.";
+    this.idempotencyKey = entry.idempotencyKey;
+    this.attempt = entry.attempt;
+    this.data = Object.freeze({
+      retryable: false,
+      recoveryHint: this.recoveryHint,
+      idempotencyKey: this.idempotencyKey,
+      attempt: this.attempt,
+    });
+  }
+}
+
 export class FlowOutbox {
   constructor(entries = []) {
     if (!Array.isArray(entries)) throw new Error("flow outbox must be an array");
@@ -454,6 +475,14 @@ export class FlowOutboxStore {
 
   begin(identity) {
     return this.#mutate((outbox) => outbox.begin(identity));
+  }
+
+  beginCommand(identity) {
+    return this.#mutate((outbox) => {
+      const current = outbox.find(identity);
+      if (current?.status === "failed") throw new FlowOutboxRecoveryRequiredError(current);
+      return outbox.begin(identity);
+    });
   }
 
   complete(identity, result) {

@@ -14,6 +14,10 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { parseArgs, PKG_DIR } from "../../lib/cli.js";
+import {
+  AgentFailure,
+  AgentPermissionConfigurationFailure,
+} from "../../lib/agent-failure.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
@@ -96,7 +100,9 @@ const callReviewAgent = (agent, prompt, commandId, systemPrompt) => {
 function ensureAgent(commandId) {
   const agent = container.get("agent");
   if (!agent.resolve(commandId)) {
-    throw new Error(`no AI agent configured for ${commandId} (set agent.default in config.json)`);
+    throw new AgentPermissionConfigurationFailure({
+      message: `no AI agent configured for ${commandId} (set agent.default in config.json)`,
+    });
   }
   return agent;
 }
@@ -1593,6 +1599,9 @@ function toolingFailureResult(failure) {
       permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(failure.message || ""),
     }),
     failureKind: failure.failureKind,
+    failureCode: failure.failureCode || null,
+    retryable: failure.retryable === true,
+    recoveryHint: failure.recoveryHint || null,
     reviewRetryConsumed: false,
     proposals: [],
     summaries: [],
@@ -1618,6 +1627,20 @@ async function executeWorkUnit({
         reused: true,
       };
     }
+    if (resume.action === "blocked") {
+      throw new WorkUnitToolingFailure({
+        failureKind: existing.failure?.failureKind || "non_retryable_checkpoint",
+        failureCode: existing.failure?.failureCode || "WORK_UNIT_NON_RETRYABLE_CHECKPOINT",
+        retryable: false,
+        recoveryHint: existing.failure?.recoveryHint
+          || "Change the WorkUnit input or repair the external condition before creating new evidence.",
+        message: existing.failure?.message
+          || "WorkUnit is blocked by an unchanged non-retryable checkpoint",
+        agentFailureKind: existing.failure?.agentFailureKind || null,
+        attemptCount: existing.failure?.attemptCount ?? null,
+        maxAttempts: existing.failure?.maxAttempts ?? null,
+      });
+    }
   }
 
   try {
@@ -1633,6 +1656,7 @@ async function executeWorkUnit({
     const failure = classifyWorkUnitFailure(err, { failureKind: err.failureKind });
     if (failure.commandFailure) throw err;
     checkpointStore?.saveFailed({ identity, failure });
+    if (err instanceof AgentFailure) throw err;
     return toolingFailureResult(failure);
   }
 }
@@ -2588,6 +2612,33 @@ async function runTestReviewWithDependencies({
 }
 
 function classifyReviewCommandError(err, phase) {
+  if (err instanceof AgentFailure) {
+    const resolvedPhase = phase || "impl";
+    return ReviewFailure.fromAgentFailure({
+      phase: resolvedPhase,
+      failure: err,
+      recoveryCommand: resolvedPhase === "impl"
+        ? "senti flow run review"
+        : `senti flow run review --phase ${resolvedPhase}`,
+    });
+  }
+  if (err instanceof WorkUnitToolingFailure && err.failureCode) {
+    const resolvedPhase = phase || "impl";
+    return ReviewFailure.providerFailure({
+      phase: resolvedPhase,
+      reason: err.message,
+      recoveryHint: err.recoveryHint
+        || "Change the WorkUnit input or repair the external condition before starting new review evidence.",
+      recoveryCommand: resolvedPhase === "impl"
+        ? "senti flow run review"
+        : `senti flow run review --phase ${resolvedPhase}`,
+      failureCode: err.failureCode,
+      retryable: err.retryable === true,
+      agentFailureKind: err.agentFailureKind || "work_unit_checkpoint",
+      attemptCount: err.attemptCount,
+      maxAttempts: err.maxAttempts,
+    });
+  }
   const message = String(err?.message || err || "");
   const schemaFailure = message.match(/impl review output failed schema validation:\s*([^\n]+)/i);
   if ((phase == null || phase === "impl") && schemaFailure) {

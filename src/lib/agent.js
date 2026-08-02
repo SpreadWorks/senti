@@ -26,6 +26,12 @@ import { defaultAgentProfiles } from "./agent-defaults.js";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 import { AgentTimeout } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
+import {
+  AgentFailure,
+  AgentPermissionConfigurationFailure,
+  AgentTimeoutFailure,
+  EmptyAgentResponseFailure,
+} from "./agent-failure.js";
 
 const DEFAULT_AGENT_TIMEOUT_GRACE_MS = 100;
 const DEFAULT_DIRECT_CHILD_EXIT_DRAIN_MS = 250;
@@ -134,12 +140,16 @@ class Agent {
    * Returns null when no profile is configured.
    */
   resolve(commandId, options = {}) {
-    return this._resolveAttempt(AgentResolutionAttempt.from({
-      agentSection: this._config.agent || {},
-      commandId,
-      options,
-      registry: this._registry,
-    }));
+    try {
+      return this._resolveAttempt(AgentResolutionAttempt.from({
+        agentSection: this._config.agent || {},
+        commandId,
+        options,
+        registry: this._registry,
+      }));
+    } catch (error) {
+      throw AgentFailure.from(error).recordAttempts(1, 1);
+    }
   }
 
   _resolveAttempt(attempt) {
@@ -160,7 +170,7 @@ class Agent {
    * @param {string} [options.systemPrompt]
    * @param {Function} [options.onStdout]
    * @param {Function} [options.onStderr]
-   * @param {number}  [options.retryCount=0]
+   * @param {number}  [options.retryCount=2]
    * @param {number}  [options.retryDelayMs=3000]
    * @param {string}  [options.executionWorkDir] - Per-call agent execution directory inside the repository
    * @param {boolean} [options.waitForProcessTree=false] - Wait for the provider process group to become idle
@@ -173,15 +183,23 @@ class Agent {
     const flowAttribution = new FlowAttributionPolicy(opts.flowAttribution);
     if (opts._dryRun) return "";
 
-    const attempt = AgentResolutionAttempt.from({
-      agentSection: this._config.agent || {},
-      commandId: opts.commandId,
-      options: opts,
-      registry: this._registry,
-    });
-    const resolved = this._resolveAttempt(attempt);
+    let attempt;
+    let resolved;
+    try {
+      attempt = AgentResolutionAttempt.from({
+        agentSection: this._config.agent || {},
+        commandId: opts.commandId,
+        options: opts,
+        registry: this._registry,
+      });
+      resolved = this._resolveAttempt(attempt);
+    } catch (error) {
+      throw AgentFailure.from(error).recordAttempts(1, 1);
+    }
     if (!resolved) {
-      throw new Error(attempt.formatFailure());
+      throw new AgentPermissionConfigurationFailure({
+        message: attempt.formatFailure(),
+      });
     }
     ensureWorkDir(this._paths.agentWorkDir);
     const executionWorkDir = this._resolveExecutionWorkDir(opts.executionWorkDir);
@@ -382,23 +400,31 @@ class Agent {
   async _callOnceWithRetry(resolved, prompt, options, retry) {
     if (retry.retryCount === 0) {
       // No retry: return whatever the single call produces (including empty string).
-      return this._callOnce(resolved, prompt, options);
+      try {
+        return await this._callOnce(resolved, prompt, options);
+      } catch (error) {
+        throw AgentFailure.from(error).recordAttempts(1, 1);
+      }
     }
-    let lastError = null;
+    const maxAttempts = retry.retryCount + 1;
+    let lastFailure = null;
     for (let attempt = 0; attempt <= retry.retryCount; attempt++) {
       try {
         const result = await this._callOnce(resolved, prompt, options);
         if (result.text) return result;
-        lastError = new Error("empty response");
+        lastFailure = new EmptyAgentResponseFailure()
+          .recordAttempts(attempt + 1, maxAttempts);
       } catch (err) {
-        lastError = err;
+        lastFailure = AgentFailure.from(err)
+          .recordAttempts(attempt + 1, maxAttempts);
       }
+      if (!lastFailure.retryable) throw lastFailure;
       if (attempt < retry.retryCount) {
         const delayMs = retry.retryDelayMs * Math.pow(RETRY_BACKOFF_FACTOR, attempt);
         await sleep(delayMs);
       }
     }
-    throw lastError;
+    throw lastFailure;
   }
 
   async _callOnce(resolved, prompt, options) {
@@ -503,16 +529,15 @@ class Agent {
   }
 }
 
-class AgentTimeoutError extends Error {
+class AgentTimeoutError extends AgentTimeoutFailure {
   constructor({ timeoutMs, graceMs, finalAction, unterminatedMembers = [] }) {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("timeoutMs must be a positive number");
     if (!Number.isFinite(graceMs) || graceMs <= 0) throw new Error("graceMs must be a positive number");
     if (!Array.isArray(unterminatedMembers) || !unterminatedMembers.every((member) => member instanceof UnterminatedProcessMember)) {
       throw new Error("unterminatedMembers must be process member diagnostics");
     }
-    super(`Agent timed out after ${timeoutMs}ms; final action=${finalAction}`);
+    super({ message: `Agent timed out after ${timeoutMs}ms; final action=${finalAction}` });
     this.name = "AgentTimeoutError";
-    this.code = "AGENT_TIMEOUT";
     this.timeoutMs = timeoutMs;
     this.graceMs = graceMs;
     this.finalAction = finalAction;

@@ -13,6 +13,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { AgentFailure } from "../../lib/agent-failure.js";
 import {
   ProcessOwnedLock,
   RealDirectoryAuthority,
@@ -702,15 +703,18 @@ export default class RunDispatchCommand extends FlowCommand {
           current = refreshed;
           continue;
         }
+        const boundary = blockedBoundary({
+          nextAction: refreshed,
+          dispatchCount,
+          message: "The worker process ended and guarded authority was refreshed. Resolve the provider failure before resuming this non-terminal action.",
+        });
         return this.failure(
           ctx,
-          "FLOW_DISPATCH_AGENT_FAILED",
+          agentError instanceof AgentFailure ? agentError.code : "FLOW_DISPATCH_AGENT_FAILED",
           `the configured Flow worker failed: ${agentError.message || agentError}`,
-          blockedBoundary({
-            nextAction: refreshed,
-            dispatchCount,
-            message: "The worker process ended and guarded authority was refreshed. Resolve the provider failure before resuming this non-terminal action.",
-          }),
+          agentError instanceof AgentFailure
+            ? { ...boundary, agentFailure: agentError.toJSON() }
+            : boundary,
         );
       }
       const refreshedIdentity = FlowDispatchProgressIdentity.capture({

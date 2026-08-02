@@ -5,6 +5,7 @@
  */
 
 import { reviewPhaseForFlowStepId } from "./review-route.js";
+import { AgentFailure } from "../../lib/agent-failure.js";
 
 export const REVIEW_FAILURE_MARKER_PREFIX = "SENTI_REVIEW_FAILURE ";
 
@@ -69,6 +70,25 @@ export class ReviewFailure {
     this.retryBudgetConsumed = input.retryBudgetConsumed === true;
     this.recoveryHint = input.recoveryHint ? String(input.recoveryHint) : null;
     this.recoveryCommand = input.recoveryCommand ? String(input.recoveryCommand) : null;
+    this.failureCode = input.failureCode ? requireString(input.failureCode, "failureCode") : null;
+    if (input.retryable != null && typeof input.retryable !== "boolean") {
+      throw new Error("review failure retryable must be boolean");
+    }
+    this.retryable = input.retryable === true;
+    this.agentFailureKind = input.agentFailureKind ? requireString(input.agentFailureKind, "agentFailureKind") : null;
+    this.attemptCount = input.attemptCount ?? null;
+    this.maxAttempts = input.maxAttempts ?? null;
+    if ((this.attemptCount == null) !== (this.maxAttempts == null)) {
+      throw new Error("review agent attemptCount and maxAttempts must be provided together");
+    }
+    if (this.attemptCount != null && (
+      !Number.isSafeInteger(this.attemptCount)
+      || this.attemptCount < 1
+      || !Number.isSafeInteger(this.maxAttempts)
+      || this.maxAttempts < this.attemptCount
+    )) {
+      throw new Error("review agent attempts must be positive integers within maxAttempts");
+    }
     this.exitCode = input.exitCode ?? null;
     this.signal = input.signal ?? null;
     this.killed = input.killed === true;
@@ -120,7 +140,17 @@ export class ReviewFailure {
     });
   }
 
-  static providerFailure({ phase, reason, recoveryHint, recoveryCommand } = {}) {
+  static providerFailure({
+    phase,
+    reason,
+    recoveryHint,
+    recoveryCommand,
+    failureCode = "AGENT_UNKNOWN_PROVIDER_FAILURE",
+    retryable = false,
+    agentFailureKind = "unknown_provider",
+    attemptCount = null,
+    maxAttempts = null,
+  } = {}) {
     return new ReviewFailure({
       phase,
       classification: "provider_failure",
@@ -128,6 +158,26 @@ export class ReviewFailure {
       retryBudgetConsumed: false,
       recoveryHint: requireString(recoveryHint, "recoveryHint"),
       recoveryCommand: requireString(recoveryCommand, "recoveryCommand"),
+      failureCode,
+      retryable,
+      agentFailureKind,
+      attemptCount,
+      maxAttempts,
+    });
+  }
+
+  static fromAgentFailure({ phase = "impl", failure, recoveryCommand = null } = {}) {
+    if (!(failure instanceof AgentFailure)) throw new Error("AgentFailure is required");
+    return ReviewFailure.providerFailure({
+      phase,
+      reason: failure.message,
+      recoveryHint: failure.recoveryHint,
+      recoveryCommand: recoveryCommand || retryReviewCommand(phase),
+      failureCode: failure.code,
+      retryable: failure.retryable,
+      agentFailureKind: failure.kind,
+      attemptCount: failure.attemptCount,
+      maxAttempts: failure.maxAttempts,
     });
   }
 
@@ -196,6 +246,11 @@ export class ReviewFailure {
         retryBudgetConsumed: false,
         recoveryHint: data.recoveryHint,
         recoveryCommand: data.recoveryCommand,
+        failureCode: data.failureCode,
+        retryable: data.retryable,
+        agentFailureKind: data.agentFailureKind,
+        attemptCount: data.attemptCount,
+        maxAttempts: data.maxAttempts,
       });
     } catch (_) {
       return null;
@@ -214,10 +269,9 @@ export class ReviewFailure {
       });
     }
     if (matchesProviderFailure(text)) {
-      return ReviewFailure.providerFailure({
+      return ReviewFailure.fromAgentFailure({
         phase,
-        reason: "provider-error",
-        recoveryHint: "Retry after the provider error is resolved.",
+        failure: AgentFailure.from(new Error(text)),
         recoveryCommand: command,
       });
     }
@@ -275,7 +329,7 @@ export class ReviewFailure {
   }
 
   toEnvelopeCode() {
-    return this.classification.toUpperCase();
+    return this.failureCode || this.classification.toUpperCase();
   }
 
   toEnvelopeData() {
@@ -286,6 +340,11 @@ export class ReviewFailure {
       retryBudgetConsumed: this.retryBudgetConsumed,
       ...(this.recoveryHint && { recoveryHint: this.recoveryHint }),
       ...(this.recoveryCommand && { recoveryCommand: this.recoveryCommand }),
+      ...(this.failureCode && { failureCode: this.failureCode }),
+      retryable: this.retryable,
+      ...(this.agentFailureKind && { agentFailureKind: this.agentFailureKind }),
+      ...(this.attemptCount != null && { attemptCount: this.attemptCount }),
+      ...(this.maxAttempts != null && { maxAttempts: this.maxAttempts }),
     };
     if (this.classification === "max_attempts_exceeded") {
       data.attempts = this.attempts;
@@ -316,6 +375,11 @@ export class ReviewFailure {
       } : {
         recoveryHint: this.recoveryHint,
         recoveryCommand: this.recoveryCommand,
+        ...(this.failureCode && { failureCode: this.failureCode }),
+        retryable: this.retryable,
+        ...(this.agentFailureKind && { agentFailureKind: this.agentFailureKind }),
+        ...(this.attemptCount != null && { attemptCount: this.attemptCount }),
+        ...(this.maxAttempts != null && { maxAttempts: this.maxAttempts }),
       }),
     });
   }

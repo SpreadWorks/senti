@@ -122,6 +122,11 @@ function prepareContext(root, config, { runId = "run-440", issue = 440 } = {}) {
   };
 }
 
+function branchPrepareContext(root, config, { runId, issue, title }) {
+  const ctx = prepareContext(root, config, { runId, issue });
+  return { ...ctx, title, worktree: false };
+}
+
 function fileBytes(file) {
   return fs.existsSync(file) ? fs.readFileSync(file).toString("base64") : null;
 }
@@ -202,6 +207,39 @@ afterEach(() => {
 });
 
 describe("worktree prepare binding transaction", () => {
+  it("rejects a second branch prepare before changing the shared checkout", async () => {
+    const { root, config } = createProject();
+    const existingSpecId = "001-first-branch-flow";
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    manager.create(makeFlowState({
+      specId: existingSpecId,
+      runId: "run-branch-first",
+      baseBranch: "main",
+      featureBranch: `feature/${existingSpecId}`,
+    }));
+    git(root, ["add", "specs"]);
+    git(root, ["commit", "-m", "existing flow state"]);
+    git(root, ["branch", `feature/${existingSpecId}`]);
+    manager.addActiveFlow(existingSpecId, "branch");
+    const headBefore = git(root, ["branch", "--show-current"]);
+    const registryBefore = fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8");
+
+    await assert.rejects(
+      () => new RunPrepareSpecCommand().execute(
+        branchPrepareContext(root, config, {
+          runId: "run-branch-second",
+          issue: 441,
+          title: "second-branch-flow",
+        }),
+      ),
+      (error) => error.code === "ACTIVE_FLOW_BRANCH_CONFLICT" && error.specId === existingSpecId,
+    );
+
+    assert.equal(git(root, ["branch", "--show-current"]), headBefore);
+    assert.equal(fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8"), registryBefore);
+    assert.equal(fs.existsSync(path.join(root, "specs", "002-second-branch-flow")), false);
+  });
+
   it("verifies the persisted exact identity through a fresh worktree manager before publish", async () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config);

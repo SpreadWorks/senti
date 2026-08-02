@@ -1215,6 +1215,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     } else {
       flowManager.cleanStaleFlows({ operationOwnerToken });
+      flowManager.assertCanAddActiveFlow(specId, "branch", { operationOwnerToken });
       runGitTrim(currentExecutionRoot, ["checkout", "-b", branchName, resolvedBase]);
       await writeFlowState({}, writeSpecFiles);
       runDocsScanAndValidate(executionRoot);

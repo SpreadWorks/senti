@@ -88,8 +88,21 @@ class ActiveFlowDocument {
       error.code = "ACTIVE_FLOW_REGISTRY_MODE_CONFLICT";
       throw error;
     }
+    this.assertCanAdd(specId, mode);
     this.entries.push(new ActiveFlowEntry({ specId, mode }));
     return true;
+  }
+
+  assertCanAdd(specId, mode) {
+    if (mode !== "branch") return;
+    const existing = this.entries.find((entry) => entry.mode === "branch" && entry.specId !== specId);
+    if (!existing) return;
+    const error = new Error(
+      `active branch flow already exists: ${existing.specId}. Complete or abort it before starting another branch flow.`,
+    );
+    error.code = "ACTIVE_FLOW_BRANCH_CONFLICT";
+    error.specId = existing.specId;
+    throw error;
   }
 
   remove(specId) {
@@ -351,6 +364,21 @@ export class ActiveFlowRegistry {
       const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
       if (!snapshot.document.add(specId, mode)) return;
       this.#write(snapshot.document, snapshot.revision);
+    }, options);
+  }
+
+  /**
+   * Verify that an active-flow entry can be added without changing the
+   * registry. Prepare uses this before switching the shared checkout.
+   *
+   * @param {string} specId
+   * @param {"worktree"|"branch"|"local"} mode
+   */
+  assertCanAdd(specId, mode, options = {}) {
+    ActiveFlowEntry.assertValidSpecId(specId);
+    return this.#withMutationLock(() => {
+      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
+      snapshot.document.assertCanAdd(specId, mode);
     }, options);
   }
 

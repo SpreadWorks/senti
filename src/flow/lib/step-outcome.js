@@ -101,7 +101,13 @@ export class StepOutcome {
       return new DeferOutcome({ nextAction: value.nextAction, findingCount: value.findingCount });
     }
     if (value.kind === "external-blocked") {
-      return new ExternalBlockedOutcome({ reason: value.reason, ...common });
+      return new ExternalBlockedOutcome({
+        reason: value.reason,
+        failureCode: value.failureCode,
+        retryable: value.retryable,
+        recoveryHint: value.recoveryHint,
+        ...common,
+      });
     }
     if (value.kind === "awaiting-decision") {
       return new AwaitingDecisionOutcome({ reason: value.reason, ...common });
@@ -213,10 +219,29 @@ class StoppedOutcome extends StepOutcome {
 }
 
 export class ExternalBlockedOutcome extends StoppedOutcome {
-  constructor(input) {
+  constructor(input = {}) {
     super({ ...input, prompt: null });
     this.kind = "external-blocked";
+    this.failureCode = input.failureCode == null
+      ? "EXTERNAL_BLOCKED"
+      : requireString(input.failureCode, "failureCode");
+    if (input.retryable != null && typeof input.retryable !== "boolean") {
+      throw new Error("external-blocked retryable must be boolean");
+    }
+    this.retryable = input.retryable === true;
+    this.recoveryHint = input.recoveryHint == null
+      ? this.resumeInstruction
+      : requireString(input.recoveryHint, "recoveryHint");
     Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      failureCode: this.failureCode,
+      retryable: this.retryable,
+      recoveryHint: this.recoveryHint,
+    };
   }
 }
 

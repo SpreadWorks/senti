@@ -398,6 +398,9 @@ function reviewExternalBlock(failure) {
   return new ExternalBlockedOutcome({
     reason: failure.classification,
     resumeInstruction: instruction,
+    failureCode: failure.toEnvelopeCode(),
+    retryable: failure.retryable,
+    recoveryHint: failure.recoveryHint || instruction,
   });
 }
 

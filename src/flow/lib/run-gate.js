@@ -33,6 +33,7 @@ import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { validateConfiguredPresetChains } from "../../lib/presets.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { FatalPostHookError } from "../../lib/post-hook-error.js";
+import { AgentFailure } from "../../lib/agent-failure.js";
 import {
   enumerateUsableRequirementIds,
   loadSpecJson,
@@ -2031,13 +2032,14 @@ async function callGateAgent(agent, built, attempt) {
   };
 }
 
-function requiredGuardrailFailure(failureKind, failureCode, failureReason) {
+function requiredGuardrailFailure(failureKind, failureCode, failureReason, details = {}) {
   return {
     passed: false,
     evaluations: [],
     failureKind,
     failureCode,
     failureReason,
+    ...details,
   };
 }
 
@@ -2074,13 +2076,33 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     : previouslyPassedIds;
 
   const agent = options.agent || container.get("agent");
-  if (!agent.resolve("flow.spec.gate")) {
+  let resolvedAgent;
+  try {
+    resolvedAgent = agent.resolve("flow.spec.gate");
+  } catch (error) {
+    const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
+    return {
+      passed: false,
+      evaluations: [],
+      failureKind: "agent-configuration",
+      failureCode: failure.code,
+      failureReason: failure.message,
+      retryable: failure.retryable,
+      recoveryHint: failure.recoveryHint,
+      agentFailureKind: failure.kind,
+      agentAttemptCount: failure.attemptCount,
+      agentMaxAttempts: failure.maxAttempts,
+    };
+  }
+  if (!resolvedAgent) {
     return {
       passed: false,
       evaluations: [],
       failureKind: "agent-unset",
       failureCode: "GATE_REQUIRED_AGENT_UNSET",
       failureReason: "required gate evaluation agent is not configured",
+      retryable: false,
+      recoveryHint: "Configure flow.spec.gate to a usable provider before starting a new gate attempt.",
     };
   }
 
@@ -2105,6 +2127,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     }));
   } catch (error) {
     const sourceError = error instanceof GateOutputProtocolFailure ? error.cause : error;
+    const agentFailure = sourceError instanceof AgentFailure ? sourceError : null;
     const schema = error instanceof EvaluationSchemaError
       || (error instanceof GateOutputProtocolFailure
         && error.data?.failureMode === "schema_validation_failure");
@@ -2117,8 +2140,18 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
       failureKind: output ? (schema ? "schema" : "output") : (spawn ? "agent-spawn" : "agent-evaluation"),
       failureCode: output
         ? (schema ? "GATE_REQUIRED_SCHEMA" : "GATE_REQUIRED_OUTPUT")
-        : (spawn ? "GATE_REQUIRED_AGENT_SPAWN" : "GATE_REQUIRED_AGENT_EVALUATION"),
+        : (agentFailure?.code || (spawn ? "GATE_REQUIRED_AGENT_SPAWN" : "GATE_REQUIRED_AGENT_EVALUATION")),
       failureReason: error.message,
+      retryable: agentFailure?.retryable ?? false,
+      recoveryHint: agentFailure?.recoveryHint
+        || (output
+          ? "Correct the gate response protocol before starting a new attempt."
+          : "Repair the gate provider failure before starting a new attempt."),
+      ...(agentFailure ? {
+        agentFailureKind: agentFailure.kind,
+        agentAttemptCount: agentFailure.attemptCount,
+        agentMaxAttempts: agentFailure.maxAttempts,
+      } : {}),
     };
   }
   const byId = new Map(filtered.map((g) => [g.id, g]));
@@ -2726,10 +2759,24 @@ function gateRetryAction(phase) {
   return `run-gate-${phase}`;
 }
 
-function gateExternalBlock(reason) {
+function gateExternalBlock(reason, details = {}) {
+  const recoveryHint = details.recoveryHint
+    || `Resolve ${reason.replaceAll("_", " ")} and retry the guarded gate action.`;
   return new ExternalBlockedOutcome({
     reason,
-    resumeInstruction: `Resolve ${reason.replaceAll("_", " ")} and retry the guarded gate action.`,
+    resumeInstruction: recoveryHint,
+    failureCode: details.failureCode || "GATE_EXTERNAL_BLOCKED",
+    retryable: details.retryable === true,
+    recoveryHint,
+  });
+}
+
+function gateExternalBlockForResult(result) {
+  const artifacts = result?.artifacts || {};
+  return gateExternalBlock(artifacts.failureKind || "gate_failure", {
+    failureCode: artifacts.failureCode,
+    retryable: artifacts.retryable,
+    recoveryHint: artifacts.recoveryHint,
   });
 }
 
@@ -3193,7 +3240,7 @@ export function updateGateRetryCounter(ctx, result) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) {
     const outcome = result?.result === "pass"
       ? new DecisionOutcome({ decision: "PASS", nextAction: result?.next || "refresh-next-action" })
-      : gateExternalBlock(result?.artifacts?.failureKind || "gate_failure");
+      : gateExternalBlockForResult(result);
     recordGateOutcome(ctx, result, phase, nextStepAttemptNumber(ctx?.flowState, stepId), outcome);
     return;
   }
@@ -3233,9 +3280,7 @@ export function updateGateRetryCounter(ctx, result) {
     recordGateOutcome(ctx, result, phase, attempts, new RetryOutcome({ nextAction: gateRetryAction(phase) }));
     persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
   } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
-    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlock(
-      result?.artifacts?.failureKind || "gate_failure",
-    ));
+    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
     mgr.mutate((state) => updateGateImplMemory({
       root: ctx.root,
       flowState: state,
@@ -3248,9 +3293,7 @@ export function updateGateRetryCounter(ctx, result) {
       observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
     }), owner.routeOptions());
   } else {
-    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlock(
-      result?.artifacts?.failureKind || "gate_failure",
-    ));
+    recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
   }
 }
 
@@ -4960,6 +5003,12 @@ function gateRequiredEvaluationFail(level, phase, targetPath, result) {
   const failure = gateFail(level, phase, targetPath, [], [result.failureReason]);
   failure.artifacts.failureKind = result.failureKind;
   failure.artifacts.failureCode = result.failureCode;
+  failure.artifacts.retryable = result.retryable === true;
+  failure.artifacts.recoveryHint = result.recoveryHint
+    || "Repair the required gate evaluation failure before starting a new attempt.";
+  if (result.agentFailureKind) failure.artifacts.agentFailureKind = result.agentFailureKind;
+  if (result.agentAttemptCount != null) failure.artifacts.agentAttemptCount = result.agentAttemptCount;
+  if (result.agentMaxAttempts != null) failure.artifacts.agentMaxAttempts = result.agentMaxAttempts;
   return failure;
 }
 

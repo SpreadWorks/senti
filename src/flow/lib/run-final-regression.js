@@ -52,6 +52,7 @@ import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
 import {
   ExternalBlockedOutcome,
+  StepAttemptLog,
   nextStepAttemptNumber,
   recordStepAttempt,
 } from "./step-outcome.js";
@@ -1285,6 +1286,53 @@ function validateRecordAndProceedFreshness(artifact, current) {
     && fingerprintSetsEqual(artifact.changedFileFingerprints, current.changedFileFingerprints);
 }
 
+function hasDurableNonRetryableFinalRegressionAttempt(state) {
+  if (typeof state?.runId !== "string" || state.runId.length === 0) return false;
+  try {
+    const attempts = new StepAttemptLog(state.stepAttempts || []);
+    const latest = attempts.entries.findLast((entry) => (
+      entry.runId === state.runId && entry.stepId === "final-regression"
+    ));
+    return latest?.outcome instanceof ExternalBlockedOutcome
+      && latest.outcome.retryable === false;
+  } catch (_) {
+    return false;
+  }
+}
+
+function unchangedNonRetryableFinalRegressionFailure({ root, state, config, specDir, resultPath, resultPathRelative }) {
+  if (!hasDurableNonRetryableFinalRegressionAttempt(state)) return null;
+  const read = readCurrentFinalRegressionArtifact(resultPath);
+  if (read.error || read.artifact.result !== "fail" || read.artifact.retryable !== false) return null;
+  let current;
+  try {
+    current = currentRecordAndProceedEvidence({ root, state, config, specDir });
+  } catch (_) {
+    // Command discovery itself is read-only. If it no longer resolves, the
+    // prior command identity cannot be proven unchanged and normal discovery
+    // produces fresh failure evidence without starting the project command.
+    return null;
+  }
+  if (!validateRecordAndProceedFreshness(read.artifact, current)) return null;
+  const recoveryHint = read.artifact.recoveryPolicy?.resumeInstruction
+    || "Change the regression input or record new repair evidence before starting a new final-regression attempt.";
+  return Envelope.fail(
+    "run",
+    "final-regression",
+    "FINAL_REGRESSION_NON_RETRYABLE_INPUT_UNCHANGED",
+    "final-regression is blocked by an unchanged non-retryable failure; the project command was not executed",
+    {
+      failureKind: read.artifact.failureKind,
+      failureCategory: read.artifact.failureCategory,
+      retryable: false,
+      recoveryHint,
+      result_path: resultPathRelative,
+      commandIdentity: current.commandIdentity,
+      changedFileFingerprints: current.changedFileFingerprints,
+    },
+  );
+}
+
 export default class RunFinalRegressionCommand extends FlowCommand {
   async execute(ctx) {
     const artifactRoot = ctx.root;
@@ -1301,6 +1349,16 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     if (ctx.recordAndProceed) {
       return this.recordAndProceed(ctx, { artifactRoot, executionRoot: root, specDir, resultPath, resultPathRelative });
     }
+
+    const unchangedTerminalFailure = unchangedNonRetryableFinalRegressionFailure({
+      root,
+      state,
+      config,
+      specDir,
+      resultPath,
+      resultPathRelative,
+    });
+    if (unchangedTerminalFailure) return unchangedTerminalFailure;
 
     const staleEvidenceRecovery = recoverStaleTestEvidence({
       root,
@@ -1597,6 +1655,10 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       outcome: new ExternalBlockedOutcome({
         reason: `final-regression failed (${failureKind})`,
         resumeInstruction: failure.recoveryPolicy.resumeInstruction
+          || "Repair the preserved final-regression failure, then rerun final-regression.",
+        failureCode: "FINAL_REGRESSION_FAILED",
+        retryable: decision.retryable,
+        recoveryHint: failure.recoveryPolicy.resumeInstruction
           || "Repair the preserved final-regression failure, then rerun final-regression.",
       }),
       result: failureResult,

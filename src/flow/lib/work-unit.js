@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { AgentFailure } from "../../lib/agent-failure.js";
 
 const CHECKPOINT_VERSION = 1;
 const RETRYABLE_FAILURE_KINDS = new Set(["provider_failure", "timeout", "parser_failure", "schema_failure"]);
@@ -55,11 +56,42 @@ export class WorkUnitInvariantError extends Error {
 }
 
 export class WorkUnitToolingFailure extends Error {
-  constructor({ failureKind, message, rawResponse = null, cause = null }) {
+  constructor({
+    failureKind,
+    message,
+    rawResponse = null,
+    cause = null,
+    failureCode = null,
+    retryable = null,
+    recoveryHint = null,
+    agentFailureKind = null,
+    attemptCount = null,
+    maxAttempts = null,
+  }) {
     super(message || failureKind);
     this.name = "WorkUnitToolingFailure";
     this.failureKind = requiredString(failureKind, "failureKind");
     this.rawResponse = rawResponse;
+    this.failureCode = failureCode == null ? null : requiredString(failureCode, "failureCode");
+    if (retryable != null && typeof retryable !== "boolean") {
+      throw new WorkUnitInvariantError("retryable must be boolean");
+    }
+    this.retryable = retryable;
+    this.recoveryHint = recoveryHint == null ? null : requiredString(recoveryHint, "recoveryHint");
+    this.agentFailureKind = agentFailureKind == null
+      ? null
+      : requiredString(agentFailureKind, "agentFailureKind");
+    if ((attemptCount == null) !== (maxAttempts == null)) {
+      throw new WorkUnitInvariantError("attemptCount and maxAttempts must be provided together");
+    }
+    if (attemptCount != null && (
+      !Number.isSafeInteger(attemptCount)
+      || attemptCount < 1
+      || !Number.isSafeInteger(maxAttempts)
+      || maxAttempts < attemptCount
+    )) throw new WorkUnitInvariantError("attempt metadata is invalid");
+    this.attemptCount = attemptCount;
+    this.maxAttempts = maxAttempts;
     if (cause) this.cause = cause;
   }
 }
@@ -194,7 +226,7 @@ export class WorkUnitCheckpoint {
 
 export class WorkUnitResumeDecision {
   constructor({ action, reason = null, checkpoint = null }) {
-    if (!["reuse", "execute"].includes(action)) throw new WorkUnitInvariantError(`invalid resume action: ${action}`);
+    if (!["reuse", "execute", "blocked"].includes(action)) throw new WorkUnitInvariantError(`invalid resume action: ${action}`);
     this.action = action;
     this.reason = reason;
     this.checkpoint = checkpoint;
@@ -202,9 +234,15 @@ export class WorkUnitResumeDecision {
 
   static fromCheckpoint(plannedIdentity, checkpoint) {
     if (!checkpoint) return new WorkUnitResumeDecision({ action: "execute", reason: "missing" });
-    if (checkpoint.status !== "success") return new WorkUnitResumeDecision({ action: "execute", reason: "failed", checkpoint });
     if (!plannedIdentity.matchesFullIdentity(checkpoint.identity)) {
       return new WorkUnitResumeDecision({ action: "execute", reason: "stale", checkpoint });
+    }
+    if (checkpoint.status !== "success") {
+      return new WorkUnitResumeDecision({
+        action: checkpoint.failure?.retryable === false ? "blocked" : "execute",
+        reason: checkpoint.failure?.retryable === false ? "non_retryable_failure" : "failed",
+        checkpoint,
+      });
     }
     return new WorkUnitResumeDecision({ action: "reuse", reason: "success", checkpoint });
   }
@@ -384,27 +422,44 @@ function normalizeFailure(failure = {}) {
   return {
     ...(failure.unitId ? { unitId: failure.unitId } : {}),
     failureKind,
-    retryable: RETRYABLE_FAILURE_KINDS.has(failureKind),
+    retryable: failure.retryable ?? RETRYABLE_FAILURE_KINDS.has(failureKind),
     message: failure.message || failureKind,
+    ...(failure.failureCode ? { failureCode: failure.failureCode } : {}),
+    ...(failure.recoveryHint ? { recoveryHint: failure.recoveryHint } : {}),
+    ...(failure.agentFailureKind ? { agentFailureKind: failure.agentFailureKind } : {}),
+    ...(failure.attemptCount != null ? { attemptCount: failure.attemptCount } : {}),
+    ...(failure.maxAttempts != null ? { maxAttempts: failure.maxAttempts } : {}),
   };
 }
 
 export function classifyWorkUnitFailure(err, options = {}) {
-  const failureKind = options.failureKind || err?.failureKind || (err instanceof WorkUnitInvariantError ? "invariant_violation" : "provider_failure");
+  const agentFailure = err instanceof AgentFailure ? err : null;
+  const failureKind = options.failureKind
+    || err?.failureKind
+    || (agentFailure ? "provider_failure" : null)
+    || (err instanceof WorkUnitInvariantError ? "invariant_violation" : "provider_failure");
+  const retryable = agentFailure?.retryable ?? RETRYABLE_FAILURE_KINDS.has(failureKind);
   return {
     failureKind,
-    retryable: RETRYABLE_FAILURE_KINDS.has(failureKind),
-    toolingFailure: RETRYABLE_FAILURE_KINDS.has(failureKind),
+    retryable,
+    toolingFailure: agentFailure != null || RETRYABLE_FAILURE_KINDS.has(failureKind),
     commandFailure: COMMAND_FAILURE_KINDS.has(failureKind),
     message: err?.message || failureKind,
     rawResponse: err?.rawResponse ?? null,
+    ...(agentFailure ? {
+      failureCode: agentFailure.code,
+      recoveryHint: agentFailure.recoveryHint,
+      agentFailureKind: agentFailure.kind,
+      attemptCount: agentFailure.attemptCount,
+      maxAttempts: agentFailure.maxAttempts,
+    } : {}),
   };
 }
 
 export function shouldFallbackSplit(failures = []) {
   const byUnit = new Map();
   for (const failure of failures) {
-    if (!failure?.retryable || !RETRYABLE_FAILURE_KINDS.has(failure.failureKind)) continue;
+    if (!failure?.retryable) continue;
     const key = failure.unitId || "default";
     byUnit.set(key, (byUnit.get(key) || 0) + 1);
   }

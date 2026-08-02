@@ -47,6 +47,22 @@ describe("active-flow pointer", () => {
     assert.equal(flows[1].mode, "branch");
   });
 
+  it("rejects a second branch flow while allowing worktree flows", () => {
+    tmp = createTmpDir();
+    const manager = makeFlowManager(tmp);
+    manager.addActiveFlow("086-first", "branch");
+    manager.addActiveFlow("087-worktree", "worktree");
+
+    assert.throws(
+      () => manager.addActiveFlow("088-second", "branch"),
+      (error) => error.code === "ACTIVE_FLOW_BRANCH_CONFLICT" && error.specId === "086-first",
+    );
+    assert.deepEqual(manager.loadActiveFlows(), [
+      { specId: "086-first", mode: "branch" },
+      { specId: "087-worktree", mode: "worktree" },
+    ]);
+  });
+
   it("removeActiveFlow removes matching entry and keeps others", () => {
     tmp = createTmpDir();
     makeFlowManager(tmp).addActiveFlow("086-migrate", "worktree");

@@ -5,6 +5,11 @@ import { resolveMergeBase, runGit } from "../../lib/git-helpers.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import {
+  AgentFailure,
+  AgentPermissionConfigurationFailure,
+} from "../../lib/agent-failure.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCommand } from "./base-command.js";
 import {
   AcceptanceEvidenceBindings,
@@ -18,6 +23,11 @@ import {
 } from "./impl-repair-artifacts.js";
 import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
+import {
+  ExternalBlockedOutcome,
+  nextStepAttemptNumber,
+  recordStepAttempt,
+} from "./step-outcome.js";
 
 export const MAX_ACCEPTANCE_REQUEST_CHARS = 900_000;
 export const MAX_ACCEPTANCE_RESPONSE_CHARS = 900_000;
@@ -396,6 +406,30 @@ async function callAcceptanceAgent(agent, prompt) {
   return parseAcceptanceResponse(response);
 }
 
+function acceptanceAgentFailure(ctx, failure) {
+  const envelope = Envelope.fail(
+    "run",
+    "acceptance-review",
+    failure.code,
+    failure.message,
+    failure.toJSON(),
+  );
+  const attempt = recordStepAttempt(ctx, {
+    stepId: "acceptance-review",
+    attempt: nextStepAttemptNumber(ctx.flowState, "acceptance-review"),
+    outcome: new ExternalBlockedOutcome({
+      reason: failure.kind,
+      resumeInstruction: failure.recoveryHint,
+      failureCode: failure.code,
+      retryable: failure.retryable,
+      recoveryHint: failure.recoveryHint,
+    }),
+    result: envelope,
+  });
+  if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
+  return envelope;
+}
+
 export default class RunAcceptanceReviewCommand extends FlowCommand {
   constructor({ responseSource = new AcceptanceReviewResponseSource() } = {}) {
     super();
@@ -432,30 +466,44 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
       artifact = artifactFromAcceptanceJudgments({ context, requirementJudgments: [] });
     } else {
       const agent = container.get("agent");
-      if (!agent.resolve("flow.acceptance.review")) {
-        throw new Error("no AI agent configured for flow.acceptance.review");
+      let resolvedAgent;
+      try {
+        resolvedAgent = agent.resolve("flow.acceptance.review");
+      } catch (error) {
+        const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
+        return acceptanceAgentFailure(ctx, failure);
       }
-      const parsed = await callAcceptanceAgent(agent, buildAcceptancePrompt(context));
-      const bound = bindAcceptanceResponse(context, parsed);
-      const deferredCoverage = new DeferredDispositionCoverage(
-        context,
-        bound.deferredFindingDispositions,
-      );
-      const missingFindings = deferredCoverage.missingFindings;
-      if (missingFindings.length > 0) {
-        const repairParsed = await callAcceptanceAgent(
-          agent,
-          buildDeferredDispositionRepairPrompt(context, missingFindings),
+      if (!resolvedAgent) {
+        return acceptanceAgentFailure(ctx, new AgentPermissionConfigurationFailure({
+          message: "no AI agent configured for flow.acceptance.review",
+        }));
+      }
+      try {
+        const parsed = await callAcceptanceAgent(agent, buildAcceptancePrompt(context));
+        const bound = bindAcceptanceResponse(context, parsed);
+        const deferredCoverage = new DeferredDispositionCoverage(
+          context,
+          bound.deferredFindingDispositions,
         );
-        const repairBound = new AcceptanceResponseBinding(context)
-          .bindDeferredFindingDispositions(repairParsed.deferredFindingDispositions ?? []);
-        deferredCoverage.add(repairBound);
+        const missingFindings = deferredCoverage.missingFindings;
+        if (missingFindings.length > 0) {
+          const repairParsed = await callAcceptanceAgent(
+            agent,
+            buildDeferredDispositionRepairPrompt(context, missingFindings),
+          );
+          const repairBound = new AcceptanceResponseBinding(context)
+            .bindDeferredFindingDispositions(repairParsed.deferredFindingDispositions ?? []);
+          deferredCoverage.add(repairBound);
+        }
+        artifact = artifactFromAcceptanceJudgments({
+          context,
+          requirementJudgments: bound.requirementJudgments,
+          deferredFindingDispositions: deferredCoverage.requireComplete(),
+        });
+      } catch (error) {
+        if (error instanceof AgentFailure) return acceptanceAgentFailure(ctx, error);
+        throw error;
       }
-      artifact = artifactFromAcceptanceJudgments({
-        context,
-        requirementJudgments: bound.requirementJudgments,
-        deferredFindingDispositions: deferredCoverage.requireComplete(),
-      });
     }
     const result = applyAcceptanceReviewResult({
       root: ctx.root,

@@ -624,6 +624,7 @@ export class FlowManager {
     return new ActiveFlowIdentitySnapshot({ entries, revision: registrySnapshot.revision });
   }
   addActiveFlow(specId, mode, options) { return this._activeFlows.add(specId, mode, options); }
+  assertCanAddActiveFlow(specId, mode, options) { return this._activeFlows.assertCanAdd(specId, mode, options); }
   removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
   assertFlowStateWritable(specId, options) { return this._store.assertWritable(specId, options); }
   cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }

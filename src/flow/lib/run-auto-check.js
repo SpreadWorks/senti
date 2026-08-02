@@ -31,6 +31,10 @@ import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import {
+  AgentFailure,
+  AgentPermissionConfigurationFailure,
+} from "../../lib/agent-failure.js";
 
 const AUTO_CHECK_ROLE = `You evaluate whether a feature request can safely proceed in Spec-Driven Development "auto mode" —
 meaning the AI drafts, specs, and implements without human confirmation loops.`;
@@ -151,8 +155,18 @@ async function scoreWithAi(container, inputText) {
   } catch (err) {
     return { breakdown: emptyBreakdown(), reason: `agent unavailable: ${err.message}`, ok: false };
   }
-  if (!agent?.resolve?.("flow.auto-check")) {
-    return { breakdown: emptyBreakdown(), reason: "no agent profile for auto-check", ok: false };
+  let resolvedAgent;
+  try {
+    resolvedAgent = agent?.resolve?.("flow.auto-check");
+  } catch (error) {
+    const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
+    return { breakdown: emptyBreakdown(), reason: failure.message, failure: failure.toJSON(), ok: false };
+  }
+  if (!resolvedAgent) {
+    const failure = new AgentPermissionConfigurationFailure({
+      message: "no agent profile for auto-check",
+    });
+    return { breakdown: emptyBreakdown(), reason: failure.message, failure: failure.toJSON(), ok: false };
   }
   const pb = new PromptBuilder();
   pb.setRole(AUTO_CHECK_ROLE);
@@ -171,7 +185,13 @@ async function scoreWithAi(container, inputText) {
       fmtFallback: built.fmtFallback,
     });
   } catch (err) {
-    return { breakdown: emptyBreakdown(), reason: `agent call failed: ${err.message}`, ok: false };
+    const failure = err instanceof AgentFailure ? err : AgentFailure.from(err);
+    return {
+      breakdown: emptyBreakdown(),
+      reason: `agent call failed: ${failure.message}`,
+      failure: failure.toJSON(),
+      ok: false,
+    };
   }
   let parsed;
   try {
@@ -192,7 +212,7 @@ async function scoreWithAi(container, inputText) {
  * final autoCheck envelope. Kept separate so set-auto.js can re-use the
  * same shape without re-invoking the CLI.
  */
-export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk, aiGoal }) {
+export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk, aiGoal, aiFailure = null }) {
   const staticFail = !staticGates.eligible;
   const breakdown = staticFail ? emptyBreakdown() : aiBreakdown;
   const score = computeScore(breakdown);
@@ -224,6 +244,7 @@ export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk, aiG
     staticGates: { G: !!staticGates.G, H: !!staticGates.H, I: !!staticGates.I },
     goalGate: { checked: !staticFail && aiOk, passed: !staticFail && aiOk && !goalFail },
     reason: reasonParts.join("; "),
+    ...(aiFailure ? { failure: aiFailure } : {}),
   };
 }
 
@@ -239,6 +260,7 @@ export async function runAutoCheckCore(container, inputText) {
     aiReason: aiResult.reason,
     aiOk: aiResult.ok,
     aiGoal: aiResult.goal,
+    aiFailure: aiResult.failure,
   });
 }
 
