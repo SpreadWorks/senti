@@ -23,14 +23,11 @@ function dispatchInvocationIdFromEnvironment() {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resolveTargetSelection(input = {}) {
-  const binding = input.expectBinding == null
-    ? null
-    : new FlowTargetExpectation({ expectBinding: input.expectBinding }).binding;
-  const selectRunId = input.expectRunId ?? input.expectRunID ?? binding?.runId ?? null;
-  const selectSpecId = input.expectSpec ?? binding?.specId ?? null;
-  const selectIssue = input.expectIssue ?? binding?.issue ?? null;
-  const selectNoIssue = input.expectNoIssue === true || (binding != null && binding.issue == null);
+function resolveTargetSelection(expectation) {
+  const selectRunId = expectation.effectiveRunId;
+  const selectSpecId = expectation.effectiveSpecId;
+  const selectIssue = expectation.effectiveIssue;
+  const selectNoIssue = expectation.expectsNoIssue;
   if (selectRunId == null && selectSpecId == null && selectIssue == null && !selectNoIssue) return null;
   return { selectRunId, selectSpecId, selectIssue, selectNoIssue };
 }
@@ -55,12 +52,12 @@ function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   };
 }
 
-function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, options) {
+function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, expectation) {
   if (!container.get("inWorktree")) return null;
   if (baseFlowManager.usesWorktreeFlowBinding() === false) return null;
   let identity;
   try {
-    identity = baseFlowManager.resolveWorktreeBinding(new FlowTargetExpectation(options.input));
+    identity = baseFlowManager.resolveWorktreeBinding(expectation);
   } catch (error) {
     return {
       flowManager: baseFlowManager,
@@ -84,12 +81,15 @@ function boundWorktreeAuthority(container, baseFlowManager, mainRoot, paths, opt
 
 function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options = {}) {
   const paths = container.get("paths");
+  const targetExpectation = options.targetExpectation instanceof FlowTargetExpectation
+    ? options.targetExpectation
+    : new FlowTargetExpectation(options.input);
   const worktreeAuthority = boundWorktreeAuthority(
     container,
     baseFlowManager,
     mainRoot,
     paths,
-    options,
+    targetExpectation,
   );
   if (worktreeAuthority) return worktreeAuthority;
   const preparingAuthority = options.preparingRunIdSelection === false
@@ -102,14 +102,14 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
     );
   if (preparingAuthority) return preparingAuthority;
 
-  const selection = resolveTargetSelection(options.input);
+  const selection = resolveTargetSelection(targetExpectation);
   if (options.explicitTargetResolution === true && selection) {
     let target;
     try {
       const resolver = options.mismatchTargetResolution === true
         ? baseFlowManager.resolveExplicitFlowTargetForRead.bind(baseFlowManager)
         : baseFlowManager.resolveExplicitFlowTarget.bind(baseFlowManager);
-      target = resolver(new FlowTargetExpectation(options.input));
+      target = resolver(targetExpectation);
     } catch (error) {
       if (!options.allowMissingActive && !options.captureTargetResolutionError) throw error;
       return {
@@ -160,6 +160,9 @@ export function resolveFlowContext(container, options = {}) {
   const paths = container.get("paths");
   const baseFlowManager = container.get("flowManager");
   const mainRoot = container.get("mainRoot");
+  const targetExpectation = options.targetExpectation instanceof FlowTargetExpectation
+    ? options.targetExpectation
+    : new FlowTargetExpectation(options.input);
   const {
     flowManager,
     flowState,
@@ -171,7 +174,7 @@ export function resolveFlowContext(container, options = {}) {
     container,
     baseFlowManager,
     mainRoot,
-    options,
+    { ...options, targetExpectation },
   );
   const executionRoot = authorityRoot || paths.root;
   const config = container.get("config");
@@ -201,6 +204,7 @@ export function resolveFlowContext(container, options = {}) {
     authorityRoot,
     flowResolutionError,
     worktreeFlowProvenance,
+    targetExpectation,
     dispatchInvocationId: dispatchInvocationIdFromEnvironment(),
   };
 }

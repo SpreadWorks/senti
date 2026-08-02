@@ -768,6 +768,7 @@ class FlowNode {
     contextKinds = [],
     outputSchemaRef = null,
     requiresApproval = false,
+    autoApproveChoiceId = null,
     skippable = false,
     maxAttempts = 1,
     toolingMaxAttempts = null,
@@ -786,6 +787,10 @@ class FlowNode {
     this.contextKinds = Object.freeze([...contextKinds]);
     this.outputSchemaRef = outputSchemaRef;
     this.requiresApproval = requiresApproval;
+    if (autoApproveChoiceId !== null && (requiresApproval !== true || autoApproveChoiceId !== "1")) {
+      throw new Error("autoApproveChoiceId must be choice id=1 on an approval-required step");
+    }
+    this.autoApproveChoiceId = autoApproveChoiceId;
     this.skippable = skippable;
     this.maxAttempts = createMaxAttempts(maxAttempts);
     this.toolingMaxAttempts = toolingMaxAttempts == null ? null : createMaxAttempts(toolingMaxAttempts);
@@ -1020,6 +1025,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec"],
         outputSchemaRef: "next-action/approval.schema.json",
         requiresApproval: true,
+        autoApproveChoiceId: "1",
         sideEffects: ["syncSpecTasks", "autoUpgradeReeval"],
       }),
       new FlowNode({
@@ -1198,6 +1204,7 @@ const FLOW_DEFINITION = Object.freeze([
             contextKinds: ["spec", "diff"],
             outputSchemaRef: "next-action/finalize.schema.json",
             requiresApproval: true,
+            autoApproveChoiceId: "1",
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-commit"),
           }),
@@ -1527,6 +1534,7 @@ export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
     contextKinds: [...node.contextKinds],
     outputSchemaRef: node.outputSchemaRef,
     requiresApproval: node.requiresApproval,
+    autoApproveChoiceId: node.autoApproveChoiceId,
     maxAttempts: node.resolveMaxAttempts(context),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
     failurePolicy: node.failurePolicy,

@@ -40,6 +40,21 @@ const REVIEW_ACTION = {
   },
 };
 
+const AUTO_APPROVAL_ACTION = {
+  ...REVIEW_ACTION,
+  step: "approval",
+  action: "await-approval",
+  requires_approval: true,
+  auto_approval_choice_id: "1",
+};
+
+const MANUAL_EXCEPTION_ACTION = {
+  ...REVIEW_ACTION,
+  step: "acceptance-decision",
+  action: "set-acceptance-decision",
+  requires_approval: true,
+};
+
 const ACCEPTANCE_HANDOFF = {
   taskId: null,
   step: "test-review",
@@ -227,9 +242,12 @@ describe("Flow continuation dispatcher", () => {
       current,
       state,
       agent: {
-        async call(prompt) {
+        async call(_prompt, options) {
           calls += 1;
-          assert.match(prompt, /durably recorded explicit user approval/);
+          const invocation = JSON.parse(options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION);
+          assert.equal(invocation.authorization.source, "explicit");
+          assert.equal(invocation.authorization.approved, true);
+          assert.equal(invocation.authorization.actionDigest, invocation.action.digest);
           throw new Error("provider unavailable after approval");
         },
       },
@@ -242,9 +260,11 @@ describe("Flow continuation dispatcher", () => {
       current,
       state,
       agent: {
-        async call(prompt) {
+        async call(_prompt, options) {
           calls += 1;
-          assert.match(prompt, /durably recorded explicit user approval/);
+          const invocation = JSON.parse(options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION);
+          assert.equal(invocation.authorization.source, "explicit");
+          assert.equal(invocation.authorization.actionDigest, invocation.action.digest);
           current.value = COMPLETED_ACTION;
         },
       },
@@ -272,6 +292,47 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
     assert.equal(result.data.dispatch.boundary, "approval_required");
+    assert.equal(calls, 0);
+  });
+
+  it("rejects autoApprove authorization when the repository fingerprint changes before handoff", async () => {
+    const state = { runId: "run-dispatch", autoApprove: true, repositoryRevision: "auto-r0" };
+    const current = { value: AUTO_APPROVAL_ACTION };
+    let fingerprintReads = 0;
+    let calls = 0;
+    const dispatcher = new RunDispatchCommand({
+      nextAction: {
+        async run() {
+          return structuredClone(current.value);
+        },
+      },
+      agent: { async call() { calls += 1; } },
+      repositoryFingerprint: () => (fingerprintReads++ === 0 ? "auto-r0" : "auto-r1"),
+      leaseFactory: NOOP_LEASE_FACTORY,
+    });
+    dispatcher.container = {};
+
+    const result = await dispatcher.execute(context(state));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_DISPATCH_AUTHORIZATION_STALE");
+    assert.equal(result.data.invocation.authorization.source, "autoApprove");
+    assert.equal(result.data.invocation.authorization.choiceId, "1");
+    assert.equal(calls, 0);
+  });
+
+  it("does not auto-authorize a manual exception", async () => {
+    const state = { runId: "run-dispatch", autoApprove: true, repositoryRevision: "manual" };
+    const current = { value: MANUAL_EXCEPTION_ACTION };
+    let calls = 0;
+
+    const result = await command({
+      current,
+      state,
+      agent: { async call() { calls += 1; } },
+    }).execute(context(state));
+
+    assert.equal(result.dispatch.boundary, "approval_required");
     assert.equal(calls, 0);
   });
 
@@ -392,12 +453,16 @@ describe("Flow continuation dispatcher", () => {
     const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "invocation-r0" };
     const current = { value: REVIEW_ACTION };
     const invocationIds = [];
+    const invocationContracts = [];
     const bindingValues = [];
     const callsByInvocation = new Map();
     const agent = {
       async call(_prompt, options) {
         const invocationId = options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID;
         invocationIds.push(invocationId);
+        invocationContracts.push(JSON.parse(
+          options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION,
+        ));
         bindingValues.push(options.executionEnvironment.SENTI_FLOW_TARGET_BINDING);
         const invocationCallCount = (callsByInvocation.get(invocationId) || 0) + 1;
         callsByInvocation.set(invocationId, invocationCallCount);
@@ -413,6 +478,10 @@ describe("Flow continuation dispatcher", () => {
     assert.match(invocationIds[0], /^[0-9a-f-]{36}$/);
     assert.equal(invocationIds[0], invocationIds[1]);
     assert.equal(bindingValues[0], bindingValues[1]);
+    assert.equal(invocationContracts[0].id, invocationIds[0]);
+    assert.equal(invocationContracts[0].target.runId, state.runId);
+    assert.match(invocationContracts[0].action.digest, /^[a-f0-9]{64}$/);
+    assert.equal(invocationContracts[0].authorization.source, "unapproved");
 
     current.value = REVIEW_ACTION;
     state.repositoryRevision = "invocation-r3";

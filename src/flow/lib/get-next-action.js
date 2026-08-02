@@ -420,6 +420,9 @@ function buildNextActionResult(
     context,
     output_schema: outputSchema,
     requires_approval: derived.requiresApproval === true,
+    ...(derived.autoApproveChoiceId && {
+      auto_approval_choice_id: derived.autoApproveChoiceId,
+    }),
     maxAttempts: derived.maxAttempts,
   };
   if (state.autoUpgrade?.available === true) {
@@ -677,6 +680,9 @@ function injectedPlanResult(plan) {
     context: null,
     output_schema: plan.outputSchema,
     requires_approval: plan.rule.requiresApproval === true,
+    ...(plan.rule.autoApproveChoiceId && {
+      auto_approval_choice_id: plan.rule.autoApproveChoiceId,
+    }),
     maxAttempts: plan.maxAttempts,
     directive: new ExecuteStepDirective({ action: plan.rule.action }).toJSON(),
   };

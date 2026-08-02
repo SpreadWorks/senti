@@ -1145,7 +1145,7 @@ export const FLOW_COMMANDS = {
         options: withTargetGuardOptions(["--approve", "--agent-work-dir"]),
       },
       help: [
-        "Usage: senti flow run dispatch --expect-run-id <runId> [--approve <token>] [--agent-work-dir <path>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>]",
+        `Usage: senti flow run dispatch ${FLOW_TARGET_GUARD_USAGE} [--approve <token>] [--agent-work-dir <path>]`,
         "",
         "Own the active Flow continuation inside one CLI process. Non-terminal",
         "directives are executed serially through the configured Agent service;",

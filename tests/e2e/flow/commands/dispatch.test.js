@@ -16,6 +16,7 @@ import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-artifacts.js";
 import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
 import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.js";
+import { FlowTargetBinding } from "../../../../src/lib/flow-target-guard.js";
 
 const SENTI = path.resolve("src/senti.js");
 
@@ -127,6 +128,71 @@ function installReviewRecoveryWorker(root, state) {
   return { count, testFile, nextActionFile };
 }
 
+function setupApprovalSpec(root, state) {
+  const specDir = path.join(root, "specs", state.specId);
+  fs.mkdirSync(specDir, { recursive: true });
+  fs.writeFileSync(path.join(specDir, "spec.json"), `${JSON.stringify({
+    goal: "Verify dispatcher authorization.",
+    background: "",
+    scope: { in: ["Flow dispatch authorization"], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  }, null, 2)}\n`);
+  fs.writeFileSync(path.join(specDir, "spec.md"), "# Dispatcher authorization\n");
+}
+
+function installAuthorizationWorker(root) {
+  const worker = path.join(root, "authorization-worker.mjs");
+  const invocationFile = path.join(root, "authorization-invocation.json");
+  fs.writeFileSync(worker, [
+    'import fs from "node:fs";',
+    'import {spawnSync} from "node:child_process";',
+    `const senti=${JSON.stringify(SENTI)};`,
+    `const invocationFile=${JSON.stringify(invocationFile)};`,
+    "const invocation=JSON.parse(process.env.SENTI_FLOW_DISPATCH_INVOCATION||'null');",
+    "if(invocation?.authorization?.source!=='autoApprove'||invocation.authorization.choiceId!=='1'){",
+    "  process.stderr.write('missing autoApprove choice id=1 authorization');",
+    "  process.exit(11);",
+    "}",
+    "const binding=process.env.SENTI_FLOW_TARGET_BINDING;",
+    "if(!binding){process.stderr.write('missing target binding');process.exit(12);}",
+    "fs.writeFileSync(invocationFile,JSON.stringify(invocation,null,2));",
+    "for(const args of [",
+    "  ['flow','set','approval','--approved','--expect-binding',binding],",
+    "  ['flow','set','step','approval','done','--expect-binding',binding],",
+    "]){",
+    "  const result=spawnSync(process.execPath,[senti,...args],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
+    "  if(result.status!==0){process.stderr.write(result.stderr||result.stdout);process.exit(result.status||13);}",
+    "}",
+    "process.stderr.write('intentional stop after durable approval transition');",
+    "process.exit(17);",
+  ].join("\n"));
+  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senti/config.json"), `${JSON.stringify({
+    lang: "en",
+    type: "base",
+    docs: { languages: ["en"], defaultLanguage: "en" },
+    agent: {
+      default: "authorization-worker",
+      workDir: ".tmp",
+      timeout: 30,
+      providers: {
+        "authorization-worker": {
+          command: process.execPath,
+          args: [worker, "{{PROMPT}}"],
+        },
+      },
+    },
+  }, null, 2)}\n`);
+  return { invocationFile };
+}
+
 function dispatchArgs(state, extra = []) {
   return [
     SENTI,
@@ -137,6 +203,26 @@ function dispatchArgs(state, extra = []) {
     state.runId,
     "--expect-spec",
     state.specId,
+    ...extra,
+  ];
+}
+
+function dispatchBinding(root, state) {
+  return FlowTargetBinding.capture({
+    flowState: state,
+    mainRoot: root,
+    authorityRoot: root,
+  }).serialize();
+}
+
+function dispatchBindingArgs(binding, extra = []) {
+  return [
+    SENTI,
+    "flow",
+    "run",
+    "dispatch",
+    "--expect-binding",
+    binding,
     ...extra,
   ];
 }
@@ -152,6 +238,18 @@ function invocationOptions(root) {
 
 function invoke(root, state, extra = []) {
   const result = spawnSync(process.execPath, dispatchArgs(state, extra), invocationOptions(root));
+  return {
+    ...result,
+    envelope: result.stdout.trim() ? JSON.parse(result.stdout) : null,
+  };
+}
+
+function invokeBinding(root, binding, extra = []) {
+  const result = spawnSync(
+    process.execPath,
+    dispatchBindingArgs(binding, extra),
+    invocationOptions(root),
+  );
   return {
     ...result,
     envelope: result.stdout.trim() ? JSON.parse(result.stdout) : null,
@@ -211,6 +309,20 @@ describe("flow dispatch CLI", () => {
     assert.equal(fs.existsSync(worker.overlap), false);
   });
 
+  it("executes a non-terminal action when the dispatch target is supplied only by an opaque binding", () => {
+    root = createTmpDir("senti-flow-dispatch-binding-only-");
+    const worker = installWorker(root);
+    const state = setupFlowAtStep(root, "draft");
+    const binding = dispatchBinding(root, state);
+
+    const result = invokeBinding(root, binding);
+
+    assert.notEqual(result.status, 0);
+    assert.notEqual(result.envelope.errors[0].code, "FLOW_DISPATCH_TARGET_REQUIRED");
+    assert.equal(result.envelope.errors[0].code, "FLOW_DISPATCH_STALLED");
+    assert.equal(fs.readFileSync(worker.count, "utf8"), "3");
+  });
+
   it("rejects a concurrent dispatcher while the first worker is still running", async () => {
     root = createTmpDir("senti-flow-dispatch-concurrent-");
     const worker = installWorker(root, { delayMs: 300 });
@@ -239,9 +351,16 @@ describe("flow dispatch CLI", () => {
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "draft");
     const dispatchModule = pathToFileURL(path.resolve("src/flow/lib/run-dispatch.js")).href;
+    const invocationModule = pathToFileURL(path.resolve("src/flow/lib/dispatch-invocation.js")).href;
+    const targetModule = pathToFileURL(path.resolve("src/lib/flow-target-guard.js")).href;
+    const binding = dispatchBinding(root, state);
     const owner = spawnSync(process.execPath, ["--input-type=module", "-e", [
       `import { FlowDispatchLease } from ${JSON.stringify(dispatchModule)};`,
-      `new FlowDispatchLease({mainRoot:${JSON.stringify(root)},runId:${JSON.stringify(state.runId)}}).acquire();`,
+      `import { FlowDispatchTarget } from ${JSON.stringify(invocationModule)};`,
+      `import { FlowTargetExpectation } from ${JSON.stringify(targetModule)};`,
+      `const expectation=new FlowTargetExpectation({expectBinding:${JSON.stringify(binding)}});`,
+      "const target=new FlowDispatchTarget({expectation,binding:expectation.binding});",
+      "new FlowDispatchLease({target,dispatchInvocationId:'exited-dispatcher'}).acquire();",
     ].join("\n")], {
       cwd: root,
       encoding: "utf8",
@@ -380,6 +499,58 @@ describe("flow dispatch CLI", () => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.envelope.data.dispatch.boundary, "approval_required");
     assert.match(result.envelope.data.dispatch.approvalToken, /^[a-f0-9]{64}$/);
+    assert.equal(fs.existsSync(worker.count), false);
+  });
+
+  it("hands choice id=1 authorization to the worker and advances the approval step in autoApprove mode", () => {
+    root = createTmpDir("senti-flow-dispatch-auto-approval-");
+    const state = setupFlowAtStep(root, "approval", { autoApprove: true });
+    setupApprovalSpec(root, state);
+    const worker = installAuthorizationWorker(root);
+    const binding = dispatchBinding(root, state);
+
+    const result = invokeBinding(root, binding);
+
+    assert.notEqual(result.status, 0);
+    assert.equal(result.envelope.errors[0].code, "AGENT_UNKNOWN_PROVIDER_FAILURE");
+    assert.equal(result.envelope.data.nextAction.step, "test");
+    const invocation = JSON.parse(fs.readFileSync(worker.invocationFile, "utf8"));
+    assert.equal(invocation.target.runId, state.runId);
+    assert.equal(invocation.action.step, "approval");
+    assert.equal(invocation.authorization.source, "autoApprove");
+    assert.equal(invocation.authorization.choiceId, "1");
+    const persisted = makeFlowManager(root).loadReadOnly(state.specId);
+    assert.equal(findStepById(persisted.steps, "approval").status, "done");
+  });
+
+  it("rejects an explicit approval token after the repository fingerprint changes", () => {
+    root = createTmpDir("senti-flow-dispatch-stale-approval-");
+    const worker = installWorker(root);
+    const state = setupFlowAtStep(root, "approval");
+    initGitRepo(root);
+    commitAll(root, "initial approval boundary");
+
+    const first = invoke(root, state);
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(first.envelope.data.dispatch.boundary, "approval_required");
+
+    fs.writeFileSync(path.join(root, "changed-after-approval.txt"), "changed\n");
+    const resumed = invoke(root, state, ["--approve", first.envelope.data.dispatch.approvalToken]);
+
+    assert.notEqual(resumed.status, 0);
+    assert.equal(resumed.envelope.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
+    assert.equal(fs.existsSync(worker.count), false);
+  });
+
+  it("keeps risk-bearing acceptance decisions manual when autoApprove is enabled", () => {
+    root = createTmpDir("senti-flow-dispatch-manual-exception-");
+    const worker = installWorker(root);
+    const state = setupFlowAtStep(root, "acceptance-decision", { autoApprove: true });
+
+    const result = invoke(root, state);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.envelope.data.dispatch.boundary, "approval_required");
     assert.equal(fs.existsSync(worker.count), false);
   });
 

@@ -3,6 +3,7 @@ import { afterEach, test } from "node:test";
 
 import {
   FlowTargetBinding,
+  FlowTargetExpectation,
   missingExactTargetGuardNames,
   targetMismatchEnvelopeForInput,
 } from "../../../src/lib/flow-target-guard.js";
@@ -131,6 +132,32 @@ test("opaque binding satisfies exact target guard requirements", () => {
   assert.deepEqual(
     missingExactTargetGuardNames({}, { issue: 483 }),
     ["--expect-run-id", "--expect-spec", "--expect-issue"],
+  );
+});
+
+test("opaque binding and equivalent individual guards expose the same effective target identity", () => {
+  const repository = root();
+  const binding = FlowTargetBinding.capture(captureInput(repository));
+  const opaque = new FlowTargetExpectation({ expectBinding: binding.serialize() });
+  const individual = new FlowTargetExpectation({
+    expectRunId: binding.runId,
+    expectSpec: binding.specId,
+    expectIssue: binding.issue,
+  });
+
+  assert.deepEqual(
+    {
+      runId: opaque.effectiveRunId,
+      specId: opaque.effectiveSpecId,
+      issue: opaque.effectiveIssue,
+      expectsNoIssue: opaque.expectsNoIssue,
+    },
+    {
+      runId: individual.effectiveRunId,
+      specId: individual.effectiveSpecId,
+      issue: individual.effectiveIssue,
+      expectsNoIssue: individual.expectsNoIssue,
+    },
   );
 });
 

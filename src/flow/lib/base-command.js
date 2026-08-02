@@ -17,6 +17,7 @@ import { Command } from "../../lib/command.js";
 import { resolveFlowContext } from "./flow-context.js";
 import {
   buildTargetMismatchEnvelope,
+  FlowTargetExpectation,
   targetMismatchEnvelopeForInput,
 } from "../../lib/flow-target-guard.js";
 
@@ -50,11 +51,23 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
+    let targetExpectation;
+    try {
+      targetExpectation = new FlowTargetExpectation(input);
+    } catch {
+      return targetMismatchEnvelopeForInput({
+        type: input._envelopeType || "run",
+        key: input._envelopeKey || "flow",
+        input,
+        flowState: null,
+      });
+    }
     const ctx = {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
         explicitTargetResolution: this.explicitTargetResolution,
         input,
+        targetExpectation,
       }),
       ...input,
       flowCommandBoundary: true,
@@ -77,6 +90,7 @@ export class FlowCommand extends Command {
         type: input._envelopeType || "run",
         key: input._envelopeKey || "flow",
         input,
+        expectation: ctx.targetExpectation,
         flowState: ctx.preparingFlowState ?? ctx.flowState,
         mainRoot: ctx.mainRoot || ctx.root,
         authorityRoot: ctx.executionRoot || ctx.root,

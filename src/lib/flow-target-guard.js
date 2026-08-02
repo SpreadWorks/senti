@@ -390,6 +390,22 @@ export class FlowTargetExpectation {
     Object.freeze(this);
   }
 
+  get effectiveRunId() {
+    return this.runId ?? this.binding?.runId ?? null;
+  }
+
+  get effectiveSpecId() {
+    return this.specId ?? this.binding?.specId ?? null;
+  }
+
+  get effectiveIssue() {
+    return this.issue ?? this.binding?.issue ?? null;
+  }
+
+  get expectsNoIssue() {
+    return this.issueAbsent || (this.binding != null && this.binding.issue == null);
+  }
+
   get empty() {
     return this.binding == null
       && this.issue == null
@@ -401,11 +417,10 @@ export class FlowTargetExpectation {
   mismatchAgainst(state) {
     if (this.empty || !state) return null;
     const mismatches = {};
-    const binding = this.binding;
-    const expectedIssue = this.issue ?? binding?.issue ?? null;
-    const expectsNoIssue = this.issueAbsent || (binding != null && binding.issue == null);
-    const expectedSpec = this.specId ?? binding?.specId ?? null;
-    const expectedRunId = this.runId ?? binding?.runId ?? null;
+    const expectedIssue = this.effectiveIssue;
+    const expectsNoIssue = this.expectsNoIssue;
+    const expectedSpec = this.effectiveSpecId;
+    const expectedRunId = this.effectiveRunId;
     const activeIssue = activeIssueOf(state);
     const activeSpec = activeSpecOf(state);
     const activeRunId = activeRunIdOf(state);
@@ -473,6 +488,7 @@ export function targetMismatchEnvelopeForInput({
   type,
   key,
   input,
+  expectation: suppliedExpectation = null,
   flowState,
   mainRoot = null,
   authorityRoot = null,
@@ -481,7 +497,10 @@ export function targetMismatchEnvelopeForInput({
 }) {
   let expectation;
   try {
-    expectation = new FlowTargetExpectation(input);
+    expectation = suppliedExpectation ?? new FlowTargetExpectation(input);
+    if (!(expectation instanceof FlowTargetExpectation)) {
+      throw new Error("target expectation must be a FlowTargetExpectation");
+    }
   } catch (err) {
     return Envelope.fail(type, key, "ARGS_ERROR", err.message);
   }
