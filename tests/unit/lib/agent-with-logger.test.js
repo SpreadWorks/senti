@@ -173,8 +173,13 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
       resolveCurrentContext: () => ({ spec: "191", sentiPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
-    // Use a command that sleeps briefly then exits non-zero so retry kicks in
-    const sleepFailScript = "const t=Date.now();while(Date.now()-t<80){} process.exit(2);";
+    // Use an explicitly retryable provider failure so every bounded attempt
+    // contributes to the recorded duration.
+    const sleepFailScript = [
+      "const t=Date.now();while(Date.now()-t<80){}",
+      "process.stderr.write('HTTP 429 rate limited');",
+      "process.exit(2);",
+    ].join("");
     const agent = makeAgentService(
       { command: "node", args: ["-e", sleepFailScript] },
       tmpDir,

@@ -38,12 +38,6 @@ function errorCodeText(error) {
     .join(" ");
 }
 
-function hasNoProviderOutput(error) {
-  return typeof error?.code === "number"
-    && String(error?.stdout || "").trim() === ""
-    && String(error?.stderr || "").trim() === "";
-}
-
 function copyDiagnostics(target, source) {
   for (const field of [
     "stdout",
@@ -132,7 +126,7 @@ export class AgentFailure extends Error {
     ) return new AgentAuthenticationFailure(input);
 
     if (
-      /\b(?:ENOENT|EACCES|EPERM)\b/.test(codes)
+      /\b(?:ENOENT|EACCES|EPERM|EEXIST|ENOTDIR|EISDIR|EROFS)\b/.test(codes)
       || error?.code === 126
       || error?.code === 127
       || /\b403\s+forbidden\b|agent command not found|command not found|executable.*not found|permission denied|not permitted|missing (?:agent )?(?:profile|configuration|config)|no agent configured|profile .* is not defined/i.test(text)
@@ -161,7 +155,7 @@ export class AgentFailure extends Error {
       return new PermanentNetworkFailure(input);
     }
 
-    if (hasNoProviderOutput(error) || /empty response|no candidates? returned|empty candidates?/i.test(text)) {
+    if (/empty response|no candidates? returned|empty candidates?/i.test(text)) {
       return new EmptyAgentResponseFailure({
         ...input,
         message: text ? `agent returned no response: ${text}` : "agent returned no response",

@@ -3,6 +3,7 @@ import { it } from "node:test";
 
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
+import { AgentAuthenticationFailure } from "../../../src/lib/agent-failure.js";
 import {
   ExternalBlockedOutcome,
   StepAttempt,
@@ -58,4 +59,39 @@ it("keeps a guarded mechanical recovery successful after an external-blocked att
   assert.equal(envelope.data.directive.actionId, "RECOVER_CANONICAL_REVIEW_PASS");
   assert.deepEqual(envelope.errors, []);
   assert.equal(exitCode, 0);
+});
+
+it("preserves typed agent failure metadata in an envelope boundary", async () => {
+  const failure = new AgentAuthenticationFailure({ message: "HTTP 401 Unauthorized" })
+    .recordAttempts(1, 3);
+  class AgentFailureCommand extends Command {
+    static outputMode = "envelope";
+
+    execute() {
+      throw failure;
+    }
+  }
+
+  let stdout = "";
+  let exitCode = 0;
+  await dispatch({
+    container: { has: () => false, get: () => null },
+    entry: {
+      args: {},
+      requiresFlow: false,
+      command: async () => ({ default: AgentFailureCommand }),
+    },
+    argv: [],
+    envelopeType: "run",
+    envelopeKey: "agent-boundary",
+    stdout: (text) => { stdout += text; },
+    stderr: () => {},
+    setExitCode: (code) => { exitCode = code; },
+  });
+
+  const envelope = JSON.parse(stdout);
+  assert.equal(envelope.ok, false);
+  assert.equal(envelope.errors[0].code, "AGENT_AUTHENTICATION_FAILED");
+  assert.deepEqual(envelope.data, failure.toJSON());
+  assert.equal(exitCode, 1);
 });

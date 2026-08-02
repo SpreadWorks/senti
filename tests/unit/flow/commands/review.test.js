@@ -10,7 +10,12 @@ import { FlowManager } from "../../../../src/lib/flow-manager.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
+import { AgentAuthenticationFailure } from "../../../../src/lib/agent-failure.js";
 import { FLOW_COMMANDS } from "../../../../src/flow/registry.js";
+import {
+  createMemoryWorkUnitCheckpointStore,
+  WorkUnitToolingFailure,
+} from "../../../../src/flow/lib/work-unit.js";
 import {
   canonicalReviewArtifactFindings,
   reviewArtifactFindingLists,
@@ -924,6 +929,49 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
     assert.equal(result.proposals.length, 1);
     assert.equal(result.proposals[0].title, "1. Extract the Active Spec Path");
     assert.equal(result.proposals[0].requirementId, "R1");
+  });
+
+  it("blocks the same terminal WorkUnit without another call and executes changed input", async () => {
+    const checkpointStore = createMemoryWorkUnitCheckpointStore();
+    const groups = [{
+      files: ["src/example.js"],
+      representative: "src/example.js",
+      diff: "+ changed",
+    }];
+    let input = "same input";
+    let calls = 0;
+    let failAuthentication = true;
+    const run = () => runLoopReviewWithDependencies({
+      groups,
+      buildChunkInput: () => input,
+      reviewChunk: async () => {
+        calls += 1;
+        if (failAuthentication) {
+          throw new AgentAuthenticationFailure({ message: "HTTP 401 Unauthorized" })
+            .recordAttempts(1, 3);
+        }
+        return "NO_PROPOSALS";
+      },
+      crossCheck: async () => "NO_PROPOSALS",
+      checkpointStore,
+    });
+
+    await assert.rejects(run(), AgentAuthenticationFailure);
+    failAuthentication = false;
+    await assert.rejects(
+      run(),
+      (error) => (
+        error instanceof WorkUnitToolingFailure
+        && error.failureCode === "AGENT_AUTHENTICATION_FAILED"
+        && error.retryable === false
+      ),
+    );
+    assert.equal(calls, 1);
+
+    input = "changed input";
+    const changed = await run();
+    assert.equal(calls, 2);
+    assert.equal(changed.reviewCallCount, 1);
   });
 });
 

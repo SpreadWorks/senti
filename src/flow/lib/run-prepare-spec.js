@@ -920,21 +920,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const skipBranch = noBranch || inWorktree;
     const useWorktree = !skipBranch && useWorktreeFlag;
 
-    // Dirty worktree only matters for the `git checkout -b` path: switching
-    // branches in-place would drag uncommitted changes into the new branch.
-    // `git worktree add` creates an isolated checkout from the base branch
-    // tip, and `skipBranch` only writes new files under the configured spec root —
-    // both cases leave existing dirty files untouched.
-    if (!dryRun && !skipBranch && !useWorktree) {
-      const { dirty, dirtyFiles } = getWorktreeStatus(currentExecutionRoot);
-      const blockingDirtyFiles = dirtyFiles.filter((file) => {
-        const rel = file.replace(/^[ AMDRCU?!]{2}\s+/, "");
-        return !rel.startsWith(".tmp/");
-      });
-      if (dirty && blockingDirtyFiles.length > 0) {
-        throw new Error(`dirty worktree: ${blockingDirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
-      }
-    }
     if (!skipBranch) ensureBaseBranch(currentExecutionRoot, resolvedBase);
 
     const slug = slugify(title) || "feature";
@@ -1001,6 +986,26 @@ export class RunPrepareSpecCommand extends FlowCommand {
     let repairBaselinePublication = null;
     let repairBaselinePublished = false;
     try {
+    // A branch-mode prepare must reject a competing active branch flow before
+    // reporting incidental checkout dirtiness. Keep both checks under the
+    // repository operation lock so the registry authority cannot change
+    // between preflight and `git checkout -b`.
+    if (!skipBranch && !useWorktree) {
+      flowManager.cleanStaleFlows({ operationOwnerToken });
+      flowManager.assertCanAddActiveFlow(specId, "branch", { operationOwnerToken });
+      const { dirty, dirtyFiles } = getWorktreeStatus(currentExecutionRoot);
+      const operationLockRelativePath = path.relative(
+        currentExecutionRoot,
+        operationLock.lockPath,
+      ).split(path.sep).join("/");
+      const blockingDirtyFiles = dirtyFiles.filter((file) => {
+        const rel = file.replace(/^[ AMDRCU?!]{2}\s+/, "");
+        return !rel.startsWith(".tmp/") && rel !== operationLockRelativePath;
+      });
+      if (dirty && blockingDirtyFiles.length > 0) {
+        throw new Error(`dirty worktree: ${blockingDirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
+      }
+    }
     if (attemptJournal) attemptJournal.recoverStale(flowManager, operationOwnerToken);
 
     // Helper: write planning source files. spec.json is the source of truth;
@@ -1214,8 +1219,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...fillAndGateNext.map((l, i) => `${i + 1}) ${l}`),
       );
     } else {
-      flowManager.cleanStaleFlows({ operationOwnerToken });
-      flowManager.assertCanAddActiveFlow(specId, "branch", { operationOwnerToken });
       runGitTrim(currentExecutionRoot, ["checkout", "-b", branchName, resolvedBase]);
       await writeFlowState({}, writeSpecFiles);
       runDocsScanAndValidate(executionRoot);

@@ -64,4 +64,49 @@ describe("final-regression terminal replay guard", () => {
     assert.equal(fs.readFileSync(invocationFile, "utf8"), "invoked\n");
     assert.equal(fs.existsSync(path.join(root, "specs/001-test/tests/.raw/final-regression-attempt-002.log")), false);
   });
+
+  it("executes again when non-retryable final-regression input changes", async () => {
+    root = createTmpDir("final-regression-terminal-changed-");
+    invocationFile = path.join(os.tmpdir(), `senti-final-regression-changed-${process.pid}-${Date.now()}.log`);
+    fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+    writeFile(root, "specs/001-test/spec.md", "# Spec\n");
+    const scriptPath = "final-regression-fixture.sh";
+    const script = [
+      `printf '%s\\n' invoked >> ${JSON.stringify(invocationFile)}`,
+      "exit 1",
+      "",
+    ].join("\n");
+    writeFile(root, scriptPath, script);
+    initGitRepo(root);
+    commitAll(root, "initial");
+
+    const runId = "run-terminal-changed";
+    const repairBaseline = captureRepairBaseline({ root, baseRef: "main", runId });
+    const state = moveFlowToStep(makeFlowState({
+      runId,
+      repairBaseline: repairBaseline.toJSON(),
+    }), "final-regression");
+    const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    flowManager.create(state);
+    const config = { test: { command: `sh ${scriptPath}`, timeout: 5 } };
+
+    const first = await new RunFinalRegressionCommand().execute({
+      root,
+      config,
+      flowState: flowManager.loadReadOnly(),
+      flowManager,
+    });
+    writeFile(root, scriptPath, `# repaired input\n${script}`);
+    const second = await new RunFinalRegressionCommand().execute({
+      root,
+      config,
+      flowState: flowManager.loadReadOnly(),
+      flowManager,
+    });
+
+    assert.equal(first.errors[0].code, "FINAL_REGRESSION_FAILED");
+    assert.equal(second.errors[0].code, "FINAL_REGRESSION_FAILED");
+    assert.equal(fs.readFileSync(invocationFile, "utf8"), "invoked\ninvoked\n");
+    assert.equal(fs.existsSync(path.join(root, "specs/001-test/tests/.raw/final-regression-attempt-002.log")), true);
+  });
 });

@@ -2043,6 +2043,66 @@ function requiredGuardrailFailure(failureKind, failureCode, failureReason, detai
   };
 }
 
+function requiredGateAgentResolutionFailure(agent) {
+  try {
+    if (agent.resolve("flow.spec.gate")) return null;
+  } catch (error) {
+    const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
+    return requiredGuardrailFailure(
+      "agent-configuration",
+      failure.code,
+      failure.message,
+      {
+        retryable: failure.retryable,
+        recoveryHint: failure.recoveryHint,
+        agentFailureKind: failure.kind,
+        agentAttemptCount: failure.attemptCount,
+        agentMaxAttempts: failure.maxAttempts,
+      },
+    );
+  }
+  return requiredGuardrailFailure(
+    "agent-unset",
+    "GATE_REQUIRED_AGENT_UNSET",
+    "required gate evaluation agent is not configured",
+    {
+      retryable: false,
+      recoveryHint: "Configure flow.spec.gate to a usable provider before starting a new gate attempt.",
+    },
+  );
+}
+
+function requiredGateEvaluationFailure(error) {
+  const sourceError = error instanceof GateOutputProtocolFailure ? error.cause : error;
+  const agentFailure = sourceError instanceof AgentFailure ? sourceError : null;
+  const schema = error instanceof EvaluationSchemaError
+    || (error instanceof GateOutputProtocolFailure
+      && error.data?.failureMode === "schema_validation_failure");
+  const spawn = sourceError?.code === "ENOENT"
+    || /spawn|executable|not found/i.test(sourceError?.message || "");
+  const output = schema || (error instanceof GateOutputProtocolFailure
+    && error.data?.failureMode === "parse_failure");
+  return requiredGuardrailFailure(
+    output ? (schema ? "schema" : "output") : (spawn ? "agent-spawn" : "agent-evaluation"),
+    output
+      ? (schema ? "GATE_REQUIRED_SCHEMA" : "GATE_REQUIRED_OUTPUT")
+      : (agentFailure?.code || (spawn ? "GATE_REQUIRED_AGENT_SPAWN" : "GATE_REQUIRED_AGENT_EVALUATION")),
+    error.message,
+    {
+      retryable: agentFailure?.retryable ?? false,
+      recoveryHint: agentFailure?.recoveryHint
+        || (output
+          ? "Correct the gate response protocol before starting a new attempt."
+          : "Repair the gate provider failure before starting a new attempt."),
+      ...(agentFailure ? {
+        agentFailureKind: agentFailure.kind,
+        agentAttemptCount: agentFailure.attemptCount,
+        agentMaxAttempts: agentFailure.maxAttempts,
+      } : {}),
+    },
+  );
+}
+
 async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds, options = {}) {
   const loadGuardrails = options.loadGuardrails || loadMergedGuardrails;
   let guardrails;
@@ -2076,35 +2136,8 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     : previouslyPassedIds;
 
   const agent = options.agent || container.get("agent");
-  let resolvedAgent;
-  try {
-    resolvedAgent = agent.resolve("flow.spec.gate");
-  } catch (error) {
-    const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
-    return {
-      passed: false,
-      evaluations: [],
-      failureKind: "agent-configuration",
-      failureCode: failure.code,
-      failureReason: failure.message,
-      retryable: failure.retryable,
-      recoveryHint: failure.recoveryHint,
-      agentFailureKind: failure.kind,
-      agentAttemptCount: failure.attemptCount,
-      agentMaxAttempts: failure.maxAttempts,
-    };
-  }
-  if (!resolvedAgent) {
-    return {
-      passed: false,
-      evaluations: [],
-      failureKind: "agent-unset",
-      failureCode: "GATE_REQUIRED_AGENT_UNSET",
-      failureReason: "required gate evaluation agent is not configured",
-      retryable: false,
-      recoveryHint: "Configure flow.spec.gate to a usable provider before starting a new gate attempt.",
-    };
-  }
+  const resolutionFailure = requiredGateAgentResolutionFailure(agent);
+  if (resolutionFailure) return resolutionFailure;
 
   const pb = buildGuardrailArticleEvalPrompt(
     targetText,
@@ -2126,33 +2159,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
       callAgent: (attempt) => callGateAgent(agent, built, attempt),
     }));
   } catch (error) {
-    const sourceError = error instanceof GateOutputProtocolFailure ? error.cause : error;
-    const agentFailure = sourceError instanceof AgentFailure ? sourceError : null;
-    const schema = error instanceof EvaluationSchemaError
-      || (error instanceof GateOutputProtocolFailure
-        && error.data?.failureMode === "schema_validation_failure");
-    const spawn = sourceError?.code === "ENOENT" || /spawn|executable|not found/i.test(sourceError?.message || "");
-    const output = schema || (error instanceof GateOutputProtocolFailure
-      && error.data?.failureMode === "parse_failure");
-    return {
-      passed: false,
-      evaluations: [],
-      failureKind: output ? (schema ? "schema" : "output") : (spawn ? "agent-spawn" : "agent-evaluation"),
-      failureCode: output
-        ? (schema ? "GATE_REQUIRED_SCHEMA" : "GATE_REQUIRED_OUTPUT")
-        : (agentFailure?.code || (spawn ? "GATE_REQUIRED_AGENT_SPAWN" : "GATE_REQUIRED_AGENT_EVALUATION")),
-      failureReason: error.message,
-      retryable: agentFailure?.retryable ?? false,
-      recoveryHint: agentFailure?.recoveryHint
-        || (output
-          ? "Correct the gate response protocol before starting a new attempt."
-          : "Repair the gate provider failure before starting a new attempt."),
-      ...(agentFailure ? {
-        agentFailureKind: agentFailure.kind,
-        agentAttemptCount: agentFailure.attemptCount,
-        agentMaxAttempts: agentFailure.maxAttempts,
-      } : {}),
-    };
+    return requiredGateEvaluationFailure(error);
   }
   const byId = new Map(filtered.map((g) => [g.id, g]));
   if (parsed.length === 0) {
@@ -2800,6 +2807,23 @@ function recordGateOutcome(ctx, result, phase, attempt, outcome) {
     result,
     routeOptions: owner.routeOptions(),
   });
+}
+
+function recordRequiredGateFailureOutcome(ctx, result, phase) {
+  if (
+    result?.result !== "fail"
+    || typeof result?.artifacts?.failureCode !== "string"
+    || !ctx?.flowState
+  ) return result;
+  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
+  const attempt = recordGateOutcome(
+    ctx,
+    result,
+    phase,
+    nextStepAttemptNumber(ctx.flowState, owner.stepId),
+    gateExternalBlockForResult(result),
+  );
+  return attempt ? { ...result, stepAttempt: attempt.toJSON() } : result;
 }
 
 function recordGateDeferral(ctx, result, phase, attempts) {
@@ -5386,7 +5410,10 @@ export class RunGateCommand extends FlowCommand {
         "gate",
         result.artifacts.failureCode,
         result.artifacts.reasons?.map((reason) => reason.detail || reason) || "required gate evaluation failed",
-        { artifacts: result.artifacts },
+        {
+          artifacts: result.artifacts,
+          ...(result.stepAttempt ? { stepAttempt: result.stepAttempt } : {}),
+        },
       );
     }
     return result;
@@ -5477,10 +5504,10 @@ export class RunGateCommand extends FlowCommand {
         // "spec" — parent spec.json
         result = await this.executeSpec(ctx, root, level, skipGuardrail);
       }
-      if (!inferredTransition) return result;
+      if (!inferredTransition) return recordRequiredGateFailureOutcome(ctx, result, phase);
       if (!completedSemanticGateResult(result)) {
         durableCheckpoint.restore();
-        return result;
+        return recordRequiredGateFailureOutcome(ctx, result, phase);
       }
       const persisted = phase === "integration"
         ? persistIntegrationGateResult({ root, executionRoot, state: ctx.flowState, result })
@@ -5494,7 +5521,7 @@ export class RunGateCommand extends FlowCommand {
             `transitioned to done (committed phase=${phase})\n`,
         );
       }
-      return persisted;
+      return recordRequiredGateFailureOutcome(ctx, persisted, phase);
     } catch (err) {
       if (!transitionCommitted) durableCheckpoint?.restore();
       if (err instanceof EvaluationSchemaError) {
@@ -5847,13 +5874,15 @@ export class RunGateCommand extends FlowCommand {
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     const retryFail = checkRetryBelowMax(ctx, phase);
     if (retryFail) return finish(retryFail);
-
-
     const agent = container.get("agent");
-    if (!agent.resolve("flow.spec.gate")) {
-      throw new Error(
-        "no AI agent configured (agent.default or agent.profiles.<name>.flow.spec.gate)",
-      );
+    const agentResolutionFailure = requiredGateAgentResolutionFailure(agent);
+    if (agentResolutionFailure) {
+      return finish(gateRequiredEvaluationFail(
+        level,
+        phase,
+        specPath,
+        agentResolutionFailure,
+      ));
     }
 
     const specDir = resolveSpecDir(specJsonPath);
@@ -5897,19 +5926,28 @@ export class RunGateCommand extends FlowCommand {
       structuredSpec: phase === "integration" ? parentSpecForRationale : null,
     });
     reqEvaluations = [...requirementPlan.evaluations];
-    for (const batch of requirementPlan.calls) {
-      const reqPb = batch.buildPrompt();
-      const reqBuilt = reqPb.build();
-      const { evaluations: reqResults } = await evaluateImplRequirementsWithRetry({
-        knownIds: batch.requirementIds,
+    try {
+      for (const batch of requirementPlan.calls) {
+        const reqPb = batch.buildPrompt();
+        const reqBuilt = reqPb.build();
+        const { evaluations: reqResults } = await evaluateImplRequirementsWithRetry({
+          knownIds: batch.requirementIds,
+          phase,
+          callAgent: (attempt) => callGateAgent(agent, reqBuilt, attempt),
+        });
+        reqEvaluations.push(...reqResults.map((r) => ({
+          ...r,
+          title: r.guardrail_id,
+          category: "requirements",
+        })));
+      }
+    } catch (error) {
+      return finish(gateRequiredEvaluationFail(
+        level,
         phase,
-        callAgent: (attempt) => callGateAgent(agent, reqBuilt, attempt),
-      });
-      reqEvaluations.push(...reqResults.map((r) => ({
-        ...r,
-        title: r.guardrail_id,
-        category: "requirements",
-      })));
+        specPath,
+        requiredGateEvaluationFailure(error),
+      ));
     }
 
     const reqPassed = reqEvaluations.every(

@@ -51,11 +51,14 @@ describe("typed agent failure boundaries", () => {
   it("retries only explicit transient provider failures", () => {
     assert.ok(AgentFailure.from(providerError("HTTP 429 rate limited")) instanceof TemporaryRateLimitFailure);
     assert.ok(AgentFailure.from(providerError("temporary DNS", { code: "EAI_AGAIN" })) instanceof TemporaryNetworkFailure);
-    assert.ok(AgentFailure.from(providerError("provider=demo | exit=1", {
+    const unexplainedExit = AgentFailure.from(providerError("provider=demo | exit=1", {
       code: 1,
       stdout: "",
       stderr: "",
-    })) instanceof EmptyAgentResponseFailure);
+    }));
+    assert.ok(unexplainedExit instanceof UnknownProviderFailure);
+    assert.equal(unexplainedExit.retryable, false);
+    assert.ok(AgentFailure.from(providerError("empty response")) instanceof EmptyAgentResponseFailure);
   });
 
   it("fails closed for authentication, configuration, quota, permanent DNS, and unknown failures", () => {

@@ -5,6 +5,13 @@ import fs from "fs";
 import os from "os";
 import { EventEmitter } from "events";
 import { Agent, ChildProcessSupervisor } from "../../../src/lib/agent.js";
+import {
+  AgentAuthenticationFailure,
+  EmptyAgentResponseFailure,
+  AgentPermissionConfigurationFailure,
+  TemporaryRateLimitFailure,
+  UnknownProviderFailure,
+} from "../../../src/lib/agent-failure.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
 
@@ -93,7 +100,34 @@ describe("Agent.call() — basic invocation", () => {
         commandId: "test",
         executionWorkDir: path.dirname(root),
       }),
-      /executionWorkDir must stay inside/,
+      (error) => (
+        error instanceof AgentPermissionConfigurationFailure
+        && error.code === "AGENT_PERMISSION_CONFIGURATION_FAILED"
+        && error.retryable === false
+        && /executionWorkDir must stay inside/.test(error.message)
+      ),
+    );
+  });
+
+  it("types work-directory setup failures before spawning", async (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agentWorkDir = path.join(root, "agent-work-file");
+    fs.writeFileSync(agentWorkDir, "not a directory\n");
+    const agent = makeAgent(
+      { command: "echo", args: ["{{PROMPT}}"] },
+      { paths: { root, agentWorkDir } },
+    );
+
+    await assert.rejects(
+      agent.call("work", { commandId: "test" }),
+      (error) => (
+        error instanceof AgentPermissionConfigurationFailure
+        && error.code === "AGENT_PERMISSION_CONFIGURATION_FAILED"
+        && error.retryable === false
+        && error.attemptCount === 1
+        && error.maxAttempts === 1
+      ),
     );
   });
 
@@ -234,14 +268,22 @@ describe("Agent.call() — retry behavior", () => {
     try { fs.unlinkSync(tmp); } catch {}
   });
 
-  it("does not retry when retryCount is explicitly 0 (opt-out)", async () => {
+  it("types an empty response without retry when retryCount is 0", async () => {
     const agent = makeAgent({ command: "node", args: ["-e", ""] });
-    const result = await agent.call("", { commandId: "test", retryCount: 0 });
-    assert.equal(result, "");
+    await assert.rejects(
+      agent.call("", { commandId: "test", retryCount: 0 }),
+      (error) => (
+        error instanceof EmptyAgentResponseFailure
+        && error.retryable === true
+        && error.attemptCount === 1
+        && error.maxAttempts === 1
+      ),
+    );
   });
 
-  it("retries on non-zero exit and succeeds", async () => {
+  it("does not retry an unexplained non-zero exit", async (t) => {
     const tmp = path.join(os.tmpdir(), `agent-retry-exit-${Date.now()}`);
+    t.after(() => fs.rmSync(tmp, { force: true }));
     const script = `
       const fs = require("fs");
       const f = process.argv[1];
@@ -249,20 +291,81 @@ describe("Agent.call() — retry behavior", () => {
       try { n = Number(fs.readFileSync(f, "utf8")); } catch {}
       n++;
       fs.writeFileSync(f, String(n));
-      if (n === 1) process.exit(1);
+      process.exit(1);
+    `;
+    const agent = makeAgent({ command: "node", args: ["-e", script, tmp] });
+    await assert.rejects(
+      agent.call("", { commandId: "test", retryCount: 2, retryDelayMs: 10 }),
+      (error) => (
+        error instanceof UnknownProviderFailure
+        && error.retryable === false
+        && error.attemptCount === 1
+        && error.maxAttempts === 3
+      ),
+    );
+    assert.equal(fs.readFileSync(tmp, "utf8"), "1");
+  });
+
+  it("retries a rate limit and succeeds", async (t) => {
+    const tmp = path.join(os.tmpdir(), `agent-retry-rate-limit-${Date.now()}`);
+    t.after(() => fs.rmSync(tmp, { force: true }));
+    const script = `
+      const fs = require("fs");
+      const f = process.argv[1];
+      let n = 0;
+      try { n = Number(fs.readFileSync(f, "utf8")); } catch {}
+      n++;
+      fs.writeFileSync(f, String(n));
+      if (n === 1) {
+        process.stderr.write("HTTP 429 rate limited");
+        process.exit(1);
+      }
       process.stdout.write("recovered");
     `;
     const agent = makeAgent({ command: "node", args: ["-e", script, tmp] });
-    const result = await agent.call("", { commandId: "test", retryCount: 1, retryDelayMs: 10 });
+    const result = await agent.call("", { commandId: "test", retryCount: 2, retryDelayMs: 10 });
     assert.equal(result, "recovered");
-    try { fs.unlinkSync(tmp); } catch {}
+    assert.equal(fs.readFileSync(tmp, "utf8"), "2");
   });
 
-  it("throws last error after all retries exhausted", async () => {
-    const agent = makeAgent({ command: "node", args: ["-e", "process.exit(1)"] });
+  it("does not retry an authentication failure", async (t) => {
+    const tmp = path.join(os.tmpdir(), `agent-no-retry-auth-${Date.now()}`);
+    t.after(() => fs.rmSync(tmp, { force: true }));
+    const script = `
+      const fs = require("fs");
+      const f = process.argv[1];
+      let n = 0;
+      try { n = Number(fs.readFileSync(f, "utf8")); } catch {}
+      fs.writeFileSync(f, String(n + 1));
+      process.stderr.write("HTTP 401 Unauthorized");
+      process.exit(1);
+    `;
+    const agent = makeAgent({ command: "node", args: ["-e", script, tmp] });
+    await assert.rejects(
+      agent.call("", { commandId: "test", retryCount: 2, retryDelayMs: 10 }),
+      (error) => (
+        error instanceof AgentAuthenticationFailure
+        && error.retryable === false
+        && error.attemptCount === 1
+        && error.maxAttempts === 3
+      ),
+    );
+    assert.equal(fs.readFileSync(tmp, "utf8"), "1");
+  });
+
+  it("preserves bounded attempt metadata after retry exhaustion", async () => {
+    const agent = makeAgent({
+      command: "node",
+      args: ["-e", "process.stderr.write('HTTP 429 rate limited'); process.exit(1)"],
+    });
     await assert.rejects(
       agent.call("", { commandId: "test", retryCount: 1, retryDelayMs: 10 }),
-      /exit=1/,
+      (error) => (
+        error instanceof TemporaryRateLimitFailure
+        && error.retryable === true
+        && error.attemptCount === 2
+        && error.maxAttempts === 2
+      ),
     );
   });
 });

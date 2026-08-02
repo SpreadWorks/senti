@@ -201,9 +201,14 @@ class Agent {
         message: attempt.formatFailure(),
       });
     }
-    ensureWorkDir(this._paths.agentWorkDir);
-    const executionWorkDir = this._resolveExecutionWorkDir(opts.executionWorkDir);
-    ensureWorkDir(executionWorkDir);
+    let executionWorkDir;
+    try {
+      ensureWorkDir(this._paths.agentWorkDir);
+      executionWorkDir = this._resolveExecutionWorkDir(opts.executionWorkDir);
+      ensureWorkDir(executionWorkDir);
+    } catch (error) {
+      throw AgentFailure.from(error).recordAttempts(1, 1);
+    }
 
     const retry = this._normalizeRetryOptionsForTest(opts);
     const cachePolicy = new PromptCachePolicy(opts.cacheMode);
@@ -274,7 +279,9 @@ class Agent {
     const resolved = path.resolve(root, String(override));
     const relative = path.relative(root, resolved);
     if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      throw new Error("agent executionWorkDir must stay inside the repository root");
+      throw new AgentPermissionConfigurationFailure({
+        message: "agent executionWorkDir must stay inside the repository root",
+      });
     }
     return resolved;
   }
@@ -398,14 +405,6 @@ class Agent {
   }
 
   async _callOnceWithRetry(resolved, prompt, options, retry) {
-    if (retry.retryCount === 0) {
-      // No retry: return whatever the single call produces (including empty string).
-      try {
-        return await this._callOnce(resolved, prompt, options);
-      } catch (error) {
-        throw AgentFailure.from(error).recordAttempts(1, 1);
-      }
-    }
     const maxAttempts = retry.retryCount + 1;
     let lastFailure = null;
     for (let attempt = 0; attempt <= retry.retryCount; attempt++) {

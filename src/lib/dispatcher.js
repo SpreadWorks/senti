@@ -34,6 +34,7 @@ import { guardedCommand } from "../flow/lib/guarded-command.js";
 import { FinalizeFlowStateOwner } from "../flow/lib/finalize-flow-state-owner.js";
 import { FinalizeCleanupRoute } from "./finalize-cleanup-paths.js";
 import { FatalPostHookError } from "./post-hook-error.js";
+import { AgentFailure } from "./agent-failure.js";
 
 function attachNonblockingContinuation(envelope, ctx, reason) {
   const state = ctx?.flowState;
@@ -778,7 +779,12 @@ function emitFailure({
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, String(err?.message || err));
-    if (err?.data !== undefined) env.data = err.data;
+    const errorData = err?.data !== undefined
+      ? err.data
+      : err instanceof AgentFailure
+        ? err.toJSON()
+        : undefined;
+    if (errorData !== undefined) env.data = errorData;
     if (err?.continuation) {
       try {
         attachFlowContinuation(env, FlowContinuation.fromStored(err.continuation));

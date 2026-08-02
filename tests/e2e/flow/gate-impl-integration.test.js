@@ -92,6 +92,8 @@ function setupFixture(tmp, {
   fileMap = null,
   capturePromptPath = null,
   integrationTrustRequirementIds = null,
+  stubScriptBody = null,
+  agentConfigured = true,
 } = {}) {
   // Stub AI provider
   const stubPath = capturePromptPath
@@ -99,11 +101,12 @@ function setupFixture(tmp, {
     : writePromptDispatchStubAgentScript(tmp, ".stub-agent.js", [
       { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
     ], stubResponse);
+  if (stubScriptBody) writeFile(tmp, path.relative(tmp, stubPath), stubScriptBody);
   writeJson(tmp, ".senti/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
-    agent: stubAgentConfig(stubPath),
+    ...(agentConfigured ? { agent: stubAgentConfig(stubPath) } : {}),
   });
   writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
 
@@ -476,6 +479,76 @@ describe("gate-impl integration (spec 202)", () => {
     assert.match(prompt, /requirements\[0\] R1: Return a required status enum\./);
     assert.match(prompt, /overview\.decisions\[0\].*replaces the nullable legacy output/s);
     assert.match(prompt, /clarifications\[0\].*legacy \[\] valid/s);
+  });
+
+  it("integration requirement evaluation preserves a terminal agent failure", () => {
+    tmp = createTmpDir();
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: `${BASE_TEST}// terminal agent failure evidence\n`,
+      integrationTrustRequirementIds: ["R1"],
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      stubScriptBody: [
+        "process.stderr.write('HTTP 401 Unauthorized');",
+        "process.exit(1);",
+        "",
+      ].join("\n"),
+    });
+
+    const res = runGate(tmp, [], "integration");
+
+    assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.ok, false);
+    assert.equal(
+      env.errors[0].code,
+      "AGENT_AUTHENTICATION_FAILED",
+      `stdout=${res.stdout}\nstderr=${res.stderr}`,
+    );
+    assert.equal(env.data.artifacts.failureKind, "agent-evaluation");
+    assert.equal(env.data.artifacts.failureCode, "AGENT_AUTHENTICATION_FAILED");
+    assert.equal(env.data.artifacts.retryable, false);
+    assert.match(env.data.artifacts.recoveryHint, /authentication/i);
+    assert.equal(env.data.artifacts.agentFailureKind, "authentication");
+    assert.equal(env.data.artifacts.agentAttemptCount, 1);
+    assert.equal(env.data.artifacts.agentMaxAttempts, 3);
+    assert.equal(env.data.stepAttempt.outcome.kind, "external-blocked");
+    assert.equal(env.data.stepAttempt.outcome.failureCode, "AGENT_AUTHENTICATION_FAILED");
+    assert.equal(env.data.stepAttempt.outcome.retryable, false);
+    const flowState = JSON.parse(fs.readFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), "utf8"));
+    const durableAttempt = flowState.stepAttempts.at(-1);
+    assert.equal(durableAttempt.stepId, "impl-gate");
+    assert.equal(durableAttempt.outcome.kind, "external-blocked");
+    assert.equal(durableAttempt.outcome.failureCode, "AGENT_AUTHENTICATION_FAILED");
+    assert.equal(durableAttempt.outcome.retryable, false);
+  });
+
+  it("integration requirement evaluation fails closed when no agent is configured", () => {
+    tmp = createTmpDir();
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: `${BASE_TEST}// missing agent evidence\n`,
+      integrationTrustRequirementIds: ["R1"],
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      agentConfigured: false,
+    });
+
+    const res = runGate(tmp, [], "integration");
+
+    assert.equal(res.status, 1, `stdout=${res.stdout}\nstderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.ok, false);
+    assert.equal(
+      env.errors[0].code,
+      "GATE_REQUIRED_AGENT_UNSET",
+      `stdout=${res.stdout}\nstderr=${res.stderr}`,
+    );
+    assert.equal(env.data.artifacts.failureKind, "agent-unset");
+    assert.equal(env.data.artifacts.retryable, false);
+    assert.match(env.data.artifacts.recoveryHint, /Configure flow\.spec\.gate/i);
+    assert.equal(env.data.stepAttempt.outcome.kind, "external-blocked");
+    assert.equal(env.data.stepAttempt.outcome.failureCode, "GATE_REQUIRED_AGENT_UNSET");
+    assert.equal(env.data.stepAttempt.outcome.retryable, false);
   });
 
 });
