@@ -742,6 +742,23 @@ export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {
   return true;
 }
 
+class FlowExecutionCommand {
+  constructor(subcommand, ...args) {
+    const tokens = [subcommand, ...args];
+    if (tokens.some((token) => (
+      typeof token !== "string" || token.trim() === "" || /\s/.test(token)
+    ))) {
+      throw new Error("flow execution command tokens must be non-empty strings without whitespace");
+    }
+    this.tokens = Object.freeze(["senti", "flow", "run", ...tokens]);
+    Object.freeze(this);
+  }
+
+  toString() {
+    return this.tokens.join(" ");
+  }
+}
+
 class FlowNode {
   constructor({
     id,
@@ -760,6 +777,7 @@ class FlowNode {
     gatePhase = null,
     failurePolicy = null,
     definitionLifecycleOwned = false,
+    executionCommand = null,
   }) {
     this.id = id;
     this.label = label;
@@ -779,6 +797,16 @@ class FlowNode {
     if (this.definitionLifecycleOwned && !this.action.startsWith("run-")) {
       throw new Error(`definition lifecycle-owned action must start with run-: ${this.action}`);
     }
+    if (
+      this.definitionLifecycleOwned
+      && !(executionCommand instanceof FlowExecutionCommand)
+    ) {
+      throw new Error(`definition lifecycle-owned step must declare executionCommand: ${this.id}`);
+    }
+    if (!this.definitionLifecycleOwned && executionCommand !== null) {
+      throw new Error(`only definition lifecycle-owned steps may declare executionCommand: ${this.id}`);
+    }
+    this.executionCommand = executionCommand;
     if (failurePolicy !== null && !FAILURE_POLICIES.has(failurePolicy)) {
       throw new Error(`invalid failurePolicy: ${failurePolicy}`);
     }
@@ -830,7 +858,7 @@ const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
   "test-review": Object.freeze({ auto: 5, manual: 5 }),
 });
 
-function createPlanReviewNode({ id, label, contextKinds }) {
+function createPlanReviewNode({ id, label, contextKinds, executionCommand }) {
   const maxAttempts = PLAN_REVIEW_MAX_ATTEMPTS_BY_ID[id];
   return new FlowNode({
     id,
@@ -843,6 +871,7 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     toolingMaxAttempts: 1,
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
+    executionCommand,
   });
 }
 
@@ -906,6 +935,7 @@ const FLOW_DEFINITION = Object.freeze([
         id: "draft-questions-review",
         label: "Review (draft questions)",
         contextKinds: ["draft", "issue"],
+        executionCommand: new FlowExecutionCommand("review", "--phase", "draft"),
       }),
       ...createDraftReviewRouteNodes(DRAFT_QUESTIONS_ROUTE),
       new FlowNode({
@@ -921,6 +951,7 @@ const FLOW_DEFINITION = Object.freeze([
         id: "draft-coverage-review",
         label: "Review (draft coverage)",
         contextKinds: ["draft", "issue"],
+        executionCommand: new FlowExecutionCommand("review", "--phase", "draft"),
       }),
       ...createDraftReviewRouteNodes(DRAFT_COVERAGE_ROUTE),
       new FlowNode({
@@ -934,6 +965,7 @@ const FLOW_DEFINITION = Object.freeze([
         gatePhase: ["draft"],
         failurePolicy: "block",
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("gate"),
       }),
       new FlowNode({
         id: "spec",
@@ -943,7 +975,12 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/spec.schema.json",
       }),
-      createPlanReviewNode({ id: "spec-review", label: "Review (spec)", contextKinds: ["spec", "guardrail"] }),
+      createPlanReviewNode({
+        id: "spec-review",
+        label: "Review (spec)",
+        contextKinds: ["spec", "guardrail"],
+        executionCommand: new FlowExecutionCommand("review", "--phase", "spec"),
+      }),
       new FlowNode({
         id: "spec-triage",
         label: "Spec review triage",
@@ -973,6 +1010,7 @@ const FLOW_DEFINITION = Object.freeze([
         gatePhase: ["spec", "task-spec"],
         failurePolicy: "block",
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("gate"),
       }),
       new FlowNode({
         id: "approval",
@@ -1001,8 +1039,14 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/scenario-validity.schema.json",
         maxAttempts: 3,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("scenario-validity"),
       }),
-      createPlanReviewNode({ id: "test-review", label: "Review (test)", contextKinds: ["spec", "guardrail"] }),
+      createPlanReviewNode({
+        id: "test-review",
+        label: "Review (test)",
+        contextKinds: ["spec", "guardrail"],
+        executionCommand: new FlowExecutionCommand("review", "--phase", "test"),
+      }),
     ],
   }),
 
@@ -1028,6 +1072,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/test-execute.schema.json",
         maxAttempts: 3,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("test-execute"),
       }),
       new FlowNode({
         id: "test-result-review",
@@ -1038,6 +1083,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/test-result-review.schema.json",
         maxAttempts: 3,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("test-result-review"),
       }),
       new FlowNode({
         id: "impl-review",
@@ -1050,6 +1096,7 @@ const FLOW_DEFINITION = Object.freeze([
         toolingMaxAttempts: 1,
         failurePolicy: "retry",
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("review", "--phase", "impl"),
       }),
       new FlowNode({
         id: "impl-triage",
@@ -1081,6 +1128,7 @@ const FLOW_DEFINITION = Object.freeze([
         gatePhase: ["integration", "task-impl"],
         failurePolicy: "block",
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("gate"),
       }),
       new FlowNode({
         id: "retro",
@@ -1091,6 +1139,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/retro.schema.json",
         maxAttempts: 2,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("retro"),
       }),
       new FlowNode({
         id: "acceptance-review",
@@ -1103,6 +1152,7 @@ const FLOW_DEFINITION = Object.freeze([
         sideEffects: ["promoteFinalRegression"],
         failurePolicy: "amend-spec",
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("acceptance-review"),
       }),
       new FlowNode({
         id: "acceptance-decision",
@@ -1123,6 +1173,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("final-regression"),
       }),
       new FlowNode({
         id: "report",
@@ -1133,6 +1184,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/report.schema.json",
         maxAttempts: 2,
         definitionLifecycleOwned: true,
+        executionCommand: new FlowExecutionCommand("report"),
       }),
       new FlowNode({
         id: "finalize",
@@ -1147,6 +1199,7 @@ const FLOW_DEFINITION = Object.freeze([
             outputSchemaRef: "next-action/finalize.schema.json",
             requiresApproval: true,
             definitionLifecycleOwned: true,
+            executionCommand: new FlowExecutionCommand("finalize-commit"),
           }),
           new FlowNode({
             id: "finalize-merge",
@@ -1156,6 +1209,7 @@ const FLOW_DEFINITION = Object.freeze([
             contextKinds: ["spec", "diff"],
             outputSchemaRef: "next-action/finalize.schema.json",
             definitionLifecycleOwned: true,
+            executionCommand: new FlowExecutionCommand("finalize-merge"),
           }),
           new FlowNode({
             id: "finalize-sync",
@@ -1165,6 +1219,7 @@ const FLOW_DEFINITION = Object.freeze([
             contextKinds: ["spec"],
             outputSchemaRef: "next-action/finalize.schema.json",
             definitionLifecycleOwned: true,
+            executionCommand: new FlowExecutionCommand("finalize-sync"),
           }),
           new FlowNode({
             id: "finalize-cleanup",
@@ -1174,6 +1229,7 @@ const FLOW_DEFINITION = Object.freeze([
             contextKinds: ["spec"],
             outputSchemaRef: "next-action/finalize.schema.json",
             definitionLifecycleOwned: true,
+            executionCommand: new FlowExecutionCommand("finalize-cleanup"),
           }),
         ],
       }),
@@ -1203,6 +1259,7 @@ const TASK_DEFINITION = Object.freeze([
     toolingMaxAttempts: 1,
     failurePolicy: "retry",
     definitionLifecycleOwned: true,
+    executionCommand: new FlowExecutionCommand("review", "--phase", "impl"),
   }),
   new FlowNode({
     id: "task-gate",
@@ -1215,6 +1272,7 @@ const TASK_DEFINITION = Object.freeze([
     sideEffects: ["mergeOverview"],
     failurePolicy: "block",
     definitionLifecycleOwned: true,
+    executionCommand: new FlowExecutionCommand("gate"),
   }),
 ]);
 
@@ -1456,7 +1514,7 @@ export function findLatestInProgressLeaf(steps, definition = FLOW_DEFINITION) {
 /**
  * Derive the next action envelope fields from the definition for a given step.
  *
- * Returns `{ action, instructionsKey, contextKinds, outputSchemaRef, requiresApproval, maxAttempts }`
+ * Returns definition-owned action metadata, including the declared executionCommand,
  * for the step identified by `scope` ("flow" or "task") and `stepId`.
  */
 export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
@@ -1472,9 +1530,7 @@ export function deriveNextAction({ scope = "flow", stepId, context = {} }) {
     maxAttempts: node.resolveMaxAttempts(context),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
     failurePolicy: node.failurePolicy,
-    executionCommand: node.definitionLifecycleOwned
-      ? `senti flow run ${node.action.slice("run-".length)}`
-      : null,
+    executionCommand: node.executionCommand?.toString() ?? null,
   };
 }
 
@@ -1558,4 +1614,4 @@ export function findBranchForLeaf(definition, leafId) {
   return null;
 }
 
-export { FlowNode };
+export { FlowExecutionCommand, FlowNode };

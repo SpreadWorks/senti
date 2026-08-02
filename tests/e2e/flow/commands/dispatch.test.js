@@ -64,6 +64,7 @@ function installWorker(root, { delayMs = 75 } = {}) {
 function installReviewRecoveryWorker(root, state) {
   const worker = path.join(root, "review-recovery-worker.mjs");
   const count = path.join(root, ".tmp", "review-recovery-count.txt");
+  const nextActionFile = path.join(root, ".tmp", "review-recovery-next-action.txt");
   const targetSpecPath = specPath(state);
   const testFile = path.join(root, path.dirname(targetSpecPath), "tests", "recovery.test.mjs");
   fs.writeFileSync(worker, [
@@ -80,10 +81,25 @@ function installReviewRecoveryWorker(root, state) {
     "fs.writeFileSync(countFile,String(current));",
     `if(current===2)fs.appendFileSync(${JSON.stringify(testFile)},"\\n// repaired evidence\\n");`,
     "if(current===3){",
-    "  const result=spawnSync(process.execPath,[",
-    `    ${JSON.stringify(SENTI)},'flow','run','review','--phase','test',`,
+    "  const planned=spawnSync(process.execPath,[",
+    `    ${JSON.stringify(SENTI)},'flow','get','next-action',`,
     `    '--expect-run-id',${JSON.stringify(state.runId)},`,
     `    '--expect-spec',${JSON.stringify(state.specId)}`,
+    "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
+    "  if(planned.status!==0){",
+    "    process.stderr.write(planned.stderr||planned.stdout);",
+    "    process.exit(planned.status||1);",
+    "  }",
+    "  const nextAction=JSON.parse(planned.stdout).data.directive.nextAction;",
+    `  fs.writeFileSync(${JSON.stringify(nextActionFile)},nextAction);`,
+    "  const command=nextAction.match(/^senti flow run review --phase test --expect-binding '([^']+)' --expect-no-issue$/);",
+    "  if(!command){",
+    "    process.stderr.write(`incomplete review next-action: ${nextAction}`);",
+    "    process.exit(1);",
+    "  }",
+    "  const result=spawnSync(process.execPath,[",
+    `    ${JSON.stringify(SENTI)},'flow','run','review','--phase','test',`,
+    "    '--expect-binding',command[1],'--expect-no-issue'",
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(result.status!==0){",
     "    process.stderr.write(result.stderr||result.stdout);",
@@ -108,7 +124,7 @@ function installReviewRecoveryWorker(root, state) {
       },
     },
   }, null, 2)}\n`);
-  return { count, testFile };
+  return { count, testFile, nextActionFile };
 }
 
 function dispatchArgs(state, extra = []) {
@@ -283,7 +299,7 @@ describe("flow dispatch CLI", () => {
         rationale: "The evidence must change before review runs again.",
       }],
     }, null, 2)}\n`);
-    installReviewRecoveryWorker(root, state);
+    const worker = installReviewRecoveryWorker(root, state);
     initGitRepo(root);
     commitAll(root, "initial rejected review fixture");
     const treeSha = resolveCurrentReviewTreeSha(root, targetSpecPath);
@@ -342,6 +358,10 @@ describe("flow dispatch CLI", () => {
     );
     assert.equal(result.envelope.data.nextAction.step, "implement");
     assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 6, true);
+    assert.match(
+      fs.readFileSync(worker.nextActionFile, "utf8"),
+      /^senti flow run review --phase test --expect-binding '[^']+' --expect-no-issue$/,
+    );
     assert.match(fs.readFileSync(path.join(testsDir, "recovery.test.mjs"), "utf8"), /repaired evidence/);
     const review = JSON.parse(fs.readFileSync(path.join(specDir, "test-review.json"), "utf8"));
     assert.equal(review.verdict, "PASS");

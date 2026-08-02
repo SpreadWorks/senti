@@ -124,10 +124,12 @@ describe("single next-action directive authority", () => {
       },
     });
 
+    const targetBinding = binding();
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
-      binding: binding(),
+      binding: targetBinding,
       action: "run-review",
+      nextAction: targetBinding.guardCommand("senti flow run review --phase spec"),
       reviewPhase: "spec",
       stepAttempt: blockedAttempt(),
       reviewOperation: operation,
@@ -181,10 +183,12 @@ describe("single next-action directive authority", () => {
       handoffFindings: state.handoffFindings,
     });
 
+    const targetBinding = binding();
     const directive = new NextActionDirectiveResolver({
       state: flowState(),
-      binding: binding(),
+      binding: targetBinding,
       action: "run-review-test",
+      nextAction: targetBinding.guardCommand("senti flow run review --phase test"),
       reviewPhase: "test",
       reviewOperation: operation,
     }).resolve().toJSON();

@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   buildInitialNestedSteps,
   deriveNextAction,
+  FlowNode,
 } from "../../../src/flow/definition.js";
 import {
   ExecuteStepDirective,
@@ -18,6 +19,36 @@ test("definition lifecycle-owned steps expose their canonical CLI command", () =
   });
 
   assert.equal(action.executionCommand, "senti flow run test-execute");
+});
+
+test("review steps declare complete phase-aware CLI commands", () => {
+  const cases = [
+    ["flow", "draft-questions-review", "senti flow run review --phase draft"],
+    ["flow", "draft-coverage-review", "senti flow run review --phase draft"],
+    ["flow", "spec-review", "senti flow run review --phase spec"],
+    ["flow", "test-review", "senti flow run review --phase test"],
+    ["flow", "impl-review", "senti flow run review --phase impl"],
+    ["task", "task-review", "senti flow run review --phase impl"],
+  ];
+
+  for (const [scope, stepId, expected] of cases) {
+    const action = deriveNextAction({ scope, stepId });
+    assert.equal(action.action, "run-review", `${scope}.${stepId} semantic action`);
+    assert.equal(action.executionCommand, expected, `${scope}.${stepId} execution command`);
+  }
+});
+
+test("definition lifecycle-owned steps must declare their execution command", () => {
+  assert.throws(
+    () => new FlowNode({
+      id: "example-run",
+      label: "Example",
+      action: "run-example",
+      instructionsKey: "example.run",
+      definitionLifecycleOwned: true,
+    }),
+    /must declare executionCommand/,
+  );
 });
 
 test("execute-step directives preserve CLI-owned executable commands", () => {

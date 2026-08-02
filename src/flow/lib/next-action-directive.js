@@ -55,12 +55,6 @@ function requireActionId(value, field = "actionId") {
   return actionId;
 }
 
-function reviewCommand(phase) {
-  return phase === "impl"
-    ? "senti flow run review"
-    : `senti flow run review --phase ${phase}`;
-}
-
 function refreshCommand(state, binding) {
   return guardedCommand("senti flow get next-action", state, binding);
 }
@@ -243,11 +237,11 @@ export class IdleDirective extends NextActionDirective {
   }
 }
 
-function reviewDirective({ state, binding, phase, operation }) {
+function reviewDirective({ state, binding, phase, operation, nextAction }) {
   if (operation instanceof MoveToAcceptance) {
     return new ExecuteCommandDirective({
       actionId: "COMPLETE_REVIEW_LIFECYCLE",
-      nextAction: guardedCommand(reviewCommand(phase), state, binding),
+      nextAction,
       instruction: "Complete the current canonical review outcome without invoking the reviewer again, persist any exhausted semantic findings for acceptance disposition, then refresh next-action.",
       reason: "The canonical review outcome is ready for its normal lifecycle transition.",
     });
@@ -256,7 +250,7 @@ function reviewDirective({ state, binding, phase, operation }) {
     if (!operation.requiresChangedEvidence) {
       return new ExecuteCommandDirective({
         actionId: "RETRY_REVIEW",
-        nextAction: guardedCommand(reviewCommand(phase), state, binding),
+        nextAction,
         instruction: "Retry the current review with its remaining tooling budget.",
         reason: operation.blocker.reason,
       });
@@ -355,6 +349,7 @@ export class NextActionDirectiveResolver {
           binding: this.binding,
           phase: this.reviewPhase,
           operation: this.reviewOperation,
+          nextAction: this.nextAction,
         })
       : null;
     if (review) return review;
