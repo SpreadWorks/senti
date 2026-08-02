@@ -33,6 +33,11 @@ import {
   planFallbackChildWorkUnits,
   shouldFallbackSplit,
 } from "../lib/work-unit.js";
+import {
+  ImplReviewProposal,
+  ImplReviewProposalBatch,
+  ImplReviewProposalContract,
+} from "../lib/impl-review-proposal.js";
 
 async function loadReqMap(root, flow, kind) {
   try {
@@ -465,12 +470,6 @@ function extractProposalFile(body) {
   if (!m) return null;
   const file = m[1].trim();
   return file || null;
-}
-
-function extractProposalRequirementId(body) {
-  if (!body) return null;
-  const match = body.match(/\*\*Requirement:\*\*\s*`?([^`\n]+?)`?\s*$/m);
-  return match?.[1]?.trim() || null;
 }
 
 /**
@@ -1392,59 +1391,49 @@ function buildCrossCheckInput(summaries) {
   return lines.join("\n");
 }
 
-function buildCrossCheckSystemPrompt() {
-  return [
-    "You are a cross-file code quality reviewer. Analyze the aggregated per-file review proposals to detect cross-file issues.",
-    "Focus on:",
-    "- Interface inconsistencies between files",
-    "- Duplicate introductions across files",
-    "- Naming inconsistencies across files",
-    "",
-    "Output a numbered list of proposals in this format:",
-    "### 1. <title>",
-    "**File:** `<path>`",
-    "**Issue:** <description of the cross-file problem>",
-    "**Suggestion:** <concrete improvement>",
-    "",
-    "If no cross-file issues are found, output: NO_PROPOSALS",
-  ].join("\n");
+function buildImplLoopSystemPrompt({ mode, guardrails = [], acknowledgedRationale = null }) {
+  const crossCheck = mode === "cross-check";
+  const pb = new PromptBuilder()
+    .setRole(crossCheck
+      ? "You are a cross-file implementation reviewer. Detect issues that only become visible across the supplied review results."
+      : "You are an implementation reviewer. Analyze the supplied code changes for requirement-backed improvements.")
+    .setRules([
+      crossCheck
+        ? "Focus on interface, duplication, and naming inconsistencies across files."
+        : "Focus on duplication, naming, dead code, design consistency, and simplification.",
+      "Only return proposals that are backed by an allowed active-spec requirement.",
+      "Use the repository-relative file that contains the issue.",
+      "Treat guardrails as rationale context only; never use a guardrail identifier as a requirement identifier.",
+      "When no valid requirement-backed proposal exists, return an empty proposals array.",
+      "The supplied JSON Schema is authoritative for the response structure.",
+    ].join("\n"));
+
+  if (guardrails.length > 0) {
+    pb.addSystemPrompt("## Guardrail Rationale Context", guardrails.map((guardrail) => [
+      `- id: ${guardrail.id}`,
+      `  title: ${guardrail.title}`,
+      `  body: ${guardrail.body.trim()}`,
+    ].join("\n")).join("\n"));
+  }
+  if (acknowledgedRationale?.markdown) pb.addUserRaw(acknowledgedRationale.markdown);
+
+  const built = pb.build();
+  return built.systemPrompt + (built.userPrompt ? `\n\n${built.userPrompt}` : "");
 }
 
-function implLoopRequirementRules(requirementIds) {
-  const allowedRequirementIds = [...normalizeImplReviewRequirementIds(requirementIds)].sort();
-  return [
-    "Impl-review requirement contract (MANDATORY):",
-    `- Every proposal MUST include '**Requirement:** <id>' using one of: ${allowedRequirementIds.join(", ")}.`,
-    "- Missing or unknown requirement IDs make the provider output invalid.",
-  ].join("\n");
+function buildImplLoopReviewSystemPrompt(guardrails, options = {}) {
+  return buildImplLoopSystemPrompt({
+    mode: "per-chunk",
+    guardrails,
+    acknowledgedRationale: options.acknowledgedRationale,
+  });
 }
 
-function buildImplLoopReviewSystemPrompt(guardrails, options) {
-  return [
-    buildDraftSystemPrompt(guardrails, options),
-    implLoopRequirementRules(options.requirementIds),
-  ].join("\n\n");
-}
-
-function buildImplLoopCrossCheckSystemPrompt(requirementIds) {
-  return [
-    buildCrossCheckSystemPrompt(),
-    implLoopRequirementRules(requirementIds),
-  ].join("\n\n");
-}
-
-function parseImplLoopProposals(text, { requirementIds } = {}) {
-  const allowedRequirementIds = normalizeImplReviewRequirementIds(requirementIds);
-  return parseProposals(text).map((proposal) => {
-    const requirementId = extractProposalRequirementId(proposal.body);
-    if (!allowedRequirementIds.has(requirementId)) {
-      throw new WorkUnitToolingFailure({
-        failureKind: "schema_failure",
-        message: `impl-review loop proposal requirementId is missing or unknown: ${requirementId || "(missing)"}`,
-        rawResponse: text,
-      });
-    }
-    return { ...proposal, requirementId };
+function buildImplLoopCrossCheckSystemPrompt(guardrails, options = {}) {
+  return buildImplLoopSystemPrompt({
+    mode: "cross-check",
+    guardrails,
+    acknowledgedRationale: options.acknowledgedRationale,
   });
 }
 
@@ -1454,17 +1443,13 @@ function expandProposalsToGroup(proposals, groupFiles) {
   const expanded = [];
   for (const file of groupFiles) {
     for (const p of proposals) {
+      if (!(p instanceof ImplReviewProposal)) {
+        throw new Error("loop review expansion requires ImplReviewProposal values");
+      }
       if (file === representative) {
         expanded.push(p);
       } else {
-        expanded.push({
-          ...p,
-          file,
-          body: p.body.replace(
-            /(\*\*File:\*\*\s*`?)[^`\n]+(`?\s*$)/m,
-            `$1${file}$2`,
-          ),
-        });
+        expanded.push(p.retarget(file));
       }
     }
   }
@@ -1557,27 +1542,8 @@ function hashLoopReviewInput(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
 }
 
-function providerOutputInvalid(result) {
-  if (typeof result !== "string" || result.trim() === "") return "parser_failure";
-  if (result.includes("NO_PROPOSALS")) return null;
-  const proposalText = stripProposalPreamble(result);
-  if (proposalText.trim().startsWith("{")) {
-    try {
-      const parsed = JSON.parse(proposalText);
-      if (!Array.isArray(parsed.proposals)) return "schema_failure";
-      if (parsed.proposals.some((item) => typeof item?.title !== "string" || !item.title || typeof item?.file !== "string")) {
-        return "schema_failure";
-      }
-    } catch {
-      return "parser_failure";
-    }
-  }
-  if (!/^### /m.test(proposalText)) return "parser_failure";
-  return null;
-}
-
 function proposalSuccessPayload(proposals) {
-  return { proposals: proposals.map((proposal) => ({ ...proposal })) };
+  return new ImplReviewProposalBatch(proposals).toJSON();
 }
 
 function persistLoopFinalArtifacts({ specDir, proposals, requirementIds }) {
@@ -1614,16 +1580,19 @@ async function executeWorkUnit({
   identity,
   checkpointStore,
   execute,
-  parseReviewProposals,
-  validateProviderOutput,
+  proposalContract,
 }) {
+  if (!(proposalContract instanceof ImplReviewProposalContract)) {
+    throw new Error("WorkUnit execution requires ImplReviewProposalContract");
+  }
   const existing = checkpointStore?.load(identity);
   if (checkpointStore) {
     const resume = WorkUnitResumeDecision.fromCheckpoint(identity, existing);
     if (resume.action === "reuse") {
+      const batch = proposalContract.fromJSON(existing.success);
       return {
         rawResponse: existing.rawResponse || "",
-        proposals: existing.success?.proposals || [],
+        proposals: batch.proposals,
         reused: true,
       };
     }
@@ -1645,11 +1614,7 @@ async function executeWorkUnit({
 
   try {
     const rawResponse = await execute();
-    const invalidKind = validateProviderOutput ? providerOutputInvalid(rawResponse) : null;
-    if (invalidKind) {
-      throw new WorkUnitToolingFailure({ failureKind: invalidKind, message: `${invalidKind} during WorkUnit execution`, rawResponse });
-    }
-    const proposals = rawResponse.includes("NO_PROPOSALS") ? [] : parseReviewProposals(rawResponse);
+    const proposals = proposalContract.parse(rawResponse).proposals;
     checkpointStore?.saveSuccess({ identity, rawResponse, success: proposalSuccessPayload(proposals) });
     return { rawResponse, proposals, reused: false };
   } catch (err) {
@@ -1667,7 +1632,6 @@ async function runLoopReviewWithDependencies({
   buildChunkInput,
   reviewChunk,
   crossCheck,
-  parseReviewProposals = parseProposals,
   expandGroupProposals = expandProposalsToGroup,
   onBatch = null,
   onReviewChunk = null,
@@ -1676,10 +1640,12 @@ async function runLoopReviewWithDependencies({
   persistFinalArtifacts = false,
   providerIdentity = "default",
   promptVersion = "impl-review-loop-v1",
-  schemaVersion = "impl-review-proposals-v1",
-  validateProviderOutput = false,
   requirementIds = new Set(),
+  proposalContract = new ImplReviewProposalContract(requirementIds),
 }) {
+  if (!(proposalContract instanceof ImplReviewProposalContract)) {
+    throw new Error("loop review requires ImplReviewProposalContract");
+  }
   const reviewChunks = createLoopReviewChunks(groups, maxLoopCalls);
   if (groups.length > maxLoopCalls && onBatch) onBatch({ groups, reviewChunks, maxLoopCalls });
 
@@ -1693,9 +1659,8 @@ async function runLoopReviewWithDependencies({
     const input = buildChunkInput(chunk);
     const chunkHash = hashLoopReviewInput(input);
 
-    let result = seen.get(chunkHash);
-    let proposals = null;
-    if (!result) {
+    let proposals = seen.get(chunkHash) || null;
+    if (!seen.has(chunkHash)) {
       if (onReviewChunk) onReviewChunk({ chunk, index: reviewCallCount, total: reviewChunks.length });
       const identity = createLoopChunkWorkUnitIdentity({
         index: i,
@@ -1704,13 +1669,14 @@ async function runLoopReviewWithDependencies({
         input,
         providerIdentity,
         promptVersion,
-        schemaVersion,
+        schemaVersion: proposalContract.schemaVersion,
+        schemaDigest: proposalContract.schemaDigest,
+        allowedRequirementIds: proposalContract.allowedRequirementIds,
       });
       const priorFailures = checkpointStore?.failuresForUnit(identity.unitId) || [];
       if (checkpointStore && shouldFallbackSplit(priorFailures)) {
         const children = planFallbackChildWorkUnits({
-          parentUnitId: identity.unitId,
-          parentStableOrderKey: identity.stableOrderKey,
+          parentIdentity: identity,
           parentChunk: chunk,
           priorFailures,
         });
@@ -1721,36 +1687,31 @@ async function runLoopReviewWithDependencies({
             identity: child.identity,
             checkpointStore,
             execute: () => reviewChunk(child.groups, childInput),
-            parseReviewProposals,
-            validateProviderOutput,
+            proposalContract,
           });
           if (childExecution.toolingOutcome) return childExecution;
           childProposals.push(...childExecution.proposals);
           if (!childExecution.reused) reviewCallCount += 1;
         }
         allProposals.push(...childProposals);
-        summaries.push({ file: chunk[0].representative, proposals: childProposals.map((p) => p.title || p.body || "").join("\n") });
-        seen.set(chunkHash, "NO_PROPOSALS");
+        summaries.push({
+          file: chunk[0].representative,
+          proposals: JSON.stringify(proposalSuccessPayload(childProposals)),
+        });
+        seen.set(chunkHash, childProposals);
         continue;
       }
-      const execution = checkpointStore
-        ? await executeWorkUnit({
-          identity,
-          checkpointStore,
-          execute: () => reviewChunk(chunk, input),
-          parseReviewProposals,
-          validateProviderOutput,
-        })
-        : { rawResponse: await reviewChunk(chunk, input), proposals: null, reused: false };
+      const execution = await executeWorkUnit({
+        identity,
+        checkpointStore,
+        execute: () => reviewChunk(chunk, input),
+        proposalContract,
+      });
       if (execution.toolingOutcome) return execution;
-      result = execution.rawResponse;
       proposals = execution.proposals;
       if (!execution.reused) reviewCallCount += 1;
-      seen.set(chunkHash, result);
+      seen.set(chunkHash, proposals);
     }
-    if (result.includes("NO_PROPOSALS")) continue;
-
-    proposals = proposals || parseReviewProposals(result);
     if (proposals.length === 0) continue;
 
     for (const g of chunk) {
@@ -1761,30 +1722,29 @@ async function runLoopReviewWithDependencies({
         : toExpand;
       allProposals.push(...expanded);
     }
-    summaries.push({ file: chunk[0].representative, proposals: result });
+    summaries.push({
+      file: chunk[0].representative,
+      proposals: JSON.stringify(proposalSuccessPayload(proposals)),
+    });
   }
 
   if (summaries.length > 1 && reviewCallCount < maxLoopCalls) {
     const identity = createCrossCheckWorkUnitIdentity({
       summaries,
       providerIdentity,
-      schemaVersion,
+      schemaVersion: proposalContract.schemaVersion,
+      schemaDigest: proposalContract.schemaDigest,
+      allowedRequirementIds: proposalContract.allowedRequirementIds,
     });
-    const execution = checkpointStore
-      ? await executeWorkUnit({
-        identity,
-        checkpointStore,
-        execute: () => crossCheck(summaries),
-        parseReviewProposals,
-        validateProviderOutput,
-      })
-      : { rawResponse: await crossCheck(summaries), proposals: null, reused: false };
+    const execution = await executeWorkUnit({
+      identity,
+      checkpointStore,
+      execute: () => crossCheck(summaries),
+      proposalContract,
+    });
     if (execution.toolingOutcome) return execution;
-    const crossCheckResult = execution.rawResponse;
     if (!execution.reused) reviewCallCount += 1;
-    if (!crossCheckResult.includes("NO_PROPOSALS")) {
-      allProposals.push(...(execution.proposals || parseReviewProposals(crossCheckResult)));
-    }
+    allProposals.push(...execution.proposals);
   }
 
   if (persistFinalArtifacts) {
@@ -1794,6 +1754,9 @@ async function runLoopReviewWithDependencies({
 }
 
 function requireImplLoopRequirementId(proposal, requirementIds) {
+  if (!(proposal instanceof ImplReviewProposal)) {
+    throw new Error("impl review loop finding must be ImplReviewProposal");
+  }
   if (!requirementIds.has(proposal.requirementId)) {
     throw new Error(`impl review loop finding has invalid requirementId: ${proposal.requirementId || "(missing)"}`);
   }
@@ -1805,7 +1768,8 @@ function loopProposalFindingKey(proposal, requirementId) {
     requirementId,
     file: proposal.file || null,
     title: proposal.title,
-    body: proposal.body || null,
+    issue: proposal.issue,
+    suggestion: proposal.suggestion,
   });
   return `loop-${crypto.createHash("sha256").update(identity).digest("hex").slice(0, 20)}`;
 }
@@ -1822,8 +1786,8 @@ function loopProposalsToImplReviewJson(proposals, requirementIds = new Set()) {
         failureMode: "refactor",
         ...(proposal.file ? { file: proposal.file } : {}),
         requirementId,
-        issue: proposal.body || proposal.title,
-        suggestion: proposal.body || proposal.title,
+        issue: proposal.issue,
+        suggestion: proposal.suggestion,
         disposition: "informational",
         rationale: "Loop review proposal.",
       };
@@ -1891,6 +1855,7 @@ async function runLoopReview(executionRoot, artifactRoot, flow, mergeBase, fileM
   const specInput = path.resolve(artifactRoot, relativeFlowSpecFile(flow));
   const spec = loadSpecJson(specInput);
   const requirementIds = new Set((spec.requirements || []).map((requirement) => requirement.id).filter(Boolean));
+  const proposalContract = new ImplReviewProposalContract(requirementIds);
   const fileToReqs = invertFileMap(fileMap, spec.requirements || []);
   const specDir = path.dirname(specInput);
   const matcher = createReviewExcludeMatcher({ root: executionRoot, exclusions: resolveReviewExcludePaths(config) });
@@ -1906,12 +1871,10 @@ async function runLoopReview(executionRoot, artifactRoot, flow, mergeBase, fileM
   });
 
   const draftAgent = ensureAgent("flow.impl.review.propose");
+  const acknowledgedRationale = buildReviewAcknowledgedRationale(artifactRoot, flow, guardrails);
   const systemPrompt = buildImplLoopReviewSystemPrompt(
     guardrails,
-    {
-      ...buildReviewAcknowledgedRationale(artifactRoot, flow, guardrails),
-      requirementIds,
-    },
+    acknowledgedRationale,
   );
 
   const result = await runLoopReviewWithDependencies({
@@ -1921,17 +1884,24 @@ async function runLoopReview(executionRoot, artifactRoot, flow, mergeBase, fileM
     checkpointStore: new WorkUnitCheckpointStore({ specDir, namespace: "impl-review" }),
     providerIdentity: "flow.impl.review.propose",
     promptVersion: "impl-review-loop-v1",
-    schemaVersion: "impl-review-proposals-v1",
-    validateProviderOutput: true,
     requirementIds,
-    parseReviewProposals: (text) => parseImplLoopProposals(text, { requirementIds }),
+    proposalContract,
     buildChunkInput: (chunk) => buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs),
-    reviewChunk: (chunk, input) => callReviewAgent(draftAgent, input, "flow.impl.review.propose", systemPrompt),
+    reviewChunk: (chunk, input) => callReviewAgent(
+      draftAgent,
+      proposalContract.prompt({ userPrompt: input, systemPrompt }),
+      "flow.impl.review.propose",
+    ),
     crossCheck: (summaries) => {
       console.error("  [loop-review] Running cross-check pass...");
       const crossCheckInput = buildCrossCheckInput(summaries);
       return callReviewAgent(
-        draftAgent, crossCheckInput, "flow.impl.review.propose", buildImplLoopCrossCheckSystemPrompt(requirementIds),
+        draftAgent,
+        proposalContract.prompt({
+          userPrompt: crossCheckInput,
+          systemPrompt: buildImplLoopCrossCheckSystemPrompt(guardrails, acknowledgedRationale),
+        }),
+        "flow.impl.review.propose",
       );
     },
     onBatch: ({ reviewChunks }) => {
@@ -4346,7 +4316,6 @@ export {
   runActiveImplReviewWithDependencies, runReviewWithDependencies,
   runSingleShotImplReviewWithDependencies, runNonImplReviewWithDependencies,
   loopProposalsToImplReviewJson,
-  parseImplLoopProposals,
   classifyReviewCommandError,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,
 };

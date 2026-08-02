@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { AgentFailure } from "../../lib/agent-failure.js";
 
-const CHECKPOINT_VERSION = 1;
+const CHECKPOINT_VERSION = 2;
 const RETRYABLE_FAILURE_KINDS = new Set(["provider_failure", "timeout", "parser_failure", "schema_failure"]);
 const COMMAND_FAILURE_KINDS = new Set(["checkpoint_io_failure", "invariant_violation"]);
 
@@ -29,6 +29,13 @@ function normalizeTargetFiles(files) {
     throw new WorkUnitInvariantError("targetFiles is required");
   }
   return [...new Set(files.map(normalizeTargetFile))].sort();
+}
+
+function normalizeAllowedRequirementIds(ids = []) {
+  if (!Array.isArray(ids)) {
+    throw new WorkUnitInvariantError("allowedRequirementIds must be an array");
+  }
+  return [...new Set(ids.map((id) => requiredString(id, "allowedRequirementId")))].sort();
 }
 
 function stableJson(value) {
@@ -108,11 +115,15 @@ export class WorkUnitIdentity {
     this.providerIdentity = requiredString(fields.providerIdentity, "providerIdentity");
     this.promptVersion = requiredString(fields.promptVersion, "promptVersion");
     this.schemaVersion = requiredString(fields.schemaVersion, "schemaVersion");
+    this.schemaDigest = requiredString(fields.schemaDigest || sha256(this.schemaVersion), "schemaDigest");
+    this.allowedRequirementIds = Object.freeze(normalizeAllowedRequirementIds(fields.allowedRequirementIds));
     this.unitId = sha256(stableJson({
       phase: this.phase,
       kind: this.kind,
       stableOrderKey: this.stableOrderKey,
       parentUnitId: this.parentUnitId,
+      schemaDigest: this.schemaDigest,
+      allowedRequirementIds: this.allowedRequirementIds,
     })).slice(0, 24);
   }
 
@@ -128,6 +139,8 @@ export class WorkUnitIdentity {
       providerIdentity: this.providerIdentity,
       promptVersion: this.promptVersion,
       schemaVersion: this.schemaVersion,
+      schemaDigest: this.schemaDigest,
+      allowedRequirementIds: this.allowedRequirementIds,
       unitId: this.unitId,
     };
   }
@@ -200,6 +213,8 @@ export class WorkUnitCheckpoint {
       providerIdentity: identity.providerIdentity,
       promptVersion: identity.promptVersion,
       schemaVersion: identity.schemaVersion,
+      schemaDigest: identity.schemaDigest,
+      allowedRequirementIds: identity.allowedRequirementIds,
       status: this.status,
       attemptCount: this.attemptCount,
       startedAt: this.startedAt,
@@ -379,6 +394,8 @@ export function createLoopChunkWorkUnitIdentity({
   providerIdentity = "default",
   promptVersion = "impl-review-loop-v1",
   schemaVersion = "impl-review-proposals-v1",
+  schemaDigest = null,
+  allowedRequirementIds = [],
   kind = parentUnitId ? "loop-chunk-child" : "loop-chunk",
 }) {
   return new WorkUnitIdentity({
@@ -392,6 +409,8 @@ export function createLoopChunkWorkUnitIdentity({
     providerIdentity,
     promptVersion,
     schemaVersion,
+    schemaDigest,
+    allowedRequirementIds,
   });
 }
 
@@ -401,6 +420,8 @@ export function createCrossCheckWorkUnitIdentity({
   providerIdentity = "default",
   promptVersion = "impl-review-cross-check-v1",
   schemaVersion = "impl-review-proposals-v1",
+  schemaDigest = null,
+  allowedRequirementIds = [],
 }) {
   const summaryHashes = summaries.map((summary) => hashWorkUnitInput(summary.proposals));
   return new WorkUnitIdentity({
@@ -414,6 +435,8 @@ export function createCrossCheckWorkUnitIdentity({
     providerIdentity,
     promptVersion,
     schemaVersion,
+    schemaDigest,
+    allowedRequirementIds,
   });
 }
 
@@ -466,30 +489,27 @@ export function shouldFallbackSplit(failures = []) {
   return [...byUnit.values()].some((count) => count >= 2);
 }
 
-export function planFallbackChildWorkUnits({ parentUnitId, parentStableOrderKey, parentChunk, priorFailures = [] }) {
-  if (!shouldFallbackSplit(priorFailures.map((failure) => ({ ...failure, unitId: failure.unitId || parentUnitId })))) return [];
+export function planFallbackChildWorkUnits({ parentIdentity, parentChunk, priorFailures = [] }) {
+  if (!(parentIdentity instanceof WorkUnitIdentity)) {
+    throw new WorkUnitInvariantError("parentIdentity must be WorkUnitIdentity");
+  }
+  if (!shouldFallbackSplit(priorFailures.map((failure) => ({ ...failure, unitId: failure.unitId || parentIdentity.unitId })))) return [];
   return parentChunk.map((group, index) => new WorkUnitPlanEntry({
     identity: createLoopChunkWorkUnitIdentity({
       index,
-      parentUnitId,
+      parentUnitId: parentIdentity.unitId,
       targetFiles: group.files,
-      input: `${parentStableOrderKey}:${group.files.join(",")}`,
+      input: `${parentIdentity.stableOrderKey}:${group.files.join(",")}`,
+      commandId: parentIdentity.commandId,
+      providerIdentity: parentIdentity.providerIdentity,
+      promptVersion: parentIdentity.promptVersion,
+      schemaVersion: parentIdentity.schemaVersion,
+      schemaDigest: parentIdentity.schemaDigest,
+      allowedRequirementIds: parentIdentity.allowedRequirementIds,
       kind: "loop-chunk-child",
     }),
     groups: [group],
   }));
-}
-
-export async function runFallbackChildWorkUnits({ checkpointStore, parentUnitId, children, buildChunkInput, reviewChunk }) {
-  const proposals = [];
-  for (const child of children) {
-    const input = buildChunkInput(child.groups);
-    const rawResponse = await reviewChunk(child.groups, input);
-    const proposal = { title: `Check ${child.groups[0].representative}`, file: child.groups[0].representative, body: rawResponse };
-    proposals.push(proposal);
-    checkpointStore.saveSuccess({ identity: child.identity, rawResponse, success: { proposals: [proposal] } });
-  }
-  return { parentUnitId, proposals };
 }
 
 export function shouldUseWorkUnitsForReviewPhase({ phase, mode }) {

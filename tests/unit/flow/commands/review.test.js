@@ -16,6 +16,7 @@ import {
   createMemoryWorkUnitCheckpointStore,
   WorkUnitToolingFailure,
 } from "../../../../src/flow/lib/work-unit.js";
+import { ImplReviewProposal } from "../../../../src/flow/lib/impl-review-proposal.js";
 import {
   canonicalReviewArtifactFindings,
   reviewArtifactFindingLists,
@@ -63,7 +64,6 @@ import {
   runLoopReviewWithDependencies,
   resolveMergeBase,
   loopProposalsToImplReviewJson,
-  parseImplLoopProposals,
   buildDraftReviewArtifact,
   writeReviewAttemptHistory,
   classifyReviewCommandError,
@@ -902,7 +902,7 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
     assert.equal(proposals[0].file, null);
   });
 
-  it("ignores provider preamble attached before the first proposal heading", async () => {
+  it("rejects Markdown and provider preambles at the loop review boundary", async () => {
     const rawResponse = [
       "I’ll inspect the touched test file first.The path is unavailable under the agent work directory.### 1. Extract the Active Spec Path",
       "**File:** `tests/unit/flow/retry-recovery-convergence.test.js`",
@@ -919,16 +919,13 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
       }],
       buildChunkInput: () => "review input",
       reviewChunk: async () => rawResponse,
-      crossCheck: async () => "NO_PROPOSALS",
-      parseReviewProposals: (text) => parseImplLoopProposals(text, { requirementIds }),
-      validateProviderOutput: true,
+      crossCheck: async () => JSON.stringify({ proposals: [] }),
       requirementIds,
     });
 
-    assert.equal(result.toolingOutcome, undefined);
-    assert.equal(result.proposals.length, 1);
-    assert.equal(result.proposals[0].title, "1. Extract the Active Spec Path");
-    assert.equal(result.proposals[0].requirementId, "R1");
+    assert.equal(result.failureKind, "parser_failure");
+    assert.equal(result.proposals.length, 0);
+    assert.ok(result.toolingOutcome);
   });
 
   it("blocks the same terminal WorkUnit without another call and executes changed input", async () => {
@@ -950,9 +947,9 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
           throw new AgentAuthenticationFailure({ message: "HTTP 401 Unauthorized" })
             .recordAttempts(1, 3);
         }
-        return "NO_PROPOSALS";
+        return JSON.stringify({ proposals: [] });
       },
-      crossCheck: async () => "NO_PROPOSALS",
+      crossCheck: async () => JSON.stringify({ proposals: [] }),
       checkpointStore,
     });
 
@@ -1414,12 +1411,13 @@ function createMandatoryLoopReviewFixture(prefix, file) {
   return {
     root,
     flow: { specId: "demo" },
-    reviewOutput: loopProposalsToImplReviewJson([{
+    reviewOutput: loopProposalsToImplReviewJson([new ImplReviewProposal({
       title: "Extract shared branch",
-      body: "Extract the duplicated branch.",
       file,
+      issue: "The branch is duplicated.",
+      suggestion: "Extract the duplicated branch.",
       requirementId: "R1",
-    }], new Set(["R1"])),
+    }, { requirementIds: new Set(["R1"]) })], new Set(["R1"])),
   };
 }
 
@@ -1713,12 +1711,13 @@ describe("impl review structured artifact helpers", () => {
   });
 
   it("assigns a stable findingKey to loop review proposals", () => {
-    const proposal = {
+    const proposal = new ImplReviewProposal({
       title: "Extract shared branch",
-      body: "Extract the duplicated branch.",
       file: "src/example.js",
+      issue: "The branch is duplicated.",
+      suggestion: "Extract the duplicated branch.",
       requirementId: "R1",
-    };
+    }, { requirementIds: new Set(["R1"]) });
     const first = parseImplReviewFindings(
       loopProposalsToImplReviewJson([proposal], new Set(["R1"])),
       { requirementIds: new Set(["R1"]) },
