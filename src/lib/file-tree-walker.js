@@ -67,6 +67,19 @@ export class FreshnessSourcePolicy {
     if (artifactSegments.length === 1 && ["review-history", "review-evidence"].includes(artifactSegments[0])) return false;
     return !(artifactSegments.length === 2 && artifactSegments[0] === "tests" && artifactSegments[1] === ".raw");
   }
+
+  shouldIncludeFile(relativePath) {
+    if (typeof relativePath !== "string" || relativePath === "") {
+      throw new Error("freshness source file path must be a non-empty string");
+    }
+    const segments = normalizeRelative(relativePath).split("/");
+    let directory = "";
+    for (const segment of segments.slice(0, -1)) {
+      directory = directory === "" ? segment : `${directory}/${segment}`;
+      if (!this.shouldEnterDirectory(directory)) return false;
+    }
+    return true;
+  }
 }
 
 export const FRESHNESS_SOURCE_POLICY = new FreshnessSourcePolicy();

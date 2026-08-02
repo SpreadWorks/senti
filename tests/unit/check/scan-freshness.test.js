@@ -5,6 +5,7 @@ import path from "node:path";
 import { computeCoverage, coveragePercent, formatText } from "../../../src/check/commands/scan.js";
 import { checkFreshness } from "../../../src/check/commands/freshness.js";
 import { ScanPolicy } from "../../../src/lib/file-tree-walker.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
 const FRESHNESS_EXCLUDED_DIRECTORIES = [
@@ -105,6 +106,80 @@ describe("bounded scan and freshness results", () => {
     assert.equal(result.srcNewest, older.toISOString());
     assert.equal(result.docsNewest, newer.toISOString());
     assert.deepEqual(result.toJSON().sourceScan.limits, []);
+  });
+
+  it("uses Git ignore rules before applying the source file limit", async () => {
+    tmp = createTmpDir();
+    initGitRepo(tmp);
+    writeFile(tmp, ".gitignore", ".tmp/\n");
+    writeFile(tmp, "src/tracked.js", "export {};\n");
+    writeFile(tmp, "docs/overview.md", "# Overview\n");
+    for (let index = 0; index < 5; index += 1) {
+      writeFile(tmp, `.tmp/generated-${index}.js`, "export {};\n");
+    }
+    commitAll(tmp, "initial fixture");
+
+    const older = new Date("2026-01-01T00:00:00.000Z");
+    const docsTime = new Date("2026-01-02T00:00:00.000Z");
+    const ignoredNewer = new Date("2026-01-03T00:00:00.000Z");
+    fs.utimesSync(path.join(tmp, ".gitignore"), older, older);
+    fs.utimesSync(path.join(tmp, "src/tracked.js"), older, older);
+    fs.utimesSync(path.join(tmp, "docs/overview.md"), docsTime, docsTime);
+    fs.utimesSync(path.join(tmp, ".tmp/generated-0.js"), ignoredNewer, ignoredNewer);
+
+    const result = await checkFreshness(tmp, tmp, {
+      policy: new ScanPolicy({ maxFiles: 2 }),
+    });
+
+    assert.equal(result.result, "fresh");
+    assert.equal(result.sourceScan.complete, true);
+    assert.deepEqual(result.toJSON().sourceScan.limits, []);
+  });
+
+  it("includes non-ignored untracked files in Git freshness", async () => {
+    tmp = createTmpDir();
+    initGitRepo(tmp);
+    writeFile(tmp, ".gitignore", ".tmp/\n");
+    writeFile(tmp, "src/tracked.js", "export {};\n");
+    writeFile(tmp, "docs/overview.md", "# Overview\n");
+    commitAll(tmp, "initial fixture");
+    writeFile(tmp, "src/untracked.js", "export const changed = true;\n");
+
+    const older = new Date("2026-01-01T00:00:00.000Z");
+    const docsTime = new Date("2026-01-02T00:00:00.000Z");
+    const untrackedNewer = new Date("2026-01-03T00:00:00.000Z");
+    fs.utimesSync(path.join(tmp, ".gitignore"), older, older);
+    fs.utimesSync(path.join(tmp, "src/tracked.js"), older, older);
+    fs.utimesSync(path.join(tmp, "docs/overview.md"), docsTime, docsTime);
+    fs.utimesSync(path.join(tmp, "src/untracked.js"), untrackedNewer, untrackedNewer);
+
+    const result = await checkFreshness(tmp, tmp);
+
+    assert.equal(result.result, "stale");
+    assert.equal(result.srcNewest, untrackedNewer.toISOString());
+  });
+
+  it("keeps tracked files in freshness after a later ignore rule matches them", async () => {
+    tmp = createTmpDir();
+    initGitRepo(tmp);
+    writeFile(tmp, ".gitignore", "");
+    writeFile(tmp, "src/tracked.js", "export {};\n");
+    writeFile(tmp, "docs/overview.md", "# Overview\n");
+    commitAll(tmp, "track source");
+    writeFile(tmp, ".gitignore", "src/tracked.js\n");
+    commitAll(tmp, "ignore matching source path");
+
+    const ignoreTime = new Date("2026-01-01T00:00:00.000Z");
+    const docsTime = new Date("2026-01-02T00:00:00.000Z");
+    const trackedNewer = new Date("2026-01-03T00:00:00.000Z");
+    fs.utimesSync(path.join(tmp, ".gitignore"), ignoreTime, ignoreTime);
+    fs.utimesSync(path.join(tmp, "docs/overview.md"), docsTime, docsTime);
+    fs.utimesSync(path.join(tmp, "src/tracked.js"), trackedNewer, trackedNewer);
+
+    const result = await checkFreshness(tmp, tmp);
+
+    assert.equal(result.result, "stale");
+    assert.equal(result.srcNewest, trackedNewer.toISOString());
   });
 
   it("applies generated spec exclusions from a nested source root", async () => {

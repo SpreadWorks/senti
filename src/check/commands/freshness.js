@@ -22,11 +22,113 @@ import { EXIT_ERROR } from "../../lib/constants.js";
 import {
   DEFAULT_SCAN_POLICY,
   FileTreeWalker,
+  FileTreeWalkResult,
   FRESHNESS_SOURCE_POLICY,
   TraversalLimit,
 } from "../../lib/file-tree-walker.js";
+import { runGit } from "../../lib/git-helpers.js";
 
 const FRESHNESS_RESULTS = new Set(["fresh", "stale", "never-built", "indeterminate"]);
+const GIT_FILE_LIST_MAX_BUFFER = 16 * 1024 * 1024;
+
+/**
+ * Resolves the bounded file set that can affect documentation freshness.
+ * Git repositories use Git's own tracked/untracked/ignore semantics; other
+ * directories retain the filesystem traversal used by project-mode sources.
+ */
+export class FreshnessFileInventory {
+  constructor({ root, policy, sourcePolicy = null, excludedDirectory = null, gitRunner = runGit }) {
+    if (typeof root !== "string" || !path.isAbsolute(root)) {
+      throw new Error("freshness inventory root must be an absolute path");
+    }
+    if (!policy || !Number.isSafeInteger(policy.maxFiles) || policy.maxFiles < 1) {
+      throw new Error("freshness inventory requires a scan policy");
+    }
+    if (excludedDirectory != null && (typeof excludedDirectory !== "string" || excludedDirectory === "")) {
+      throw new Error("freshness excluded directory must be a non-empty string or null");
+    }
+    if (typeof gitRunner !== "function") {
+      throw new Error("freshness inventory git runner must be a function");
+    }
+    this.root = path.resolve(root);
+    this.policy = policy;
+    this.sourcePolicy = sourcePolicy;
+    this.excludedDirectory = excludedDirectory?.split(path.sep).join("/") ?? null;
+    this.gitRunner = gitRunner;
+    Object.freeze(this);
+  }
+
+  collect() {
+    const gitInventory = this.sourcePolicy === null ? null : this.#collectGitInventory();
+    if (gitInventory !== null) return gitInventory;
+    return new FileTreeWalker(this.policy).walk(this.root, {
+      includeFile: (relativePath) => this.#includes(relativePath),
+      shouldEnterDirectory: (relativePath) => this.#includesDirectory(relativePath),
+    });
+  }
+
+  #collectGitInventory() {
+    const repository = this.gitRunner(["rev-parse", "--is-inside-work-tree"], { cwd: this.root });
+    if (!repository.ok || repository.stdout.trim() !== "true") return null;
+
+    const listing = this.gitRunner([
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      ".",
+    ], {
+      cwd: this.root,
+      maxBuffer: GIT_FILE_LIST_MAX_BUFFER,
+    });
+    if (!listing.ok) {
+      return new FileTreeWalkResult([], [new TraversalLimit("unreadable", ".git/index", null)]);
+    }
+
+    const candidates = [...new Set(listing.stdout.split("\0").filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right));
+    const files = [];
+    for (const relativePath of candidates) {
+      if (!this.#includes(relativePath)) continue;
+      if (files.length === this.policy.maxFiles) {
+        return new FileTreeWalkResult(
+          files,
+          [new TraversalLimit("files", relativePath, this.policy.maxFiles)],
+        );
+      }
+      files.push(relativePath);
+    }
+    return new FileTreeWalkResult(files, []);
+  }
+
+  #includes(relativePath) {
+    if (
+      this.excludedDirectory !== null
+      && (
+        relativePath === this.excludedDirectory
+        || relativePath.startsWith(`${this.excludedDirectory}/`)
+      )
+    ) {
+      return false;
+    }
+    return this.sourcePolicy === null || this.sourcePolicy.shouldIncludeFile(relativePath);
+  }
+
+  #includesDirectory(relativePath) {
+    if (
+      this.excludedDirectory !== null
+      && (
+        relativePath === this.excludedDirectory
+        || relativePath.startsWith(`${this.excludedDirectory}/`)
+      )
+    ) {
+      return false;
+    }
+    return this.sourcePolicy === null || this.sourcePolicy.shouldEnterDirectory(relativePath);
+  }
+}
 
 export class FreshnessScan {
   #newestMs;
@@ -169,20 +271,16 @@ async function newestMtime(
   dir,
   policy = DEFAULT_SCAN_POLICY,
   sourcePolicy = null,
-  excludedDirectory = null
+  excludedDirectory = null,
+  gitRunner = runGit,
 ) {
-  const traversal = new FileTreeWalker(policy).walk(
-    dir,
-    sourcePolicy === null
-      ? undefined
-      : {
-        shouldEnterDirectory: (relativePath) => (
-          relativePath !== excludedDirectory
-          && !relativePath.startsWith(`${excludedDirectory}/`)
-          && sourcePolicy.shouldEnterDirectory(relativePath)
-        ),
-      }
-  );
+  const traversal = new FreshnessFileInventory({
+    root: dir,
+    policy,
+    sourcePolicy,
+    excludedDirectory,
+    gitRunner,
+  }).collect();
   let newestMs = null;
   const limits = [...traversal.limits];
   for (const relativePath of traversal.files) {
@@ -213,6 +311,7 @@ async function newestMtime(
 async function checkFreshness(workRoot, srcRoot, {
   policy = DEFAULT_SCAN_POLICY,
   sourcePolicy: configuredSourcePolicy = FRESHNESS_SOURCE_POLICY,
+  gitRunner = runGit,
 } = {}) {
   const docsDir = path.join(workRoot, "docs");
   const sourceRelativeToWork = path.relative(workRoot, srcRoot);
@@ -245,7 +344,7 @@ async function checkFreshness(workRoot, srcRoot, {
     && !path.isAbsolute(docsRelativeToSource)
   ) ? docsRelativeToSource : null;
   const [srcResult, docsResult] = await Promise.all([
-    newestMtime(srcRoot, policy, sourcePolicy, sourceDocsDirectory),
+    newestMtime(srcRoot, policy, sourcePolicy, sourceDocsDirectory, gitRunner),
     newestMtime(docsDir, policy),
   ]);
 
