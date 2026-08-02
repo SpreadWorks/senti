@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-08-02T07:43:55.713Z",
+  "analyzedAt": "2026-08-02T16:23:39.538Z",
   "package": {
     "entries": [
       {
@@ -2675,9 +2675,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "4c1a834ebbe5b7ff805ae44bdec0e1fc",
-        "lines": 4374,
-        "mtime": "2026-08-02T04:21:56.160Z",
+        "hash": "fdb9f6960e48c3ccc4a09cd91cf28903",
+        "lines": 4343,
+        "mtime": "2026-08-02T16:01:43.080Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2700,7 +2700,6 @@
           "parseProposals",
           "formatCodebaseContextForPrompt",
           "extractProposalFile",
-          "extractProposalRequirementId",
           "collectTouchedFiles",
           "prepareLoopReviewInputsWithExclusions",
           "filterProposalsByScope",
@@ -2732,11 +2731,9 @@
           "groupByDiffContent",
           "buildPerFileReviewInput",
           "buildCrossCheckInput",
-          "buildCrossCheckSystemPrompt",
-          "implLoopRequirementRules",
+          "buildImplLoopSystemPrompt",
           "buildImplLoopReviewSystemPrompt",
           "buildImplLoopCrossCheckSystemPrompt",
-          "parseImplLoopProposals",
           "expandProposalsToGroup",
           "invertFileMap",
           "collectPerFileDiffs",
@@ -2746,7 +2743,6 @@
           "chunkLabel",
           "createLoopReviewChunks",
           "hashLoopReviewInput",
-          "providerOutputInvalid",
           "proposalSuccessPayload",
           "persistLoopFinalArtifacts",
           "toolingFailureResult",
@@ -2849,6 +2845,7 @@
           "../../lib/json-parse.js",
           "../../lib/include.js",
           "../lib/work-unit.js",
+          "../lib/impl-review-proposal.js",
           "../../lib/container.js",
           "../../lib/command.js",
           "../../lib/prompt-builder.js",
@@ -2931,7 +2928,6 @@
           "runSingleShotImplReviewWithDependencies",
           "runNonImplReviewWithDependencies",
           "loopProposalsToImplReviewJson",
-          "parseImplLoopProposals",
           "classifyReviewCommandError",
           "LOOP_REVIEW_THRESHOLD",
           "MAX_LOOP_CALLS"
@@ -2939,30 +2935,31 @@
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command and coordinates multiple review modes for specs, drafts, implementation diffs, and tests. It manages prompt generation, agent execution, validation, and review artifact persistence.",
-        "detail": "The module acts as the central CLI review orchestrator for flow workspaces, resolving targets, merge bases, exclusion rules, and phase-specific behavior before invoking review agents. It contains structured parsing and validation pipelines for implementation, spec, draft, and test review outputs, with JSON repair fallbacks and schema enforcement to keep model responses machine-safe. The implementation includes loop-based review strategies for large diffs, requirement-to-file scoping, prior review memory, and filtering logic so findings stay tied to touched files and known requirement IDs. It also writes normalized Markdown and JSON artifacts, keeps attempt history, and converts provider or tooling failures into consistent review failure objects for user-facing command handling.",
+        "summary": "Implements the `flow review` command and orchestrates automated review workflows for implementation, spec, test, and draft phases. It scopes diffs, builds agent prompts, validates structured outputs, and writes review artifacts and history files.",
+        "detail": "The module acts as the main review dispatcher for flow workspaces, resolving review targets, exclusions, merge-base diffs, and per-phase behavior from CLI arguments and flow metadata. It defines domain classes for implementation, test, spec, and draft review artifacts so parsed agent output can be normalized, validated against JSON schemas, filtered by touched files and requirement IDs, and persisted consistently. For larger implementation changes it supports chunked and loop-based review passes, including proposal grouping, cross-checking, convergence handling, and trusted persistence paths for machine-generated JSON. It also maintains review history, normalized finding records, and markdown/JSON outputs under the spec directory, while enforcing write policies and path safety for generated test fixes. Error handling maps provider, schema, permission, and tooling failures into review-specific failure objects so the CLI can exit predictably and preserve actionable diagnostics.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.854Z",
+          "processedAt": "2026-08-02T16:26:44.547Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review command",
-          "CLI orchestration",
-          "code review automation",
+          "flow review",
+          "CLI command",
+          "automated code review",
+          "implementation review",
           "spec review",
-          "test review",
-          "diff analysis",
-          "artifact persistence",
-          "schema validation"
+          "test coverage review",
+          "schema validation",
+          "review artifacts",
+          "diff scoping"
         ]
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "c9ea63291aa76e779b118c4e7fffa981",
-        "lines": 1562,
-        "mtime": "2026-08-02T00:18:24.634Z",
+        "hash": "23a1d12d37d5f70f5cef77bc9b3db63d",
+        "lines": 1626,
+        "mtime": "2026-08-02T16:01:43.159Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -3093,6 +3090,7 @@
           "buildInitialTaskSteps",
           "derivePrereqs",
           "findBranchForLeaf",
+          "FlowExecutionCommand",
           "FlowNode"
         ],
         "extends": null,
@@ -3100,22 +3098,22 @@
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Defines the flow graph and lifecycle rules for the flow engine. It is the central source of step ordering, retries, and transition actions.",
-        "detail": "The module defines typed max-attempt resolvers, validation helpers, and a set of lifecycle action classes that can be applied through an adapter. It builds static flow and task definitions from nested FlowNode objects, including review routes, gate phases, finalize steps, and report handling. Multiple resolver functions translate runtime input into concrete step mutations, resets, hooks, outbox effects, and side-effect plans. Utility exports derive leaf order, phase maps, prerequisites, active nodes, branch membership, and initial nested step state while enforcing a maximum tree depth.",
+        "summary": "Central definition registry for the flow and task state machine. It models step metadata, lifecycle actions, and traversal helpers that other modules derive behavior from.",
+        "detail": "The module defines immutable action classes such as step-status changes, metric increments, hook execution, and outbox effects, then applies them through adapter methods. It encodes the full flow tree and task tree with `FlowNode` objects, including instructions keys, schemas, approval requirements, retry budgets, failure policies, and definition-owned execution commands. Lifecycle resolvers translate review, gate, report, and finalize events into concrete state transitions, resets, side effects, and artifact maintenance. It also provides lookup and traversal helpers for active-step resolution, prerequisite derivation, gate-phase mapping, initial state construction, and next-action metadata extraction.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.873Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
           "flow definition",
-          "workflow graph",
-          "state machine",
+          "workflow state machine",
           "lifecycle actions",
-          "step transitions",
-          "retry policy",
-          "prerequisite map"
+          "step tree",
+          "next action metadata",
+          "approval gate",
+          "retry policy"
         ]
       },
       {
@@ -3403,9 +3401,9 @@
       },
       {
         "file": "src/flow/lib/base-command.js",
-        "hash": "ce482b73b39c83bca29686bcdd926a4a",
-        "lines": 105,
-        "mtime": "2026-08-01T15:34:09.542Z",
+        "hash": "5f4eb6e34ff7e38a5b50037b1cbbe6d3",
+        "lines": 119,
+        "mtime": "2026-08-02T16:01:43.160Z",
         "className": "base-command",
         "methods": [
           "FlowCommand"
@@ -3482,21 +3480,22 @@
           "src/lib/dispatcher.js"
         ],
         "id": "83f60bd3",
-        "summary": "Defines the base class for flow CLI commands and standardizes context resolution before execution.",
-        "detail": "FlowCommand extends the shared Command base and centralizes flow-context resolution before a concrete command runs. It converts exact-target mismatches into a structured envelope, rejects execution when no active flow exists, and then delegates to a subclass-provided execute method. The file also re-exports explicit task option parsing so flow commands share the same task-targeting behavior.",
+        "summary": "Base class for flow commands that resolves shared execution context before running command logic. It standardizes target-guard handling, active-flow resolution, and envelope-style mismatch responses.",
+        "detail": "The class extends the generic command abstraction and declares envelope output as the default mode for all flow commands. Its constructor controls whether a command requires an active flow, enforces target guards, and resolves explicit targets before ambient authority. The `run` method builds a normalized context with `resolveFlowContext`, merges CLI input, converts target mismatches into structured envelopes, and throws only when a required flow is missing. Subclasses implement `execute(ctx)` and inherit a consistent boundary for container access, target validation, and flow-state lookup.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.873Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
-          "CLI base class",
+          "base command",
           "flow command",
-          "context resolution",
-          "target mismatch",
-          "active flow guard",
-          "task option parsing"
+          "execution context",
+          "target guard",
+          "active flow",
+          "command envelope",
+          "CLI abstraction"
         ]
       },
       {
@@ -3531,6 +3530,71 @@
           "state regression",
           "task sync",
           "validation helper"
+        ]
+      },
+      {
+        "file": "src/flow/lib/dispatch-invocation.js",
+        "hash": "83d8103dcafdc41c48a529cb11739147",
+        "lines": 469,
+        "mtime": "2026-08-02T16:03:52.790Z",
+        "className": "dispatch-invocation",
+        "methods": [
+          "flowDispatchDigest",
+          "FlowDispatchTarget",
+          "FlowDispatchSession",
+          "FlowDispatchActionIdentity",
+          "FlowDispatchAuthorization",
+          "UnapprovedFlowDispatchAuthorization",
+          "ExplicitFlowDispatchAuthorization",
+          "AutoApprovedFlowDispatchAuthorization",
+          "FlowDispatchInvocationStaleError",
+          "FlowDispatchInvocation",
+          "requireString",
+          "stableStringify",
+          "expectationFromContext",
+          "directiveProgressIdentity"
+        ],
+        "imports": [
+          "node:crypto",
+          "../../lib/flow-target-guard.js",
+          "./next-action-directive.js"
+        ],
+        "exports": [
+          "flowDispatchDigest",
+          "FlowDispatchTarget",
+          "FlowDispatchSession",
+          "FlowDispatchActionIdentity",
+          "FlowDispatchAuthorization",
+          "UnapprovedFlowDispatchAuthorization",
+          "ExplicitFlowDispatchAuthorization",
+          "AutoApprovedFlowDispatchAuthorization",
+          "FlowDispatchInvocationStaleError",
+          "FlowDispatchInvocation",
+          "FLOW_DISPATCH_INVOCATION_ENV",
+          "FLOW_DISPATCH_INVOCATION_ID_ENV",
+          "FLOW_TARGET_BINDING_ENV"
+        ],
+        "extends": "FlowDispatchAuthorization",
+        "usedBy": [
+          "src/flow/lib/run-dispatch.js"
+        ],
+        "id": "1ec973b0",
+        "summary": "Defines the immutable dispatch invocation contract that binds a next action to a flow target, repository fingerprint, and approval state. It also serializes the worker environment and detects stale authorizations.",
+        "detail": "The module builds stable SHA-256 digests over targets and actions so dispatch state can be compared without trusting mutable objects. It models target capture, session identity, action identity, and multiple authorization forms, including unapproved, explicit approval receipts, and auto-approve authorization for choice `1`. Explicit approvals are validated against run identity, action digest, approval token, and persisted receipts to prevent replay against a changed action. `FlowDispatchInvocation` packages the session, action, and authorization together, exposes environment variables for worker processes, and throws typed stale errors when the active action or approval state has changed.",
+        "chapter": "internal_design",
+        "role": "model",
+        "enrich": {
+          "processedAt": "2026-08-02T16:26:44.563Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "dispatch invocation",
+          "approval token",
+          "action digest",
+          "repository fingerprint",
+          "target binding",
+          "stale authorization",
+          "worker environment"
         ]
       },
       {
@@ -4188,9 +4252,9 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "8ff443ad756412e3ee511a80f1659c4b",
-        "lines": 207,
-        "mtime": "2026-08-01T19:00:57.396Z",
+        "hash": "2bf5a79bba65e53ae6773ae500f05139",
+        "lines": 211,
+        "mtime": "2026-08-02T16:01:43.160Z",
         "className": "flow-context",
         "methods": [
           "resolveFlowContext",
@@ -4219,22 +4283,22 @@
           "src/flow/lib/get-runtime-log.js"
         ],
         "id": "e296da98",
-        "summary": "Resolves the active flow context for commands by combining workspace location, worktree bindings, and explicit selection inputs. It centralizes how the CLI decides which flow manager, flow state, and authority root should be used.",
-        "detail": "The code reads dispatch invocation metadata from the environment and normalizes run, spec, and issue selection fields. It can derive authority from a preparing run ID, from a bound worktree provenance record, or from the current working directory when a local flow state is already present. Resolution is defensive: it preserves missing-state sentinels and attaches a flow resolution error instead of failing unconditionally when optional sources cannot be resolved. The returned context carries the chosen manager and authority root so later commands can enforce target expectations consistently.",
+        "summary": "Resolves flow command context from the shared container, including artifact authority and execution root. It handles active flows, preparing flows, explicit target selection, and bound worktree provenance.",
+        "detail": "The module derives a `FlowTargetExpectation`, reads the dispatch invocation ID from the environment, and decides which authority root should own flow artifacts. It can switch context to a bound worktree flow, a preparing flow selected by run ID, or an explicitly requested target before falling back to the current working tree or active-flow resolver. The returned context includes the effective flow manager, flow state, spec location, repository roots, execution root, and any flow-resolution error captured during lookup. This keeps command implementations independent from the details of worktree bindings, main-repo artifact storage, and target-selection rules.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.888Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
-          "flow context resolution",
+          "flow context",
           "worktree binding",
-          "run selection",
+          "target expectation",
           "authority root",
-          "dispatch invocation",
-          "flow manager",
-          "target expectation"
+          "preparing flow",
+          "spec location",
+          "execution root"
         ]
       },
       {
@@ -4906,9 +4970,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "16089830e492a016da4178f8ec75b0ef",
-        "lines": 766,
-        "mtime": "2026-08-01T17:09:34.174Z",
+        "hash": "e6a23e30aeb9e00299899c2201ae6362",
+        "lines": 772,
+        "mtime": "2026-08-02T16:01:43.160Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -4986,22 +5050,22 @@
           "src/flow/lib/run-dispatch.js"
         ],
         "id": "c68afd69",
-        "summary": "Computes the next action for a flow, including step promotion, recovery directives, and injected rule content. It is the main planning layer that turns the current flow state into an executable instruction or a terminal outcome.",
-        "detail": "The module loads JSON schemas and persistent skill rules, caches reusable rule data, and builds context descriptors for the selected target step. It detects unresolved in-progress work, gate retries, semantic deferrals, review recovery, preimplementation bootstrap needs, and interrupted finalization or review-pass recovery, then emits matching execute-command directives when needed. Planning is modeled explicitly with promotion and terminal plan objects, and the plan is validated against the live state before effects run to prevent stale decisions from mutating the flow. The command class wires the planner to concrete side effects and converts validation failures into structured next-action envelopes.",
+        "summary": "Computes the single authoritative next action for the current flow or task step and persists any required promotion. It turns definition metadata, runtime state, and recovery logic into the dispatcher-facing contract.",
+        "detail": "The command loads output schemas and step instructions, injects persistent rule blocks, normalizes the task cursor, and rejects unresolved in-progress steps that are missing from the definition. Its planner derives action metadata from the definition, attaches retry and review state, and builds directives for ordinary execution, repair-evidence recovery, user decisions, blocked states, and terminal completion. It also handles nonblocking continuations, canonical review recovery, finalize outbox recovery, and preimplementation bootstrap shortcuts before returning a result. When promotion is needed, it validates the plan against the current flow revision and writes the updated state atomically before returning the next-action payload.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.888Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
-          "next action planner",
+          "next action",
+          "workflow planner",
+          "directive resolution",
           "step promotion",
-          "recovery directive",
-          "persistent rules",
-          "schema validation",
-          "gate retry",
-          "flow automation"
+          "recovery flow",
+          "task cursor",
+          "guarded execution"
         ]
       },
       {
@@ -5517,6 +5581,58 @@
         ]
       },
       {
+        "file": "src/flow/lib/impl-review-proposal.js",
+        "hash": "04e75593b4a3f9a875c250c7fc317815",
+        "lines": 202,
+        "mtime": "2026-08-02T16:01:43.081Z",
+        "className": "impl-review-proposal",
+        "methods": [
+          "ImplReviewProposal",
+          "ImplReviewProposalBatch",
+          "ImplReviewProposalPrompt",
+          "ImplReviewProposalContract",
+          "deepFreeze",
+          "requireText",
+          "normalizeRequirementIds",
+          "normalizeFile",
+          "proposalSchema",
+          "responseSchema",
+          "fmtFallback"
+        ],
+        "imports": [
+          "crypto",
+          "../../lib/schema-validate.js",
+          "./work-unit.js"
+        ],
+        "exports": [
+          "ImplReviewProposal",
+          "ImplReviewProposalBatch",
+          "ImplReviewProposalPrompt",
+          "ImplReviewProposalContract",
+          "IMPL_REVIEW_PROPOSAL_SCHEMA_VERSION"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "8406cc54",
+        "summary": "Defines the JSON contract for implementation review proposals and validates model output against the active requirement set. It converts raw responses into frozen proposal objects or structured tooling failures.",
+        "detail": "The module normalizes requirement IDs, enforces repository-relative file paths, and rejects empty or malformed text fields before any proposal is accepted. It generates a schema and fallback formatting instructions from the currently allowed requirement IDs, then fingerprints that schema for downstream work-unit identity. `ImplReviewProposal`, `ImplReviewProposalBatch`, and related prompt and contract classes provide immutable wrappers over parsed results. Parsing failures, JSON errors, schema mismatches, and invariant violations are all converted into `WorkUnitToolingFailure` instances so review tooling can retry or escalate consistently.",
+        "chapter": "internal_design",
+        "role": "model",
+        "enrich": {
+          "processedAt": "2026-08-02T16:26:44.563Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "implementation review",
+          "proposal schema",
+          "JSON validation",
+          "requirement mapping",
+          "tooling failure",
+          "response contract",
+          "repository-relative path"
+        ]
+      },
+      {
         "file": "src/flow/lib/implementation-revalidation.js",
         "hash": "04266b205f8a69ac045b0d6f700a9242",
         "lines": 229,
@@ -5717,9 +5833,9 @@
       },
       {
         "file": "src/flow/lib/next-action-directive.js",
-        "hash": "4805e472290f3c3db5786d075260c91d",
-        "lines": 420,
-        "mtime": "2026-07-31T07:02:22.010Z",
+        "hash": "bd46b7ba67b408f1ca9d56437bd3e597",
+        "lines": 415,
+        "mtime": "2026-08-02T16:01:43.081Z",
         "className": "next-action-directive",
         "methods": [
           "NextActionDirective",
@@ -5735,7 +5851,6 @@
           "assertNextActionDirective",
           "requireString",
           "requireActionId",
-          "reviewCommand",
           "refreshCommand",
           "reviewDirective",
           "gateDirective"
@@ -5761,28 +5876,29 @@
         ],
         "extends": "NextActionDirective",
         "usedBy": [
+          "src/flow/lib/dispatch-invocation.js",
           "src/flow/lib/finalization-outbox-recovery.js",
           "src/flow/lib/get-next-action.js",
           "src/flow/lib/run-dispatch.js",
           "src/flow/lib/task-gate-completion.js"
         ],
         "id": "8ab50868",
-        "summary": "Defines typed directives that tell the CLI what the next Flow action should be. The resolver converts runtime state into explicit step, command, evidence, waiting, blocked, or terminal instructions.",
-        "detail": "The module validates stable action IDs and bounded text fields so directives can be persisted and replayed safely. It models directive variants as subclasses with JSON serialization, including command continuations and repair-evidence payloads. Helper functions generate guarded follow-up commands for review and refresh operations based on phase and recovery state. The resolver inspects the current Flow state and binding hooks to emit one structured directive, and an assertion helper validates stored directive data before use.",
-        "chapter": "cli_commands",
-        "role": "lib",
+        "summary": "Implements the typed directive layer returned by `flow get next-action`. It ensures that only one authoritative routing instruction is exposed to agents and the dispatcher.",
+        "detail": "The module defines immutable directive classes for step execution, guarded command execution, evidence repair, user-decision waits, blocked states, completion, abortion, and idle termination. It validates stable action IDs and text lengths, then serializes every directive into a consistent JSON shape that can be stored and reconstructed later. Helper functions map review convergence outcomes and gate-recovery states into concrete directives instead of letting subsystems issue competing instructions. The resolver prioritizes persisted review operations and step outcomes, while `assertNextActionDirective` rejects legacy fields that would conflict with the new directive contract.",
+        "chapter": "internal_design",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-08-01T00:27:38.426Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
-          "next action directive",
-          "CLI continuation",
-          "guarded command",
-          "flow resolver",
-          "user decision",
+          "next-action directive",
+          "workflow routing",
+          "execute command",
           "repair evidence",
-          "workflow state"
+          "await user decision",
+          "blocked directive",
+          "directive contract"
         ]
       },
       {
@@ -7942,17 +8058,16 @@
       },
       {
         "file": "src/flow/lib/run-dispatch.js",
-        "hash": "4bdcf3336b9f1e83eecc306dcb2781c1",
-        "lines": 755,
-        "mtime": "2026-08-02T04:02:35.188Z",
+        "hash": "e9e8876055edcf9eb45c917c49ce28c1",
+        "lines": 721,
+        "mtime": "2026-08-02T16:15:06.196Z",
         "className": "run-dispatch",
         "methods": [
           "FlowDispatchLease",
+          "FlowDispatchRepositoryFingerprintError",
           "FlowDispatchAction",
           "FlowDispatchBoundary",
           "FlowDispatchWork",
-          "stableStringify",
-          "sha256",
           "errorMessages",
           "errorCode",
           "targetGuardInput",
@@ -7963,7 +8078,6 @@
           "blockedBoundary"
         ],
         "imports": [
-          "node:crypto",
           "node:path",
           "./base-command.js",
           "../../lib/flow-envelope.js",
@@ -7971,38 +8085,38 @@
           "../../lib/process-owned-lock.js",
           "./next-action-directive.js",
           "./test-artifacts.js",
-          "../../lib/flow-target-guard.js",
           "./get-next-action.js",
           "./repair-state-identity.js",
-          "../../lib/flow-workspace.js"
+          "../../lib/flow-workspace.js",
+          "./dispatch-invocation.js"
         ],
         "exports": [
           "FlowDispatchLease",
+          "FlowDispatchRepositoryFingerprintError",
           "FlowDispatchAction",
           "FlowDispatchBoundary",
           "FlowDispatchWork",
           "default"
         ],
-        "extends": "FlowCommand",
+        "extends": "Error",
         "usedBy": null,
         "id": "6c7fd82a",
-        "summary": "Implements the flow dispatch loop that turns a computed next action into bounded agent execution. It also protects dispatch with approval, identity, and lock semantics so stale or duplicated work is rejected.",
-        "detail": "The module builds stable SHA-256 identities from flow state, target binding, and repository fingerprints, then derives approval tokens and receipts to persist user approval safely. It wraps dispatch state in small domain objects for actions, work items, progress identities, and boundaries, which standardize checks like execute-step, blocked, and await-user-decision. A lease-based lock under the workspace metadata directory prevents concurrent dispatch for the same flow, while helper functions normalize error codes and messages from envelopes and target guards. The command class orchestrates next-action retrieval, stall and max-dispatch limits, agent prompt construction, and conversion of failure paths into structured flow boundaries or error envelopes.",
-        "chapter": "project_structure",
+        "summary": "Runs the agent-independent dispatch loop that repeatedly fetches guarded next actions and delegates one continuation at a time to the configured agent service. It enforces locking, approval boundaries, repository fingerprint checks, and durable-progress verification.",
+        "detail": "The command captures an exact target, acquires a process-owned lease under `.senti`, and resolves the next action inside a bounded continuation loop. For dispatchable actions, it creates an invocation tied to the current repository fingerprint, persists explicit approvals when needed, and supports auto-approve only for the declared choice `1`. It sends the worker a machine-readable prompt plus environment variables, then refreshes guarded authority after execution instead of trusting the worker response as a completion signal. The loop terminates at user-decision, auto-upgrade, blocked, terminal, stall, or safety-limit boundaries and returns structured envelopes for agent failures, stale approvals, target mismatches, and fingerprint capture problems.",
+        "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:36.953Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
           "flow dispatch",
-          "workflow orchestration",
-          "approval token",
-          "dispatch lock",
-          "next action",
-          "agent execution",
-          "state identity",
-          "boundary handling"
+          "agent loop",
+          "approval boundary",
+          "process lock",
+          "repository fingerprint",
+          "durable progress",
+          "worker prompt"
         ]
       },
       {
@@ -12077,9 +12191,9 @@
       },
       {
         "file": "src/flow/lib/work-unit.js",
-        "hash": "c11bf3932ac73c3f1b7b27c05cad49ae",
-        "lines": 498,
-        "mtime": "2026-08-02T04:21:56.156Z",
+        "hash": "693f1042922751d9d2d33487c4adf619",
+        "lines": 518,
+        "mtime": "2026-08-02T16:01:43.082Z",
         "className": "work-unit",
         "methods": [
           "WorkUnitInvariantError",
@@ -12096,12 +12210,12 @@
           "classifyWorkUnitFailure",
           "shouldFallbackSplit",
           "planFallbackChildWorkUnits",
-          "runFallbackChildWorkUnits",
           "shouldUseWorkUnitsForReviewPhase",
           "requiredString",
           "optionalParentUnitId",
           "normalizeTargetFile",
           "normalizeTargetFiles",
+          "normalizeAllowedRequirementIds",
           "stableJson",
           "sha256",
           "nowIso",
@@ -12128,35 +12242,36 @@
           "classifyWorkUnitFailure",
           "shouldFallbackSplit",
           "planFallbackChildWorkUnits",
-          "runFallbackChildWorkUnits",
           "shouldUseWorkUnitsForReviewPhase"
         ],
         "extends": "Error",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/impl-review-proposal.js"
+        ],
         "id": "be554a62",
-        "summary": "Provides work-unit identities, checkpoints, failure classification, and fallback chunk planning for review workloads. It supports resumable execution so review phases can reuse prior success or split repeated failures into smaller units.",
-        "detail": "The module normalizes target files, builds deterministic identities, and hashes stable JSON so work units can be compared and resumed reliably. It defines checkpoint, plan-entry, and resume-decision classes plus a filesystem-backed store that writes review history under namespaced work-unit directories. Failure handling bridges AgentFailure instances with tooling and invariant errors, preserving retryability, attempt counts, and diagnostic metadata. Additional helpers detect repeated failures, plan child work units for fallback splitting, execute those children, and enable work units only for implementation-loop review mode.",
-        "chapter": "development",
-        "role": "lib",
+        "summary": "Provides resumable work-unit identities, checkpoints, and failure classification for multi-attempt review tooling. It lets impl-review subwork be reused, retried, or split without losing stable identity.",
+        "detail": "The module hashes normalized identity fields such as phase, kind, target files, schema digest, and allowed requirement IDs to create deterministic work-unit IDs. It stores success and failure checkpoints on disk, offers an in-memory variant for tests, and decides whether a planned unit should execute, reuse a prior success, or stop on a non-retryable failure. Helper constructors build loop-chunk and cross-check identities for implementation review pipelines, while normalized failures preserve retry metadata and provider diagnostics. It also detects repeated retryable failures and plans child work units for fallback splitting when a parent chunk should be decomposed.",
+        "chapter": "internal_design",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:37.052Z",
+          "processedAt": "2026-08-02T16:26:44.563Z",
           "attempts": 1
         },
         "keywords": [
           "work unit",
           "checkpoint store",
-          "resume logic",
-          "retry classification",
-          "chunk splitting",
-          "review workload",
-          "stable hashing"
+          "resume decision",
+          "failure classification",
+          "review retry",
+          "stable identity",
+          "fallback split"
         ]
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "36ed8afbfbcb41406076f7d17e31d315",
+        "hash": "013eee252427c6083631e6bcbb3b41b5",
         "lines": 1954,
-        "mtime": "2026-08-02T04:00:57.065Z",
+        "mtime": "2026-08-02T16:01:43.161Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -12207,22 +12322,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Registers flow CLI commands and coordinates lifecycle hooks, step routing, and finalization side effects. It acts as the central controller for applying flow-state transitions around command execution.",
-        "detail": "The file assembles command handlers, guard flags, help text, and runtime options for the flow subcommand surface. It derives active phases, resolves gate and review step IDs, updates step status defensively, and appends issue-log or runtime-log entries when lifecycle events fire. A RegistryLifecycleAdapter encapsulates gate side effects, finalize-state ownership, outbox identity handling, review hooks, finalize hooks, and merge-outcome persistence. The exported command registry also validates generated artifacts such as test-execute results, test-result reviews, retrospectives, and final regression records before allowing later transitions.",
+        "summary": "Central registry for `senti flow` command handlers and lifecycle transitions. It unifies command definitions, target-guard wiring, and flow step side effects in one dispatch layer.",
+        "detail": "The module defines shared guard flags and options for flow commands, then uses helper functions to derive active phases, resolve runtime log step IDs, and reset downstream skipped steps when state changes. Its registry logic coordinates gate, draft-review, review, and finalize behaviors so command execution can update step status and keep Flow state consistent. `RegistryLifecycleAdapter` provides a structured bridge for command lifecycle events, including plugin hooks, gate side effects, finalize outbox handling, and issue-log appends. The exported `FLOW_COMMANDS` table binds concrete subcommands, help text, artifact validation, and pre/post/error lifecycle processing into the CLI runtime.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:37.052Z",
+          "processedAt": "2026-08-02T16:26:44.580Z",
           "attempts": 1
         },
         "keywords": [
           "flow command registry",
-          "CLI dispatcher",
+          "CLI dispatch",
           "lifecycle hooks",
-          "step routing",
-          "finalization",
-          "runtime log",
-          "state transition"
+          "step status tracking",
+          "draft review",
+          "finalize flow",
+          "target guard"
         ]
       },
       {
@@ -14005,9 +14120,9 @@
       },
       {
         "file": "src/lib/flow-target-guard.js",
-        "hash": "a9bb9c285e5491dcdef6a1e78deb3b06",
-        "lines": 550,
-        "mtime": "2026-08-01T15:34:09.541Z",
+        "hash": "699da2a343d9d53239c0c7febc81cfa8",
+        "lines": 569,
+        "mtime": "2026-08-02T16:01:43.161Z",
         "className": "flow-target-guard",
         "methods": [
           "FlowTargetBindingMismatchError",
@@ -14052,22 +14167,22 @@
           "src/lib/flow-manager.js"
         ],
         "id": "e8f31d59",
-        "summary": "Implements exact target guards for flow commands by encoding the active issue, spec, run ID, and execution authority into a verifiable binding. It converts mismatches into structured envelopes for CLI-facing errors.",
-        "detail": "The module normalizes user-supplied guard arguments such as `--expect-issue`, `--expect-spec`, `--expect-run-id`, and `--expect-binding` and rejects ambiguous combinations. It models execution context as branch, local, or managed worktree authority and compares the current environment against the stored binding. Bindings are serialized as bounded base64url JSON tokens with a stable SHA-256 fingerprint and can be appended directly to guarded shell commands. When validation fails, the code builds detailed mismatch summaries and envelopes so callers can report precise target-conflict diagnostics.",
+        "summary": "Implements exact-target guards for flow commands by capturing and validating the active flow identity against explicit expectations. It turns guard mismatches into structured envelopes instead of ad hoc command failures.",
+        "detail": "The module normalizes `--expect-issue`, `--expect-spec`, `--expect-run-id`, and binding tokens, enforcing strict formats and canonical values before comparison. It models execution authority with dedicated classes for branch, local, and managed-worktree contexts, using canonical real paths to detect whether the active Flow is running in the expected repository root. `FlowTargetBinding` captures the current Flow state, serializes it as a bounded base64url token, exposes digest and command-guard helpers, and validates the active state with detailed mismatch data. `FlowTargetExpectation` merges explicit flags with stored bindings, while envelope builders convert validation errors into consistent machine-readable mismatch responses and identify missing exact-target guard names.",
         "chapter": "cli_commands",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-08-02T07:52:37.082Z",
+          "processedAt": "2026-08-02T16:26:44.580Z",
           "attempts": 1
         },
         "keywords": [
-          "target guard",
-          "expect binding",
-          "issue guard",
-          "worktree authority",
-          "CLI validation",
-          "mismatch envelope",
-          "run id check"
+          "flow target guard",
+          "binding token",
+          "execution authority",
+          "worktree validation",
+          "issue expectation",
+          "spec guard",
+          "mismatch envelope"
         ]
       },
       {
@@ -17234,10 +17349,10 @@
       }
     ],
     "summary": {
-      "total": 300,
-      "totalMethods": 3331
+      "total": 302,
+      "totalMethods": 3350
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-08-02T07:52:37.116Z"
+  "enrichedAt": "2026-08-02T16:26:44.580Z"
 }
