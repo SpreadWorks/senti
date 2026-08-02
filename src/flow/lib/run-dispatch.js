@@ -35,8 +35,8 @@ import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import {
   AutoApprovedFlowDispatchAuthorization,
   ExplicitFlowDispatchAuthorization,
-  FlowDispatchActionIdentity,
   FlowDispatchInvocation,
+  FlowDispatchSession,
   FlowDispatchTarget,
   UnapprovedFlowDispatchAuthorization,
   flowDispatchDigest,
@@ -96,14 +96,12 @@ function dispatchLockError(status, message, { lockPath, cause } = {}) {
 }
 
 export class FlowDispatchLease {
-  constructor({ target, dispatchInvocationId }) {
-    if (!(target instanceof FlowDispatchTarget)) {
-      throw new Error("FlowDispatchLease requires a FlowDispatchTarget");
+  constructor(session) {
+    if (!(session instanceof FlowDispatchSession)) {
+      throw new Error("FlowDispatchLease requires a FlowDispatchSession");
     }
-    if (typeof dispatchInvocationId !== "string" || dispatchInvocationId.trim() === "") {
-      throw new Error("FlowDispatchLease requires a dispatch invocation id");
-    }
-    this.dispatchInvocationId = dispatchInvocationId.trim();
+    this.session = session;
+    const { target } = session;
     const mainRoot = target.dispatchLockRoot;
     if (!mainRoot) {
       throw new Error("FlowDispatchLease target requires captured authority");
@@ -143,18 +141,20 @@ export class FlowDispatchLease {
   }
 }
 
-function persistDispatchApproval(ctx, action, expectedToken) {
+function persistDispatchApproval(ctx, invocation) {
+  if (
+    !(invocation instanceof FlowDispatchInvocation)
+    || !(invocation.authorization instanceof ExplicitFlowDispatchAuthorization)
+  ) {
+    throw new Error("flow dispatch approval persistence requires an explicitly authorized invocation");
+  }
+  const { action, authorization } = invocation;
   const state = readFlowState(ctx);
   const existing = ExplicitFlowDispatchAuthorization.matching(state, action);
   if (existing) return existing;
   if (typeof ctx.flowManager?.mutate !== "function") {
     throw new Error("flow dispatch approval persistence requires a writable Flow manager");
   }
-  const authorization = new ExplicitFlowDispatchAuthorization({
-    action,
-    runId: action.target.runId,
-    approvalToken: expectedToken,
-  });
   ctx.flowManager.mutate((current) => {
     if (current.runId !== action.target.runId) {
       throw new Error("flow dispatch approval target changed before persistence");
@@ -170,6 +170,22 @@ function persistDispatchApproval(ctx, action, expectedToken) {
     operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
   });
   return authorization;
+}
+
+export class FlowDispatchRepositoryFingerprintError extends Error {
+  constructor({ cause, nextAction, dispatchCount, phase }) {
+    if (!["action-capture", "pre-handoff-validation", "post-handoff-progress"].includes(phase)) {
+      throw new Error(`invalid Flow dispatch repository fingerprint phase: ${phase}`);
+    }
+    super(`failed to capture the Flow dispatch repository fingerprint: ${cause?.message || cause}`, {
+      cause,
+    });
+    this.name = "FlowDispatchRepositoryFingerprintError";
+    this.code = "FLOW_DISPATCH_REPOSITORY_FINGERPRINT_FAILED";
+    this.nextAction = nextAction;
+    this.dispatchCount = dispatchCount;
+    this.phase = phase;
+  }
 }
 
 export class FlowDispatchAction {
@@ -314,10 +330,7 @@ export default class RunDispatchCommand extends FlowCommand {
     repositoryFingerprint = dispatchRepositoryFingerprint,
     maxDispatches = DEFAULT_MAX_DISPATCHES,
     maxStalledDispatches = DEFAULT_MAX_STALLED_DISPATCHES,
-    leaseFactory = (target, dispatchInvocationId) => new FlowDispatchLease({
-      target,
-      dispatchInvocationId,
-    }),
+    leaseFactory = (session) => new FlowDispatchLease(session),
   } = {}) {
     super({ explicitTargetResolution: true });
     this.nextAction = nextAction;
@@ -332,19 +345,17 @@ export default class RunDispatchCommand extends FlowCommand {
     return this.nextAction.run(this.container, targetGuardInput(target));
   }
 
-  captureAction(ctx, target, nextAction) {
-    let repositoryFingerprint = null;
+  captureAction(ctx, session, nextAction, dispatchCount, phase) {
     try {
-      repositoryFingerprint = this.repositoryFingerprint(ctx);
-    } catch {
-      // The guarded action identity remains useful in non-Git fixtures and
-      // while Git is temporarily unavailable.
+      return session.captureAction(nextAction, this.repositoryFingerprint(ctx));
+    } catch (cause) {
+      throw new FlowDispatchRepositoryFingerprintError({
+        cause,
+        nextAction,
+        dispatchCount,
+        phase,
+      });
     }
-    return new FlowDispatchActionIdentity({
-      target,
-      nextAction,
-      repositoryFingerprint,
-    });
   }
 
   failure(ctx, code, messages, data) {
@@ -370,8 +381,8 @@ export default class RunDispatchCommand extends FlowCommand {
       );
     }
 
-    const dispatchInvocationId = FlowDispatchInvocation.createId();
-    const lease = this.leaseFactory(target, dispatchInvocationId);
+    const session = new FlowDispatchSession({ target });
+    const lease = this.leaseFactory(session);
     try {
       lease.acquire();
     } catch (error) {
@@ -391,13 +402,37 @@ export default class RunDispatchCommand extends FlowCommand {
       );
     }
     try {
-      return await this.dispatchContinuation(ctx, target, dispatchInvocationId);
+      try {
+        return await this.dispatchContinuation(ctx, session);
+      } catch (error) {
+        if (!(error instanceof FlowDispatchRepositoryFingerprintError)) throw error;
+        const boundaryMessage = error.phase === "action-capture"
+          ? "The repository fingerprint could not be captured. No authorization was issued and no worker was started for this action."
+          : error.phase === "pre-handoff-validation"
+            ? "The repository fingerprint could not be recaptured before handoff. No worker was started for this action."
+            : "The worker ran, but its result was not accepted because repository progress could not be verified.";
+        return this.failure(
+          ctx,
+          error.code,
+          error.message,
+          {
+            ...blockedBoundary({
+              nextAction: error.nextAction,
+              dispatchCount: error.dispatchCount,
+              message: boundaryMessage,
+            }),
+            cause: error.cause?.message || String(error.cause),
+            fingerprintPhase: error.phase,
+          },
+        );
+      }
     } finally {
       lease.release();
     }
   }
 
-  async dispatchContinuation(ctx, target, dispatchInvocationId) {
+  async dispatchContinuation(ctx, session) {
+    const { target } = session;
     const agent = this.agent || this.container.get("agent");
     let dispatchCount = 0;
     let stalledDispatches = 0;
@@ -428,7 +463,6 @@ export default class RunDispatchCommand extends FlowCommand {
       }
 
       const action = new FlowDispatchAction(current);
-      const actionIdentity = this.captureAction(ctx, target, current);
 
       if (action.awaitsUserDecision) {
         if (suppliedApproval) {
@@ -503,10 +537,25 @@ export default class RunDispatchCommand extends FlowCommand {
         );
       }
 
+      const actionIdentity = this.captureAction(
+        ctx,
+        session,
+        current,
+        dispatchCount,
+        "action-capture",
+      );
       let flowState = readFlowState(ctx);
-      let authorization = ExplicitFlowDispatchAuthorization.matching(flowState, actionIdentity);
+      const storedAuthorization = action.requiresApproval
+        ? ExplicitFlowDispatchAuthorization.matching(flowState, actionIdentity)
+        : null;
+      let invocation = new FlowDispatchInvocation({
+        session,
+        action: actionIdentity,
+        authorization: storedAuthorization
+          ?? new UnapprovedFlowDispatchAuthorization(actionIdentity),
+      });
       if (action.requiresApproval) {
-        const expectedApproval = actionIdentity.approvalToken();
+        const expectedApproval = invocation.approvalToken();
         if (suppliedApproval && suppliedApproval !== expectedApproval) {
           return this.failure(
             ctx,
@@ -521,16 +570,26 @@ export default class RunDispatchCommand extends FlowCommand {
           );
         }
         if (suppliedApproval === expectedApproval) {
-          authorization = persistDispatchApproval(ctx, actionIdentity, expectedApproval);
+          const explicitAuthorization = storedAuthorization
+            ?? new ExplicitFlowDispatchAuthorization({
+              action: actionIdentity,
+              runId: target.runId,
+              approvalToken: expectedApproval,
+            });
+          invocation = invocation.withAuthorization(explicitAuthorization);
+          const persistedAuthorization = persistDispatchApproval(ctx, invocation);
+          invocation = invocation.withAuthorization(persistedAuthorization);
           flowState = readFlowState(ctx);
           suppliedApproval = null;
-        } else if (!authorization && flowState?.autoApprove === true && action.isAutoApproveEligible) {
-          authorization = new AutoApprovedFlowDispatchAuthorization({
-            action: actionIdentity,
-            choiceId: action.autoApproveChoiceId,
-          });
+        } else if (!invocation.approved && flowState?.autoApprove === true && action.isAutoApproveEligible) {
+          invocation = invocation.withAuthorization(
+            new AutoApprovedFlowDispatchAuthorization({
+              action: actionIdentity,
+              choiceId: action.autoApproveChoiceId,
+            }),
+          );
         }
-        if (!authorization) {
+        if (!invocation.approved) {
           return new FlowDispatchBoundary({
             kind: "approval_required",
             nextAction: current,
@@ -551,19 +610,18 @@ export default class RunDispatchCommand extends FlowCommand {
         );
       }
 
-      authorization ??= new UnapprovedFlowDispatchAuthorization(actionIdentity);
-      const invocation = new FlowDispatchInvocation({
-        id: dispatchInvocationId,
-        target,
-        action: actionIdentity,
-        authorization,
-      });
       const validated = await this.fetchNextAction(target);
       if (validated instanceof Envelope) {
         current = validated;
         continue;
       }
-      const activeAction = this.captureAction(ctx, target, validated);
+      const activeAction = this.captureAction(
+        ctx,
+        session,
+        validated,
+        dispatchCount,
+        "pre-handoff-validation",
+      );
       try {
         invocation.assertCurrent(activeAction, readFlowState(ctx));
       } catch (error) {
@@ -623,8 +681,14 @@ export default class RunDispatchCommand extends FlowCommand {
             : boundary,
         );
       }
-      const refreshedIdentity = this.captureAction(ctx, target, refreshed);
-      stalledDispatches = invocation.action.hasProgressedTo(refreshedIdentity)
+      const refreshedIdentity = this.captureAction(
+        ctx,
+        session,
+        refreshed,
+        dispatchCount,
+        "post-handoff-progress",
+      );
+      stalledDispatches = invocation.hasProgressedTo(refreshedIdentity)
         ? 0
         : stalledDispatches + 1;
       if (stalledDispatches >= this.maxStalledDispatches) {

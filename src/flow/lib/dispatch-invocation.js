@@ -115,6 +115,25 @@ export class FlowDispatchTarget {
   }
 }
 
+export class FlowDispatchSession {
+  constructor({ id = crypto.randomUUID(), target }) {
+    if (!(target instanceof FlowDispatchTarget)) {
+      throw new Error("FlowDispatchSession requires a FlowDispatchTarget");
+    }
+    this.id = requireString(id, "FlowDispatchSession id");
+    this.target = target;
+    Object.freeze(this);
+  }
+
+  captureAction(nextAction, repositoryFingerprint) {
+    return new FlowDispatchActionIdentity({
+      session: this,
+      nextAction,
+      repositoryFingerprint,
+    });
+  }
+}
+
 function directiveProgressIdentity(nextAction) {
   const directive = NextActionDirective.fromStored(nextAction.directive);
   return {
@@ -128,32 +147,33 @@ function directiveProgressIdentity(nextAction) {
 }
 
 export class FlowDispatchActionIdentity {
-  constructor({ target, nextAction, repositoryFingerprint = null }) {
-    if (!(target instanceof FlowDispatchTarget)) {
-      throw new Error("FlowDispatchActionIdentity requires a FlowDispatchTarget");
+  constructor({ session, nextAction, repositoryFingerprint }) {
+    if (!(session instanceof FlowDispatchSession)) {
+      throw new Error("FlowDispatchActionIdentity requires a FlowDispatchSession");
     }
     if (!nextAction || typeof nextAction !== "object" || Array.isArray(nextAction)) {
       throw new Error("FlowDispatchActionIdentity requires a next-action object");
     }
-    if (repositoryFingerprint != null) {
-      requireString(repositoryFingerprint, "FlowDispatchActionIdentity repositoryFingerprint");
-    }
-    this.target = target;
-    this.nextAction = nextAction;
-    this.repositoryFingerprint = repositoryFingerprint;
-    this.digest = flowDispatchDigest(stableStringify({
-      targetDigest: target.digest,
-      runId: target.runId,
-      nextAction,
+    this.repositoryFingerprint = requireString(
       repositoryFingerprint,
+      "FlowDispatchActionIdentity repositoryFingerprint",
+    );
+    this.session = session;
+    this.target = session.target;
+    this.nextAction = nextAction;
+    this.digest = flowDispatchDigest(stableStringify({
+      targetDigest: this.target.digest,
+      runId: this.target.runId,
+      nextAction,
+      repositoryFingerprint: this.repositoryFingerprint,
     }));
     this.progressDigest = flowDispatchDigest(stableStringify({
-      targetDigest: target.digest,
-      runId: target.runId,
+      targetDigest: this.target.digest,
+      runId: this.target.runId,
       taskId: nextAction.taskId ?? null,
       step: nextAction.step ?? null,
       action: nextAction.action ?? null,
-      repositoryFingerprint,
+      repositoryFingerprint: this.repositoryFingerprint,
       directive: directiveProgressIdentity(nextAction),
     }));
     Object.freeze(this);
@@ -365,26 +385,49 @@ export class FlowDispatchInvocationStaleError extends Error {
 }
 
 export class FlowDispatchInvocation {
-  constructor({ id = crypto.randomUUID(), target, action, authorization }) {
-    if (!(target instanceof FlowDispatchTarget)) {
-      throw new Error("FlowDispatchInvocation requires a FlowDispatchTarget");
+  constructor({ session, action, authorization }) {
+    if (!(session instanceof FlowDispatchSession)) {
+      throw new Error("FlowDispatchInvocation requires a FlowDispatchSession");
     }
-    if (!(action instanceof FlowDispatchActionIdentity) || action.target !== target) {
-      throw new Error("FlowDispatchInvocation action must belong to its target");
+    if (!(action instanceof FlowDispatchActionIdentity) || action.session !== session) {
+      throw new Error("FlowDispatchInvocation action must belong to its session");
     }
     if (!(authorization instanceof FlowDispatchAuthorization) || !authorization.matches(action)) {
       throw new Error("FlowDispatchInvocation authorization must match its action");
     }
     this.version = DISPATCH_INVOCATION_VERSION;
-    this.id = requireString(id, "FlowDispatchInvocation id");
-    this.target = target;
+    this.session = session;
     this.action = action;
     this.authorization = authorization;
     Object.freeze(this);
   }
 
-  static createId() {
-    return crypto.randomUUID();
+  get id() {
+    return this.session.id;
+  }
+
+  get target() {
+    return this.session.target;
+  }
+
+  get approved() {
+    return this.authorization.approved;
+  }
+
+  approvalToken() {
+    return this.action.approvalToken();
+  }
+
+  withAuthorization(authorization) {
+    return new FlowDispatchInvocation({
+      session: this.session,
+      action: this.action,
+      authorization,
+    });
+  }
+
+  hasProgressedTo(activeAction) {
+    return this.action.hasProgressedTo(activeAction);
   }
 
   assertCurrent(activeAction, flowState = null) {

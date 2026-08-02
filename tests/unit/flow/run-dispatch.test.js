@@ -48,6 +48,23 @@ const AUTO_APPROVAL_ACTION = {
   auto_approval_choice_id: "1",
 };
 
+const EXPLICIT_APPROVAL_ACTION = {
+  ...REVIEW_ACTION,
+  step: "approval",
+  action: "await-approval",
+  requires_approval: true,
+};
+
+const AUTO_FINALIZE_ACTION = {
+  ...AUTO_APPROVAL_ACTION,
+  step: "finalize",
+  action: "run-finalize",
+  directive: {
+    ...AUTO_APPROVAL_ACTION.directive,
+    action: "run-finalize",
+  },
+};
+
 const MANUAL_EXCEPTION_ACTION = {
   ...REVIEW_ACTION,
   step: "acceptance-decision",
@@ -295,6 +312,24 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(calls, 0);
   });
 
+  it("rejects an exact approval after the guarded next action changes", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "approval-r0" };
+    const current = { value: EXPLICIT_APPROVAL_ACTION };
+    let calls = 0;
+    const agent = { async call() { calls += 1; } };
+    const first = await command({ current, state, agent }).execute(context(state));
+
+    current.value = AUTO_FINALIZE_ACTION;
+    const resumed = await command({ current, state, agent }).execute(context(state, {
+      approve: first.dispatch.approvalToken,
+    }));
+
+    assert.equal(resumed.ok, false);
+    assert.equal(resumed.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
+    assert.equal(resumed.data.nextAction.step, "finalize");
+    assert.equal(calls, 0);
+  });
+
   it("rejects autoApprove authorization when the repository fingerprint changes before handoff", async () => {
     const state = { runId: "run-dispatch", autoApprove: true, repositoryRevision: "auto-r0" };
     const current = { value: AUTO_APPROVAL_ACTION };
@@ -319,6 +354,92 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(result.data.invocation.authorization.source, "autoApprove");
     assert.equal(result.data.invocation.authorization.choiceId, "1");
     assert.equal(calls, 0);
+  });
+
+  it("rejects autoApprove authorization when the guarded next action changes before handoff", async () => {
+    const state = { runId: "run-dispatch", autoApprove: true, repositoryRevision: "auto-r0" };
+    let nextActionReads = 0;
+    let calls = 0;
+    const dispatcher = new RunDispatchCommand({
+      nextAction: {
+        async run() {
+          nextActionReads += 1;
+          return structuredClone(nextActionReads === 1
+            ? AUTO_APPROVAL_ACTION
+            : AUTO_FINALIZE_ACTION);
+        },
+      },
+      agent: { async call() { calls += 1; } },
+      repositoryFingerprint: () => state.repositoryRevision,
+      leaseFactory: NOOP_LEASE_FACTORY,
+    });
+    dispatcher.container = {};
+
+    const result = await dispatcher.execute(context(state));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_DISPATCH_AUTHORIZATION_STALE");
+    assert.equal(result.data.invocation.authorization.source, "autoApprove");
+    assert.equal(result.data.nextAction.step, "finalize");
+    assert.equal(calls, 0);
+  });
+
+  it("fails closed when the repository fingerprint cannot be captured", async () => {
+    const state = { runId: "run-dispatch", autoApprove: true };
+    const current = { value: AUTO_APPROVAL_ACTION };
+    let calls = 0;
+    const dispatcher = new RunDispatchCommand({
+      nextAction: {
+        async run() {
+          return structuredClone(current.value);
+        },
+      },
+      agent: { async call() { calls += 1; } },
+      repositoryFingerprint() {
+        throw new Error("git fingerprint unavailable");
+      },
+      leaseFactory: NOOP_LEASE_FACTORY,
+    });
+    dispatcher.container = {};
+
+    const result = await dispatcher.execute(context(state));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_DISPATCH_REPOSITORY_FINGERPRINT_FAILED");
+    assert.equal(result.data.dispatch.boundary, "blocked");
+    assert.equal(result.data.fingerprintPhase, "action-capture");
+    assert.match(result.data.dispatch.message, /no authorization was issued/i);
+    assert.equal(calls, 0);
+  });
+
+  it("does not accept worker completion when the repository fingerprint cannot be verified", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false };
+    const current = { value: REVIEW_ACTION };
+    let fingerprintReads = 0;
+    let calls = 0;
+    const dispatcher = new RunDispatchCommand({
+      nextAction: {
+        async run() {
+          return structuredClone(current.value);
+        },
+      },
+      agent: { async call() { calls += 1; } },
+      repositoryFingerprint() {
+        fingerprintReads += 1;
+        if (fingerprintReads === 3) throw new Error("git fingerprint unavailable");
+        return "worker-r0";
+      },
+      leaseFactory: NOOP_LEASE_FACTORY,
+    });
+    dispatcher.container = {};
+
+    const result = await dispatcher.execute(context(state));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_DISPATCH_REPOSITORY_FINGERPRINT_FAILED");
+    assert.equal(result.data.fingerprintPhase, "post-handoff-progress");
+    assert.match(result.data.dispatch.message, /result was not accepted/i);
+    assert.equal(calls, 1);
   });
 
   it("does not auto-authorize a manual exception", async () => {

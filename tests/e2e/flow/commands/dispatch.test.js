@@ -26,9 +26,11 @@ function specPath(state) {
 
 function installWorker(root, { delayMs = 75 } = {}) {
   const worker = path.join(root, "serial-worker.mjs");
-  const count = path.join(root, "worker-count.txt");
-  const lock = path.join(root, "worker.lock");
-  const overlap = path.join(root, "worker-overlap.txt");
+  const workDir = path.join(root, ".tmp");
+  const count = path.join(workDir, "worker-count.txt");
+  const lock = path.join(workDir, "worker.lock");
+  const overlap = path.join(workDir, "worker-overlap.txt");
+  fs.mkdirSync(workDir, { recursive: true });
   fs.writeFileSync(worker, [
     'import fs from "node:fs";',
     `const countFile=${JSON.stringify(count)};`,
@@ -236,7 +238,14 @@ function invocationOptions(root) {
   };
 }
 
+function ensureGitRepository(root) {
+  if (fs.existsSync(path.join(root, ".git"))) return;
+  initGitRepo(root);
+  commitAll(root, "initial dispatch fixture");
+}
+
 function invoke(root, state, extra = []) {
+  ensureGitRepository(root);
   const result = spawnSync(process.execPath, dispatchArgs(state, extra), invocationOptions(root));
   return {
     ...result,
@@ -245,6 +254,7 @@ function invoke(root, state, extra = []) {
 }
 
 function invokeBinding(root, binding, extra = []) {
+  ensureGitRepository(root);
   const result = spawnSync(
     process.execPath,
     dispatchBindingArgs(binding, extra),
@@ -327,6 +337,7 @@ describe("flow dispatch CLI", () => {
     root = createTmpDir("senti-flow-dispatch-concurrent-");
     const worker = installWorker(root, { delayMs: 300 });
     const state = setupFlowAtStep(root, "draft");
+    ensureGitRepository(root);
     const first = spawn(process.execPath, dispatchArgs(state), {
       ...invocationOptions(root),
       stdio: ["ignore", "pipe", "pipe"],
@@ -356,11 +367,12 @@ describe("flow dispatch CLI", () => {
     const binding = dispatchBinding(root, state);
     const owner = spawnSync(process.execPath, ["--input-type=module", "-e", [
       `import { FlowDispatchLease } from ${JSON.stringify(dispatchModule)};`,
-      `import { FlowDispatchTarget } from ${JSON.stringify(invocationModule)};`,
+      `import { FlowDispatchSession, FlowDispatchTarget } from ${JSON.stringify(invocationModule)};`,
       `import { FlowTargetExpectation } from ${JSON.stringify(targetModule)};`,
       `const expectation=new FlowTargetExpectation({expectBinding:${JSON.stringify(binding)}});`,
       "const target=new FlowDispatchTarget({expectation,binding:expectation.binding});",
-      "new FlowDispatchLease({target,dispatchInvocationId:'exited-dispatcher'}).acquire();",
+      "const session=new FlowDispatchSession({id:'exited-dispatcher',target});",
+      "new FlowDispatchLease(session).acquire();",
     ].join("\n")], {
       cwd: root,
       encoding: "utf8",
@@ -539,6 +551,26 @@ describe("flow dispatch CLI", () => {
 
     assert.notEqual(resumed.status, 0);
     assert.equal(resumed.envelope.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
+    assert.equal(fs.existsSync(worker.count), false);
+  });
+
+  it("rejects an explicit approval token after the persisted next action changes", () => {
+    root = createTmpDir("senti-flow-dispatch-changed-action-");
+    const worker = installWorker(root);
+    const state = setupFlowAtStep(root, "approval");
+
+    const first = invoke(root, state);
+    assert.equal(first.status, 0, first.stderr);
+    assert.equal(first.envelope.data.dispatch.boundary, "approval_required");
+
+    makeFlowManager(root).mutate((flow) => {
+      findStepById(flow.steps, "approval").status = "done";
+    });
+    const resumed = invoke(root, state, ["--approve", first.envelope.data.dispatch.approvalToken]);
+
+    assert.notEqual(resumed.status, 0);
+    assert.equal(resumed.envelope.errors[0].code, "FLOW_DISPATCH_APPROVAL_STALE");
+    assert.notEqual(resumed.envelope.data.nextAction.step, "approval");
     assert.equal(fs.existsSync(worker.count), false);
   });
 
