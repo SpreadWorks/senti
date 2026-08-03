@@ -238,10 +238,12 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
-    it("exits on unresolved or ambiguous targets before runtime logs, metadata, commands, or hooks", async () => {
+    it("exits on target resolution failures before runtime logs, metadata, commands, or hooks", async () => {
       for (const [code, matchCount] of [
         ["FLOW_TARGET_NOT_FOUND", 0],
         ["FLOW_TARGET_AMBIGUOUS", 2],
+        ["FLOW_TARGET_RECOVERY_REQUIRED", 1],
+        ["FLOW_TARGET_AUTHORITY_CORRUPT", 1],
       ]) {
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-resolution-"));
         try {
@@ -262,6 +264,7 @@ describe("dispatcher (unified runner)", () => {
           await dispatch({
             container,
             entry: {
+              explicitTargetResolution: true,
               command: async () => {
                 commandLoads += 1;
                 throw new Error("target resolution failure must not load the command");

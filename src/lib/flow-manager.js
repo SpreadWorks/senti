@@ -17,12 +17,17 @@ import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
-import { PREPARING_SCAN_LIMIT } from "./flow-helpers.js";
 import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
 import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
+import {
+  FlowTargetAuthorityError,
+  FlowTargetIdentity,
+  FlowTargetIdentityAuthority,
+  FlowTargetRecoveryError,
+} from "./flow-target-identity-authority.js";
 
 const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "local"]);
 
@@ -83,24 +88,20 @@ export class ResolvedFlowTarget {
 }
 
 export class ActiveFlowIdentityEntry {
-  constructor({ entry, state } = {}) {
+  constructor({ entry, identity } = {}) {
     if (!entry || typeof entry !== "object") throw new Error("active flow identity entry is required");
     if (typeof entry.specId !== "string" || entry.specId.trim() === "") {
       throw new Error("active flow identity specId is required");
     }
     if (!ACTIVE_FLOW_MODES.has(entry.mode)) throw new Error("active flow identity mode is invalid");
-    if (!state || typeof state !== "object" || typeof state.runId !== "string" || state.runId.trim() === "") {
-      throw new Error(`active flow identity state is unavailable for ${entry.specId}`);
+    if (!(identity instanceof FlowTargetIdentity) || identity.lifecycle !== "active") {
+      throw new Error(`active flow identity authority is unavailable for ${entry.specId}`);
     }
-    if (state.specId !== entry.specId) {
+    if (identity.specId !== entry.specId || identity.mode !== entry.mode) {
       throw new Error(`active flow identity specId mismatch for ${entry.specId}`);
     }
-    const issue = state.issue == null ? null : Number(state.issue);
-    if (issue != null && (!Number.isSafeInteger(issue) || issue < 1)) {
-      throw new Error(`active flow identity issue is invalid for ${entry.specId}`);
-    }
-    this.runId = state.runId;
-    this.issue = issue;
+    this.runId = identity.runId;
+    this.issue = identity.issue;
     this.specId = entry.specId;
     this.mode = entry.mode;
     Object.freeze(this);
@@ -369,6 +370,7 @@ export class FlowManager {
     specId = null,
     specRoot = DEFAULT_FLOW_SPEC_DIR,
     bindingFaultInjector = () => {},
+    targetIdentityFaultInjector = () => {},
     processIdentitySource,
   }) {
     this._root = root;
@@ -377,10 +379,24 @@ export class FlowManager {
     this._boundSpecId = specId;
     this._workspace = new FlowWorkspace({ repositoryRoot: mainRoot, executionRoot: root, specRoot });
     this._bindingFaultInjector = bindingFaultInjector;
+    this._targetIdentityFaultInjector = targetIdentityFaultInjector;
     this._processIdentitySource = processIdentitySource;
     this._usesWorktreeFlowBinding = isManagedFlowWorktree(root, mainRoot, inWorktree);
-    this._activeFlows = new ActiveFlowRegistry({ mainRoot, specRoot: this._workspace.specRoot });
-    this._preparing = new PreparingFlowStore({ mainRoot });
+    this._activeFlows = new ActiveFlowRegistry({
+      mainRoot,
+      specRoot: this._workspace.specRoot,
+      ...(processIdentitySource && { processIdentitySource }),
+    });
+    this._preparing = new PreparingFlowStore({
+      mainRoot,
+      ...(processIdentitySource && { processIdentitySource }),
+    });
+    this._targetIdentities = new FlowTargetIdentityAuthority({
+      mainRoot,
+      specRoot: this._workspace.specRoot,
+      faultInjector: targetIdentityFaultInjector,
+      ...(processIdentitySource && { processIdentitySource }),
+    });
     this._store = new FlowStore({
       root,
       mainRoot,
@@ -436,7 +452,13 @@ export class FlowManager {
     }
     return state;
   }
-  mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
+  mutate(mutator, opts) {
+    const resolved = withSpecIdDefault(opts, this._boundSpecId) || {};
+    if (!this._worktreeBinding && resolved.allowIssueTransition === true) {
+      return this.#mutateIndexedActiveIssue(mutator, resolved);
+    }
+    return this._store.mutate(mutator, resolved);
+  }
   captureExactTarget(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.specId == null) {
       throw new Error("exact flow target with a spec is required for capture");
@@ -455,7 +477,7 @@ export class FlowManager {
     return this.#mutateCapturedTarget(expectation, mutator, opts);
   }
   #mutateCapturedTarget(expectation, mutator, opts) {
-    return this._store.mutate((current) => {
+    return this.mutate((current) => {
       if (expectation.mismatchAgainst(current)) throw new ActiveFlowMismatchError(expectation, current);
       return mutator(current);
     }, { ...opts, specId: expectation.specId });
@@ -484,6 +506,7 @@ export class FlowManager {
       specId: opts.specId,
       specRoot: this._workspace.specRoot,
       bindingFaultInjector: opts.bindingFaultInjector ?? this._bindingFaultInjector,
+      targetIdentityFaultInjector: opts.targetIdentityFaultInjector ?? this._targetIdentityFaultInjector,
       ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
     });
   }
@@ -541,7 +564,10 @@ export class FlowManager {
   setRequest(text, opts) { return this._store.setRequest(text, withSpecIdDefault(opts, this._boundSpecId)); }
   setIssue(issue, opts) {
     if (!this._worktreeBinding) {
-      return this._store.setIssue(issue, withSpecIdDefault(opts, this._boundSpecId));
+      return this.mutate(
+        (state) => { state.issue = issue; },
+        { ...withSpecIdDefault(opts, this._boundSpecId), allowIssueTransition: true },
+      );
     }
     return this.#setBoundWorktreeIssue(issue, withSpecIdDefault(opts, this._boundSpecId));
   }
@@ -612,22 +638,136 @@ export class FlowManager {
 
   loadActiveFlows() { return this._activeFlows.load(); }
   snapshotActiveFlows(options) { return this._activeFlows.snapshot(options); }
-  snapshotActiveFlowIdentities(options) {
-    const registrySnapshot = this.snapshotActiveFlows(options);
-    const entries = registrySnapshot.entries.map((entry) => {
-      const resolved = this._loadActiveFlowState(entry.specId, entry.mode);
-      if (!resolved?.state) {
-        throw new Error(`active flow identity state is unavailable for ${entry.specId}`);
-      }
-      return new ActiveFlowIdentityEntry({ entry, state: resolved.state });
-    });
-    return new ActiveFlowIdentitySnapshot({ entries, revision: registrySnapshot.revision });
+  snapshotActiveFlowIdentities(options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const registrySnapshot = this.snapshotActiveFlows({ ...options, operationOwnerToken });
+      const identitySnapshot = this._targetIdentities.snapshot();
+      const activeIdentities = identitySnapshot.entries.filter((entry) => entry.lifecycle === "active");
+      const entries = activeIdentities.map((identity) => {
+        const entry = registrySnapshot.entries.find((candidate) => candidate.specId === identity.specId);
+        if (!entry || entry.mode !== identity.mode) {
+          throw new FlowTargetAuthorityError(
+            `active target identity is inconsistent with the active-flow registry: ${identity.specId}`,
+            { data: identity.toErrorData() },
+          );
+        }
+        return new ActiveFlowIdentityEntry({ entry, identity });
+      });
+      return new ActiveFlowIdentitySnapshot({ entries, revision: registrySnapshot.revision });
+    }, "active flow identity snapshot and repository lock release both failed");
   }
-  addActiveFlow(specId, mode, options) { return this._activeFlows.add(specId, mode, options); }
+  addActiveFlow(specId, mode, options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const existing = this._activeFlows.load().find((entry) => entry.specId === specId) ?? null;
+      this._activeFlows.add(specId, mode, { ...options, operationOwnerToken });
+      let state;
+      try {
+        state = this._store.load(specId);
+      } catch {
+        // A pointer to invalid state remains an unindexed orphan. It is kept
+        // diagnosable in the registry but never promoted into target identity
+        // authority.
+        return null;
+      }
+      // A pointer without state remains an unindexed orphan. Registry-only
+      // callers can still diagnose or remove it.
+      if (!state) return null;
+      try {
+        return this._targetIdentities.addActive(state, mode, { ...options, operationOwnerToken });
+      } catch (authorityError) {
+        if (!existing) {
+          try {
+            this._activeFlows.remove(specId, { ...options, operationOwnerToken });
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [authorityError, rollbackError],
+              "active flow registration and identity rollback both failed",
+              { cause: authorityError },
+            );
+          }
+        }
+        throw authorityError;
+      }
+    }, "active flow registration and repository lock release both failed");
+  }
   assertCanAddActiveFlow(specId, mode, options) { return this._activeFlows.assertCanAdd(specId, mode, options); }
-  removeActiveFlow(specId, options) { return this._activeFlows.remove(specId, options); }
+  removeActiveFlow(specId, options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const registryEntry = this._activeFlows.load().find((entry) => entry.specId === specId) ?? null;
+      const identity = this._targetIdentities.snapshot().entries.find((entry) => (
+        entry.lifecycle === "active" && entry.specId === specId
+      )) ?? null;
+      if (identity && (!registryEntry || registryEntry.mode !== identity.mode)) {
+        throw new FlowTargetAuthorityError(
+          `active target identity is inconsistent with the active-flow registry: ${specId}`,
+          { data: identity.toErrorData() },
+        );
+      }
+      this._activeFlows.remove(specId, { ...options, operationOwnerToken });
+      try {
+        return this._targetIdentities.removeActive(specId, { ...options, operationOwnerToken });
+      } catch (authorityError) {
+        if (registryEntry) {
+          try {
+            this._activeFlows.add(specId, registryEntry.mode, { ...options, operationOwnerToken });
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [authorityError, rollbackError],
+              "active flow identity removal and registry rollback both failed",
+              { cause: authorityError },
+            );
+          }
+        }
+        throw authorityError;
+      }
+    }, "active flow removal and repository lock release both failed");
+  }
   assertFlowStateWritable(specId, options) { return this._store.assertWritable(specId, options); }
-  cleanStaleFlows(options) { return this._activeFlows.cleanStale(options); }
+  cleanStaleFlows(options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const before = this._activeFlows.load();
+      const identities = this._targetIdentities.snapshot().entries;
+      const valid = this._activeFlows.cleanStale({ ...options, operationOwnerToken });
+      const validSpecs = new Set(valid.map((entry) => entry.specId));
+      const removedEntries = before.filter((entry) => !validSpecs.has(entry.specId));
+      const removedIdentities = [];
+      try {
+        for (const entry of removedEntries) {
+          const identity = identities.find((candidate) => (
+            candidate.lifecycle === "active" && candidate.specId === entry.specId
+          ));
+          if (!identity) continue;
+          this._targetIdentities.removeActive(entry.specId, { ...options, operationOwnerToken });
+          removedIdentities.push(identity);
+        }
+      } catch (authorityError) {
+        const rollbackErrors = [];
+        for (const entry of removedEntries) {
+          try {
+            this._activeFlows.add(entry.specId, entry.mode, { ...options, operationOwnerToken });
+          } catch (error) {
+            rollbackErrors.push(error);
+          }
+        }
+        for (const identity of removedIdentities) {
+          try {
+            this._targetIdentities.restore(identity, { ...options, operationOwnerToken });
+          } catch (error) {
+            rollbackErrors.push(error);
+          }
+        }
+        if (rollbackErrors.length > 0) {
+          throw new AggregateError(
+            [authorityError, ...rollbackErrors],
+            "stale flow identity cleanup and rollback both failed",
+            { cause: authorityError },
+          );
+        }
+        throw authorityError;
+      }
+      return valid;
+    }, "stale flow cleanup and repository lock release both failed");
+  }
 
   parkActiveFlow(identity, options = {}) {
     if (!(identity instanceof ParkedFlowIdentity)) {
@@ -651,10 +791,36 @@ export class FlowManager {
           `flow park supports managed worktree mode only, got ${entry.mode}`,
         );
       }
+      const targetIdentity = this.#targetIdentityEntries("active")
+        .find((candidate) => candidate.specId === identity.specId) ?? null;
+      if (!targetIdentity) {
+        throw new FlowTargetAuthorityError(`active flow identity is missing for ${identity.specId}`);
+      }
+      targetIdentity.assertState(resolved.state);
       this._activeFlows.park(identity.specId, {
         ...options,
         operationOwnerToken,
       });
+      try {
+        this._targetIdentities.removeActive(identity.specId, {
+          ...options,
+          operationOwnerToken,
+        });
+      } catch (authorityError) {
+        try {
+          this._activeFlows.add(identity.specId, "worktree", {
+            ...options,
+            operationOwnerToken,
+          });
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [authorityError, rollbackError],
+            "parked flow identity update and registry rollback both failed",
+            { cause: authorityError },
+          );
+        }
+        throw authorityError;
+      }
       return new ParkedFlowAuthorityReceipt({
         action: "park",
         identity,
@@ -687,6 +853,28 @@ export class FlowManager {
           operationOwnerToken,
         });
       }
+      try {
+        this._targetIdentities.addActive(resolved.state, "worktree", {
+          ...options,
+          operationOwnerToken,
+        });
+      } catch (authorityError) {
+        if (changed) {
+          try {
+            this._activeFlows.park(identity.specId, {
+              ...options,
+              operationOwnerToken,
+            });
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [authorityError, rollbackError],
+              "parked flow resume identity update and registry rollback both failed",
+              { cause: authorityError },
+            );
+          }
+        }
+        throw authorityError;
+      }
       return new ParkedFlowAuthorityReceipt({
         action: "resume",
         identity,
@@ -707,7 +895,7 @@ export class FlowManager {
       if (!current) return;
       specId = current.specId;
     }
-    this._activeFlows.remove(specId, options);
+    this.removeActiveFlow(specId, options);
   }
 
   #resolveParkedWorktreeOwned(identity) {
@@ -749,87 +937,239 @@ export class FlowManager {
   }
 
   #withParkedFlowOperation(options, body) {
-    const operationLock = this.#repositoryOperationLock(options);
-    const operationOwnerToken = operationLock.acquire();
-    let result;
-    let primary = null;
-    try {
-      result = body(operationOwnerToken);
-    } catch (error) {
-      primary = error;
-    }
-    let releaseError = null;
-    try {
-      operationLock.release();
-    } catch (error) {
-      releaseError = error;
-    }
-    if (primary && releaseError) {
-      throw new AggregateError(
-        [primary, releaseError],
-        "parked flow authority transaction and repository lock release both failed",
-        { cause: primary },
-      );
-    }
-    if (primary) throw primary;
-    if (releaseError) throw releaseError;
-    return result;
+    return this.#withRepositoryOperation(
+      options,
+      body,
+      "parked flow authority transaction and repository lock release both failed",
+    );
   }
 
   // ── preparing flow (PreparingFlowStore) ─────────────────────────────────────
 
   generateRunId() { return this._preparing.generateRunId(); }
-  createPreparingFlow(runId, extra) { return this._preparing.create(runId, extra); }
+  createPreparingFlow(runId, extra = {}, options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const createdPath = this._preparing.create(runId, extra);
+      const state = this._preparing.load(runId);
+      try {
+        this._targetIdentities.addPreparing(state, { ...options, operationOwnerToken });
+      } catch (authorityError) {
+        try {
+          this._preparing.delete(runId);
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [authorityError, rollbackError],
+            "preparing flow creation and identity rollback both failed",
+            { cause: authorityError },
+          );
+        }
+        throw authorityError;
+      }
+      return createdPath;
+    }, "preparing flow creation and repository lock release both failed");
+  }
   loadPreparingFlow(runId) { return this._preparing.load(runId); }
-  mutatePreparingFlow(runId, mutator) { return this._preparing.mutate(runId, mutator); }
+  resolvePreparingByRunId(runId) {
+    const expectation = new FlowTargetExpectation({ expectRunId: runId });
+    try {
+      return this.#resolveExplicitIdentity(expectation, "preparing").state;
+    } catch (error) {
+      if (error.code === "FLOW_TARGET_NOT_FOUND") return null;
+      throw error;
+    }
+  }
+  mutatePreparingFlow(runId, mutator, options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const indexed = this._targetIdentities.snapshot().entries.find((entry) => (
+        entry.lifecycle === "preparing" && entry.runId === runId
+      ));
+      if (!indexed) {
+        throw new FlowTargetAuthorityError(`preparing flow identity is missing: ${runId}`);
+      }
+      let original;
+      try {
+        original = this._preparing.load(runId);
+      } catch (cause) {
+        throw new FlowTargetRecoveryError(
+          indexed,
+          `selected preparing flow state is corrupt or unreadable: ${runId}`,
+          { cause },
+        );
+      }
+      if (!original) {
+        throw new FlowTargetRecoveryError(
+          indexed,
+          `selected preparing flow state is missing: ${runId}`,
+          { reason: "PREPARING_FLOW_NOT_FOUND" },
+        );
+      }
+      indexed.assertState(original);
+      const updated = this._preparing.mutate(runId, (state) => {
+        mutator(state);
+        if (state.runId !== runId || state.lifecycle !== "preparing" || state.specId !== null) {
+          throw new Error("preparing flow mutation must preserve runId, lifecycle, and null specId");
+        }
+      });
+      try {
+        this._targetIdentities.replacePreparing(updated, { ...options, operationOwnerToken });
+      } catch (authorityError) {
+        try {
+          this._preparing.mutate(runId, (state) => {
+            for (const key of Object.keys(state)) delete state[key];
+            Object.assign(state, structuredClone(original));
+          });
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [authorityError, rollbackError],
+            "preparing flow identity update and state rollback both failed",
+            { cause: authorityError },
+          );
+        }
+        throw authorityError;
+      }
+      return updated;
+    }, "preparing flow mutation and repository lock release both failed");
+  }
   resolvePreparingInputs(runId, cliIssue, cliRequest) {
     return this._preparing.resolveInputs(runId, cliIssue, cliRequest);
   }
-  deletePreparingFlow(runId) { return this._preparing.delete(runId); }
-  listPreparingFlows() { return this._preparing.list(); }
+  deletePreparingFlow(runId, options = {}) {
+    return this.#withRepositoryOperation(options, (operationOwnerToken) => {
+      const identity = this._targetIdentities.snapshot().entries.find((entry) => (
+        entry.lifecycle === "preparing" && entry.runId === runId
+      )) ?? null;
+      let state;
+      try {
+        state = this._preparing.load(runId);
+      } catch (cause) {
+        if (!identity) throw cause;
+        throw new FlowTargetRecoveryError(
+          identity,
+          `selected preparing flow state is corrupt or unreadable: ${runId}`,
+          { cause },
+        );
+      }
+      if (identity) {
+        if (!state) {
+          throw new FlowTargetRecoveryError(
+            identity,
+            `selected preparing flow state is missing: ${runId}`,
+            { reason: "PREPARING_FLOW_NOT_FOUND" },
+          );
+        }
+        identity.assertState(state);
+      }
+      this._preparing.delete(runId);
+      try {
+        return this._targetIdentities.removePreparing(runId, { ...options, operationOwnerToken });
+      } catch (authorityError) {
+        if (state) {
+          try {
+            this._preparing.create(runId, state);
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [authorityError, rollbackError],
+              "preparing flow identity removal and state rollback both failed",
+              { cause: authorityError },
+            );
+          }
+        }
+        throw authorityError;
+      }
+    }, "preparing flow deletion and repository lock release both failed");
+  }
+  listPreparingFlows() {
+    return this._targetIdentities.snapshot().entries
+      .filter((entry) => entry.lifecycle === "preparing")
+      .map((entry) => entry.runId);
+  }
 
   resolveExplicitFlowTarget(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
       throw new Error("explicit flow target expectation is required");
     }
-    const targets = this.#explicitFlowTargets().filter((target) => target.matches(expectation));
-    return resolveUniqueFlowTarget(expectation, targets);
+    return this.#resolveExplicitIdentity(expectation);
   }
 
   resolveExplicitFlowTargetForRead(expectation) {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
       throw new Error("explicit flow target expectation is required");
     }
-    const targets = this.#explicitFlowTargets().filter((target) => target.matches(expectation));
-    return resolveUniqueFlowTarget(expectation, targets);
+    return this.#resolveExplicitIdentity(expectation);
   }
 
-  #explicitFlowTargets() {
-    const candidates = [];
-    for (const entry of this._activeFlows.load()) {
-      const resolved = this._loadActiveFlowState(entry.specId);
-      if (!resolved?.state) continue;
-      const target = new ResolvedFlowTarget({
-        state: resolved.state,
-        specId: resolved.specId,
-        worktreePath: resolved.worktreePath,
-        mainRoot: this._mainRoot,
-        authorityRoot: resolved.worktreePath || this._mainRoot,
-      });
-      candidates.push(target);
+  #resolveExplicitIdentity(expectation, lifecycle = null) {
+    const identities = this.#targetIdentityEntries(lifecycle);
+    const matches = identities.filter((identity) => identity.matches(expectation));
+    const identity = resolveUniqueFlowTarget(expectation, matches);
+    const target = this.#loadTargetIdentity(identity);
+    if (!target.matches(expectation)) throw new FlowTargetNotFoundError(expectation);
+    return target;
+  }
+
+  #targetIdentityEntries(lifecycle = null) {
+    const identities = this._targetIdentities.snapshot().entries;
+    let registry;
+    try {
+      registry = this._activeFlows.load();
+    } catch (cause) {
+      throw new FlowTargetAuthorityError("active-flow registry is invalid during target resolution", { cause });
     }
-    for (const runId of this._preparing.list()) {
-      const state = this._preparing.load(runId);
-      if (!state) continue;
-      const target = new ResolvedFlowTarget({
-        state,
-        mainRoot: this._mainRoot,
-        authorityRoot: this._mainRoot,
-        preparing: true,
-      });
-      candidates.push(target);
+    const selectable = identities.filter((identity) => {
+      if (identity.lifecycle !== "active") return true;
+      const entry = registry.find((candidate) => candidate.specId === identity.specId);
+      if (!entry) {
+        throw new FlowTargetAuthorityError(
+          `active target identity is missing from the active-flow registry: ${identity.specId}`,
+          { data: identity.toErrorData() },
+        );
+      }
+      if (entry.mode !== identity.mode) {
+        throw new FlowTargetAuthorityError(
+          `active target identity is inconsistent with the active-flow registry: ${identity.specId}`,
+          { data: identity.toErrorData() },
+        );
+      }
+      return true;
+    });
+    return lifecycle == null
+      ? selectable
+      : selectable.filter((identity) => identity.lifecycle === lifecycle);
+  }
+
+  #loadTargetIdentity(identity) {
+    let state;
+    let resolved = null;
+    try {
+      if (identity.preparing) {
+        state = this._preparing.load(identity.runId);
+      } else {
+        resolved = this._loadActiveFlowState(identity.specId);
+        state = resolved?.state ?? null;
+      }
+    } catch (cause) {
+      throw new FlowTargetRecoveryError(
+        identity,
+        `selected flow target state is corrupt or unreadable: ${identity.runId}`,
+        { cause },
+      );
     }
-    return candidates;
+    if (!state) {
+      throw new FlowTargetRecoveryError(
+        identity,
+        `selected flow target state is missing: ${identity.runId}`,
+        { reason: identity.preparing ? "PREPARING_FLOW_NOT_FOUND" : "ACTIVE_FLOW_STATE_AUTHORITY_MISSING" },
+      );
+    }
+    identity.assertState(state);
+    return new ResolvedFlowTarget({
+      state,
+      specId: identity.specId,
+      worktreePath: resolved?.worktreePath ?? null,
+      mainRoot: this._mainRoot,
+      authorityRoot: resolved?.worktreePath || this._mainRoot,
+      preparing: identity.preparing,
+    });
   }
 
   /**
@@ -875,16 +1215,7 @@ export class FlowManager {
 
     const activeFlows = this._activeFlows.load();
     if (expectation) {
-      const targets = this._resolveActiveFlowsByState(activeFlows, () => true).map((resolved) => (
-        new ResolvedFlowTarget({
-          state: resolved.state,
-          specId: resolved.specId,
-          worktreePath: resolved.worktreePath,
-          mainRoot: this._mainRoot,
-          authorityRoot: resolved.worktreePath || this._mainRoot,
-        })
-      )).filter((target) => target.matches(expectation));
-      const target = resolveUniqueFlowTarget(expectation, targets);
+      const target = this.#resolveExplicitIdentity(expectation, "active");
       return {
         state: target.state,
         specId: target.specId,
@@ -952,16 +1283,10 @@ export class FlowManager {
    * @returns {object|null}
    */
   resolveByRunId(runId) {
-    const activeFlows = this._activeFlows.load();
-    const limit = Math.min(activeFlows.length, PREPARING_SCAN_LIMIT);
-    for (let i = 0; i < limit; i++) {
-      const resolved = this._loadActiveFlowState(activeFlows[i].specId);
-      const state = resolved?.state || this._store.loadReadOnly(activeFlows[i].specId);
-      if (state?.runId === runId) return state;
-    }
-    const preparing = this._preparing.load(runId);
-    if (preparing) return preparing;
-    return null;
+    const expectation = new FlowTargetExpectation({ expectRunId: runId });
+    const matches = this.#targetIdentityEntries().filter((identity) => identity.matches(expectation));
+    if (matches.length === 0) return null;
+    return this.#loadTargetIdentity(resolveUniqueFlowTarget(expectation, matches)).state;
   }
 
   #loadBoundWorktreeState(specId, readOnly) {
@@ -981,6 +1306,80 @@ export class FlowManager {
     });
   }
 
+  #mutateIndexedActiveIssue(mutator, opts = {}) {
+    const requestedSpecId = withSpecIdArgDefault(opts.specId, this._boundSpecId);
+    return this.#withRepositoryOperation(opts, (operationOwnerToken) => {
+      const activeIdentities = this.#targetIdentityEntries("active");
+      const identity = requestedSpecId
+        ? activeIdentities.find((entry) => entry.specId === requestedSpecId) ?? null
+        : activeIdentities.length === 1 ? activeIdentities[0] : null;
+      if (!identity) {
+        const registryEntry = requestedSpecId
+          ? this._activeFlows.load().find((entry) => entry.specId === requestedSpecId)
+          : null;
+        if (requestedSpecId && !registryEntry) {
+          return this._store.mutate(mutator, {
+            ...opts,
+            specId: requestedSpecId,
+            operationOwnerToken,
+            allowIssueTransition: true,
+          });
+        }
+        throw new FlowTargetAuthorityError(
+          requestedSpecId
+            ? `active flow identity is missing for ${requestedSpecId}`
+            : "Issue mutation requires one active flow identity",
+        );
+      }
+      const specId = identity.specId;
+      const original = this._store.load(specId);
+      if (!original) {
+        throw new FlowTargetRecoveryError(
+          identity,
+          `selected active flow state is missing: ${identity.runId}`,
+          { reason: "ACTIVE_FLOW_STATE_AUTHORITY_MISSING" },
+        );
+      }
+      identity.assertState(original);
+      const mutationResult = this._store.mutate((state, context) => {
+        mutator(state, context);
+        if (state.runId !== identity.runId || state.specId !== identity.specId) {
+          throw new Error("Issue mutation must preserve active runId and specId");
+        }
+      }, {
+        ...opts,
+        specId,
+        operationOwnerToken,
+        allowIssueTransition: true,
+      });
+      const updated = this._store.load(specId);
+      try {
+        this._targetIdentities.replaceActive(updated, identity.mode, {
+          ...opts,
+          operationOwnerToken,
+        });
+      } catch (authorityError) {
+        try {
+          this._store.saveAtomic(original, {
+            ...opts,
+            boundSpecId: specId,
+            expectedOriginal: updated,
+            operationOwnerToken,
+            allowIssueTransition: true,
+          });
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [authorityError, rollbackError],
+            "active flow identity update and Issue state rollback both failed",
+            { cause: authorityError },
+          );
+        }
+        throw authorityError;
+      }
+      return mutationResult;
+    }, "active flow Issue mutation and repository lock release both failed");
+  }
+
   #setBoundWorktreeIssue(issue, opts = {}) {
     if (typeof issue !== "number" || !Number.isSafeInteger(issue) || issue < 1) {
       throw new Error(`worktree flow identity issue must be a positive integer: ${issue}`);
@@ -998,6 +1397,12 @@ export class FlowManager {
         }
         const currentState = this._store.load(identity.specId);
         identity.assertFlowState(currentState);
+        const targetIdentity = this.#targetIdentityEntries("active")
+          .find((entry) => entry.specId === identity.specId) ?? null;
+        if (!targetIdentity) {
+          throw new FlowTargetAuthorityError(`active flow identity is missing for ${identity.specId}`);
+        }
+        targetIdentity.assertState(currentState);
         if (identity.issue === issue) return { identity, state: currentState };
         const nextState = structuredClone(currentState);
         nextState.issue = issue;
@@ -1035,8 +1440,32 @@ export class FlowManager {
         }
         try {
           this._worktreeBinding.replace(identity, nextIdentity, bindingOwnerToken);
-        } catch (bindingError) {
+          this._targetIdentities.replaceActive(nextState, targetIdentity.mode, {
+            ...opts,
+            operationOwnerToken,
+          });
+        } catch (transactionError) {
           const rollbackErrors = [];
+          try {
+            const visibleTarget = this._targetIdentities.snapshot().entries.find((entry) => (
+              entry.lifecycle === "active" && entry.specId === targetIdentity.specId
+            ));
+            const nextTarget = FlowTargetIdentity.active(
+              nextState,
+              targetIdentity.mode,
+              this._workspace.specRoot,
+            );
+            if (visibleTarget?.revision === nextTarget.revision) {
+              this._targetIdentities.replaceActive(currentState, targetIdentity.mode, {
+                ...opts,
+                operationOwnerToken,
+              });
+            } else if (visibleTarget?.revision !== targetIdentity.revision) {
+              throw new Error("flow target identity has an unknown revision after failed Issue update");
+            }
+          } catch (error) {
+            rollbackErrors.push(error);
+          }
           try {
             const visibleIdentity = this._worktreeBinding.loadOwned().identity;
             if (visibleIdentity.equals(nextIdentity)) {
@@ -1064,12 +1493,12 @@ export class FlowManager {
           }
           if (rollbackErrors.length > 0) {
             throw new AggregateError(
-              [bindingError, ...rollbackErrors],
+              [transactionError, ...rollbackErrors],
               "worktree Issue binding update and rollback failed",
-              { cause: bindingError },
+              { cause: transactionError },
             );
           }
-          throw bindingError;
+          throw transactionError;
         }
         this._worktreeBinding.clearIssueTransition(bindingOwnerToken);
         return { identity: nextIdentity, state: nextState };
@@ -1194,6 +1623,38 @@ export class FlowManager {
     } else if (!(originalState && originalBinding) && !(nextState && nextBinding)) {
       throw new Error("worktree flow Issue transition cannot reconcile the visible flow and binding identities");
     }
+    const targetIdentity = this._targetIdentities.snapshot().entries.find((entry) => (
+      entry.lifecycle === "active" && entry.specId === transition.original.specId
+    ));
+    if (!targetIdentity) {
+      throw new FlowTargetAuthorityError(
+        `active flow identity is missing for ${transition.original.specId}`,
+      );
+    }
+    const settledIdentity = FlowTargetIdentity.active(
+      state,
+      targetIdentity.mode,
+      this._workspace.specRoot,
+    );
+    const originalTarget = FlowTargetIdentity.active(
+      { ...state, issue: transition.original.issue },
+      targetIdentity.mode,
+      this._workspace.specRoot,
+    );
+    const nextTarget = FlowTargetIdentity.active(
+      { ...state, issue: transition.next.issue },
+      targetIdentity.mode,
+      this._workspace.specRoot,
+    );
+    if (![originalTarget.revision, nextTarget.revision].includes(targetIdentity.revision)) {
+      throw new FlowTargetAuthorityError(
+        `active flow identity cannot reconcile Issue transition for ${targetIdentity.specId}`,
+        { data: targetIdentity.toErrorData() },
+      );
+    }
+    if (targetIdentity.revision !== settledIdentity.revision) {
+      this._targetIdentities.replaceActive(state, targetIdentity.mode, { operationOwnerToken });
+    }
     this._worktreeBinding.clearIssueTransition(bindingOwnerToken);
   }
 
@@ -1204,6 +1665,30 @@ export class FlowManager {
     } catch {
       return false;
     }
+  }
+
+  #withRepositoryOperation(options, body, aggregateMessage) {
+    const operationLock = this.#repositoryOperationLock(options);
+    const operationOwnerToken = operationLock.acquire();
+    let result;
+    let primary = null;
+    try {
+      result = body(operationOwnerToken);
+    } catch (error) {
+      primary = error;
+    }
+    let releaseError = null;
+    try {
+      operationLock.release();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (primary && releaseError) {
+      throw new AggregateError([primary, releaseError], aggregateMessage, { cause: primary });
+    }
+    if (primary) throw primary;
+    if (releaseError) throw releaseError;
+    return result;
   }
 
   #repositoryOperationLock(options = {}) {

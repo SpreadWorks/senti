@@ -7,7 +7,12 @@ import { test } from "node:test";
 
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
-import { makeDefaultTask, makeFlowState, moveFlowToStep } from "../../../helpers/flow-setup.js";
+import {
+  makeDefaultTask,
+  makeFlowManager,
+  makeFlowState,
+  moveFlowToStep,
+} from "../../../helpers/flow-setup.js";
 import { findStepById } from "../../../../src/flow/lib/step-tree.js";
 import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-artifacts.js";
 import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
@@ -59,7 +64,7 @@ test("nonblocking policy keeps normal Flow ownership", () => {
       featureBranch: "main",
     }), "impl-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
+    makeFlowManager(root).addActiveFlow(specId, "local");
     initGitRepo(root);
     commitAll(root, "initial flow fixture");
 
@@ -133,7 +138,7 @@ test("nonblocking test-review continuation creates an acceptance disposition han
       featureBranch: "main",
     }), "test-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
+    makeFlowManager(root).addActiveFlow(specId, "local");
     initGitRepo(root);
     commitAll(root, "initial test-review flow fixture");
 
@@ -216,7 +221,7 @@ test("strict semantic exhaustion completes its acceptance handoff without adviso
       tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
     }), "test-review");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
+    makeFlowManager(root).addActiveFlow(specId, "local");
     initGitRepo(root);
     commitAll(root, "initial exhausted review fixture");
 
@@ -312,7 +317,7 @@ test("scenario-validity block records refreshed evidence after nonblocking activ
       featureBranch: "main",
     }), "scenario-validity");
     writeJson(root, `specs/${specId}/flow.json`, state);
-    writeJson(root, ".senti/.active-flow", [{ specId, mode: "local" }]);
+    makeFlowManager(root).addActiveFlow(specId, "local");
     initGitRepo(root);
     commitAll(root, "initial flow fixture");
 

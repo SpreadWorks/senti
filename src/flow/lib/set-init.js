@@ -47,10 +47,10 @@ export default class SetInitCommand extends FlowCommand {
     const operationLock = new RepositoryFlowOperationLock({
       mainRoot: ctx.mainRoot || flowManager._mainRoot || ctx.root,
     });
-    operationLock.acquire();
+    const operationOwnerToken = operationLock.acquire();
     try {
       const runId = flowManager.generateRunId();
-      flowManager.createPreparingFlow(runId, extra);
+      flowManager.createPreparingFlow(runId, extra, { operationOwnerToken });
       return { runId, ...extra };
     } finally {
       operationLock.release();

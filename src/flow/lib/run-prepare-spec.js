@@ -1178,7 +1178,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         flowManager.cleanStaleFlows({ operationOwnerToken });
         flowManager.addActiveFlow(specId, "worktree", { operationOwnerToken });
         reportWorktreePrepareCheckpoint(ctx, "after-registry-publication", worktreeAttempt);
-        if (runIdArg) flowManager.deletePreparingFlow(runIdArg);
+        if (runIdArg) flowManager.deletePreparingFlow(runIdArg, { operationOwnerToken });
         reportWorktreePrepareCheckpoint(ctx, "after-preparing-flow-removal", worktreeAttempt);
         attemptJournal.complete(worktreeAttempt);
         reportWorktreePrepareCheckpoint(ctx, "after-journal-completion", worktreeAttempt);
@@ -1233,7 +1233,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     if (runIdArg && !useWorktree) {
-      flowManager.deletePreparingFlow(runIdArg);
+      flowManager.deletePreparingFlow(runIdArg, { operationOwnerToken });
     }
 
     return {

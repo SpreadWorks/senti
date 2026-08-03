@@ -9,6 +9,7 @@ import fs from "fs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "path";
+import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
@@ -156,6 +157,7 @@ function getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot = DEFAULT_F
 
 function isFinalizeManagedMetadataPath(dirtyPath, allowed) {
   return dirtyPath === ".senti/.active-flow"
+    || FlowTargetIdentityAuthority.managesRepositoryPath(dirtyPath)
     || dirtyPath === ".senti/worktree"
     || dirtyPath.startsWith(".senti/worktree/")
     || allowed.deferredPathSet.has(dirtyPath)

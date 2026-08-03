@@ -4,6 +4,7 @@ import fs from "fs";
 import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
+import { makeFlowManager } from "../../../helpers/flow-setup.js";
 
 const CMD = join(process.cwd(), "src/senti.js");
 
@@ -217,10 +218,7 @@ describe("spec init CLI", () => {
     };
     fs.mkdirSync(join(tmp, "specs", secondSpec), { recursive: true });
     fs.writeFileSync(join(tmp, "specs", secondSpec, "flow.json"), `${JSON.stringify(secondState, null, 2)}\n`);
-    fs.writeFileSync(join(tmp, ".senti", ".active-flow"), `${JSON.stringify([
-      { specId, mode: "local" },
-      { specId: secondSpec, mode: "local" },
-    ], null, 2)}\n`);
+    makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
     fs.writeFileSync(join(tmp, ".senti", ".current-flow"), `${specId}\n`);
     const positional = JSON.parse(execFileSync("node", [
       CMD, "flow", "get", "status", "run-positional-second",
@@ -271,7 +269,7 @@ describe("spec init CLI", () => {
     } catch (error) {
       const resumed = JSON.parse(error.stdout);
       assert.equal(resumed.ok, false);
-      assert.equal(resumed.errors[0].code, "FLOW_TARGET_NOT_FOUND");
+      assert.equal(resumed.errors[0].code, "FLOW_TARGET_AUTHORITY_CORRUPT");
     }
 
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });

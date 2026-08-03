@@ -166,4 +166,50 @@ describe("optional flow context resolution", () => {
       /multiple active flows/,
     );
   });
+
+  it("requiresFlow:false explicit commands return typed resolution failures without executing", async () => {
+    let executed = false;
+    const container = new Container();
+    const recoveryError = Object.assign(new Error("selected target state is corrupt"), {
+      code: "FLOW_TARGET_RECOVERY_REQUIRED",
+      data: {
+        runId: "run-corrupt",
+        issue: 493,
+        specId: "001-corrupt",
+        reason: "FLOW_TARGET_STATE_INVALID",
+      },
+    });
+    const flowManager = {
+      resolveExplicitFlowTarget() {
+        throw recoveryError;
+      },
+    };
+    container.register("paths", { root: "/repo" });
+    container.register("mainRoot", "/repo");
+    container.register("config", {});
+    container.register("flowManager", flowManager);
+    container.register("inWorktree", false);
+
+    class OptionalExplicitCommand extends FlowCommand {
+      constructor() {
+        super({ requiresFlow: false, explicitTargetResolution: true });
+      }
+
+      execute() {
+        executed = true;
+        return { ok: true };
+      }
+    }
+
+    const result = await new OptionalExplicitCommand().run(container, {
+      expectRunId: "run-corrupt",
+      _envelopeType: "get",
+      _envelopeKey: "next-action",
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "FLOW_TARGET_RECOVERY_REQUIRED");
+    assert.equal(result.data.runId, "run-corrupt");
+    assert.equal(executed, false);
+  });
 });
