@@ -9,17 +9,16 @@ import { resolveSpecDir } from "../../lib/spec-json.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { collectFlowLeafIds, findActiveNode } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
-import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
 import {
   MAX_REVIEW_EVIDENCE_BYTES,
   ReviewTargetState,
 } from "./review-convergence.js";
 import {
   ReviewEvidenceInput,
-  resolveCurrentReviewTreeSha,
 } from "./review-evidence-store.js";
 import { flowReviewRouteForPhase } from "./review-route.js";
 import { findStepById } from "./step-tree.js";
+import { ReviewTargetAuthority } from "./review-target-authority.js";
 
 const REVIEW_PASS_RECOVERY_VERSION = 2;
 const FLOW_LEAF_IDS = Object.freeze(collectFlowLeafIds());
@@ -213,7 +212,11 @@ function phaseRoute(phase) {
 function recoveryLifecycle(state, route) {
   const active = findActiveNode(state);
   if (active?.scope !== "flow") return null;
-  if (findStepById(state.steps || [], route.reviewStepId)?.status !== "done") return null;
+  const reviewStep = findStepById(state.steps || [], route.reviewStepId);
+  if (active.stepId === route.reviewStepId && reviewStep?.status === "in_progress") {
+    return active;
+  }
+  if (reviewStep?.status !== "done") return null;
   if (!route.bypassStepIds.every((stepId) => (
     ["done", "skipped"].includes(findStepById(state.steps || [], stepId)?.status)
   ))) return null;
@@ -232,6 +235,16 @@ function latestPassAttempt(state, route) {
     && entry.outcome?.terminal === true
     && entry.outcome?.decision === "PASS"
   )) || null;
+}
+
+function interruptedFinalizedPass(state, route) {
+  return (state.reviewConvergence?.records || []).some((record) => (
+    record?.phase === route.phase
+    && (record.taskId ?? null) === null
+    && record.evidence?.disposition === "PASS"
+    && record.finalizedEvidenceAvailable === true
+    && record.toolingOutcome?.stage === "result_recording"
+  ));
 }
 
 function convergencePassRecord(state, phase, currentTreeSha, targetStateDigest) {
@@ -496,20 +509,24 @@ export function inspectCanonicalReviewPassRecovery({
   const route = phaseRoute(phase);
   const active = state ? recoveryLifecycle(state, route) : null;
   if (!state || !active) return null;
-  if (!latestPassAttempt(state, route)) return null;
+  if (active.stepId === route.reviewStepId) {
+    if (!interruptedFinalizedPass(state, route)) return null;
+  } else if (!latestPassAttempt(state, route)) {
+    return null;
+  }
 
   const specPath = relativeFlowSpecFile(state);
   const specDir = resolveSpecDir(path.resolve(root, specPath));
   if (route.triageFile && fs.existsSync(path.join(specDir, route.triageFile))) return null;
 
-  const currentTreeSha = resolveCurrentReviewTreeSha(executionRoot, specPath);
-  const fingerprint = buildRepairFingerprint({
-    root: executionRoot,
+  const authority = new ReviewTargetAuthority({
+    executionRoot,
     artifactRoot: root,
-    specPath,
-    state,
+    flowState: state,
   });
-  const targetState = ReviewTargetState.fromRepairFingerprint(fingerprint);
+  const currentTreeSha = authority.resolveTreeSha();
+  const fingerprint = authority.captureFingerprint();
+  const targetState = authority.captureTargetState(fingerprint);
   const record = convergencePassRecord(state, phase, currentTreeSha, targetState.digest);
   if (!record) return null;
   const recordIndex = state.reviewConvergence.records.indexOf(record);

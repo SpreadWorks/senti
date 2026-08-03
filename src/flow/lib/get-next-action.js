@@ -31,7 +31,6 @@ import {
 } from "./task-scope.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCompletion } from "./flow-completion.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import {
   NONBLOCKING_SOURCE_STEPS,
   retryResetTimestampForStep,
@@ -40,7 +39,6 @@ import {
 } from "./step-outcome.js";
 import { resolveReviewOperationForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
-import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 import {
   decisionContextForActiveFlow,
   nonblockingActivationOfferForStrictStop,
@@ -63,6 +61,7 @@ import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-s
 import { inspectCanonicalReviewPassRecovery } from "./run-recover-review-pass.js";
 import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 import { resolveTaskGateOverviewRecovery } from "./task-gate-completion.js";
+import { ReviewTargetAuthority } from "./review-target-authority.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -282,6 +281,7 @@ function buildCanonicalReviewPassRecoveryDirective(ctx, state, binding) {
   for (const route of FLOW_REVIEW_ROUTES) {
     const plan = inspectCanonicalReviewPassRecovery({
       root: ctx.root,
+      executionRoot: ctx.executionRoot || ctx.root,
       state,
       phase: route.phase,
     });
@@ -442,10 +442,16 @@ function buildNextActionResult(
       phase: reviewPhase,
       resolvedMax: derived.maxAttempts,
     });
+    const authority = new ReviewTargetAuthority({
+      executionRoot: ctx.executionRoot || ctx.root,
+      artifactRoot: ctx.root,
+      flowState: state,
+    });
     reviewOperation = resolveReviewOperationForFlowState(state, {
       phase: reviewPhase,
       taskId: target.taskId,
-      resolveTreeSha: () => resolveCurrentReviewTreeSha(ctx.executionRoot || ctx.root, relativeFlowSpecFile(state)),
+      resolveTreeSha: () => authority.resolveTreeSha(),
+      resolveTargetStateDigest: () => authority.captureFingerprint().hash,
     });
     reviewTargetChanged = reviewOperation == null && (
       state.reviewConvergence?.records || []

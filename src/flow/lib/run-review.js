@@ -60,7 +60,6 @@ import {
   ReviewDisposition,
   ReviewEvidence,
   ReviewEvidenceReference,
-  ReviewTargetState,
   ReviewToolingOutcome,
   artifactPhaseMatchesReviewTarget,
   buildReviewHandoffFindings,
@@ -75,6 +74,7 @@ import {
 import { recoverFinalizedFlowReviewEvidence } from "./set-review-evidence.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { FLOW_REVIEW_ROUTES } from "./review-route.js";
+import { ReviewTargetAuthority } from "./review-target-authority.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -1203,16 +1203,11 @@ function sourceArtifactPhase(phase) {
 }
 
 function resolveCurrentReviewTreeSha(ctx) {
-  return resolveReviewTargetTreeSha(ctx.executionRoot || ctx.root, relativeFlowSpecFile(ctx.flowState));
+  return ReviewTargetAuthority.fromContext(ctx).resolveTreeSha();
 }
 
 function resolveCurrentReviewRepairFingerprint(ctx) {
-  return buildRepairFingerprint({
-    root: ctx.executionRoot || ctx.root,
-    artifactRoot: ctx.root,
-    specPath: relativeFlowSpecFile(ctx.flowState),
-    state: ctx.flowState,
-  }).hash;
+  return ReviewTargetAuthority.fromContext(ctx).captureFingerprint().hash;
 }
 
 function assertCurrentReviewTarget(ctx, expectedTreeSha, expectedRepairFingerprint) {
@@ -1258,6 +1253,10 @@ function persistCanonicalToolingOutcome(ctx, {
   reason,
   outcome = null,
   provider = "senti-review",
+  evidence = null,
+  canonicalEvidencePersisted = false,
+  finalizedEvidenceAvailable = false,
+  targetState = null,
   expectedOriginal = null,
 }) {
   if (!ctx?.flowManager) return null;
@@ -1281,7 +1280,11 @@ function persistCanonicalToolingOutcome(ctx, {
     treeSha,
     provider,
     outcome: normalizedOutcome,
+    evidence,
+    canonicalEvidencePersisted,
+    finalizedEvidenceAvailable,
     targetStateDigest: repairFingerprint,
+    targetState,
     expectedOriginal,
   });
   return { outcome: normalizedOutcome, state };
@@ -1600,27 +1603,38 @@ function persistCanonicalReviewArtifact(
   const registrar = new ReviewEvidenceRegistrar({
     store: new ReviewEvidenceStore({ root: ctx.root, specDir }),
   });
-  const targetState = ReviewTargetState.fromRepairFingerprint(buildRepairFingerprint({
-    root: ctx.root,
-    specPath: relativeFlowSpecFile(ctx.flowState),
-    state: ctx.flowState,
-  }));
+  const authority = ReviewTargetAuthority.fromContext(ctx);
+  const currentFingerprint = authority.captureFingerprint();
+  const targetState = authority.captureTargetState(currentFingerprint);
   if (targetState.digest !== repairFingerprint) {
-    throw new Error("review target state changed before canonical evidence registration");
+    const error = new Error("review target state changed before canonical evidence registration");
+    error.code = "STALE_REVIEW_TARGET";
+    throw error;
   }
   let registration;
-  ctx.flowManager.mutate((flowState) => {
-    assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
-    registration = registrar.register({
-      flowState,
-      evidence: normalized.evidence,
-      expectedRevision: flowState,
-      configuredSemanticMaxAttempts: normalized.semanticMaxAttempts,
-      targetStateDigest: repairFingerprint,
-      targetState,
-    });
-    registration.applyTo(flowState);
-  }, expectedOriginal == null ? {} : { expectedOriginal });
+  try {
+    ctx.flowManager.mutate((flowState) => {
+      assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
+      registration = registrar.register({
+        flowState,
+        evidence: normalized.evidence,
+        expectedRevision: flowState,
+        configuredSemanticMaxAttempts: normalized.semanticMaxAttempts,
+        targetStateDigest: repairFingerprint,
+        targetState,
+      });
+      registration.applyTo(flowState);
+    }, expectedOriginal == null ? {} : { expectedOriginal });
+  } catch (error) {
+    if (registrar.store.contains(normalized.evidence)) {
+      throw new FinalizedReviewPromotionError({
+        cause: error,
+        evidence: normalized.evidence,
+        targetState,
+      });
+    }
+    throw error;
+  }
   const state = registration.convergenceState;
   result.reviewAction = resolveReviewPermittedOperation(state).toJSON();
   result.artifacts.canonicalVerdict = verdict;
@@ -1692,7 +1706,19 @@ const REVIEW_PROMOTION_REJECTION_CODES = new Set([
   "STALE_REVIEW_TARGET",
 ]);
 
+class FinalizedReviewPromotionError extends Error {
+  constructor({ cause, evidence, targetState }) {
+    super(String(cause?.message || cause), { cause });
+    this.name = "FinalizedReviewPromotionError";
+    this.stage = "result_recording";
+    this.evidence = evidence;
+    this.targetState = targetState;
+    Object.freeze(this);
+  }
+}
+
 function reviewPromotionFailureStage(error) {
+  if (error instanceof FinalizedReviewPromotionError) return error.stage;
   if (error instanceof SyntaxError) return "parse";
   if (/review-evidence|immutable|canonical|evidence (path|file|write)|EACCES|ENOTDIR/i.test(
     String(error?.message || error),
@@ -1720,6 +1746,9 @@ function reviewExecutionFailureEnvelope(ctx, {
     );
   }
   const reason = String(error?.message || error);
+  const finalizedPromotion = error instanceof FinalizedReviewPromotionError
+    ? error
+    : null;
   let recorded = null;
   try {
     recorded = persistCanonicalToolingOutcome(ctx, {
@@ -1729,6 +1758,10 @@ function reviewExecutionFailureEnvelope(ctx, {
       repairFingerprint,
       stage,
       reason,
+      evidence: finalizedPromotion?.evidence ?? null,
+      canonicalEvidencePersisted: finalizedPromotion != null,
+      finalizedEvidenceAvailable: finalizedPromotion != null,
+      targetState: finalizedPromotion?.targetState ?? null,
       expectedOriginal,
     });
   } catch (persistenceError) {

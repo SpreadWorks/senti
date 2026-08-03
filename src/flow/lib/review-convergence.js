@@ -1224,6 +1224,7 @@ export class ReviewConvergenceStore {
     canonicalEvidencePersisted = false,
     finalizedEvidenceAvailable = false,
     targetStateDigest = null,
+    targetState = null,
     expectedOriginal = null,
   } = {}) {
     if (!(outcome instanceof ReviewToolingOutcome)) {
@@ -1238,6 +1239,10 @@ export class ReviewConvergenceStore {
     const normalizedTargetStateDigest = targetStateDigest == null
       ? null
       : requireSha256(targetStateDigest, "targetStateDigest");
+    const normalizedTargetState = targetState == null ? null : new ReviewTargetState(targetState);
+    if (normalizedTargetState && normalizedTargetState.digest !== normalizedTargetStateDigest) {
+      throw new Error("review target state digest does not match targetStateDigest");
+    }
     if (evidence != null && !(evidence instanceof ReviewEvidence)) {
       throw new Error("evidence must be a ReviewEvidence");
     }
@@ -1253,10 +1258,6 @@ export class ReviewConvergenceStore {
     let persisted;
     this.flowManager.mutate((flowState) => {
       const existingRecord = convergenceRecords(flowState).find((entry) => targetMatches(entry, target));
-      const existingMatchesTargetState = existingRecord && (
-        normalizedTargetStateDigest == null
-        || existingRecord.targetStateDigest === normalizedTargetStateDigest
-      );
       const current = existingRecord
         ? convergenceStateForTargetDigest(existingRecord, normalizedTargetStateDigest)
         : emptyConvergenceState(flowState, target);
@@ -1308,6 +1309,7 @@ export class ReviewConvergenceStore {
         } : {}),
         updatedAt: new Date().toISOString(),
         ...(normalizedTargetStateDigest && { targetStateDigest: normalizedTargetStateDigest }),
+        ...(normalizedTargetState && { targetState: normalizedTargetState.toJSON() }),
       });
     }, expectedOriginal == null ? {} : { expectedOriginal });
     return persisted;

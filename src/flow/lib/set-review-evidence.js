@@ -3,16 +3,14 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { findActiveNode, resolveMaxAttempts } from "../definition.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
-import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
-import { ReviewTargetState } from "./review-convergence.js";
 import {
   ReviewEvidenceInput,
   ReviewEvidenceRegistrar,
   ReviewEvidenceStore,
-  resolveCurrentReviewTreeSha,
 } from "./review-evidence-store.js";
 import { ReviewDisposition, ReviewEvidence } from "./review-convergence.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { ReviewTargetAuthority } from "./review-target-authority.js";
 
 const PHASE_BY_REVIEW_STEP = Object.freeze({
   "draft-questions-review": "draft-questions",
@@ -120,23 +118,19 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
     let input;
     let target;
     try {
+      const authority = ReviewTargetAuthority.fromContext(ctx);
       input = ReviewEvidenceInput.fromFile({
-        root: ctx.executionRoot || ctx.root,
+        root: authority.executionRoot,
         specDir,
         inputPath: ctx.file,
       });
       target = currentReviewTarget(
         ctx.flowState,
-        resolveCurrentReviewTreeSha(ctx.executionRoot || ctx.root, specPath),
+        authority.resolveTreeSha(),
       );
-      const fingerprint = buildRepairFingerprint({
-        root: ctx.executionRoot || ctx.root,
-        artifactRoot: ctx.root,
-        specPath,
-        state: ctx.flowState,
-      });
+      const fingerprint = authority.captureFingerprint();
       target.targetStateDigest = fingerprint.hash;
-      target.targetState = ReviewTargetState.fromRepairFingerprint(fingerprint);
+      target.targetState = authority.captureTargetState(fingerprint);
       input.validateTarget(target);
     } catch (error) {
       if (!error.code && /tree target mismatch/.test(error.message)) {

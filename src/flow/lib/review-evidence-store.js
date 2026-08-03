@@ -217,6 +217,21 @@ export class ReviewEvidenceStore {
     }
   }
 
+  contains(evidence) {
+    if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
+    const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
+    let stat;
+    try {
+      stat = fs.lstatSync(artifactPath);
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+    if (!stat.isFile() || stat.isSymbolicLink()) return false;
+    const expected = Buffer.from(`${evidence.canonicalText}\n`, "utf8");
+    return fs.readFileSync(artifactPath).equals(expected);
+  }
+
   write(evidence) {
     if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
     const bytes = Buffer.from(`${evidence.canonicalText}\n`, "utf8");
