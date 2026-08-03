@@ -370,6 +370,7 @@ export class FlowManager {
     specId = null,
     specRoot = DEFAULT_FLOW_SPEC_DIR,
     bindingFaultInjector = () => {},
+    targetIdentityFaultInjector = () => {},
     processIdentitySource,
   }) {
     this._root = root;
@@ -378,6 +379,7 @@ export class FlowManager {
     this._boundSpecId = specId;
     this._workspace = new FlowWorkspace({ repositoryRoot: mainRoot, executionRoot: root, specRoot });
     this._bindingFaultInjector = bindingFaultInjector;
+    this._targetIdentityFaultInjector = targetIdentityFaultInjector;
     this._processIdentitySource = processIdentitySource;
     this._usesWorktreeFlowBinding = isManagedFlowWorktree(root, mainRoot, inWorktree);
     this._activeFlows = new ActiveFlowRegistry({
@@ -392,6 +394,7 @@ export class FlowManager {
     this._targetIdentities = new FlowTargetIdentityAuthority({
       mainRoot,
       specRoot: this._workspace.specRoot,
+      faultInjector: targetIdentityFaultInjector,
       ...(processIdentitySource && { processIdentitySource }),
     });
     this._store = new FlowStore({
@@ -503,6 +506,7 @@ export class FlowManager {
       specId: opts.specId,
       specRoot: this._workspace.specRoot,
       bindingFaultInjector: opts.bindingFaultInjector ?? this._bindingFaultInjector,
+      targetIdentityFaultInjector: opts.targetIdentityFaultInjector ?? this._targetIdentityFaultInjector,
       ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
     });
   }
@@ -1097,10 +1101,6 @@ export class FlowManager {
   #resolveExplicitIdentity(expectation, lifecycle = null) {
     const identities = this.#targetIdentityEntries(lifecycle);
     const matches = identities.filter((identity) => identity.matches(expectation));
-    if (matches.length === 0) {
-      const registered = this.#loadRegisteredExplicitSpec(expectation, identities, lifecycle);
-      if (registered) return registered;
-    }
     const identity = resolveUniqueFlowTarget(expectation, matches);
     const target = this.#loadTargetIdentity(identity);
     if (!target.matches(expectation)) throw new FlowTargetNotFoundError(expectation);
@@ -1109,11 +1109,21 @@ export class FlowManager {
 
   #targetIdentityEntries(lifecycle = null) {
     const identities = this._targetIdentities.snapshot().entries;
-    const registry = this._activeFlows.load();
+    let registry;
+    try {
+      registry = this._activeFlows.load();
+    } catch (cause) {
+      throw new FlowTargetAuthorityError("active-flow registry is invalid during target resolution", { cause });
+    }
     const selectable = identities.filter((identity) => {
       if (identity.lifecycle !== "active") return true;
       const entry = registry.find((candidate) => candidate.specId === identity.specId);
-      if (!entry) return false;
+      if (!entry) {
+        throw new FlowTargetAuthorityError(
+          `active target identity is missing from the active-flow registry: ${identity.specId}`,
+          { data: identity.toErrorData() },
+        );
+      }
       if (entry.mode !== identity.mode) {
         throw new FlowTargetAuthorityError(
           `active target identity is inconsistent with the active-flow registry: ${identity.specId}`,
@@ -1125,28 +1135,6 @@ export class FlowManager {
     return lifecycle == null
       ? selectable
       : selectable.filter((identity) => identity.lifecycle === lifecycle);
-  }
-
-  #loadRegisteredExplicitSpec(expectation, identities, lifecycle) {
-    if (lifecycle === "preparing" || expectation.specId == null) return null;
-    if (identities.some((identity) => (
-      identity.lifecycle === "active" && identity.specId === expectation.specId
-    ))) {
-      return null;
-    }
-    const entry = this._activeFlows.load().find((candidate) => candidate.specId === expectation.specId);
-    if (!entry) return null;
-    const resolved = this._loadActiveFlowState(entry.specId);
-    if (!resolved?.state) return null;
-    const identity = FlowTargetIdentity.active(resolved.state, entry.mode, this._workspace.specRoot);
-    if (!identity.matches(expectation)) return null;
-    return new ResolvedFlowTarget({
-      state: identity.assertState(resolved.state),
-      specId: identity.specId,
-      worktreePath: resolved.worktreePath,
-      mainRoot: this._mainRoot,
-      authorityRoot: resolved.worktreePath || this._mainRoot,
-    });
   }
 
   #loadTargetIdentity(identity) {
@@ -1294,21 +1282,10 @@ export class FlowManager {
    * @param {string} runId
    * @returns {object|null}
    */
-  resolveByRunId(runId, { specId = null } = {}) {
+  resolveByRunId(runId) {
     const expectation = new FlowTargetExpectation({ expectRunId: runId });
     const matches = this.#targetIdentityEntries().filter((identity) => identity.matches(expectation));
-    if (matches.length === 0) {
-      if (specId == null) return null;
-      const registeredExpectation = new FlowTargetExpectation({
-        expectRunId: runId,
-        expectSpec: specId,
-      });
-      return this.#loadRegisteredExplicitSpec(
-        registeredExpectation,
-        this.#targetIdentityEntries(),
-        "active",
-      )?.state ?? null;
-    }
+    if (matches.length === 0) return null;
     return this.#loadTargetIdentity(resolveUniqueFlowTarget(expectation, matches)).state;
   }
 

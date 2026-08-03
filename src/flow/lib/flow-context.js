@@ -39,6 +39,22 @@ function preparingRunIdSelection(input = {}) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function targetExpectationInput(options = {}) {
+  const input = options.input || {};
+  if (
+    options.positionalRunIdTarget === true
+    && typeof input.runId === "string"
+    && input.runId.trim() !== ""
+  ) {
+    return { expectRunId: input.runId };
+  }
+  return input;
+}
+
+export function flowTargetExpectation(options = {}) {
+  return new FlowTargetExpectation(targetExpectationInput(options));
+}
+
 function preparingAuthorityForRunId(baseFlowManager, mainRoot, paths, runId) {
   if (!runId || typeof baseFlowManager.loadPreparingFlow !== "function") return null;
   const state = baseFlowManager.loadPreparingFlow(runId);
@@ -83,7 +99,7 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
   const paths = container.get("paths");
   const targetExpectation = options.targetExpectation instanceof FlowTargetExpectation
     ? options.targetExpectation
-    : new FlowTargetExpectation(options.input);
+    : flowTargetExpectation(options);
   const worktreeAuthority = boundWorktreeAuthority(
     container,
     baseFlowManager,
@@ -162,7 +178,7 @@ export function resolveFlowContext(container, options = {}) {
   const mainRoot = container.get("mainRoot");
   const targetExpectation = options.targetExpectation instanceof FlowTargetExpectation
     ? options.targetExpectation
-    : new FlowTargetExpectation(options.input);
+    : flowTargetExpectation(options);
   const {
     flowManager,
     flowState,

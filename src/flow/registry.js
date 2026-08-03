@@ -806,6 +806,9 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.get.status",
       requiresFlow: false,
       targetGuard: false,
+      explicitTargetResolution: true,
+      positionalRunIdTarget: true,
+      preparingRunIdSelection: false,
       command: () => import("./lib/get-status.js"),
       args: { positional: ["runId"], flags: withTargetGuardFlags(["--details"]), options: FLOW_TARGET_GUARD_OPTIONS },
       help: [

@@ -14,10 +14,10 @@
  */
 
 import { Command } from "../../lib/command.js";
-import { resolveFlowContext } from "./flow-context.js";
+import { Envelope } from "../../lib/flow-envelope.js";
+import { flowTargetExpectation, resolveFlowContext } from "./flow-context.js";
 import {
   buildTargetMismatchEnvelope,
-  FlowTargetExpectation,
   targetMismatchEnvelopeForInput,
 } from "../../lib/flow-target-guard.js";
 
@@ -29,16 +29,19 @@ export class FlowCommand extends Command {
    * @param {Object} [options]
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
    * @param {boolean} [options.explicitTargetResolution=false] - Resolve guarded targets before ambient cwd authority
+   * @param {boolean} [options.positionalRunIdTarget=false] - Treat a positional runId as the target when no runId guard is supplied
    */
   constructor({
     requiresFlow = true,
     targetGuard = true,
     explicitTargetResolution = false,
+    positionalRunIdTarget = false,
   } = {}) {
     super();
     this.requiresFlow = requiresFlow;
     this.targetGuard = targetGuard;
     this.explicitTargetResolution = explicitTargetResolution;
+    this.positionalRunIdTarget = positionalRunIdTarget;
   }
 
   /**
@@ -53,7 +56,10 @@ export class FlowCommand extends Command {
     this.container = container;
     let targetExpectation;
     try {
-      targetExpectation = new FlowTargetExpectation(input);
+      targetExpectation = flowTargetExpectation({
+        input,
+        positionalRunIdTarget: this.positionalRunIdTarget,
+      });
     } catch {
       return targetMismatchEnvelopeForInput({
         type: input._envelopeType || "run",
@@ -66,6 +72,8 @@ export class FlowCommand extends Command {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
         explicitTargetResolution: this.explicitTargetResolution,
+        positionalRunIdTarget: this.positionalRunIdTarget,
+        preparingRunIdSelection: this.positionalRunIdTarget ? false : undefined,
         input,
         targetExpectation,
       }),
@@ -79,6 +87,15 @@ export class FlowCommand extends Command {
           key: input._envelopeKey || "flow",
           data: ctx.flowResolutionError.data,
         });
+      }
+      if (this.explicitTargetResolution) {
+        return Envelope.fail(
+          input._envelopeType || "run",
+          input._envelopeKey || "flow",
+          ctx.flowResolutionError.code || "FLOW_TARGET_RESOLUTION_FAILED",
+          ctx.flowResolutionError.message,
+          ctx.flowResolutionError.data,
+        );
       }
       if (this.requiresFlow) throw ctx.flowResolutionError;
     }

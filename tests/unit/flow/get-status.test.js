@@ -7,7 +7,8 @@
 import { describe, it, afterEach } from "node:test";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
-import { execFileSync } from "child_process";
+import fs from "node:fs";
+import { execFileSync, spawnSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
@@ -97,6 +98,7 @@ describe("flow get status", () => {
       currentTaskId: null,
     });
     makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
+    fs.writeFileSync(join(tmp, "specs", "001-test", "flow.json"), "{truncated");
 
     const result = execFileSync("node", [
       FLOW_CMD,
@@ -113,6 +115,38 @@ describe("flow get status", () => {
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.specId, secondSpec);
     assert.equal(envelope.data.runId, "run-002-second");
+  });
+
+  it("fails on a corrupt selected runId before creating a runtime log", () => {
+    tmp = createTmpDir();
+    const state = setupFlowState(tmp);
+    fs.writeFileSync(join(tmp, "specs", state.specId, "flow.json"), "{truncated");
+
+    const result = spawnSync("node", [
+      FLOW_CMD,
+      ...FLOW_CMD_ARGS_PREFIX,
+      "get",
+      "status",
+      state.runId,
+      "--expect-run-id",
+      state.runId,
+      "--expect-issue",
+      String(state.issue),
+      "--expect-spec",
+      state.specId,
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    });
+
+    const envelope = JSON.parse(result.stdout);
+    assert.notEqual(result.status, 0);
+    assert.equal(envelope.errors[0].code, "FLOW_TARGET_RECOVERY_REQUIRED");
+    assert.deepEqual(
+      { runId: envelope.data.runId, issue: envelope.data.issue, specId: envelope.data.specId },
+      { runId: state.runId, issue: state.issue, specId: state.specId },
+    );
+    assert.equal(fs.existsSync(join(tmp, ".tmp", "logs")), false);
   });
 
   it("omits audit details from default status", () => {

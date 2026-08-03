@@ -85,11 +85,30 @@ function readFlowState(flow) {
   return JSON.parse(fs.readFileSync(path.join(flow.root, "specs", flow.specId, "flow.json"), "utf8"));
 }
 
+function snapshotDirectory(directory, root = directory) {
+  if (!fs.existsSync(directory)) return [];
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const absolute = path.join(directory, entry.name);
+      const relative = path.relative(root, absolute).split(path.sep).join("/");
+      if (entry.isDirectory()) {
+        return [{ path: `${relative}/`, content: null }, ...snapshotDirectory(absolute, root)];
+      }
+      return [{
+        path: relative,
+        mode: fs.lstatSync(absolute).mode & 0o777,
+        content: fs.readFileSync(absolute).toString("base64"),
+      }];
+    });
+}
+
 function snapshotTarget(flow) {
   const mainHead = path.resolve(flow.root, git(flow.root, ["rev-parse", "--git-path", "HEAD"]));
   const worktreeHead = path.resolve(flow.worktreePath, git(flow.worktreePath, ["rev-parse", "--git-path", "HEAD"]));
   const files = [
     path.join(flow.root, ".senti", ".active-flow"),
+    path.join(flow.root, ".senti", ".flow-target-identities"),
     path.join(flow.root, ".senti", ".current-flow"),
     mainHead,
     worktreeHead,
@@ -97,10 +116,16 @@ function snapshotTarget(flow) {
     path.join(flow.root, "specs", flow.specId, "flow.json"),
     path.join(flow.root, "specs", flow.specId, "spec.json"),
   ];
-  return Object.fromEntries(files.map((file) => [
-    file,
-    fs.existsSync(file) ? fs.readFileSync(file).toString("base64") : null,
-  ]));
+  return {
+    ...Object.fromEntries(files.map((file) => [
+      file,
+      fs.existsSync(file) ? fs.readFileSync(file).toString("base64") : null,
+    ])),
+    artifactTree: snapshotDirectory(path.join(flow.root, "specs", flow.specId)),
+    runtimeLogTree: snapshotDirectory(path.join(flow.root, ".tmp", "logs")),
+    refs: git(flow.root, ["show-ref"]),
+    worktrees: git(flow.root, ["worktree", "list", "--porcelain"]),
+  };
 }
 
 function snapshotPendingTransition(flow) {
@@ -250,6 +275,54 @@ describe("worktree command identity", () => {
     }
   });
 
+  it("fails on corrupt selected state before finalize hooks, runtime logs, refs, or worktree mutation", () => {
+    const root = createProject();
+    const flow = prepareWorktree(root, { issue: 440, title: "corrupt-selected-target" });
+    const flowPath = path.join(root, "specs", flow.specId, "flow.json");
+    fs.writeFileSync(flowPath, "{truncated");
+    const before = snapshotTarget(flow);
+
+    const result = runFlow(root, [
+      "run", "finalize-cleanup", "--force", ...targetArgs(flow),
+    ]);
+
+    assert.notEqual(result.status, 0);
+    assert.equal(result.envelope?.errors?.[0]?.code, "FLOW_TARGET_RECOVERY_REQUIRED");
+    assert.deepEqual(
+      {
+        runId: result.envelope?.data?.runId,
+        issue: result.envelope?.data?.issue,
+        specId: result.envelope?.data?.specId,
+      },
+      { runId: flow.runId, issue: 440, specId: flow.specId },
+    );
+    assert.deepEqual(snapshotTarget(flow), before);
+  });
+
+  it("fails optional next-action on corrupt selected state before dispatch side effects", () => {
+    const root = createProject();
+    const flow = prepareWorktree(root, { issue: 441, title: "corrupt-optional-target" });
+    const flowPath = path.join(root, "specs", flow.specId, "flow.json");
+    fs.writeFileSync(flowPath, "{truncated");
+    const before = snapshotTarget(flow);
+
+    const result = runFlow(root, [
+      "get", "next-action", ...targetArgs(flow),
+    ]);
+
+    assert.notEqual(result.status, 0);
+    assert.equal(result.envelope?.errors?.[0]?.code, "FLOW_TARGET_RECOVERY_REQUIRED");
+    assert.deepEqual(
+      {
+        runId: result.envelope?.data?.runId,
+        issue: result.envelope?.data?.issue,
+        specId: result.envelope?.data?.specId,
+      },
+      { runId: flow.runId, issue: 441, specId: flow.specId },
+    );
+    assert.deepEqual(snapshotTarget(flow), before);
+  });
+
   it("rejects a mismatched guard before reconciling a pending Issue transition", () => {
     const root = createProject();
     const flow = prepareWorktree(root, { issue: null, title: "pending-guard-order" });
@@ -372,8 +445,8 @@ describe("worktree command identity", () => {
     const resumed = runFlow(root, ["resume", "--spec", flow.specId]);
 
     assert.notEqual(resumed.status, 0);
-    assert.equal(resumed.envelope?.errors?.[0]?.code, "FLOW_TARGET_NOT_FOUND");
-    assert.equal(resumed.envelope?.data?.expectedSpec, flow.specId);
+    assert.equal(resumed.envelope?.errors?.[0]?.code, "FLOW_TARGET_AUTHORITY_CORRUPT");
+    assert.equal(resumed.envelope?.data?.specId, flow.specId);
   });
 
   it("validates positional and expected status run IDs independently", () => {
@@ -457,6 +530,7 @@ describe("worktree command identity", () => {
       }
     }
     assert.deepEqual(entries, [
+      "get.status",
       "get.next-action",
       "get.runtime-log",
       "set.step",

@@ -2,6 +2,8 @@ import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { ActiveFlowRegistry } from "../../../src/lib/active-flow-registry.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
 import { FlowTargetIdentityAuthority } from "../../../src/lib/flow-target-identity-authority.js";
 import { resolvePreparingRunId } from "../../../src/flow/lib/resolve-preparing-run-id.js";
@@ -215,6 +217,46 @@ describe("flow target identity authority", () => {
     assert.equal(target.state.runId, "run-target");
   });
 
+  it("does not synthesize an active identity from a registry-only orphan", () => {
+    tmp = createTmpDir("target-identity-");
+    const manager = makeFlowManager(tmp);
+    const orphan = makeFlowState({
+      specId: "001-orphan",
+      runId: "run-orphan",
+      issue: 493,
+      featureBranch: "feature/001-orphan",
+    });
+    manager.create(orphan);
+    new ActiveFlowRegistry({ mainRoot: tmp }).add(orphan.specId, "branch");
+    const before = treeSnapshot(tmp);
+
+    assert.throws(
+      () => manager.resolveExplicitFlowTarget(new FlowTargetExpectation({
+        expectIssue: 493,
+        expectSpec: orphan.specId,
+      })),
+      (error) => error.code === "FLOW_TARGET_NOT_FOUND" && error.data?.matchCount === 0,
+    );
+    assert.deepEqual(treeSnapshot(tmp), before);
+  });
+
+  it("fails closed instead of hiding ambiguity when an active identity loses its registry entry", () => {
+    tmp = createTmpDir("target-identity-");
+    const manager = makeFlowManager(tmp);
+    activeFlow(manager, "001-active", 493);
+    manager.createPreparingFlow("run-preparing", { issue: 493 });
+    new ActiveFlowRegistry({ mainRoot: tmp }).remove("001-active");
+    const before = treeSnapshot(tmp);
+
+    assert.throws(
+      () => manager.resolveExplicitFlowTarget(new FlowTargetExpectation({ expectIssue: 493 })),
+      (error) => error.code === "FLOW_TARGET_AUTHORITY_CORRUPT"
+        && error.data?.runId === "run-001-active"
+        && error.data?.specId === "001-active",
+    );
+    assert.deepEqual(treeSnapshot(tmp), before);
+  });
+
   it("fails closed when the identity authority is malformed, duplicated, or stale", () => {
     for (const corruption of ["malformed", "duplicate", "stale"]) {
       const root = createTmpDir(`target-identity-${corruption}-`);
@@ -259,5 +301,90 @@ describe("flow target identity authority", () => {
 
     assert.equal(target.state.issue, 105);
     assert.equal(direct.runId, "run-104");
+  });
+
+  it("rolls back lifecycle state and registry on pre-commit identity write failure", () => {
+    tmp = createTmpDir("target-identity-");
+    let failIdentityWrite = false;
+    const manager = new FlowManager({
+      root: tmp,
+      mainRoot: tmp,
+      inWorktree: false,
+      targetIdentityFaultInjector({ phase }) {
+        if (failIdentityWrite && phase === "before-json-rename") {
+          throw new Error("target identity write failed");
+        }
+      },
+    });
+    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+    const initial = treeSnapshot(tmp);
+    failIdentityWrite = true;
+
+    assert.throws(
+      () => manager.createPreparingFlow("run-failed", { issue: 493 }),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), initial);
+
+    failIdentityWrite = false;
+    const state = makeFlowState({
+      specId: "001-failed",
+      runId: "run-active-failed",
+      issue: 493,
+      featureBranch: "feature/001-failed",
+    });
+    manager.create(state);
+    const beforeActive = treeSnapshot(tmp);
+    failIdentityWrite = true;
+
+    assert.throws(
+      () => manager.addActiveFlow(state.specId, "branch"),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), beforeActive);
+
+    failIdentityWrite = false;
+    manager.addActiveFlow(state.specId, "branch");
+    const beforeIssue = treeSnapshot(tmp);
+    failIdentityWrite = true;
+    assert.throws(
+      () => manager.setIssue(494),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), beforeIssue);
+
+    const beforeRemoval = treeSnapshot(tmp);
+    assert.throws(
+      () => manager.removeActiveFlow(state.specId),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), beforeRemoval);
+
+    failIdentityWrite = false;
+    manager.createPreparingFlow("run-delete-failed", { issue: 493 });
+    const beforePreparingRemoval = treeSnapshot(tmp);
+    failIdentityWrite = true;
+    assert.throws(
+      () => manager.deletePreparingFlow("run-delete-failed"),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), beforePreparingRemoval);
+
+    failIdentityWrite = false;
+    manager.createPreparingFlow("run-promotion-failed", { issue: 495 });
+    const promoted = makeFlowState({
+      specId: "002-promotion-failed",
+      runId: "run-promotion-failed",
+      issue: 495,
+      featureBranch: "main",
+    });
+    manager.create(promoted);
+    const beforePromotion = treeSnapshot(tmp);
+    failIdentityWrite = true;
+    assert.throws(
+      () => manager.addActiveFlow(promoted.specId, "local"),
+      /target identity write failed/,
+    );
+    assert.deepEqual(treeSnapshot(tmp), beforePromotion);
   });
 });

@@ -28,7 +28,6 @@ import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findi
 import { validateFinalRegressionResult } from "./test-artifacts.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { advisorySummary } from "./nonblocking.js";
-import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { resolveReviewActionForFlowState } from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
@@ -329,7 +328,12 @@ function buildStatusOutput(state, root, options = {}) {
 
 export default class GetStatusCommand extends FlowCommand {
   constructor() {
-    super({ requiresFlow: false, targetGuard: false });
+    super({
+      requiresFlow: false,
+      targetGuard: false,
+      explicitTargetResolution: true,
+      positionalRunIdTarget: true,
+    });
   }
 
   execute(ctx) {
@@ -349,9 +353,8 @@ export default class GetStatusCommand extends FlowCommand {
     if (runId) {
       // The binding already selected the only permissible worktree target.
       // A positional runId validates that state instead of redirecting it.
-      const state = ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance && ctx.flowState
-        ? ctx.flowState
-        : ctx.flowManager.resolveByRunId(runId, { specId: ctx.expectSpec ?? null });
+      const resolvedState = ctx.preparingFlowState ?? ctx.flowState;
+      const state = resolvedState || ctx.flowManager.resolveByRunId(runId);
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }

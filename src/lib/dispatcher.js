@@ -453,11 +453,17 @@ export async function dispatch({
     writeOut(JSON.stringify(failure.toJSON(), null, 2) + "\n");
     setExit(1);
   };
-  const targetResolutionError = [
+  const recognizedTargetResolutionError = [
     "ACTIVE_FLOW_MISMATCH",
     "FLOW_TARGET_NOT_FOUND",
     "FLOW_TARGET_AMBIGUOUS",
+    "FLOW_TARGET_RECOVERY_REQUIRED",
+    "FLOW_TARGET_AUTHORITY_CORRUPT",
   ].includes(hookCtx.flowResolutionError?.code)
+    || hookCtx.flowResolutionError?.code?.startsWith("FLOW_TARGET_AUTHORITY_");
+  const targetResolutionError = hookCtx.flowResolutionError && (
+    entry.explicitTargetResolution === true || recognizedTargetResolutionError
+  )
     ? hookCtx.flowResolutionError
     : null;
   if (
@@ -470,7 +476,7 @@ export async function dispatch({
     const failureCode = targetResolutionError.code === "FLOW_TARGET_NOT_FOUND"
       && entry.targetNotFoundAsMismatch === true
       ? "ACTIVE_FLOW_MISMATCH"
-      : targetResolutionError.code;
+      : targetResolutionError.code || "FLOW_TARGET_RESOLUTION_FAILED";
     emitTargetFailure(Envelope.fail(
       envelopeType || "run",
       envelopeKey || "?",
