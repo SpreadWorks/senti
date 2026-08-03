@@ -9,6 +9,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadConfig, sentiConfigPath, sentiOutputDir } from "../../lib/config.js";
@@ -744,6 +745,7 @@ function finalRegressionGeneratedPath(filePath, state) {
     || filePath === `${specDirRelative}/issue-log.json`
     || filePath === `${specDirRelative}/flow.json`
     || filePath === ".senti/.active-flow"
+    || FlowTargetIdentityAuthority.managesRepositoryPath(filePath)
     || filePath.startsWith(".tmp/logs/")
     || filePath.startsWith(`${specDirRelative}/tests/.raw/final-regression-attempt-`);
 }

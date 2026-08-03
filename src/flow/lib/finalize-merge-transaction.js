@@ -9,6 +9,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { GitStatusPathSet, runGit } from "../../lib/git-helpers.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
@@ -21,6 +22,7 @@ const FLOW_OPERATION_LOCK_PATH = ".senti/.repository-flow-operation.lock";
 function isFlowRuntimePath(filePath) {
   return filePath === FLOW_OPERATION_LOCK_PATH
     || filePath === ".senti/.active-flow"
+    || FlowTargetIdentityAuthority.managesRepositoryPath(filePath)
     || filePath.startsWith(".tmp/logs/");
 }
 

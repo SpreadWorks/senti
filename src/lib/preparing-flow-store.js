@@ -112,6 +112,9 @@ export class PreparingFlowStore {
       autoApprove: false,
       ...extra,
     };
+    if (state.runId !== runId || state.lifecycle !== "preparing" || state.specId !== null) {
+      throw new Error("preparing flow state must preserve runId, preparing lifecycle, and null specId");
+    }
     const p = this.#path(id);
     return this.#withLock(id, () => {
       if (fs.existsSync(p)) {
@@ -180,6 +183,9 @@ export class PreparingFlowStore {
       const snapshot = new PreparingFlowSnapshot(p);
       const state = structuredClone(snapshot.state);
       mutator(state);
+      if (state.runId !== runId || state.lifecycle !== "preparing" || state.specId !== null) {
+        throw new Error("preparing flow mutation must preserve runId, preparing lifecycle, and null specId");
+      }
       const validState = new FlowState(state).toJSON();
       snapshot.assertCurrent();
       new AtomicJsonFile(p, { faultInjector: this._faultInjector }).write(validState);

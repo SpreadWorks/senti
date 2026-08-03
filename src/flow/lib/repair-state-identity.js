@@ -5,6 +5,7 @@ import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
 import { UPGRADE_RECOVERY_AUDIT_FILE } from "./upgrade-evidence-paths.js";
 import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
+import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 
 export const REPAIR_STATE_VERSION = 3;
 export const LEGACY_REPAIR_STATE_VERSION = 2;
@@ -557,6 +558,7 @@ export class RepairArtifactRegistry {
     ].map((name) => `${this.specDir}/${name}`);
     this.#exact = new Set([
       ".senti/.active-flow",
+      ...FlowTargetIdentityAuthority.repositoryPaths(),
       ".senti/.repository-flow-operation.lock",
       ".senti/.repository-maintenance.lock",
       ".senti/.worktree-prepare-attempt.json",

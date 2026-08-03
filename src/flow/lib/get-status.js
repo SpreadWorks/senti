@@ -351,7 +351,7 @@ export default class GetStatusCommand extends FlowCommand {
       // A positional runId validates that state instead of redirecting it.
       const state = ctx.worktreeFlowProvenance instanceof WorktreeFlowProvenance && ctx.flowState
         ? ctx.flowState
-        : ctx.flowManager.resolveByRunId(runId);
+        : ctx.flowManager.resolveByRunId(runId, { specId: ctx.expectSpec ?? null });
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }

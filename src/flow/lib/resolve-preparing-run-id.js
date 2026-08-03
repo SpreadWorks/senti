@@ -21,15 +21,13 @@ export function resolvePreparingRunId(flowManager, explicitRunId, opts) {
   const type = opts?.type ?? "run";
   const key = opts?.key ?? "auto-check";
   const zeroPreparingAsFail = !!opts?.zeroPreparingAsFail;
-  const ids = flowManager.listPreparingFlows();
-
   if (explicitRunId) {
     if (typeof explicitRunId !== "string" || !explicitRunId.trim()) {
       return {
         fail: Envelope.fail(type, key, "INVALID_USAGE", "--run-id must be a non-empty string"),
       };
     }
-    if (!ids.includes(explicitRunId)) {
+    if (!flowManager.resolvePreparingByRunId(explicitRunId)) {
       return {
         fail: Envelope.fail(
           type,
@@ -41,6 +39,8 @@ export function resolvePreparingRunId(flowManager, explicitRunId, opts) {
     }
     return { runId: explicitRunId };
   }
+
+  const ids = flowManager.listPreparingFlows();
 
   if (ids.length === 0) {
     if (zeroPreparingAsFail) {
