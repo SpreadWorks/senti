@@ -49,6 +49,31 @@ function writePassArtifacts(root) {
   });
 }
 
+function draftQuestionsProjection() {
+  return {
+    version: 1,
+    phase: "draft-questions",
+    sourceDraft: "draft.json",
+    generatedAt: GENERATED_AT,
+    verdict: "PASS",
+    summary: "The draft questions review target is unchanged.",
+    blockingFindings: [],
+    advisoryFindings: [],
+    repairTargets: [],
+  };
+}
+
+function writeDraftQuestionsPassArtifacts(root) {
+  const projection = draftQuestionsProjection();
+  writeJson(root, `specs/${SPEC_ID}/draft-review-questions.json`, projection);
+  writeJson(root, `specs/${SPEC_ID}/review-history/draft-questions-attempt-001.json`, {
+    ...projection,
+    sourceArtifact: "draft-review-questions.json",
+    attempt: 1,
+    findings: [],
+  });
+}
+
 function providerPass(root, executionRoot, {
   changeTarget = false,
   blockEvidenceStore = false,
@@ -77,7 +102,25 @@ function providerPass(root, executionRoot, {
   };
 }
 
-function prepareWorktreeFixture(parent) {
+function draftQuestionsProviderPass(root, executionRoot) {
+  return (_command, _args, options) => {
+    assert.equal(path.resolve(options.cwd), path.resolve(executionRoot));
+    writeDraftQuestionsPassArtifacts(root);
+    return {
+      ok: true,
+      status: 0,
+      stdout: "Draft questions review PASS. Review found no required fixes.",
+      stderr: [
+        `Results saved to specs/${SPEC_ID}/draft-review-questions.json`,
+        "[draft-questions-review] verdict=PASS findings=0 retryPhase=draft-questions",
+      ].join("\n"),
+      signal: null,
+      killed: false,
+    };
+  };
+}
+
+function prepareWorktreeFixture(parent, { currentStepId = "spec-review" } = {}) {
   const root = path.join(parent, "main");
   const executionRoot = path.join(parent, "worktree");
   fs.mkdirSync(root, { recursive: true });
@@ -117,7 +160,7 @@ function prepareWorktreeFixture(parent) {
     specId: SPEC_ID,
     runId: "run-review-authority",
     issue: 496,
-  }), "spec-review");
+  }), currentStepId);
   const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
   flowManager.create(flowState);
   flowManager.addActiveFlow(flowState.specId, "worktree");
@@ -188,6 +231,46 @@ describe("worktree review authority", () => {
     const record = state.reviewConvergence.records[0];
     assert.equal(record.evidence.disposition, "PASS");
     assert.equal(record.toolingOutcome, null);
+    assert.equal(record.finalizedEvidenceAvailable, true);
+    assert.equal(
+      record.targetState.entries.some((entry) => entry.path.includes("plugin-artifacts")),
+      false,
+    );
+    assert.equal(
+      record.targetState.entries.some((entry) => entry.path.startsWith("specs/other-active-flow/")),
+      false,
+    );
+    assert.equal(
+      fs.readdirSync(path.join(fixture.root, `specs/${SPEC_ID}/review-evidence`)).length,
+      1,
+    );
+  });
+
+  it("reproduces draft-questions review authority in a worktree without a false stale stop", async () => {
+    temporaryRoot = createTmpDir("review-worktree-draft-questions-");
+    const fixture = prepareWorktreeFixture(temporaryRoot, {
+      currentStepId: "draft-questions-review",
+    });
+    const command = new RunReviewCommand({
+      runCommand: draftQuestionsProviderPass(fixture.root, fixture.executionRoot),
+    });
+
+    const result = await command.execute({
+      root: fixture.root,
+      executionRoot: fixture.executionRoot,
+      phase: "draft",
+      config: { agent: {} },
+      flowState: fixture.flowManager.load(),
+      flowManager: fixture.flowManager,
+    });
+
+    assert.equal(result.result, "ok", JSON.stringify(result));
+    assert.equal(result.next, "draft-refine");
+    const state = fixture.flowManager.loadReadOnly();
+    assert.equal(state.reviewConvergence.records.length, 1);
+    const record = state.reviewConvergence.records[0];
+    assert.equal(record.phase, "draft-questions");
+    assert.equal(record.evidence.disposition, "PASS");
     assert.equal(record.finalizedEvidenceAvailable, true);
     assert.equal(
       record.targetState.entries.some((entry) => entry.path.includes("plugin-artifacts")),
