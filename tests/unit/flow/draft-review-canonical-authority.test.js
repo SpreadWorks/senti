@@ -8,6 +8,7 @@ import {
   DraftReviewArtifactFile,
   DraftReviewArtifactRecoveryError,
   completeDraftReviewArtifactStep,
+  completeDraftReviewRepairStep,
   registerDraftReviewRevision,
   validateDraftReviewArtifactSet,
 } from "../../../src/flow/lib/draft-review-artifacts.js";
@@ -333,6 +334,122 @@ describe("draft review canonical authority", () => {
         && error.code === "DRAFT_REVIEW_ARTIFACT_INVALID",
     );
     assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
+  });
+
+  it("reports missing triage and repair evidence independently", () => {
+    temporaryRoot = createTmpDir("draft-review-missing-route-evidence-");
+    const route = draftReviewRouteForKey("coverage");
+    const specId = "499-missing-route-evidence";
+    const state = makeFlowState({ specId, runId: "run-missing-route-evidence" });
+    state.draftArtifactRevision = revisionFor(state, "draft-refine", "a".repeat(64));
+    const specDir = path.join(temporaryRoot, "specs", specId);
+    writeJson(temporaryRoot, `specs/${specId}/${route.reviewArtifact}`, reviewArtifact(
+      state.draftArtifactRevision,
+      route,
+    ));
+
+    const result = validateDraftReviewArtifactSet(specDir, route, state);
+
+    assert.ok(result.issues.some((issue) => issue.includes(`${route.triageArtifact}: missing draft triage artifact`)));
+    assert.ok(result.issues.some((issue) => issue.includes(`${route.repairArtifact}: missing draft repair artifact`)));
+  });
+
+  it("binds coverage repair evidence to the same atomic transition as draft promotion", () => {
+    temporaryRoot = createTmpDir("draft-coverage-repair-atomic-");
+    const mainRoot = path.join(temporaryRoot, "main");
+    const executionRoot = path.join(temporaryRoot, "worktree");
+    const route = draftReviewRouteForKey("coverage");
+    const specId = "499-coverage-repair-atomic";
+    fs.mkdirSync(mainRoot, { recursive: true });
+    fs.mkdirSync(executionRoot, { recursive: true });
+    const state = moveFlowToStep(makeFlowState({
+      specId,
+      runId: "run-coverage-repair-atomic",
+      worktree: true,
+    }), route.triageStepId);
+    const canonicalDraftPath = writeJson(mainRoot, `specs/${specId}/draft.json`, {
+      goal: "Approve only through the coverage repair transaction.",
+      approval: { approved: false, confirmedAt: "" },
+    });
+    writeJson(executionRoot, `specs/${specId}/draft.json`, {
+      goal: "Approve only through the coverage repair transaction.",
+      approval: { approved: true, confirmedAt: GENERATED_AT },
+    });
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({
+      state,
+      draftPath: canonicalDraftPath,
+    }).toJSON();
+    state.draftArtifactRevision.sourceStepId = "draft-refine";
+    writeJson(mainRoot, `specs/${specId}/${route.reviewArtifact}`, reviewArtifact(
+      state.draftArtifactRevision,
+      route,
+    ));
+    writeJson(mainRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route));
+    registerDraftReviewRevision({
+      root: mainRoot,
+      state,
+      flowManager: { mutate(mutator) { mutator(state); } },
+      route,
+    });
+    const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+    flowManager.create(state);
+    completeDraftReviewArtifactStep({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      state: flowManager.load(),
+      transition: new NormalStepTransition({
+        stepId: route.triageStepId,
+        currentStepId: route.triageStepId,
+        currentStatus: "in_progress",
+        requestedStatus: "done",
+      }),
+    });
+    const repairPath = writeJson(mainRoot, `specs/${specId}/${route.repairArtifact}`, repairArtifact(route));
+    const repairTransition = new NormalStepTransition({
+      stepId: route.repairStepId,
+      currentStepId: route.repairStepId,
+      currentStatus: "in_progress",
+      requestedStatus: "done",
+    });
+    let changed = false;
+
+    assert.throws(
+      () => completeDraftReviewRepairStep({
+        mainRoot,
+        executionRoot,
+        flowManager,
+        state: flowManager.load(),
+        transition: repairTransition,
+        faultInjector({ phase }) {
+          if (changed || phase !== "after-draft-review-artifact-validation") return;
+          changed = true;
+          const replacement = repairArtifact(route);
+          replacement.summary = "The canonical repair evidence changed after validation.";
+          fs.writeFileSync(repairPath, `${JSON.stringify(replacement, null, 2)}\n`);
+        },
+      }),
+      (error) => error instanceof DraftReviewArtifactRecoveryError
+        && error.code === "DRAFT_REVIEW_ARTIFACT_CHANGED",
+    );
+    const interrupted = flowManager.load();
+    assert.equal(findStepById(interrupted.steps, route.repairStepId).status, "in_progress");
+    assert.ok(interrupted.draftArtifactPromotion);
+
+    const completed = completeDraftReviewRepairStep({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      state: interrupted,
+      transition: repairTransition,
+    });
+    const current = flowManager.load();
+    const canonicalBytes = fs.readFileSync(canonicalDraftPath);
+    assert.equal(findStepById(current.steps, route.repairStepId).status, "done");
+    assert.equal(current.draftArtifactPromotion, undefined);
+    assert.equal(current.draftArtifactRevision.sourceStepId, route.repairStepId);
+    assert.equal(current.draftArtifactRevision.digest, crypto.createHash("sha256").update(canonicalBytes).digest("hex"));
+    assert.equal(completed.digest, crypto.createHash("sha256").update(fs.readFileSync(repairPath)).digest("hex"));
   });
 
   it("updates approval bytes and the recorded revision in one recoverable canonical mutation", () => {

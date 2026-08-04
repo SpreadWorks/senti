@@ -10,7 +10,7 @@ describe("empty draft review route artifacts", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("approves a fully resolved draft after a passing coverage review", () => {
+  it("reports approval eligibility without mutating the canonical draft", () => {
     tmp = createTmpDir("draft-coverage-pass-");
     const specDir = path.join(tmp, "specs", "demo");
     fs.mkdirSync(specDir, { recursive: true });
@@ -19,16 +19,19 @@ describe("empty draft review route artifacts", () => {
       approval: { approved: false, confirmedAt: "", notes: "" },
     })}\n`);
 
-    writeEmptyDraftReviewRouteArtifacts({
+    const originalBytes = fs.readFileSync(path.join(specDir, "draft.json"));
+    const result = writeEmptyDraftReviewRouteArtifacts({
       specDir,
       route: draftReviewRouteForKey("coverage"),
       generatedAt: "2026-07-26T00:00:00.000Z",
     });
 
+    assert.equal(result.approvalEligible, true);
+    assert.deepEqual(fs.readFileSync(path.join(specDir, "draft.json")), originalBytes);
     const draft = JSON.parse(fs.readFileSync(path.join(specDir, "draft.json"), "utf8"));
     assert.deepEqual(draft.approval, {
-      approved: true,
-      confirmedAt: "2026-07-26T00:00:00.000Z",
+      approved: false,
+      confirmedAt: "",
       notes: "",
     });
   });

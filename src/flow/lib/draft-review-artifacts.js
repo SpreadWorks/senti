@@ -10,7 +10,11 @@ import {
   DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT,
   draftReviewRouteForStepId,
 } from "./draft-review-routes.js";
-import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
+import {
+  DraftArtifactRecoveryError,
+  DraftArtifactRevision,
+  completeDraftArtifactStep,
+} from "./draft-artifact-promotion.js";
 import {
   DraftReviewRevisionBinding,
   createDraftReviewRevisionBinding,
@@ -734,6 +738,26 @@ class DraftReviewArtifactCompletionIntent extends StepTransitionCommitIntent {
   applyTo() {}
 }
 
+class DraftReviewArtifactCompletion {
+  constructor({ state, canonicalFile }) {
+    this.artifact = canonicalFile.filename;
+    this.digest = canonicalFile.digest;
+    this.promoted = false;
+    this.intent = new DraftReviewArtifactCompletionIntent({ state, canonicalFile });
+    Object.freeze(this);
+  }
+}
+
+class DraftReviewRepairCompletion {
+  constructor({ artifactCompletion, draftCompletion }) {
+    this.artifact = artifactCompletion.artifact;
+    this.digest = artifactCompletion.digest;
+    this.promoted = draftCompletion.promoted;
+    this.revision = draftCompletion.revision;
+    Object.freeze(this);
+  }
+}
+
 function assertFlowIdentity(state, expected) {
   if (state?.runId !== expected.runId || state?.specId !== expected.specId) {
     throw new DraftReviewArtifactRecoveryError(
@@ -743,9 +767,85 @@ function assertFlowIdentity(state, expected) {
   }
 }
 
+function findDraftReviewArtifactRecoveryCause(error) {
+  const visited = new Set();
+  let current = error;
+  while (current instanceof Error && !visited.has(current)) {
+    if (current instanceof DraftReviewArtifactRecoveryError) return current;
+    visited.add(current);
+    current = current.cause;
+  }
+  return null;
+}
+
+function withDraftReviewArtifactOperation({ mainRoot, processIdentitySource }, execute) {
+  const operation = new RepositoryFlowOperationLock({
+    mainRoot,
+    ...(processIdentitySource && { processIdentitySource }),
+  });
+  const operationOwnerToken = operation.acquire();
+  try {
+    return execute(operationOwnerToken);
+  } finally {
+    operation.release();
+  }
+}
+
 export function isDraftReviewArtifactStep(stepId) {
   const route = draftReviewRouteForStepId(stepId);
   return route != null && (stepId === route.triageStepId || stepId === route.repairStepId);
+}
+
+function draftReviewArtifactCompletion({
+  mainRoot,
+  executionRoot,
+  current,
+  transition,
+}) {
+  const route = draftReviewRouteForStepId(transition?.stepId);
+  if (
+    !route
+    || !isDraftReviewArtifactStep(transition.stepId)
+    || transition.requestedStatus !== "done"
+  ) {
+    throw new Error("draft review artifact completion requires a triage or repair done transition");
+  }
+  const canonicalSpecDir = specDirForRoot(mainRoot, current);
+  const executionSpecDir = specDirForRoot(executionRoot, current);
+  const targetArtifact = transition.stepId === route.triageStepId
+    ? route.triageArtifact
+    : route.repairArtifact;
+  const canonicalFile = DraftReviewArtifactFile.readIfExists(canonicalSpecDir, targetArtifact);
+  if (!canonicalFile && path.resolve(executionSpecDir) !== path.resolve(canonicalSpecDir)) {
+    const misplacedFile = DraftReviewArtifactFile.readIfExists(executionSpecDir, targetArtifact);
+    if (misplacedFile) {
+      throw new DraftReviewArtifactRecoveryError(
+        "DRAFT_REVIEW_ARTIFACT_WRONG_AUTHORITY",
+        `${targetArtifact} exists only in the execution checkout; write it to the canonical output path before completing the step`,
+        {
+          data: {
+            stepId: transition.stepId,
+            canonicalPath: path.join(canonicalSpecDir, targetArtifact),
+          },
+        },
+      );
+    }
+  }
+  const sourceEvidence = DraftReviewEvidenceSet.forCompletion({
+    canonicalSpecDir,
+    route,
+    state: current,
+    stepId: transition.stepId,
+  });
+  const sourceValidation = sourceEvidence.validateThrough(transition.stepId);
+  if (sourceValidation.issues.length > 0) {
+    throw new DraftReviewArtifactRecoveryError(
+      "DRAFT_REVIEW_ARTIFACT_INVALID",
+      sourceValidation.issues.join("; "),
+      { data: { stepId: transition.stepId } },
+    );
+  }
+  return new DraftReviewArtifactCompletion({ state: current, canonicalFile });
 }
 
 export function completeDraftReviewArtifactStep({
@@ -755,76 +855,32 @@ export function completeDraftReviewArtifactStep({
   state,
   transition,
   processIdentitySource,
-  completeTransition = true,
 } = {}) {
-  const route = draftReviewRouteForStepId(transition?.stepId);
-  if (
-    !route
-    || !isDraftReviewArtifactStep(transition.stepId)
-    || transition.requestedStatus !== "done"
-  ) {
-    throw new Error("draft review artifact completion requires a triage or repair done transition");
-  }
-  const canonicalSpecDir = specDirForRoot(mainRoot, state);
-  const executionSpecDir = specDirForRoot(executionRoot, state);
-  const operation = new RepositoryFlowOperationLock({
-    mainRoot,
-    ...(processIdentitySource && { processIdentitySource }),
-  });
-  const operationOwnerToken = operation.acquire();
   try {
-    const current = flowManager.load(state.specId);
-    assertFlowIdentity(current, state);
-    const targetArtifact = transition.stepId === route.triageStepId
-      ? route.triageArtifact
-      : route.repairArtifact;
-    const canonicalFile = DraftReviewArtifactFile.readIfExists(canonicalSpecDir, targetArtifact);
-    if (!canonicalFile && path.resolve(executionSpecDir) !== path.resolve(canonicalSpecDir)) {
-      const misplacedFile = DraftReviewArtifactFile.readIfExists(executionSpecDir, targetArtifact);
-      if (misplacedFile) {
-        throw new DraftReviewArtifactRecoveryError(
-          "DRAFT_REVIEW_ARTIFACT_WRONG_AUTHORITY",
-          `${targetArtifact} exists only in the execution checkout; write it to the canonical output path before completing the step`,
+    return withDraftReviewArtifactOperation(
+      { mainRoot, processIdentitySource },
+      (operationOwnerToken) => {
+        const current = flowManager.load(state.specId);
+        assertFlowIdentity(current, state);
+        const completion = draftReviewArtifactCompletion({
+          mainRoot,
+          executionRoot,
+          current,
+          transition,
+        });
+        flowManager.updateStepStatus(
+          transition,
           {
-            data: {
-              stepId: transition.stepId,
-              canonicalPath: path.join(canonicalSpecDir, targetArtifact),
-            },
+            specId: state.specId,
+            taskId: null,
+            expectedOriginal: current,
+            operationOwnerToken,
           },
+          completion.intent,
         );
-      }
-    }
-    const sourceEvidence = DraftReviewEvidenceSet.forCompletion({
-      canonicalSpecDir,
-      route,
-      state: current,
-      stepId: transition.stepId,
-    });
-    const sourceValidation = sourceEvidence.validateThrough(transition.stepId);
-    if (sourceValidation.issues.length > 0) {
-      throw new DraftReviewArtifactRecoveryError(
-        "DRAFT_REVIEW_ARTIFACT_INVALID",
-        sourceValidation.issues.join("; "),
-        { data: { stepId: transition.stepId } },
-      );
-    }
-    if (completeTransition) {
-      flowManager.updateStepStatus(
-        transition,
-        {
-          specId: state.specId,
-          taskId: null,
-          expectedOriginal: current,
-          operationOwnerToken,
-        },
-        new DraftReviewArtifactCompletionIntent({ state, canonicalFile }),
-      );
-    }
-    return {
-      artifact: canonicalFile.filename,
-      digest: canonicalFile.digest,
-      promoted: false,
-    };
+        return completion;
+      },
+    );
   } catch (cause) {
     if (cause instanceof DraftReviewArtifactRecoveryError) throw cause;
     throw new DraftReviewArtifactRecoveryError(
@@ -832,7 +888,63 @@ export function completeDraftReviewArtifactStep({
       `draft review artifact publication did not complete: ${cause.message}`,
       { cause, data: { stepId: transition.stepId } },
     );
-  } finally {
-    operation.release();
+  }
+}
+
+export function completeDraftReviewRepairStep({
+  mainRoot,
+  executionRoot,
+  flowManager,
+  state,
+  transition,
+  faultInjector = () => {},
+  processIdentitySource,
+} = {}) {
+  const route = draftReviewRouteForStepId(transition?.stepId);
+  if (!route || transition.stepId !== route.repairStepId || transition.requestedStatus !== "done") {
+    throw new Error("draft review repair completion requires a repair done transition");
+  }
+  try {
+    return withDraftReviewArtifactOperation(
+      { mainRoot, processIdentitySource },
+      (operationOwnerToken) => {
+        const current = flowManager.load(state.specId);
+        assertFlowIdentity(current, state);
+        const artifactCompletion = draftReviewArtifactCompletion({
+          mainRoot,
+          executionRoot,
+          current,
+          transition,
+        });
+        faultInjector({
+          phase: "after-draft-review-artifact-validation",
+          stepId: transition.stepId,
+          artifact: artifactCompletion.artifact,
+        });
+        const draftCompletion = completeDraftArtifactStep({
+          mainRoot,
+          executionRoot,
+          flowManager,
+          state: current,
+          transition,
+          faultInjector,
+          processIdentitySource,
+          operationOwnerToken,
+          evidenceIntent: artifactCompletion.intent,
+        });
+        return new DraftReviewRepairCompletion({ artifactCompletion, draftCompletion });
+      },
+    );
+  } catch (cause) {
+    const reviewCause = findDraftReviewArtifactRecoveryCause(cause);
+    if (reviewCause) throw reviewCause;
+    if (cause instanceof DraftArtifactRecoveryError) {
+      throw cause;
+    }
+    throw new DraftReviewArtifactRecoveryError(
+      "DRAFT_REVIEW_ARTIFACT_RECOVERY_REQUIRED",
+      `draft review repair completion did not complete: ${cause.message}`,
+      { cause, data: { stepId: transition.stepId } },
+    );
   }
 }

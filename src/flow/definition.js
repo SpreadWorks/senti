@@ -705,7 +705,6 @@ export function writeEmptyDraftReviewRouteArtifacts({
   specDir,
   route,
   generatedAt = new Date().toISOString(),
-  approveDraft = true,
 }) {
   fs.mkdirSync(specDir, { recursive: true });
   writeEmptyDraftReviewArtifact({
@@ -732,10 +731,6 @@ export function writeEmptyDraftReviewRouteArtifacts({
       && draft.qa.some((entry) => entry?.status === "pending" || entry?.status === "approved");
     if (!unresolved) {
       approvalEligible = true;
-      if (approveDraft) {
-        draft.approval = { ...(draft.approval || {}), approved: true, confirmedAt: generatedAt };
-        fs.writeFileSync(draftPath, `${JSON.stringify(draft, null, 2)}\n`);
-      }
     }
   }
   return Object.freeze({ approvalEligible, generatedAt });

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -19,6 +20,10 @@ import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { findActiveNode } from "../../../src/flow/definition.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import {
+  WorktreeFlowBindingStore,
+  WorktreeFlowIdentity,
+} from "../../../src/lib/worktree-flow-binding.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -147,7 +152,7 @@ describe("worktree draft review lifecycle", () => {
     temporaryRoot = null;
   });
 
-  it("passes questions ADVISORY through canonical repair, refine, coverage PASS, and draft-gate", async () => {
+  it("passes canonical questions and coverage repairs through a worktree draft-gate", async () => {
     temporaryRoot = createTmpDir("worktree-draft-review-lifecycle-");
     const mainRoot = path.join(temporaryRoot, "main");
     const executionRoot = path.join(temporaryRoot, "worktree");
@@ -294,7 +299,7 @@ describe("worktree draft review lifecycle", () => {
     assert.equal(findActiveNode(flowManager.load()).stepId, coverage.reviewStepId);
 
     state = flowManager.load();
-    writeReview(mainRoot, specId, coverage, state.draftArtifactRevision, "PASS");
+    writeReview(mainRoot, specId, coverage, state.draftArtifactRevision, "ADVISORY");
     registerDraftReviewRevision({
       root: mainRoot,
       state,
@@ -307,10 +312,79 @@ describe("worktree draft review lifecycle", () => {
       phase: "draft",
       flowState: flowManager.load(),
       flowManager,
-    }, reviewResult(coverage, "PASS"));
+    }, reviewResult(coverage, "ADVISORY"));
+    assert.equal(findActiveNode(flowManager.load()).stepId, coverage.triageStepId);
+
+    const coverageTriageAction = await new GetNextActionCommand().execute({
+      root: mainRoot,
+      mainRoot,
+      executionRoot,
+      flowManager,
+      flowState: flowManager.load(),
+    });
+    const coverageFinding = coverageTriageAction.context.draftReview.artifacts
+      .find((artifact) => artifact.name === coverage.reviewArtifact)?.document.repairTargets[0];
+    writeJson(path.dirname(coverageTriageAction.context.draftReview.outputArtifact.filePath), coverage.triageArtifact, {
+      version: 1,
+      phase: coverage.triageStepId,
+      sourceReview: coverage.reviewArtifact,
+      generatedAt: GENERATED_AT,
+      summary: "Apply the canonical coverage repair target.",
+      items: [{
+        title: coverageFinding.title,
+        target: coverageFinding.target,
+        decision: "apply",
+        rationale: "The coverage review requires canonical approval evidence.",
+        evidence: "The base-side coverage review contains the target.",
+      }],
+    });
+    await new SetStepCommand().execute(setStepContext({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      id: coverage.triageStepId,
+    }));
+    assert.equal(findActiveNode(flowManager.load()).stepId, coverage.repairStepId);
+
+    const coverageRepairAction = await new GetNextActionCommand().execute({
+      root: mainRoot,
+      mainRoot,
+      executionRoot,
+      flowManager,
+      flowState: flowManager.load(),
+    });
+    const coverageTriage = coverageRepairAction.context.draftReview.artifacts
+      .find((artifact) => artifact.name === coverage.triageArtifact)?.document;
+    const coverageRepairedDraft = {
+      ...refinedDraft,
+      goal: "Keep canonical coverage evidence and approval aligned.",
+      approval: { approved: true, confirmedAt: GENERATED_AT, notes: "" },
+    };
+    writeJson(executionRoot, specPath, coverageRepairedDraft);
+    writeJson(path.dirname(coverageRepairAction.context.draftReview.outputArtifact.filePath), coverage.repairArtifact, {
+      version: 1,
+      phase: coverage.repairStepId,
+      sourceTriage: coverage.triageArtifact,
+      generatedAt: GENERATED_AT,
+      summary: "Applied the canonical coverage repair.",
+      items: [{
+        title: coverageTriage.items[0].title,
+        target: coverageTriage.items[0].target,
+        rationale: "The draft now records coverage approval.",
+        evidence: "The canonical draft approval is true.",
+        changedFieldPaths: ["goal", "approval"],
+      }],
+    });
+    const coverageRepairResult = await new SetStepCommand().execute(setStepContext({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      id: coverage.repairStepId,
+    }));
+    assert.equal(coverageRepairResult.promoted, true, JSON.stringify(coverageRepairResult));
     state = flowManager.load();
     assert.equal(findActiveNode(state).stepId, "draft-gate");
-    assert.equal(state.draftArtifactRevision.sourceStepId, coverage.reviewStepId);
+    assert.equal(state.draftArtifactRevision.sourceStepId, coverage.repairStepId);
 
     const canonicalDraft = JSON.parse(fs.readFileSync(canonicalDraftPath, "utf8"));
     const gateResult = await runGateFlow({
@@ -446,5 +520,62 @@ describe("worktree draft review lifecycle", () => {
       skipGuardrail: true,
     });
     assert.equal(passedGate.result, "pass", JSON.stringify(passedGate));
+  });
+
+  it("executes the guarded draft-gate recovery from a managed worktree", () => {
+    temporaryRoot = createTmpDir("draft-gate-worktree-recovery-");
+    const mainRoot = path.join(temporaryRoot, "main");
+    const executionRoot = path.join(temporaryRoot, "worktree");
+    const specId = "499-worktree-recovery";
+    const featureBranch = "feature/499-worktree-recovery";
+    const draftPath = writeJson(mainRoot, `specs/${specId}/draft.json`, makeDraft());
+    writeJson(mainRoot, ".senti/config.json", {
+      name: "draft-gate-worktree-recovery",
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+    });
+    initGitRepo(mainRoot);
+    commitAll(mainRoot, "fixture baseline");
+    execFileSync("git", ["worktree", "add", "-q", "-b", featureBranch, executionRoot], {
+      cwd: mainRoot,
+    });
+    const state = moveFlowToStep(makeFlowState({
+      specId,
+      runId: "run-worktree-recovery",
+      baseBranch: "main",
+      featureBranch,
+      worktree: true,
+    }), "draft-gate");
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
+    const flowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId });
+    flowManager.create(state);
+    flowManager.addActiveFlow(specId, "worktree");
+    new WorktreeFlowBindingStore({ worktreePath: executionRoot }).save(new WorktreeFlowIdentity({
+      runId: state.runId,
+      issue: null,
+      specId,
+      worktreePath: executionRoot,
+    }));
+
+    const failedGate = invokeSenti(executionRoot, ["flow", "run", "gate", "--phase", "draft"]);
+    assert.equal(failedGate.exitCode, 1);
+    assert.equal(failedGate.envelope.errors[0].code, "DRAFT_GATE_REOPEN_REQUIRED");
+    const nextAction = runSenti(executionRoot, ["flow", "get", "next-action"]);
+    assert.equal(nextAction.data.directive.actionId, "RECOVER_EXTERNAL_BLOCK");
+    const recoveryArgv = parseGeneratedCommand(nextAction.data.directive.nextAction);
+    assert.equal(recoveryArgv.shift(), "senti");
+
+    const recovery = runSenti(executionRoot, recoveryArgv);
+
+    assert.equal(recovery.ok, true, JSON.stringify(recovery));
+    const reopened = flowManager.loadReadOnly(specId);
+    const canonicalBytes = fs.readFileSync(draftPath);
+    assert.equal(findStepById(reopened.steps, "draft").status, "in_progress");
+    assert.equal(reopened.draftReviewRevisions, undefined);
+    assert.equal(
+      reopened.draftArtifactRevision.digest,
+      crypto.createHash("sha256").update(canonicalBytes).digest("hex"),
+    );
   });
 });

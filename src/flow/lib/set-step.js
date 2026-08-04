@@ -70,6 +70,7 @@ import {
 } from "./draft-artifact-promotion.js";
 import {
   DraftReviewArtifactRecoveryError,
+  completeDraftReviewRepairStep,
   completeDraftReviewArtifactStep,
   isDraftReviewArtifactStep,
 } from "./draft-review-artifacts.js";
@@ -615,16 +616,8 @@ export default class SetStepCommand extends FlowCommand {
       }
       if (isDraftReviewArtifactStep(id)) {
         try {
-          const completedArtifact = completeDraftReviewArtifactStep({
-            mainRoot: ctx.root,
-            executionRoot: ctx.executionRoot || ctx.root,
-            flowManager: ctx.flowManager,
-            state,
-            transition,
-            completeTransition: !isDraftArtifactWriterStep(id),
-          });
           if (isDraftArtifactWriterStep(id)) {
-            const completedDraft = completeDraftArtifactStep({
+            const completed = completeDraftReviewRepairStep({
               mainRoot: ctx.root,
               executionRoot: ctx.executionRoot || ctx.root,
               flowManager: ctx.flowManager,
@@ -634,12 +627,19 @@ export default class SetStepCommand extends FlowCommand {
             return {
               id,
               status,
-              artifact: completedArtifact.artifact,
-              artifactDigest: completedArtifact.digest,
-              promoted: completedArtifact.promoted || completedDraft.promoted,
-              draftArtifactRevision: completedDraft.revision,
+              artifact: completed.artifact,
+              artifactDigest: completed.digest,
+              promoted: completed.promoted,
+              draftArtifactRevision: completed.revision,
             };
           }
+          const completedArtifact = completeDraftReviewArtifactStep({
+            mainRoot: ctx.root,
+            executionRoot: ctx.executionRoot || ctx.root,
+            flowManager: ctx.flowManager,
+            state,
+            transition,
+          });
           return {
             id,
             status,

@@ -568,7 +568,6 @@ class RegistryLifecycleAdapter {
         specDir,
         route,
         generatedAt: reviewFile.document.generatedAt,
-        approveDraft: false,
       });
       if (!emptyArtifacts.approvalEligible) return;
       completeCanonicalDraftMutation({

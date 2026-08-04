@@ -424,15 +424,20 @@ function draftConflict(promotion, canonical, source) {
 }
 
 class DraftArtifactCompletionIntent extends StepTransitionCommitIntent {
-  constructor({ promotion, boundary, revision }) {
+  constructor({ promotion, boundary, revision, evidenceIntent = null }) {
     super();
+    if (evidenceIntent != null && !(evidenceIntent instanceof StepTransitionCommitIntent)) {
+      throw new Error("draft artifact evidence intent must be a step transition commit intent");
+    }
     this.promotion = DraftArtifactPromotion.from(promotion);
     this.boundary = boundary;
     this.revision = DraftArtifactRevision.from(revision);
+    this.evidenceIntent = evidenceIntent;
     Object.freeze(this);
   }
 
   assertBeforeTransition(state) {
+    this.evidenceIntent?.assertBeforeTransition(state);
     this.promotion.assertFlow(state);
     if (!this.promotion.matches(state.draftArtifactPromotion)) {
       throw new DraftArtifactRecoveryError(
@@ -444,6 +449,7 @@ class DraftArtifactCompletionIntent extends StepTransitionCommitIntent {
   }
 
   applyTo(state) {
+    this.evidenceIntent?.applyTo(state);
     state.draftArtifactRevision = this.revision.toJSON();
     delete state.draftArtifactPromotion;
   }
@@ -573,6 +579,8 @@ export function completeDraftArtifactStep({
   transition,
   faultInjector = () => {},
   processIdentitySource,
+  operationOwnerToken = null,
+  evidenceIntent = null,
 } = {}) {
   if (!isDraftArtifactWriterStep(transition?.stepId) || transition.requestedStatus !== "done") {
     throw new Error("draft artifact completion requires a supported done transition");
@@ -582,9 +590,10 @@ export function completeDraftArtifactStep({
   const boundary = new DraftArtifactBoundary({ canonicalPath, sourcePath, faultInjector });
   const operation = new RepositoryFlowOperationLock({
     mainRoot,
+    ...(operationOwnerToken && { operationOwnerToken }),
     ...(processIdentitySource && { processIdentitySource }),
   });
-  const operationOwnerToken = operation.acquire();
+  const ownedOperationToken = operation.acquire();
   try {
     let current = flowManager.load(state.specId);
     assertFlowIdentity(current, state);
@@ -598,7 +607,7 @@ export function completeDraftArtifactStep({
       sameAuthority: sourcePath === canonicalPath,
     });
     if (!promotion.matches(current.draftArtifactPromotion)) {
-      current = persistPromotion(flowManager, current, promotion, operationOwnerToken);
+      current = persistPromotion(flowManager, current, promotion, ownedOperationToken);
     }
     boundary.publish(promotion, source, () => {
       const latest = flowManager.load(state.specId);
@@ -619,9 +628,9 @@ export function completeDraftArtifactStep({
         specId: state.specId,
         taskId: null,
         expectedOriginal: current,
-        operationOwnerToken,
+        operationOwnerToken: ownedOperationToken,
       },
-      new DraftArtifactCompletionIntent({ promotion, boundary, revision }),
+      new DraftArtifactCompletionIntent({ promotion, boundary, revision, evidenceIntent }),
     );
     return {
       revision: revision.toJSON(),
