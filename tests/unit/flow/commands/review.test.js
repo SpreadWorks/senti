@@ -129,6 +129,18 @@ function resolveAgent(cfg, commandId) {
 const FLOW_CMD = join(process.cwd(), "src/senti.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
+function draftReviewRevision(sourceStepId = "draft") {
+  return {
+    version: 1,
+    runId: "run-draft-review-artifact",
+    specId: "draft-review-artifact",
+    sourceStepId,
+    digest: "a".repeat(64),
+    byteLength: 128,
+    finalizedAt: "2026-08-04T00:00:00.000Z",
+  };
+}
+
 class DraftRepairTargetCheckpoint {
   constructor() {
     this.disposition = "ADVISORY";
@@ -406,6 +418,7 @@ describe("draft repair target checkpoint replay", () => {
       const producedArtifact = buildDraftReviewArtifact({
         raw: "FINALIZED_CHECKPOINT_EVIDENCE",
         draftPath: "draft.json",
+        draftRevision: draftReviewRevision(),
         proposals: [checkpoint.toProposal()],
         stage: {
           artifactPhase: "draft-questions-review",
@@ -512,21 +525,43 @@ describe("draft review artifact phases", () => {
       const pass = buildDraftReviewArtifact({
         raw: "NO_PROPOSALS",
         draftPath: "draft.json",
+        draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [],
         stage,
       });
       const advisory = buildDraftReviewArtifact({
         raw: "A review finding was recorded.",
         draftPath: "draft.json",
+        draftRevision: draftReviewRevision(retryPhase === "draft-coverage" ? "draft-refine" : "draft"),
         proposals: [proposal],
         stage,
       });
 
       assert.equal(pass.phase, retryPhase);
+      assert.equal(pass.version, 2);
+      assert.deepEqual(pass.sourceDraftRevision, draftReviewRevision(
+        retryPhase === "draft-coverage" ? "draft-refine" : "draft",
+      ));
       assert.equal(advisory.phase, retryPhase);
       assert.equal(advisory.verdict, "ADVISORY");
     });
   }
+
+  it("rejects draft review artifact construction without a finalized revision", () => {
+    assert.throws(
+      () => buildDraftReviewArtifact({
+        raw: "NO_PROPOSALS",
+        draftPath: "draft.json",
+        proposals: [],
+        stage: {
+          retryPhase: "draft-questions",
+          artifactPhase: "draft-questions-review",
+          findingClassification: "advisory",
+        },
+      }),
+      /draft artifact revision version must be 1/,
+    );
+  });
 });
 
 describe("flow run routes review action", () => {

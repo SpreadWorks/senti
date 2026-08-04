@@ -84,6 +84,7 @@ import {
   DRAFT_REVIEW_ROUTES,
   DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT,
 } from "./draft-review-routes.js";
+import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
 import {
   deferExhaustedSemanticFindings,
@@ -1116,12 +1117,12 @@ function validateRequiredStringFields(issues, prefix, item, fields) {
   }
 }
 
-function validateDraftReviewArtifact(issues, artifactSet, review) {
+function validateDraftReviewArtifact(issues, artifactSet, review, state) {
   if (!validateArtifactObject(issues, artifactSet.reviewArtifact, review)) return;
   for (const field of ["version", "phase", "sourceDraft", "generatedAt", "verdict", "summary", "blockingFindings", "advisoryFindings", "repairTargets"]) {
     if (!(field in review)) issues.push(`${artifactSet.reviewArtifact}: missing field ${field}`);
   }
-  if (![1, 2].includes(review.version)) issues.push(`${artifactSet.reviewArtifact}: version must be 1 or 2`);
+  if (review.version !== 2) issues.push(`${artifactSet.reviewArtifact}: version must be 2`);
   if (review.version === 2) {
     if (!validateArtifactObject(
       issues,
@@ -1144,6 +1145,12 @@ function validateDraftReviewArtifact(issues, artifactSet, review) {
       }
       if (!/^[a-f0-9]{64}$/.test(review.sourceDraftRevision.digest || "")) {
         issues.push(`${artifactSet.reviewArtifact}: sourceDraftRevision.digest must be a SHA-256 digest`);
+      }
+      try {
+        const revision = DraftArtifactRevision.from(review.sourceDraftRevision);
+        revision.assertCurrentReview(state, artifactSet.retryPhase);
+      } catch (error) {
+        issues.push(`${artifactSet.reviewArtifact}: invalid sourceDraftRevision: ${error.message}`);
       }
     }
   }
@@ -1299,11 +1306,11 @@ function validateDraftRepairArtifact(issues, artifactSet, triageItems, repair) {
   }
 }
 
-function validateDraftReviewArtifactSet(specDir, artifactSet) {
+function validateDraftReviewArtifactSet(specDir, artifactSet, state) {
   const issues = [];
   const review = readDraftArtifact(specDir, artifactSet.reviewArtifact);
   if (!review) return { issues: [`${artifactSet.reviewArtifact}: missing draft review artifact`], triage: null };
-  validateDraftReviewArtifact(issues, artifactSet, review);
+  validateDraftReviewArtifact(issues, artifactSet, review, state);
 
   const triage = readDraftArtifact(specDir, artifactSet.triageArtifact);
   if (!triage) {
@@ -1328,13 +1335,13 @@ function draftReviewRouteSetsForValidation() {
   return DRAFT_REVIEW_ROUTES.slice(0, MAX_DRAFT_REVIEW_ROUTES_TO_VALIDATE);
 }
 
-function validateDraftReviewArtifacts(root, specPath, draft) {
+function validateDraftReviewArtifacts(root, specPath, draft, state) {
   const specDir = path.dirname(path.resolve(root, specPath));
   const issues = [];
   let coverageRequiresUserDecision = false;
   for (const artifactSet of draftReviewRouteSetsForValidation()) {
     try {
-      const result = validateDraftReviewArtifactSet(specDir, artifactSet);
+      const result = validateDraftReviewArtifactSet(specDir, artifactSet, state);
       issues.push(...result.issues);
       if (artifactSet.key === "coverage" && Array.isArray(result.triage?.items)) {
         coverageRequiresUserDecision = result.triage.items
@@ -5607,7 +5614,7 @@ export class RunGateCommand extends FlowCommand {
       targetText,
       textCheck: () => [
         ...checkDraftJson(draftObj),
-        ...validateDraftReviewArtifacts(root, specPath, draftObj),
+        ...validateDraftReviewArtifacts(root, specPath, draftObj, state),
       ],
       checkerRole:
         "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",

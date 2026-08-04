@@ -31,6 +31,7 @@ import {
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { createInitialDraftArtifactRevision } from "../../../src/flow/lib/draft-artifact-promotion.js";
 
 describe("draft review advisory routing", () => {
   it("parses ADVISORY as a non-blocking draft review result routed to coverage triage", () => {
@@ -93,20 +94,28 @@ describe("draft review advisory routing", () => {
     try {
       fs.mkdirSync(specDir, { recursive: true });
       fs.writeFileSync(path.join(root, specPath), "{}\n");
+      const draftPath = path.join(specDir, "draft.json");
+      fs.writeFileSync(draftPath, `${JSON.stringify({ goal: "Review the finalized draft." }, null, 2)}\n`);
       execFileSync("git", ["init", "-q", "-b", "main"], { cwd: root });
       execFileSync("git", ["config", "user.email", "tests@example.invalid"], { cwd: root });
       execFileSync("git", ["config", "user.name", "Senti tests"], { cwd: root });
       execFileSync("git", ["add", "."], { cwd: root });
       execFileSync("git", ["commit", "-q", "-m", "baseline"], { cwd: root });
       const flowState = moveFlowToStep(makeFlowState({ specId: "demo" }), "draft-questions-review");
+      flowState.draftArtifactRevision = createInitialDraftArtifactRevision({
+        state: flowState,
+        draftPath,
+      }).toJSON();
+      flowState.draftArtifactRevision.sourceStepId = "draft";
       const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
       flowManager.create(flowState);
       const command = new RunReviewCommand({
         runCommand() {
           fs.writeFileSync(path.join(specDir, "draft-review-questions.json"), `${JSON.stringify({
-            version: 1,
+            version: 2,
             phase: "draft-questions",
             sourceDraft: "draft.json",
+            sourceDraftRevision: flowState.draftArtifactRevision,
             generatedAt: "2026-01-01T00:00:00.000Z",
             verdict: "ADVISORY",
             summary: "One advisory finding.",

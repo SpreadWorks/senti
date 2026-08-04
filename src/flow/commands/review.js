@@ -40,6 +40,7 @@ import {
 } from "../lib/impl-review-proposal.js";
 import {
   DraftArtifactRecoveryError,
+  DraftArtifactRevision,
   inspectCanonicalDraftRevision,
 } from "../lib/draft-artifact-promotion.js";
 
@@ -3759,15 +3760,16 @@ class DraftReviewArtifact {
   constructor({
     phase,
     sourceDraft,
-    sourceDraftRevision = null,
+    sourceDraftRevision,
     blockingFindings = [],
     advisoryFindings = [],
     repairTargets = [],
   }) {
-    this.version = sourceDraftRevision == null ? 1 : 2;
+    const revision = DraftArtifactRevision.from(sourceDraftRevision);
+    this.version = 2;
     this.phase = phase;
     this.sourceDraft = sourceDraft;
-    this.sourceDraftRevision = sourceDraftRevision?.toJSON?.() ?? sourceDraftRevision;
+    this.sourceDraftRevision = revision.toJSON();
     this.generatedAt = new Date().toISOString();
     this.blockingFindings = blockingFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
     this.advisoryFindings = advisoryFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
@@ -3787,7 +3789,7 @@ class DraftReviewArtifact {
       version: this.version,
       phase: this.phase,
       sourceDraft: this.sourceDraft,
-      ...(this.sourceDraftRevision && { sourceDraftRevision: this.sourceDraftRevision }),
+      sourceDraftRevision: this.sourceDraftRevision,
       generatedAt: this.generatedAt,
       verdict: this.verdict,
       summary: this.summary,
@@ -3851,7 +3853,7 @@ function addDraftReviewFindingToBucket(buckets, finding) {
   }
 }
 
-function buildDraftReviewArtifact({ raw, draftPath, draftRevision = null, proposals, stage }) {
+function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, stage }) {
   if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
     return new DraftReviewArtifact({
       phase: stage.retryPhase,
@@ -4014,17 +4016,7 @@ async function runDraftReview(root, flow, config, dryRun) {
     process.exit(EXIT_ERROR);
   }
 
-  let draftJson;
-  if (draftInspection) {
-    draftJson = draftInspection.snapshot.document;
-  } else {
-    try {
-      draftJson = JSON.parse(fs.readFileSync(draftPath, "utf8"));
-    } catch (e) {
-      console.error(`Error: failed to parse draft.json: ${e.message}`);
-      process.exit(EXIT_ERROR);
-    }
-  }
+  const draftJson = draftInspection.snapshot.document;
 
   const requestText = [
     flow.request || "",
@@ -4057,14 +4049,12 @@ async function runDraftReview(root, flow, config, dryRun) {
     agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
   );
 
-  if (draftInspection) {
-    inspectCanonicalDraftRevision({
-      root,
-      state: container.get("flowManager").load(),
-      phase: stage.retryPhase,
-      expectedRevision: draftInspection.revision,
-    });
-  }
+  inspectCanonicalDraftRevision({
+    root,
+    state: container.get("flowManager").load(),
+    phase: stage.retryPhase,
+    expectedRevision: draftInspection.revision,
+  });
 
   const proposals = raw.includes("NO_PROPOSALS")
     ? []
@@ -4074,7 +4064,7 @@ async function runDraftReview(root, flow, config, dryRun) {
   const reviewArtifact = buildDraftReviewArtifact({
     raw,
     draftPath: path.relative(specPath, draftPath),
-    draftRevision: draftInspection?.revision ?? null,
+    draftRevision: draftInspection.revision,
     proposals,
     stage,
   });

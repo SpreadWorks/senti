@@ -2294,7 +2294,7 @@ export class RunReviewCommand extends FlowCommand {
 
     // Enforce review maxAttempts after scope resolution and before durable mutation.
     const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
-    if (phase === "draft" && reviewCtx.flowState?.draftArtifactRevision != null) {
+    if (phase === "draft") {
       try {
         inspectCanonicalDraftRevision({
           root,

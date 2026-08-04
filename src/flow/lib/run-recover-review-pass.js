@@ -19,6 +19,7 @@ import {
 import { flowReviewRouteForPhase } from "./review-route.js";
 import { findStepById } from "./step-tree.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
+import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
 
 const REVIEW_PASS_RECOVERY_VERSION = 2;
 const FLOW_LEAF_IDS = Object.freeze(collectFlowLeafIds());
@@ -100,12 +101,13 @@ class BoundedReviewJsonFile {
 }
 
 class HistoricalReviewPass {
-  constructor({ artifact, relativePath, canonicalEvidence, route }) {
+  constructor({ artifact, relativePath, canonicalEvidence, route, state, targetState }) {
     if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
       reject("REVIEW_PASS_RECOVERY_HISTORY_INVALID", `${relativePath} must contain a JSON object`);
     }
+    const draftPhase = route.phase.startsWith("draft-");
     if (
-      artifact.version !== 1
+      artifact.version !== (draftPhase ? 2 : 1)
       || artifact.phase !== canonicalEvidence.phase
       || artifact.sourceArtifact !== route.projectionFile
       || artifact.verdict !== "PASS"
@@ -117,6 +119,20 @@ class HistoricalReviewPass {
         "REVIEW_PASS_RECOVERY_HISTORY_INVALID",
         `${relativePath} does not match the canonical PASS identity`,
       );
+    }
+    if (draftPhase) {
+      try {
+        const revision = DraftArtifactRevision.from(artifact.sourceDraftRevision);
+        revision.assertCurrentReview(state, route.phase);
+        if (artifact.sourceDraft !== "draft.json" || revision.digest !== targetState.digest) {
+          throw new Error("draft review revision does not match the canonical review target");
+        }
+      } catch (error) {
+        reject(
+          "REVIEW_PASS_RECOVERY_HISTORY_INVALID",
+          `${relativePath} has an invalid source draft revision: ${error.message}`,
+        );
+      }
     }
     const findings = artifact.findings;
     if (!Array.isArray(findings) || findings.length !== 0) {
@@ -311,7 +327,7 @@ function readCanonicalEvidence({ root, specDir, phase, record, treeSha, targetSt
   return evidenceInput;
 }
 
-function readHistoricalPass({ root, specDir, route, canonicalEvidence }) {
+function readHistoricalPass({ root, specDir, route, canonicalEvidence, state, targetState }) {
   const historyDir = path.join(specDir, "review-history");
   let names;
   try {
@@ -342,6 +358,8 @@ function readHistoricalPass({ root, specDir, route, canonicalEvidence }) {
       relativePath,
       canonicalEvidence,
       route,
+      state,
+      targetState,
     }));
   }
   if (matches.length !== 1) {
@@ -549,6 +567,8 @@ export function inspectCanonicalReviewPassRecovery({
     specDir,
     route,
     canonicalEvidence: evidenceInput.evidence,
+    state,
+    targetState,
   });
   const problem = projectionProblem({
     root,

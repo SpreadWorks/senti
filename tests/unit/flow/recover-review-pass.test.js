@@ -4,12 +4,11 @@ import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { createInitialDraftArtifactRevision } from "../../../src/flow/lib/draft-artifact-promotion.js";
 import {
   applyReviewEvidenceTransition,
   ReviewDisposition,
   ReviewEvidence,
-  ReviewTargetState,
 } from "../../../src/flow/lib/review-convergence.js";
 import { ReviewEvidenceStore, resolveCurrentReviewTreeSha } from "../../../src/flow/lib/review-evidence-store.js";
 import {
@@ -17,6 +16,7 @@ import {
 } from "../../../src/flow/lib/run-recover-review-pass.js";
 import RunRecoverReviewPassCommand from "../../../src/flow/lib/run-recover-review-pass.js";
 import { flowReviewRouteForPhase } from "../../../src/flow/lib/review-route.js";
+import { ReviewTargetAuthority } from "../../../src/flow/lib/review-target-authority.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
@@ -38,10 +38,17 @@ function writeJson(root, relativePath, value) {
   writeFile(root, relativePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function passProjection(phase, generatedAt) {
+function passProjection(phase, generatedAt, sourceDraftRevision = null) {
   return {
-    version: 1,
+    version: sourceDraftRevision == null ? 1 : 2,
     phase,
+    ...(sourceDraftRevision && {
+      sourceDraft: "draft.json",
+      sourceDraftRevision,
+      blockingFindings: [],
+      advisoryFindings: [],
+      repairTargets: [],
+    }),
     generatedAt,
     verdict: "PASS",
     summary: `Canonical ${phase} PASS projection.`,
@@ -62,6 +69,11 @@ function prepareRecoveryFixture(root, { phase, activeStepId }) {
     requirements: [{ id: "R1", desc: "Keep canonical review evidence.", priority: "must" }],
     tasks: [{ id: "T-1", test_strategy: "Verify the recovery." }],
   });
+  const draftPath = path.join(root, `specs/${SPEC_ID}/draft.json`);
+  writeJson(root, `specs/${SPEC_ID}/draft.json`, {
+    goal: "Recover a finalized canonical draft review projection.",
+    qa: [],
+  });
   initGitRepo(root);
   commitAll(root, "fixture baseline");
 
@@ -72,8 +84,21 @@ function prepareRecoveryFixture(root, { phase, activeStepId }) {
     specId: SPEC_ID,
     featureBranch: "feature/review-pass-recovery",
   }), activeStepId);
+  if (phase.startsWith("draft-")) {
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({
+      state,
+      draftPath,
+    }).toJSON();
+    state.draftArtifactRevision.sourceStepId = phase === "draft-coverage"
+      ? "draft-refine"
+      : "draft";
+  }
   const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
-  const fingerprint = buildRepairFingerprint({ root, specPath: SPEC_PATH, state });
+  const targetState = ReviewTargetAuthority.fromContext({
+    root,
+    executionRoot: root,
+    flowState: state,
+  }).captureTargetStateForPhase(phase);
   const capturedAt = "2026-07-29T01:02:03.000Z";
   const evidence = new ReviewEvidence({
     phase,
@@ -88,8 +113,8 @@ function prepareRecoveryFixture(root, { phase, activeStepId }) {
   });
   applyReviewEvidenceTransition(state, evidence, {
     configuredSemanticMaxAttempts: 4,
-    targetStateDigest: fingerprint.hash,
-    targetState: ReviewTargetState.fromRepairFingerprint(fingerprint),
+    targetStateDigest: targetState.digest,
+    targetState,
   });
   const record = state.reviewConvergence.records.find((entry) => entry.phase === phase);
   record.toolingAttempts = 1;
@@ -126,7 +151,7 @@ function prepareRecoveryFixture(root, { phase, activeStepId }) {
   manager.addActiveFlow(SPEC_ID, "branch");
   const specDir = path.join(root, `specs/${SPEC_ID}`);
   new ReviewEvidenceStore({ root, specDir }).write(evidence);
-  const projection = passProjection(phase, capturedAt);
+  const projection = passProjection(phase, capturedAt, state.draftArtifactRevision ?? null);
   writeJson(root, `${path.relative(root, specDir)}/review-history/${phase}-attempt-001.json`, {
     ...projection,
     sourceArtifact: route.projectionFile,

@@ -171,6 +171,41 @@ export class DraftArtifactRevision {
     return snapshot.digest === this.digest && snapshot.byteLength === this.byteLength;
   }
 
+  matches(value) {
+    try {
+      const other = DraftArtifactRevision.from(value);
+      return JSON.stringify(this.toJSON()) === JSON.stringify(other.toJSON());
+    } catch {
+      return false;
+    }
+  }
+
+  assertReviewSource(phase) {
+    const allowedSources = REVIEW_SOURCE_STEPS[phase];
+    if (allowedSources && !allowedSources.has(this.sourceStepId)) {
+      throw new DraftArtifactRecoveryError(
+        "DRAFT_REVIEW_REVISION_STALE",
+        `${phase} review requires a draft finalized by its immediately preceding draft-writing step`,
+        {
+          recoveryCommand: reviewRecoveryCommand(phase),
+          data: { phase, sourceStepId: this.sourceStepId },
+        },
+      );
+    }
+  }
+
+  assertCurrentReview(state, phase) {
+    this.assertFlow(state);
+    this.assertReviewSource(phase);
+    if (!this.matches(state?.draftArtifactRevision)) {
+      throw new DraftArtifactRecoveryError(
+        "DRAFT_REVIEW_REVISION_CHANGED",
+        "draft review artifact does not match the current finalized draft revision",
+        { data: { phase, reviewedDigest: this.digest } },
+      );
+    }
+  }
+
   toJSON() {
     return {
       version: this.version,
@@ -313,7 +348,7 @@ class DraftArtifactBoundary {
     return this.read(this.canonicalPath, "canonical draft artifact");
   }
 
-  publish(promotion, source) {
+  assertPublishable(promotion, source, point) {
     const currentSource = this.source();
     const currentCanonical = this.canonical();
     if (
@@ -323,17 +358,29 @@ class DraftArtifactBoundary {
     ) {
       throw new DraftArtifactRecoveryError(
         "DRAFT_PROMOTION_SOURCE_CHANGED",
-        "execution-checkout draft changed during canonical promotion; rerun the draft completion command",
+        `execution-checkout draft changed ${point}; rerun the draft completion command`,
       );
     }
-    if (currentCanonical.digest === promotion.sourceDigest) return;
-    if (currentCanonical.digest !== promotion.expectedCanonicalDigest) {
+    if (
+      currentCanonical.digest !== promotion.sourceDigest
+      && currentCanonical.digest !== promotion.expectedCanonicalDigest
+    ) {
       throw draftConflict(promotion, currentCanonical, currentSource);
     }
+    return Object.freeze({ source: currentSource, canonical: currentCanonical });
+  }
+
+  publish(promotion, source, assertPromotionCurrent) {
+    const current = this.assertPublishable(promotion, source, "during canonical promotion");
+    if (current.canonical.digest === promotion.sourceDigest) return;
     new AtomicFile(this.canonicalPath, {
       faultInjector: this.faultInjector,
       phaseNamespace: "draft",
-    }).write(currentSource.bytes);
+      commitGuard: () => {
+        assertPromotionCurrent();
+        this.assertPublishable(promotion, source, "before canonical publication");
+      },
+    }).write(current.source.bytes);
   }
 
   assertPublished(promotion) {
@@ -455,7 +502,7 @@ function planPromotion({ state, sourceStepId, source, canonical, sameAuthority }
     throw new DraftArtifactRecoveryError(
       "DRAFT_PROMOTION_BASELINE_MISSING",
       "worktree draft promotion requires the canonical draft revision recorded during prepare",
-      { recoveryCommand: `senti flow set step ${sourceStepId} done` },
+      { recoveryCommand: "senti flow run abort" },
     );
   }
   if (
@@ -534,7 +581,17 @@ export function completeDraftArtifactStep({
     if (!promotion.matches(current.draftArtifactPromotion)) {
       current = persistPromotion(flowManager, current, promotion, operationOwnerToken);
     }
-    boundary.publish(promotion, source);
+    boundary.publish(promotion, source, () => {
+      const latest = flowManager.load(state.specId);
+      assertFlowIdentity(latest, state);
+      promotion.assertFlow(latest, transition.stepId);
+      if (!promotion.matches(latest.draftArtifactPromotion)) {
+        throw new DraftArtifactRecoveryError(
+          "DRAFT_PROMOTION_CHANGED",
+          "pending draft promotion changed before canonical publication",
+        );
+      }
+    });
     boundary.assertPublished(promotion);
     const revision = promotion.toRevision();
     flowManager.updateStepStatus(
@@ -575,6 +632,23 @@ function reviewRecoveryCommand(phase) {
   ].join(" ");
 }
 
+function requireDraftReviewRevision(state, phase) {
+  if (state?.draftArtifactRevision == null) {
+    throw new DraftArtifactRecoveryError(
+      "DRAFT_REVIEW_REVISION_MISSING",
+      "draft review requires the finalized canonical draft revision recorded by prepare or draft completion",
+      {
+        recoveryCommand: "senti flow run abort",
+        data: { phase },
+      },
+    );
+  }
+  const revision = DraftArtifactRevision.from(state.draftArtifactRevision);
+  revision.assertFlow(state);
+  revision.assertReviewSource(phase);
+  return revision;
+}
+
 export function inspectCanonicalDraftRevision({ root, state, phase = null, expectedRevision = null } = {}) {
   if (state?.draftArtifactPromotion != null) {
     const pending = DraftArtifactPromotion.from(state.draftArtifactPromotion);
@@ -587,23 +661,10 @@ export function inspectCanonicalDraftRevision({ root, state, phase = null, expec
       },
     );
   }
-  if (state?.draftArtifactRevision == null) return null;
-  const revision = DraftArtifactRevision.from(state.draftArtifactRevision);
-  revision.assertFlow(state);
-  const allowedSources = REVIEW_SOURCE_STEPS[phase];
-  if (allowedSources && !allowedSources.has(revision.sourceStepId)) {
-    throw new DraftArtifactRecoveryError(
-      "DRAFT_REVIEW_REVISION_STALE",
-      `${phase} review requires a draft finalized by its immediately preceding draft-writing step`,
-      {
-        recoveryCommand: reviewRecoveryCommand(phase),
-        data: { phase, sourceStepId: revision.sourceStepId },
-      },
-    );
-  }
+  const revision = requireDraftReviewRevision(state, phase);
   if (expectedRevision) {
     const expected = DraftArtifactRevision.from(expectedRevision);
-    if (expected.digest !== revision.digest || expected.sourceStepId !== revision.sourceStepId) {
+    if (!expected.matches(revision)) {
       throw new DraftArtifactRecoveryError(
         "DRAFT_REVIEW_REVISION_CHANGED",
         "draft revision changed while review was running; start a fresh review",
@@ -634,9 +695,7 @@ export function inspectCanonicalDraftRevision({ root, state, phase = null, expec
 
 export function draftReviewTargetState(state, phase) {
   if (!String(phase || "").startsWith("draft-")) return null;
-  if (state?.draftArtifactRevision == null) return null;
-  const revision = DraftArtifactRevision.from(state.draftArtifactRevision);
-  revision.assertFlow(state);
+  const revision = requireDraftReviewRevision(state, phase);
   return Object.freeze({
     digest: revision.digest,
     entries: Object.freeze([Object.freeze({

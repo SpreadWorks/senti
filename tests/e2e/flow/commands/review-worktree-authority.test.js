@@ -11,6 +11,7 @@ import { FlowManager } from "../../../../src/lib/flow-manager.js";
 import { makeFlowState, moveFlowToStep } from "../../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { createInitialDraftArtifactRevision } from "../../../../src/flow/lib/draft-artifact-promotion.js";
 
 const SPEC_ID = "496-review-authority";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
@@ -49,11 +50,12 @@ function writePassArtifacts(root) {
   });
 }
 
-function draftQuestionsProjection() {
+function draftQuestionsProjection(sourceDraftRevision) {
   return {
-    version: 1,
+    version: 2,
     phase: "draft-questions",
     sourceDraft: "draft.json",
+    sourceDraftRevision,
     generatedAt: GENERATED_AT,
     verdict: "PASS",
     summary: "The draft questions review target is unchanged.",
@@ -63,8 +65,8 @@ function draftQuestionsProjection() {
   };
 }
 
-function writeDraftQuestionsPassArtifacts(root) {
-  const projection = draftQuestionsProjection();
+function writeDraftQuestionsPassArtifacts(root, sourceDraftRevision) {
+  const projection = draftQuestionsProjection(sourceDraftRevision);
   writeJson(root, `specs/${SPEC_ID}/draft-review-questions.json`, projection);
   writeJson(root, `specs/${SPEC_ID}/review-history/draft-questions-attempt-001.json`, {
     ...projection,
@@ -102,10 +104,10 @@ function providerPass(root, executionRoot, {
   };
 }
 
-function draftQuestionsProviderPass(root, executionRoot) {
+function draftQuestionsProviderPass(root, executionRoot, sourceDraftRevision) {
   return (_command, _args, options) => {
     assert.equal(path.resolve(options.cwd), path.resolve(executionRoot));
-    writeDraftQuestionsPassArtifacts(root);
+    writeDraftQuestionsPassArtifacts(root, sourceDraftRevision);
     return {
       ok: true,
       status: 0,
@@ -136,6 +138,11 @@ function prepareWorktreeFixture(parent, { currentStepId = "spec-review" } = {}) 
     requirements: [{ id: "R1", desc: "Keep the target stable.", priority: "must" }],
     tasks: [{ id: "T-1", test_strategy: "Exercise worktree review promotion." }],
   });
+  const draftPath = path.join(root, `specs/${SPEC_ID}/draft.json`);
+  writeJson(root, `specs/${SPEC_ID}/draft.json`, {
+    goal: "Keep draft review bound to the finalized canonical draft.",
+    qa: [],
+  });
   writeJson(root, "specs/other-active-flow/spec.json", {
     goal: "Unrelated active Flow.",
     requirements: [],
@@ -161,6 +168,13 @@ function prepareWorktreeFixture(parent, { currentStepId = "spec-review" } = {}) 
     runId: "run-review-authority",
     issue: 496,
   }), currentStepId);
+  flowState.draftArtifactRevision = createInitialDraftArtifactRevision({
+    state: flowState,
+    draftPath,
+  }).toJSON();
+  if (currentStepId === "draft-questions-review") {
+    flowState.draftArtifactRevision.sourceStepId = "draft";
+  }
   const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false });
   flowManager.create(flowState);
   flowManager.addActiveFlow(flowState.specId, "worktree");
@@ -171,7 +185,12 @@ function prepareWorktreeFixture(parent, { currentStepId = "spec-review" } = {}) 
   writeJson(root, "specs/other-active-flow/plugin-artifacts/workflow/prepare.json", {
     runId: otherState.runId,
   });
-  return { root, executionRoot, flowManager };
+  return {
+    root,
+    executionRoot,
+    flowManager,
+    draftArtifactRevision: flowState.draftArtifactRevision,
+  };
 }
 
 class FailFirstMutationAfterEffects {
@@ -252,7 +271,11 @@ describe("worktree review authority", () => {
       currentStepId: "draft-questions-review",
     });
     const command = new RunReviewCommand({
-      runCommand: draftQuestionsProviderPass(fixture.root, fixture.executionRoot),
+      runCommand: draftQuestionsProviderPass(
+        fixture.root,
+        fixture.executionRoot,
+        fixture.draftArtifactRevision,
+      ),
     });
 
     const result = await command.execute({

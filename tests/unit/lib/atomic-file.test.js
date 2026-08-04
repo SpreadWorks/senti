@@ -57,6 +57,35 @@ describe("AtomicFile", () => {
     }
   });
 
+  it("runs the commit guard after before-rename injection without replacing concurrent bytes", () => {
+    const root = createTmpDir("atomic-file-commit-guard-");
+    try {
+      const file = path.join(root, "state.bin");
+      fs.writeFileSync(file, "old-complete");
+
+      assert.throws(
+        () => new AtomicFile(file, {
+          faultInjector(event) {
+            if (event.phase === "before-file-rename") {
+              fs.writeFileSync(file, "concurrent-complete");
+            }
+          },
+          commitGuard() {
+            if (fs.readFileSync(file, "utf8") !== "old-complete") {
+              throw new Error("visible file changed before commit");
+            }
+          },
+        }).write(Buffer.from("new-complete")),
+        /visible file changed before commit/,
+      );
+
+      assert.equal(fs.readFileSync(file, "utf8"), "concurrent-complete");
+      assert.deepEqual(fs.readdirSync(root), ["state.bin"]);
+    } finally {
+      removeTmpDir(root);
+    }
+  });
+
   it("leaves either the old or new complete visible bytes across process kill boundaries", () => {
     const moduleUrl = pathToFileURL(path.resolve("src/lib/atomic-file.js")).href;
     for (const [phase, expected] of [

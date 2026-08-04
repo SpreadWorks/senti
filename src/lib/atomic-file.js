@@ -46,15 +46,23 @@ export class AtomicFileWriteError extends Error {
 }
 
 export class AtomicFile {
-  constructor(filePath, { faultInjector = () => {}, phaseNamespace = "file" } = {}) {
+  constructor(filePath, {
+    faultInjector = () => {},
+    phaseNamespace = "file",
+    commitGuard = () => {},
+  } = {}) {
     if (typeof phaseNamespace !== "string" || phaseNamespace.trim() === "") {
       throw new Error("atomic file phase namespace must be a non-empty string");
+    }
+    if (typeof commitGuard !== "function") {
+      throw new TypeError("atomic file commitGuard must be a function");
     }
     this.filePath = path.resolve(filePath);
     this.directory = path.dirname(this.filePath);
     this.directoryAuthority = new RealDirectoryAuthority(this.directory);
     this.faultInjector = faultInjector;
     this.phaseNamespace = phaseNamespace;
+    this.commitGuard = commitGuard;
   }
 
   read(fallback = null) {
@@ -128,6 +136,7 @@ export class AtomicFile {
       this.directoryAuthority.assertStable();
       phase = `before-${this.phaseNamespace}-rename`;
       this.faultInjector({ phase, filePath: this.filePath, tempPath });
+      this.commitGuard({ phase, filePath: this.filePath, tempPath });
       fs.renameSync(tempPath, this.filePath);
       committedToVisibleName = true;
       phase = `before-${this.phaseNamespace}-directory-fsync`;
