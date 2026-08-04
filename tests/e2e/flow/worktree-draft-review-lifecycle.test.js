@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -13,13 +14,17 @@ import {
 } from "../../../src/flow/lib/draft-artifact-promotion.js";
 import { draftReviewRouteForKey } from "../../../src/flow/lib/draft-review-routes.js";
 import { checkDraftJson, runGateFlow } from "../../../src/flow/lib/run-gate.js";
+import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import { findActiveNode } from "../../../src/flow/definition.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const GENERATED_AT = "2026-08-04T00:00:00.000Z";
+const SENTI_CLI = path.join(process.cwd(), "src/senti.js");
 
 function writeJson(root, relativePath, value) {
   const file = path.join(root, relativePath);
@@ -76,6 +81,64 @@ function setStepContext({ mainRoot, executionRoot, flowManager, id }) {
   };
 }
 
+function makeDraft() {
+  return {
+    devType: "bugfix",
+    goal: "Keep worktree Flow evidence canonical.",
+    analysis: {
+      problem: "Worktree artifacts and base review evidence are disconnected.",
+      proposedApproach: "Publish and validate artifacts through base-side CLI authority.",
+      validation: "Run the complete worktree draft review lifecycle and gate.",
+    },
+    decisionMap: {
+      knownFacts: ["The review command owns base-side evidence."],
+      decisionPoints: ["The completion command publishes worker artifacts."],
+      resolvedByProjectRules: ["Flow state is agent-independent."],
+      requiresUserJudgment: [],
+      deferredToSpec: [],
+    },
+    qa: [{
+      id: "q1",
+      status: "answered",
+      category: "impact-scope",
+      question: "Which authority owns draft review evidence?",
+      answer: "The base-side spec directory.",
+      evidence: "The review command publishes there.",
+      why: "The gate reads canonical evidence.",
+      considered: "The execution worktree.",
+      droppedReason: "",
+    }],
+    openQuestions: [],
+    approval: { approved: false, confirmedAt: "", notes: "" },
+  };
+}
+
+function parseGeneratedCommand(command) {
+  return command.match(/'[^']*'|\S+/g).map((token) => (
+    token.startsWith("'") && token.endsWith("'") ? token.slice(1, -1) : token
+  ));
+}
+
+function invokeSenti(root, args) {
+  try {
+    const output = execFileSync("node", [SENTI_CLI, ...args], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENTI_WORK_ROOT: root },
+    });
+    return { exitCode: 0, envelope: JSON.parse(output) };
+  } catch (error) {
+    const output = error.stdout?.toString() || "";
+    return { exitCode: error.status ?? 1, envelope: output ? JSON.parse(output) : null };
+  }
+}
+
+function runSenti(root, args) {
+  const result = invokeSenti(root, args);
+  assert.equal(result.exitCode, 0, JSON.stringify(result.envelope));
+  return result.envelope;
+}
+
 describe("worktree draft review lifecycle", () => {
   let temporaryRoot;
 
@@ -98,35 +161,7 @@ describe("worktree draft review lifecycle", () => {
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
-    const initialDraft = {
-      devType: "bugfix",
-      goal: "Keep worktree Flow evidence canonical.",
-      analysis: {
-        problem: "Worktree artifacts and base review evidence are disconnected.",
-        proposedApproach: "Publish and validate artifacts through base-side CLI authority.",
-        validation: "Run the complete worktree draft review lifecycle and gate.",
-      },
-      decisionMap: {
-        knownFacts: ["The review command owns base-side evidence."],
-        decisionPoints: ["The completion command publishes worker artifacts."],
-        resolvedByProjectRules: ["Flow state is agent-independent."],
-        requiresUserJudgment: [],
-        deferredToSpec: [],
-      },
-      qa: [{
-        id: "q1",
-        status: "answered",
-        category: "impact-scope",
-        question: "Which authority owns draft review evidence?",
-        answer: "The base-side spec directory.",
-        evidence: "The review command publishes there.",
-        why: "The gate reads canonical evidence.",
-        considered: "The execution worktree.",
-        droppedReason: "",
-      }],
-      openQuestions: [],
-      approval: { approved: false, confirmedAt: "", notes: "" },
-    };
+    const initialDraft = makeDraft();
     const canonicalDraftPath = writeJson(mainRoot, specPath, initialDraft);
     writeJson(executionRoot, specPath, initialDraft);
     let state = moveFlowToStep(makeFlowState({
@@ -158,6 +193,20 @@ describe("worktree draft review lifecycle", () => {
     }, reviewResult(questions, "ADVISORY"));
     assert.equal(findActiveNode(flowManager.load()).stepId, questions.triageStepId);
 
+    writeReview(executionRoot, specId, questions, state.draftArtifactRevision, "PASS");
+    const triageAction = await new GetNextActionCommand().execute({
+      root: mainRoot,
+      mainRoot,
+      executionRoot,
+      flowManager,
+      flowState: flowManager.load(),
+    });
+    assert.equal(triageAction.step, questions.triageStepId);
+    assert.equal(triageAction.context.draftReview.authority, "canonical-base");
+    const canonicalReview = triageAction.context.draftReview.artifacts
+      .find((artifact) => artifact.name === questions.reviewArtifact)?.document;
+    assert.equal(canonicalReview.verdict, "ADVISORY");
+    const canonicalRepairTarget = canonicalReview.repairTargets[0];
     writeJson(executionRoot, `specs/${specId}/${questions.triageArtifact}`, {
       version: 1,
       phase: questions.triageStepId,
@@ -165,8 +214,8 @@ describe("worktree draft review lifecycle", () => {
       generatedAt: GENERATED_AT,
       summary: "Apply the canonical repair target.",
       items: [{
-        title: "Preserve canonical authority",
-        target: "goal",
+        title: canonicalRepairTarget.title,
+        target: canonicalRepairTarget.target,
         decision: "apply",
         rationale: "The review evidence is authoritative.",
         evidence: "The base-side review contains this target.",
@@ -181,6 +230,18 @@ describe("worktree draft review lifecycle", () => {
     assert.equal(triageResult.promoted, true, JSON.stringify(triageResult));
     assert.equal(findActiveNode(flowManager.load()).stepId, questions.repairStepId);
 
+    const repairAction = await new GetNextActionCommand().execute({
+      root: mainRoot,
+      mainRoot,
+      executionRoot,
+      flowManager,
+      flowState: flowManager.load(),
+    });
+    assert.equal(repairAction.step, questions.repairStepId);
+    const canonicalTriage = repairAction.context.draftReview.artifacts
+      .find((artifact) => artifact.name === questions.triageArtifact)?.document;
+    assert.equal(canonicalTriage.items.length, 1);
+    assert.equal(canonicalTriage.items[0].decision, "apply");
     const repairedDraft = { ...initialDraft, goal: "Keep all Flow evidence under base-side authority." };
     writeJson(executionRoot, specPath, repairedDraft);
     writeJson(executionRoot, `specs/${specId}/${questions.repairArtifact}`, {
@@ -190,8 +251,8 @@ describe("worktree draft review lifecycle", () => {
       generatedAt: GENERATED_AT,
       summary: "Applied the canonical authority repair.",
       items: [{
-        title: "Preserve canonical authority",
-        target: "goal",
+        title: canonicalTriage.items[0].title,
+        target: canonicalTriage.items[0].target,
         rationale: "The draft now states the canonical owner.",
         evidence: "The goal field was changed.",
         changedFieldPaths: ["goal"],
@@ -256,5 +317,110 @@ describe("worktree draft review lifecycle", () => {
       skipGuardrail: true,
     });
     assert.equal(gateResult.result, "pass", JSON.stringify(gateResult));
+  });
+
+  it("executes the CLI-suggested draft-gate recovery and reruns fresh review evidence to PASS", async () => {
+    temporaryRoot = createTmpDir("draft-gate-recovery-roundtrip-");
+    const root = temporaryRoot;
+    const specId = "498-draft-gate-roundtrip";
+    const specPath = `specs/${specId}/draft.json`;
+    const questions = draftReviewRouteForKey("questions");
+    const coverage = draftReviewRouteForKey("coverage");
+    writeJson(root, ".senti/config.json", {
+      name: "draft-gate-recovery-roundtrip",
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+    });
+    const draftPath = writeJson(root, specPath, makeDraft());
+    initGitRepo(root);
+    commitAll(root, "baseline");
+
+    const state = moveFlowToStep(makeFlowState({
+      specId,
+      runId: "run-draft-gate-roundtrip",
+      baseBranch: "main",
+      featureBranch: "main",
+    }), "draft-gate");
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
+    const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
+    flowManager.create(state);
+    flowManager.addActiveFlow(specId, "local");
+
+    const failedGateInvocation = invokeSenti(root, ["flow", "run", "gate", "--phase", "draft"]);
+    assert.equal(failedGateInvocation.exitCode, 1);
+    assert.equal(failedGateInvocation.envelope.errors[0].code, "DRAFT_GATE_REOPEN_REQUIRED");
+    assert.match(
+      failedGateInvocation.envelope.data.artifacts.recoveryCommand,
+      /^senti flow run reopen-draft /,
+    );
+
+    const nextActionEnvelope = runSenti(root, ["flow", "get", "next-action"]);
+    const recoveryDirective = nextActionEnvelope.data.directive;
+    assert.equal(recoveryDirective.kind, "execute_command");
+    assert.equal(recoveryDirective.actionId, "RECOVER_EXTERNAL_BLOCK");
+    const recoveryArgv = parseGeneratedCommand(recoveryDirective.nextAction);
+    assert.equal(recoveryArgv.shift(), "senti");
+    const recoveryEnvelope = runSenti(root, recoveryArgv);
+    assert.equal(recoveryEnvelope.ok, true, JSON.stringify(recoveryEnvelope));
+    assert.equal(findStepById(flowManager.load().steps, "draft").status, "in_progress");
+    assert.equal(flowManager.load().draftReviewRevisions, undefined);
+
+    const draftResult = await new SetStepCommand().execute(setStepContext({
+      mainRoot: root,
+      executionRoot: root,
+      flowManager,
+      id: "draft",
+    }));
+    assert.equal(draftResult.promoted, false);
+    let current = flowManager.load();
+    assert.equal(findActiveNode(current).stepId, questions.reviewStepId);
+
+    writeReview(root, specId, questions, current.draftArtifactRevision, "PASS");
+    registerDraftReviewRevision({ root, state: current, flowManager, route: questions });
+    await FLOW_COMMANDS.run.review.post({
+      root,
+      executionRoot: root,
+      phase: "draft",
+      flowState: flowManager.load(),
+      flowManager,
+    }, reviewResult(questions, "PASS"));
+    assert.equal(findActiveNode(flowManager.load()).stepId, "draft-refine");
+
+    await new SetStepCommand().execute(setStepContext({
+      mainRoot: root,
+      executionRoot: root,
+      flowManager,
+      id: "draft-refine",
+    }));
+    current = flowManager.load();
+    assert.equal(findActiveNode(current).stepId, coverage.reviewStepId);
+    writeReview(root, specId, coverage, current.draftArtifactRevision, "PASS");
+    registerDraftReviewRevision({ root, state: current, flowManager, route: coverage });
+    await FLOW_COMMANDS.run.review.post({
+      root,
+      executionRoot: root,
+      phase: "draft",
+      flowState: flowManager.load(),
+      flowManager,
+    }, reviewResult(coverage, "PASS"));
+    current = flowManager.load();
+    assert.equal(findActiveNode(current).stepId, "draft-gate");
+
+    const canonicalDraft = JSON.parse(fs.readFileSync(draftPath, "utf8"));
+    const passedGate = await runGateFlow({
+      root,
+      config: {},
+      level: "parent",
+      phase: "draft",
+      targetPath: specPath,
+      targetText: JSON.stringify(canonicalDraft),
+      textCheck: () => [
+        ...checkDraftJson(canonicalDraft),
+        ...validateDraftReviewArtifacts(root, specPath, canonicalDraft, current),
+      ],
+      skipGuardrail: true,
+    });
+    assert.equal(passedGate.result, "pass", JSON.stringify(passedGate));
   });
 });

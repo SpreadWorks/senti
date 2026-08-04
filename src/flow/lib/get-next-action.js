@@ -62,6 +62,7 @@ import { inspectCanonicalReviewPassRecovery } from "./run-recover-review-pass.js
 import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 import { resolveTaskGateOverviewRecovery } from "./task-gate-completion.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
+import { resolveDraftReviewWorkerContext } from "./draft-review-artifacts.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -412,6 +413,12 @@ function buildNextActionResult(
   outboxRecovery = null,
 ) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
+  const draftReview = resolveDraftReviewWorkerContext({
+    root: ctx.mainRoot || ctx.root,
+    state,
+    stepId: target.stepId,
+  });
+  if (draftReview) context.draftReview = draftReview.toJSON();
   const result = {
     taskId: target.taskId,
     step: target.stepId,

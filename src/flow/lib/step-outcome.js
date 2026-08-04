@@ -106,6 +106,7 @@ export class StepOutcome {
         failureCode: value.failureCode,
         retryable: value.retryable,
         recoveryHint: value.recoveryHint,
+        recoveryCommand: value.recoveryCommand,
         ...common,
       });
     }
@@ -232,6 +233,9 @@ export class ExternalBlockedOutcome extends StoppedOutcome {
     this.recoveryHint = input.recoveryHint == null
       ? this.resumeInstruction
       : requireString(input.recoveryHint, "recoveryHint");
+    this.recoveryCommand = input.recoveryCommand == null
+      ? null
+      : requireString(input.recoveryCommand, "recoveryCommand");
     Object.freeze(this);
   }
 
@@ -241,6 +245,7 @@ export class ExternalBlockedOutcome extends StoppedOutcome {
       failureCode: this.failureCode,
       retryable: this.retryable,
       recoveryHint: this.recoveryHint,
+      ...(this.recoveryCommand && { recoveryCommand: this.recoveryCommand }),
     };
   }
 }

@@ -58,6 +58,7 @@ function draftReviewResetStepIdsForReopen() {
 const STALE_DRAFT_REVIEW_ARTIFACTS = Object.freeze(draftReviewArtifactNamesForReopen());
 const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(draftReviewResetStepIdsForReopen());
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
+  ...PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS,
   "draft-gate",
   "spec",
   "spec-review",

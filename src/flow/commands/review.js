@@ -40,7 +40,6 @@ import {
 } from "../lib/impl-review-proposal.js";
 import {
   DraftArtifactRecoveryError,
-  DraftArtifactRevision,
   inspectCanonicalDraftRevision,
 } from "../lib/draft-artifact-promotion.js";
 
@@ -66,7 +65,15 @@ import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale.js";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { ReviewFailure } from "../lib/review-failure.js";
-import { draftReviewRouteForKey } from "../lib/draft-review-routes.js";
+import {
+  DRAFT_REVIEW_ARTIFACT_LIMIT,
+  draftReviewRouteForKey,
+} from "../lib/draft-review-routes.js";
+import {
+  DraftReviewArtifactDocument,
+  DraftReviewFinding,
+  normalizeDraftReviewText,
+} from "../lib/draft-review-artifacts.js";
 import {
   contractFromImplReviewArtifact,
   contractFromTestReviewArtifact,
@@ -3721,85 +3728,6 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   ].join("\n");
 }
 
-const DRAFT_REVIEW_CLASSIFICATIONS = Object.freeze(["blocking", "advisory", "repair_target"]);
-const DRAFT_REVIEW_ARRAY_CAP = 20;
-const DRAFT_REVIEW_FIELD_MAX_CHARS = 1000;
-const DRAFT_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
-
-function normalizeDraftReviewText(value, fallback) {
-  const text = typeof value === "string" && value.trim() !== "" ? value.trim() : fallback;
-  return text.length > DRAFT_REVIEW_FIELD_MAX_CHARS
-    ? `${text.slice(0, DRAFT_REVIEW_FIELD_MAX_CHARS - DRAFT_REVIEW_TRUNCATION_SUFFIX.length)}${DRAFT_REVIEW_TRUNCATION_SUFFIX}`
-    : text;
-}
-
-class DraftReviewFinding {
-  constructor({ title, target, rationale, evidence, classification }) {
-    if (!DRAFT_REVIEW_CLASSIFICATIONS.includes(classification)) {
-      throw new Error(`invalid draft review classification: ${classification}`);
-    }
-    this.title = normalizeDraftReviewText(title, "Untitled finding");
-    this.target = normalizeDraftReviewText(target, "GLOBAL");
-    this.rationale = normalizeDraftReviewText(rationale, "Recorded by draft review.");
-    this.evidence = normalizeDraftReviewText(evidence, "Draft review output.");
-    this.classification = classification;
-  }
-
-  toJSON() {
-    return {
-      title: this.title,
-      target: this.target,
-      rationale: this.rationale,
-      evidence: this.evidence,
-      classification: this.classification,
-    };
-  }
-}
-
-class DraftReviewArtifact {
-  constructor({
-    phase,
-    sourceDraft,
-    sourceDraftRevision,
-    blockingFindings = [],
-    advisoryFindings = [],
-    repairTargets = [],
-  }) {
-    const revision = DraftArtifactRevision.from(sourceDraftRevision);
-    this.version = 2;
-    this.phase = phase;
-    this.sourceDraft = sourceDraft;
-    this.sourceDraftRevision = revision.toJSON();
-    this.generatedAt = new Date().toISOString();
-    this.blockingFindings = blockingFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
-    this.advisoryFindings = advisoryFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
-    this.repairTargets = repairTargets.slice(0, DRAFT_REVIEW_ARRAY_CAP);
-    this.verdict = this.blockingFindings.length > 0
-      ? "REJECTED"
-      : this.advisoryFindings.length > 0 || this.repairTargets.length > 0
-        ? "ADVISORY"
-        : "PASS";
-    this.summary = this.verdict === "PASS"
-      ? "No draft review findings recorded."
-      : `${this.blockingFindings.length} blocking, ${this.advisoryFindings.length} advisory, ${this.repairTargets.length} repair target finding(s) recorded.`;
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      phase: this.phase,
-      sourceDraft: this.sourceDraft,
-      sourceDraftRevision: this.sourceDraftRevision,
-      generatedAt: this.generatedAt,
-      verdict: this.verdict,
-      summary: this.summary,
-      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
-      advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
-      repairTargets: this.repairTargets.map((item) => item.toJSON()),
-    };
-  }
-}
-
 function buildDraftReviewStage(key, overrides) {
   const route = draftReviewRouteForKey(key);
   return {
@@ -3855,7 +3783,7 @@ function addDraftReviewFindingToBucket(buckets, finding) {
 
 function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, stage }) {
   if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
-    return new DraftReviewArtifact({
+    return new DraftReviewArtifactDocument({
       phase: stage.retryPhase,
       sourceDraft: draftPath,
       sourceDraftRevision: draftRevision,
@@ -3870,7 +3798,7 @@ function buildDraftReviewArtifact({ raw, draftPath, draftRevision, proposals, st
     const finding = issueToDraftReviewFinding(proposal, stage.findingClassification);
     addDraftReviewFindingToBucket(buckets, finding);
   }
-  return new DraftReviewArtifact({
+  return new DraftReviewArtifactDocument({
     phase: stage.retryPhase,
     sourceDraft: draftPath,
     sourceDraftRevision: draftRevision,
@@ -4058,7 +3986,7 @@ async function runDraftReview(root, flow, config, dryRun) {
 
   const proposals = raw.includes("NO_PROPOSALS")
     ? []
-    : parseProposals(raw, { limit: DRAFT_REVIEW_ARRAY_CAP });
+    : parseProposals(raw, { limit: DRAFT_REVIEW_ARTIFACT_LIMIT });
 
   const reviewPath = path.join(specPath, stage.artifact);
   const reviewArtifact = buildDraftReviewArtifact({

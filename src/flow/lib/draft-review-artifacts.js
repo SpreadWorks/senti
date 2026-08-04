@@ -37,6 +37,9 @@ const ALLOWED_DRAFT_TRIAGE_DECISIONS = new Set([
 const DRAFT_REVIEW_ITEM_FIELDS = Object.freeze(["title", "target", "rationale", "evidence"]);
 const DRAFT_TRIAGE_ITEM_FIELDS = Object.freeze(["title", "target", "decision", "rationale", "evidence"]);
 const DRAFT_REPAIR_ITEM_FIELDS = Object.freeze(["title", "target", "rationale", "evidence"]);
+const DRAFT_REVIEW_CLASSIFICATIONS = Object.freeze(["blocking", "advisory", "repair_target"]);
+const DRAFT_REVIEW_FIELD_MAX_CHARS = 1000;
+const DRAFT_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -49,12 +52,139 @@ function sha256(bytes) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const child of Object.values(value)) deepFreeze(child);
+  return value;
+}
+
 function sameFile(left, right) {
   return left.dev === right.dev && left.ino === right.ino;
 }
 
 function specDirForRoot(root, state) {
   return path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
+}
+
+export function normalizeDraftReviewText(value, fallback) {
+  const text = typeof value === "string" && value.trim() !== "" ? value.trim() : fallback;
+  return text.length > DRAFT_REVIEW_FIELD_MAX_CHARS
+    ? `${text.slice(0, DRAFT_REVIEW_FIELD_MAX_CHARS - DRAFT_REVIEW_TRUNCATION_SUFFIX.length)}${DRAFT_REVIEW_TRUNCATION_SUFFIX}`
+    : text;
+}
+
+export class DraftReviewFinding {
+  constructor({ title, target, rationale, evidence, classification }) {
+    if (!DRAFT_REVIEW_CLASSIFICATIONS.includes(classification)) {
+      throw new Error(`invalid draft review classification: ${classification}`);
+    }
+    this.title = normalizeDraftReviewText(title, "Untitled finding");
+    this.target = normalizeDraftReviewText(target, "GLOBAL");
+    this.rationale = normalizeDraftReviewText(rationale, "Recorded by draft review.");
+    this.evidence = normalizeDraftReviewText(evidence, "Draft review output.");
+    this.classification = classification;
+    Object.freeze(this);
+  }
+
+  static fromStored(value, classification) {
+    if (value instanceof DraftReviewFinding) {
+      if (value.classification !== classification) {
+        throw new Error(`draft review finding classification must be ${classification}`);
+      }
+      return value;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("draft review finding must be an object");
+    }
+    if (value.classification != null && value.classification !== classification) {
+      throw new Error(`draft review finding classification must be ${classification}`);
+    }
+    return new DraftReviewFinding({ ...value, classification });
+  }
+
+  toJSON() {
+    return {
+      title: this.title,
+      target: this.target,
+      rationale: this.rationale,
+      evidence: this.evidence,
+      classification: this.classification,
+    };
+  }
+}
+
+function normalizeDraftReviewFindings(value, field, classification) {
+  if (!Array.isArray(value)) throw new Error(`draft review ${field} must be an array`);
+  if (value.length > DRAFT_REVIEW_ARTIFACT_LIMIT) {
+    throw new Error(`draft review ${field} exceeds ${DRAFT_REVIEW_ARTIFACT_LIMIT} items`);
+  }
+  return Object.freeze(value.map((item) => DraftReviewFinding.fromStored(item, classification)));
+}
+
+export class DraftReviewArtifactDocument {
+  constructor({
+    phase,
+    sourceDraft,
+    sourceDraftRevision,
+    generatedAt = new Date().toISOString(),
+    verdict = null,
+    summary = null,
+    blockingFindings = [],
+    advisoryFindings = [],
+    repairTargets = [],
+  }) {
+    this.version = 2;
+    this.phase = requireString(phase, "draft review phase");
+    this.sourceDraft = requireString(sourceDraft, "draft review sourceDraft");
+    this.sourceDraftRevision = DraftArtifactRevision.from(sourceDraftRevision).toJSON();
+    this.generatedAt = requireString(generatedAt, "draft review generatedAt");
+    this.blockingFindings = normalizeDraftReviewFindings(blockingFindings, "blockingFindings", "blocking");
+    this.advisoryFindings = normalizeDraftReviewFindings(advisoryFindings, "advisoryFindings", "advisory");
+    this.repairTargets = normalizeDraftReviewFindings(repairTargets, "repairTargets", "repair_target");
+    const derivedVerdict = this.blockingFindings.length > 0
+      ? "REJECTED"
+      : this.advisoryFindings.length > 0 || this.repairTargets.length > 0
+        ? "ADVISORY"
+        : "PASS";
+    if (verdict != null && verdict !== derivedVerdict) {
+      throw new Error(`draft review verdict must be ${derivedVerdict}`);
+    }
+    this.verdict = derivedVerdict;
+    this.summary = summary == null
+      ? derivedVerdict === "PASS"
+        ? "No draft review findings recorded."
+        : `${this.blockingFindings.length} blocking, ${this.advisoryFindings.length} advisory, ${this.repairTargets.length} repair target finding(s) recorded.`
+      : requireString(summary, "draft review summary");
+    Object.freeze(this.sourceDraftRevision);
+    Object.freeze(this);
+  }
+
+  static fromStored(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || value.version !== 2) {
+      throw new Error("draft review artifact version must be 2");
+    }
+    return new DraftReviewArtifactDocument(value);
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      phase: this.phase,
+      sourceDraft: this.sourceDraft,
+      sourceDraftRevision: { ...this.sourceDraftRevision },
+      generatedAt: this.generatedAt,
+      verdict: this.verdict,
+      summary: this.summary,
+      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
+      advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
+      repairTargets: this.repairTargets.map((item) => item.toJSON()),
+    };
+  }
+}
+
+export function normalizeDraftReviewArtifactDocument(value) {
+  return DraftReviewArtifactDocument.fromStored(value).toJSON();
 }
 
 export class DraftReviewArtifactFile {
@@ -393,6 +523,89 @@ export class DraftReviewEvidenceSet {
   }
 }
 
+export class CanonicalDraftReviewWorkerArtifact {
+  constructor(file) {
+    if (!(file instanceof DraftReviewArtifactFile)) {
+      throw new Error("canonical draft review worker artifact requires a draft review artifact file");
+    }
+    this.name = file.filename;
+    this.digest = file.digest;
+    this.document = deepFreeze(structuredClone(file.document));
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      digest: this.digest,
+      document: structuredClone(this.document),
+    };
+  }
+}
+
+export class DraftReviewWorkerContext {
+  constructor({ route, stepId, artifacts }) {
+    if (!route || typeof route !== "object" || draftReviewRouteForStepId(stepId) !== route) {
+      throw new Error("draft review worker context requires a route");
+    }
+    this.version = 1;
+    this.authority = "canonical-base";
+    this.phase = route.retryPhase;
+    this.stepId = requireString(stepId, "draft review worker stepId");
+    if (!Array.isArray(artifacts) || artifacts.length === 0) {
+      throw new Error("draft review worker context requires canonical artifacts");
+    }
+    this.artifacts = Object.freeze(artifacts.map((artifact) => {
+      if (!(artifact instanceof CanonicalDraftReviewWorkerArtifact)) {
+        throw new Error("draft review worker context artifact has an invalid type");
+      }
+      return artifact;
+    }));
+    const expectedNames = stepId === route.triageStepId
+      ? [route.reviewArtifact]
+      : [route.reviewArtifact, route.triageArtifact];
+    if (this.artifacts.some((artifact, index) => artifact.name !== expectedNames[index])) {
+      throw new Error("draft review worker context artifacts do not match the active route");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      authority: this.authority,
+      phase: this.phase,
+      stepId: this.stepId,
+      artifacts: this.artifacts.map((artifact) => artifact.toJSON()),
+    };
+  }
+}
+
+export function resolveDraftReviewWorkerContext({ root, state, stepId } = {}) {
+  const route = draftReviewRouteForStepId(stepId);
+  if (!route || ![route.triageStepId, route.repairStepId].includes(stepId)) return null;
+  const specDir = specDirForRoot(root, state);
+  const evidence = DraftReviewEvidenceSet.canonical(specDir, route, state);
+  const validation = stepId === route.triageStepId
+    ? { issues: evidence.validateReview() }
+    : evidence.validateThrough(route.triageStepId);
+  if (validation.issues.length > 0) {
+    throw new DraftReviewArtifactRecoveryError(
+      "DRAFT_REVIEW_WORKER_INPUT_INVALID",
+      validation.issues.join("; "),
+      { data: { stepId } },
+    );
+  }
+  const files = stepId === route.triageStepId
+    ? [evidence.reviewFile]
+    : [evidence.reviewFile, evidence.triageFile];
+  return new DraftReviewWorkerContext({
+    route,
+    stepId,
+    artifacts: files.map((file) => new CanonicalDraftReviewWorkerArtifact(file)),
+  });
+}
+
 export function validateDraftReviewArtifactSet(specDir, route, state) {
   return DraftReviewEvidenceSet.canonical(specDir, route, state).validateThrough();
 }
@@ -428,7 +641,7 @@ export function validateDraftReviewArtifacts(root, specPath, draft, state) {
 export function registerDraftReviewRevision({ root, state, flowManager, route, now = () => new Date() }) {
   const specDir = specDirForRoot(root, state);
   const evidence = DraftReviewEvidenceSet.canonical(specDir, route, state);
-  const issues = evidence.validateRevisionBinding({ requireCurrentRevision: true });
+  const issues = evidence.validateReview({ requireCurrentRevision: true });
   if (issues.length > 0) throw new Error(issues.join("; "));
   const revision = DraftArtifactRevision.from(evidence.reviewFile.document.sourceDraftRevision);
   const binding = createDraftReviewRevisionBinding({

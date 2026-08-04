@@ -362,6 +362,18 @@ export class NextActionDirectiveResolver {
     }
 
     if (this.stepAttempt?.outcome instanceof ExternalBlockedOutcome) {
+      if (this.stepAttempt.outcome.recoveryCommand) {
+        return new ExecuteCommandDirective({
+          actionId: "RECOVER_EXTERNAL_BLOCK",
+          nextAction: guardedCommand(
+            this.stepAttempt.outcome.recoveryCommand,
+            this.state,
+            this.binding,
+          ),
+          instruction: this.stepAttempt.outcome.recoveryHint,
+          reason: this.stepAttempt.outcome.reason,
+        });
+      }
       const gate = gateDirective({
         state: this.state,
         binding: this.binding,

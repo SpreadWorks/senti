@@ -35,7 +35,10 @@ import {
   taskScopeViolationMessages,
 } from "./task-scope.js";
 import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
-import { registerDraftReviewRevision } from "./draft-review-artifacts.js";
+import {
+  normalizeDraftReviewArtifactDocument,
+  registerDraftReviewRevision,
+} from "./draft-review-artifacts.js";
 import {
   deferExhaustedSemanticFindings,
   readBoundedSourceArtifact,
@@ -1601,7 +1604,10 @@ function persistCanonicalReviewArtifact(
     error.code = "REVIEW_EVIDENCE_ARTIFACT_MISSING";
     throw error;
   }
-  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const parsedArtifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const artifact = draftReviewRouteForRetryPhase(phase)
+    ? normalizeDraftReviewArtifactDocument(parsedArtifact)
+    : parsedArtifact;
   const taskId = result.artifacts.taskId ?? null;
   for (const [field, value] of Object.entries({
     phase: sourceArtifactPhase(phase),

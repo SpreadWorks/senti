@@ -2501,6 +2501,7 @@ function gateExternalBlock(reason, details = {}) {
     failureCode: details.failureCode || "GATE_EXTERNAL_BLOCKED",
     retryable: details.retryable === true,
     recoveryHint,
+    recoveryCommand: details.recoveryCommand || null,
   });
 }
 
@@ -2510,6 +2511,7 @@ function gateExternalBlockForResult(result) {
     failureCode: artifacts.failureCode,
     retryable: artifacts.retryable,
     recoveryHint: artifacts.recoveryHint,
+    recoveryCommand: artifacts.recoveryCommand,
   });
 }
 
@@ -4709,7 +4711,36 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
   };
 }
 
-function gateFail(level, phase, targetPath, evaluations, issues) {
+export class GateFailureRecovery {
+  constructor({ failureCode, recoveryCommand, recoveryHint }) {
+    for (const [field, value] of Object.entries({ failureCode, recoveryCommand, recoveryHint })) {
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new Error(`gate failure recovery ${field} must be a non-empty string`);
+      }
+      this[field] = value.trim();
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      failureCode: this.failureCode,
+      recoveryCommand: this.recoveryCommand,
+      recoveryHint: this.recoveryHint,
+    };
+  }
+}
+
+const DRAFT_GATE_REOPEN_RECOVERY = new GateFailureRecovery({
+  failureCode: "DRAFT_GATE_REOPEN_REQUIRED",
+  recoveryCommand: "senti flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
+  recoveryHint: "Run the supplied reopen-draft command to invalidate obsolete draft review evidence, then continue the normal Flow.",
+});
+
+function gateFail(level, phase, targetPath, evaluations, issues, recovery = null) {
+  if (recovery != null && !(recovery instanceof GateFailureRecovery)) {
+    throw new Error("gate failure recovery must be a GateFailureRecovery");
+  }
   const failedSemanticEvaluations = Array.isArray(evaluations)
     && evaluations.some((entry) => entry?.result === "fail" && entry?.authority !== "mechanical");
   const failedMechanicalEvaluations = Array.isArray(evaluations)
@@ -4743,6 +4774,7 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
         : failedMechanicalEvaluations
           ? "mechanical_guardrail_fail"
           : "mechanical",
+      ...(recovery ? recovery.toJSON() : {}),
       nextAction,
     },
     next: FAIL_NEXT[phase],
@@ -4852,13 +4884,14 @@ function persistIntegrationGateResult({ root, executionRoot = root, state, resul
  * @param {boolean} args.skipGuardrail
  * @param {Object} [args.ctx] - optional context for retry guards (spec 228)
  * @param {Object} [args.guardrailPromptOptions] - optional guardrail prompt context
+ * @param {GateFailureRecovery} [args.structuralRecovery] - recovery for structural text-check failures
  */
 export async function runGateFlow(args) {
   const {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
     ctx, guardrailPromptOptions = {}, checkGuardrailFn = checkGuardrail,
-    authoritativeEvaluations = [],
+    authoritativeEvaluations = [], structuralRecovery = null,
   } = args;
   const artifactRoot = args.artifactRoot || root;
   const priorMemoryMarkdown = ctx?.flowState?.specId
@@ -4879,7 +4912,7 @@ export async function runGateFlow(args) {
 
   const issues = textCheck();
   if (issues.length > 0) {
-    return gateFail(level, phase, targetPath, [], issues);
+    return gateFail(level, phase, targetPath, [], issues, structuralRecovery);
   }
 
   const ownedEvaluations = authoritativeEvaluations.map((evaluation) => ({ ...evaluation }));
@@ -5290,7 +5323,14 @@ export class RunGateCommand extends FlowCommand {
       rawText: originalText,
     });
     if (completedDraft.constructor.name === "ArtifactCompletionMechanicalFailure") {
-      return gateFail(level, "draft", relPath, [], completedDraft.issues);
+      return gateFail(
+        level,
+        "draft",
+        relPath,
+        [],
+        completedDraft.issues,
+        DRAFT_GATE_REOPEN_RECOVERY,
+      );
     }
     const draftObj = completedDraft.artifact;
     const targetText = JSON.stringify(draftObj, null, 2) + "\n";
@@ -5313,6 +5353,7 @@ export class RunGateCommand extends FlowCommand {
       checkerRole:
         "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
       skipGuardrail,
+      structuralRecovery: DRAFT_GATE_REOPEN_RECOVERY,
       ctx: { ...ctx, issueLog, gitState },
     });
   }

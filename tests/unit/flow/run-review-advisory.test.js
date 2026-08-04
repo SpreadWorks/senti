@@ -147,6 +147,14 @@ describe("draft review advisory routing", () => {
       assert.equal(result.artifacts.retryPhase, "draft-questions");
       assert.equal(flowManager.load().reviewConvergence.records[0].phase, "draft-questions");
       assert.equal(fs.readdirSync(path.join(specDir, "review-evidence")).length, 1);
+      const canonical = JSON.parse(fs.readFileSync(path.join(specDir, "draft-review-questions.json"), "utf8"));
+      assert.deepEqual(canonical.advisoryFindings[0], {
+        title: "Clarify the acceptance condition",
+        target: "GLOBAL",
+        rationale: "Recorded by draft review.",
+        evidence: "Draft review output.",
+        classification: "advisory",
+      });
     } finally {
       removeTmpDir(root);
     }

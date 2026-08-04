@@ -135,6 +135,28 @@ describe("draft review canonical authority", () => {
     assert.equal(result.issues.length, 0, result.issues.join("\n"));
   });
 
+  it("rejects a schema-invalid canonical review before recording its route binding", () => {
+    temporaryRoot = createTmpDir("draft-review-invalid-binding-");
+    const route = draftReviewRouteForKey("questions");
+    const specId = "498-invalid-review-binding";
+    const state = makeFlowState({ specId, runId: "run-invalid-review-binding" });
+    state.draftArtifactRevision = revisionFor(state, "draft", "a".repeat(64));
+    const invalid = reviewArtifact(state.draftArtifactRevision, route);
+    invalid.repairTargets[0] = { title: "Missing traceability" };
+    writeJson(temporaryRoot, `specs/${specId}/${route.reviewArtifact}`, invalid);
+
+    assert.throws(
+      () => registerDraftReviewRevision({
+        root: temporaryRoot,
+        state,
+        flowManager: { mutate() { throw new Error("binding mutation must not run"); } },
+        route,
+      }),
+      /target must be non-empty/,
+    );
+    assert.equal(state.draftReviewRevisions, undefined);
+  });
+
   for (const scenario of [
     { label: "worktree", inWorktree: true },
     { label: "non-worktree", inWorktree: false },
@@ -247,6 +269,63 @@ describe("draft review canonical authority", () => {
     );
     assert.equal(findStepById(flowManager.load().steps, route.triageStepId).status, "in_progress");
     assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.triageArtifact)), false);
+  });
+
+  it("keeps repair in progress until a valid worktree repair artifact is published", () => {
+    temporaryRoot = createTmpDir("draft-review-repair-guard-");
+    const mainRoot = path.join(temporaryRoot, "main");
+    const executionRoot = path.join(temporaryRoot, "worktree");
+    const route = draftReviewRouteForKey("questions");
+    const specId = "498-repair-guard";
+    fs.mkdirSync(mainRoot, { recursive: true });
+    fs.mkdirSync(executionRoot, { recursive: true });
+    const state = moveFlowToStep(makeFlowState({
+      specId,
+      runId: "run-repair-guard",
+      worktree: true,
+    }), route.repairStepId);
+    state.draftArtifactRevision = revisionFor(state, "draft", "a".repeat(64));
+    writeJson(mainRoot, `specs/${specId}/${route.reviewArtifact}`, reviewArtifact(state.draftArtifactRevision, route));
+    writeJson(mainRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route));
+    registerDraftReviewRevision({
+      root: mainRoot,
+      state,
+      flowManager: { mutate(mutator) { mutator(state); } },
+      route,
+    });
+    const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+    flowManager.create(state);
+    const transition = new NormalStepTransition({
+      stepId: route.repairStepId,
+      currentStepId: route.repairStepId,
+      currentStatus: "in_progress",
+      requestedStatus: "done",
+    });
+    const complete = () => completeDraftReviewArtifactStep({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      state: flowManager.load(),
+      transition,
+    });
+
+    assert.throws(
+      complete,
+      (error) => error instanceof DraftReviewArtifactRecoveryError
+        && error.code === "DRAFT_REVIEW_ARTIFACT_INVALID",
+    );
+    assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
+
+    const invalidRepair = repairArtifact(route);
+    delete invalidRepair.items[0].changedFieldPaths;
+    writeJson(executionRoot, `specs/${specId}/${route.repairArtifact}`, invalidRepair);
+    assert.throws(
+      complete,
+      (error) => error instanceof DraftReviewArtifactRecoveryError
+        && error.code === "DRAFT_REVIEW_ARTIFACT_INVALID",
+    );
+    assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
+    assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.repairArtifact)), false);
   });
 
   it("updates approval bytes and the recorded revision in one recoverable canonical mutation", () => {

@@ -1,8 +1,8 @@
    - Classify findings from `draft-questions-review` before any draft repair work.
-   - Read `draft-review-questions.json` from the active Flow's configured spec directory first. Treat only `blockingFindings[]` and `repairTargets[]` as triage input. `advisoryFindings[]` are advisory memory only.
+   - Read `draft-review-questions.json` only from the guarded next action's `context.draftReview.artifacts[]` entry whose `name` is `draft-review-questions.json`. This is the immutable snapshot supplied from canonical base-side authority; do not read or trust a same-named worktree file. Treat only its `document.blockingFindings[]` and `document.repairTargets[]` as triage input. `document.advisoryFindings[]` are advisory memory only.
    - Do not edit `draft.json`, spec files, task files, or tests in this step. This step decides what should be repaired; the next `draft-questions-repair` step performs the edits.
    - Always write `draft-questions-triage.json` in that directory before completing this step.
-   - If `draft-review-questions.json` is missing, invalid, or contains no blocking findings or repair targets, write `draft-questions-triage.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step draft-questions-triage done`.
+   - If the guarded canonical input is missing, invalid, or does not match the current phase, stop without writing an artifact or completing the step. If it is valid and contains no blocking findings or repair targets, write `draft-questions-triage.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step draft-questions-triage done`.
    - For every blocking finding or repair target, add one `draft-questions-triage.json.items[]` entry with:
      - `title`: copied from the finding or target.
      - `target`: copied from the finding or target.
