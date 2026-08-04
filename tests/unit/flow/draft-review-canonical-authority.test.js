@@ -13,6 +13,7 @@ import {
 } from "../../../src/flow/lib/draft-review-artifacts.js";
 import { createDraftReviewRevisionBinding } from "../../../src/flow/lib/draft-review-revision.js";
 import {
+  completeDraftArtifactStep,
   completeCanonicalDraftMutation,
   createInitialDraftArtifactRevision,
 } from "../../../src/flow/lib/draft-artifact-promotion.js";
@@ -161,7 +162,7 @@ describe("draft review canonical authority", () => {
     { label: "worktree", inWorktree: true },
     { label: "non-worktree", inWorktree: false },
   ]) {
-    it(`publishes and validates ${scenario.label} triage before marking the step done`, () => {
+    it(`validates canonical ${scenario.label} triage before marking the step done`, () => {
       temporaryRoot = createTmpDir(`draft-review-${scenario.label}-triage-promotion-`);
       const mainRoot = path.join(temporaryRoot, "main");
       const executionRoot = scenario.inWorktree
@@ -191,7 +192,7 @@ describe("draft review canonical authority", () => {
           recordedAt: GENERATED_AT,
         }).toJSON(),
       };
-      writeJson(executionRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route));
+      writeJson(mainRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route));
       const flowManager = new FlowManager({
         root: executionRoot,
         mainRoot,
@@ -214,16 +215,13 @@ describe("draft review canonical authority", () => {
         transition,
       });
 
-      assert.equal(completed.promoted, scenario.inWorktree);
+      assert.equal(completed.promoted, false);
       assert.equal(findStepById(flowManager.load().steps, route.triageStepId).status, "done");
-      assert.equal(
-        fs.readFileSync(path.join(mainRoot, "specs", specId, route.triageArtifact), "utf8"),
-        fs.readFileSync(path.join(executionRoot, "specs", specId, route.triageArtifact), "utf8"),
-      );
+      assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.triageArtifact)), true);
     });
   }
 
-  it("rejects an empty worktree triage that lost canonical review targets", () => {
+  it("rejects a valid triage that exists only in the worktree authority", () => {
     temporaryRoot = createTmpDir("draft-review-empty-triage-");
     const mainRoot = path.join(temporaryRoot, "main");
     const executionRoot = path.join(temporaryRoot, "worktree");
@@ -246,7 +244,7 @@ describe("draft review canonical authority", () => {
       },
       route,
     });
-    writeJson(executionRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route, { items: [] }));
+    writeJson(executionRoot, `specs/${specId}/${route.triageArtifact}`, triageArtifact(route));
     const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
     flowManager.create(state);
     const transition = new NormalStepTransition({
@@ -265,13 +263,14 @@ describe("draft review canonical authority", () => {
         transition,
       }),
       (error) => error instanceof DraftReviewArtifactRecoveryError
-        && error.code === "DRAFT_REVIEW_ARTIFACT_INVALID",
+        && error.code === "DRAFT_REVIEW_ARTIFACT_WRONG_AUTHORITY"
+        && error.data.canonicalPath === path.join(mainRoot, "specs", specId, route.triageArtifact),
     );
     assert.equal(findStepById(flowManager.load().steps, route.triageStepId).status, "in_progress");
     assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.triageArtifact)), false);
   });
 
-  it("keeps repair in progress until a valid worktree repair artifact is published", () => {
+  it("keeps repair in progress until a valid canonical repair artifact exists", () => {
     temporaryRoot = createTmpDir("draft-review-repair-guard-");
     const mainRoot = path.join(temporaryRoot, "main");
     const executionRoot = path.join(temporaryRoot, "worktree");
@@ -316,16 +315,24 @@ describe("draft review canonical authority", () => {
     );
     assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
 
+    writeJson(executionRoot, `specs/${specId}/${route.repairArtifact}`, repairArtifact(route));
+    assert.throws(
+      complete,
+      (error) => error instanceof DraftReviewArtifactRecoveryError
+        && error.code === "DRAFT_REVIEW_ARTIFACT_WRONG_AUTHORITY",
+    );
+    assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
+    assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.repairArtifact)), false);
+
     const invalidRepair = repairArtifact(route);
     delete invalidRepair.items[0].changedFieldPaths;
-    writeJson(executionRoot, `specs/${specId}/${route.repairArtifact}`, invalidRepair);
+    writeJson(mainRoot, `specs/${specId}/${route.repairArtifact}`, invalidRepair);
     assert.throws(
       complete,
       (error) => error instanceof DraftReviewArtifactRecoveryError
         && error.code === "DRAFT_REVIEW_ARTIFACT_INVALID",
     );
     assert.equal(findStepById(flowManager.load().steps, route.repairStepId).status, "in_progress");
-    assert.equal(fs.existsSync(path.join(mainRoot, "specs", specId, route.repairArtifact)), false);
   });
 
   it("updates approval bytes and the recorded revision in one recoverable canonical mutation", () => {
@@ -361,36 +368,110 @@ describe("draft review canonical authority", () => {
     assert.equal(current.draftArtifactRevision.digest, crypto.createHash("sha256").update(bytes).digest("hex"));
   });
 
-  it("reopens directly from draft-gate and invalidates obsolete route bindings", async () => {
-    temporaryRoot = createTmpDir("draft-gate-reopen-");
-    const specId = "498-draft-gate-reopen";
-    const state = moveFlowToStep(makeFlowState({ specId, runId: "run-draft-gate-reopen" }), "draft-gate");
-    state.draftReviewRevisions = {
-      "draft-questions": {
-        version: 1,
-        phase: "draft-questions",
-        reviewArtifact: "draft-review-questions.json",
-        reviewArtifactDigest: "a".repeat(64),
-        revision: revisionFor(state, "draft", "b".repeat(64)),
-        recordedAt: GENERATED_AT,
-      },
-    };
-    writeJson(temporaryRoot, `specs/${specId}/draft.json`, { goal: "Recover from draft-gate." });
-    const flowManager = new FlowManager({ root: temporaryRoot, mainRoot: temporaryRoot, specId });
+  for (const sourceStep of ["draft-questions-review", "draft-coverage-review", "draft-gate"]) {
+    it(`reopens directly from ${sourceStep} and invalidates obsolete route bindings`, async () => {
+      temporaryRoot = createTmpDir(`${sourceStep}-reopen-`);
+      const specId = `499-${sourceStep}-reopen`;
+      const state = moveFlowToStep(makeFlowState({ specId, runId: `run-${sourceStep}-reopen` }), sourceStep);
+      state.draftReviewRevisions = {
+        "draft-questions": {
+          version: 1,
+          phase: "draft-questions",
+          reviewArtifact: "draft-review-questions.json",
+          reviewArtifactDigest: "a".repeat(64),
+          revision: revisionFor(state, "draft", "b".repeat(64)),
+          recordedAt: GENERATED_AT,
+        },
+      };
+      const draftPath = writeJson(
+        temporaryRoot,
+        `specs/${specId}/draft.json`,
+        { goal: `Recover from ${sourceStep}.` },
+      );
+      const flowManager = new FlowManager({ root: temporaryRoot, mainRoot: temporaryRoot, specId });
+      flowManager.create(state);
+
+      const result = await new RunReopenDraftCommand().execute({
+        root: temporaryRoot,
+        flowManager,
+        flowState: flowManager.load(),
+        reason: "recover canonical draft review evidence",
+      });
+
+      const reopened = flowManager.load();
+      const draftBytes = fs.readFileSync(draftPath);
+      assert.equal(result.ok, true, JSON.stringify(result));
+      assert.equal(result.data.previousActiveStep, sourceStep);
+      assert.equal(findStepById(reopened.steps, "draft").status, "in_progress");
+      assert.equal(findStepById(reopened.steps, sourceStep).status, "pending");
+      assert.equal(reopened.draftReviewRevisions, undefined);
+      assert.equal(reopened.draftArtifactRevision.sourceStepId, "draft");
+      assert.equal(reopened.draftArtifactRevision.byteLength, draftBytes.length);
+      assert.equal(
+        reopened.draftArtifactRevision.digest,
+        crypto.createHash("sha256").update(draftBytes).digest("hex"),
+      );
+    });
+  }
+
+  it("rebaselines stale canonical bytes so a worktree draft can complete after reopen", async () => {
+    temporaryRoot = createTmpDir("draft-gate-worktree-rebaseline-");
+    const mainRoot = path.join(temporaryRoot, "main");
+    const executionRoot = path.join(temporaryRoot, "worktree");
+    const specId = "499-worktree-rebaseline";
+    fs.mkdirSync(mainRoot, { recursive: true });
+    fs.mkdirSync(executionRoot, { recursive: true });
+    const state = moveFlowToStep(makeFlowState({
+      specId,
+      runId: "run-worktree-rebaseline",
+      worktree: true,
+    }), "draft-gate");
+    const originalDraft = { goal: "Old finalized draft.", approval: { approved: false } };
+    const canonicalDraftPath = writeJson(mainRoot, `specs/${specId}/draft.json`, originalDraft);
+    writeJson(executionRoot, `specs/${specId}/draft.json`, originalDraft);
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({
+      state,
+      draftPath: canonicalDraftPath,
+    }).toJSON();
+    state.draftArtifactRevision.sourceStepId = "draft-refine";
+    writeJson(mainRoot, `specs/${specId}/draft.json`, {
+      ...originalDraft,
+      approval: { approved: true },
+    });
+    const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
     flowManager.create(state);
 
-    const result = await new RunReopenDraftCommand().execute({
-      root: temporaryRoot,
+    const reopenedResult = await new RunReopenDraftCommand().execute({
+      root: mainRoot,
       flowManager,
       flowState: flowManager.load(),
-      reason: "recover canonical draft review evidence",
+      reason: "recover a stale coverage bookkeeping revision",
     });
-
+    assert.equal(reopenedResult.ok, true, JSON.stringify(reopenedResult));
     const reopened = flowManager.load();
-    assert.equal(result.ok, true, JSON.stringify(result));
-    assert.equal(result.data.previousActiveStep, "draft-gate");
-    assert.equal(findStepById(reopened.steps, "draft").status, "in_progress");
-    assert.equal(findStepById(reopened.steps, "draft-gate").status, "pending");
-    assert.equal(reopened.draftReviewRevisions, undefined);
+    const canonicalBytes = fs.readFileSync(canonicalDraftPath);
+    assert.equal(
+      reopened.draftArtifactRevision.digest,
+      crypto.createHash("sha256").update(canonicalBytes).digest("hex"),
+    );
+
+    writeJson(executionRoot, `specs/${specId}/draft.json`, {
+      goal: "Recovered worktree draft.",
+      approval: { approved: false },
+    });
+    const completed = completeDraftArtifactStep({
+      mainRoot,
+      executionRoot,
+      flowManager,
+      state: reopened,
+      transition: new NormalStepTransition({
+        stepId: "draft",
+        currentStepId: "draft",
+        currentStatus: "in_progress",
+        requestedStatus: "done",
+      }),
+    });
+    assert.equal(completed.promoted, true);
+    assert.equal(flowManager.load().draftArtifactRevision.digest, completed.revision.digest);
   });
 });

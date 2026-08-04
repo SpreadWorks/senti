@@ -536,6 +536,20 @@ export function isDraftArtifactWriterStep(stepId) {
 }
 
 export function createInitialDraftArtifactRevision({ state, draftPath, now = () => new Date() }) {
+  return createCanonicalDraftArtifactRevision({
+    state,
+    draftPath,
+    sourceStepId: "prepare-spec",
+    now,
+  });
+}
+
+export function createCanonicalDraftArtifactRevision({
+  state,
+  draftPath,
+  sourceStepId,
+  now = () => new Date(),
+}) {
   const snapshot = new DraftArtifactBoundary({
     canonicalPath: draftPath,
     sourcePath: draftPath,
@@ -544,7 +558,7 @@ export function createInitialDraftArtifactRevision({ state, draftPath, now = () 
     version: DRAFT_ARTIFACT_VERSION,
     runId: state.runId,
     specId: state.specId,
-    sourceStepId: "prepare-spec",
+    sourceStepId,
     digest: snapshot.digest,
     byteLength: snapshot.byteLength,
     finalizedAt: now().toISOString(),

@@ -1,7 +1,7 @@
    - Classify findings from `draft-coverage-review` before any draft coverage repair work.
    - Read `draft-review-coverage.json` only from the guarded next action's `context.draftReview.artifacts[]` entry whose `name` is `draft-review-coverage.json`. This is the immutable snapshot supplied from canonical base-side authority; do not read or trust a same-named worktree file. Treat only its `document.blockingFindings[]` and `document.repairTargets[]` as triage input. `document.advisoryFindings[]` are advisory memory only.
    - Do not edit `draft.json`, spec files, task files, or tests in this step. This step decides what should be repaired; the next `draft-coverage-repair` step performs the edits.
-   - Always write `draft-coverage-triage.json` in that directory before completing this step.
+   - Write `draft-coverage-triage.json` only to the exact absolute path in `context.draftReview.outputArtifact.filePath` before completing this step. That path is the canonical base-side authority. A same-named file under the execution worktree is rejected and is never promoted.
    - If the guarded canonical input is missing, invalid, or does not match the current phase, stop without writing an artifact or completing the step. If it is valid and contains no blocking findings or repair targets, write `draft-coverage-triage.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step draft-coverage-triage done`.
    - For every blocking finding or repair target, add one `draft-coverage-triage.json.items[]` entry with:
      - `title`: copied from the finding or target.

@@ -890,6 +890,8 @@ export class FlowStore {
       }
       if (transition.request) {
         const next = applyPlanRewind(state, transition.request, transition.evidence);
+        transition.commitIntent?.assertBeforeTransition(next);
+        transition.commitIntent?.applyTo(next);
         for (const key of Object.keys(state)) delete state[key];
         Object.assign(state, next);
         result = latestPlanRewind(state);
@@ -915,6 +917,8 @@ export class FlowStore {
       }
       delete state.draftReviewRevisions;
       delete state.draftArtifactPromotion;
+      transition.commitIntent?.assertBeforeTransition(state);
+      transition.commitIntent?.applyTo(state);
       result = { resetSteps: transition.changes.map((change) => change.stepId) };
     }, opts);
     return result;

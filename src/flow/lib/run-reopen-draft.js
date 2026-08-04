@@ -14,6 +14,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { FLOW_STEPS, PHASE_MAP } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
@@ -32,7 +33,14 @@ import {
   capturePlanRewindEvidence,
   validatePlanRewindGuards,
 } from "./plan-rewind.js";
-import { ExplicitRecoveryTransition } from "./step-transition-policy.js";
+import {
+  ExplicitRecoveryTransition,
+  StepTransitionCommitIntent,
+} from "./step-transition-policy.js";
+import {
+  DraftArtifactRevision,
+  createCanonicalDraftArtifactRevision,
+} from "./draft-artifact-promotion.js";
 
 const MAX_REASON_LENGTH = 500;
 const SPEC_CORRECTION_CATEGORY = "spec-correction";
@@ -135,7 +143,11 @@ function resetSpecCorrectionStepSequence(state, stepIds) {
   return resetStepSequence(state, stepIds, "draft", { runtimeLog: true });
 }
 
-function createReopenResetTransition(state, stepIds, { clearRuntimeLog = false } = {}) {
+function createReopenResetTransition(
+  state,
+  stepIds,
+  { clearRuntimeLog = false, commitIntent = null } = {},
+) {
   const changes = stepIds.flatMap((stepId) => {
     const step = findStepById(state.steps || [], stepId);
     return step ? [{
@@ -152,7 +164,63 @@ function createReopenResetTransition(state, stepIds, { clearRuntimeLog = false }
     entrypoint: "reopen-draft",
     changes,
     clearRuntimeLog,
+    commitIntent,
   });
+}
+
+class DraftReopenRevisionIntent extends StepTransitionCommitIntent {
+  constructor({ root, state, revision }) {
+    super();
+    this.root = path.resolve(root);
+    this.revision = DraftArtifactRevision.from(revision);
+    this.revision.assertFlow(state);
+    Object.freeze(this);
+  }
+
+  assertBeforeTransition(state) {
+    this.revision.assertFlow(state);
+    const current = createCanonicalDraftArtifactRevision({
+      state,
+      draftPath: path.join(
+        path.dirname(path.resolve(this.root, relativeFlowSpecFile(state))),
+        "draft.json",
+      ),
+      sourceStepId: this.revision.sourceStepId,
+    });
+    if (current.digest !== this.revision.digest || current.byteLength !== this.revision.byteLength) {
+      throw new Error("canonical draft changed before reopen revision commit");
+    }
+  }
+
+  applyTo(state) {
+    state.draftArtifactRevision = this.revision.toJSON();
+  }
+}
+
+function draftReopenRevisionIntent(root, state) {
+  const draftPath = path.join(
+    path.dirname(path.resolve(root, relativeFlowSpecFile(state))),
+    "draft.json",
+  );
+  const revision = createCanonicalDraftArtifactRevision({
+    state,
+    draftPath,
+    sourceStepId: "draft",
+  });
+  return new DraftReopenRevisionIntent({ root, state, revision });
+}
+
+function rewindDraftPlan({ root, flowManager, state, transition }) {
+  const operation = new RepositoryFlowOperationLock({ mainRoot: root });
+  const operationOwnerToken = operation.acquire();
+  try {
+    return flowManager.rewindPlan(transition, {
+      specId: state.specId,
+      operationOwnerToken,
+    });
+  } finally {
+    operation.release();
+  }
 }
 
 function resetSpecCorrectionTasks(state) {
@@ -623,7 +691,7 @@ export class RunReopenDraftCommand extends FlowCommand {
           request,
           evidence,
         });
-        const audit = flowManager.rewindPlan(transition);
+        const audit = rewindDraftPlan({ root, flowManager, state, transition });
         return Envelope.ok("run", "reopen-draft", {
           reopened: true,
           mode: "flow-level",
@@ -642,8 +710,12 @@ export class RunReopenDraftCommand extends FlowCommand {
       }
     }
     if (PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
-      const transition = createReopenResetTransition(state, ["draft", ...PLAN_REOPEN_RESET_STEPS]);
-      flowManager.rewindPlan(transition);
+      const transition = createReopenResetTransition(
+        state,
+        ["draft", ...PLAN_REOPEN_RESET_STEPS],
+        { commitIntent: draftReopenRevisionIntent(root, state) },
+      );
+      rewindDraftPlan({ root, flowManager, state, transition });
       const resetSteps = transition.changes.map((change) => change.stepId);
 
       appendIssueLog(root, state, {
@@ -676,8 +748,9 @@ export class RunReopenDraftCommand extends FlowCommand {
     const transition = createReopenResetTransition(
       state,
       ["draft", ...PLAN_REOPEN_RESET_STEPS, "implement"],
+      { commitIntent: draftReopenRevisionIntent(root, state) },
     );
-    flowManager.rewindPlan(transition);
+    rewindDraftPlan({ root, flowManager, state, transition });
     const resetSteps = transition.changes.map((change) => change.stepId);
 
     appendIssueLog(root, state, {

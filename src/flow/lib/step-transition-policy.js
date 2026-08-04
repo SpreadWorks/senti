@@ -153,6 +153,7 @@ export class ExplicitRecoveryTransition {
     evidence = [],
     changes = null,
     clearRuntimeLog = false,
+    commitIntent = null,
     expectedOriginal = null,
     replacementState = null,
   }) {
@@ -162,6 +163,9 @@ export class ExplicitRecoveryTransition {
     this.entrypoint = requiredString(entrypoint, "entrypoint");
     if (changes != null && !Array.isArray(changes)) {
       transitionError("recovery changes must be an array");
+    }
+    if (commitIntent != null && !(commitIntent instanceof StepTransitionCommitIntent)) {
+      transitionError("recovery commit intent must be a StepTransitionCommitIntent");
     }
     const recoveryChanges = changes == null
       ? [new RecoveryStepChange({ stepId: this.stepId, currentStatus: this.currentStatus, requestedStatus: this.requestedStatus })]
@@ -238,6 +242,7 @@ export class ExplicitRecoveryTransition {
     this.evidence = Object.freeze([...evidence]);
     this.changes = Object.freeze(recoveryChanges);
     this.clearRuntimeLog = clearRuntimeLog === true;
+    this.commitIntent = commitIntent;
     this.expectedOriginal = expectedOriginal;
     this.replacementState = replacementState;
     Object.freeze(this);

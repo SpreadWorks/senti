@@ -2551,7 +2551,12 @@ function recordRequiredGateFailureOutcome(ctx, result, phase) {
     nextStepAttemptNumber(ctx.flowState, owner.stepId),
     gateExternalBlockForResult(result),
   );
-  return attempt ? { ...result, stepAttempt: attempt.toJSON() } : result;
+  const recorded = attempt ? { ...result, stepAttempt: attempt.toJSON() } : result;
+  // A required gate failure is converted to Envelope.fail by RunGateCommand.run,
+  // so the dispatcher intentionally skips the ordinary post hook. Persist the
+  // issue-log diagnosis here beside the durable StepAttempt instead.
+  appendIssueLogFromGateResult(ctx, recorded);
+  return recorded;
 }
 
 function recordGateDeferral(ctx, result, phase, attempts) {

@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { AtomicFile } from "../../lib/atomic-file.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import {
@@ -481,17 +480,15 @@ export class DraftReviewEvidenceSet {
     });
   }
 
-  static forCompletion({ canonicalSpecDir, executionSpecDir, route, state, stepId }) {
-    const targetArtifact = stepId === route.triageStepId ? route.triageArtifact : route.repairArtifact;
-    const targetFile = DraftReviewArtifactFile.readIfExists(executionSpecDir, targetArtifact);
+  static forCompletion({ canonicalSpecDir, route, state, stepId }) {
     return new DraftReviewEvidenceSet({
       route,
       state,
       reviewFile: DraftReviewArtifactFile.readIfExists(canonicalSpecDir, route.reviewArtifact),
-      triageFile: stepId === route.triageStepId
-        ? targetFile
-        : DraftReviewArtifactFile.readIfExists(canonicalSpecDir, route.triageArtifact),
-      repairFile: stepId === route.repairStepId ? targetFile : null,
+      triageFile: DraftReviewArtifactFile.readIfExists(canonicalSpecDir, route.triageArtifact),
+      repairFile: stepId === route.repairStepId
+        ? DraftReviewArtifactFile.readIfExists(canonicalSpecDir, route.repairArtifact)
+        : null,
     });
   }
 
@@ -543,8 +540,29 @@ export class CanonicalDraftReviewWorkerArtifact {
   }
 }
 
+export class CanonicalDraftReviewArtifactTarget {
+  constructor({ specDir, filename }) {
+    this.name = requireString(filename, "canonical draft review output artifact name");
+    this.filePath = path.resolve(
+      requireString(specDir, "canonical draft review output specDir"),
+      this.name,
+    );
+    if (path.basename(this.filePath) !== this.name) {
+      throw new Error("canonical draft review output artifact name must be a basename");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      filePath: this.filePath,
+    };
+  }
+}
+
 export class DraftReviewWorkerContext {
-  constructor({ route, stepId, artifacts }) {
+  constructor({ route, stepId, artifacts, outputArtifact }) {
     if (!route || typeof route !== "object" || draftReviewRouteForStepId(stepId) !== route) {
       throw new Error("draft review worker context requires a route");
     }
@@ -567,6 +585,16 @@ export class DraftReviewWorkerContext {
     if (this.artifacts.some((artifact, index) => artifact.name !== expectedNames[index])) {
       throw new Error("draft review worker context artifacts do not match the active route");
     }
+    if (!(outputArtifact instanceof CanonicalDraftReviewArtifactTarget)) {
+      throw new Error("draft review worker context requires a canonical output artifact target");
+    }
+    const expectedOutputName = stepId === route.triageStepId
+      ? route.triageArtifact
+      : route.repairArtifact;
+    if (outputArtifact.name !== expectedOutputName) {
+      throw new Error("draft review worker output artifact does not match the active route");
+    }
+    this.outputArtifact = outputArtifact;
     Object.freeze(this);
   }
 
@@ -577,6 +605,7 @@ export class DraftReviewWorkerContext {
       phase: this.phase,
       stepId: this.stepId,
       artifacts: this.artifacts.map((artifact) => artifact.toJSON()),
+      outputArtifact: this.outputArtifact.toJSON(),
     };
   }
 }
@@ -603,6 +632,10 @@ export function resolveDraftReviewWorkerContext({ root, state, stepId } = {}) {
     route,
     stepId,
     artifacts: files.map((file) => new CanonicalDraftReviewWorkerArtifact(file)),
+    outputArtifact: new CanonicalDraftReviewArtifactTarget({
+      specDir,
+      filename: stepId === route.triageStepId ? route.triageArtifact : route.repairArtifact,
+    }),
   });
 }
 
@@ -710,37 +743,6 @@ function assertFlowIdentity(state, expected) {
   }
 }
 
-function publishArtifact({ sourceFile, canonicalSpecDir, faultInjector, assertCurrent }) {
-  const canonicalPath = path.join(canonicalSpecDir, sourceFile.filename);
-  if (path.resolve(sourceFile.filePath) === path.resolve(canonicalPath)) return sourceFile;
-  const previous = DraftReviewArtifactFile.readIfExists(canonicalSpecDir, sourceFile.filename);
-  new AtomicFile(canonicalPath, {
-    faultInjector,
-    phaseNamespace: "draft-review",
-    commitGuard: () => {
-      assertCurrent();
-      const currentSource = new DraftReviewArtifactFile({
-        specDir: path.dirname(sourceFile.filePath),
-        filename: sourceFile.filename,
-      });
-      if (currentSource.digest !== sourceFile.digest) {
-        throw new DraftReviewArtifactRecoveryError(
-          "DRAFT_REVIEW_ARTIFACT_SOURCE_CHANGED",
-          "execution-checkout draft review artifact changed during publication",
-        );
-      }
-      const currentCanonical = DraftReviewArtifactFile.readIfExists(canonicalSpecDir, sourceFile.filename);
-      if ((currentCanonical?.digest ?? null) !== (previous?.digest ?? null)) {
-        throw new DraftReviewArtifactRecoveryError(
-          "DRAFT_REVIEW_ARTIFACT_CONFLICT",
-          "canonical draft review artifact changed during publication",
-        );
-      }
-    },
-  }).write(sourceFile.bytes);
-  return new DraftReviewArtifactFile({ specDir: canonicalSpecDir, filename: sourceFile.filename });
-}
-
 export function isDraftReviewArtifactStep(stepId) {
   const route = draftReviewRouteForStepId(stepId);
   return route != null && (stepId === route.triageStepId || stepId === route.repairStepId);
@@ -752,7 +754,6 @@ export function completeDraftReviewArtifactStep({
   flowManager,
   state,
   transition,
-  faultInjector = () => {},
   processIdentitySource,
   completeTransition = true,
 } = {}) {
@@ -774,9 +775,27 @@ export function completeDraftReviewArtifactStep({
   try {
     const current = flowManager.load(state.specId);
     assertFlowIdentity(current, state);
+    const targetArtifact = transition.stepId === route.triageStepId
+      ? route.triageArtifact
+      : route.repairArtifact;
+    const canonicalFile = DraftReviewArtifactFile.readIfExists(canonicalSpecDir, targetArtifact);
+    if (!canonicalFile && path.resolve(executionSpecDir) !== path.resolve(canonicalSpecDir)) {
+      const misplacedFile = DraftReviewArtifactFile.readIfExists(executionSpecDir, targetArtifact);
+      if (misplacedFile) {
+        throw new DraftReviewArtifactRecoveryError(
+          "DRAFT_REVIEW_ARTIFACT_WRONG_AUTHORITY",
+          `${targetArtifact} exists only in the execution checkout; write it to the canonical output path before completing the step`,
+          {
+            data: {
+              stepId: transition.stepId,
+              canonicalPath: path.join(canonicalSpecDir, targetArtifact),
+            },
+          },
+        );
+      }
+    }
     const sourceEvidence = DraftReviewEvidenceSet.forCompletion({
       canonicalSpecDir,
-      executionSpecDir,
       route,
       state: current,
       stepId: transition.stepId,
@@ -786,27 +805,6 @@ export function completeDraftReviewArtifactStep({
       throw new DraftReviewArtifactRecoveryError(
         "DRAFT_REVIEW_ARTIFACT_INVALID",
         sourceValidation.issues.join("; "),
-        { data: { stepId: transition.stepId } },
-      );
-    }
-    const sourceFile = transition.stepId === route.triageStepId
-      ? sourceEvidence.triageFile
-      : sourceEvidence.repairFile;
-    const canonicalFile = publishArtifact({
-      sourceFile,
-      canonicalSpecDir,
-      faultInjector,
-      assertCurrent: () => assertFlowIdentity(flowManager.load(state.specId), state),
-    });
-    const canonicalValidation = DraftReviewEvidenceSet.canonical(
-      canonicalSpecDir,
-      route,
-      current,
-    ).validateThrough(transition.stepId);
-    if (canonicalValidation.issues.length > 0) {
-      throw new DraftReviewArtifactRecoveryError(
-        "DRAFT_REVIEW_ARTIFACT_INVALID",
-        canonicalValidation.issues.join("; "),
         { data: { stepId: transition.stepId } },
       );
     }
@@ -825,7 +823,7 @@ export function completeDraftReviewArtifactStep({
     return {
       artifact: canonicalFile.filename,
       digest: canonicalFile.digest,
-      promoted: path.resolve(canonicalFile.filePath) !== path.resolve(sourceFile.filePath),
+      promoted: false,
     };
   } catch (cause) {
     if (cause instanceof DraftReviewArtifactRecoveryError) throw cause;

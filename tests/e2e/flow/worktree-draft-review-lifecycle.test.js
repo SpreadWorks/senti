@@ -203,11 +203,16 @@ describe("worktree draft review lifecycle", () => {
     });
     assert.equal(triageAction.step, questions.triageStepId);
     assert.equal(triageAction.context.draftReview.authority, "canonical-base");
+    assert.equal(triageAction.context.draftReview.outputArtifact.name, questions.triageArtifact);
+    assert.equal(
+      triageAction.context.draftReview.outputArtifact.filePath,
+      path.join(mainRoot, "specs", specId, questions.triageArtifact),
+    );
     const canonicalReview = triageAction.context.draftReview.artifacts
       .find((artifact) => artifact.name === questions.reviewArtifact)?.document;
     assert.equal(canonicalReview.verdict, "ADVISORY");
     const canonicalRepairTarget = canonicalReview.repairTargets[0];
-    writeJson(executionRoot, `specs/${specId}/${questions.triageArtifact}`, {
+    writeJson(path.dirname(triageAction.context.draftReview.outputArtifact.filePath), questions.triageArtifact, {
       version: 1,
       phase: questions.triageStepId,
       sourceReview: questions.reviewArtifact,
@@ -227,7 +232,7 @@ describe("worktree draft review lifecycle", () => {
       flowManager,
       id: questions.triageStepId,
     }));
-    assert.equal(triageResult.promoted, true, JSON.stringify(triageResult));
+    assert.equal(triageResult.promoted, false, JSON.stringify(triageResult));
     assert.equal(findActiveNode(flowManager.load()).stepId, questions.repairStepId);
 
     const repairAction = await new GetNextActionCommand().execute({
@@ -238,13 +243,18 @@ describe("worktree draft review lifecycle", () => {
       flowState: flowManager.load(),
     });
     assert.equal(repairAction.step, questions.repairStepId);
+    assert.equal(repairAction.context.draftReview.outputArtifact.name, questions.repairArtifact);
+    assert.equal(
+      repairAction.context.draftReview.outputArtifact.filePath,
+      path.join(mainRoot, "specs", specId, questions.repairArtifact),
+    );
     const canonicalTriage = repairAction.context.draftReview.artifacts
       .find((artifact) => artifact.name === questions.triageArtifact)?.document;
     assert.equal(canonicalTriage.items.length, 1);
     assert.equal(canonicalTriage.items[0].decision, "apply");
     const repairedDraft = { ...initialDraft, goal: "Keep all Flow evidence under base-side authority." };
     writeJson(executionRoot, specPath, repairedDraft);
-    writeJson(executionRoot, `specs/${specId}/${questions.repairArtifact}`, {
+    writeJson(path.dirname(repairAction.context.draftReview.outputArtifact.filePath), questions.repairArtifact, {
       version: 1,
       phase: questions.repairStepId,
       sourceTriage: questions.triageArtifact,
@@ -354,6 +364,20 @@ describe("worktree draft review lifecycle", () => {
       failedGateInvocation.envelope.data.artifacts.recoveryCommand,
       /^senti flow run reopen-draft /,
     );
+    const failedState = flowManager.load();
+    const failedAttempt = failedState.stepAttempts.at(-1);
+    assert.equal(failedAttempt.stepId, "draft-gate");
+    assert.equal(failedAttempt.outcome.kind, "external-blocked");
+    assert.equal(failedAttempt.outcome.failureCode, "DRAFT_GATE_REOPEN_REQUIRED");
+    const failedGateStep = findStepById(failedState.steps, "draft-gate");
+    assert.equal(failedGateStep.runtimeLog.runId, failedState.runId);
+    assert.equal(failedGateStep.runtimeLog.exitCode, 1);
+    assert.ok(Number.isSafeInteger(failedGateStep.runtimeLog.sequence));
+    const failedIssueLog = JSON.parse(fs.readFileSync(path.join(root, "specs", specId, "issue-log.json"), "utf8"));
+    const failedGateLog = failedIssueLog.entries.at(-1);
+    assert.equal(failedGateLog.step, "draft-gate");
+    assert.equal(failedGateLog.phase, "draft");
+    assert.match(failedGateLog.reason, /missing draft review artifact/);
 
     const nextActionEnvelope = runSenti(root, ["flow", "get", "next-action"]);
     const recoveryDirective = nextActionEnvelope.data.directive;
