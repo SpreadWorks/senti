@@ -11,6 +11,11 @@ import {
   DraftArtifactRevision,
 } from "../flow/lib/draft-artifact-promotion.js";
 import { DraftReviewRevisionBinding } from "../flow/lib/draft-review-revision.js";
+import { WorkerArtifactRevision } from "../flow/lib/worker-artifact-revision.js";
+import {
+  validateWorkerArtifactPublicationState,
+  validateWorkerArtifactReceiptsState,
+} from "../flow/lib/worker-artifact-handoff.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -168,6 +173,18 @@ export class FlowState {
         invariant(binding.phase === phase, `draftReviewRevisions.${phase} phase does not match its key`);
         binding.revision.assertFlow(value);
       }
+    }
+    if (value.specArtifactRevision != null) {
+      WorkerArtifactRevision.from(value.specArtifactRevision).assertFlow(value);
+    }
+    if (value.specTestArtifactRevision != null) {
+      WorkerArtifactRevision.from(value.specTestArtifactRevision).assertFlow(value);
+    }
+    if (value.workerArtifactPublication != null) {
+      validateWorkerArtifactPublicationState(value.workerArtifactPublication, value);
+    }
+    if (value.workerArtifactReceipts != null) {
+      validateWorkerArtifactReceiptsState(value.workerArtifactReceipts, value);
     }
     if (revision) {
       const identity = revision.identity;

@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - Repair the draft after `draft-questions-triage` classifies draft question review findings.
    - Read `draft-questions-triage.json` only from the guarded next action's `context.draftReview.artifacts[]` entry whose `name` is `draft-questions-triage.json`. This is the immutable snapshot supplied from canonical base-side authority; do not read or trust a same-named worktree file. Treat only its `document.items[]` entries with `decision: "apply"` as the repair input.
    - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.

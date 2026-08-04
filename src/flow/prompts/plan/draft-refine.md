@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - Refine the existing `draft.json` into a spec-ready draft before coverage review.
    - This step owns resolving existing `pending` / `approved` `draft.json.qa[]` entries. Do not create a new question list and do not append review-style follow-up questions.
    - For each existing `pending` / `approved` entry:

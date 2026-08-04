@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - Classify the blocking findings from `spec-review` before any spec repair work.
    - Read `spec-review.json` from the active Flow's configured spec directory first. Treat only `blockingFindings[]` as triage input. `nonBlockingImprovements[]` are advisory memory only.
    - Do not edit `spec.json`, `spec.md`, task files, or tests in this step. This step decides what should be repaired; the next `spec-repair` step performs the edits.

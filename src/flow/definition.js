@@ -896,7 +896,7 @@ function createDraftReviewLeafNode({ id, label }) {
     action: "write-draft",
     instructionsKey: `plan.${id}`,
     contextKinds: ["draft", "issue", "guardrail"],
-    outputSchemaRef: "next-action/spec.schema.json",
+    outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
     maxAttempts: 1,
   });
 }
@@ -942,7 +942,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-draft",
         instructionsKey: "plan.draft",
         contextKinds: ["issue", "guardrail", "project_overview"],
-        outputSchemaRef: "next-action/draft.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
         maxAttempts: 1,
       }),
       createPlanReviewNode({
@@ -958,7 +958,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-draft",
         instructionsKey: "plan.draft-refine",
         contextKinds: ["draft", "issue", "guardrail", "project_overview"],
-        outputSchemaRef: "next-action/draft.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
         maxAttempts: 1,
       }),
       createPlanReviewNode({
@@ -987,7 +987,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-spec",
         instructionsKey: "plan.spec",
         contextKinds: ["draft", "guardrail"],
-        outputSchemaRef: "next-action/spec.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
       }),
       createPlanReviewNode({
         id: "spec-review",
@@ -1001,7 +1001,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-spec",
         instructionsKey: "plan.spec-triage",
         contextKinds: ["spec", "guardrail"],
-        outputSchemaRef: "next-action/spec.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
         maxAttempts: 1,
       }),
       new FlowNode({
@@ -1010,7 +1010,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-spec",
         instructionsKey: "plan.spec-repair",
         contextKinds: ["spec", "guardrail"],
-        outputSchemaRef: "next-action/spec.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
         maxAttempts: 1,
       }),
       new FlowNode({
@@ -1043,7 +1043,7 @@ const FLOW_DEFINITION = Object.freeze([
         action: "write-tests",
         instructionsKey: "plan.test",
         contextKinds: ["spec", "guardrail"],
-        outputSchemaRef: "next-action/spec.schema.json",
+        outputSchemaRef: "next-action/worker-artifact-handoff.schema.json",
       }),
       new FlowNode({
         id: "scenario-validity",

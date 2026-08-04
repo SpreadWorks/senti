@@ -32,6 +32,12 @@ import { finalRegressionWorktreeFingerprint } from "./test-artifacts.js";
 import GetNextActionCommand from "./get-next-action.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
+import {
+  WorkerArtifactHandoffCoordinator,
+  WorkerArtifactHandoffError,
+  WorkerArtifactHandoffRequest,
+} from "./worker-artifact-handoff.js";
 import {
   AutoApprovedFlowDispatchAuthorization,
   ExplicitFlowDispatchAuthorization,
@@ -257,16 +263,23 @@ export class FlowDispatchBoundary {
 }
 
 export class FlowDispatchWork {
-  constructor(invocation) {
+  constructor(invocation, handoffRequest = null) {
     if (!(invocation instanceof FlowDispatchInvocation)) {
       throw new Error("FlowDispatchWork requires a FlowDispatchInvocation");
     }
+    if (handoffRequest != null && !(handoffRequest instanceof WorkerArtifactHandoffRequest)) {
+      throw new Error("FlowDispatchWork handoff requires a WorkerArtifactHandoffRequest");
+    }
     this.invocation = invocation;
+    this.handoffRequest = handoffRequest;
     Object.freeze(this);
   }
 
   executionEnvironment() {
-    return this.invocation.executionEnvironment();
+    return {
+      ...this.invocation.executionEnvironment(),
+      ...(this.handoffRequest?.executionEnvironment() || {}),
+    };
   }
 
   prompt() {
@@ -278,6 +291,21 @@ export class FlowDispatchWork {
           "A nonblockingDecision is present. Resolve and record exactly that",
           "digest-guarded decision before the ordinary directive, then let the",
           "parent dispatcher refresh authority. Do not ask the user.",
+        ].join("\n")
+      : "";
+    const handoffInstruction = this.handoffRequest
+      ? [
+          "",
+          "This action uses the worker artifact handoff contract below.",
+          "Treat its input snapshots as the immutable source for this action.",
+          "Write every declared payload only to its exact payloadPath. Existing",
+          "instructions naming canonical artifact paths are overridden for outputs.",
+          "Do not mark the Flow step done. After writing all payloads, run the exact",
+          "sealCommand once. The parent dispatcher alone validates, publishes, records",
+          "revisions, and completes the step under canonical repository authority.",
+          "",
+          "Worker artifact handoff contract:",
+          JSON.stringify(this.handoffRequest.toWorkerJSON(), null, 2),
         ].join("\n")
       : "";
     return [
@@ -310,8 +338,52 @@ export class FlowDispatchWork {
       "",
       "Your response is only a worker report. The CLI ignores it as a completion",
       "signal and independently verifies the refreshed Flow and repository state.",
+      handoffInstruction,
     ].join("\n");
   }
+}
+
+function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError = null) {
+  const state = readFlowState(ctx);
+  let issueLogError = null;
+  if (state?.specId) {
+    try {
+      appendIssueLogEntry(
+        ctx.mainRoot || ctx.root,
+        relativeFlowSpecFile(state),
+        {
+          step: request?.stepId || state.currentStep || "flow-dispatch",
+          reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
+          trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
+          resolution: error.recoveryPossible
+            ? "Resume the guarded dispatcher to replay the pending publication journal."
+            : "Correct the worker artifact payload and dispatch the current action again.",
+          taskId: null,
+          timestamp: new Date().toISOString(),
+        },
+        `worker-handoff-${request?.actionDigest || "unknown"}-${error.classification || "invalid"}`,
+      );
+    } catch (logError) {
+      issueLogError = logError.message || String(logError);
+    }
+  }
+  return {
+    ...blockedBoundary({
+      nextAction: request?.invocation?.action?.nextAction || null,
+      dispatchCount,
+      message: error.recoveryPossible
+        ? "Canonical publication is journaled and requires deterministic dispatcher recovery."
+        : "The parent dispatcher rejected the worker artifact before completing the Flow step.",
+    }),
+    classification: error.classification || "invalid",
+    retryBudgetConsumed: false,
+    recoveryPossible: error.recoveryPossible === true,
+    actionDigest: request?.actionDigest || null,
+    dispatchInvocationId: request?.dispatchInvocationId || null,
+    ...(error.data || {}),
+    ...(agentError instanceof AgentFailure ? { agentFailure: agentError.toJSON() } : {}),
+    ...(issueLogError ? { issueLogError } : {}),
+  };
 }
 
 function blockedBoundary({ nextAction, dispatchCount, message }) {
@@ -331,6 +403,7 @@ export default class RunDispatchCommand extends FlowCommand {
     maxDispatches = DEFAULT_MAX_DISPATCHES,
     maxStalledDispatches = DEFAULT_MAX_STALLED_DISPATCHES,
     leaseFactory = (session) => new FlowDispatchLease(session),
+    handoffCoordinator = new WorkerArtifactHandoffCoordinator(),
   } = {}) {
     super({ explicitTargetResolution: true });
     this.nextAction = nextAction;
@@ -339,6 +412,7 @@ export default class RunDispatchCommand extends FlowCommand {
     this.maxDispatches = maxDispatches;
     this.maxStalledDispatches = maxStalledDispatches;
     this.leaseFactory = leaseFactory;
+    this.handoffCoordinator = handoffCoordinator;
   }
 
   async fetchNextAction(target) {
@@ -433,10 +507,21 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async dispatchContinuation(ctx, session) {
     const { target } = session;
-    const agent = this.agent || this.container.get("agent");
+    let agent = this.agent;
     let dispatchCount = 0;
     let stalledDispatches = 0;
     let suppliedApproval = ctx.approve || null;
+    try {
+      this.handoffCoordinator.recoverPending({ ctx });
+    } catch (error) {
+      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+      return this.failure(
+        ctx,
+        error.code,
+        error.message,
+        workerHandoffFailureData(ctx, error, null, dispatchCount),
+      );
+    }
     let current = await this.fetchNextAction(target);
 
     while (dispatchCount < this.maxDispatches) {
@@ -640,9 +725,26 @@ export default class RunDispatchCommand extends FlowCommand {
         );
       }
 
-      const work = new FlowDispatchWork(invocation);
+      let handoffRequest;
+      try {
+        handoffRequest = this.handoffCoordinator.createRequest({
+          ctx,
+          state: readFlowState(ctx),
+          invocation,
+        });
+      } catch (error) {
+        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        return this.failure(
+          ctx,
+          error.code,
+          error.message,
+          workerHandoffFailureData(ctx, error, null, dispatchCount),
+        );
+      }
+      const work = new FlowDispatchWork(invocation, handoffRequest);
       let agentError = null;
       try {
+        agent ||= this.container.get("agent");
         await agent.call(work.prompt(), {
           commandId: "flow.dispatch",
           executionWorkDir: ctx.executionRoot || ctx.root,
@@ -655,6 +757,21 @@ export default class RunDispatchCommand extends FlowCommand {
         agentError = error;
       }
       dispatchCount += 1;
+
+      if (handoffRequest) {
+        try {
+          this.handoffCoordinator.reconcile({ ctx, request: handoffRequest });
+          agentError = null;
+        } catch (error) {
+          if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+          return this.failure(
+            ctx,
+            error.code,
+            error.message,
+            workerHandoffFailureData(ctx, error, handoffRequest, dispatchCount, agentError),
+          );
+        }
+      }
 
       const refreshed = await this.fetchNextAction(target);
       if (refreshed instanceof Envelope) {

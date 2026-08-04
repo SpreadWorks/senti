@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - **Before writing spec**:
      - Read draft.json (if exists) and linked GitHub issue content. If draft was completed, treat it as the primary input — do NOT re-read context already gathered in the draft phase.
      - **Context gathering (supplement-first):** Only read additional context when draft + issue are insufficient.

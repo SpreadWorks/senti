@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    <!-- include("/flow/prompts/partials/draft-qa-rules.md") -->
 
    **Note on subsequent task decomposition:** The spec step decomposes requirements by concern. Keep draft discussion at the requirement level and keep scope within the Issue or request boundary. Task decomposition granularity is evaluated later by the `task-single-responsibility` guardrail (phase=[spec, task-spec]).

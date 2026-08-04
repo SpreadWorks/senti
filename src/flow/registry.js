@@ -1177,6 +1177,21 @@ export const FLOW_COMMANDS = {
     },
   },
   run: {
+    "seal-handoff": {
+      helpKey: "flow.run.seal-handoff",
+      requiresFlow: false,
+      command: () => import("./lib/run-seal-handoff.js"),
+      args: { options: FLOW_RUN_RUNTIME_OPTIONS },
+      help: [
+        "Usage: senti flow run seal-handoff [--agent-work-dir <path>]",
+        "",
+        "Seal the current dispatcher-owned worker artifact payload for validation",
+        "and publication by the parent dispatcher. This command does not mutate Flow state.",
+        "",
+        "Options:",
+        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
+      ].join("\n"),
+    },
     dispatch: {
       helpKey: "flow.run.dispatch",
       requiresFlow: true,

@@ -74,6 +74,8 @@ import {
   completeDraftReviewArtifactStep,
   isDraftReviewArtifactStep,
 } from "./draft-review-artifacts.js";
+import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
+import { WORKER_ARTIFACT_HANDOFF_REQUEST_ENV } from "./worker-artifact-handoff.js";
 
 function definitionTransitions(state, plan) {
   return plan.actions.flatMap((action) => {
@@ -488,6 +490,25 @@ export default class SetStepCommand extends FlowCommand {
         "step",
         "INVALID_STATUS",
         `invalid status: ${status} (valid: ${VALID_STEP_STATUSES.join(", ")})`,
+      );
+    }
+
+    if (
+      status === "done"
+      && ctx.dispatchInvocationId
+      && process.env[WORKER_ARTIFACT_HANDOFF_REQUEST_ENV]
+      && requiresWorkerArtifactHandoff(id)
+    ) {
+      return Envelope.fail(
+        "set",
+        "step",
+        "FLOW_ARTIFACT_HANDOFF_REQUIRED",
+        `${id} completion is owned by the parent dispatcher artifact handoff`,
+        {
+          classification: "invalid",
+          retryBudgetConsumed: false,
+          completionOwner: "parent-dispatcher",
+        },
       );
     }
 

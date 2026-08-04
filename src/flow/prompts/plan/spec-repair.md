@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - Repair the existing spec after `spec-triage` classifies blocking review findings.
    - Read `spec-triage.json` from the active Flow's configured spec directory first. Treat only `items[]` entries with `decision: "apply"` as the repair input.
    - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.

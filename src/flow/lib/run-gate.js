@@ -83,6 +83,7 @@ import {
   validateDraftReviewArtifactSet,
   validateDraftReviewArtifacts,
 } from "./draft-review-artifacts.js";
+import { validateSpecRepairAudit as validateSpecRepairAuditInDirectory } from "./spec-review-artifacts.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
 import {
   deferExhaustedSemanticFindings,
@@ -850,154 +851,8 @@ function checkSpecJson(spec) {
   return issues;
 }
 
-const SPEC_TRIAGE_DECISIONS = new Set([
-  "apply",
-  "invalid",
-  "already_resolved",
-  "downgraded_to_non_blocking",
-]);
-
-const SPEC_REPAIR_DECISIONS = new Set([
-  "applied",
-]);
-
-function readJsonIfExists(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
 function validateSpecRepairAudit(root, specInput) {
-  const specDir = path.dirname(path.resolve(root, specInput));
-  const reviewPath = path.join(specDir, "spec-review.json");
-  const triagePath = path.join(specDir, "spec-triage.json");
-  const repairPath = path.join(specDir, "spec-repair.json");
-  const issues = [];
-
-  let review;
-  try {
-    review = readJsonIfExists(reviewPath);
-  } catch (err) {
-    return [`spec-repair: spec-review.json is invalid JSON: ${err.message}`];
-  }
-  if (!review || review.verdict !== "REJECTED") return [];
-
-  const blocking = Array.isArray(review.blockingFindings) ? review.blockingFindings : [];
-  if (!fs.existsSync(triagePath)) {
-    return ["spec-triage: spec-review.json verdict is REJECTED but spec-triage.json is missing"];
-  }
-
-  let triage;
-  try {
-    triage = readJsonIfExists(triagePath);
-  } catch (err) {
-    return [`spec-triage: spec-triage.json is invalid JSON: ${err.message}`];
-  }
-
-  if (triage?.version !== 1) issues.push("spec-triage: spec-triage.json version must be 1");
-  if (triage?.phase !== "spec-triage") issues.push('spec-triage: spec-triage.json phase must be "spec-triage"');
-  if (triage?.sourceReview !== "spec-review.json") issues.push('spec-triage: spec-triage.json sourceReview must be "spec-review.json"');
-  if (typeof triage?.summary !== "string" || triage.summary.trim() === "") {
-    issues.push("spec-triage: spec-triage.json summary must be non-empty");
-  }
-  if (!Array.isArray(triage?.items)) {
-    issues.push("spec-triage: spec-triage.json items must be an array");
-    return issues;
-  }
-  if (triage.items.length !== blocking.length) {
-    issues.push(
-      `spec-triage: spec-triage.json items length ${triage.items.length} does not match blockingFindings length ${blocking.length}`,
-    );
-  }
-
-  for (let i = 0; i < triage.items.length; i++) {
-    const item = triage.items[i];
-    const finding = blocking[i];
-    const prefix = `spec-triage: items[${i}]`;
-    if (!item || typeof item !== "object" || Array.isArray(item)) {
-      issues.push(`${prefix} must be an object`);
-      continue;
-    }
-    if (typeof item.title !== "string" || item.title.trim() === "") issues.push(`${prefix}.title must be non-empty`);
-    if (typeof item.target !== "string" || item.target.trim() === "") issues.push(`${prefix}.target must be non-empty`);
-    if (finding && item.title !== finding.title) {
-      issues.push(`${prefix}.title must match blockingFindings[${i}].title`);
-    }
-    if (finding && item.target !== finding.target) {
-      issues.push(`${prefix}.target must match blockingFindings[${i}].target`);
-    }
-    if (!SPEC_TRIAGE_DECISIONS.has(item.decision)) {
-      issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_TRIAGE_DECISIONS).join(", ")}`);
-    }
-    if (typeof item.rationale !== "string" || item.rationale.trim() === "") {
-      issues.push(`${prefix}.rationale must be non-empty`);
-    }
-    if (typeof item.evidence !== "string" || item.evidence.trim() === "") {
-      issues.push(`${prefix}.evidence must be non-empty`);
-    }
-  }
-
-  if (!fs.existsSync(repairPath)) {
-    issues.push("spec-repair: spec-review.json verdict is REJECTED but spec-repair.json is missing");
-    return issues;
-  }
-
-  let repair;
-  try {
-    repair = readJsonIfExists(repairPath);
-  } catch (err) {
-    return [`spec-repair: spec-repair.json is invalid JSON: ${err.message}`];
-  }
-
-  if (repair?.version !== 1) issues.push("spec-repair: spec-repair.json version must be 1");
-  if (repair?.phase !== "spec-repair") issues.push('spec-repair: spec-repair.json phase must be "spec-repair"');
-  if (repair?.sourceReview !== "spec-triage.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-triage.json"');
-  if (typeof repair?.summary !== "string" || repair.summary.trim() === "") {
-    issues.push("spec-repair: spec-repair.json summary must be non-empty");
-  }
-  if (!Array.isArray(repair?.items)) {
-    issues.push("spec-repair: spec-repair.json items must be an array");
-    return issues;
-  }
-  const applyItems = triage.items.filter((item) => item?.decision === "apply");
-  if (repair.items.length !== applyItems.length) {
-    issues.push(
-      `spec-repair: spec-repair.json items length ${repair.items.length} does not match spec-triage apply item length ${applyItems.length}`,
-    );
-  }
-
-  for (let i = 0; i < repair.items.length; i++) {
-    const item = repair.items[i];
-    const triageItem = applyItems[i];
-    const prefix = `spec-repair: items[${i}]`;
-    if (!item || typeof item !== "object" || Array.isArray(item)) {
-      issues.push(`${prefix} must be an object`);
-      continue;
-    }
-    if (typeof item.title !== "string" || item.title.trim() === "") issues.push(`${prefix}.title must be non-empty`);
-    if (typeof item.target !== "string" || item.target.trim() === "") issues.push(`${prefix}.target must be non-empty`);
-    if (triageItem && item.title !== triageItem.title) {
-      issues.push(`${prefix}.title must match spec-triage apply item ${i}.title`);
-    }
-    if (triageItem && item.target !== triageItem.target) {
-      issues.push(`${prefix}.target must match spec-triage apply item ${i}.target`);
-    }
-    if (!SPEC_REPAIR_DECISIONS.has(item.decision)) {
-      issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_REPAIR_DECISIONS).join(", ")}`);
-    }
-    if (typeof item.rationale !== "string" || item.rationale.trim() === "") {
-      issues.push(`${prefix}.rationale must be non-empty`);
-    }
-    if (typeof item.evidence !== "string" || item.evidence.trim() === "") {
-      issues.push(`${prefix}.evidence must be non-empty`);
-    }
-    if (!Array.isArray(item.changedFields)) {
-      issues.push(`${prefix}.changedFields must be an array`);
-    } else if (item.decision === "applied" && item.changedFields.length === 0) {
-      issues.push(`${prefix}.changedFields must be non-empty when decision is applied`);
-    }
-  }
-
-  return issues;
+  return validateSpecRepairAuditInDirectory(path.dirname(path.resolve(root, specInput)));
 }
 
 /**

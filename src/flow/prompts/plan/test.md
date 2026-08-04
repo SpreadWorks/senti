@@ -1,3 +1,4 @@
+   <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - If guardrail articles for the test phase have NOT been loaded in this session: `senti flow get guardrail test`. If output is non-empty, follow these principles when writing tests. Skip if already present in context.
    - If code changes exist, implementation verification test is required in principle.
    - AI decides the appropriate test type based on the project's test infrastructure (no separate test-type selection).
