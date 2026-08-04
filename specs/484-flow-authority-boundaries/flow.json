@@ -1,0 +1,878 @@
+{
+  "specId": "484-flow-authority-boundaries",
+  "baseBranch": "main",
+  "featureBranch": "feature/484-flow-authority-boundaries",
+  "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+  "repairBaseline": {
+    "kind": "git",
+    "objectFormat": "sha1",
+    "commitOid": "5f598edd4fd55183d179dfddc38cc6f740ad6621",
+    "treeOid": "6446f752f1fed7713353b2030f6361d9f9f901de",
+    "sourceRef": "main",
+    "ref": "refs/senti/flows/4f5df605-aaf5-42e9-a4d9-d56457464df6/baseline",
+    "capturedAt": "2026-08-04T04:16:40.629Z"
+  },
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-08-04T04:16:42.144Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-08-04T04:16:42.144Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-08-04T04:16:42.144Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 61,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-08-04T04:21:02.922Z",
+            "endedAt": "2026-08-04T04:21:03.036Z",
+            "exitCode": 0
+          },
+          "finishedAt": "2026-08-04T04:21:03.023Z"
+        },
+        {
+          "id": "draft-questions-review",
+          "status": "done",
+          "startedAt": "2026-08-04T04:21:03.023Z",
+          "finishedAt": "2026-08-04T04:22:04.446Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 86,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-08-04T07:37:39.157Z",
+            "endedAt": "2026-08-04T07:37:39.241Z",
+            "exitCode": 1
+          }
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-08-04T04:22:04.446Z",
+          "finishedAt": "2026-08-04T04:22:41.145Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 70,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-08-04T04:29:31.407Z",
+            "endedAt": "2026-08-04T04:29:31.448Z",
+            "exitCode": 1
+          }
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-08-04T04:22:41.145Z",
+          "finishedAt": "2026-08-04T04:23:10.956Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 64,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-08-04T04:23:10.863Z",
+            "endedAt": "2026-08-04T04:23:10.968Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-08-04T04:23:10.956Z",
+          "finishedAt": "2026-08-04T04:25:05.617Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 65,
+            "attempt": 1,
+            "command": "flow set step",
+            "startedAt": "2026-08-04T04:25:05.509Z",
+            "endedAt": "2026-08-04T04:25:05.629Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-review",
+          "status": "done",
+          "startedAt": "2026-08-04T04:25:05.617Z",
+          "finishedAt": "2026-08-04T04:25:42.665Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 66,
+            "attempt": 1,
+            "command": "flow run review",
+            "startedAt": "2026-08-04T04:25:32.804Z",
+            "endedAt": "2026-08-04T04:25:42.802Z",
+            "exitCode": 0
+          }
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-08-04T04:25:42.665Z",
+          "finishedAt": "2026-08-04T04:25:42.702Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-08-04T04:25:42.702Z",
+          "finishedAt": "2026-08-04T04:25:42.739Z"
+        },
+        {
+          "id": "draft-gate",
+          "status": "in_progress",
+          "startedAt": "2026-08-04T04:25:42.739Z",
+          "runtimeLog": {
+            "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+            "sequence": 67,
+            "attempt": 1,
+            "command": "flow run gate",
+            "startedAt": "2026-08-04T04:26:35.770Z",
+            "endedAt": "2026-08-04T04:26:36.086Z",
+            "exitCode": 1
+          }
+        },
+        {
+          "id": "spec",
+          "status": "pending"
+        },
+        {
+          "id": "spec-review",
+          "status": "pending"
+        },
+        {
+          "id": "spec-triage",
+          "status": "pending"
+        },
+        {
+          "id": "spec-repair",
+          "status": "pending"
+        },
+        {
+          "id": "spec-gate",
+          "status": "pending"
+        },
+        {
+          "id": "approval",
+          "status": "pending"
+        },
+        {
+          "id": "test",
+          "status": "pending"
+        },
+        {
+          "id": "scenario-validity",
+          "status": "pending"
+        },
+        {
+          "id": "test-review",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "pending"
+        },
+        {
+          "id": "test-execute",
+          "status": "pending"
+        },
+        {
+          "id": "test-result-review",
+          "status": "pending"
+        },
+        {
+          "id": "impl-review",
+          "status": "pending"
+        },
+        {
+          "id": "impl-triage",
+          "status": "pending"
+        },
+        {
+          "id": "impl-repair",
+          "status": "pending"
+        },
+        {
+          "id": "impl-gate",
+          "status": "pending"
+        },
+        {
+          "id": "retro",
+          "status": "pending"
+        },
+        {
+          "id": "acceptance-review",
+          "status": "pending"
+        },
+        {
+          "id": "acceptance-decision",
+          "status": "pending"
+        },
+        {
+          "id": "final-regression",
+          "status": "pending"
+        },
+        {
+          "id": "report",
+          "status": "pending"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "outbox": [],
+  "issue": 494,
+  "request": "$senti.flow #494",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 23,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 1,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "goalGate": {
+      "checked": true,
+      "passed": true
+    },
+    "reason": "Goal/Scope/Acceptanceが明確で検証項目も具体的。対象は広いが境界と除外条件が明示され、旧ブランチの前例もある。"
+  },
+  "notes": [
+    {
+      "text": "prelude: user approved the preflight Goal and Scope and enabled autoApprove",
+      "taskId": null,
+      "ts": "2026-08-04T04:16:27.008Z"
+    },
+    {
+      "text": "abort: user requested complete removal of this Flow and its generated artifacts",
+      "taskId": null,
+      "ts": "2026-08-04T04:59:28.580Z"
+    }
+  ],
+  "worktree": true,
+  "plugins": {
+    "flowCommandHooks": [
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/finalize-cleanup.js",
+        "className": "WorkflowFinalizeCleanupHook",
+        "command": "finalize-cleanup",
+        "hook": "post",
+        "priority": 0,
+        "failurePolicy": "advisory"
+      },
+      {
+        "apiVersion": 1,
+        "pluginId": "workflow",
+        "module": "hooks/prepare.js",
+        "className": "WorkflowPrepareHook",
+        "command": "prepare",
+        "hook": "post",
+        "priority": 0,
+        "failurePolicy": "advisory"
+      }
+    ]
+  },
+  "draftArtifactRevision": {
+    "version": 1,
+    "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+    "specId": "484-flow-authority-boundaries",
+    "sourceStepId": "draft-refine",
+    "digest": "ff565fb3329beb65f94e0b99031f35a34a482edd315fa2d7f0999e3c261466c2",
+    "byteLength": 15896,
+    "finalizedAt": "2026-08-04T04:25:05.609Z"
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T04:18:32.547Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 596,
+      "durationMs": 209637,
+      "tokens": {
+        "input": 96135,
+        "output": 8866,
+        "cacheRead": 1020288,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:21:18.632Z"
+    },
+    {
+      "phase": "draft-questions-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2637,
+      "durationMs": 28424,
+      "tokens": {
+        "input": 16745,
+        "output": 930,
+        "cacheRead": 34944,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:22:04.142Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-08-04T04:22:04.474Z"
+    },
+    {
+      "phase": "draft-questions-triage",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 339,
+      "durationMs": 50353,
+      "tokens": {
+        "input": 14275,
+        "output": 527,
+        "cacheRead": 28416,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:22:09.443Z"
+    },
+    {
+      "phase": "draft-questions-repair",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 91,
+      "durationMs": 34497,
+      "tokens": {
+        "input": 25920,
+        "output": 969,
+        "cacheRead": 155904,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:22:44.399Z"
+    },
+    {
+      "phase": "draft-refine",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 424,
+      "durationMs": 36194,
+      "tokens": {
+        "input": 51157,
+        "output": 1100,
+        "cacheRead": 101632,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:23:21.044Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 694,
+      "durationMs": 116260,
+      "tokens": {
+        "input": 29880,
+        "output": 4590,
+        "cacheRead": 225280,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:25:17.762Z"
+    },
+    {
+      "phase": "draft-coverage-review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 8862,
+      "tokens": {
+        "input": 13691,
+        "output": 99,
+        "cacheRead": 9600,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:25:42.376Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-08-04T04:25:42.768Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 313,
+      "durationMs": 27725,
+      "tokens": {
+        "input": 21876,
+        "output": 524,
+        "cacheRead": 23296,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-08-04T04:25:45.937Z"
+    },
+    {
+      "phase": "draft-gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 227774,
+      "taskId": null,
+      "ts": "2026-08-04T04:29:34.172Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T05:01:21.963Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T07:36:21.601Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T07:38:33.157Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T08:42:12.185Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T08:42:59.026Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-08-04T08:43:42.815Z"
+    }
+  ],
+  "reviewConvergence": {
+    "version": 1,
+    "records": [
+      {
+        "phase": "draft-questions",
+        "taskId": null,
+        "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+          "disposition": "ADVISORY"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [
+          {
+            "findingId": "draft-questions-advisory-001",
+            "summary": "1. q1 includes instruction/rationale",
+            "fingerprint": "f98b328276ee227fd476f121795aeec36c440671e3608abf067efe83f508bc6e",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-001"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-002",
+            "summary": "2. q2 includes instruction/rationale",
+            "fingerprint": "57a272fa7525d9d0ceebadf1301295f51365a5c7610c61b7c64dea58e4974e0d",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-002"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-003",
+            "summary": "3. q3 includes instruction/rationale",
+            "fingerprint": "ee9f73024964f48fa5f4eb927464dd45d463c6fcf200ef285b33f34e62c964e2",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-003"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-004",
+            "summary": "4. q4 includes instruction/rationale",
+            "fingerprint": "3af8ba75433563debbd544daca2872c484de57ca5a0b4d56b5ac0736279eb23a",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-004"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-005",
+            "summary": "5. q5 includes instruction/rationale",
+            "fingerprint": "aa52d90110af74d1744a566f4464aebd3f3b8ceba4b5c8fec17f163acff984ea",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-005"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-006",
+            "summary": "6. q6 includes instruction/rationale",
+            "fingerprint": "3b4b385b55fa894276ff09bf831ee0c639635bc2aa2d48f369279dbe4f24d453",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-006"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-007",
+            "summary": "7. q7 includes instruction/rationale",
+            "fingerprint": "f80fac0203148ca174dc031882388f79a8fa887702605b194dd9659115da6703",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-007"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          },
+          {
+            "findingId": "draft-questions-advisory-008",
+            "summary": "8. q8 includes instruction/rationale",
+            "fingerprint": "ee94073fbc2b6d8ac9fd0bc915c7f76ce7a79e2782631c13d296d4a1233497bd",
+            "evidenceRefs": [
+              "draft-review-questions.json#draft-questions-advisory-008"
+            ],
+            "sourceStep": "draft-questions-review",
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1",
+            "reviewDisposition": "ADVISORY",
+            "finalDispositionOwner": "acceptance-review"
+          }
+        ],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-questions",
+          "taskId": null,
+          "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+            "capturedAt": "2026-08-04T04:22:04.163Z"
+          },
+          "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-questions",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "5d61234362702d53318c77589a89f1fcb387f8eabd809794a3feacac70e13757",
+              "capturedAt": "2026-08-04T04:22:04.163Z"
+            },
+            "evidenceDigest": "098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json",
+        "targetStateDigest": "f60a94069a549c9d9d1fe4f33aaea3e273ecaff5e1624afde43e72e0fae02d85",
+        "targetState": {
+          "digest": "f60a94069a549c9d9d1fe4f33aaea3e273ecaff5e1624afde43e72e0fae02d85",
+          "entries": [
+            {
+              "path": "specs/484-flow-authority-boundaries/draft.json",
+              "contentHash": "f60a94069a549c9d9d1fe4f33aaea3e273ecaff5e1624afde43e72e0fae02d85",
+              "mode": "100644"
+            }
+          ]
+        }
+      },
+      {
+        "phase": "draft-coverage",
+        "taskId": null,
+        "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+        "semanticAttempts": 0,
+        "semanticMaxAttempts": 1,
+        "toolingAttempts": 0,
+        "toolingMaxAttempts": 1,
+        "evidence": {
+          "evidenceId": "fc6b50bd8fcb9107a7a8864217e5ecf4d8ec2e2b2da4e82d8b528477e92e0488",
+          "disposition": "PASS"
+        },
+        "finalizedEvidenceAvailable": true,
+        "handoffFindings": [],
+        "blocker": null,
+        "toolingOutcome": null,
+        "provider": "senti-review",
+        "evidenceIdentity": {
+          "phase": "draft-coverage",
+          "taskId": null,
+          "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+          "provenance": {
+            "provider": "senti-review",
+            "invocationId": "4bf823746ef21e6695f48f1a44c7aef6f7a0a7363749cf2817b5cc15659e3849",
+            "capturedAt": "2026-08-04T04:25:42.404Z"
+          },
+          "evidenceDigest": "fc6b50bd8fcb9107a7a8864217e5ecf4d8ec2e2b2da4e82d8b528477e92e0488"
+        },
+        "evidenceHistory": [
+          {
+            "phase": "draft-coverage",
+            "taskId": null,
+            "treeSha": "6446f752f1fed7713353b2030f6361d9f9f901de",
+            "provenance": {
+              "provider": "senti-review",
+              "invocationId": "4bf823746ef21e6695f48f1a44c7aef6f7a0a7363749cf2817b5cc15659e3849",
+              "capturedAt": "2026-08-04T04:25:42.404Z"
+            },
+            "evidenceDigest": "fc6b50bd8fcb9107a7a8864217e5ecf4d8ec2e2b2da4e82d8b528477e92e0488"
+          }
+        ],
+        "canonicalEvidenceRef": "review-evidence/fc6b50bd8fcb9107a7a8864217e5ecf4d8ec2e2b2da4e82d8b528477e92e0488.json",
+        "targetStateDigest": "ff565fb3329beb65f94e0b99031f35a34a482edd315fa2d7f0999e3c261466c2",
+        "targetState": {
+          "digest": "ff565fb3329beb65f94e0b99031f35a34a482edd315fa2d7f0999e3c261466c2",
+          "entries": [
+            {
+              "path": "specs/484-flow-authority-boundaries/draft.json",
+              "contentHash": "ff565fb3329beb65f94e0b99031f35a34a482edd315fa2d7f0999e3c261466c2",
+              "mode": "100644"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "stepAttempts": [
+    {
+      "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+      "taskId": null,
+      "stepId": "draft-questions-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-questions-triage",
+        "decision": "ADVISORY"
+      },
+      "recordedAt": "2026-08-04T04:22:04.484Z"
+    },
+    {
+      "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+      "taskId": null,
+      "stepId": "draft-coverage-review",
+      "attempt": 1,
+      "outcome": {
+        "kind": "decision",
+        "terminal": true,
+        "nextAction": "draft-gate",
+        "decision": "PASS"
+      },
+      "recordedAt": "2026-08-04T04:25:42.779Z"
+    },
+    {
+      "runId": "4f5df605-aaf5-42e9-a4d9-d56457464df6",
+      "taskId": null,
+      "stepId": "draft-gate",
+      "attempt": 1,
+      "outcome": {
+        "kind": "external-blocked",
+        "terminal": true,
+        "resumeInstruction": "Resolve mechanical and retry the guarded gate action.",
+        "reason": "mechanical",
+        "failureCode": "GATE_EXTERNAL_BLOCKED",
+        "retryable": false,
+        "recoveryHint": "Resolve mechanical and retry the guarded gate action."
+      },
+      "recordedAt": "2026-08-04T04:26:36.002Z"
+    }
+  ]
+}

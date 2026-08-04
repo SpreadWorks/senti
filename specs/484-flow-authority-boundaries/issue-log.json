@@ -1,0 +1,63 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft-review-questions.json: invalid sourceDraftRevision: draft review artifact does not match the current finalized draft revision; draft-questions-triage.json: missing draft triage artifact",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-04T04:26:36.027Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review-questions.json: invalid sourceDraftRevision: draft review artifact does not match the current finalized draft revision",
+          "severity": "blocking",
+          "refs": []
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-questions-triage.json: missing draft triage artifact",
+          "severity": "blocking",
+          "refs": []
+        }
+      ],
+      "passedGuardrails": [],
+      "issueLogId": "issue-log-c5fdec7a-0df7-4416-af01-24109d7e3af5"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Flow abort failed because the persisted abort journal did not match the selected Issue 494 Flow",
+      "trigger": "User requested complete removal with senti flow run abort --force",
+      "resolution": "No deletion was performed; the Flow remains active pending journal identity recovery",
+      "guardrailCandidate": "Abort recovery must provide a target-guarded way to inspect and discard only a stale journal",
+      "taskId": null,
+      "timestamp": "2026-08-04T05:01:21.917Z",
+      "issueLogId": "issue-log-8b4b824a-fb00-45fd-ba87-687304bb2051"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Draft gate cannot recover missing canonical draft review evidence because reopen-draft rejects the draft-gate stage.",
+      "trigger": "Gate reported stale review revision and missing triage evidence; guarded review returned DRAFT_REVIEW_REVISION_STALE.",
+      "resolution": "Unresolved: the prescribed reopen-draft command returns NO_DONE_TASK before it can reset the planning evidence.",
+      "guardrailCandidate": "Recovery commands emitted by draft validation must accept every planning stage that can produce the corresponding blocked state.",
+      "taskId": null,
+      "timestamp": "2026-08-04T07:38:33.111Z",
+      "issueLogId": "issue-log-d198baa7-c718-4931-9e0c-edf683e3130e"
+    },
+    {
+      "step": "draft-gate",
+      "reason": "Flow abort was blocked by a completed recovery journal from an older run that reused the same spec ID.",
+      "trigger": "senti flow run abort --force returned flow abort journal does not match the selected flow.",
+      "guardrailCandidate": "Abort journals should be scoped by runId or safely replaced after a completed prior abort when a spec ID is reused.",
+      "taskId": null,
+      "timestamp": "2026-08-04T08:43:42.765Z",
+      "issueLogId": "issue-log-f709659e-6def-48e8-950c-592056682f0a"
+    }
+  ]
+}

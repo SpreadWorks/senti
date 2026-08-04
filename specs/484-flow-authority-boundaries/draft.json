@@ -1,0 +1,160 @@
+{
+  "devType": "refactor",
+  "goal": "must rebuild Flow command authority boundaries on the current main baseline so Flow artifacts are governed by base-side artifact authority, implementation and Git operations are governed by execution checkout authority, and both worktree and non-worktree Flow use the same explicit authority model.",
+  "analysis": {
+    "problem": "Current Flow code still exposes authority-sensitive operations through raw repository or root strings in enough places that artifact paths, execution checkout paths, fingerprint inputs, and recovery evidence can be mixed across command boundaries. Issue #494 frames this as new work on current main because the older #491 branch diverged from target identity and recovery changes from #489-#493.",
+    "proposedApproach": "Introduce or complete explicit authority objects around FlowWorkspace for artifact storage, execution checkout, and command-level coordination; migrate Flow artifact reads and writes, Git/test execution, file-map reconciliation, fingerprint capture/revalidation, review/gate/test evidence, finalize, and plugin artifacts to those boundaries; port only the relevant design and tests from the old branch after adapting them to current main.",
+    "validation": "The approach addresses the root problem by making the authority distinction a structural command contract instead of a per-call convention. Existing source already has FlowWorkspace and FlowSpecLocation in src/lib/flow-workspace.js, target binding/guarding in src/lib/flow-target-guard.js and src/lib/worktree-flow-binding.js, and repair fingerprint logic in src/flow/lib/repair-state-identity.js; the remaining draft questions focus on user-owned compatibility, migration, and verification boundaries rather than implementation mechanics."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must use issue #494 as a new current-main rebuild rather than reopening or mechanically importing old issue #491.",
+      "must treat base-side Flow artifacts and execution checkout state as separate authorities in worktree Flow.",
+      "must preserve the FlowTargetIdentityAuthority and recovery contracts introduced by issues #489-#493.",
+      "must not restore worktree-side spec copies as a second artifact authority.",
+      "must not relax target guard or step completion guard behavior.",
+      "must keep implementation within Node.js built-in modules and the repository's OOP class-based boundary style."
+    ],
+    "decisionPoints": [
+      "must decide exact class names, constructor invariants, module placement, and method boundaries during spec writing.",
+      "must decide the detailed per-command authority matrix during spec writing from the named Flow surfaces and source audit."
+    ],
+    "resolvedByProjectRules": [
+      "must not split this issue into multiple specs because project guardrails treat the user-defined issue as the scope boundary.",
+      "must use dedicated classes rather than object-literal type tags because AGENTS.md requires OOP for meaningful value constraints.",
+      "must not add external dependencies because project rules allow only Node.js built-in modules.",
+      "must define migration parity because this work moves or replaces existing Flow command behavior across public CLI surfaces.",
+      "must preserve retained public Flow CLI behavior for normal worktree and non-worktree flows while allowing fail-closed rejection of ambiguous raw-root misuse because alpha policy forbids legacy compatibility code and the issue is about enforcing authority boundaries.",
+      "must treat FlowTargetIdentityAuthority, target guard, dispatcher binding, recovery identity, and step completion guard behavior from issues #489-#493 as immutable compatibility behavior for this spec.",
+      "must require static audit evidence for raw-root artifact path construction because migration parity must inventory affected public surfaces and authority-sensitive path construction is the specific risk being refactored.",
+      "must allow spec authorship to choose final API names and module placement as long as class-based authority boundaries and verifiable authority guarantees are preserved."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must define the exact class names, constructor invariants, and module placement for artifact store, execution checkout, and command authority.",
+      "must inventory affected Flow command surfaces and map each retained public behavior to its new authority owner.",
+      "must define the file-map reconciliation boundary and fingerprint service contract at requirement granularity.",
+      "must map requirements to focused unit, E2E, static audit, and full regression verification.",
+      "must verify the entire named authority matrix across gate, review, set-step, test evidence, plugin artifact, finalize, dispatcher, and recovery; source audit may add surfaces but the draft does not require user-selected additional surfaces.",
+      "must use the old #491 branch only as design/test reference, with any manually adapted code pattern justified against current-main authority and recovery contracts."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must introduce or complete typed authority boundaries around FlowWorkspace for artifact store, execution checkout, and command authority.",
+      "must audit and migrate specs, task specs, file maps, issue logs, review/gate/test evidence, plugin artifacts, and finalize artifacts to base-side artifact authority.",
+      "must audit and migrate Git diff, HEAD, index, untracked source, implementation changes, and project tests to execution checkout authority.",
+      "must create migration-parity coverage for retained Flow command behavior across gate, review, set-step, test evidence, plugin artifact, finalize, dispatcher, and recovery surfaces.",
+      "must adapt authority-focused design and tests from the old branch only after reconciling them with current main."
+    ],
+    "out": [
+      "must not reopen old issue #491 as the tracked work item.",
+      "must not bulk merge or cherry-pick old branch commits without current-main adaptation.",
+      "must not restore worktree-side spec copies as a fallback artifact authority.",
+      "must not weaken target guard, target identity binding, recovery, or step completion guards.",
+      "must not add external runtime dependencies."
+    ]
+  },
+  "impactOnExisting": [
+    "must preserve user-facing Flow CLI behavior for normal worktree and non-worktree flows unless a behavior is explicitly documented as removed during this alpha refactor.",
+    "must affect Flow commands that read or write spec artifacts, issue logs, file maps, review/gate/test evidence, reports, finalize artifacts, and plugin artifacts.",
+    "must affect Flow commands that inspect or mutate implementation checkout state, including Git status/diff/fingerprint paths and project test execution.",
+    "must preserve existing target resolution, dispatcher binding, recovery, and side-effect-before-failure contracts introduced in issues #489-#493."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "推奨: must treat this as a current-main authority-boundary rebuild, not as an old-branch merge. Is the goal to preserve the old #491 branch only as design/test reference while implementing against the current main authority and recovery model?",
+      "answer": "Yes. The spec must treat issue #494 as a current-main rebuild and may use the old #491 branch only as design/test reference, with any adapted material reconciled against the current target identity, dispatcher binding, recovery, and guard contracts.",
+      "evidence": "Issue framing in draft.analysis states #494 is new work on current main because the older #491 branch diverged from target identity and recovery changes from #489-#493; scopeVerification.out forbids bulk merge or cherry-pick of old branch commits without current-main adaptation.",
+      "why": "This follows the user-requested goal and avoids making stale branch state a second implementation authority.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "推奨: must preserve retained public Flow CLI behavior through migration parity, but may fail closed for ambiguous raw-root misuse that was never a supported contract. Should the spec allow rejecting previously accepted raw string mix-ups at authority boundaries?",
+      "answer": "Yes. Retained public Flow CLI behavior must keep migration parity, but ambiguous raw-root mix-ups may be rejected fail-closed when they cross authority boundaries and were not a supported public contract.",
+      "evidence": "AGENTS.md alpha policy forbids legacy compatibility code; project migration-parity guardrail requires retained behavior mapping and explicit removal decisions; the issue goal is to replace raw repository/root-string authority-sensitive operations with explicit authority objects.",
+      "why": "Fail-closed rejection is the conservative outcome for an authority-boundary refactor and does not change the user-requested goal when limited to unsupported ambiguous misuse.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "推奨: must cover the entire Flow command surface named in the issue, including gate, review, set-step, test evidence, plugin artifacts, finalize, dispatcher, and recovery. Are any additional Flow surfaces required for the authority matrix beyond these named areas?",
+      "answer": "No user-selected additional surfaces are required at draft-refine time. The spec must cover the named Flow surfaces and require a source audit to add any discovered authority-sensitive surfaces to the matrix.",
+      "evidence": "scopeVerification.in already names gate, review, set-step, test evidence, plugin artifact, finalize, dispatcher, and recovery; draft.decisionMap.deferredToSpec already requires inventorying affected Flow command surfaces.",
+      "why": "The existing issue and source-audit requirement define the mandatory breadth without needing an open-ended user decision.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "推奨: must preserve the contract with FlowTargetIdentityAuthority from issue #493 and make repair-state identity use the same typed authority inputs for capture and revalidation. Should any target identity behavior be treated as immutable compatibility behavior for this spec?",
+      "answer": "Yes. FlowTargetIdentityAuthority, target guard matching, dispatcher binding, recovery identity, and step completion guard behavior introduced by issues #489-#493 must be treated as immutable compatibility behavior for this spec.",
+      "evidence": "draft.analysis identifies existing target binding/guarding in src/lib/flow-target-guard.js and src/lib/worktree-flow-binding.js plus repair fingerprint logic in src/flow/lib/repair-state-identity.js; knownFacts already require preserving FlowTargetIdentityAuthority and recovery contracts from #489-#493.",
+      "why": "The requested refactor is an authority-boundary rebuild on top of those contracts, not a redesign of target identity semantics.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "推奨: must verify that updating only Flow artifacts does not change the implementation target fingerprint, while implementation source changes do. Is this fingerprint separation the primary acceptance signal for authority correctness?",
+      "answer": "Yes. Fingerprint separation is a primary acceptance signal, alongside command-surface migration parity and guard/recovery regression coverage.",
+      "evidence": "The issue goal separates base-side Flow artifact authority from execution checkout authority; draft.scopeVerification.in requires artifact writes to base-side authority and Git diff/HEAD/index/source/test operations to execution checkout authority.",
+      "why": "A fingerprint that ignores artifact-only updates but changes for implementation source updates directly demonstrates that the two authority domains are no longer mixed.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "推奨: must not restore any worktree-side spec fallback or legacy per-command artifact-root inference path. Are there any legacy paths that should remain temporarily for operator diagnostics only, without participating in command authority?",
+      "answer": "No legacy artifact authority paths should remain as command participants. Diagnostic-only reporting may describe rejected legacy or ambiguous paths, but it must not read, write, or infer Flow artifact authority from them.",
+      "evidence": "knownFacts and scopeVerification.out both forbid restoring worktree-side spec copies as a second artifact authority; AGENTS.md alpha policy says not to keep deprecated paths or backward-compatibility code.",
+      "why": "Keeping legacy authority paths active would preserve the same ambiguity this spec is meant to remove.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "推奨: must include focused authority tests plus node tests/run.js --scope unit and node tests/run.js --scope e2e as final verification. Should the draft require a static audit report for raw-root artifact path construction as a blocking acceptance item?",
+      "answer": "Yes. The spec should require a blocking static audit report for raw-root artifact path construction, in addition to focused authority tests and unit/e2e regression commands.",
+      "evidence": "The project migration-parity guardrail requires inventorying moved/replaced public behavior and mapping retained behavior to new owners; the draft goal identifies raw repository/root strings around artifact paths, execution paths, fingerprint inputs, and recovery evidence as the core problem.",
+      "why": "A static audit is necessary evidence that no authority-sensitive raw-root artifact construction remains outside the new authority boundaries.",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "推奨: should defer exact API names and constructor invariant details to the spec while requiring class-based boundaries. Is it acceptable for the spec to choose the final names and module placement if the authority guarantees remain verifiable?",
+      "answer": "Yes. Exact API names, constructor invariants, and module placement may be chosen during spec writing, provided the result uses class-based authority boundaries and keeps the authority guarantees verifiable.",
+      "evidence": "AGENTS.md requires OOP class-based representation for meaningful values; draft.decisionMap.deferredToSpec already assigns exact class names, constructor invariants, module placement, file-map boundary, and fingerprint service contract to spec writing.",
+      "why": "This is a spec-writing detail rather than a user-owned scope decision, as long as the required authority behavior remains testable.",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-08-04T04:25:42.756Z",
+    "notes": ""
+  }
+}
