@@ -6,6 +6,10 @@ import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
 import { UserResolutionLedger } from "../flow/lib/recovery-composition.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import { isLocatedFlowState } from "./flow-workspace.js";
+import {
+  DraftArtifactPromotion,
+  DraftArtifactRevision,
+} from "../flow/lib/draft-artifact-promotion.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -148,6 +152,14 @@ export class FlowState {
       failureLedger: recoveryFailures,
       outboxIdempotencyKeys: new Set(outbox.entries.map((entry) => entry.idempotencyKey)),
     });
+    if (value.draftArtifactRevision != null) {
+      // A finalized revision is historical state. Commands that use it as an
+      // authority assert its Flow binding at the promotion/review boundary.
+      DraftArtifactRevision.from(value.draftArtifactRevision);
+    }
+    if (value.draftArtifactPromotion != null) {
+      DraftArtifactPromotion.from(value.draftArtifactPromotion).assertFlow(value);
+    }
     if (revision) {
       const identity = revision.identity;
       const hasIssue = Object.hasOwn(value, "issue") && value.issue != null;

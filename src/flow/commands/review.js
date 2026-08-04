@@ -38,6 +38,10 @@ import {
   ImplReviewProposalBatch,
   ImplReviewProposalContract,
 } from "../lib/impl-review-proposal.js";
+import {
+  DraftArtifactRecoveryError,
+  inspectCanonicalDraftRevision,
+} from "../lib/draft-artifact-promotion.js";
 
 async function loadReqMap(root, flow, kind) {
   try {
@@ -3752,10 +3756,18 @@ class DraftReviewFinding {
 }
 
 class DraftReviewArtifact {
-  constructor({ phase, sourceDraft, blockingFindings = [], advisoryFindings = [], repairTargets = [] }) {
-    this.version = 1;
+  constructor({
+    phase,
+    sourceDraft,
+    sourceDraftRevision = null,
+    blockingFindings = [],
+    advisoryFindings = [],
+    repairTargets = [],
+  }) {
+    this.version = sourceDraftRevision == null ? 1 : 2;
     this.phase = phase;
     this.sourceDraft = sourceDraft;
+    this.sourceDraftRevision = sourceDraftRevision?.toJSON?.() ?? sourceDraftRevision;
     this.generatedAt = new Date().toISOString();
     this.blockingFindings = blockingFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
     this.advisoryFindings = advisoryFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
@@ -3775,6 +3787,7 @@ class DraftReviewArtifact {
       version: this.version,
       phase: this.phase,
       sourceDraft: this.sourceDraft,
+      ...(this.sourceDraftRevision && { sourceDraftRevision: this.sourceDraftRevision }),
       generatedAt: this.generatedAt,
       verdict: this.verdict,
       summary: this.summary,
@@ -3838,11 +3851,12 @@ function addDraftReviewFindingToBucket(buckets, finding) {
   }
 }
 
-function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
+function buildDraftReviewArtifact({ raw, draftPath, draftRevision = null, proposals, stage }) {
   if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
     return new DraftReviewArtifact({
       phase: stage.retryPhase,
       sourceDraft: draftPath,
+      sourceDraftRevision: draftRevision,
     });
   }
   const buckets = {
@@ -3857,6 +3871,7 @@ function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
   return new DraftReviewArtifact({
     phase: stage.retryPhase,
     sourceDraft: draftPath,
+    sourceDraftRevision: draftRevision,
     ...buckets,
   });
 }
@@ -3988,6 +4003,11 @@ async function runDraftReview(root, flow, config, dryRun) {
   const specPath = path.resolve(root, specDir);
   const draftPath = path.resolve(specPath, "draft.json");
   const stage = resolveDraftReviewStage(flow);
+  const draftInspection = inspectCanonicalDraftRevision({
+    root,
+    state: flow,
+    phase: stage.retryPhase,
+  });
 
   if (!fs.existsSync(draftPath)) {
     console.error("Error: draft.json not found");
@@ -3995,11 +4015,15 @@ async function runDraftReview(root, flow, config, dryRun) {
   }
 
   let draftJson;
-  try {
-    draftJson = JSON.parse(fs.readFileSync(draftPath, "utf8"));
-  } catch (e) {
-    console.error(`Error: failed to parse draft.json: ${e.message}`);
-    process.exit(EXIT_ERROR);
+  if (draftInspection) {
+    draftJson = draftInspection.snapshot.document;
+  } else {
+    try {
+      draftJson = JSON.parse(fs.readFileSync(draftPath, "utf8"));
+    } catch (e) {
+      console.error(`Error: failed to parse draft.json: ${e.message}`);
+      process.exit(EXIT_ERROR);
+    }
   }
 
   const requestText = [
@@ -4033,6 +4057,15 @@ async function runDraftReview(root, flow, config, dryRun) {
     agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
   );
 
+  if (draftInspection) {
+    inspectCanonicalDraftRevision({
+      root,
+      state: container.get("flowManager").load(),
+      phase: stage.retryPhase,
+      expectedRevision: draftInspection.revision,
+    });
+  }
+
   const proposals = raw.includes("NO_PROPOSALS")
     ? []
     : parseProposals(raw, { limit: DRAFT_REVIEW_ARRAY_CAP });
@@ -4041,6 +4074,7 @@ async function runDraftReview(root, flow, config, dryRun) {
   const reviewArtifact = buildDraftReviewArtifact({
     raw,
     draftPath: path.relative(specPath, draftPath),
+    draftRevision: draftInspection?.revision ?? null,
     proposals,
     stage,
   });
@@ -4336,6 +4370,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const cli = parseReviewCliArgsForError(process.argv.slice(2));
     const failure = classifyReviewCommandError(err, cli.phase);
     if (failure) console.error(failure.toMarkerLine());
+    if (err instanceof DraftArtifactRecoveryError) console.error(err.toMarkerLine());
     console.error(err?.stack || String(err));
     process.exit(1);
   });

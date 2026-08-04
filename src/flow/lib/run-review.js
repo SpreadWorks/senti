@@ -75,6 +75,11 @@ import { recoverFinalizedFlowReviewEvidence } from "./set-review-evidence.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
+import {
+  DRAFT_ARTIFACT_FAILURE_MARKER_PREFIX,
+  DraftArtifactRecoveryError,
+  inspectCanonicalDraftRevision,
+} from "./draft-artifact-promotion.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -1206,13 +1211,23 @@ function resolveCurrentReviewTreeSha(ctx) {
   return ReviewTargetAuthority.fromContext(ctx).resolveTreeSha();
 }
 
-function resolveCurrentReviewRepairFingerprint(ctx) {
-  return ReviewTargetAuthority.fromContext(ctx).captureFingerprint().hash;
+function resolveCurrentReviewTargetState(ctx, phase = reviewPhaseKeyForCtx(ctx, ctx?.phase || null)) {
+  return ReviewTargetAuthority.fromContext(ctx).captureTargetStateForPhase(phase);
 }
 
-function assertCurrentReviewTarget(ctx, expectedTreeSha, expectedRepairFingerprint) {
+function resolveCurrentReviewRepairFingerprint(
+  ctx,
+  phase = reviewPhaseKeyForCtx(ctx, ctx?.phase || null),
+) {
+  return resolveCurrentReviewTargetState(ctx, phase).digest;
+}
+
+function assertCurrentReviewTarget(ctx, expectedTreeSha, expectedRepairFingerprint, phase = null) {
   const currentTreeSha = resolveCurrentReviewTreeSha(ctx);
-  const currentRepairFingerprint = resolveCurrentReviewRepairFingerprint(ctx);
+  const currentRepairFingerprint = resolveCurrentReviewRepairFingerprint(
+    ctx,
+    phase || reviewPhaseKeyForCtx(ctx, ctx?.phase || null),
+  );
   if (
     currentTreeSha === expectedTreeSha
     && currentRepairFingerprint === expectedRepairFingerprint
@@ -1240,6 +1255,31 @@ function staleReviewTargetFailure({
       currentTreeSha,
       expectedRepairFingerprint,
       currentRepairFingerprint,
+    },
+  );
+}
+
+function parseDraftArtifactFailure(stderr) {
+  for (const line of String(stderr || "").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith(DRAFT_ARTIFACT_FAILURE_MARKER_PREFIX)) continue;
+    const failure = DraftArtifactRecoveryError.fromMarkerLine(trimmed);
+    if (failure) return failure;
+  }
+  return null;
+}
+
+function draftArtifactFailureEnvelope(error, phase) {
+  return Envelope.fail(
+    "run",
+    "review",
+    error.code,
+    error.message,
+    {
+      ...error.data,
+      phase,
+      recoveryCommand: error.recoveryCommand,
+      retryBudgetConsumed: false,
     },
   );
 }
@@ -1273,7 +1313,7 @@ function persistCanonicalToolingOutcome(ctx, {
     permissionRelated: outcome?.permissionRelated
       ?? /permission|EACCES|EPERM|sandbox/i.test(reason),
   });
-  assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
+  assertCurrentReviewTarget(ctx, treeSha, repairFingerprint, phase);
   const state = store.recordToolingOutcome({
     phase,
     taskId,
@@ -1296,7 +1336,7 @@ export function persistReviewPostHookToolingFailure(ctx, result, error) {
   const completionScope = ReviewCompletionScope.forPostHook({ result, phase });
   const taskId = completionScope.taskId;
   const treeSha = resolveCurrentReviewTreeSha(ctx);
-  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
+  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx, phase);
   const expectedOriginal = ctx.flowManager.load();
   const store = new ReviewConvergenceStore({ flowManager: ctx.flowManager });
   const current = store.read({ phase, taskId, treeSha, targetStateDigest });
@@ -1305,7 +1345,7 @@ export function persistReviewPostHookToolingFailure(ctx, result, error) {
     reason: String(error?.message || error),
     permissionRelated: /permission|EACCES|EPERM|sandbox/i.test(String(error?.message || error)),
   });
-  assertCurrentReviewTarget(ctx, treeSha, targetStateDigest);
+  assertCurrentReviewTarget(ctx, treeSha, targetStateDigest, phase);
   const state = store.recordToolingOutcome({
     phase,
     taskId,
@@ -1337,7 +1377,7 @@ export function recoverFinalizedFlowReviewPostHookFailure(ctx, result, error) {
   if (source.verdict !== "PASS") return null;
 
   const treeSha = resolveCurrentReviewTreeSha(ctx);
-  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx);
+  const targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx, phase);
   if (
     !artifactPhaseMatchesReviewTarget(source.phase, phase)
     || source.taskId !== null
@@ -1498,9 +1538,9 @@ function canonicalReviewExecutionBlock(
   taskId,
   {
     treeSha = resolveCurrentReviewTreeSha(ctx),
-    targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx),
+    targetStateDigest = resolveCurrentReviewRepairFingerprint(ctx, phase),
     resolveTreeSha = () => resolveCurrentReviewTreeSha(ctx),
-    resolveTargetStateDigest = () => resolveCurrentReviewRepairFingerprint(ctx),
+    resolveTargetStateDigest = () => resolveCurrentReviewRepairFingerprint(ctx, phase),
   } = {},
 ) {
   if (!ctx?.flowManager) return null;
@@ -1603,9 +1643,7 @@ function persistCanonicalReviewArtifact(
   const registrar = new ReviewEvidenceRegistrar({
     store: new ReviewEvidenceStore({ root: ctx.root, specDir }),
   });
-  const authority = ReviewTargetAuthority.fromContext(ctx);
-  const currentFingerprint = authority.captureFingerprint();
-  const targetState = authority.captureTargetState(currentFingerprint);
+  const targetState = resolveCurrentReviewTargetState(ctx, phase);
   if (targetState.digest !== repairFingerprint) {
     const error = new Error("review target state changed before canonical evidence registration");
     error.code = "STALE_REVIEW_TARGET";
@@ -1614,7 +1652,7 @@ function persistCanonicalReviewArtifact(
   let registration;
   try {
     ctx.flowManager.mutate((flowState) => {
-      assertCurrentReviewTarget(ctx, treeSha, repairFingerprint);
+      assertCurrentReviewTarget(ctx, treeSha, repairFingerprint, phase);
       registration = registrar.register({
         flowState,
         evidence: normalized.evidence,
@@ -2256,8 +2294,20 @@ export class RunReviewCommand extends FlowCommand {
 
     // Enforce review maxAttempts after scope resolution and before durable mutation.
     const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
+    if (phase === "draft" && reviewCtx.flowState?.draftArtifactRevision != null) {
+      try {
+        inspectCanonicalDraftRevision({
+          root,
+          state: reviewCtx.flowState,
+          phase: persistedPhase,
+        });
+      } catch (error) {
+        if (!(error instanceof DraftArtifactRecoveryError)) throw error;
+        return draftArtifactFailureEnvelope(error, persistedPhase);
+      }
+    }
     const reviewTargetTreeSha = this.resolveTreeSha(reviewCtx);
-    const reviewTargetRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
+    const reviewTargetRepairFingerprint = this.resolveTargetStateDigest(reviewCtx, persistedPhase);
     const preCheck = checkReviewRetryBelowMax(reviewCtx, phase, {
       treeSha: reviewTargetTreeSha,
       targetStateDigest: reviewTargetRepairFingerprint,
@@ -2297,7 +2347,7 @@ export class RunReviewCommand extends FlowCommand {
         treeSha: reviewTargetTreeSha,
         targetStateDigest: reviewTargetRepairFingerprint,
         resolveTreeSha: () => this.resolveTreeSha(reviewCtx),
-        resolveTargetStateDigest: () => this.resolveTargetStateDigest(reviewCtx),
+        resolveTargetStateDigest: () => this.resolveTargetStateDigest(reviewCtx, persistedPhase),
       },
     );
     if (canonicalBlock) {
@@ -2355,8 +2405,14 @@ export class RunReviewCommand extends FlowCommand {
 
     const stdout = (res.stdout || "").trim();
     const stderr = (res.stderr || "").trim();
+    if (!res.ok) {
+      const draftArtifactFailure = parseDraftArtifactFailure(stderr);
+      if (draftArtifactFailure) {
+        return draftArtifactFailureEnvelope(draftArtifactFailure, persistedPhase);
+      }
+    }
     const currentReviewTreeSha = this.resolveTreeSha(reviewCtx);
-    const currentReviewRepairFingerprint = this.resolveTargetStateDigest(reviewCtx);
+    const currentReviewRepairFingerprint = this.resolveTargetStateDigest(reviewCtx, persistedPhase);
     if (
       currentReviewTreeSha !== reviewTargetTreeSha
       || currentReviewRepairFingerprint !== reviewTargetRepairFingerprint

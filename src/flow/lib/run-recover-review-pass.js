@@ -526,7 +526,7 @@ export function inspectCanonicalReviewPassRecovery({
   });
   const currentTreeSha = authority.resolveTreeSha();
   const fingerprint = authority.captureFingerprint();
-  const targetState = authority.captureTargetState(fingerprint);
+  const targetState = authority.captureTargetStateForPhase(phase, fingerprint);
   const record = convergencePassRecord(state, phase, currentTreeSha, targetState.digest);
   if (!record) return null;
   const recordIndex = state.reviewConvergence.records.indexOf(record);

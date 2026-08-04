@@ -1121,7 +1121,32 @@ function validateDraftReviewArtifact(issues, artifactSet, review) {
   for (const field of ["version", "phase", "sourceDraft", "generatedAt", "verdict", "summary", "blockingFindings", "advisoryFindings", "repairTargets"]) {
     if (!(field in review)) issues.push(`${artifactSet.reviewArtifact}: missing field ${field}`);
   }
-  if (review.version !== 1) issues.push(`${artifactSet.reviewArtifact}: version must be 1`);
+  if (![1, 2].includes(review.version)) issues.push(`${artifactSet.reviewArtifact}: version must be 1 or 2`);
+  if (review.version === 2) {
+    if (!validateArtifactObject(
+      issues,
+      `${artifactSet.reviewArtifact}: sourceDraftRevision`,
+      review.sourceDraftRevision,
+    )) {
+      issues.push(`${artifactSet.reviewArtifact}: version 2 requires sourceDraftRevision`);
+    } else {
+      validateRequiredStringFields(
+        issues,
+        `${artifactSet.reviewArtifact}: sourceDraftRevision`,
+        review.sourceDraftRevision,
+        ["runId", "specId", "sourceStepId", "digest", "finalizedAt"],
+      );
+      if (review.sourceDraftRevision.version !== 1) {
+        issues.push(`${artifactSet.reviewArtifact}: sourceDraftRevision.version must be 1`);
+      }
+      if (!Number.isSafeInteger(review.sourceDraftRevision.byteLength) || review.sourceDraftRevision.byteLength < 1) {
+        issues.push(`${artifactSet.reviewArtifact}: sourceDraftRevision.byteLength must be positive`);
+      }
+      if (!/^[a-f0-9]{64}$/.test(review.sourceDraftRevision.digest || "")) {
+        issues.push(`${artifactSet.reviewArtifact}: sourceDraftRevision.digest must be a SHA-256 digest`);
+      }
+    }
+  }
   if (review.phase !== artifactSet.retryPhase) issues.push(`${artifactSet.reviewArtifact}: phase must be ${artifactSet.retryPhase}`);
   if (review.sourceDraft !== "draft.json") issues.push(`${artifactSet.reviewArtifact}: sourceDraft must be draft.json`);
   validateRequiredString(issues, `${artifactSet.reviewArtifact}: generatedAt`, review.generatedAt);

@@ -24,6 +24,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { FlowSpecId } from "../../lib/flow-spec-id.js";
 import { bindFlowStateLocation } from "../../lib/flow-workspace.js";
+import { createInitialDraftArtifactRevision } from "./draft-artifact-promotion.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { ProcessIdentity, ProcessIdentitySource } from "../../lib/process-identity.js";
@@ -1089,6 +1090,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
         bindFlowStateLocation(state, specLocation);
         state.plugins = { flowCommandHooks: await hookSnapshotFor(executionRoot) };
         const createdSourceFiles = writePrepareFiles();
+        state.draftArtifactRevision = createInitialDraftArtifactRevision({
+          state,
+          draftPath,
+        }).toJSON();
         const lifecycle = await runFlowCommandWithPluginLifecycle(executionRoot, state.plugins.flowCommandHooks, {
           command: "prepare",
           flow: { ...state, specRoot: specLocation.relativeRoot },

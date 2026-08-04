@@ -129,8 +129,8 @@ export default class SetReviewEvidenceCommand extends FlowCommand {
         authority.resolveTreeSha(),
       );
       const fingerprint = authority.captureFingerprint();
-      target.targetStateDigest = fingerprint.hash;
-      target.targetState = authority.captureTargetState(fingerprint);
+      target.targetState = authority.captureTargetStateForPhase(target.phase, fingerprint);
+      target.targetStateDigest = target.targetState.digest;
       input.validateTarget(target);
     } catch (error) {
       if (!error.code && /tree target mismatch/.test(error.message)) {

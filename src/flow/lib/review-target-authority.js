@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { draftReviewTargetState } from "./draft-artifact-promotion.js";
 import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
 import { ReviewTargetState } from "./review-convergence.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
@@ -51,5 +52,11 @@ export class ReviewTargetAuthority {
 
   captureTargetState(fingerprint = this.captureFingerprint()) {
     return ReviewTargetState.fromRepairFingerprint(fingerprint);
+  }
+
+  captureTargetStateForPhase(phase, fingerprint = null) {
+    const draftState = draftReviewTargetState(this.flowState, phase);
+    if (draftState) return new ReviewTargetState(draftState);
+    return this.captureTargetState(fingerprint || this.captureFingerprint());
   }
 }

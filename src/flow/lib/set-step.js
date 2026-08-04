@@ -63,6 +63,11 @@ import {
   NormalStepTransition,
   StepTransitionError,
 } from "./step-transition-policy.js";
+import {
+  DraftArtifactRecoveryError,
+  completeDraftArtifactStep,
+  isDraftArtifactWriterStep,
+} from "./draft-artifact-promotion.js";
 
 function definitionTransitions(state, plan) {
   return plan.actions.flatMap((action) => {
@@ -611,6 +616,36 @@ export default class SetStepCommand extends FlowCommand {
         requestedStatus: status,
       });
       if (fail) return fail;
+      if (isDraftArtifactWriterStep(id)) {
+        try {
+          const completed = completeDraftArtifactStep({
+            mainRoot: ctx.root,
+            executionRoot: ctx.executionRoot || ctx.root,
+            flowManager: ctx.flowManager,
+            state,
+            transition,
+          });
+          return {
+            id,
+            status,
+            promoted: completed.promoted,
+            draftArtifactRevision: completed.revision,
+          };
+        } catch (error) {
+          if (!(error instanceof DraftArtifactRecoveryError)) throw error;
+          return Envelope.fail(
+            "set",
+            "step",
+            error.code,
+            error.message,
+            {
+              ...error.data,
+              recoveryCommand: error.recoveryCommand,
+              retryBudgetConsumed: false,
+            },
+          );
+        }
+      }
     }
     if (status === "done" && ["test-execute", "retro"].includes(id)) {
       const fail = validatePostHookManagedStep(ctx, id);
