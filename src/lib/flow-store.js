@@ -913,6 +913,8 @@ export class FlowStore {
         if (transition.clearRuntimeLog) delete step.runtimeLog;
         if (change.requestedStatus === "in_progress") step.startedAt = now;
       }
+      delete state.draftReviewRevisions;
+      delete state.draftArtifactPromotion;
       result = { resetSteps: transition.changes.map((change) => change.stepId) };
     }, opts);
     return result;

@@ -35,6 +35,7 @@ import {
   taskScopeViolationMessages,
 } from "./task-scope.js";
 import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
+import { registerDraftReviewRevision } from "./draft-review-artifacts.js";
 import {
   deferExhaustedSemanticFindings,
   readBoundedSourceArtifact,
@@ -1869,6 +1870,17 @@ function finalizeReviewCommandResult({
     result.artifacts ||= {};
     result.artifacts.treeSha = treeSha;
     result.artifacts.targetStateDigest = repairFingerprint;
+    const draftRoute = draftReviewRouteForRetryPhase(phase);
+    if (draftRoute) {
+      const state = ctx.flowManager.load();
+      registerDraftReviewRevision({
+        root: ctx.root,
+        state,
+        flowManager: ctx.flowManager,
+        route: draftRoute,
+      });
+      ctx.flowState = ctx.flowManager.load();
+    }
   } catch (error) {
     return reviewExecutionFailureEnvelope(ctx, {
       phase,

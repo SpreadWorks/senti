@@ -58,6 +58,7 @@ function draftReviewResetStepIdsForReopen() {
 const STALE_DRAFT_REVIEW_ARTIFACTS = Object.freeze(draftReviewArtifactNamesForReopen());
 const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(draftReviewResetStepIdsForReopen());
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
+  "draft-gate",
   "spec",
   "spec-review",
   "spec-triage",
@@ -68,10 +69,10 @@ const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "scenario-validity",
   "test-review",
 ]);
-const PLAN_REOPEN_RESET_STEPS = Object.freeze([
+const PLAN_REOPEN_RESET_STEPS = Object.freeze([...new Set([
   ...PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS,
   ...PLAN_REOPEN_ACTIVE_STEPS,
-]);
+])]);
 const FLOW_REWIND_REJECTED_STAGES = new Set([
   "finalize-commit",
   "finalize-merge",

@@ -68,6 +68,11 @@ import {
   completeDraftArtifactStep,
   isDraftArtifactWriterStep,
 } from "./draft-artifact-promotion.js";
+import {
+  DraftReviewArtifactRecoveryError,
+  completeDraftReviewArtifactStep,
+  isDraftReviewArtifactStep,
+} from "./draft-review-artifacts.js";
 
 function definitionTransitions(state, plan) {
   return plan.actions.flatMap((action) => {
@@ -607,6 +612,58 @@ export default class SetStepCommand extends FlowCommand {
       if (id === "implement") {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });
         if (fail) return fail;
+      }
+      if (isDraftReviewArtifactStep(id)) {
+        try {
+          const completedArtifact = completeDraftReviewArtifactStep({
+            mainRoot: ctx.root,
+            executionRoot: ctx.executionRoot || ctx.root,
+            flowManager: ctx.flowManager,
+            state,
+            transition,
+            completeTransition: !isDraftArtifactWriterStep(id),
+          });
+          if (isDraftArtifactWriterStep(id)) {
+            const completedDraft = completeDraftArtifactStep({
+              mainRoot: ctx.root,
+              executionRoot: ctx.executionRoot || ctx.root,
+              flowManager: ctx.flowManager,
+              state,
+              transition,
+            });
+            return {
+              id,
+              status,
+              artifact: completedArtifact.artifact,
+              artifactDigest: completedArtifact.digest,
+              promoted: completedArtifact.promoted || completedDraft.promoted,
+              draftArtifactRevision: completedDraft.revision,
+            };
+          }
+          return {
+            id,
+            status,
+            artifact: completedArtifact.artifact,
+            artifactDigest: completedArtifact.digest,
+            promoted: completedArtifact.promoted,
+          };
+        } catch (error) {
+          if (
+            !(error instanceof DraftReviewArtifactRecoveryError)
+            && !(error instanceof DraftArtifactRecoveryError)
+          ) throw error;
+          return Envelope.fail(
+            "set",
+            "step",
+            error.code,
+            error.message,
+            {
+              ...error.data,
+              ...(error.recoveryCommand && { recoveryCommand: error.recoveryCommand }),
+              retryBudgetConsumed: false,
+            },
+          );
+        }
       }
       const fail = validateStepCompletionTransition({
         root: ctx.root,

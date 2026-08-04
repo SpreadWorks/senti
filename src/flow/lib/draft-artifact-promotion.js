@@ -19,6 +19,11 @@ export const DRAFT_ARTIFACT_WRITER_STEPS = Object.freeze([
 ]);
 
 const DRAFT_ARTIFACT_WRITER_STEP_SET = new Set(DRAFT_ARTIFACT_WRITER_STEPS);
+const DRAFT_ARTIFACT_MUTATOR_STEP_SET = new Set(["draft-coverage-review"]);
+const DRAFT_ARTIFACT_PROMOTION_STEP_SET = new Set([
+  ...DRAFT_ARTIFACT_WRITER_STEP_SET,
+  ...DRAFT_ARTIFACT_MUTATOR_STEP_SET,
+]);
 const REVIEW_SOURCE_STEPS = Object.freeze({
   "draft-questions": new Set(["draft", "draft-questions-repair"]),
   "draft-coverage": new Set(["draft-refine", "draft-coverage-repair"]),
@@ -228,7 +233,7 @@ export class DraftArtifactPromotion {
     this.runId = requireString(input.runId, "draft artifact promotion runId");
     this.specId = requireString(input.specId, "draft artifact promotion specId");
     this.sourceStepId = requireString(input.sourceStepId, "draft artifact promotion sourceStepId");
-    if (!DRAFT_ARTIFACT_WRITER_STEP_SET.has(this.sourceStepId)) {
+    if (!DRAFT_ARTIFACT_PROMOTION_STEP_SET.has(this.sourceStepId)) {
       throw new Error(`unsupported draft artifact source step: ${this.sourceStepId}`);
     }
     this.expectedCanonicalDigest = requireDigest(
@@ -618,6 +623,185 @@ export function completeDraftArtifactStep({
         cause,
         recoveryCommand: `senti flow set step ${transition.stepId} done`,
         data: { sourceStepId: transition.stepId },
+      },
+    );
+  } finally {
+    operation.release();
+  }
+}
+
+function draftDocumentBytes(document) {
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    throw new Error("canonical draft mutation must return a JSON object");
+  }
+  return Buffer.from(`${JSON.stringify(document, null, 2)}\n`);
+}
+
+function mutationSnapshot(canonicalPath, document) {
+  return new DraftArtifactSnapshot({
+    filePath: canonicalPath,
+    bytes: draftDocumentBytes(document),
+  });
+}
+
+function assertMutationPromotionCurrent(flowManager, state, promotion) {
+  const latest = flowManager.load(state.specId);
+  assertFlowIdentity(latest, state);
+  promotion.assertFlow(latest);
+  if (!promotion.matches(latest.draftArtifactPromotion)) {
+    throw new DraftArtifactRecoveryError(
+      "DRAFT_PROMOTION_CHANGED",
+      "pending canonical draft mutation changed before publication",
+    );
+  }
+  return latest;
+}
+
+export function completeCanonicalDraftMutation({
+  root,
+  flowManager,
+  state,
+  sourceStepId,
+  mutateDocument,
+  faultInjector = () => {},
+  processIdentitySource,
+} = {}) {
+  if (!DRAFT_ARTIFACT_MUTATOR_STEP_SET.has(sourceStepId)) {
+    throw new Error(`unsupported canonical draft mutator step: ${sourceStepId}`);
+  }
+  if (typeof mutateDocument !== "function") {
+    throw new Error("canonical draft mutation requires mutateDocument");
+  }
+  const canonicalPath = draftArtifactPath(root, state);
+  const boundary = new DraftArtifactBoundary({
+    canonicalPath,
+    sourcePath: canonicalPath,
+    faultInjector,
+  });
+  const operation = new RepositoryFlowOperationLock({
+    mainRoot: root,
+    ...(processIdentitySource && { processIdentitySource }),
+  });
+  const operationOwnerToken = operation.acquire();
+  try {
+    let current = flowManager.load(state.specId);
+    assertFlowIdentity(current, state);
+    let canonical = boundary.canonical();
+    let promotion = current.draftArtifactPromotion == null
+      ? null
+      : DraftArtifactPromotion.from(current.draftArtifactPromotion);
+    let desired;
+    if (promotion) {
+      promotion.assertFlow(current, sourceStepId);
+      if (canonical.digest === promotion.sourceDigest && canonical.byteLength === promotion.byteLength) {
+        desired = canonical;
+      } else {
+        if (canonical.digest !== promotion.expectedCanonicalDigest) {
+          throw draftConflict(promotion, canonical, canonical);
+        }
+        desired = mutationSnapshot(
+          canonicalPath,
+          mutateDocument(structuredClone(canonical.document)),
+        );
+        if (desired.digest !== promotion.sourceDigest || desired.byteLength !== promotion.byteLength) {
+          throw new DraftArtifactRecoveryError(
+            "DRAFT_PROMOTION_SOURCE_CHANGED",
+            "canonical draft mutation changed while recovering its pending transaction",
+          );
+        }
+      }
+    } else {
+      const previous = DraftArtifactRevision.from(current.draftArtifactRevision);
+      previous.assertFlow(current);
+      if (!previous.matchesSnapshot(canonical)) {
+        throw new DraftArtifactRecoveryError(
+          "DRAFT_PROMOTION_CANONICAL_STALE",
+          "canonical draft no longer matches the recorded revision before metadata mutation",
+          {
+            recoveryCommand: reviewRecoveryCommand("draft-coverage"),
+            data: {
+              expectedDigest: previous.digest,
+              canonicalDigest: canonical.digest,
+            },
+          },
+        );
+      }
+      desired = mutationSnapshot(
+        canonicalPath,
+        mutateDocument(structuredClone(canonical.document)),
+      );
+      if (desired.digest === canonical.digest && desired.byteLength === canonical.byteLength) {
+        return { changed: false, revision: previous.toJSON(), canonicalPath };
+      }
+      promotion = DraftArtifactPromotion.create({
+        state: current,
+        sourceStepId,
+        source: desired,
+        canonical,
+      });
+      current = persistPromotion(flowManager, current, promotion, operationOwnerToken);
+    }
+
+    canonical = boundary.canonical();
+    if (canonical.digest !== promotion.sourceDigest || canonical.byteLength !== promotion.byteLength) {
+      if (canonical.digest !== promotion.expectedCanonicalDigest) {
+        throw draftConflict(promotion, canonical, desired);
+      }
+      new AtomicFile(canonicalPath, {
+        faultInjector,
+        phaseNamespace: "draft",
+        commitGuard: () => {
+          assertMutationPromotionCurrent(flowManager, state, promotion);
+          const latestCanonical = boundary.canonical();
+          if (
+            latestCanonical.digest !== promotion.expectedCanonicalDigest
+            && latestCanonical.digest !== promotion.sourceDigest
+          ) {
+            throw draftConflict(promotion, latestCanonical, desired);
+          }
+        },
+      }).write(desired.bytes);
+    }
+    const published = boundary.canonical();
+    if (!promotion.toRevision().matchesSnapshot(published)) {
+      throw new DraftArtifactRecoveryError(
+        "DRAFT_PROMOTION_INCOMPLETE",
+        "canonical draft metadata mutation did not reach the canonical artifact",
+      );
+    }
+    const revision = promotion.toRevision();
+    flowManager.mutate((latest) => {
+      assertFlowIdentity(latest, state);
+      promotion.assertFlow(latest, sourceStepId);
+      if (!promotion.matches(latest.draftArtifactPromotion)) {
+        throw new DraftArtifactRecoveryError(
+          "DRAFT_PROMOTION_CHANGED",
+          "pending canonical draft mutation changed before revision commit",
+        );
+      }
+      if (!revision.matchesSnapshot(boundary.canonical())) {
+        throw new DraftArtifactRecoveryError(
+          "DRAFT_PROMOTION_INCOMPLETE",
+          "canonical draft changed before revision commit",
+        );
+      }
+      latest.draftArtifactRevision = revision.toJSON();
+      delete latest.draftArtifactPromotion;
+    }, {
+      specId: state.specId,
+      expectedOriginal: current,
+      operationOwnerToken,
+    });
+    return { changed: true, revision: revision.toJSON(), canonicalPath };
+  } catch (cause) {
+    if (cause instanceof DraftArtifactRecoveryError) throw cause;
+    throw new DraftArtifactRecoveryError(
+      "DRAFT_PROMOTION_RECOVERY_REQUIRED",
+      `canonical draft metadata mutation did not complete: ${cause.message}`,
+      {
+        cause,
+        recoveryCommand: `senti flow run review --phase draft`,
+        data: { sourceStepId },
       },
     );
   } finally {

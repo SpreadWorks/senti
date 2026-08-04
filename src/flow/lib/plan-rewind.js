@@ -442,6 +442,8 @@ export function applyPlanRewind(state, rawRequest, rawEvidence = []) {
   }
   const invalidatedRetryRecovery = clone(next.retryRecovery) ?? null;
   next.retryRecovery = null;
+  delete next.draftReviewRevisions;
+  delete next.draftArtifactPromotion;
   const record = new PlanRewindRecord({
     request,
     invalidatedStepIds,

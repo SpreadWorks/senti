@@ -72,6 +72,11 @@ export const DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT = 40;
 
 const ROUTE_BY_RETRY_PHASE = new Map(DRAFT_REVIEW_ROUTES.map((route) => [route.retryPhase, route]));
 const ROUTE_BY_KEY = new Map(DRAFT_REVIEW_ROUTES.map((route) => [route.key, route]));
+const ROUTE_BY_STEP_ID = new Map(DRAFT_REVIEW_ROUTES.flatMap((route) => [
+  [route.reviewStepId, route],
+  [route.triageStepId, route],
+  [route.repairStepId, route],
+]));
 
 export function draftReviewRouteForRetryPhase(retryPhase) {
   return ROUTE_BY_RETRY_PHASE.get(retryPhase) || null;
@@ -79,4 +84,8 @@ export function draftReviewRouteForRetryPhase(retryPhase) {
 
 export function draftReviewRouteForKey(key) {
   return ROUTE_BY_KEY.get(key) || null;
+}
+
+export function draftReviewRouteForStepId(stepId) {
+  return ROUTE_BY_STEP_ID.get(stepId) || null;
 }

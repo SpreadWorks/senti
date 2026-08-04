@@ -13,6 +13,7 @@
 
 import fs from "fs";
 import path from "path";
+import { AtomicFile } from "../lib/atomic-file.js";
 import { draftReviewRouteForKey, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import {
   flattenSteps,
@@ -366,15 +367,17 @@ function resolveDraftReviewLifecycle(input) {
   const verdict = input.result?.artifacts?.verdict;
   const actions = [];
   if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) return actions;
+  if (verdict === "PASS") {
+    actions.push(new RunLifecycleHook({
+      module: "review",
+      handler: "commitDraftReviewPassArtifacts",
+      args: { retryPhase: route.retryPhase },
+    }));
+  }
   actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
   if (verdict === "PASS") {
     actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
     actions.push(new SetStepStatus({ step: route.repairStepId, status: "done" }));
-    actions.push(new RunLifecycleHook({
-      module: "review",
-      handler: "writeEmptyDraftReviewRouteArtifacts",
-      args: { retryPhase: route.retryPhase },
-    }));
   }
   actions.push(new IncrementMetric({ phase: route.retryPhase, counter: "reviewRetry" }));
   return actions;
@@ -694,10 +697,16 @@ function writeEmptyDraftReviewArtifact({
     summary: requireString(summary, "summary"),
     items: [],
   };
-  fs.writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`);
+  new AtomicFile(file, { phaseNamespace: "draft-review" })
+    .write(`${JSON.stringify(payload, null, 2)}\n`);
 }
 
-export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedAt = new Date().toISOString() }) {
+export function writeEmptyDraftReviewRouteArtifacts({
+  specDir,
+  route,
+  generatedAt = new Date().toISOString(),
+  approveDraft = true,
+}) {
   fs.mkdirSync(specDir, { recursive: true });
   writeEmptyDraftReviewArtifact({
     file: path.join(specDir, route.triageArtifact),
@@ -715,16 +724,21 @@ export function writeEmptyDraftReviewRouteArtifacts({ specDir, route, generatedA
     generatedAt,
     summary: "No draft triage items to repair.",
   });
+  let approvalEligible = false;
   if (route.key === "coverage") {
     const draftPath = path.join(specDir, "draft.json");
     const draft = JSON.parse(fs.readFileSync(draftPath, "utf8"));
     const unresolved = Array.isArray(draft.qa)
       && draft.qa.some((entry) => entry?.status === "pending" || entry?.status === "approved");
     if (!unresolved) {
-      draft.approval = { ...(draft.approval || {}), approved: true, confirmedAt: generatedAt };
-      fs.writeFileSync(draftPath, `${JSON.stringify(draft, null, 2)}\n`);
+      approvalEligible = true;
+      if (approveDraft) {
+        draft.approval = { ...(draft.approval || {}), approved: true, confirmedAt: generatedAt };
+        fs.writeFileSync(draftPath, `${JSON.stringify(draft, null, 2)}\n`);
+      }
     }
   }
+  return Object.freeze({ approvalEligible, generatedAt });
 }
 
 export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {

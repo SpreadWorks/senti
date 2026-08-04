@@ -10,6 +10,7 @@ import {
   DraftArtifactPromotion,
   DraftArtifactRevision,
 } from "../flow/lib/draft-artifact-promotion.js";
+import { DraftReviewRevisionBinding } from "../flow/lib/draft-review-revision.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -159,6 +160,14 @@ export class FlowState {
     }
     if (value.draftArtifactPromotion != null) {
       DraftArtifactPromotion.from(value.draftArtifactPromotion).assertFlow(value);
+    }
+    if (value.draftReviewRevisions != null) {
+      invariant(isPlainObject(value.draftReviewRevisions), "draftReviewRevisions must be an object");
+      for (const [phase, stored] of Object.entries(value.draftReviewRevisions)) {
+        const binding = DraftReviewRevisionBinding.from(stored);
+        invariant(binding.phase === phase, `draftReviewRevisions.${phase} phase does not match its key`);
+        binding.revision.assertFlow(value);
+      }
     }
     if (revision) {
       const identity = revision.identity;
