@@ -1711,7 +1711,7 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: senti flow run repair-plan-gate ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Rewind a failed draft/spec gate to its worker-artifact handoff step.",
+        "Rewind a failed draft/spec gate or scenario-validity check to its worker-artifact handoff step.",
         "The command freezes the canonical blocking observations in Flow state;",
         "the worker may publish only through the normal handoff authority.",
         "",

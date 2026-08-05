@@ -9,6 +9,7 @@
      - existence-only checks
      - catch-all PASS handling
      - split-removed separator literal assertions
+     - module paths, exports, methods, constants, or artifact shapes invented by the test but not fixed by the spec or an existing public API
    - Verdicts:
      - `PASS`: no blocking or advisory findings. The post hook marks `test-review` done.
      - `ADVISORY`: non-blocking findings were recorded, but implementation may proceed. The post hook marks `test-review` done.

@@ -2409,6 +2409,7 @@ function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
       "- a critical risk has no regression test",
       "- a test is not executable or clearly contradicts the target API",
       "- a test encodes an incorrect implementation premise",
+      "- a test invents a module path, export, function, constant, method, or artifact shape not fixed by the spec or an existing public API",
       "- the requirement coverage artifact contradicts the actual test files",
       "- the test has a static anti-pattern that would pass without exercising production behavior",
       "Use advisoryFindings[] for non-blocking improvements:",

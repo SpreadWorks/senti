@@ -3,7 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, test } from "node:test";
 import { runSpecLocalTests } from "../../../src/flow/lib/run-test-execute.js";
-import { runScenarioValidityTestFiles } from "../../../src/flow/lib/run-scenario-validity.js";
+import {
+  buildScenarioValidityExecutions,
+  buildScenarioValiditySummary,
+  runScenarioValidityTestFiles,
+} from "../../../src/flow/lib/run-scenario-validity.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 let root;
@@ -80,4 +84,59 @@ test("scenario validity uses the same execution-root module authority", async ()
 
   assert.equal(record.process.exitCode, 0, record.process.stderr || record.process.stdout);
   assert.equal(record.process.spawnError, null);
+});
+
+test("scenario validity classifies each R-N test independently within one file", async () => {
+  root = createTmpDir("shared-scenario-requirement-execution-");
+  const repositoryRoot = path.join(root, "base");
+  const executionRoot = path.join(root, "worktree");
+  const specDir = path.join(repositoryRoot, "specs", "486-requirement-results");
+  for (const checkout of [repositoryRoot, executionRoot]) {
+    write(path.join(checkout, "package.json"), "{\"type\":\"module\"}\n");
+  }
+  const testFile = path.join(specDir, "tests", "requirements.test.js");
+  const source = [
+    "// spec: R1 R2",
+    "import assert from 'node:assert/strict';",
+    "import test from 'node:test';",
+    "test('R1: already implemented behavior', () => assert.equal(1, 1));",
+    "test('R2: missing behavior', () => assert.equal(1, 2));",
+    "",
+  ].join("\n");
+  write(testFile, source);
+  const testEntries = [{ file: testFile, source, firstLine: "// spec: R1 R2" }];
+  const requirements = [{ id: "R1" }, { id: "R2" }];
+  const executions = buildScenarioValidityExecutions({ testEntries, requirements });
+
+  const records = await runScenarioValidityTestFiles({
+    root: executionRoot,
+    repositoryRoot,
+    specDir,
+    files: [testFile],
+    executions,
+    timeoutMs: 10_000,
+  });
+  const summary = buildScenarioValiditySummary({
+    root: repositoryRoot,
+    files: [testFile],
+    testEntries,
+    fileRecords: records,
+    requirements,
+    command: "node --test",
+    range: { start_line: 1, end_line: 1 },
+  });
+
+  assert.deepEqual(records.map((record) => record.requirementId), ["R1", "R2"]);
+  assert.deepEqual(
+    records.map((record) => record.process.exitCode),
+    [0, 1],
+    JSON.stringify(records.map((record) => ({
+      command: record.command,
+      stdout: record.process.stdout,
+      stderr: record.process.stderr,
+    })), null, 2),
+  );
+  assert.deepEqual(summary.map((entry) => entry.classification), ["unexpected_pass", "expected_fail"]);
+  assert.match(summary[0].evidence.command, /--test-name-pattern=\^R1:/);
+  assert.match(summary[1].evidence.command, /--test-name-pattern=\^R2:/);
 });

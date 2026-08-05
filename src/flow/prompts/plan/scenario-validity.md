@@ -8,5 +8,5 @@
      - `<configured-spec-root>/<specId>/tests/.raw/scenario-validity.log`
    - A passing scenario-validity result requires every testable requirement to classify as `expected_fail`.
    - Blocking classifications are `unexpected_pass`, `invalid_test`, `skipped`, and `not_run`.
-   - If the command blocks, fix the spec-local tests or remove disallowed implementation-target changes, then rerun this step. Do not start implementation while scenario-validity is blocked.
+   - If runtime classifications block, the command records governed repair evidence and next-action rewinds through `repair-plan-gate` to the dispatcher-owned `test` handoff. Repair the frozen observations there; never edit canonical spec tests directly. A preflight block caused by existing implementation-target changes follows its dedicated bootstrap/recovery route. Do not start implementation while scenario-validity is blocked.
    - **On complete:** the registry post-hook marks this step done automatically. Do not call `flow set step scenario-validity done` manually.

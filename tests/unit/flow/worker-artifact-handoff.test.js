@@ -533,6 +533,44 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("rejects spec tests that statically import a missing execution module", () => {
+    const value = fixture("test");
+    try {
+      fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(
+        path.join(request.payloadPath("spec-tests"), "future-module.test.js"),
+        [
+          "// spec: R1",
+          "import test from 'node:test';",
+          "import value from '../../../src/not-yet-implemented.js';",
+          "test('R1: future module', () => value);",
+          "",
+        ].join("\n"),
+      );
+      seal(request);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "invalid"
+          && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID"
+          && /missing pre-implementation module/.test(error.message),
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "test").status, "in_progress");
+      assert.equal(
+        fs.existsSync(path.join(canonicalSpecDir(value), "tests", "future-module.test.js")),
+        false,
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("rejects worker output in the command-owned test evidence directory", () => {
     const value = fixture("test");
     try {

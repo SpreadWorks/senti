@@ -52,6 +52,7 @@ import {
   ExecuteStepDirective,
   IdleDirective,
   NextActionDirectiveResolver,
+  RepairEvidenceDirective,
 } from "./next-action-directive.js";
 import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import { guardedCommand } from "./guarded-command.js";
@@ -68,6 +69,7 @@ import {
   requiresWorkerArtifactHandoff,
 } from "./flow-artifact-authority.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
+import { inspectScenarioValidityTestRepair } from "./run-repair-plan-gate.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -280,6 +282,20 @@ function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
     nextAction: guardedCommand("senti flow run preimplementation-bootstrap", state, binding),
     instruction: "Use the persisted scenario-validity preflight evidence to enter implementation without reclassifying existing implementation-target changes as test design.",
     reason: `scenario-validity detected ${plan.invalidPaths.length} existing implementation-target change(s) against the immutable Flow baseline`,
+  });
+}
+
+function buildScenarioTestRepairDirective(ctx, state, target, binding) {
+  if (target.stepId !== "scenario-validity") return null;
+  const source = inspectScenarioValidityTestRepair({ root: ctx.root, state });
+  if (!source) return null;
+  return new RepairEvidenceDirective({
+    actionId: "REPAIR_SCENARIO_TESTS",
+    evidenceKind: "test",
+    phase: "test",
+    instruction: "Run the guarded scenario-test repair transition. It freezes the command-owned blocking classifications and rewinds to the test worker handoff; do not edit canonical spec tests directly.",
+    reason: source.reason,
+    nextAction: guardedCommand("senti flow run repair-plan-gate", state, binding),
   });
 }
 
@@ -496,6 +512,7 @@ function buildNextActionResult(
     ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target, binding)
+    || buildScenarioTestRepairDirective(ctx, state, target, binding)
     || buildCanonicalReviewPassRecoveryDirective(ctx, state, binding)
     || outboxRecovery?.directive
     || new NextActionDirectiveResolver({

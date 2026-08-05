@@ -9,6 +9,7 @@ import { DEFAULT_TEST_TIMEOUT_SECONDS } from "./test-regression.js";
 import { RepairStateError, resolveRepairBaselineAuthority } from "./repair-state-identity.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
+import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RESULT_FILE,
@@ -21,6 +22,43 @@ export { resolveRepairBaselineAuthority as resolveScenarioValidityBaselineAuthor
 
 function normalizePath(p) {
   return p.split(path.sep).join("/");
+}
+
+export class ScenarioValidityExecution {
+  constructor({ file, requirementId = null }) {
+    if (typeof file !== "string" || file === "") {
+      throw new Error("scenario-validity execution file is required");
+    }
+    if (requirementId !== null && (typeof requirementId !== "string" || requirementId === "")) {
+      throw new Error("scenario-validity requirement id must be null or a non-empty string");
+    }
+    this.file = file;
+    this.requirementId = requirementId;
+    Object.freeze(this);
+  }
+
+  nodeArguments(relativeFile) {
+    return [
+      "--test",
+      ...(this.requirementId ? [`--test-name-pattern=^${escapeRegExp(this.requirementId)}:`] : []),
+      relativeFile,
+    ];
+  }
+}
+
+class ScenarioValidityExecutionRecord {
+  constructor({ execution, rel, command, process }) {
+    if (!(execution instanceof ScenarioValidityExecution)) {
+      throw new Error("scenario-validity record requires an execution");
+    }
+    this.file = execution.file;
+    this.requirementId = execution.requirementId;
+    this.rel = rel;
+    this.command = command;
+    this.process = process;
+    this.rawText = processLines(process).join("\n");
+    Object.freeze(this);
+  }
 }
 
 async function walkFiles(dir) {
@@ -112,11 +150,12 @@ export function listScenarioValidityPreflightFiles({ root, baselineRef }) {
 
 export async function runScenarioValidityProcess({ argv, cwd, timeoutMs, env = {} }) {
   try {
+    const { NODE_TEST_CONTEXT: _nodeTestContext, ...environment } = process.env;
     const result = await runCmdAsync(argv[0], argv.slice(1), {
       cwd,
       timeout: timeoutMs,
       maxBuffer: 20 * 1024 * 1024,
-      env: { ...process.env, ...env },
+      env: { ...environment, ...env },
     });
     const spawnError = result.errorCode && result.errorCode !== "ETIMEDOUT"
       ? `${result.errorCode}: ${result.stderr || argv[0]}`
@@ -177,6 +216,14 @@ function findTestEntriesForReq(entries, reqId) {
   return entries.filter((entry) => new RegExp(`\\b${reqId}\\b`).test(entry.firstLine));
 }
 
+export function buildScenarioValidityExecutions({ testEntries, requirements }) {
+  return requirements
+    .filter((requirement) => requirement.testable !== false)
+    .flatMap((requirement) => findTestEntriesForReq(testEntries, requirement.id).map((entry) => (
+      new ScenarioValidityExecution({ file: entry.file, requirementId: requirement.id })
+    )));
+}
+
 function extractRequirementTestName(entry, reqId) {
   const src = entry.source;
   const re = new RegExp(`(?:it|test)\\(\\s*["'\`](${reqId}: [^"'\`]+)["'\`]`);
@@ -198,40 +245,68 @@ function processInvalid(process, rawText) {
   return Boolean(process.spawnError || process.signal || process.timedOut || /SyntaxError|ERR_MODULE|Cannot find module|ReferenceError/i.test(rawText));
 }
 
-export async function runScenarioValidityTestFiles({ root, repositoryRoot = root, specDir, files, timeoutMs }) {
+export async function runScenarioValidityTestFiles({
+  root,
+  repositoryRoot = root,
+  specDir,
+  files,
+  executions = null,
+  timeoutMs,
+}) {
   const execution = new SharedSpecTestExecution({
     repositoryRoot,
     executionRoot: root,
     specRoot: path.dirname(specDir),
   });
+  const targets = executions ?? files.map((file) => new ScenarioValidityExecution({ file }));
   const records = [];
-  for (const file of files) {
-    const rel = normalizePath(path.relative(root, file));
-    const argv = execution.nodeArgv([rel]);
+  for (const target of targets) {
+    const rel = normalizePath(path.relative(root, target.file));
+    const argv = execution.nodeArgv(target.nodeArguments(rel));
     const process = await runScenarioValidityProcess({
       argv,
       cwd: root,
       timeoutMs,
       env: execution.environment,
     });
-    records.push({
-      file,
+    records.push(new ScenarioValidityExecutionRecord({
+      execution: target,
       rel,
       command: argv.join(" "),
       process,
-      rawText: processLines(process).join("\n"),
-    });
+    }));
   }
   return records;
 }
 
-function buildSummary({ root, files, testEntries, fileRecords, requirements, command, range }) {
+function evidenceRange(records, recordRanges, fallback) {
+  const ranges = records.map((record) => recordRanges?.get(record)).filter(Boolean);
+  if (ranges.length === 0) return fallback;
+  return {
+    start_line: Math.min(...ranges.map((range) => range.start_line)),
+    end_line: Math.max(...ranges.map((range) => range.end_line)),
+  };
+}
+
+export function buildScenarioValiditySummary({
+  root,
+  files,
+  testEntries,
+  fileRecords,
+  requirements,
+  command,
+  range,
+  recordRanges = new Map(),
+}) {
   return requirements
     .filter((req) => req.testable !== false)
     .map((req) => {
       const reqEntries = findTestEntriesForReq(testEntries, req.id);
       const entry = reqEntries[0];
-      const reqRecords = reqEntries.map((reqEntry) => fileRecords.find((record) => record.file === reqEntry.file)).filter(Boolean);
+      const requirementRecords = fileRecords.filter((record) => record.requirementId === req.id);
+      const reqRecords = requirementRecords.length > 0
+        ? requirementRecords
+        : reqEntries.map((reqEntry) => fileRecords.find((record) => record.file === reqEntry.file)).filter(Boolean);
       const classification = (() => {
         if (reqEntries.length === 0) return "not_run";
         if (reqEntries.some((candidate) => sourceLooksSkipped(candidate, req.id))) return "skipped";
@@ -245,11 +320,53 @@ function buildSummary({ root, files, testEntries, fileRecords, requirements, com
         evidence: {
           test_file: entry ? normalizePath(path.relative(root, entry.file)) : normalizePath(path.relative(root, path.join(path.dirname(files[0] || root), `${req.id.toLowerCase()}.test.js`))),
           test_name: entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`,
-          command,
-          raw_output_lines: range,
+          command: reqRecords[0]?.command || command,
+          raw_output_lines: evidenceRange(reqRecords, recordRanges, range),
         },
       };
     });
+}
+
+export function recordScenarioValidityRepairEvidence({
+  root,
+  state,
+  summary,
+  timestamp = new Date().toISOString(),
+}) {
+  const blocking = summary
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.classification !== "expected_fail");
+  if (blocking.length === 0) return null;
+  const testRevisionDigest = state.specTestArtifactRevision?.digest || null;
+  const issueLogId = [
+    "scenario-validity-test-repair",
+    state.runId,
+    testRevisionDigest || "unversioned",
+  ].join("-");
+  const observations = blocking.slice(0, 64).map(({ entry, index }) => ({
+    kind: "violation",
+    failureMode: entry.classification,
+    requirementRef: entry.id,
+    where: {
+      file: entry.evidence.test_file,
+      locator: entry.evidence.test_name,
+    },
+    observed: `Scenario validity classified ${entry.id} as ${entry.classification} before implementation.`,
+    severity: "blocking",
+    refs: [`scenario-validity-result.json#summary.${index}`],
+  }));
+  const stored = appendIssueLogEntry(root, relativeFlowSpecFile(state), {
+    step: "scenario-validity",
+    phase: "test",
+    reason: blocking.map(({ entry }) => `${entry.id}=${entry.classification}`).join(", "),
+    trigger: "scenario-validity found a test-design blocker before implementation",
+    resolution: "Rewind to the governed test handoff and replace the invalid test premise.",
+    sourceArtifact: "scenario-validity-result.json",
+    testRevisionDigest,
+    observations,
+    timestamp,
+  }, issueLogId);
+  return stored.entry;
 }
 
 function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, rawOutputPath, requirements, command, err }) {
@@ -416,88 +533,108 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       || config?.test?.timeout
       || config?.agent?.timeout
       || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
+    const executions = buildScenarioValidityExecutions({ testEntries, requirements });
     const fileRecords = await this.scenarioTestExecutor({
       root: executionRoot,
       repositoryRoot: root,
       specDir,
       files,
+      executions,
       timeoutMs,
     });
-      const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
-      const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
-      const scenarioProcess = fileRecords.length === 0
-        ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
-        : {
-            started: fileRecords.some((record) => record.process.started),
-            exitCode: failedRecords.length === 0 ? 0 : failedRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
-            signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
-            timedOut: fileRecords.some((record) => record.process.timedOut),
-            spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
-            stdout: "",
-            stderr: "",
-          };
-      const range = appendRaw(rawLines, [
-        "[senti] scenario-validity tests start",
-        `command: ${command}`,
-        ...fileRecords.flatMap((record) => [
-          `[senti] scenario-validity file start command=${record.command}`,
-          ...processLines(record.process),
-          `[senti] scenario-validity file end command=${record.command}`,
-        ]),
-        ...processLines(scenarioProcess),
-        ...requirements.filter((req) => req.testable !== false).map((req) => {
-          const entry = findTestEntriesForReq(testEntries, req.id)[0];
-          const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
-          return `[senti] requirement ${req.id} observed: ${testName}`;
-        }),
-        "[senti] scenario-validity tests end",
-      ]);
-      const rawText = rawLines.join("\n");
-      const summary = buildSummary({ root, files, testEntries, fileRecords, requirements, command, range });
-      const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
-      const artifact = {
-        version: "1",
-        raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-        command,
-        process: {
-          started: scenarioProcess.started,
-          exitCode: scenarioProcess.exitCode,
-          signal: scenarioProcess.signal,
-          timedOut: scenarioProcess.timedOut,
-          spawnError: scenarioProcess.spawnError,
-        },
-        result,
-        summary,
-      };
-      await fs.promises.writeFile(rawOutputPath, rawText + "\n");
-      validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText, rawLines, testFileSources });
-      await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
+    const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
+    const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
+    const scenarioProcess = fileRecords.length === 0
+      ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
+      : {
+          started: fileRecords.some((record) => record.process.started),
+          exitCode: failedRecords.length === 0 ? 0 : failedRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
+          signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
+          timedOut: fileRecords.some((record) => record.process.timedOut),
+          spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
+          stdout: "",
+          stderr: "",
+        };
+    appendRaw(rawLines, [
+      "[senti] scenario-validity tests start",
+      `command: ${command}`,
+    ]);
+    const recordRanges = new Map();
+    for (const record of fileRecords) {
+      const requirementLabel = record.requirementId || "unscoped";
+      recordRanges.set(record, appendRaw(rawLines, [
+        `[senti] scenario-validity requirement ${requirementLabel} file start command=${record.command}`,
+        ...processLines(record.process),
+        `[senti] scenario-validity requirement ${requirementLabel} file end command=${record.command}`,
+      ]));
+    }
+    appendRaw(rawLines, [
+      ...processLines(scenarioProcess),
+      ...requirements.filter((req) => req.testable !== false).map((req) => {
+        const entry = findTestEntriesForReq(testEntries, req.id)[0];
+        const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
+        return `[senti] requirement ${req.id} observed: ${testName}`;
+      }),
+      "[senti] scenario-validity tests end",
+    ]);
+    const rawText = rawLines.join("\n");
+    const range = { start_line: 1, end_line: rawLines.length };
+    const summary = buildScenarioValiditySummary({
+      root,
+      files,
+      testEntries,
+      fileRecords,
+      requirements,
+      command,
+      range,
+      recordRanges,
+    });
+    const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
+    const artifact = {
+      version: "1",
+      raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
+      command,
+      process: {
+        started: scenarioProcess.started,
+        exitCode: scenarioProcess.exitCode,
+        signal: scenarioProcess.signal,
+        timedOut: scenarioProcess.timedOut,
+        spawnError: scenarioProcess.spawnError,
+      },
+      result,
+      summary,
+    };
+    await fs.promises.writeFile(rawOutputPath, rawText + "\n");
+    validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText, rawLines, testFileSources });
+    await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
 
-      const output = {
+    const output = {
+      result,
+      changed: [
+        normalizePath(path.relative(root, resultPath)),
+        normalizePath(path.relative(root, rawOutputPath)),
+      ],
+      artifacts: {
+        result_path: normalizePath(path.relative(root, resultPath)),
+        raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
+        completed: result === "pass",
+        artifact_version: "1",
         result,
-        changed: [
-          normalizePath(path.relative(root, resultPath)),
-          normalizePath(path.relative(root, rawOutputPath)),
-        ],
-        artifacts: {
-          result_path: normalizePath(path.relative(root, resultPath)),
-          raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-          completed: result === "pass",
-          artifact_version: "1",
-          result,
-        },
-        next: result === "pass" ? "test-review" : null,
-      };
-      if (result !== "pass") {
-        return Envelope.fail(
-          "run",
-          "scenario-validity",
-          "SCENARIO_VALIDITY_BLOCKED",
-          `scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`,
-          output,
-        );
-      }
-      return output;
+      },
+      next: result === "pass" ? "test-review" : null,
+    };
+    if (result !== "pass") {
+      recordScenarioValidityRepairEvidence({ root, state, summary });
+      output.changed.push(normalizePath(path.relative(root, path.join(specDir, "issue-log.json"))));
+      return Envelope.fail(
+        "run",
+        "scenario-validity",
+        "SCENARIO_VALIDITY_BLOCKED",
+        `scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`,
+        output,
+      );
+    }
+    return output;
     } catch (err) {
       const artifactsExist = await Promise.all([
         fs.promises.access(resultPath).then(() => true, () => false),

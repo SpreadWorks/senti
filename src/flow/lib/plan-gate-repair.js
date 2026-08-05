@@ -132,6 +132,12 @@ const ROUTES = Object.freeze([
     targetStepId: "spec",
     resetStepIds: ["spec", "spec-review", "spec-triage", "spec-repair", "spec-gate"],
   }),
+  new PlanGateRepairRoute({
+    phase: "test",
+    gateStepId: "scenario-validity",
+    targetStepId: "test",
+    resetStepIds: ["test", "scenario-validity"],
+  }),
 ]);
 
 const ROUTE_BY_PHASE = new Map(ROUTES.map((route) => [route.phase, route]));

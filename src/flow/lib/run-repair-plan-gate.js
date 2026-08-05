@@ -18,6 +18,7 @@ import { findStepById } from "./step-tree.js";
 function phaseForActiveGate(stepId) {
   if (stepId === "draft-gate") return "draft";
   if (stepId === "spec-gate") return "spec";
+  if (stepId === "scenario-validity") return "test";
   return null;
 }
 
@@ -29,6 +30,14 @@ function latestRepairableGateEntry(root, state, phase) {
     && Array.isArray(entry?.observations)
     && entry.observations.some((observation) => observation?.severity === "blocking")
   )) || null;
+}
+
+export function inspectScenarioValidityTestRepair({ root, state }) {
+  if (findActiveNode(state)?.stepId !== "scenario-validity") return null;
+  const source = latestRepairableGateEntry(root, state, "test");
+  if (source?.sourceArtifact !== "scenario-validity-result.json") return null;
+  const currentRevision = state.specTestArtifactRevision?.digest || null;
+  return (source.testRevisionDigest || null) === currentRevision ? source : null;
 }
 
 class PlanGateRepairCommitIntent extends StepTransitionCommitIntent {
@@ -54,21 +63,25 @@ class PlanGateRepairCommitIntent extends StepTransitionCommitIntent {
   applyTo(state) {
     this.record.assertFlow(state);
     state.planGateRepair = this.record.toJSON();
-    state.metrics = Array.isArray(state.metrics) ? state.metrics : [];
-    state.metrics.push({
-      phase: this.record.phase,
-      counter: "gateRetry",
-      delta: 0,
-      reset: true,
-      ts: this.record.requestedAt,
-    });
-    state.metrics.push({
-      phase: this.record.phase === "draft" ? "draft-coverage" : "spec",
-      counter: "reviewRetry",
-      delta: 0,
-      reset: true,
-      ts: this.record.requestedAt,
-    });
+    if (this.record.phase !== "test") {
+      state.metrics = Array.isArray(state.metrics) ? state.metrics : [];
+      state.metrics.push({
+        phase: this.record.phase,
+        counter: "gateRetry",
+        delta: 0,
+        reset: true,
+        ts: this.record.requestedAt,
+      });
+      state.metrics.push({
+        phase: this.record.phase === "draft" ? "draft-coverage" : "spec",
+        counter: "reviewRetry",
+        delta: 0,
+        reset: true,
+        ts: this.record.requestedAt,
+      });
+    } else {
+      delete state.specTestArtifactRevision;
+    }
     if (this.record.phase === "draft" && state.draftReviewRevisions?.["draft-coverage"]) {
       delete state.draftReviewRevisions["draft-coverage"];
     }
@@ -118,11 +131,13 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         "run",
         "repair-plan-gate",
         "PLAN_GATE_REPAIR_STAGE_UNSUPPORTED",
-        "plan gate repair requires draft-gate or spec-gate to be in progress",
+        "plan gate repair requires draft-gate, spec-gate, or scenario-validity to be in progress",
       );
     }
     const route = planGateRepairRouteForPhase(phase);
-    const source = latestRepairableGateEntry(ctx.root, state, phase);
+    const source = phase === "test"
+      ? inspectScenarioValidityTestRepair({ root: ctx.root, state })
+      : latestRepairableGateEntry(ctx.root, state, phase);
     if (!source) {
       return Envelope.fail(
         "run",

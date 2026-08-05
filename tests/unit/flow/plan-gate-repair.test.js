@@ -25,6 +25,7 @@ import {
   updateGateRetryCounter,
 } from "../../../src/flow/lib/run-gate.js";
 import { dispatchRepositoryFingerprint } from "../../../src/flow/lib/run-dispatch.js";
+import { recordScenarioValidityRepairEvidence } from "../../../src/flow/lib/run-scenario-validity.js";
 import { appendIssueLogEntry, loadIssueLog } from "../../../src/flow/lib/set-issue-log.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
@@ -101,6 +102,73 @@ function planGateFixture({ worktree = true, phase = "draft" } = {}) {
     executionRoot,
     flowManager,
     flowState: flowManager.load(),
+    specId: SPEC_ID,
+  };
+  return { mainRoot, executionRoot, specDir, flowManager, ctx };
+}
+
+function scenarioRepairFixture() {
+  const mainRoot = createTmpDir("scenario-test-repair-");
+  initGit(mainRoot);
+  const executionRoot = path.join(mainRoot, "execution");
+  fs.mkdirSync(executionRoot, { recursive: true });
+  const state = moveFlowToStep(makeFlowState({
+    specId: SPEC_ID,
+    runId: RUN_ID,
+    issue: 494,
+    request: "Repair invalid scenario tests before implementation.",
+    worktree: true,
+    specTestArtifactRevision: {
+      version: 1,
+      runId: RUN_ID,
+      specId: SPEC_ID,
+      stepId: "test",
+      digest: "1".repeat(64),
+      byteLength: 100,
+      finalizedAt: "2026-08-05T00:00:00.000Z",
+    },
+  }), "scenario-validity");
+  const flowManager = new FlowManager({
+    root: executionRoot,
+    mainRoot,
+    inWorktree: true,
+    specId: SPEC_ID,
+  });
+  flowManager.create(state);
+  const specDir = path.join(mainRoot, "specs", SPEC_ID);
+  fs.writeFileSync(path.join(specDir, "issue.md"), "Issue 494 requires scenario-test repair.\n");
+  fs.writeFileSync(path.join(specDir, "spec.json"), json(validWorkerHandoffSpec()));
+  fs.mkdirSync(path.join(specDir, "tests"), { recursive: true });
+  fs.writeFileSync(path.join(specDir, "tests", "scenario.test.js"), [
+    "// spec: R1",
+    "import test from 'node:test';",
+    "test('R1: invalid premise', () => {});",
+    "",
+  ].join("\n"));
+  fs.writeFileSync(path.join(specDir, "scenario-validity-result.json"), json({
+    version: "1",
+    result: "block",
+  }));
+  const current = flowManager.load();
+  recordScenarioValidityRepairEvidence({
+    root: mainRoot,
+    state: current,
+    summary: [{
+      id: "R1",
+      classification: "invalid_test",
+      evidence: {
+        test_file: `specs/${SPEC_ID}/tests/scenario.test.js`,
+        test_name: "R1: invalid premise",
+      },
+    }],
+    timestamp: "2026-08-05T00:00:30.000Z",
+  });
+  const ctx = {
+    root: mainRoot,
+    mainRoot,
+    executionRoot,
+    flowManager,
+    flowState: current,
     specId: SPEC_ID,
   };
   return { mainRoot, executionRoot, specDir, flowManager, ctx };
@@ -191,6 +259,67 @@ describe("governed plan-gate repair", () => {
         },
       });
       assert.deepEqual(request.inputs.map((input) => input.name), ["draft.json", "spec.json"]);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("routes invalid scenario evidence through a changed test handoff instead of repeating scenario-validity", () => {
+    const value = scenarioRepairFixture();
+    try {
+      const plan = new NextActionPlanner().build({
+        root: value.mainRoot,
+        mainRoot: value.mainRoot,
+        executionRoot: value.executionRoot,
+        flowState: value.flowManager.load(),
+        config: {},
+        flowCommandBoundary: false,
+      });
+      assert.equal(plan.result.directive.kind, "repair_evidence");
+      assert.equal(plan.result.directive.actionId, "REPAIR_SCENARIO_TESTS");
+      assert.match(plan.result.directive.nextAction, /^senti flow run repair-plan-gate /);
+
+      const result = repair(value);
+      let state = value.flowManager.load();
+      assert.equal(result.data.previousStep, "scenario-validity");
+      assert.equal(findActiveNode(state).stepId, "test");
+      assert.equal(state.planGateRepair.phase, "test");
+      assert.equal(state.specTestArtifactRevision, undefined);
+
+      const coordinator = new WorkerArtifactHandoffCoordinator();
+      const request = coordinator.createRequest({
+        ctx: value.ctx,
+        state,
+        invocation: {
+          id: "dispatch-scenario-test-repair",
+          action: {
+            digest: "9".repeat(64),
+            nextAction: { step: "test" },
+          },
+        },
+      });
+      assert.deepEqual(
+        request.inputs.map((input) => input.targetRelativePath),
+        ["spec.json", "scenario-validity-result.json"],
+      );
+      fs.writeFileSync(path.join(request.payloadPath("spec-tests"), "scenario.test.js"), [
+        "// spec: R1",
+        "import assert from 'node:assert/strict';",
+        "import test from 'node:test';",
+        "test('R1: declared behavior', () => assert.fail('not implemented'));",
+        "",
+      ].join("\n"));
+      sealWorkerArtifactHandoff({
+        requestPath: request.requestPath,
+        invocationId: request.dispatchInvocationId,
+      });
+
+      const published = coordinator.reconcile({ ctx: value.ctx, request });
+      state = value.flowManager.load();
+      assert.equal(published.completed, true);
+      assert.equal(state.planGateRepair, undefined);
+      assert.equal(findActiveNode(state).stepId, "scenario-validity");
+      assert.equal(state.specTestArtifactRevision.stepId, "test");
     } finally {
       removeTmpDir(value.mainRoot);
     }

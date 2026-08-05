@@ -24,6 +24,7 @@ import {
   StepTransitionCommitIntent,
 } from "./step-transition-policy.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
+import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
 import {
   validateSpecRepairDocument,
   validateSpecTriageDocument,
@@ -247,7 +248,7 @@ export class WorkerArtifactInputContract {
     );
     const variants = {};
     for (const [phase, entries] of Object.entries(repairInputs)) {
-      if (!new Set(["draft", "spec"]).has(phase)) {
+      if (!new Set(["draft", "spec", "test"]).has(phase)) {
         throw new Error(`invalid plan-gate repair input phase for ${this.stepId}: ${phase}`);
       }
       const paths = Object.freeze(
@@ -371,6 +372,7 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "test",
     inputs: ["spec.json"],
+    repairInputs: { test: ["spec.json", "scenario-validity-result.json"] },
     payloads: [{ logicalName: "spec-tests", kind: "tree", targetRelativePath: "tests" }],
     revisionKind: "test",
   }),
@@ -1931,9 +1933,16 @@ function assertPlanGateRepairMadeProgress(request, submission, state, logicalNam
   const repair = PlanGateRepairRecord.forTarget(state, request.stepId);
   if (!repair) return;
   const target = request.payloads.find(({ rule }) => rule.logicalName === logicalName);
-  const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === logicalName);
-  if (!target || !entry) return;
-  if (target.baselineDigest === entry.digest) {
+  const entries = submission.payloadManifest.filter((candidate) => candidate.logicalName === logicalName);
+  if (!target || entries.length === 0) return;
+  const payloadDigest = target.rule.kind === "tree"
+    ? digest(stableStringify(entries.map((entry) => ({
+        targetRelativePath: entry.targetRelativePath,
+        digest: entry.digest,
+        byteLength: entry.byteLength,
+      }))))
+    : entries[0].digest;
+  if (target.baselineDigest === payloadDigest) {
     throw new WorkerArtifactHandoffError(
       "invalid",
       "FLOW_PLAN_GATE_REPAIR_NO_PROGRESS",
@@ -1990,6 +1999,13 @@ function validatePayload(request, submission, state) {
       const spec = request.inputs.find((input) => input.name === "spec.json").document;
       const result = validateTestHeaders({ specDir: request.payloadDirectory, spec });
       if (!result.ok) throw new Error(formatValidationMessages(result).join("; "));
+      new SpecTestBootstrapValidator({
+        payloadSpecDir: request.payloadDirectory,
+        canonicalSpecDir: specDirectory(request.mainRoot, state),
+        repositoryRoot: request.mainRoot,
+        executionRoot: request.executionRoot,
+      }).validate().assertValid();
+      assertPlanGateRepairMadeProgress(request, submission, state, "spec-tests");
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;

@@ -159,7 +159,7 @@ const ENTRIES = Object.freeze([
   commandOwned("spec-gate", "approval"),
   userOwned("approval", "test"),
   workerHandoffOwned("test", "scenario-validity", "spec-test manifest and coverage validator"),
-  commandOwned("scenario-validity", "test-review"),
+  commandOwned("scenario-validity", "governed test repair or test-review"),
   commandOwned("test-review", "implement"),
   workerSourceOwned("implement", "test-execute"),
   commandOwned("test-execute", "test-result-review"),

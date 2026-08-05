@@ -782,6 +782,7 @@ describe("test-review spec-local file scope", () => {
     assert.match(combined, /Do not fail for advisory findings/);
     assert.match(combined, /does not auto-fix tests/i);
     assert.match(combined, /Requirement-to-Test Coverage Artifact/);
+    assert.match(combined, /invents a module path, export, function, constant, method, or artifact shape/);
 
     const itemSchema = prompt.jsonSchema.properties.blockingFindings.items;
     assert.deepEqual([...itemSchema.required].sort(), Object.keys(itemSchema.properties).sort());
