@@ -26,15 +26,10 @@ import {
   resolveRuntimeStep,
   SetStepStatus,
   taskIdForResolvedStep,
-  writeEmptyDraftReviewRouteArtifacts,
 } from "./definition.js";
 import { findStepById, flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
-import {
-  DraftReviewArtifactFile,
-  registerDraftReviewRevision,
-} from "./lib/draft-review-artifacts.js";
-import { completeCanonicalDraftMutation } from "./lib/draft-artifact-promotion.js";
+import { DraftReviewPassCommit } from "./lib/draft-review-pass-commit.js";
 import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
 import { runFlowCommandHooks } from "../lib/plugin-registry.js";
 import { appendIssueLogEntry } from "./lib/set-issue-log.js";
@@ -548,43 +543,12 @@ class RegistryLifecycleAdapter {
     if (handler === "commitDraftReviewPassArtifacts") {
       const route = draftReviewRouteForRetryPhase(args?.retryPhase);
       if (!route) return;
-      let state = this.ctx.flowManager.load();
-      if (!state.draftReviewRevisions?.[route.retryPhase]) {
-        registerDraftReviewRevision({
-          root: this.ctx.root,
-          state,
-          flowManager: this.ctx.flowManager,
-          route,
-        });
-        state = this.ctx.flowManager.load();
-      }
-      this.ctx.flowState = state;
-      const specDir = path.dirname(path.resolve(this.ctx.root, relativeFlowSpecFile(state)));
-      const reviewFile = new DraftReviewArtifactFile({
-        specDir,
-        filename: route.reviewArtifact,
-      });
-      const emptyArtifacts = writeEmptyDraftReviewRouteArtifacts({
-        specDir,
-        route,
-        generatedAt: reviewFile.document.generatedAt,
-      });
-      if (!emptyArtifacts.approvalEligible) return;
-      completeCanonicalDraftMutation({
+      const committed = new DraftReviewPassCommit({
         root: this.ctx.root,
         flowManager: this.ctx.flowManager,
-        state,
-        sourceStepId: route.reviewStepId,
-        mutateDocument(draft) {
-          draft.approval = {
-            ...(draft.approval || {}),
-            approved: true,
-            confirmedAt: reviewFile.document.generatedAt,
-          };
-          return draft;
-        },
-      });
-      this.ctx.flowState = this.ctx.flowManager.load();
+        route,
+      }).execute();
+      this.ctx.flowState = committed.state;
       return;
     }
     if (handler === "resetImplEvidenceAfterReviewProposals") {

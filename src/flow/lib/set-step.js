@@ -23,7 +23,6 @@ import {
   resolveSideEffects,
   taskIdForResolvedStep,
 } from "../definition.js";
-import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { validateStepCompletionTransition } from "./flow-judgment-contract.js";
@@ -63,19 +62,7 @@ import {
   NormalStepTransition,
   StepTransitionError,
 } from "./step-transition-policy.js";
-import {
-  DraftArtifactRecoveryError,
-  completeDraftArtifactStep,
-  isDraftArtifactWriterStep,
-} from "./draft-artifact-promotion.js";
-import {
-  DraftReviewArtifactRecoveryError,
-  completeDraftReviewRepairStep,
-  completeDraftReviewArtifactStep,
-  isDraftReviewArtifactStep,
-} from "./draft-review-artifacts.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
-import { WORKER_ARTIFACT_HANDOFF_REQUEST_ENV } from "./worker-artifact-handoff.js";
 
 function definitionTransitions(state, plan) {
   return plan.actions.flatMap((action) => {
@@ -227,38 +214,6 @@ function validateBlockedImplRepairRecovery({ root, state }) {
 
 function collectSideEffects(stepId) {
   return resolveSideEffects({ scope: "flow", stepId }) || [];
-}
-
-/**
- * spec 249: pre-validate spec verification test files when transitioning the
- * `test` step to `done`. Returns a failed Envelope when validation fails so
- * the step status is not persisted.
- */
-function preValidateTestStep(ctx) {
-  const state = ctx.flowManager.load();
-  if (!state?.specId) return null;
-  let specJson;
-  try {
-    specJson = loadSpecJson(path.resolve(ctx.root, relativeFlowSpecFile(state)), { validate: false });
-  } catch (err) {
-    return Envelope.fail(
-      "set",
-      "step",
-      "TEST_HEADER_VALIDATION_FAILED",
-      [`failed to load spec.json: ${err.message}`],
-      { violations: [] },
-    );
-  }
-  const specDir = resolveSpecDir(path.resolve(ctx.root, relativeFlowSpecFile(state)));
-  const result = validateTestHeaders({ specDir, spec: specJson });
-  if (result.ok) return null;
-  return Envelope.fail(
-    "set",
-    "step",
-    "TEST_HEADER_VALIDATION_FAILED",
-    formatValidationMessages(result),
-    result,
-  );
 }
 
 function preValidateApprovalStep({ root, state }) {
@@ -495,8 +450,6 @@ export default class SetStepCommand extends FlowCommand {
 
     if (
       status === "done"
-      && ctx.dispatchInvocationId
-      && process.env[WORKER_ARTIFACT_HANDOFF_REQUEST_ENV]
       && requiresWorkerArtifactHandoff(id)
     ) {
       return Envelope.fail(
@@ -569,11 +522,6 @@ export default class SetStepCommand extends FlowCommand {
       return Envelope.fail("set", "step", transitionError.code, transitionError.message);
     }
 
-    // spec 249: pre-validate test step done before persisting state.
-    if (id === "test" && status === "done") {
-      const fail = preValidateTestStep(ctx);
-      if (fail) return fail;
-    }
     if (status === "done") {
       if (id === "approval") {
         const fail = preValidateApprovalStep({ root: ctx.root, state });
@@ -635,57 +583,6 @@ export default class SetStepCommand extends FlowCommand {
         const fail = await preValidateImplementStepCompletion({ root: ctx.root, state, requestedStatus: status });
         if (fail) return fail;
       }
-      if (isDraftReviewArtifactStep(id)) {
-        try {
-          if (isDraftArtifactWriterStep(id)) {
-            const completed = completeDraftReviewRepairStep({
-              mainRoot: ctx.root,
-              executionRoot: ctx.executionRoot || ctx.root,
-              flowManager: ctx.flowManager,
-              state,
-              transition,
-            });
-            return {
-              id,
-              status,
-              artifact: completed.artifact,
-              artifactDigest: completed.digest,
-              promoted: completed.promoted,
-              draftArtifactRevision: completed.revision,
-            };
-          }
-          const completedArtifact = completeDraftReviewArtifactStep({
-            mainRoot: ctx.root,
-            executionRoot: ctx.executionRoot || ctx.root,
-            flowManager: ctx.flowManager,
-            state,
-            transition,
-          });
-          return {
-            id,
-            status,
-            artifact: completedArtifact.artifact,
-            artifactDigest: completedArtifact.digest,
-            promoted: completedArtifact.promoted,
-          };
-        } catch (error) {
-          if (
-            !(error instanceof DraftReviewArtifactRecoveryError)
-            && !(error instanceof DraftArtifactRecoveryError)
-          ) throw error;
-          return Envelope.fail(
-            "set",
-            "step",
-            error.code,
-            error.message,
-            {
-              ...error.data,
-              ...(error.recoveryCommand && { recoveryCommand: error.recoveryCommand }),
-              retryBudgetConsumed: false,
-            },
-          );
-        }
-      }
       const fail = validateStepCompletionTransition({
         root: ctx.root,
         executionRoot: ctx.executionRoot || ctx.root,
@@ -694,36 +591,6 @@ export default class SetStepCommand extends FlowCommand {
         requestedStatus: status,
       });
       if (fail) return fail;
-      if (isDraftArtifactWriterStep(id)) {
-        try {
-          const completed = completeDraftArtifactStep({
-            mainRoot: ctx.root,
-            executionRoot: ctx.executionRoot || ctx.root,
-            flowManager: ctx.flowManager,
-            state,
-            transition,
-          });
-          return {
-            id,
-            status,
-            promoted: completed.promoted,
-            draftArtifactRevision: completed.revision,
-          };
-        } catch (error) {
-          if (!(error instanceof DraftArtifactRecoveryError)) throw error;
-          return Envelope.fail(
-            "set",
-            "step",
-            error.code,
-            error.message,
-            {
-              ...error.data,
-              recoveryCommand: error.recoveryCommand,
-              retryBudgetConsumed: false,
-            },
-          );
-        }
-      }
     }
     if (status === "done" && ["test-execute", "retro"].includes(id)) {
       const fail = validatePostHookManagedStep(ctx, id);

@@ -303,6 +303,8 @@ export class FlowDispatchWork {
           "Do not mark the Flow step done. After writing all payloads, run the exact",
           "sealCommand once. The parent dispatcher alone validates, publishes, records",
           "revisions, and completes the step under canonical repository authority.",
+          "Return the successful seal command data object as the worker report; it must",
+          "match the guarded action output_schema but is never a completion signal.",
           "",
           "Worker artifact handoff contract:",
           JSON.stringify(this.handoffRequest.toWorkerJSON(), null, 2),
@@ -345,6 +347,9 @@ export class FlowDispatchWork {
 
 function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError = null) {
   const state = readFlowState(ctx);
+  const stepId = request?.stepId || error.data?.stepId || state?.currentStep || "flow-dispatch";
+  const actionDigest = request?.actionDigest || error.data?.actionDigest || null;
+  const dispatchInvocationId = request?.dispatchInvocationId || error.data?.dispatchInvocationId || null;
   let issueLogError = null;
   if (state?.specId) {
     try {
@@ -352,7 +357,7 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
         ctx.mainRoot || ctx.root,
         relativeFlowSpecFile(state),
         {
-          step: request?.stepId || state.currentStep || "flow-dispatch",
+          step: stepId,
           reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
           trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
           resolution: error.recoveryPossible
@@ -361,7 +366,7 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
           taskId: null,
           timestamp: new Date().toISOString(),
         },
-        `worker-handoff-${request?.actionDigest || "unknown"}-${error.classification || "invalid"}`,
+        `worker-handoff-${actionDigest || "unknown"}-${error.classification || "invalid"}`,
       );
     } catch (logError) {
       issueLogError = logError.message || String(logError);
@@ -378,8 +383,8 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
     classification: error.classification || "invalid",
     retryBudgetConsumed: false,
     recoveryPossible: error.recoveryPossible === true,
-    actionDigest: request?.actionDigest || null,
-    dispatchInvocationId: request?.dispatchInvocationId || null,
+    actionDigest,
+    dispatchInvocationId,
     ...(error.data || {}),
     ...(agentError instanceof AgentFailure ? { agentFailure: agentError.toJSON() } : {}),
     ...(issueLogError ? { issueLogError } : {}),

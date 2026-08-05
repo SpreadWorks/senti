@@ -19,6 +19,7 @@ import {
   createInitialDraftArtifactRevision,
 } from "../../../src/flow/lib/draft-artifact-promotion.js";
 import { draftReviewRouteForKey } from "../../../src/flow/lib/draft-review-routes.js";
+import RunReviewCommand from "../../../src/flow/lib/run-review.js";
 import RunReopenDraftCommand from "../../../src/flow/lib/run-reopen-draft.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { NormalStepTransition } from "../../../src/flow/lib/step-transition-policy.js";
@@ -483,6 +484,94 @@ describe("draft review canonical authority", () => {
     assert.equal(current.draftArtifactRevision.sourceStepId, "draft-coverage-review");
     assert.equal(current.draftArtifactRevision.byteLength, bytes.length);
     assert.equal(current.draftArtifactRevision.digest, crypto.createHash("sha256").update(bytes).digest("hex"));
+  });
+
+  it("replays an interrupted coverage PASS mutation before downstream review continues", async () => {
+    temporaryRoot = createTmpDir("draft-review-pass-recovery-");
+    const route = draftReviewRouteForKey("coverage");
+    const specId = "500-review-pass-recovery";
+    const state = moveFlowToStep(
+      makeFlowState({ specId, runId: "run-review-pass-recovery" }),
+      route.reviewStepId,
+    );
+    const draftPath = writeJson(temporaryRoot, `specs/${specId}/draft.json`, {
+      goal: "Recover approval publication.",
+      qa: [{ status: "answered" }],
+      approval: { approved: false, confirmedAt: "", notes: "" },
+    });
+    state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
+    state.draftArtifactRevision.sourceStepId = "draft-refine";
+    writeJson(
+      temporaryRoot,
+      `specs/${specId}/${route.reviewArtifact}`,
+      reviewArtifact(state.draftArtifactRevision, route, { verdict: "PASS" }),
+    );
+    const flowManager = new FlowManager({ root: temporaryRoot, mainRoot: temporaryRoot, specId });
+    flowManager.create(state);
+    registerDraftReviewRevision({
+      root: temporaryRoot,
+      state: flowManager.load(),
+      flowManager,
+      route,
+    });
+
+    assert.throws(
+      () => completeCanonicalDraftMutation({
+        root: temporaryRoot,
+        flowManager,
+        state: flowManager.load(),
+        sourceStepId: route.reviewStepId,
+        mutateDocument(draft) {
+          draft.approval = { ...draft.approval, approved: true, confirmedAt: GENERATED_AT };
+          return draft;
+        },
+        faultInjector({ phase }) {
+          if (phase === "before-draft-rename") throw new Error("simulated PASS interruption");
+        },
+      }),
+      (error) => error.code === "DRAFT_PROMOTION_RECOVERY_REQUIRED",
+    );
+    assert.ok(flowManager.load().draftArtifactPromotion);
+
+    let providerCalls = 0;
+    const recovered = await new RunReviewCommand({
+      runCommand() {
+        providerCalls += 1;
+        throw new Error("the review provider must not rerun during PASS recovery");
+      },
+    }).execute({
+      root: temporaryRoot,
+      flowManager,
+      flowState: flowManager.load(),
+      phase: "draft",
+    });
+    const current = flowManager.load();
+    const draft = JSON.parse(fs.readFileSync(draftPath, "utf8"));
+    assert.equal(providerCalls, 0);
+    assert.equal(recovered.result, "ok");
+    assert.equal(recovered.artifacts.verdict, "PASS");
+    assert.equal(recovered.artifacts.retryPhase, route.retryPhase);
+    assert.equal(recovered.artifacts.recoveredInterruptedPassCommit, true);
+    assert.equal(current.draftArtifactPromotion, undefined);
+    assert.equal(current.draftArtifactRevision.sourceStepId, route.reviewStepId);
+    assert.equal(draft.approval.approved, true);
+    assert.equal(draft.approval.confirmedAt, GENERATED_AT);
+    assert.equal(fs.existsSync(path.join(path.dirname(draftPath), route.triageArtifact)), true);
+    assert.equal(fs.existsSync(path.join(path.dirname(draftPath), route.repairArtifact)), true);
+
+    const replayedAfterCommit = await new RunReviewCommand({
+      runCommand() {
+        providerCalls += 1;
+        throw new Error("the review provider must not rerun after PASS commit");
+      },
+    }).execute({
+      root: temporaryRoot,
+      flowManager,
+      flowState: current,
+      phase: "draft",
+    });
+    assert.equal(providerCalls, 0);
+    assert.equal(replayedAfterCommit.artifacts.recoveredInterruptedPassCommit, true);
   });
 
   for (const sourceStep of ["draft-questions-review", "draft-coverage-review", "draft-gate"]) {

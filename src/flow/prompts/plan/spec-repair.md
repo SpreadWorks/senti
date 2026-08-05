@@ -1,9 +1,9 @@
    <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - Repair the existing spec after `spec-triage` classifies blocking review findings.
-   - Read `spec-triage.json` from the active Flow's configured spec directory first. Treat only `items[]` entries with `decision: "apply"` as the repair input.
+   - Read `spec.json`, `spec-review.json`, and `spec-triage.json` only from their handoff `inputs[].document` snapshots. Treat only triage `items[]` entries with `decision: "apply"` as the repair input.
    - Do not re-triage review findings in this step. Do not decide that an `apply` item is invalid, already resolved, or non-blocking; if the triage artifact is wrong or missing, stop and surface that artifact problem instead of silently changing the decision.
-   - Always write `spec-repair.json` in that directory before completing this step. This file is the audit log for actual spec mutations applied from triage decisions.
-   - If `spec-triage.json` is missing, invalid, or contains no `decision: "apply"` items, do not rewrite the spec. Write `spec-repair.json` with an empty `items[]`, a concise `summary`, and run `senti flow set step spec-repair done`.
+   - Write `spec-repair.json` and the complete resulting `spec.json` only to their exact handoff `payloadPath` values. The repair artifact is the audit log for actual spec mutations applied from triage decisions.
+   - If an immutable input is missing or invalid, stop without writing or sealing. If `spec-triage.json` contains no `decision: "apply"` items, preserve the spec snapshot unchanged in the declared `spec.json` payload and write `spec-repair.json` with an empty `items[]` and a concise `summary`.
    - Apply the triaged findings once. Update `spec.json` so each `decision: "apply"` item is resolved in the smallest appropriate field: `requirements`, `acceptance_criteria`, `scope`, `constraints`, `clarifications`, `alternatives_considered`, `overview.decisions`, or `tasks`.
    - Keep repair strictly limited to resolving triage `apply` items. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that triage item and supported by the repair `evidence`.
    - Preserve existing user-approved decisions and draft-derived policy. If a blocking fix would reverse a user decision, reject a draft requirement, or add a new requirement not supported by the draft/request/source, ask the user via Choice Format before writing it.
@@ -35,4 +35,4 @@
      ```
    - Do not run another `spec-review` loop from this step. The downstream `spec-gate` step remains the blocking validation step, so this repair must be small, auditable, and limited to triage `apply` items.
    - Do not render or edit `spec.md` in this step. The approval prompt renders the human-readable `spec.md` view from the repaired `spec.json`.
-   - **On complete**: `senti flow set step spec-repair done`
+   - **On complete**: run the exact handoff `sealCommand` once after both declared payloads are complete.

@@ -38,6 +38,7 @@ const MAX_PAYLOAD_FILES = 256;
 const MAX_JSON_BYTES = 8 * 1024 * 1024;
 const MAX_RELATIVE_PATH_BYTES = 500;
 const SPEC_TEST_FILE = /\.(?:js|mjs|ts|json|md|ya?ml|txt|sh)$/;
+const COMMAND_OWNED_SPEC_TEST_DIRECTORY = ".raw";
 
 function requiredString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} is required`);
@@ -167,38 +168,48 @@ function isWithin(root, candidate) {
 function ensureRealDirectory(directory, boundary) {
   const resolved = path.resolve(directory);
   const stop = path.resolve(boundary);
-  if (resolved !== stop && !isWithin(stop, resolved)) {
-    throw new Error(`directory escapes its authority boundary: ${resolved}`);
-  }
+  try {
+    if (resolved !== stop && !isWithin(stop, resolved)) {
+      throw new Error(`directory escapes its authority boundary: ${resolved}`);
+    }
 
-  const missing = [];
-  let current = resolved;
-  while (true) {
-    let stat;
-    try {
-      stat = fs.lstatSync(current);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-      if (current === stop) throw new Error(`directory authority boundary is missing: ${stop}`);
-      missing.push(current);
+    const missing = [];
+    let current = resolved;
+    while (true) {
+      let stat;
+      try {
+        stat = fs.lstatSync(current);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+        if (current === stop) throw new Error(`directory authority boundary is missing: ${stop}`);
+        missing.push(current);
+        current = path.dirname(current);
+        continue;
+      }
+      if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(current) !== current) {
+        throw new Error(`directory authority must be a real directory: ${current}`);
+      }
+      if (current === stop) break;
       current = path.dirname(current);
-      continue;
     }
-    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(current) !== current) {
-      throw new Error(`directory authority must be a real directory: ${current}`);
-    }
-    if (current === stop) break;
-    current = path.dirname(current);
-  }
 
-  for (const missingDirectory of missing.reverse()) {
-    fs.mkdirSync(missingDirectory);
-    const stat = fs.lstatSync(missingDirectory);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(missingDirectory) !== missingDirectory) {
-      throw new Error(`directory authority must be a real directory: ${missingDirectory}`);
+    for (const missingDirectory of missing.reverse()) {
+      fs.mkdirSync(missingDirectory);
+      const stat = fs.lstatSync(missingDirectory);
+      if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(missingDirectory) !== missingDirectory) {
+        throw new Error(`directory authority must be a real directory: ${missingDirectory}`);
+      }
     }
+    return resolved;
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `worker artifact directory authority is invalid: ${cause.message}`,
+      { cause, data: { directory: resolved, boundary: stop } },
+    );
   }
-  return resolved;
 }
 
 function removeEmptyParents(directory, stop) {
@@ -366,7 +377,15 @@ export class WorkerArtifactInputSnapshot {
   }
 }
 
-function scanTree(directory, { allowMissing = false, label = "payload tree" } = {}) {
+function scanTree(directory, {
+  allowMissing = false,
+  label = "payload tree",
+  directories = null,
+  commandOwnedEvidence = "reject",
+} = {}) {
+  if (!["reject", "exclude"].includes(commandOwnedEvidence)) {
+    throw new Error(`invalid command-owned spec-test evidence policy: ${commandOwnedEvidence}`);
+  }
   const root = path.resolve(directory);
   if (!fs.existsSync(root)) {
     if (allowMissing) return [];
@@ -400,6 +419,18 @@ function scanTree(directory, { allowMissing = false, label = "payload tree" } = 
         if (fs.realpathSync(filePath) !== filePath) {
           throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `${label} directory is not real: ${filePath}`);
         }
+        const relativeDirectory = path.relative(root, filePath).split(path.sep).join("/");
+        if (relativeDirectory === COMMAND_OWNED_SPEC_TEST_DIRECTORY) {
+          if (commandOwnedEvidence === "exclude") continue;
+          throw new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            `${label} contains the command-owned ${COMMAND_OWNED_SPEC_TEST_DIRECTORY} evidence directory`,
+          );
+        }
+        if (directories) {
+          directories.push(relativeDirectory);
+        }
         walk(filePath);
         continue;
       }
@@ -425,6 +456,80 @@ function scanTree(directory, { allowMissing = false, label = "payload tree" } = 
   return files.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 }
 
+function parentRelativePaths(relativePath) {
+  const parents = [];
+  let current = path.posix.dirname(relativePath);
+  while (current !== ".") {
+    parents.push(current);
+    current = path.posix.dirname(current);
+  }
+  return parents;
+}
+
+function isCommandOwnedSpecTestTarget(relativePath) {
+  const reserved = `tests/${COMMAND_OWNED_SPEC_TEST_DIRECTORY}`;
+  return relativePath === reserved || relativePath.startsWith(`${reserved}/`);
+}
+
+function assertPayloadDirectoryMatchesManifest(request, manifest, label) {
+  const declaredFiles = new Set();
+  const allowedDirectories = new Set();
+  for (const { rule } of request.payloads) {
+    if (rule.kind === "tree") {
+      allowedDirectories.add(rule.targetRelativePath);
+      for (const parent of parentRelativePaths(rule.targetRelativePath)) {
+        allowedDirectories.add(parent);
+      }
+    }
+  }
+  for (const entry of manifest) {
+    if (declaredFiles.has(entry.relativePath)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `${label} declares one payload file more than once: ${entry.relativePath}`,
+      );
+    }
+    declaredFiles.add(entry.relativePath);
+    for (const parent of parentRelativePaths(entry.relativePath)) {
+      allowedDirectories.add(parent);
+    }
+  }
+
+  const actualDirectories = [];
+  const actualFiles = scanTree(request.payloadDirectory, {
+    label: `${label} directory`,
+    directories: actualDirectories,
+  });
+  for (const directory of actualDirectories) {
+    if (!allowedDirectories.has(directory)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `${label} contains an unknown payload directory: ${directory}`,
+      );
+    }
+  }
+  for (const { relativePath } of actualFiles) {
+    if (!declaredFiles.has(relativePath)) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        `${label} contains an unknown payload file: ${relativePath}`,
+      );
+    }
+  }
+  for (const relativePath of declaredFiles) {
+    if (!actualFiles.some((entry) => entry.relativePath === relativePath)) {
+      throw new WorkerArtifactHandoffError(
+        "missing",
+        "FLOW_ARTIFACT_HANDOFF_MISSING",
+        `${label} manifest file is missing: ${relativePath}`,
+      );
+    }
+  }
+}
+
 function manifestDigest(entries) {
   return digest(stableStringify(entries.map((entry) => ({
     logicalName: entry.logicalName,
@@ -435,7 +540,11 @@ function manifestDigest(entries) {
 }
 
 function treeSnapshot(directory) {
-  const entries = scanTree(directory, { allowMissing: true, label: "canonical spec-test tree" })
+  const entries = scanTree(directory, {
+    allowMissing: true,
+    label: "canonical spec-test tree",
+    commandOwnedEvidence: "exclude",
+  })
     .map(({ relativePath, snapshot }) => ({
       targetRelativePath: path.posix.join("tests", relativePath),
       digest: snapshot.digest,
@@ -450,6 +559,16 @@ function treeSnapshot(directory) {
 
 function specDirectory(mainRoot, state) {
   return path.dirname(path.resolve(mainRoot, relativeFlowSpecFile(state)));
+}
+
+function handoffActionDirectory(executionRoot, runId, dispatchInvocationId, actionDigest) {
+  return path.resolve(
+    executionRoot,
+    WORKER_ARTIFACT_HANDOFF_ROOT,
+    digest(runId).slice(0, 24),
+    digest(dispatchInvocationId).slice(0, 24),
+    actionDigest,
+  );
 }
 
 function inputRevision(state, policy, inputDigest) {
@@ -492,11 +611,10 @@ export class WorkerArtifactHandoffRequest {
     this.inputs = Object.freeze(inputs);
     this.payloads = Object.freeze(payloads);
     this.generatedAt = requiredString(generatedAt, "handoff generatedAt");
-    const actionDirectory = path.join(
+    const actionDirectory = handoffActionDirectory(
       this.executionRoot,
-      WORKER_ARTIFACT_HANDOFF_ROOT,
-      digest(this.runId).slice(0, 24),
-      digest(this.dispatchInvocationId).slice(0, 24),
+      this.runId,
+      this.dispatchInvocationId,
       this.actionDigest,
     );
     this.directory = path.resolve(actionDirectory);
@@ -508,7 +626,6 @@ export class WorkerArtifactHandoffRequest {
   }
 
   static create({ mainRoot, executionRoot, state, invocation, now = () => new Date() }) {
-    if (path.resolve(mainRoot) === path.resolve(executionRoot)) return null;
     const policy = workerArtifactHandoffPolicy(invocation?.action?.nextAction?.step);
     if (!policy) return null;
     const specDir = specDirectory(mainRoot, state);
@@ -823,14 +940,12 @@ export class WorkerArtifactHandoffSubmission {
 
   static seal(request, now = () => new Date()) {
     const manifest = [];
-    const knownFiles = new Set();
     for (const payload of request.payloads) {
       const { rule } = payload;
       const source = request.payloadPath(rule.logicalName);
       if (rule.kind === "file") {
         const snapshot = readRegularFile(source, `handoff payload ${rule.logicalName}`);
         const relativePath = path.relative(request.payloadDirectory, source).split(path.sep).join("/");
-        knownFiles.add(relativePath);
         manifest.push(new WorkerArtifactManifestEntry({
           logicalName: rule.logicalName,
           relativePath,
@@ -841,7 +956,6 @@ export class WorkerArtifactHandoffSubmission {
       } else {
         for (const { relativePath, snapshot } of scanTree(source, { label: `handoff payload ${rule.logicalName}` })) {
           const payloadRelative = path.posix.join(rule.targetRelativePath, relativePath);
-          knownFiles.add(payloadRelative);
           manifest.push(new WorkerArtifactManifestEntry({
             logicalName: rule.logicalName,
             relativePath: payloadRelative,
@@ -852,15 +966,7 @@ export class WorkerArtifactHandoffSubmission {
         }
       }
     }
-    for (const { relativePath } of scanTree(request.payloadDirectory, { label: "handoff payload directory" })) {
-      if (!knownFiles.has(relativePath)) {
-        throw new WorkerArtifactHandoffError(
-          "invalid",
-          "FLOW_ARTIFACT_HANDOFF_INVALID",
-          `handoff contains an unknown payload file: ${relativePath}`,
-        );
-      }
-    }
+    assertPayloadDirectoryMatchesManifest(request, manifest, "handoff");
     manifest.sort((left, right) => left.targetRelativePath.localeCompare(right.targetRelativePath));
     const unsigned = {
       version: request.version,
@@ -980,27 +1086,37 @@ function requestFromStored(filePath) {
 }
 
 export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () => new Date() } = {}) {
-  const resolvedRequestPath = path.resolve(requiredString(requestPath, "handoff request path"));
-  const request = requestFromStored(resolvedRequestPath);
-  if (request.version !== WORKER_ARTIFACT_HANDOFF_VERSION) {
-    throw new Error(`worker artifact handoff request version must be ${WORKER_ARTIFACT_HANDOFF_VERSION}`);
-  }
-  if (request.dispatchInvocationId !== requiredString(invocationId, "handoff invocation id")) {
+  try {
+    const resolvedRequestPath = path.resolve(requiredString(requestPath, "handoff request path"));
+    const request = requestFromStored(resolvedRequestPath);
+    if (request.version !== WORKER_ARTIFACT_HANDOFF_VERSION) {
+      throw new Error(`worker artifact handoff request version must be ${WORKER_ARTIFACT_HANDOFF_VERSION}`);
+    }
+    if (request.dispatchInvocationId !== requiredString(invocationId, "handoff invocation id")) {
+      throw new WorkerArtifactHandoffError(
+        "stale",
+        "FLOW_ARTIFACT_HANDOFF_STALE",
+        "handoff request belongs to another dispatch invocation",
+      );
+    }
+    const submission = WorkerArtifactHandoffSubmission.seal(request, now);
+    new AtomicFile(request.submissionPath, { phaseNamespace: "worker-handoff-seal" })
+      .write(`${JSON.stringify(submission.toJSON(), null, 2)}\n`);
+    return Object.freeze({
+      sealed: true,
+      handoffPath: request.submissionPath,
+      handoffDigest: submission.handoffDigest,
+      payloadCount: submission.payloadManifest.length,
+    });
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
     throw new WorkerArtifactHandoffError(
-      "stale",
-      "FLOW_ARTIFACT_HANDOFF_STALE",
-      "handoff request belongs to another dispatch invocation",
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `worker artifact handoff could not be sealed: ${cause.message}`,
+      { cause },
     );
   }
-  const submission = WorkerArtifactHandoffSubmission.seal(request, now);
-  new AtomicFile(request.submissionPath, { phaseNamespace: "worker-handoff-seal" })
-    .write(`${JSON.stringify(submission.toJSON(), null, 2)}\n`);
-  return Object.freeze({
-    sealed: true,
-    handoffPath: request.submissionPath,
-    handoffDigest: submission.handoffDigest,
-    payloadCount: submission.payloadManifest.length,
-  });
 }
 
 export class WorkerArtifactPublicationJournal {
@@ -1189,8 +1305,23 @@ export function validateWorkerArtifactReceiptsState(value, state) {
 }
 
 function validateSubmission(request, submission) {
+  let storedRequest;
+  try {
+    storedRequest = requestFromStored(request.requestPath);
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) throw cause;
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `worker artifact handoff request is invalid during parent validation: ${cause.message}`,
+      { cause },
+    );
+  }
   const stale = (
-    submission.requestDigest !== request.requestDigest
+    storedRequest.requestDigest !== request.requestDigest
+    || storedRequest.directory !== request.directory
+    || storedRequest.payloadDirectory !== request.payloadDirectory
+    || submission.requestDigest !== request.requestDigest
     || submission.runId !== request.runId
     || submission.specId !== request.specId
     || submission.issue !== request.issue
@@ -1208,6 +1339,7 @@ function validateSubmission(request, submission) {
       "sealed worker artifact handoff does not match the guarded action or input revision",
     );
   }
+  assertPayloadDirectoryMatchesManifest(request, submission.payloadManifest, "sealed handoff");
   const byLogicalName = new Map();
   const targetPaths = new Set();
   const allowedLogicalNames = new Set(request.payloads.map(({ rule }) => rule.logicalName));
@@ -1238,7 +1370,10 @@ function validateSubmission(request, submission) {
     if (rule.kind === "file" && entries[0].targetRelativePath !== rule.targetRelativePath) {
       throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `handoff target is invalid for ${rule.logicalName}`);
     }
-    if (rule.kind === "tree" && entries.some((entry) => !entry.targetRelativePath.startsWith(`${rule.targetRelativePath}/`))) {
+    if (rule.kind === "tree" && entries.some((entry) => (
+      !entry.targetRelativePath.startsWith(`${rule.targetRelativePath}/`)
+      || isCommandOwnedSpecTestTarget(entry.targetRelativePath)
+    ))) {
       throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `handoff tree target is invalid for ${rule.logicalName}`);
     }
   }
@@ -1588,6 +1723,76 @@ function receiptForRequest(state, request) {
   )) || null;
 }
 
+function cleanupCompletedHandoff(executionRoot, receiptValue, faultInjector = () => {}) {
+  const receipt = receiptValue instanceof WorkerArtifactHandoffReceipt
+    ? receiptValue
+    : new WorkerArtifactHandoffReceipt(receiptValue);
+  const directory = handoffActionDirectory(
+    executionRoot,
+    receipt.runId,
+    receipt.dispatchInvocationId,
+    receipt.actionDigest,
+  );
+  const consumedDirectory = `${directory}.consumed-${receipt.handoffDigest.slice(0, 24)}`;
+  const data = {
+    handoffDirectory: directory,
+    consumedHandoffDirectory: consumedDirectory,
+    stepId: receipt.stepId,
+    actionDigest: receipt.actionDigest,
+    dispatchInvocationId: receipt.dispatchInvocationId,
+  };
+  function realDirectory(candidate) {
+    let stat;
+    try {
+      stat = fs.lstatSync(candidate);
+    } catch (cause) {
+      if (cause.code === "ENOENT") return false;
+      throw cause;
+    }
+    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(candidate) !== candidate) {
+      throw new Error(`completed handoff cleanup target is not a real directory: ${candidate}`);
+    }
+    return true;
+  }
+  try {
+    let cleaned = false;
+    if (realDirectory(consumedDirectory)) {
+      fs.rmSync(consumedDirectory, { recursive: true });
+      cleaned = true;
+    }
+    if (!realDirectory(directory)) return cleaned;
+    let stored = null;
+    try {
+      stored = requestFromStored(path.join(directory, "request.json"));
+    } catch (cause) {
+      if (!(cause instanceof WorkerArtifactHandoffError) || cause.classification !== "missing") {
+        throw cause;
+      }
+    }
+    if (stored && (
+      stored.runId !== receipt.runId
+      || stored.specId !== receipt.specId
+      || stored.stepId !== receipt.stepId
+      || stored.actionDigest !== receipt.actionDigest
+      || stored.dispatchInvocationId !== receipt.dispatchInvocationId
+      || stored.requestDigest !== receipt.requestDigest
+    )) throw new Error("completed handoff directory does not match its canonical receipt");
+    faultInjector({ phase: "before-worker-handoff-cleanup-rename", stepId: receipt.stepId });
+    fs.renameSync(directory, consumedDirectory);
+    faultInjector({ phase: "after-worker-handoff-cleanup-rename", stepId: receipt.stepId });
+    fs.rmSync(consumedDirectory, { recursive: true });
+    faultInjector({ phase: "after-worker-handoff-cleanup", stepId: receipt.stepId });
+    return true;
+  } catch (cause) {
+    throw new WorkerArtifactHandoffError(
+      "recovery-required",
+      "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      `completed worker artifact handoff cleanup requires recovery: ${cause.message}`,
+      { cause, data },
+    );
+  }
+}
+
 export class WorkerArtifactHandoffCoordinator {
   constructor({ faultInjector = () => {}, now = () => new Date() } = {}) {
     this.faultInjector = faultInjector;
@@ -1609,7 +1814,14 @@ export class WorkerArtifactHandoffCoordinator {
     const state = typeof ctx.flowManager.load === "function"
       ? ctx.flowManager.load(ctx.specId)
       : ctx.flowManager.loadReadOnly(ctx.specId);
-    if (state.workerArtifactPublication == null) return null;
+    if (state.workerArtifactPublication == null) {
+      const cleaned = (state.workerArtifactReceipts || []).reduce((count, receipt) => (
+        cleanupCompletedHandoff(ctx.executionRoot || ctx.root, receipt, this.faultInjector) ? count + 1 : count
+      ), 0);
+      return cleaned > 0
+        ? { completed: true, replayed: true, cleanedHandoffs: cleaned }
+        : null;
+    }
     let journal;
     let request;
     try {
@@ -1620,12 +1832,30 @@ export class WorkerArtifactHandoffCoordinator {
         journal,
       });
     } catch (cause) {
-      if (cause instanceof WorkerArtifactHandoffError) throw cause;
+      const pending = journal || state.workerArtifactPublication || {};
+      const data = {
+        ...(typeof pending.stepId === "string" && { stepId: pending.stepId }),
+        ...(SHA256.test(pending.actionDigest || "") && { actionDigest: pending.actionDigest }),
+        ...(typeof pending.dispatchInvocationId === "string" && {
+          dispatchInvocationId: pending.dispatchInvocationId,
+        }),
+        ...(typeof pending.handoffDirectory === "string" && {
+          handoffDirectory: pending.handoffDirectory,
+        }),
+      };
+      if (cause instanceof WorkerArtifactHandoffError) {
+        throw new WorkerArtifactHandoffError(
+          cause.classification,
+          cause.code,
+          cause.message,
+          { cause, data: { ...data, ...cause.data } },
+        );
+      }
       throw new WorkerArtifactHandoffError(
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
         `pending worker artifact publication cannot be reconstructed: ${cause.message}`,
-        { cause },
+        { cause, data },
       );
     }
     return this.reconcile({ ctx, request });
@@ -1636,6 +1866,7 @@ export class WorkerArtifactHandoffCoordinator {
     let state = ctx.flowManager.load(request.specId);
     const completedReceipt = receiptForRequest(state, request);
     if (completedReceipt) {
+      cleanupCompletedHandoff(request.executionRoot, completedReceipt, this.faultInjector);
       return {
         completed: true,
         replayed: true,
@@ -1644,10 +1875,6 @@ export class WorkerArtifactHandoffCoordinator {
         payloadDigest: completedReceipt.payloadDigest,
       };
     }
-    const submission = readSubmission(request);
-    validateSubmission(request, submission);
-    state = ctx.flowManager.load(request.specId);
-    if (receiptFor(state, submission.handoffDigest)) return { completed: true, replayed: true };
     const operation = new RepositoryFlowOperationLock({ mainRoot: request.mainRoot });
     let operationOwnerToken;
     try {
@@ -1661,7 +1888,17 @@ export class WorkerArtifactHandoffCoordinator {
       );
     }
     try {
+      const submission = readSubmission(request);
+      validateSubmission(request, submission);
       state = ctx.flowManager.load(request.specId);
+      if (receiptFor(state, submission.handoffDigest)) {
+        cleanupCompletedHandoff(
+          request.executionRoot,
+          receiptFor(state, submission.handoffDigest),
+          this.faultInjector,
+        );
+        return { completed: true, replayed: true };
+      }
       const hasJournal = state.workerArtifactPublication != null;
       let journal = hasJournal
         ? new WorkerArtifactPublicationJournal(state.workerArtifactPublication)
@@ -1683,8 +1920,10 @@ export class WorkerArtifactHandoffCoordinator {
         state = ctx.flowManager.load(request.specId);
       }
       this.faultInjector({ phase: "after-worker-handoff-journal", stepId: request.stepId });
+      validateSubmission(request, submission);
       publishJournal({ request, journal, faultInjector: this.faultInjector });
       this.faultInjector({ phase: "after-worker-handoff-publication", stepId: request.stepId });
+      validateSubmission(request, submission);
       assertJournalPublished(request.mainRoot, state, journal);
       const active = findActiveNode(state);
       const step = findStepById(state.steps || [], request.stepId);
@@ -1712,7 +1951,24 @@ export class WorkerArtifactHandoffCoordinator {
         }),
       );
       this.faultInjector({ phase: "after-worker-handoff-transition", stepId: request.stepId });
-      fs.rmSync(request.directory, { recursive: true, force: true });
+      const completedState = ctx.flowManager.load(request.specId);
+      const receipt = receiptForRequest(completedState, request);
+      if (!receipt) {
+        throw new WorkerArtifactHandoffError(
+          "recovery-required",
+          "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+          "completed worker artifact handoff has no canonical receipt",
+          {
+            data: {
+              stepId: request.stepId,
+              actionDigest: request.actionDigest,
+              dispatchInvocationId: request.dispatchInvocationId,
+              handoffDirectory: request.directory,
+            },
+          },
+        );
+      }
+      cleanupCompletedHandoff(request.executionRoot, receipt, this.faultInjector);
       return {
         completed: true,
         replayed: false,

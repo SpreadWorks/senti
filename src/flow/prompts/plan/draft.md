@@ -18,14 +18,14 @@
    - Use Issue content (if linked), `docs/` chapters, guardrail articles, and source code as input.
    - Follow Draft QA Rules premise validation before creating pending questions for requirement areas that need user judgment. Use the shared category list from Draft QA Rules.
    - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `senti flow get context <path> --raw`) to build sufficient understanding before creating the checklist questions.
-   - **MUST: draft.json is created as a skeleton by `flow prepare`.** Fill the existing fields; do not recreate the file from scratch. Required fields checked by draft-gate:
+   - Create the declared `draft.json` payload with these required fields checked by draft-gate:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
      - `goal` — non-empty string
      - `analysis` — `problem`, `proposedApproach`, and `validation` are all non-empty
      - `decisionMap` — arrays for `knownFacts`, `decisionPoints`, `resolvedByProjectRules`, `requiresUserJudgment`, and `deferredToSpec`
      - `qa` — entries conforming to the Draft QA Rules schema
      - `approval` — `{ approved: false, confirmedAt: "", notes: "" }`
-   - Write the draft.json question list and proceed to `draft-questions-review`.
+   - Write the question list to the declared `draft.json` payload. The parent dispatcher proceeds to `draft-questions-review` after validation and publication.
 
    **Communication rules for the draft phase (when NOT autoApprove):**
    - Start by creating the full draft question list in `draft.json.qa[]` with `status: "pending"` and stable ids (`q1`, `q2`, ...). The `(n/N)` denominator is the number of pending plus approved questions in this list.
@@ -44,5 +44,4 @@
      - `pending` / `approved`: follow the Draft QA Rules empty-field requirement.
      - `answered` / `dropped`: do not create these statuses while generating the initial question list. They are produced only after the one-shot question sanity check, when existing questions are actually answered or intentionally dropped.
    - When the initial question list is complete, proceed to `draft-questions-review`.
-   - Keep `draft.json` in the active Flow's configured spec directory (do not delete).
-   - **On complete**: `senti flow set step draft done`
+   - Write `draft.json` only to its exact handoff `payloadPath`, then run the exact handoff `sealCommand` once.

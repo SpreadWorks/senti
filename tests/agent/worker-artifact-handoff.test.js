@@ -117,33 +117,17 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       }, null, 2)}\n`);
       const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
       flowManager.create(state);
-      const providers = {
-        "codex/handoff-test": {
-          command: "codex",
-          args: [
-            "exec",
-            "--json",
-            "--sandbox",
-            "workspace-write",
-            "-m",
-            "gpt-5.4-mini",
-            "{{PROMPT}}",
-          ],
-          workDirFlag: "-C",
-        },
-      };
       const config = {
         agent: {
-          default: "codex/handoff-test",
+          default: "codex/gpt-5.4",
           timeout: 240,
           retryCount: 0,
-          providers,
         },
       };
       const agent = new Agent({
         config,
         paths: { root: mainRoot, agentWorkDir: path.join(executionRoot, ".tmp") },
-        registry: new ProviderRegistry(providers),
+        registry: new ProviderRegistry(),
         logger: new Logger({ logDir: path.join(executionRoot, ".tmp", "logs"), enabled: false }),
         flowManager,
       });

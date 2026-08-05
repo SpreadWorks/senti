@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
+import { flowArtifactAuthorityForStep } from "../../../src/flow/lib/flow-artifact-authority.js";
 import { findInProgressLeaf, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { sealWorkerArtifactHandoff } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
@@ -174,6 +176,36 @@ function advanceCommandStep(flowManager, stepId) {
   });
 }
 
+function fileDigest(filePath) {
+  const bytes = fs.readFileSync(filePath);
+  return {
+    digest: crypto.createHash("sha256").update(bytes).digest("hex"),
+    byteLength: bytes.length,
+  };
+}
+
+function assertCanonicalInputs(request, specDir) {
+  for (const input of request.inputs) {
+    const canonical = fileDigest(path.join(specDir, input.targetRelativePath));
+    assert.equal(canonical.digest, input.digest, input.targetRelativePath);
+    assert.equal(canonical.byteLength, input.byteLength, input.targetRelativePath);
+  }
+}
+
+function assertPublishedForConsumer(pending, flowManager, specDir, consumerStepId) {
+  const authority = flowArtifactAuthorityForStep(pending.stepId);
+  assert.equal(authority.consumer, consumerStepId, pending.stepId);
+  const state = flowManager.load();
+  const receipt = state.workerArtifactReceipts.find((entry) => entry.stepId === pending.stepId);
+  assert.ok(receipt, `${pending.stepId} must record a canonical publication receipt`);
+  assert.equal(receipt.handoffDigest, pending.submission.handoffDigest);
+  for (const entry of pending.submission.payloadManifest) {
+    const canonical = fileDigest(path.join(specDir, entry.targetRelativePath));
+    assert.equal(canonical.digest, entry.digest, `${pending.stepId}:${entry.targetRelativePath}`);
+    assert.equal(canonical.byteLength, entry.byteLength, `${pending.stepId}:${entry.targetRelativePath}`);
+  }
+}
+
 describe("deterministic full Flow worker handoff", () => {
   it("dispatches all 36 Flow leaves through finalize-cleanup with parent-owned handoffs", async () => {
     const mainRoot = createTmpDir("worker-handoff-full-main-");
@@ -191,10 +223,16 @@ describe("deterministic full Flow worker handoff", () => {
       const specDir = path.join(mainRoot, "specs", specId);
       const visited = [];
       let handoffCount = 0;
+      let pendingConsumer = null;
       const dispatcher = new RunDispatchCommand({
         nextAction: {
           async run() {
-            return nextAction(findInProgressLeaf(flowManager.load().steps)?.id ?? null);
+            const stepId = findInProgressLeaf(flowManager.load().steps)?.id ?? null;
+            if (pendingConsumer) {
+              assertPublishedForConsumer(pendingConsumer, flowManager, specDir, stepId);
+              pendingConsumer = null;
+            }
+            return nextAction(stepId);
           },
         },
         agent: {
@@ -206,11 +244,16 @@ describe("deterministic full Flow worker handoff", () => {
             if (requestPath) {
               handoffCount += 1;
               const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+              assertCanonicalInputs(request, specDir);
               writeHandoffPayload(stepId, request, specDir);
-              sealWorkerArtifactHandoff({
+              const sealed = sealWorkerArtifactHandoff({
                 requestPath,
                 invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
               });
+              pendingConsumer = {
+                stepId,
+                submission: JSON.parse(fs.readFileSync(sealed.handoffPath, "utf8")),
+              };
             } else {
               prepareCommandArtifact(stepId, specDir, flowManager.load());
               advanceCommandStep(flowManager, stepId);

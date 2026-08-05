@@ -1,6 +1,6 @@
    <!-- include("/flow/prompts/partials/worker-artifact-handoff.md") -->
    - **Before writing spec**:
-     - Read draft.json (if exists) and linked GitHub issue content. If draft was completed, treat it as the primary input — do NOT re-read context already gathered in the draft phase.
+     - Read `draft.json` only from the handoff `inputs[].document` snapshot and read linked GitHub issue content. Treat the draft snapshot as the primary input — do NOT re-read context already gathered in the draft phase.
      - **Context gathering (supplement-first):** Only read additional context when draft + issue are insufficient.
        - If specific target files are unclear: `senti flow get context --search "<request text or issue title>" --raw`.
        - If project structure is still unclear: `senti flow get context <path> --raw` for specific files; `senti flow get context --raw` only as a last resort.
@@ -58,4 +58,4 @@
 
    Empty `tasks[]` or undefined `tasks` causes the spec gate to FAIL. The `task-single-responsibility` guardrail evaluates each task's concern singularity in phase `spec` and `task-spec`.
 
-   - **On complete**: `senti flow set step spec done`
+   - **On complete**: write `spec.json` only to its exact handoff `payloadPath`, then run the exact handoff `sealCommand` once.

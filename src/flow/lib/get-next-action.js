@@ -63,7 +63,10 @@ import { FLOW_REVIEW_ROUTES } from "./review-route.js";
 import { resolveTaskGateOverviewRecovery } from "./task-gate-completion.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
 import { resolveDraftReviewWorkerContext } from "./draft-review-artifacts.js";
-import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
+import {
+  flowArtifactAuthorityForStep,
+  requiresWorkerArtifactHandoff,
+} from "./flow-artifact-authority.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -414,13 +417,14 @@ function buildNextActionResult(
   outboxRecovery = null,
 ) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
-  if (state.worktree === true && requiresWorkerArtifactHandoff(target.stepId)) {
+  if (requiresWorkerArtifactHandoff(target.stepId)) {
+    const authority = flowArtifactAuthorityForStep(target.stepId);
     context.workerArtifactHandoff = Object.freeze({
       version: 1,
       required: true,
-      writableAuthority: "dispatcher-execution-root",
-      publicationOwner: "parent-dispatcher",
-      completionValidator: "parent-dispatcher",
+      writableAuthority: authority.writableAuthority,
+      publicationOwner: authority.publicationOwner,
+      completionValidator: authority.completionValidator,
     });
   }
   const draftReview = resolveDraftReviewWorkerContext({

@@ -84,6 +84,7 @@ import {
   DraftArtifactRecoveryError,
   inspectCanonicalDraftRevision,
 } from "./draft-artifact-promotion.js";
+import { DraftReviewPassCommit } from "./draft-review-pass-commit.js";
 
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
@@ -2314,6 +2315,17 @@ export class RunReviewCommand extends FlowCommand {
     const persistedPhase = reviewPhaseKeyForCtx(reviewCtx, phase);
     if (phase === "draft") {
       try {
+        if (!dryRun) {
+          const recovered = DraftReviewPassCommit.recoverInterrupted({
+            root,
+            flowManager: reviewCtx.flowManager,
+          });
+          if (recovered) {
+            reviewCtx.flowState = recovered.state;
+            ctx.flowState = recovered.state;
+            return recovered.toReviewCommandResult(phase);
+          }
+        }
         inspectCanonicalDraftRevision({
           root,
           state: reviewCtx.flowState,

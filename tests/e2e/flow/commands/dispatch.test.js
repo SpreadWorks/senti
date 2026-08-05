@@ -303,7 +303,7 @@ describe("flow dispatch CLI", () => {
   it("does not accept normal worker responses as completion or overlap worker processes", () => {
     root = createTmpDir("senti-flow-dispatch-stalled-");
     const worker = installWorker(root);
-    const state = setupFlowAtStep(root, "draft");
+    const state = setupFlowAtStep(root, "implement");
 
     const result = invoke(root, state);
 
@@ -322,7 +322,7 @@ describe("flow dispatch CLI", () => {
   it("executes a non-terminal action when the dispatch target is supplied only by an opaque binding", () => {
     root = createTmpDir("senti-flow-dispatch-binding-only-");
     const worker = installWorker(root);
-    const state = setupFlowAtStep(root, "draft");
+    const state = setupFlowAtStep(root, "implement");
     const binding = dispatchBinding(root, state);
 
     const result = invokeBinding(root, binding);
@@ -336,7 +336,7 @@ describe("flow dispatch CLI", () => {
   it("rejects a concurrent dispatcher while the first worker is still running", async () => {
     root = createTmpDir("senti-flow-dispatch-concurrent-");
     const worker = installWorker(root, { delayMs: 300 });
-    const state = setupFlowAtStep(root, "draft");
+    const state = setupFlowAtStep(root, "implement");
     ensureGitRepository(root);
     const first = spawn(process.execPath, dispatchArgs(state), {
       ...invocationOptions(root),

@@ -88,7 +88,13 @@ When implementing prompt guidance movement between flow skill files or flow prom
 
 ## Flow Progress Tracking
 
-**MUST: Run `senti flow set step <id> <val>` upon completion of each step to record flow progress.**
+**MUST: For an ordinary worker-owned step, run `senti flow set step <id> <val>` upon completion to record Flow progress.**
+
+Worker-artifact-handoff-managed exceptions:
+
+- When `next-action.context.workerArtifactHandoff.required` is true, the worker MUST NOT run `flow set step` or write canonical Flow artifacts.
+- The worker writes every declared payload to its exact handoff `payloadPath` and runs the exact `sealCommand` once.
+- The parent dispatcher validates and publishes the sealed payload, records its revision and receipt, and completes the step. This applies to the managed draft, draft triage/repair/refine, spec, spec triage/repair, and spec-test authoring steps.
 
 Post-hook-managed exceptions:
 

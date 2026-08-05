@@ -9,4 +9,4 @@
    - Keep the work finite: process the existing question list once. Do not loop looking for more questions.
    - Update `decisionMap` so resolved decisions move to `knownFacts`, `resolvedByProjectRules`, or remain represented by answered `qa[]`; spec-writing details that do not need user judgment should be recorded in `deferredToSpec`.
    - Do not set `approval.approved = true` in this step. Coverage review and draft-gate remain downstream validation.
-   - When every `qa[]` entry is either `answered` or `dropped`, run `senti flow set step draft-refine done`.
+   - Read the current draft from the handoff input snapshot. When every `qa[]` entry is either `answered` or `dropped`, write the complete updated `draft.json` to its exact handoff `payloadPath`, then run the exact handoff `sealCommand` once.

@@ -525,7 +525,7 @@ function planPromotion({ state, sourceStepId, source, canonical, sameAuthority }
       "DRAFT_PROMOTION_CANONICAL_STALE",
       "canonical draft no longer matches the expected revision recorded by the Flow",
       {
-        recoveryCommand: `senti flow set step ${sourceStepId} done`,
+        recoveryCommand: "senti flow run dispatch",
         data: {
           expectedCanonicalDigest: previous.digest,
           canonicalDigest: canonical.digest,
@@ -641,10 +641,10 @@ export function completeDraftArtifactStep({
     if (cause instanceof DraftArtifactRecoveryError) throw cause;
     throw new DraftArtifactRecoveryError(
       "DRAFT_PROMOTION_RECOVERY_REQUIRED",
-      `draft promotion did not complete; rerun the draft completion command: ${cause.message}`,
+      `draft promotion did not complete; resume the guarded dispatcher: ${cause.message}`,
       {
         cause,
-        recoveryCommand: `senti flow set step ${transition.stepId} done`,
+        recoveryCommand: "senti flow run dispatch",
         data: { sourceStepId: transition.stepId },
       },
     );
@@ -863,7 +863,7 @@ export function inspectCanonicalDraftRevision({ root, state, phase = null, expec
       "DRAFT_PROMOTION_INCOMPLETE",
       "draft review cannot start while canonical draft promotion is incomplete",
       {
-        recoveryCommand: `senti flow set step ${pending.sourceStepId} done`,
+        recoveryCommand: "senti flow run dispatch",
         data: { sourceStepId: pending.sourceStepId },
       },
     );

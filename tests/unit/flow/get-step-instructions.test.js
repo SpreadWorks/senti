@@ -46,12 +46,37 @@ describe("getStepInstructions (loader contract)", () => {
       assert.doesNotMatch(expandedPrompt, INCLUDE_DIRECTIVE_PATTERN);
     });
 
+    it("keeps dispatcher-owned plan workers on immutable handoff inputs and parent completion", () => {
+      const keys = [
+        "plan.draft",
+        "plan.draft-questions-triage",
+        "plan.draft-questions-repair",
+        "plan.draft-refine",
+        "plan.draft-coverage-triage",
+        "plan.draft-coverage-repair",
+        "plan.spec",
+        "plan.spec-triage",
+        "plan.spec-repair",
+        "plan.test",
+      ];
+      for (const key of keys) {
+        const content = getStepInstructions(key);
+        assert.match(content, /worker artifact handoff contract as the complete authority/, key);
+        assert.match(content, /exact `payloads\[\]\.payloadPath`/, key);
+        assert.match(content, /exact (?:handoff )?`sealCommand` once/, key);
+        assert.doesNotMatch(content, /senti flow set step .* done/, key);
+      }
+    });
+
     it("spec-triage records apply/drop decisions and evidence for every blocking finding", () => {
       const content = getStepInstructions("plan.spec-triage");
 
-      assert.match(content, /active Flow's configured spec directory/);
-      assert.match(content, /Always write `spec-triage\.json` in that directory/);
+      assert.match(content, /handoff `inputs\[\]\.document` snapshots/);
+      assert.match(content, /Write `spec-triage\.json` only to its exact handoff `payloadPath`/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
+      assert.doesNotMatch(content, /active Flow's configured spec directory/);
+      assert.doesNotMatch(content, /senti flow set step spec-triage done/);
+      assert.match(content, /run the exact handoff `sealCommand` once/);
       assert.match(content, /Do not edit `spec\.json`/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
       assert.match(content, /`decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
@@ -63,10 +88,13 @@ describe("getStepInstructions (loader contract)", () => {
     it("spec-repair applies only triaged apply items", () => {
       const content = getStepInstructions("plan.spec-repair");
 
-      assert.match(content, /active Flow's configured spec directory/);
-      assert.match(content, /Always write `spec-repair\.json` in that directory/);
+      assert.match(content, /handoff `inputs\[\]\.document` snapshots/);
+      assert.match(content, /Write `spec-repair\.json` and the complete resulting `spec\.json` only to their exact handoff `payloadPath` values/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
-      assert.match(content, /Treat only `items\[\]` entries with `decision: "apply"` as the repair input/);
+      assert.doesNotMatch(content, /active Flow's configured spec directory/);
+      assert.doesNotMatch(content, /senti flow set step spec-repair done/);
+      assert.match(content, /run the exact handoff `sealCommand` once/);
+      assert.match(content, /Treat only triage `items\[\]` entries with `decision: "apply"` as the repair input/);
       assert.match(content, /Do not re-triage review findings in this step/);
       assert.match(content, /For every triage item with `decision: "apply"`/);
       assert.match(content, /`decision`: `applied`/);

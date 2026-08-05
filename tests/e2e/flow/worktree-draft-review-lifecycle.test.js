@@ -16,7 +16,10 @@ import {
 import { draftReviewRouteForKey } from "../../../src/flow/lib/draft-review-routes.js";
 import { checkDraftJson, runGateFlow } from "../../../src/flow/lib/run-gate.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
-import SetStepCommand from "../../../src/flow/lib/set-step.js";
+import {
+  WorkerArtifactHandoffCoordinator,
+  sealWorkerArtifactHandoff,
+} from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { findActiveNode } from "../../../src/flow/definition.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
@@ -74,16 +77,41 @@ function reviewResult(route, verdict) {
   };
 }
 
-function setStepContext({ mainRoot, executionRoot, flowManager, id }) {
-  return {
-    root: mainRoot,
+function publishWorkerArtifacts({ mainRoot, executionRoot, flowManager, writePayloads }) {
+  const state = flowManager.load();
+  const stepId = findActiveNode(state).stepId;
+  const receiptCount = state.workerArtifactReceipts?.length || 0;
+  const invocationId = `draft-review-e2e-${stepId}-${receiptCount}`;
+  const actionDigest = crypto.createHash("sha256")
+    .update(`${state.runId}:${invocationId}`)
+    .digest("hex");
+  const coordinator = new WorkerArtifactHandoffCoordinator();
+  const ctx = {
+    root: executionRoot,
+    mainRoot,
     executionRoot,
     flowManager,
-    flowState: flowManager.load(),
-    specId: flowManager.load().specId,
-    id,
-    status: "done",
+    specId: state.specId,
   };
+  const request = coordinator.createRequest({
+    ctx,
+    state,
+    invocation: {
+      id: invocationId,
+      action: { digest: actionDigest, nextAction: { step: stepId } },
+    },
+  });
+  assert.ok(request, `${stepId} must use a worker artifact handoff`);
+  writePayloads(request);
+  sealWorkerArtifactHandoff({
+    requestPath: request.requestPath,
+    invocationId,
+  });
+  return coordinator.reconcile({ ctx, request });
+}
+
+function writePayloadJson(request, logicalName, value) {
+  fs.writeFileSync(request.payloadPath(logicalName), `${JSON.stringify(value, null, 2)}\n`);
 }
 
 function makeDraft() {
@@ -217,7 +245,7 @@ describe("worktree draft review lifecycle", () => {
       .find((artifact) => artifact.name === questions.reviewArtifact)?.document;
     assert.equal(canonicalReview.verdict, "ADVISORY");
     const canonicalRepairTarget = canonicalReview.repairTargets[0];
-    writeJson(path.dirname(triageAction.context.draftReview.outputArtifact.filePath), questions.triageArtifact, {
+    const questionsTriage = {
       version: 1,
       phase: questions.triageStepId,
       sourceReview: questions.reviewArtifact,
@@ -230,14 +258,16 @@ describe("worktree draft review lifecycle", () => {
         rationale: "The review evidence is authoritative.",
         evidence: "The base-side review contains this target.",
       }],
-    });
-    const triageResult = await new SetStepCommand().execute(setStepContext({
+    };
+    const triageResult = publishWorkerArtifacts({
       mainRoot,
       executionRoot,
       flowManager,
-      id: questions.triageStepId,
-    }));
-    assert.equal(triageResult.promoted, false, JSON.stringify(triageResult));
+      writePayloads(request) {
+        writePayloadJson(request, questions.triageArtifact, questionsTriage);
+      },
+    });
+    assert.equal(triageResult.completed, true, JSON.stringify(triageResult));
     assert.equal(findActiveNode(flowManager.load()).stepId, questions.repairStepId);
 
     const repairAction = await new GetNextActionCommand().execute({
@@ -258,8 +288,7 @@ describe("worktree draft review lifecycle", () => {
     assert.equal(canonicalTriage.items.length, 1);
     assert.equal(canonicalTriage.items[0].decision, "apply");
     const repairedDraft = { ...initialDraft, goal: "Keep all Flow evidence under base-side authority." };
-    writeJson(executionRoot, specPath, repairedDraft);
-    writeJson(path.dirname(repairAction.context.draftReview.outputArtifact.filePath), questions.repairArtifact, {
+    const questionsRepair = {
       version: 1,
       phase: questions.repairStepId,
       sourceTriage: questions.triageArtifact,
@@ -272,14 +301,17 @@ describe("worktree draft review lifecycle", () => {
         evidence: "The goal field was changed.",
         changedFieldPaths: ["goal"],
       }],
-    });
-    const repairResult = await new SetStepCommand().execute(setStepContext({
+    };
+    const repairResult = publishWorkerArtifacts({
       mainRoot,
       executionRoot,
       flowManager,
-      id: questions.repairStepId,
-    }));
-    assert.equal(repairResult.promoted, true, JSON.stringify(repairResult));
+      writePayloads(request) {
+        writePayloadJson(request, questions.repairArtifact, questionsRepair);
+        writePayloadJson(request, "draft.json", repairedDraft);
+      },
+    });
+    assert.equal(repairResult.completed, true, JSON.stringify(repairResult));
     assert.equal(flowManager.load().draftArtifactRevision.sourceStepId, questions.repairStepId);
     assert.equal(findActiveNode(flowManager.load()).stepId, "draft-refine");
 
@@ -287,14 +319,15 @@ describe("worktree draft review lifecycle", () => {
       ...repairedDraft,
       analysis: { ...repairedDraft.analysis, problem: "Canonical authority is explicit and guarded." },
     };
-    writeJson(executionRoot, specPath, refinedDraft);
-    const refineResult = await new SetStepCommand().execute(setStepContext({
+    const refineResult = publishWorkerArtifacts({
       mainRoot,
       executionRoot,
       flowManager,
-      id: "draft-refine",
-    }));
-    assert.equal(refineResult.promoted, true, JSON.stringify(refineResult));
+      writePayloads(request) {
+        writePayloadJson(request, "draft.json", refinedDraft);
+      },
+    });
+    assert.equal(refineResult.completed, true, JSON.stringify(refineResult));
     assert.equal(flowManager.load().draftArtifactRevision.sourceStepId, "draft-refine");
     assert.equal(findActiveNode(flowManager.load()).stepId, coverage.reviewStepId);
 
@@ -324,7 +357,7 @@ describe("worktree draft review lifecycle", () => {
     });
     const coverageFinding = coverageTriageAction.context.draftReview.artifacts
       .find((artifact) => artifact.name === coverage.reviewArtifact)?.document.repairTargets[0];
-    writeJson(path.dirname(coverageTriageAction.context.draftReview.outputArtifact.filePath), coverage.triageArtifact, {
+    const coverageTriageDocument = {
       version: 1,
       phase: coverage.triageStepId,
       sourceReview: coverage.reviewArtifact,
@@ -337,13 +370,15 @@ describe("worktree draft review lifecycle", () => {
         rationale: "The coverage review requires canonical approval evidence.",
         evidence: "The base-side coverage review contains the target.",
       }],
-    });
-    await new SetStepCommand().execute(setStepContext({
+    };
+    publishWorkerArtifacts({
       mainRoot,
       executionRoot,
       flowManager,
-      id: coverage.triageStepId,
-    }));
+      writePayloads(request) {
+        writePayloadJson(request, coverage.triageArtifact, coverageTriageDocument);
+      },
+    });
     assert.equal(findActiveNode(flowManager.load()).stepId, coverage.repairStepId);
 
     const coverageRepairAction = await new GetNextActionCommand().execute({
@@ -360,8 +395,7 @@ describe("worktree draft review lifecycle", () => {
       goal: "Keep canonical coverage evidence and approval aligned.",
       approval: { approved: true, confirmedAt: GENERATED_AT, notes: "" },
     };
-    writeJson(executionRoot, specPath, coverageRepairedDraft);
-    writeJson(path.dirname(coverageRepairAction.context.draftReview.outputArtifact.filePath), coverage.repairArtifact, {
+    const coverageRepairDocument = {
       version: 1,
       phase: coverage.repairStepId,
       sourceTriage: coverage.triageArtifact,
@@ -374,14 +408,17 @@ describe("worktree draft review lifecycle", () => {
         evidence: "The canonical draft approval is true.",
         changedFieldPaths: ["goal", "approval"],
       }],
-    });
-    const coverageRepairResult = await new SetStepCommand().execute(setStepContext({
+    };
+    const coverageRepairResult = publishWorkerArtifacts({
       mainRoot,
       executionRoot,
       flowManager,
-      id: coverage.repairStepId,
-    }));
-    assert.equal(coverageRepairResult.promoted, true, JSON.stringify(coverageRepairResult));
+      writePayloads(request) {
+        writePayloadJson(request, coverage.repairArtifact, coverageRepairDocument);
+        writePayloadJson(request, "draft.json", coverageRepairedDraft);
+      },
+    });
+    assert.equal(coverageRepairResult.completed, true, JSON.stringify(coverageRepairResult));
     state = flowManager.load();
     assert.equal(findActiveNode(state).stepId, "draft-gate");
     assert.equal(state.draftArtifactRevision.sourceStepId, coverage.repairStepId);
@@ -464,13 +501,15 @@ describe("worktree draft review lifecycle", () => {
     assert.equal(findStepById(flowManager.load().steps, "draft").status, "in_progress");
     assert.equal(flowManager.load().draftReviewRevisions, undefined);
 
-    const draftResult = await new SetStepCommand().execute(setStepContext({
+    const draftResult = publishWorkerArtifacts({
       mainRoot: root,
       executionRoot: root,
       flowManager,
-      id: "draft",
-    }));
-    assert.equal(draftResult.promoted, false);
+      writePayloads(request) {
+        writePayloadJson(request, "draft.json", JSON.parse(fs.readFileSync(draftPath, "utf8")));
+      },
+    });
+    assert.equal(draftResult.completed, true);
     let current = flowManager.load();
     assert.equal(findActiveNode(current).stepId, questions.reviewStepId);
 
@@ -485,12 +524,14 @@ describe("worktree draft review lifecycle", () => {
     }, reviewResult(questions, "PASS"));
     assert.equal(findActiveNode(flowManager.load()).stepId, "draft-refine");
 
-    await new SetStepCommand().execute(setStepContext({
+    publishWorkerArtifacts({
       mainRoot: root,
       executionRoot: root,
       flowManager,
-      id: "draft-refine",
-    }));
+      writePayloads(request) {
+        writePayloadJson(request, "draft.json", JSON.parse(fs.readFileSync(draftPath, "utf8")));
+      },
+    });
     current = flowManager.load();
     assert.equal(findActiveNode(current).stepId, coverage.reviewStepId);
     writeReview(root, specId, coverage, current.draftArtifactRevision, "PASS");

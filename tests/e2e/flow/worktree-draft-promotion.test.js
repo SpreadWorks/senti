@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import {
+  WorkerArtifactHandoffCoordinator,
+  sealWorkerArtifactHandoff,
+} from "../../../src/flow/lib/worker-artifact-handoff.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const cliPath = path.join(repoRoot, "src/senti.js");
@@ -65,23 +72,41 @@ function prepareWorktree(root, issue, title) {
   ]));
 }
 
-function targetArgs(flow, issue) {
-  return [
-    "--expect-run-id", flow.runId,
-    "--expect-issue", String(issue),
-    "--expect-spec", flow.specId,
-  ];
-}
-
-function writeExecutionDraft(flow, value) {
-  const file = path.join(flow.worktreePath, "specs", flow.specId, "draft.json");
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
-  return file;
-}
-
 function canonicalDraft(root, flow) {
   return path.join(root, "specs", flow.specId, "draft.json");
+}
+
+function publishDraft(root, flow, value) {
+  const flowManager = new FlowManager({
+    root: flow.worktreePath,
+    mainRoot: root,
+    inWorktree: true,
+    specId: flow.specId,
+  });
+  const state = flowManager.load();
+  const invocationId = `draft-promotion-${flow.runId}`;
+  const coordinator = new WorkerArtifactHandoffCoordinator();
+  const ctx = {
+    root: flow.worktreePath,
+    executionRoot: flow.worktreePath,
+    mainRoot: root,
+    specId: flow.specId,
+    flowManager,
+  };
+  const request = coordinator.createRequest({
+    ctx,
+    state,
+    invocation: {
+      id: invocationId,
+      action: {
+        digest: crypto.createHash("sha256").update(invocationId).digest("hex"),
+        nextAction: { step: "draft" },
+      },
+    },
+  });
+  fs.writeFileSync(request.payloadPath("draft.json"), `${JSON.stringify(value, null, 2)}\n`);
+  sealWorkerArtifactHandoff({ requestPath: request.requestPath, invocationId });
+  return coordinator.reconcile({ ctx, request });
 }
 
 afterEach(() => {
@@ -93,22 +118,18 @@ describe("worktree draft promotion", () => {
     const root = createProject();
     const first = prepareWorktree(root, 497, "first canonical draft");
     const second = prepareWorktree(root, 498, "second canonical draft");
-    const firstSource = writeExecutionDraft(first, { goal: "first completed draft", qa: [] });
-    const secondSource = writeExecutionDraft(second, { goal: "second completed draft", qa: [] });
+    const firstDraft = { goal: "first completed draft", qa: [] };
+    const secondDraft = { goal: "second completed draft", qa: [] };
     const secondPlaceholder = fs.readFileSync(canonicalDraft(root, second));
 
-    const firstCompletion = expectSuccess(runFlow(first.worktreePath, [
-      "set", "step", "draft", "done", ...targetArgs(first, 497),
-    ]));
-    assert.equal(firstCompletion.promoted, true);
-    assert.deepEqual(fs.readFileSync(canonicalDraft(root, first)), fs.readFileSync(firstSource));
+    const firstCompletion = publishDraft(root, first, firstDraft);
+    assert.equal(firstCompletion.completed, true);
+    assert.deepEqual(JSON.parse(fs.readFileSync(canonicalDraft(root, first), "utf8")), firstDraft);
     assert.deepEqual(fs.readFileSync(canonicalDraft(root, second)), secondPlaceholder);
 
-    const secondCompletion = expectSuccess(runFlow(second.worktreePath, [
-      "set", "step", "draft", "done", ...targetArgs(second, 498),
-    ]));
-    assert.equal(secondCompletion.promoted, true);
-    assert.deepEqual(fs.readFileSync(canonicalDraft(root, second)), fs.readFileSync(secondSource));
+    const secondCompletion = publishDraft(root, second, secondDraft);
+    assert.equal(secondCompletion.completed, true);
+    assert.deepEqual(JSON.parse(fs.readFileSync(canonicalDraft(root, second), "utf8")), secondDraft);
 
     for (const flow of [first, second]) {
       const state = JSON.parse(fs.readFileSync(path.join(root, "specs", flow.specId, "flow.json"), "utf8"));
