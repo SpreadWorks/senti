@@ -13,7 +13,7 @@
    - Verdicts:
      - `PASS`: no blocking or advisory findings. The post hook marks `test-review` done.
      - `ADVISORY`: non-blocking findings were recorded, but implementation may proceed. The post hook marks `test-review` done.
-     - `REJECTED`: blocking findings exist. Fix the tests and run `senti flow run review --phase test` again only after the test design premise changes.
+     - `REJECTED`: blocking findings exist. Refresh guarded next-action and run its `repair-test-review` transition. The repair returns to the dispatcher-owned `test` handoff; never edit canonical tests or review artifacts directly from this step.
      - `TOOLING_ERROR`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
    - **TOOLING_ERROR evidence recovery:**
      - `TOOLING_ERROR` is not a test-quality failure and does not complete `test-review` by itself.
@@ -22,7 +22,7 @@
      - For `register_alternative_evidence`, place a finalized version-1 audit document inside the active spec directory and run `senti flow set review-evidence --file <path>` with the normal target guards.
      - For `move_to_acceptance`, keep the canonical handoff and continue normal lifecycle ordering; acceptance owns final finding disposition.
      - For `stop_as_blocker`, stop and report the persisted blocker. Completion overrides do not substitute for canonical review evidence.
-   - `test-review` uses flow-level repair between separate `senti flow run review --phase test` invocations. Fix tests only after the review command returns and rerun review only after requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
+   - `test-review` uses a command-owned guarded repair transition between separate review invocations. It freezes the canonical blocking findings and source test revision, republishes a changed spec-test tree through the normal handoff, then requires `scenario-validity` before a fresh `test-review`. The rerun regenerates `test-coverage.json` from the published canonical tests.
    - Each semantic `REJECTED` invocation consumes `reviewRetry`. At semantic retry exhaustion, unresolved findings are recorded in `flow-findings.json`, the review step completes as deferred, and `acceptance-review` owns final disposition.
    - After the ordinary route has stopped with durable non-pass evidence, explicit nonblocking continuation is available. It never skips acceptance disposition: `continue` advances to implementation with canonical semantic findings, or with a typed verification/tooling handoff, still open until acceptance resolves it.
    - `TOOLING_ERROR` is non-semantic. It must normally be recovered; an explicit nonblocking continuation records it as an acceptance risk rather than treating it as a passing review.

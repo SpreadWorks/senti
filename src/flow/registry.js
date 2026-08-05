@@ -1720,6 +1720,27 @@ export const FLOW_COMMANDS = {
         "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
+    "repair-test-review": {
+      helpKey: "flow.run.repair-test-review",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-repair-test-review.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: senti flow run repair-test-review ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Freeze the current canonical rejected test-review findings and test revision,",
+        "then rewind test, scenario-validity, and test-review without changing review budgets.",
+        "The repaired test tree must return through the dispatcher worker-artifact handoff.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
     "start-task": {
       helpKey: "flow.run.start-task",
       explicitTargetResolution: true,

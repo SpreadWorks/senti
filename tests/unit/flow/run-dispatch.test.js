@@ -21,12 +21,12 @@ const REPAIR_ACTION = {
     kind: "repair_evidence",
     terminal: false,
     requiresUserAction: false,
-    actionId: "REPAIR_REVIEW_EVIDENCE",
-    evidenceKind: "review",
+    actionId: "REPAIR_TEST_REVIEW",
+    evidenceKind: "test",
     phase: "test",
     instruction: "Repair the persisted test-review findings.",
     reason: "The review is rejected and semantic retries remain.",
-    nextAction: "senti flow get next-action --expect-run-id 'run-dispatch'",
+    nextAction: "senti flow run repair-test-review --expect-run-id 'run-dispatch'",
   },
 };
 
@@ -157,7 +157,7 @@ function command({ current, state, agent, maxStalledDispatches = 3 }) {
 }
 
 describe("Flow continuation dispatcher", () => {
-  it("serially redispatches a premature worker response through repair, changed evidence, re-review, and acceptance handoff", async () => {
+  it("treats guarded action transitions as progress even when the source repository fingerprint is unchanged", async () => {
     const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "r0" };
     const current = { value: REPAIR_ACTION };
     let calls = 0;
@@ -173,10 +173,8 @@ describe("Flow continuation dispatcher", () => {
         assert.equal(options.waitForProcessTree, true);
         await new Promise((resolve) => setImmediate(resolve));
         if (calls === 2) {
-          state.repositoryRevision = "r1";
           current.value = REVIEW_ACTION;
         } else if (calls === 3) {
-          state.repositoryRevision = "r2";
           current.value = ACCEPTANCE_HANDOFF;
         }
         active -= 1;

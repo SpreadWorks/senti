@@ -32,6 +32,10 @@ import {
 import { WorkerArtifactRevision } from "./worker-artifact-revision.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
+import {
+  TestReviewRepairCompletion,
+  TestReviewRepairRecord,
+} from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = "SENTI_FLOW_HANDOFF_REQUEST";
@@ -241,7 +245,7 @@ export class WorkerArtifactPayloadRule {
 }
 
 export class WorkerArtifactInputContract {
-  constructor({ stepId, inputs, repairInputs = {} }) {
+  constructor({ stepId, inputs, repairInputs = {}, testReviewRepairInputs = [] }) {
     this.stepId = requiredString(stepId, "worker artifact input contract stepId");
     this.inputs = Object.freeze(
       inputs.map((entry) => normalizedRelativePath(entry, `${this.stepId}.input`)),
@@ -257,9 +261,16 @@ export class WorkerArtifactInputContract {
       variants[phase] = paths;
     }
     this.repairInputs = Object.freeze(variants);
+    this.testReviewRepairInputs = Object.freeze(testReviewRepairInputs.map((entry) => (
+      normalizedRelativePath(entry, `${this.stepId}.testReviewRepair.input`)
+    )));
+    if (this.testReviewRepairInputs.length > 0 && this.stepId !== "test") {
+      throw new Error("test-review repair inputs may only belong to the test handoff");
+    }
     this.allowedSignatures = Object.freeze([
       this.inputs,
       ...Object.values(variants),
+      ...(this.testReviewRepairInputs.length > 0 ? [this.testReviewRepairInputs] : []),
     ].map((paths) => paths.join("\u0000")));
     if (new Set(this.allowedSignatures).size !== this.allowedSignatures.length) {
       throw new Error(`duplicate worker artifact input contract for ${this.stepId}`);
@@ -268,6 +279,8 @@ export class WorkerArtifactInputContract {
   }
 
   resolve(state) {
+    const testReviewRepair = TestReviewRepairRecord.forTarget(state, this.stepId);
+    if (testReviewRepair) return this.testReviewRepairInputs;
     const repair = PlanGateRepairRecord.forTarget(state, this.stepId);
     return repair ? (this.repairInputs[repair.phase] || this.inputs) : this.inputs;
   }
@@ -282,7 +295,14 @@ export class WorkerArtifactInputContract {
 }
 
 export class WorkerArtifactHandoffPolicy {
-  constructor({ stepId, inputs, repairInputs = {}, payloads, revisionKind = null }) {
+  constructor({
+    stepId,
+    inputs,
+    repairInputs = {},
+    testReviewRepairInputs = [],
+    payloads,
+    revisionKind = null,
+  }) {
     this.stepId = requiredString(stepId, "worker artifact policy stepId");
     if (!requiresWorkerArtifactHandoff(this.stepId)) {
       throw new Error(`worker artifact policy is not declared by the authority matrix: ${this.stepId}`);
@@ -291,6 +311,7 @@ export class WorkerArtifactHandoffPolicy {
       stepId: this.stepId,
       inputs,
       repairInputs,
+      testReviewRepairInputs,
     });
     this.inputs = this.inputContract.inputs;
     this.payloads = Object.freeze(payloads.map((entry) => (
@@ -373,6 +394,7 @@ const POLICIES = Object.freeze([
     stepId: "test",
     inputs: ["spec.json"],
     repairInputs: { test: ["spec.json", "scenario-validity-result.json"] },
+    testReviewRepairInputs: ["spec.json", "test-review.json"],
     payloads: [{ logicalName: "spec-tests", kind: "tree", targetRelativePath: "tests" }],
     revisionKind: "test",
   }),
@@ -1012,6 +1034,13 @@ function baseInputRevision(state, policy, inputDigest) {
 
 function inputRevision(state, policy, inputDigest) {
   const baseRevision = baseInputRevision(state, policy, inputDigest);
+  const testReviewRepair = TestReviewRepairRecord.forTarget(state, policy.stepId);
+  if (testReviewRepair) {
+    return digest(stableStringify({
+      baseRevision,
+      testReviewRepair: testReviewRepair.toJSON(),
+    }));
+  }
   const repair = PlanGateRepairRecord.forTarget(state, policy.stepId);
   if (!repair) return baseRevision;
   return digest(stableStringify({
@@ -1952,6 +1981,35 @@ function assertPlanGateRepairMadeProgress(request, submission, state, logicalNam
   }
 }
 
+function assertTestReviewRepairMadeProgress(request, submission, state, logicalName) {
+  const repair = TestReviewRepairRecord.forTarget(state, request.stepId);
+  if (!repair) return;
+  const target = request.payloads.find(({ rule }) => rule.logicalName === logicalName);
+  const entries = submission.payloadManifest.filter((candidate) => candidate.logicalName === logicalName);
+  if (!target || entries.length === 0) return;
+  const payloadDigest = target.rule.kind === "tree"
+    ? digest(stableStringify(entries.map((entry) => ({
+        targetRelativePath: entry.targetRelativePath,
+        digest: entry.digest,
+        byteLength: entry.byteLength,
+      }))))
+    : entries[0].digest;
+  if (target.baselineDigest === payloadDigest) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_TEST_REVIEW_REPAIR_NO_PROGRESS",
+      `${logicalName} did not change while repairing test-review findings`,
+      {
+        data: {
+          sourceEvidenceId: repair.sourceEvidenceId,
+          sourceTestRevisionDigest: repair.sourceTestRevision.digest,
+          stepId: request.stepId,
+        },
+      },
+    );
+  }
+}
+
 function validatePayload(request, submission, state) {
   try {
     if (request.stepId.startsWith("draft")) {
@@ -2006,6 +2064,7 @@ function validatePayload(request, submission, state) {
         executionRoot: request.executionRoot,
       }).validate().assertValid();
       assertPlanGateRepairMadeProgress(request, submission, state, "spec-tests");
+      assertTestReviewRepairMadeProgress(request, submission, state, "spec-tests");
     }
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;
@@ -2183,6 +2242,7 @@ class WorkerArtifactCompletionIntent extends StepTransitionCommitIntent {
   }
 
   applyTo(state) {
+    const testReviewRepair = TestReviewRepairRecord.forTarget(state, this.journal.stepId);
     if (this.revision?.kind === "draft") state.draftArtifactRevision = this.revision.value;
     if (this.revision?.kind === "spec") state.specArtifactRevision = this.revision.value;
     if (this.revision?.kind === "test") state.specTestArtifactRevision = this.revision.value;
@@ -2202,6 +2262,27 @@ class WorkerArtifactCompletionIntent extends StepTransitionCommitIntent {
       consumedAt: this.completedAt,
     });
     state.workerArtifactReceipts = [...receipts, receipt.toJSON()].slice(-64);
+    if (testReviewRepair) {
+      if (this.revision?.kind !== "test") {
+        throw new WorkerArtifactHandoffError(
+          "conflict",
+          "FLOW_ARTIFACT_HANDOFF_CONFLICT",
+          "test-review repair publication did not produce a canonical test revision",
+        );
+      }
+      const history = Array.isArray(state.testReviewRepairHistory)
+        ? state.testReviewRepairHistory
+        : [];
+      const completion = new TestReviewRepairCompletion({
+        version: 1,
+        repair: testReviewRepair.toJSON(),
+        publishedTestRevisionDigest: this.revision.value.digest,
+        handoffDigest: receipt.handoffDigest,
+        completedAt: this.completedAt,
+      });
+      state.testReviewRepairHistory = [...history, completion.toJSON()].slice(-64);
+      delete state.testReviewRepair;
+    }
     const repair = PlanGateRepairRecord.forTarget(state, this.journal.stepId);
     if (repair) delete state.planGateRepair;
     delete state.draftArtifactPromotion;

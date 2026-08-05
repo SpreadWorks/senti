@@ -37,7 +37,10 @@ import {
   ObservedNonPassOutcome,
   StepAttemptLog,
 } from "./step-outcome.js";
-import { resolveReviewOperationForFlowState } from "./review-convergence.js";
+import {
+  resolveReviewOperationForFlowState,
+  RetryReview,
+} from "./review-convergence.js";
 import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
 import {
   decisionContextForActiveFlow,
@@ -70,6 +73,10 @@ import {
 } from "./flow-artifact-authority.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { inspectScenarioValidityTestRepair } from "./run-repair-plan-gate.js";
+import {
+  inspectTestReviewRepair,
+  TestReviewRepairRecord,
+} from "./test-review-repair.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -299,6 +306,28 @@ function buildScenarioTestRepairDirective(ctx, state, target, binding) {
   });
 }
 
+function buildTestReviewRepairDirective(ctx, state, target, binding, reviewOperation) {
+  if (
+    target.stepId !== "test-review"
+    || !(reviewOperation instanceof RetryReview)
+    || reviewOperation.requiresChangedEvidence !== true
+  ) return null;
+  const source = inspectTestReviewRepair({
+    root: ctx.root,
+    executionRoot: ctx.executionRoot || ctx.root,
+    state,
+  });
+  if (!source) return null;
+  return new RepairEvidenceDirective({
+    actionId: "REPAIR_TEST_REVIEW",
+    evidenceKind: "test",
+    phase: "test",
+    instruction: "Run the guarded test-review repair transition. It freezes the canonical blocking findings and source test revision, then rewinds through the dispatcher-owned test handoff; do not edit canonical tests or review artifacts directly.",
+    reason: source.reason,
+    nextAction: guardedCommand("senti flow run repair-test-review", state, binding),
+  });
+}
+
 function buildCanonicalReviewPassRecoveryDirective(ctx, state, binding) {
   for (const route of FLOW_REVIEW_ROUTES) {
     const plan = inspectCanonicalReviewPassRecovery({
@@ -446,6 +475,8 @@ function buildNextActionResult(
   }
   const planGateRepair = PlanGateRepairRecord.forTarget(state, target.stepId);
   if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
+  const testReviewRepair = TestReviewRepairRecord.forTarget(state, target.stepId);
+  if (testReviewRepair) context.testReviewRepair = testReviewRepair.toWorkerJSON();
   const draftReview = resolveDraftReviewWorkerContext({
     root: ctx.mainRoot || ctx.root,
     state,
@@ -513,6 +544,7 @@ function buildNextActionResult(
     : null;
   const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target, binding)
     || buildScenarioTestRepairDirective(ctx, state, target, binding)
+    || buildTestReviewRepairDirective(ctx, state, target, binding, reviewOperation)
     || buildCanonicalReviewPassRecoveryDirective(ctx, state, binding)
     || outboxRecovery?.directive
     || new NextActionDirectiveResolver({

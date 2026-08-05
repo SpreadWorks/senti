@@ -574,6 +574,7 @@ export class RepairArtifactRegistry {
     this.#prefixes = Object.freeze([
       ".tmp/",
       ".senti/.active-flow.",
+      ".senti/.flow-dispatch-",
       ".senti/agent-cache/",
       ".senti/agent-work/",
       ".senti/output/",

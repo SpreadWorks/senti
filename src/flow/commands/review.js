@@ -129,6 +129,7 @@ import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 import { resolveMaxAttempts } from "../definition.js";
 import { flattenSteps } from "../lib/step-tree.js";
+import { WorkerArtifactRevision } from "../lib/worker-artifact-revision.js";
 
 const REVIEW_PHASE_NODE_MAP = {
   "draft-questions": "draft-questions-review",
@@ -2288,10 +2289,18 @@ class TestFileCoverageEntry {
 }
 
 class TestCoverageArtifact {
-  constructor({ spec, specDir, headerResult, fileHeaders, generatedAt = new Date().toISOString() }) {
+  constructor({
+    spec,
+    specDir,
+    headerResult,
+    fileHeaders,
+    sourceTestArtifactRevision,
+    generatedAt = new Date().toISOString(),
+  }) {
     this.version = 1;
     this.phase = "test-review";
     this.generatedAt = generatedAt;
+    this.sourceTestArtifactRevision = WorkerArtifactRevision.from(sourceTestArtifactRevision);
     this.validation = Object.freeze({
       ok: headerResult.ok === true,
       messages: headerResult.messages || [],
@@ -2316,6 +2325,7 @@ class TestCoverageArtifact {
     return {
       version: this.version,
       phase: this.phase,
+      sourceTestArtifactRevision: this.sourceTestArtifactRevision.toJSON(),
       validation: this.validation,
       requirements: this.requirements.map((entry) => entry.toJSON()),
       files: this.files.map((entry) => entry.toJSON()),
@@ -2328,14 +2338,16 @@ class TestCoverageArtifact {
 }
 
 class TestCoverageFailureArtifact {
-  constructor(message) {
+  constructor(message, sourceTestArtifactRevision) {
     this.message = normalizeTestReviewText(message, "coverage artifact generation failed");
+    this.sourceTestArtifactRevision = WorkerArtifactRevision.from(sourceTestArtifactRevision);
   }
 
   toPromptSummary() {
     return {
       version: 1,
       phase: "test-review",
+      sourceTestArtifactRevision: this.sourceTestArtifactRevision.toJSON(),
       validation: {
         ok: false,
         messages: [this.message],
@@ -2351,11 +2363,20 @@ class TestCoverageFailureArtifact {
 }
 
 class TestReviewArtifact {
-  constructor({ verdict = null, coverageArtifact, blocking = [], advisory = [], toolingOutcome = null, generatedAt = new Date().toISOString() }) {
+  constructor({
+    verdict = null,
+    coverageArtifact,
+    sourceTestArtifactRevision,
+    blocking = [],
+    advisory = [],
+    toolingOutcome = null,
+    generatedAt = new Date().toISOString(),
+  }) {
     this.version = 1;
     this.phase = "test";
     this.generatedAt = generatedAt;
     this.coverageArtifact = coverageArtifact;
+    this.sourceTestArtifactRevision = WorkerArtifactRevision.from(sourceTestArtifactRevision);
     this.blockingFindings = blocking.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("blocking", item));
     this.advisoryFindings = advisory.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("advisory", item));
     this.toolingOutcome = toolingOutcome == null
@@ -2390,6 +2411,7 @@ class TestReviewArtifact {
       ...(this.toolingOutcome && { toolingOutcome: this.toolingOutcome.toJSON() }),
       counts: this.counts,
       coverageArtifact: this.coverageArtifact,
+      sourceTestArtifactRevision: this.sourceTestArtifactRevision.toJSON(),
       blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
       advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
     };
@@ -2799,7 +2821,7 @@ function writeTestCoverageArtifact({ root, specDir, coverageArtifact }) {
   return path.relative(root, coveragePath).split(path.sep).join("/");
 }
 
-function buildToolingFailureReview({ kind, err, coverageRelPath }) {
+function buildToolingFailureReview({ kind, err, coverageRelPath, sourceTestArtifactRevision }) {
   const message = err?.message || String(err);
   const toolingOutcome = new ReviewToolingOutcome({
     stage: kind === "coverage_error" || kind === "parser_error" ? "parse" : "communication",
@@ -2810,6 +2832,7 @@ function buildToolingFailureReview({ kind, err, coverageRelPath }) {
   });
   return new TestReviewArtifact({
     coverageArtifact: coverageRelPath || TEST_COVERAGE_JSON_FILE,
+    sourceTestArtifactRevision,
     blocking: [],
     advisory: [],
     toolingOutcome,
@@ -2823,6 +2846,11 @@ async function runTestReview(root, flow, config, dryRun) {
   const specPath = relativeFlowSpecFile(flow);
   const specDir = path.dirname(specPath);
   const specInput = path.resolve(root, specPath);
+  const sourceTestArtifactRevision = WorkerArtifactRevision.from(flow.specTestArtifactRevision);
+  sourceTestArtifactRevision.assertFlow(flow);
+  if (sourceTestArtifactRevision.stepId !== "test") {
+    throw new Error("test-review requires a canonical test-step artifact revision");
+  }
 
   // spec 207 / T8: require spec.json for the test review pipeline. No fallback
   // to spec.md; loadSpecJson throws when spec.json is missing or invalid.
@@ -2849,6 +2877,7 @@ async function runTestReview(root, flow, config, dryRun) {
       specDir: absoluteSpecDir,
       headerResult,
       fileHeaders: collectFileHeaders(absoluteSpecDir),
+      sourceTestArtifactRevision,
     });
     artifactPaths = {
       coveragePath: writeTestCoverageArtifact({ root, specDir, coverageArtifact }),
@@ -2858,9 +2887,14 @@ async function runTestReview(root, flow, config, dryRun) {
       console.error(`  [test-review] header validation: ${headerBlockingFindings.length} blocking finding(s)`);
     }
   } catch (err) {
-    coverageArtifact = new TestCoverageFailureArtifact(err.message);
+    coverageArtifact = new TestCoverageFailureArtifact(err.message, sourceTestArtifactRevision);
     const coverageRelPath = `${specDir}/${TEST_COVERAGE_JSON_FILE}`.split(path.sep).join("/");
-    const reviewArtifact = buildToolingFailureReview({ kind: "coverage_error", err, coverageRelPath });
+    const reviewArtifact = buildToolingFailureReview({
+      kind: "coverage_error",
+      err,
+      coverageRelPath,
+      sourceTestArtifactRevision,
+    });
     artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
     console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
@@ -2890,6 +2924,7 @@ async function runTestReview(root, flow, config, dryRun) {
       kind,
       err,
       coverageRelPath: artifactPaths.coveragePath,
+      sourceTestArtifactRevision,
     });
     artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
@@ -2911,6 +2946,7 @@ async function runTestReview(root, flow, config, dryRun) {
   const reviewArtifact = new TestReviewArtifact({
     verdict,
     coverageArtifact: artifactPaths.coveragePath,
+    sourceTestArtifactRevision,
     blocking: blockingFindings,
     advisory: advisoryFindings,
   });

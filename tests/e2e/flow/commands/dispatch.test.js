@@ -17,6 +17,7 @@ import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-art
 import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
 import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { FlowTargetBinding } from "../../../../src/lib/flow-target-guard.js";
+import { captureRepairBaseline } from "../../../../src/flow/lib/repair-state-identity.js";
 
 const SENTI = path.resolve("src/senti.js");
 
@@ -68,46 +69,62 @@ function installReviewRecoveryWorker(root, state) {
   const worker = path.join(root, "review-recovery-worker.mjs");
   const count = path.join(root, ".tmp", "review-recovery-count.txt");
   const nextActionFile = path.join(root, ".tmp", "review-recovery-next-action.txt");
-  const targetSpecPath = specPath(state);
-  const testFile = path.join(root, path.dirname(targetSpecPath), "tests", "recovery.test.mjs");
   fs.writeFileSync(worker, [
     'import fs from "node:fs";',
+    'import path from "node:path";',
     'import {spawnSync} from "node:child_process";',
     "const prompt=process.argv[2]||'';",
     "if(!prompt.includes('You are a worker owned by the senti Flow CLI dispatcher.')){",
     "  process.stdout.write(JSON.stringify({blockingFindings:[],advisoryFindings:[]}));",
     "  process.exit(0);",
     "}",
+    "const invocation=JSON.parse(process.env.SENTI_FLOW_DISPATCH_INVOCATION);",
     `const countFile=${JSON.stringify(count)};`,
     "const previous=fs.existsSync(countFile)?Number(fs.readFileSync(countFile,'utf8')):0;",
     "const current=previous+1;",
     "fs.writeFileSync(countFile,String(current));",
-    `if(current===2)fs.appendFileSync(${JSON.stringify(testFile)},"\\n// repaired evidence\\n");`,
-    "if(current===3){",
-    "  const planned=spawnSync(process.execPath,[",
-    `    ${JSON.stringify(SENTI)},'flow','get','next-action',`,
-    `    '--expect-run-id',${JSON.stringify(state.runId)},`,
-    `    '--expect-spec',${JSON.stringify(state.specId)}`,
-    "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
-    "  if(planned.status!==0){",
-    "    process.stderr.write(planned.stderr||planned.stdout);",
-    "    process.exit(planned.status||1);",
-    "  }",
-    "  const nextAction=JSON.parse(planned.stdout).data.directive.nextAction;",
-    `  fs.writeFileSync(${JSON.stringify(nextActionFile)},nextAction);`,
-    "  const command=nextAction.match(/^senti flow run review --phase test --expect-binding '([^']+)' --expect-no-issue$/);",
+    "function runGuarded(commandName,extraArgs=[]){",
+    "  const nextAction=invocation.action.directive.nextAction;",
+    "  const command=nextAction.match(new RegExp(`^senti flow run ${commandName}(?: --phase test)? --expect-binding '([^']+)' --expect-no-issue$`));",
     "  if(!command){",
-    "    process.stderr.write(`incomplete review next-action: ${nextAction}`);",
+    "    process.stderr.write(`missing ${commandName} command in guarded invocation: ${nextAction}`);",
     "    process.exit(1);",
     "  }",
     "  const result=spawnSync(process.execPath,[",
-    `    ${JSON.stringify(SENTI)},'flow','run','review','--phase','test',`,
+    `    ${JSON.stringify(SENTI)},'flow','run',commandName,...extraArgs,`,
     "    '--expect-binding',command[1],'--expect-no-issue'",
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(result.status!==0){",
     "    process.stderr.write(result.stderr||result.stdout);",
     "    process.exit(result.status||1);",
     "  }",
+    "  return command[0];",
+    "}",
+    "if(current===1)runGuarded('repair-test-review');",
+    "if(current===2){",
+    "  const requestPath=process.env.SENTI_FLOW_HANDOFF_REQUEST;",
+    "  if(!requestPath){process.stderr.write('missing test repair handoff request');process.exit(1);}",
+    "  const request=JSON.parse(fs.readFileSync(requestPath,'utf8'));",
+    "  const payload=request.payloads.find((entry)=>entry.logicalName==='spec-tests');",
+    "  const target=path.join(payload.payloadPath,'recovery.test.mjs');",
+    "  fs.mkdirSync(path.dirname(target),{recursive:true});",
+    "  fs.writeFileSync(target,[",
+    "    '// spec: R1',",
+    "    \"import assert from 'node:assert/strict';\",",
+    "    \"import test from 'node:test';\",",
+    "    \"test('R1: recovery',()=>assert.fail('not implemented'));\",",
+    "    '// repaired evidence',",
+    "    '',",
+    "  ].join('\\n'));",
+    "  const sealed=spawnSync(process.execPath,[",
+    `    ${JSON.stringify(SENTI)},'flow','run','seal-handoff'`,
+    "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
+    "  if(sealed.status!==0){process.stderr.write(sealed.stderr||sealed.stdout);process.exit(sealed.status||1);}",
+    "}",
+    "if(current===3)runGuarded('scenario-validity');",
+    "if(current===4){",
+    "  const nextAction=runGuarded('review',['--phase','test']);",
+    `  fs.writeFileSync(${JSON.stringify(nextActionFile)},nextAction);`,
     "}",
     "process.stdout.write('worker report only');",
   ].join("\n"));
@@ -127,7 +144,7 @@ function installReviewRecoveryWorker(root, state) {
       },
     },
   }, null, 2)}\n`);
-  return { count, testFile, nextActionFile };
+  return { count, nextActionFile };
 }
 
 function setupApprovalSpec(root, state) {
@@ -390,9 +407,20 @@ describe("flow dispatch CLI", () => {
   it("continues a rejected review through changed evidence and guarded re-review", () => {
     root = createTmpDir("senti-flow-dispatch-review-recovery-");
     const state = setupFlowAtStep(root, "test-review", {
+      specId: "dispatch-test-review-repair",
+      runId: "run-dispatch-test-review-repair",
       baseBranch: "main",
       featureBranch: "main",
       metrics: [],
+      specTestArtifactRevision: {
+        version: 1,
+        runId: "run-dispatch-test-review-repair",
+        specId: "dispatch-test-review-repair",
+        stepId: "test",
+        digest: "a".repeat(64),
+        byteLength: 100,
+        finalizedAt: "2026-08-05T00:00:00.000Z",
+      },
     });
     const targetSpecPath = specPath(state);
     const specDir = path.join(root, path.dirname(targetSpecPath));
@@ -422,22 +450,43 @@ describe("flow dispatch CLI", () => {
       "// spec: R1\nimport test from 'node:test';\ntest('R1: recovery',()=>{});\n",
     );
     fs.writeFileSync(path.join(specDir, "test-review.json"), `${JSON.stringify({
+      version: 1,
+      phase: "test",
       verdict: "REJECTED",
+      counts: { blocking: 1, advisory: 0, total: 1 },
+      coverageArtifact: `specs/${state.specId}/test-coverage.json`,
+      sourceTestArtifactRevision: state.specTestArtifactRevision,
       blockingFindings: [{
         findingId: "repair-required",
         fingerprint: "a".repeat(64),
         disposition: "must-fix",
+        kind: "blocking",
+        title: "The test does not exercise the public behavior.",
+        target: "tests/recovery.test.mjs",
+        issue: "The assertion cannot detect an incorrect implementation.",
+        requiredChange: "Exercise the declared public behavior.",
+        whyBlocking: "Implementation cannot proceed with self-fulfilling evidence.",
         rationale: "The evidence must change before review runs again.",
       }],
+      advisoryFindings: [],
     }, null, 2)}\n`);
     const worker = installReviewRecoveryWorker(root, state);
     initGitRepo(root);
     commitAll(root, "initial rejected review fixture");
+    const repairBaseline = captureRepairBaseline({
+      root,
+      baseRef: "main",
+      runId: state.runId,
+    });
+    makeFlowManager(root).mutate((flow) => {
+      flow.repairBaseline = repairBaseline.toJSON();
+    });
+    const stateWithBaseline = makeFlowManager(root).load();
     const treeSha = resolveCurrentReviewTreeSha(root, targetSpecPath);
     const targetStateDigest = buildRepairFingerprint({
       root,
       specPath: targetSpecPath,
-      state,
+      state: stateWithBaseline,
     }).hash;
     makeFlowManager(root).mutate((flow) => {
       flow.metrics = [{ phase: "test", counter: "reviewRetry", delta: 1, taskId: null }];
@@ -456,7 +505,12 @@ describe("flow dispatch CLI", () => {
             disposition: "REJECTED",
           },
           finalizedEvidenceAvailable: true,
-          handoffFindings: [{ findingId: "repair-required" }],
+          handoffFindings: [{
+            findingId: "repair-required",
+            fingerprint: "a".repeat(64),
+            sourceStep: "test-review",
+            canonicalEvidenceRef: `review-evidence/${"b".repeat(64)}.json`,
+          }],
           blocker: null,
           toolingOutcome: null,
           provider: "independent-reviewer",
@@ -464,6 +518,25 @@ describe("flow dispatch CLI", () => {
         }],
       };
     });
+    const repairState = makeFlowManager(root).load();
+    assert.equal(resolveCurrentReviewTreeSha(root, targetSpecPath), treeSha);
+    assert.equal(buildRepairFingerprint({
+      root,
+      specPath: targetSpecPath,
+      state: repairState,
+    }).hash, targetStateDigest);
+    const repairPlan = spawnSync(process.execPath, [
+      SENTI,
+      "flow",
+      "get",
+      "next-action",
+      "--expect-run-id",
+      state.runId,
+      "--expect-spec",
+      state.specId,
+    ], invocationOptions(root));
+    assert.equal(repairPlan.status, 0, repairPlan.stderr || repairPlan.stdout);
+    assert.equal(JSON.parse(repairPlan.stdout).data.directive.actionId, "REPAIR_TEST_REVIEW");
     const bypass = spawnSync(process.execPath, [
       SENTI,
       "flow",
@@ -478,6 +551,18 @@ describe("flow dispatch CLI", () => {
     ], invocationOptions(root));
     assert.notEqual(bypass.status, 0);
     assert.equal(JSON.parse(bypass.stdout).errors[0].code, "FLOW_STEP_TRANSITION_INVALID");
+    const afterBypassPlan = spawnSync(process.execPath, [
+      SENTI,
+      "flow",
+      "get",
+      "next-action",
+      "--expect-run-id",
+      state.runId,
+      "--expect-spec",
+      state.specId,
+    ], invocationOptions(root));
+    assert.equal(afterBypassPlan.status, 0, afterBypassPlan.stderr || afterBypassPlan.stdout);
+    assert.equal(JSON.parse(afterBypassPlan.stdout).data.directive.actionId, "REPAIR_TEST_REVIEW");
 
     const result = invoke(root, state);
 
@@ -488,7 +573,7 @@ describe("flow dispatch CLI", () => {
       JSON.stringify(result.envelope, null, 2),
     );
     assert.equal(result.envelope.data.nextAction.step, "implement");
-    assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 6, true);
+    assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 7, true);
     assert.match(
       fs.readFileSync(worker.nextActionFile, "utf8"),
       /^senti flow run review --phase test --expect-binding '[^']+' --expect-no-issue$/,
@@ -496,7 +581,21 @@ describe("flow dispatch CLI", () => {
     assert.match(fs.readFileSync(path.join(testsDir, "recovery.test.mjs"), "utf8"), /repaired evidence/);
     const review = JSON.parse(fs.readFileSync(path.join(specDir, "test-review.json"), "utf8"));
     assert.equal(review.verdict, "PASS");
+    const scenario = JSON.parse(fs.readFileSync(path.join(specDir, "scenario-validity-result.json"), "utf8"));
+    const coverage = JSON.parse(fs.readFileSync(path.join(specDir, "test-coverage.json"), "utf8"));
+    assert.equal(scenario.result, "pass");
+    assert.equal(coverage.requirements.find((entry) => entry.id === "R1").status, "covered");
     const persisted = makeFlowManager(root).load();
+    assert.equal(persisted.workerArtifactReceipts.at(-1).stepId, "test");
+    assert.equal(persisted.testReviewRepairHistory.length, 1);
+    assert.notEqual(persisted.specTestArtifactRevision.digest, "a".repeat(64));
+    assert.equal(review.sourceTestArtifactRevision.digest, persisted.specTestArtifactRevision.digest);
+    assert.equal(coverage.sourceTestArtifactRevision.digest, persisted.specTestArtifactRevision.digest);
+    const convergences = persisted.reviewConvergence.records.filter((entry) => entry.phase === "test");
+    assert.equal(convergences[0].semanticAttempts, 1);
+    assert.equal(convergences[0].evidence.disposition, "REJECTED");
+    assert.equal(convergences.at(-1).semanticAttempts, 0);
+    assert.equal(convergences.at(-1).evidence.disposition, "PASS");
     assert.equal(findStepById(persisted.steps, "test-review").status, "done");
     assert.equal(findStepById(persisted.steps, "implement").status, "in_progress");
   });

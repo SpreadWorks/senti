@@ -105,4 +105,46 @@ describe("ReviewTargetAuthority", () => {
       true,
     );
   });
+
+  it("does not let the dispatcher lease change the review target identity", () => {
+    temporaryRoot = createTmpDir("review-target-dispatch-lock-");
+    writeJson(temporaryRoot, ".senti/config.json", {
+      name: "review-target-dispatch-lock-fixture",
+      lang: "en",
+      type: "base",
+      docs: { languages: ["en"], defaultLanguage: "en" },
+    });
+    writeJson(temporaryRoot, SPEC_PATH, {
+      goal: "Keep dispatcher metadata outside review evidence.",
+      requirements: [{ id: "R1", desc: "The review target remains stable." }],
+    });
+    writeFile(
+      temporaryRoot,
+      `specs/${SPEC_ID}/tests/identity.test.js`,
+      "// spec: R1\nimport test from 'node:test';\ntest('R1: stable target', () => {});\n",
+    );
+    initGitRepo(temporaryRoot);
+    commitAll(temporaryRoot, "dispatcher lock fixture");
+    const flowState = makeFlowState({
+      specId: SPEC_ID,
+      runId: "run-review-target-dispatch-lock",
+      baseBranch: "main",
+      featureBranch: "main",
+    });
+    const authority = new ReviewTargetAuthority({
+      executionRoot: temporaryRoot,
+      artifactRoot: temporaryRoot,
+      flowState,
+    });
+    const beforeTree = authority.resolveTreeSha();
+    const beforeState = authority.captureTargetStateForPhase("test");
+
+    writeJson(temporaryRoot, ".senti/.flow-dispatch-deadbeef.lock", {
+      pid: process.pid,
+      kind: "flow-dispatch",
+    });
+
+    assert.equal(authority.resolveTreeSha(), beforeTree);
+    assert.deepEqual(authority.captureTargetStateForPhase("test").toJSON(), beforeState.toJSON());
+  });
 });

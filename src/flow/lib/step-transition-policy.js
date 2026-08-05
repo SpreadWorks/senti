@@ -12,6 +12,7 @@ const RESET_SKIPPED_ENTRYPOINT = "reset-skipped-downstream";
 const EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT = "existing-implementation-revalidation";
 const PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT = "preimplementation-bootstrap";
 export const PLAN_GATE_REPAIR_ENTRYPOINT = "plan-gate-repair";
+export const TEST_REVIEW_REPAIR_ENTRYPOINT = "test-review-repair";
 
 export class StepTransitionError extends Error {
   constructor(message) {
@@ -257,6 +258,32 @@ export class ExplicitRecoveryTransition {
           transitionError(`plan gate repair requires completed upstream step ${stepId}`);
         }
       }
+    } else if (this.entrypoint === TEST_REVIEW_REPAIR_ENTRYPOINT) {
+      const expected = new Map([
+        ["test", ["done", "in_progress"]],
+        ["scenario-validity", ["done", "pending"]],
+        ["test-review", ["in_progress", "pending"]],
+      ]);
+      if (
+        this.stepId !== "test"
+        || this.requestedStatus !== "in_progress"
+        || recoveryChanges.length !== expected.size
+      ) {
+        transitionError("test review repair requires its complete test validation rewind");
+      }
+      const seen = new Set();
+      for (const change of recoveryChanges) {
+        const required = expected.get(change.stepId);
+        if (
+          seen.has(change.stepId)
+          || !required
+          || change.currentStatus !== required[0]
+          || change.requestedStatus !== required[1]
+        ) {
+          transitionError(`test review repair has invalid change for ${change.stepId}`);
+        }
+        seen.add(change.stepId);
+      }
     } else {
       transitionError(`unsupported recovery entrypoint: ${this.entrypoint}`);
     }
@@ -292,6 +319,7 @@ export function isStepTransition(value) {
         EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT,
         PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT,
         PLAN_GATE_REPAIR_ENTRYPOINT,
+        TEST_REVIEW_REPAIR_ENTRYPOINT,
       ].includes(value.entrypoint)
     );
 }

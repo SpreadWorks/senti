@@ -17,6 +17,10 @@ import {
   validateWorkerArtifactReceiptsState,
 } from "../flow/lib/worker-artifact-handoff.js";
 import { PlanGateRepairRecord } from "../flow/lib/plan-gate-repair.js";
+import {
+  TestReviewRepairCompletion,
+  TestReviewRepairRecord,
+} from "../flow/lib/test-review-repair.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -189,6 +193,18 @@ export class FlowState {
     }
     if (value.planGateRepair != null) {
       PlanGateRepairRecord.from(value.planGateRepair).assertFlow(value);
+    }
+    if (value.testReviewRepair != null) {
+      TestReviewRepairRecord.from(value.testReviewRepair).assertActiveState(value);
+    }
+    if (value.testReviewRepairHistory != null) {
+      invariant(
+        Array.isArray(value.testReviewRepairHistory) && value.testReviewRepairHistory.length <= 64,
+        "testReviewRepairHistory must be an array with at most 64 entries",
+      );
+      for (const stored of value.testReviewRepairHistory) {
+        TestReviewRepairCompletion.from(stored).repair.assertFlow(value);
+      }
     }
     if (revision) {
       const identity = revision.identity;
