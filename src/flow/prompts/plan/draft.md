@@ -17,7 +17,7 @@
    - Do NOT answer draft questions yourself. Create the question list with `status: "pending"` and follow the Draft QA Rules empty-field requirement.
    - Use Issue content (if linked), `docs/` chapters, guardrail articles, and source code as input.
    - Follow Draft QA Rules premise validation before creating pending questions for requirement areas that need user judgment. Use the shared category list from Draft QA Rules.
-   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `senti flow get context <path> --raw`) to build sufficient understanding before creating the checklist questions.
+   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly from the execution checkout to build sufficient understanding before creating the checklist questions.
    - Create the declared `draft.json` payload with these required fields checked by draft-gate:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
      - `goal` — non-empty string
@@ -33,13 +33,9 @@
    - **MUST: Every question to the user — including confirmations after applying user-requested changes — MUST use the Choice Format. No free-form questions. No exceptions.**
    - Use the shared category list from Draft QA Rules to check coverage.
    - **Before starting draft discussion**:
-     1. **If a GitHub Issue number is linked** (saved in flow.json via `--issue`):
-        Fetch the issue content with `senti flow get issue <number>` and display the title and body before the first question.
-        Use the issue content as context for the draft discussion.
-     2. **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.
-        - If target files/modules are not yet in context: `senti flow get context --search "<request text or issue title>" --raw` using the request or issue title as the query.
-        - If project structure is still unclear after search: `senti flow get context --raw` for a broad overview.
-     3. If guardrail articles have NOT been loaded in this session: `senti flow get guardrail draft`. If output is non-empty, consider these principles as constraints. Skip if already present in context.
+     1. Use the handoff `contextSnapshot.inputAuthority` entry as the authoritative Issue or request input. If an Issue is selected, display its number and body before the first question.
+     2. **Context gathering (supplement-first):** Start from the immutable project overview and guardrail entries. If target files/modules are still unclear, inspect relevant source files directly in the execution checkout.
+     3. Do not run nested Flow context, Issue, or guardrail commands; the parent materializes and binds those values before worker startup.
    - Fill draft.json fields for the initial question list:
      - `pending` / `approved`: follow the Draft QA Rules empty-field requirement.
      - `answered` / `dropped`: do not create these statuses while generating the initial question list. They are produced only after the one-shot question sanity check, when existing questions are actually answered or intentionally dropped.

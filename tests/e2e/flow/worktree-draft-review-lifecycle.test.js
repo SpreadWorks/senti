@@ -98,6 +98,7 @@ function publishWorkerArtifacts({ mainRoot, executionRoot, flowManager, writePay
     state,
     invocation: {
       id: invocationId,
+      target: { digest: crypto.createHash("sha256").update(`target:${state.runId}`).digest("hex") },
       action: { digest: actionDigest, nextAction: { step: stepId } },
     },
   });
@@ -201,6 +202,7 @@ describe("worktree draft review lifecycle", () => {
       specId,
       runId: "run-worktree-lifecycle",
       worktree: true,
+      request: "Exercise the canonical draft review lifecycle.",
     }), questions.reviewStepId);
     state.draftArtifactRevision = createInitialDraftArtifactRevision({
       state,
@@ -462,6 +464,7 @@ describe("worktree draft review lifecycle", () => {
       runId: "run-draft-gate-roundtrip",
       baseBranch: "main",
       featureBranch: "main",
+      request: "Recover and rerun the draft gate.",
     }), "draft-gate");
     state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
     const flowManager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId });
@@ -587,6 +590,7 @@ describe("worktree draft review lifecycle", () => {
       baseBranch: "main",
       featureBranch,
       worktree: true,
+      request: "Recover the worktree draft gate.",
     }), "draft-gate");
     state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
     const flowManager = new FlowManager({ root: mainRoot, mainRoot, inWorktree: false, specId });

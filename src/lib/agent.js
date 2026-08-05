@@ -23,7 +23,7 @@ import { generateRequestId } from "./log.js";
 import { ProviderRegistry } from "./provider.js";
 import { formatPreview } from "./error-preview.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
-import { normalizeAgentMetricDimension } from "./agent-metrics.js";
+import { persistAgentInvocationMetric } from "./agent-invocation-metric.js";
 import { AgentTimeout } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
 import {
@@ -47,28 +47,6 @@ const DEFAULT_PROVIDER_FAMILY_ALIASES = Object.freeze({
   codex: "codex/gpt-5.4",
   claude: "claude/sonnet",
 });
-
-function buildAgentMetricEntry(phase, { usage, responseChars, model, durationMs, provider, profileKey } = {}) {
-  return {
-    phase,
-    kind: "agent",
-    provider: normalizeAgentMetricDimension(provider),
-    profileKey: normalizeAgentMetricDimension(profileKey),
-    callCount: 1,
-    responseChars: responseChars || 0,
-    ...(durationMs != null && { durationMs }),
-    ...(model && { model }),
-    ...(usage && {
-      tokens: {
-        input: usage.input_tokens || 0,
-        output: usage.output_tokens || 0,
-        cacheRead: usage.cache_read_tokens || 0,
-        cacheCreation: usage.cache_creation_tokens || 0,
-      },
-      ...(usage.cost_usd != null && { cost: usage.cost_usd }),
-    }),
-  };
-}
 
 function normalizedExecutionEnvironment(value) {
   if (value == null) return {};
@@ -95,25 +73,6 @@ function normalizedExecutionEnvironment(value) {
     environment[name] = entry;
   }
   return environment;
-}
-
-function shouldPersistFinalizeMetricToSidecar(flowManager, context) {
-  if (!flowManager || !context?.specId || !String(context.sentiPhase || "").startsWith("finalize-")) return false;
-  try {
-    const state = flowManager.loadReadOnly(context.specId);
-    return state?.worktree === true;
-  } catch (_) {
-    return false;
-  }
-}
-
-async function persistFinalizeMetricToSidecar(flowManager, context, metric) {
-  const { recordFinalizeCleanupPostCommandMetadata } = await import("../flow/lib/run-finalize-cleanup.js");
-  recordFinalizeCleanupPostCommandMetadata({
-    flowManager,
-    specId: context.specId,
-    metrics: [metric],
-  });
 }
 
 class Agent {
@@ -175,6 +134,7 @@ class Agent {
    * @param {string}  [options.executionWorkDir] - Per-call agent execution directory inside the repository
    * @param {boolean} [options.waitForProcessTree=false] - Wait for the provider process group to become idle
    * @param {"ambient"|"none"} [options.flowAttribution="ambient"]
+   * @param {import("./agent-invocation-metric.js").DeferredAgentInvocationMetric} [options.deferredMetric]
    * @param {boolean} [options._dryRun] - Test-only short-circuit
    * @returns {Promise<string>} response text (trimmed)
    */
@@ -247,6 +207,7 @@ class Agent {
       provider: resolved.providerKey,
       profileKey: resolved.profileKey,
       flowAttribution,
+      deferredMetric: opts.deferredMetric ?? null,
       invoke: async () => {
         cacheCandidate = await this._callOnceWithRetry(
           resolved,
@@ -1415,6 +1376,7 @@ async function runWithLogging({
   provider,
   profileKey,
   flowAttribution,
+  deferredMetric,
   invoke,
 }) {
   const requestId = generateRequestId();
@@ -1459,34 +1421,15 @@ async function runWithLogging({
     // Metric accumulation is the Agent's responsibility: it runs independently
     // of cfg.logs.enabled so flow.json metrics are always up to date (R3).
     if (flowAttribution.usesFlowState && flowManager) {
-      try {
-        const ctx = flowManager.resolveCurrentContext();
-        if (ctx.sentiPhase) {
-          const durationMs = Math.max(0, Math.round(Date.now() - startedAt));
-          const metric = buildAgentMetricEntry(ctx.sentiPhase, {
-            provider,
-            profileKey,
-            usage,
-            responseChars: responseStats.chars,
-            model: null,
-            durationMs,
-          });
-          if (shouldPersistFinalizeMetricToSidecar(flowManager, ctx)) {
-            await persistFinalizeMetricToSidecar(flowManager, ctx, metric);
-          } else {
-            flowManager.accumulateAgentMetrics(ctx.sentiPhase, {
-              provider,
-              profileKey,
-              usage,
-              responseChars: responseStats.chars,
-              model: null,
-              durationMs,
-            });
-          }
-        }
-      } catch (metricErr) {
-        process.stderr.write(`[senti] agent: metric accumulation failed: ${metricErr.message}\n`);
-      }
+      await persistAgentInvocationMetric({
+        flowManager,
+        provider,
+        profileKey,
+        usage,
+        responseChars: responseStats.chars,
+        model: null,
+        durationMs: Math.max(0, Math.round(Date.now() - startedAt)),
+      }, deferredMetric);
     }
   }
 }

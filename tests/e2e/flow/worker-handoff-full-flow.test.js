@@ -217,6 +217,7 @@ describe("deterministic full Flow worker handoff", () => {
         specId,
         runId: "run-worker-handoff-full-flow",
         worktree: true,
+        request: "Exercise the complete target-bound worker handoff lifecycle.",
       }), "branch");
       const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
       flowManager.create(initial);

@@ -421,7 +421,7 @@ function buildNextActionResult(
   if (requiresWorkerArtifactHandoff(target.stepId)) {
     const authority = flowArtifactAuthorityForStep(target.stepId);
     context.workerArtifactHandoff = Object.freeze({
-      version: 1,
+      version: 2,
       required: true,
       writableAuthority: authority.writableAuthority,
       publicationOwner: authority.publicationOwner,

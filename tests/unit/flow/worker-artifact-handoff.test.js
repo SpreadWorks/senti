@@ -21,6 +21,7 @@ import {
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { persistAgentInvocationMetric } from "../../../src/lib/agent-invocation-metric.js";
 import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
@@ -44,6 +45,8 @@ function fixture(stepId = "draft", {
   worktree = true,
   runId = "run-worker-handoff",
   specId = "500-worker-handoff",
+  issue = null,
+  request = "Create the target-bound worker artifact handoff.",
 } = {}) {
   const mainRoot = createTmpDir("worker-handoff-main-");
   const executionRoot = worktree ? path.join(mainRoot, "execution") : mainRoot;
@@ -52,6 +55,8 @@ function fixture(stepId = "draft", {
     specId,
     runId,
     worktree,
+    ...(issue == null ? {} : { issue }),
+    ...(request == null ? {} : { request }),
   }), stepId);
   const flowManager = new FlowManager({
     root: executionRoot,
@@ -63,6 +68,7 @@ function fixture(stepId = "draft", {
   const ctx = { root: executionRoot, executionRoot, mainRoot, specId, flowManager };
   const invocation = {
     id: "dispatch-worker-handoff",
+    target: { digest: "b".repeat(64) },
     action: {
       digest: ACTION_DIGEST,
       nextAction: { step: stepId },
@@ -249,6 +255,117 @@ describe("worker artifact handoff", () => {
       assert.ok(entry.completionValidator);
       assert.ok(entry.sourceBinding);
       assert.ok(entry.recoveryOwner);
+    }
+  });
+
+  it("materializes target-bound immutable draft context with explicit omissions", () => {
+    const value = fixture();
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const snapshot = request.contextSnapshot;
+      const entries = new Map(snapshot.entries.map((entry) => [entry.kind, entry]));
+
+      assert.equal(snapshot.binding.runId, "run-worker-handoff");
+      assert.equal(snapshot.binding.specId, value.specId);
+      assert.equal(snapshot.binding.dispatchInvocationId, value.invocation.id);
+      assert.equal(snapshot.binding.actionDigest, ACTION_DIGEST);
+      assert.equal(snapshot.binding.targetDigest, "b".repeat(64));
+      assert.equal(snapshot.inputAuthority.kind, "request");
+      assert.equal(entries.get("request").document, "Create the target-bound worker artifact handoff.");
+      assert.equal(entries.get("issue").reason, "no-linked-issue");
+      assert.equal(entries.get("project_overview").reason, "docs-overview-unavailable");
+      assert.match(snapshot.digest, /^[a-f0-9]{64}$/);
+      assert.equal(request.toWorkerJSON().contextSnapshot.digest, snapshot.digest);
+      assert.equal(request.inputDigest, request.toJSON().inputDigest);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("selects linked Issue content over a simultaneous Flow request", () => {
+    const value = fixture("draft", { issue: 501, request: "secondary Flow request" });
+    try {
+      fs.writeFileSync(path.join(canonicalSpecDir(value), "issue.md"), "Authoritative Issue body.\n");
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const entries = new Map(request.contextSnapshot.entries.map((entry) => [entry.kind, entry]));
+
+      assert.equal(request.contextSnapshot.inputAuthority.kind, "issue");
+      assert.deepEqual(entries.get("issue").document, {
+        number: 501,
+        body: "Authoritative Issue body.",
+      });
+      assert.equal(entries.get("request").document, "secondary Flow request");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects missing draft input authority before worker startup", () => {
+    const value = fixture("draft", { request: null });
+    try {
+      assert.throws(
+        () => value.coordinator.createRequest({
+          ctx: value.ctx,
+          state: value.flowManager.load(),
+          invocation: value.invocation,
+        }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_CONTEXT_INVALID"
+          && /linked Issue content or a Flow request/.test(error.message),
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("returns typed context failure without calling the dispatcher worker", async () => {
+    const value = fixture("draft", { request: null });
+    try {
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return {
+              taskId: null,
+              step: "draft",
+              action: "write-draft",
+              instructions: { key: "plan.draft", content: "Write the draft." },
+              context: { workerArtifactHandoff: { required: true } },
+              output_schema: {},
+              requires_approval: false,
+              maxAttempts: 1,
+              directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+            };
+          },
+        },
+        agent: { async call() { calls += 1; } },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_CONTEXT_INVALID");
+      assert.equal(calls, 0);
+    } finally {
+      removeTmpDir(value.mainRoot);
     }
   });
 
@@ -488,6 +605,15 @@ describe("worker artifact handoff", () => {
               requestPath,
               invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
             });
+            await persistAgentInvocationMetric({
+              flowManager: value.flowManager,
+              provider: "test-provider",
+              profileKey: "flow-dispatch",
+              usage: null,
+              responseChars: 42,
+              model: null,
+              durationMs: 1,
+            }, options.deferredMetric);
             return "worker report is not the completion signal";
           },
         },
@@ -507,10 +633,83 @@ describe("worker artifact handoff", () => {
       assert.equal(result.dispatch.boundary, "completed");
       assert.equal(result.dispatch.dispatchCount, 1);
       assert.equal(calls, 1);
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
+      const completed = value.flowManager.load();
+      assert.equal(findStepById(completed.steps, "draft").status, "done");
+      assert.equal(completed.metrics.filter((entry) => entry.kind === "agent").length, 1);
       } finally {
         removeTmpDir(value.mainRoot);
       }
+    }
+  });
+
+  it("detects a worker-spoofed canonical metric before flushing the parent metric once", async () => {
+    const value = fixture("draft", { worktree: false });
+    try {
+      initializeGitRepository(value);
+      const action = {
+        taskId: null,
+        step: "draft",
+        action: "write-draft",
+        instructions: { key: "plan.draft", content: "Write the draft." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: {},
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+      };
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(action); } },
+        agent: {
+          async call(_prompt, options) {
+            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
+              json({ goal: "must not be published" }),
+            );
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            value.flowManager.accumulateAgentMetrics("draft", {
+              provider: "worker-spoof",
+              profileKey: "fake",
+              responseChars: 999,
+              durationMs: 1,
+            });
+            await persistAgentInvocationMetric({
+              flowManager: value.flowManager,
+              provider: "parent-provider",
+              profileKey: "flow-dispatch",
+              usage: null,
+              responseChars: 12,
+              model: null,
+              durationMs: 2,
+            }, options.deferredMetric);
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION");
+      const state = value.flowManager.load();
+      assert.equal(findStepById(state.steps, "draft").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+      assert.equal(state.metrics.filter((entry) => entry.provider === "parent-provider").length, 1);
+      assert.equal(state.metrics.filter((entry) => entry.provider === "worker-spoof").length, 1);
+    } finally {
+      removeTmpDir(value.mainRoot);
     }
   });
 
@@ -633,6 +832,62 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("rejects execution source, Git index, HEAD, and untracked project mutations", () => {
+    const cases = [
+      {
+        expected: "product.js",
+        mutate(value) {
+          fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+        },
+      },
+      {
+        expected: "<index>",
+        mutate(value) {
+          fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+          execFileSync("git", ["add", "product.js"], { cwd: value.mainRoot });
+        },
+      },
+      {
+        expected: "<HEAD>",
+        mutate(value) {
+          execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "worker mutation"], {
+            cwd: value.mainRoot,
+          });
+        },
+      },
+      {
+        expected: "worker-untracked.txt",
+        mutate(value) {
+          fs.writeFileSync(path.join(value.mainRoot, "worker-untracked.txt"), "worker mutation\n");
+        },
+      },
+    ];
+
+    for (const scenario of cases) {
+      const value = fixture("draft", { worktree: false });
+      try {
+        initializeGitRepository(value);
+        const request = value.coordinator.createRequest({
+          ctx: value.ctx,
+          state: value.flowManager.load(),
+          invocation: value.invocation,
+        });
+        const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+        scenario.mutate(value);
+
+        assert.throws(
+          () => authority.assertUnchanged(),
+          (error) => error instanceof WorkerArtifactHandoffError
+            && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+            && error.data.changedPaths.includes(scenario.expected),
+          scenario.expected,
+        );
+      } finally {
+        removeTmpDir(value.mainRoot);
+      }
+    }
+  });
+
   it("does not content-scan clean historical specs in a Git repository", () => {
     const value = fixture("draft", { worktree: false });
     try {
@@ -694,8 +949,62 @@ describe("worker artifact handoff", () => {
       assert.equal(result.data.retryBudgetConsumed, false);
       assert.equal(result.data.dispatch.dispatchCount, 1);
       assert.equal(calls, 1);
+      const state = value.flowManager.load();
+      assert.equal(findStepById(state.steps, "draft").status, "in_progress");
+      assert.equal(state.metrics.filter((entry) => entry.kind === "agent").length, 1);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("keeps handoff failure precedence when deferred metric persistence is advisory", async () => {
+    const value = fixture();
+    const originalWrite = process.stderr.write;
+    const originalAccumulate = value.flowManager.accumulateAgentMetrics;
+    let stderr = "";
+    try {
+      const action = {
+        taskId: null,
+        step: "draft",
+        action: "write-draft",
+        instructions: { key: "plan.draft", content: "Write the draft." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: {},
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+      };
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(action); } },
+        agent: {
+          async call() {
+            throw new Error("simulated provider failure");
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+      value.flowManager.accumulateAgentMetrics = () => {
+        throw new Error("simulated metric persistence failure");
+      };
+      process.stderr.write = (chunk) => { stderr += String(chunk); return true; };
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
+      assert.match(stderr, /metric accumulation failed: simulated metric persistence failure/);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
     } finally {
+      process.stderr.write = originalWrite;
+      value.flowManager.accumulateAgentMetrics = originalAccumulate;
       removeTmpDir(value.mainRoot);
     }
   });

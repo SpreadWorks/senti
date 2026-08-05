@@ -13,6 +13,7 @@ import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
+import { DeferredAgentInvocationMetric } from "../../lib/agent-invocation-metric.js";
 import {
   ProcessOwnedLock,
   RealDirectoryAuthority,
@@ -762,6 +763,9 @@ export default class RunDispatchCommand extends FlowCommand {
         );
       }
       const work = new FlowDispatchWork(invocation, handoffRequest);
+      const deferredMetric = handoffRequest
+        ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
+        : null;
       let agentError = null;
       try {
         agent ||= this.container.get("agent");
@@ -772,6 +776,7 @@ export default class RunDispatchCommand extends FlowCommand {
           retryCount: 0,
           waitForProcessTree: true,
           executionEnvironment: work.executionEnvironment(),
+          deferredMetric,
         });
       } catch (error) {
         agentError = error;
@@ -779,8 +784,23 @@ export default class RunDispatchCommand extends FlowCommand {
       dispatchCount += 1;
 
       if (handoffRequest) {
+        let mutationError = null;
         try {
           workerArtifactAuthority.assertUnchanged();
+        } catch (error) {
+          mutationError = error;
+        }
+        await deferredMetric.flush();
+        if (mutationError) {
+          if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
+          return this.failure(
+            ctx,
+            mutationError.code,
+            mutationError.message,
+            workerHandoffFailureData(ctx, mutationError, handoffRequest, dispatchCount, agentError),
+          );
+        }
+        try {
           this.handoffCoordinator.reconcile({ ctx, request: handoffRequest });
           agentError = null;
         } catch (error) {

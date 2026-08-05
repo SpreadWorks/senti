@@ -67,9 +67,14 @@ function prepareWorktree(root, issue, title) {
   const initialized = expectSuccess(runFlow(root, [
     "set", "init", "--request", `fix Issue #${issue}`, "--issue", String(issue),
   ]));
-  return expectSuccess(runFlow(root, [
+  const prepared = expectSuccess(runFlow(root, [
     "prepare", "--title", title, "--base", "main", "--worktree", "--run-id", initialized.runId,
   ]));
+  fs.writeFileSync(
+    path.join(root, "specs", prepared.specId, "issue.md"),
+    `Issue ${issue}: ${title}\n`,
+  );
+  return prepared;
 }
 
 function canonicalDraft(root, flow) {
@@ -98,6 +103,7 @@ function publishDraft(root, flow, value) {
     state,
     invocation: {
       id: invocationId,
+      target: { digest: crypto.createHash("sha256").update(`target:${flow.runId}`).digest("hex") },
       action: {
         digest: crypto.createHash("sha256").update(invocationId).digest("hex"),
         nextAction: { step: "draft" },

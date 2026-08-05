@@ -13,6 +13,10 @@ import path from "node:path";
 import os from "node:os";
 
 import { Agent } from "../../../src/lib/agent.js";
+import {
+  AgentInvocationMetric,
+  DeferredAgentInvocationMetric,
+} from "../../../src/lib/agent-invocation-metric.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
 import { todayLocal, readJsonl } from "../../helpers/log-fixtures.js";
@@ -136,6 +140,54 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger: disabledLogger, flowManager });
     await agent.call("hi", { commandId: "test" });
     assert.equal(calls.length, 1);
+  });
+
+  it("defers dispatcher-owned metric persistence until the parent flushes it", async () => {
+    const calls = [];
+    const flowManager = {
+      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", sentiPhase: "draft" }),
+      accumulateAgentMetrics: (...args) => { calls.push(args); },
+    };
+    const deferredMetric = new DeferredAgentInvocationMetric();
+    const agent = makeAgentService(
+      { command: "echo", args: ["{{PROMPT}}"] },
+      tmpDir,
+      { logger, flowManager },
+    );
+
+    await agent.call("hi", { commandId: "test", deferredMetric });
+    assert.equal(calls.length, 0, "the worker mutation window must not contain the parent metric write");
+
+    assert.equal(await deferredMetric.flush(), true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "draft");
+    await assert.rejects(deferredMetric.flush(), /already flushed/);
+  });
+
+  it("binds deferred metric attribution before the worker can mutate Flow context", async () => {
+    const calls = [];
+    let phase = "draft";
+    const flowManager = {
+      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", sentiPhase: phase }),
+      accumulateAgentMetrics: (...args) => { calls.push(args); },
+    };
+    const deferredMetric = new DeferredAgentInvocationMetric({ flowManager });
+    phase = "impl";
+    deferredMetric.capture(AgentInvocationMetric.capture({
+      flowManager,
+      provider: "test-provider",
+      profileKey: "flow-dispatch",
+      usage: null,
+      responseChars: 10,
+      model: null,
+      durationMs: 1,
+    }));
+
+    await deferredMetric.flush();
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "draft");
+    assert.equal(calls[0][1].provider, "test-provider");
   });
 
   it("skips metric accumulation when sentiPhase is null", async () => {

@@ -7,13 +7,17 @@ import { AtomicFile } from "../../lib/atomic-file.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
+import {
+  captureRegularFile,
+  sameFileIdentity,
+} from "../../lib/regular-file-snapshot.js";
 import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
 import {
   DraftReviewArtifactFile,
   DraftReviewEvidenceSet,
 } from "./draft-review-artifacts.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
-import { findActiveNode } from "../definition.js";
+import { findActiveNode, getFlowNode } from "../definition.js";
 import { findStepById } from "./step-tree.js";
 import {
   NormalStepTransition,
@@ -27,9 +31,10 @@ import {
 import { WorkerArtifactRevision } from "./worker-artifact-revision.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
 import { PlanGateRepairRecord } from "./plan-gate-repair.js";
+import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = "SENTI_FLOW_HANDOFF_REQUEST";
-export const WORKER_ARTIFACT_HANDOFF_VERSION = 1;
+export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
 export const WORKER_ARTIFACT_HANDOFF_ROOT = path.join(".senti", "handoffs");
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -99,35 +104,9 @@ function boundedJson(filePath, label) {
   }
 }
 
-function sameFile(left, right) {
-  return left.dev === right.dev && left.ino === right.ino;
-}
-
 function readRegularFile(filePath, label, maxBytes = MAX_PAYLOAD_BYTES) {
-  const resolved = path.resolve(filePath);
-  let descriptor = null;
   try {
-    const visible = fs.lstatSync(resolved);
-    if (
-      !visible.isFile()
-      || visible.isSymbolicLink()
-      || fs.realpathSync(resolved) !== resolved
-      || visible.size > maxBytes
-    ) {
-      throw new Error(`${label} must be a regular real file up to ${maxBytes} bytes`);
-    }
-    descriptor = fs.openSync(resolved, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
-    const opened = fs.fstatSync(descriptor);
-    if (!opened.isFile() || !sameFile(visible, opened) || opened.size > maxBytes) {
-      throw new Error(`${label} identity changed while opening`);
-    }
-    const bytes = fs.readFileSync(descriptor);
-    return Object.freeze({
-      filePath: resolved,
-      bytes,
-      digest: digest(bytes),
-      byteLength: bytes.length,
-    });
+    return captureRegularFile(filePath, { label, maxBytes });
   } catch (cause) {
     if (cause instanceof WorkerArtifactHandoffError) throw cause;
     throw new WorkerArtifactHandoffError(
@@ -138,8 +117,6 @@ function readRegularFile(filePath, label, maxBytes = MAX_PAYLOAD_BYTES) {
       `${label} is unavailable: ${cause.message}`,
       { cause },
     );
-  } finally {
-    if (descriptor != null) fs.closeSync(descriptor);
   }
 }
 
@@ -718,7 +695,7 @@ function digestAuthorityFile(filePath, visible, relativePath, budget) {
   try {
     descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
     const opened = fs.fstatSync(descriptor);
-    if (!opened.isFile() || !sameFile(visible, opened)) {
+    if (!opened.isFile() || !sameFileIdentity(visible, opened)) {
       throw new Error("file identity changed while opening");
     }
     if (opened.size > MAX_AUTHORITY_FILE_BYTES) {
@@ -741,7 +718,7 @@ function digestAuthorityFile(filePath, visible, relativePath, budget) {
       hash.update(chunk.subarray(0, bytesRead));
     }
     const completed = fs.fstatSync(descriptor);
-    if (!sameFile(opened, completed) || completed.size !== fileBytes) {
+    if (!sameFileIdentity(opened, completed) || completed.size !== fileBytes) {
       throw new Error("file identity changed while reading");
     }
     return hash.digest("hex");
@@ -1041,6 +1018,22 @@ function inputRevision(state, policy, inputDigest) {
   }));
 }
 
+function requiresDraftWorkerContext(policy) {
+  const kinds = getFlowNode(policy.stepId)?.contextKinds || [];
+  return ["issue", "guardrail", "project_overview"].every((kind) => kinds.includes(kind));
+}
+
+function handoffInputDigest(inputs, contextSnapshot) {
+  return digest(stableStringify({
+    artifacts: inputs.map((input) => ({
+      path: input.targetRelativePath,
+      digest: input.digest,
+      byteLength: input.byteLength,
+    })),
+    context: contextSnapshot?.digest ?? null,
+  }));
+}
+
 export class WorkerArtifactHandoffRequest {
   constructor({
     mainRoot,
@@ -1049,6 +1042,7 @@ export class WorkerArtifactHandoffRequest {
     invocation,
     policy,
     inputs,
+    contextSnapshot,
     payloads,
     inputDigest,
     inputRevision: revision,
@@ -1069,6 +1063,21 @@ export class WorkerArtifactHandoffRequest {
     this.inputDigest = requiredDigest(inputDigest, "handoff inputDigest");
     this.inputRevision = requiredDigest(revision, "handoff inputRevision");
     this.inputs = Object.freeze(inputs);
+    if (contextSnapshot != null && !(contextSnapshot instanceof DraftWorkerContextSnapshot)) {
+      throw new Error("handoff contextSnapshot must be a DraftWorkerContextSnapshot or null");
+    }
+    if (requiresDraftWorkerContext(policy) !== (contextSnapshot != null)) {
+      throw new Error("handoff context snapshot does not match its step context contract");
+    }
+    contextSnapshot?.assertBinding({
+      runId: this.runId,
+      specId: this.specId,
+      issue: this.issue,
+      dispatchInvocationId: this.dispatchInvocationId,
+      actionDigest: this.actionDigest,
+      targetDigest: invocation.target?.digest ?? contextSnapshot.binding.targetDigest,
+    });
+    this.contextSnapshot = contextSnapshot;
     this.payloads = Object.freeze(payloads);
     this.generatedAt = requiredString(generatedAt, "handoff generatedAt");
     const actionDirectory = handoffActionDirectory(
@@ -1104,11 +1113,25 @@ export class WorkerArtifactHandoffRequest {
         document,
       });
     });
-    const inputDigestValue = digest(stableStringify(inputs.map((input) => ({
-      path: input.targetRelativePath,
-      digest: input.digest,
-      byteLength: input.byteLength,
-    }))));
+    let contextSnapshot = null;
+    if (requiresDraftWorkerContext(policy)) {
+      try {
+        contextSnapshot = DraftWorkerContextSnapshot.materialize({
+          specDirectory: specDir,
+          executionRoot,
+          state,
+          invocation,
+        });
+      } catch (cause) {
+        throw new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_ARTIFACT_HANDOFF_CONTEXT_INVALID",
+          `draft worker context could not be materialized: ${cause.message}`,
+          { cause },
+        );
+      }
+    }
+    const inputDigestValue = handoffInputDigest(inputs, contextSnapshot);
     const payloads = policy.payloads.map((rule) => {
       const canonicalPath = path.join(specDir, ...rule.targetRelativePath.split("/"));
       const baseline = rule.kind === "tree"
@@ -1128,6 +1151,7 @@ export class WorkerArtifactHandoffRequest {
       invocation,
       policy,
       inputs,
+      contextSnapshot,
       payloads,
       inputDigest: inputDigestValue,
       inputRevision: inputRevision(state, policy, inputDigestValue),
@@ -1152,6 +1176,7 @@ export class WorkerArtifactHandoffRequest {
       },
       policy,
       inputs: stored.inputs,
+      contextSnapshot: stored.contextSnapshot,
       payloads: policy.payloads.map((rule) => {
         const baseline = baselineByName.get(rule.logicalName);
         if (!baseline || baseline.kind !== rule.kind || baseline.targetRelativePath !== rule.targetRelativePath) {
@@ -1203,6 +1228,7 @@ export class WorkerArtifactHandoffRequest {
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
+      contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
       payloads: this.payloads.map(({ rule, baselineDigest, baselineByteLength }) => ({
         logicalName: rule.logicalName,
         kind: rule.kind,
@@ -1252,6 +1278,7 @@ export class WorkerArtifactHandoffRequest {
       inputDigest: this.inputDigest,
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
+      contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
       sealCommand: "senti flow run seal-handoff",
       completionOwner: "parent-dispatcher",
     };
@@ -1275,6 +1302,25 @@ export class WorkerArtifactHandoffRequest {
       );
     }
     const specDir = specDirectory(this.mainRoot, state);
+    if (this.contextSnapshot) {
+      try {
+        this.contextSnapshot.assertBinding({
+          runId: state.runId,
+          specId: state.specId,
+          issue: state.issue ?? null,
+          dispatchInvocationId: this.dispatchInvocationId,
+          actionDigest: this.actionDigest,
+          targetDigest: this.contextSnapshot.binding.targetDigest,
+        });
+      } catch (cause) {
+        throw new WorkerArtifactHandoffError(
+          "stale",
+          "FLOW_ARTIFACT_HANDOFF_STALE",
+          `draft worker context binding is stale: ${cause.message}`,
+          { cause },
+        );
+      }
+    }
     const current = this.inputs.map(({ targetRelativePath: relativePath }) => {
       const snapshot = readRegularFile(
         path.join(specDir, relativePath),
@@ -1283,7 +1329,11 @@ export class WorkerArtifactHandoffRequest {
       );
       return { path: relativePath, digest: snapshot.digest, byteLength: snapshot.byteLength };
     });
-    const currentDigest = digest(stableStringify(current));
+    const currentDigest = handoffInputDigest(current.map((input) => ({
+      targetRelativePath: input.path,
+      digest: input.digest,
+      byteLength: input.byteLength,
+    })), this.contextSnapshot);
     const currentRevision = inputRevision(state, this.policy, currentDigest);
     if (currentDigest !== this.inputDigest || currentRevision !== this.inputRevision) {
       throw new WorkerArtifactHandoffError(
@@ -1524,6 +1574,9 @@ function requestFromStored(filePath) {
         document: input?.document,
       })
     )),
+    contextSnapshot: document.contextSnapshot == null
+      ? null
+      : DraftWorkerContextSnapshot.fromStored(document.contextSnapshot),
     payloadPath(logicalName) {
       const rule = policy.payloads.find((entry) => entry.logicalName === logicalName);
       if (!rule) throw new Error(`unknown handoff payload: ${logicalName}`);
@@ -1536,6 +1589,9 @@ function requestFromStored(filePath) {
     !policy.inputContract.accepts(request.inputs.map((input) => input.targetRelativePath))
   ) {
     throw new Error("handoff request inputs do not match its step policy");
+  }
+  if (requiresDraftWorkerContext(policy) !== (request.contextSnapshot != null)) {
+    throw new Error("handoff request context snapshot does not match its step contract");
   }
   request.requestDigest = digest(stableStringify(document));
   if (!isWithin(executionRoot, request.requestPath) || !isWithin(executionRoot, payloadDirectory)) {

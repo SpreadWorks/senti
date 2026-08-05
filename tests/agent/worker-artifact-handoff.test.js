@@ -14,7 +14,7 @@ import { FlowManager } from "../../src/lib/flow-manager.js";
 import { Logger } from "../../src/lib/log.js";
 import { ProviderRegistry } from "../../src/lib/provider.js";
 import { makeFlowState, moveFlowToStep } from "../helpers/flow-setup.js";
-import { initGitRepo } from "../helpers/git-repo.js";
+import { commitAll, initGitRepo } from "../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../helpers/tmp-dir.js";
 
 const SENTI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/senti.js");
@@ -77,6 +77,8 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       const binDir = path.join(executionRoot, ".test-bin");
       fs.mkdirSync(binDir, { recursive: true });
       initGitRepo(executionRoot);
+      fs.writeFileSync(path.join(executionRoot, "README.md"), "worker handoff fixture\n");
+      commitAll(executionRoot, "worker handoff fixture");
       const wrapper = path.join(binDir, "senti");
       fs.writeFileSync(wrapper, [
         "#!/bin/sh",
@@ -94,6 +96,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         specId,
         runId: "run-worker-handoff-agent",
         worktree: true,
+        request: "Exercise the real agent worker handoff.",
       }), "draft-questions-triage");
       state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
       state.draftArtifactRevision.sourceStepId = "draft";
@@ -193,6 +196,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         state: completed,
         invocation: {
           id: "downstream-draft-refine",
+          target: { digest: "e".repeat(64) },
           action: { digest: "d".repeat(64), nextAction: { step: downstream.step } },
         },
       });

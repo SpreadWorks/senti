@@ -65,6 +65,7 @@ function planGateFixture({ worktree = true, phase = "draft" } = {}) {
     specId: SPEC_ID,
     runId: RUN_ID,
     issue: 494,
+    request: "Repair the draft gate while preserving public behavior.",
     worktree,
     metrics: [
       { phase, counter: "gateRetry", delta: 5 },
@@ -79,6 +80,7 @@ function planGateFixture({ worktree = true, phase = "draft" } = {}) {
   });
   flowManager.create(state);
   const specDir = path.join(mainRoot, "specs", SPEC_ID);
+  fs.writeFileSync(path.join(specDir, "issue.md"), "Issue 494 requires the guarded draft repair.\n");
   fs.writeFileSync(path.join(specDir, "draft.json"), json({
     goal: "Preserve public behavior.",
     impactOnExisting: ["The affected surfaces must remain compatible."],
@@ -120,6 +122,7 @@ function handoffRequest(value, invocationId) {
     state: value.flowManager.load(),
     invocation: {
       id: invocationId,
+      target: { digest: "b".repeat(64) },
       action: {
         digest: "a".repeat(64),
         nextAction: { step: "draft-refine" },
