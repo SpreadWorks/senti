@@ -1699,6 +1699,27 @@ export const FLOW_COMMANDS = {
         "flow-level events are atomically audited in flow.json planRewinds.",
       ].join("\n"),
     },
+    "repair-plan-gate": {
+      helpKey: "flow.run.repair-plan-gate",
+      runtimeLog: { stepMetadata: false },
+      explicitTargetResolution: true,
+      command: () => import("./lib/run-repair-plan-gate.js"),
+      args: {
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: [...FLOW_RUN_OPTIONS],
+      },
+      help: [
+        `Usage: senti flow run repair-plan-gate ${FLOW_TARGET_GUARD_USAGE}`,
+        "",
+        "Rewind a failed draft/spec gate to its worker-artifact handoff step.",
+        "The command freezes the canonical blocking observations in Flow state;",
+        "the worker may publish only through the normal handoff authority.",
+        "",
+        "Options:",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
+      ].join("\n"),
+    },
     "start-task": {
       helpKey: "flow.run.start-task",
       explicitTargetResolution: true,

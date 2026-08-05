@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -25,6 +26,7 @@ import {
 } from "./spec-review-artifacts.js";
 import { WorkerArtifactRevision } from "./worker-artifact-revision.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
+import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = "SENTI_FLOW_HANDOFF_REQUEST";
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 1;
@@ -37,6 +39,12 @@ const MAX_TOTAL_PAYLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_PAYLOAD_FILES = 256;
 const MAX_JSON_BYTES = 8 * 1024 * 1024;
 const MAX_RELATIVE_PATH_BYTES = 500;
+const MAX_AUTHORITY_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
+const MAX_AUTHORITY_DIRTY_PATHS = 20_000;
+const MAX_AUTHORITY_FILE_BYTES = 64 * 1024 * 1024;
+const MAX_AUTHORITY_TOTAL_FILE_BYTES = 256 * 1024 * 1024;
+const WORKER_RUNTIME_DIRECTORIES = new Set(["agent-cache", "agent-work", "handoffs"]);
+const AUTHORITY_ENTRY_KINDS = new Set(["missing", "symlink", "directory", "file", "other"]);
 const SPEC_TEST_FILE = /\.(?:js|mjs|ts|json|md|ya?ml|txt|sh)$/;
 const COMMAND_OWNED_SPEC_TEST_DIRECTORY = ".raw";
 
@@ -254,13 +262,59 @@ export class WorkerArtifactPayloadRule {
   }
 }
 
+export class WorkerArtifactInputContract {
+  constructor({ stepId, inputs, repairInputs = {} }) {
+    this.stepId = requiredString(stepId, "worker artifact input contract stepId");
+    this.inputs = Object.freeze(
+      inputs.map((entry) => normalizedRelativePath(entry, `${this.stepId}.input`)),
+    );
+    const variants = {};
+    for (const [phase, entries] of Object.entries(repairInputs)) {
+      if (!new Set(["draft", "spec"]).has(phase)) {
+        throw new Error(`invalid plan-gate repair input phase for ${this.stepId}: ${phase}`);
+      }
+      const paths = Object.freeze(
+        entries.map((entry) => normalizedRelativePath(entry, `${this.stepId}.${phase}.input`)),
+      );
+      variants[phase] = paths;
+    }
+    this.repairInputs = Object.freeze(variants);
+    this.allowedSignatures = Object.freeze([
+      this.inputs,
+      ...Object.values(variants),
+    ].map((paths) => paths.join("\u0000")));
+    if (new Set(this.allowedSignatures).size !== this.allowedSignatures.length) {
+      throw new Error(`duplicate worker artifact input contract for ${this.stepId}`);
+    }
+    Object.freeze(this);
+  }
+
+  resolve(state) {
+    const repair = PlanGateRepairRecord.forTarget(state, this.stepId);
+    return repair ? (this.repairInputs[repair.phase] || this.inputs) : this.inputs;
+  }
+
+  accepts(paths) {
+    const signature = paths.map((entry) => normalizedRelativePath(
+      entry,
+      `${this.stepId}.request.input`,
+    )).join("\u0000");
+    return this.allowedSignatures.includes(signature);
+  }
+}
+
 export class WorkerArtifactHandoffPolicy {
-  constructor({ stepId, inputs, payloads, revisionKind = null }) {
+  constructor({ stepId, inputs, repairInputs = {}, payloads, revisionKind = null }) {
     this.stepId = requiredString(stepId, "worker artifact policy stepId");
     if (!requiresWorkerArtifactHandoff(this.stepId)) {
       throw new Error(`worker artifact policy is not declared by the authority matrix: ${this.stepId}`);
     }
-    this.inputs = Object.freeze(inputs.map((entry) => normalizedRelativePath(entry, `${stepId}.input`)));
+    this.inputContract = new WorkerArtifactInputContract({
+      stepId: this.stepId,
+      inputs,
+      repairInputs,
+    });
+    this.inputs = this.inputContract.inputs;
     this.payloads = Object.freeze(payloads.map((entry) => (
       entry instanceof WorkerArtifactPayloadRule ? entry : new WorkerArtifactPayloadRule(entry)
     )));
@@ -319,6 +373,7 @@ const POLICIES = Object.freeze([
   new WorkerArtifactHandoffPolicy({
     stepId: "spec",
     inputs: ["draft.json"],
+    repairInputs: { spec: ["draft.json", "spec.json"] },
     payloads: [{ logicalName: "spec.json", targetRelativePath: "spec.json" }],
     revisionKind: "spec",
   }),
@@ -571,7 +626,402 @@ function handoffActionDirectory(executionRoot, runId, dispatchInvocationId, acti
   );
 }
 
-function inputRevision(state, policy, inputDigest) {
+function authoritySnapshotError(message, cause = null, data = {}) {
+  return new WorkerArtifactHandoffError(
+    "invalid",
+    "FLOW_ARTIFACT_HANDOFF_AUTHORITY_UNAVAILABLE",
+    message,
+    { cause, data },
+  );
+}
+
+function isWorkerRuntimePath(relativePath) {
+  const segments = relativePath.split("/");
+  if (segments.includes(".git") || segments.includes(".tmp")) return true;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    if (
+      segments[index] === ".senti"
+      && WORKER_RUNTIME_DIRECTORIES.has(segments[index + 1])
+    ) return true;
+  }
+  return false;
+}
+
+function boundedGitOutput(root, args, label) {
+  try {
+    return execFileSync("git", args, {
+      cwd: root,
+      encoding: "buffer",
+      maxBuffer: MAX_AUTHORITY_GIT_OUTPUT_BYTES,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (cause) {
+    throw authoritySnapshotError(
+      `worker artifact authority could not read ${label}: ${cause.message}`,
+      cause,
+      { root: path.resolve(root), label },
+    );
+  }
+}
+
+function exactGitRoot(root) {
+  try {
+    const output = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return fs.realpathSync(output) === fs.realpathSync(root);
+  } catch {
+    return false;
+  }
+}
+
+function nullSeparatedPaths(bytes, label) {
+  const paths = bytes.toString("utf8").split("\u0000").filter(Boolean);
+  if (paths.length > MAX_AUTHORITY_DIRTY_PATHS) {
+    throw authoritySnapshotError(
+      `worker artifact authority ${label} exceeds ${MAX_AUTHORITY_DIRTY_PATHS} paths`,
+    );
+  }
+  return paths;
+}
+
+class WorkerArtifactRepositoryEntry {
+  constructor({ path: relativePath, kind, mode, digest: contentDigest }) {
+    if (typeof relativePath !== "string" || relativePath === "") {
+      throw new Error("worker artifact repository entry path is required");
+    }
+    this.path = relativePath;
+    if (!AUTHORITY_ENTRY_KINDS.has(kind)) {
+      throw new Error(`invalid worker artifact repository entry kind: ${kind}`);
+    }
+    this.kind = kind;
+    if (mode != null && (!Number.isSafeInteger(mode) || mode < 0)) {
+      throw new Error("worker artifact repository entry mode is invalid");
+    }
+    this.mode = mode;
+    this.digest = contentDigest == null
+      ? null
+      : requiredDigest(contentDigest, "worker artifact repository entry digest");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return { path: this.path, kind: this.kind, mode: this.mode, digest: this.digest };
+  }
+}
+
+function digestAuthorityFile(filePath, visible, relativePath, budget) {
+  let descriptor = null;
+  try {
+    descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const opened = fs.fstatSync(descriptor);
+    if (!opened.isFile() || !sameFile(visible, opened)) {
+      throw new Error("file identity changed while opening");
+    }
+    if (opened.size > MAX_AUTHORITY_FILE_BYTES) {
+      throw new Error(`file exceeds ${MAX_AUTHORITY_FILE_BYTES} bytes`);
+    }
+    const hash = crypto.createHash("sha256");
+    const chunk = Buffer.allocUnsafe(64 * 1024);
+    let fileBytes = 0;
+    while (true) {
+      const bytesRead = fs.readSync(descriptor, chunk, 0, chunk.length, null);
+      if (bytesRead === 0) break;
+      fileBytes += bytesRead;
+      if (fileBytes > MAX_AUTHORITY_FILE_BYTES) {
+        throw new Error(`file exceeds ${MAX_AUTHORITY_FILE_BYTES} bytes while reading`);
+      }
+      budget.bytes += bytesRead;
+      if (budget.bytes > MAX_AUTHORITY_TOTAL_FILE_BYTES) {
+        throw new Error(`dirty content exceeds ${MAX_AUTHORITY_TOTAL_FILE_BYTES} bytes`);
+      }
+      hash.update(chunk.subarray(0, bytesRead));
+    }
+    const completed = fs.fstatSync(descriptor);
+    if (!sameFile(opened, completed) || completed.size !== fileBytes) {
+      throw new Error("file identity changed while reading");
+    }
+    return hash.digest("hex");
+  } catch (cause) {
+    throw authoritySnapshotError(
+      `worker artifact authority could not fingerprint ${relativePath}: ${cause.message}`,
+      cause,
+      { path: relativePath },
+    );
+  } finally {
+    if (descriptor != null) fs.closeSync(descriptor);
+  }
+}
+
+function authorityFileEntry(root, relativePath, budget) {
+  const normalized = relativePath.split(path.sep).join("/");
+  if (
+    path.posix.isAbsolute(normalized)
+    || path.posix.normalize(normalized) !== normalized
+    || normalized === "."
+    || normalized.startsWith("../")
+  ) {
+    throw authoritySnapshotError(`worker artifact authority path is invalid: ${relativePath}`);
+  }
+  const filePath = path.resolve(root, ...normalized.split("/"));
+  if (!isWithin(root, filePath)) {
+    throw authoritySnapshotError(`worker artifact authority path escapes its repository: ${relativePath}`);
+  }
+  let stat;
+  try {
+    stat = fs.lstatSync(filePath);
+  } catch (cause) {
+    if (cause.code === "ENOENT") {
+      return new WorkerArtifactRepositoryEntry({
+        path: normalized,
+        kind: "missing",
+        mode: null,
+        digest: null,
+      });
+    }
+    throw authoritySnapshotError(
+      `worker artifact authority could not inspect ${normalized}: ${cause.message}`,
+      cause,
+    );
+  }
+  const mode = stat.mode & 0o7777;
+  if (stat.isSymbolicLink()) {
+    return new WorkerArtifactRepositoryEntry({
+      path: normalized,
+      kind: "symlink",
+      mode,
+      digest: digest(fs.readlinkSync(filePath)),
+    });
+  }
+  if (stat.isDirectory()) {
+    return new WorkerArtifactRepositoryEntry({
+      path: normalized,
+      kind: "directory",
+      mode,
+      digest: null,
+    });
+  }
+  if (!stat.isFile()) {
+    return new WorkerArtifactRepositoryEntry({
+      path: normalized,
+      kind: "other",
+      mode,
+      digest: null,
+    });
+  }
+  return new WorkerArtifactRepositoryEntry({
+    path: normalized,
+    kind: "file",
+    mode,
+    digest: digestAuthorityFile(filePath, stat, normalized, budget),
+  });
+}
+
+function filteredIndexDigest(bytes) {
+  const hash = crypto.createHash("sha256");
+  for (const record of bytes.toString("utf8").split("\u0000").filter(Boolean)) {
+    const separator = record.indexOf("\t");
+    if (separator === -1) {
+      throw authoritySnapshotError("worker artifact authority received malformed Git index data");
+    }
+    const relativePath = record.slice(separator + 1);
+    if (!isWorkerRuntimePath(relativePath)) hash.update(record).update("\u0000");
+  }
+  return hash.digest("hex");
+}
+
+function gitAuthoritySnapshot(root) {
+  const head = boundedGitOutput(root, ["rev-parse", "HEAD"], "Git HEAD").toString("utf8").trim();
+  const indexDigest = filteredIndexDigest(
+    boundedGitOutput(root, ["ls-files", "--stage", "-z"], "Git index"),
+  );
+  const tracked = nullSeparatedPaths(
+    boundedGitOutput(
+      root,
+      ["diff", "--name-only", "-z", "--no-renames", "HEAD", "--"],
+      "changed paths",
+    ),
+    "changed path set",
+  );
+  const untracked = nullSeparatedPaths(
+    boundedGitOutput(
+      root,
+      ["ls-files", "--others", "--exclude-standard", "-z"],
+      "untracked paths",
+    ),
+    "untracked path set",
+  );
+  const paths = [...new Set([...tracked, ...untracked])]
+    .filter((relativePath) => !isWorkerRuntimePath(relativePath))
+    .sort((left, right) => left.localeCompare(right));
+  if (paths.length > MAX_AUTHORITY_DIRTY_PATHS) {
+    throw authoritySnapshotError(
+      `worker artifact authority exceeds ${MAX_AUTHORITY_DIRTY_PATHS} changed paths`,
+    );
+  }
+  const budget = { bytes: 0 };
+  return {
+    mode: "git",
+    head,
+    indexDigest,
+    entries: paths.map((relativePath) => authorityFileEntry(root, relativePath, budget)),
+  };
+}
+
+function filesystemAuthoritySnapshot(root) {
+  const relativePaths = [];
+  const directories = [path.resolve(root)];
+  while (directories.length > 0) {
+    const directoryPath = directories.pop();
+    const handle = fs.opendirSync(directoryPath);
+    try {
+      let entry;
+      while ((entry = handle.readSync()) != null) {
+        const absolutePath = path.join(directoryPath, entry.name);
+        const relativePath = path.relative(root, absolutePath).split(path.sep).join("/");
+        if (isWorkerRuntimePath(relativePath)) continue;
+        relativePaths.push(relativePath);
+        if (relativePaths.length > MAX_AUTHORITY_DIRTY_PATHS) {
+          throw authoritySnapshotError(
+            `non-Git worker artifact authority exceeds ${MAX_AUTHORITY_DIRTY_PATHS} paths`,
+          );
+        }
+        if (entry.isDirectory()) directories.push(absolutePath);
+      }
+    } finally {
+      handle.closeSync();
+    }
+  }
+  const budget = { bytes: 0 };
+  return {
+    mode: "filesystem",
+    head: null,
+    indexDigest: null,
+    entries: relativePaths
+      .sort((left, right) => left.localeCompare(right))
+      .map((relativePath) => authorityFileEntry(root, relativePath, budget)),
+  };
+}
+
+export class WorkerArtifactRepositoryMutationSnapshot {
+  constructor({ root, authorities, mode, head, indexDigest, entries }) {
+    this.root = path.resolve(root);
+    this.authorities = Object.freeze(authorities.map((entry) => requiredString(
+      entry,
+      "worker artifact repository authority",
+    )));
+    if (!new Set(["git", "filesystem"]).has(mode)) {
+      throw new Error(`invalid worker artifact repository snapshot mode: ${mode}`);
+    }
+    this.mode = mode;
+    this.head = head;
+    this.indexDigest = indexDigest;
+    this.entries = Object.freeze(entries.map((entry) => (
+      entry instanceof WorkerArtifactRepositoryEntry
+        ? entry
+        : new WorkerArtifactRepositoryEntry(entry)
+    )));
+    this.digest = digest(stableStringify({
+      mode,
+      head,
+      indexDigest,
+      entries: this.entries.map((entry) => entry.toJSON()),
+    }));
+    Object.freeze(this);
+  }
+
+  static capture({ root, authorities }) {
+    try {
+      const snapshot = exactGitRoot(root)
+        ? gitAuthoritySnapshot(root)
+        : filesystemAuthoritySnapshot(root);
+      return new WorkerArtifactRepositoryMutationSnapshot({ root, authorities, ...snapshot });
+    } catch (cause) {
+      if (cause instanceof WorkerArtifactHandoffError) throw cause;
+      throw authoritySnapshotError(
+        `worker artifact repository authority could not be captured: ${cause.message}`,
+        cause,
+        { root: path.resolve(root) },
+      );
+    }
+  }
+
+  changedPaths(current) {
+    const changed = [];
+    if (this.head !== current.head) changed.push("<HEAD>");
+    if (this.indexDigest !== current.indexDigest) changed.push("<index>");
+    const before = new Map(this.entries.map((entry) => [entry.path, stableStringify(entry.toJSON())]));
+    const after = new Map(current.entries.map((entry) => [entry.path, stableStringify(entry.toJSON())]));
+    for (const relativePath of new Set([...before.keys(), ...after.keys()])) {
+      if (before.get(relativePath) !== after.get(relativePath)) changed.push(relativePath);
+    }
+    return changed.slice(0, 20);
+  }
+}
+
+export class WorkerArtifactMutationAuthoritySnapshot {
+  constructor({ specId, repositories }) {
+    this.specId = requiredString(specId, "worker artifact mutation authority specId");
+    this.repositories = Object.freeze(repositories);
+    Object.freeze(this);
+  }
+
+  static capture(request) {
+    if (!(request instanceof WorkerArtifactHandoffRequest)) {
+      throw new Error("worker mutation authority requires a handoff request");
+    }
+    const roots = new Map();
+    try {
+      for (const [authority, root] of [
+        ["execution", request.executionRoot],
+        ["canonical", request.mainRoot],
+      ]) {
+        const resolved = fs.realpathSync(path.resolve(root));
+        const existing = roots.get(resolved) || [];
+        existing.push(authority);
+        roots.set(resolved, existing);
+      }
+    } catch (cause) {
+      throw authoritySnapshotError(
+        `worker artifact repository authority root is unavailable: ${cause.message}`,
+        cause,
+      );
+    }
+    return new WorkerArtifactMutationAuthoritySnapshot({
+      specId: request.specId,
+      repositories: [...roots].map(([root, authorities]) => (
+        WorkerArtifactRepositoryMutationSnapshot.capture({ root, authorities })
+      )),
+    });
+  }
+
+  assertUnchanged() {
+    for (const captured of this.repositories) {
+      const current = WorkerArtifactRepositoryMutationSnapshot.capture({
+        root: captured.root,
+        authorities: captured.authorities,
+      });
+      if (current.digest === captured.digest) continue;
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION",
+        "repository content changed outside the worker's dedicated handoff payload authority",
+        {
+          data: {
+            specId: this.specId,
+            authorities: captured.authorities,
+            changedPaths: captured.changedPaths(current),
+          },
+        },
+      );
+    }
+  }
+}
+
+function baseInputRevision(state, policy, inputDigest) {
   if (policy.revisionKind === "draft" && SHA256.test(state?.draftArtifactRevision?.digest || "")) {
     return state.draftArtifactRevision.digest;
   }
@@ -579,6 +1029,16 @@ function inputRevision(state, policy, inputDigest) {
     return state.specArtifactRevision.digest;
   }
   return inputDigest;
+}
+
+function inputRevision(state, policy, inputDigest) {
+  const baseRevision = baseInputRevision(state, policy, inputDigest);
+  const repair = PlanGateRepairRecord.forTarget(state, policy.stepId);
+  if (!repair) return baseRevision;
+  return digest(stableStringify({
+    baseRevision,
+    planGateRepair: repair.toJSON(),
+  }));
 }
 
 export class WorkerArtifactHandoffRequest {
@@ -629,7 +1089,7 @@ export class WorkerArtifactHandoffRequest {
     const policy = workerArtifactHandoffPolicy(invocation?.action?.nextAction?.step);
     if (!policy) return null;
     const specDir = specDirectory(mainRoot, state);
-    const inputs = policy.inputs.map((relativePath) => {
+    const inputs = policy.inputContract.resolve(state).map((relativePath) => {
       const { document, snapshot } = boundedJson(
         path.join(specDir, relativePath),
         `canonical handoff input ${relativePath}`,
@@ -815,7 +1275,7 @@ export class WorkerArtifactHandoffRequest {
       );
     }
     const specDir = specDirectory(this.mainRoot, state);
-    const current = this.policy.inputs.map((relativePath) => {
+    const current = this.inputs.map(({ targetRelativePath: relativePath }) => {
       const snapshot = readRegularFile(
         path.join(specDir, relativePath),
         `current canonical handoff input ${relativePath}`,
@@ -1073,8 +1533,7 @@ function requestFromStored(filePath) {
     },
   };
   if (
-    request.inputs.length !== policy.inputs.length
-    || request.inputs.some((input, index) => input.targetRelativePath !== policy.inputs[index])
+    !policy.inputContract.accepts(request.inputs.map((input) => input.targetRelativePath))
   ) {
     throw new Error("handoff request inputs do not match its step policy");
   }
@@ -1412,6 +1871,22 @@ function validateDraftPayload(request, submission, state) {
   if (validation.issues.length > 0) throw new Error(validation.issues.join("; "));
 }
 
+function assertPlanGateRepairMadeProgress(request, submission, state, logicalName) {
+  const repair = PlanGateRepairRecord.forTarget(state, request.stepId);
+  if (!repair) return;
+  const target = request.payloads.find(({ rule }) => rule.logicalName === logicalName);
+  const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === logicalName);
+  if (!target || !entry) return;
+  if (target.baselineDigest === entry.digest) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_PLAN_GATE_REPAIR_NO_PROGRESS",
+      `${logicalName} did not change while repairing ${repair.phase} gate observations`,
+      { data: { sourceIssueLogId: repair.sourceIssueLogId, stepId: request.stepId } },
+    );
+  }
+}
+
 function validatePayload(request, submission, state) {
   try {
     if (request.stepId.startsWith("draft")) {
@@ -1428,11 +1903,15 @@ function validatePayload(request, submission, state) {
         if (result.issues.length > 0) throw new Error(result.issues.join("; "));
       } else {
         validateDraftPayload(request, submission, state);
+        if (request.stepId === "draft-refine") {
+          assertPlanGateRepairMadeProgress(request, submission, state, "draft.json");
+        }
       }
       return;
     }
     if (request.stepId === "spec") {
       validateSpecJsonObject(payloadDocument(request, submission, "spec.json"));
+      assertPlanGateRepairMadeProgress(request, submission, state, "spec.json");
       return;
     }
     if (request.stepId === "spec-triage") {
@@ -1651,6 +2130,8 @@ class WorkerArtifactCompletionIntent extends StepTransitionCommitIntent {
       consumedAt: this.completedAt,
     });
     state.workerArtifactReceipts = [...receipts, receipt.toJSON()].slice(-64);
+    const repair = PlanGateRepairRecord.forTarget(state, this.journal.stepId);
+    if (repair) delete state.planGateRepair;
     delete state.draftArtifactPromotion;
     delete state.workerArtifactPublication;
   }

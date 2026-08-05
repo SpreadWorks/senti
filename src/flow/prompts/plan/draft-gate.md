@@ -1,15 +1,8 @@
-   - Before running the gate, confirm draft approval metadata:
-     - Only when there is no unresolved user decision, including no unresolved `requires_user_decision` item, set or confirm `draft.json` has `approval.approved = true`.
-     - Set or confirm `approval.confirmedAt` is a non-empty ISO timestamp in `draft.json`.
-     - Do not approve or proceed while any unresolved `requires_user_decision` item remains.
-   - Before running the gate, scan requirement-like authored fields in `draft.json` for missing priority marker text. Check `scopeVerification.in`, `scopeVerification.out`, `impactOnExisting`, `decisionMap.decisionPoints`, `decisionMap.requiresUserJudgment`, `decisionMap.deferredToSpec`, `openQuestions`, and `qa[].question`, `qa[].answer`, `qa[].why`, `qa[].droppedReason` when they express required outcomes.
-     - Each requirement-like entry MUST carry exactly one accepted priority marker: `must`, `should`, or `nice-to-have`.
-     - Fix all missing priority marker instances before running `senti flow run gate --phase draft`.
+   - This is a command-owned validation step. Do not edit `draft.json`, another spec directory, or any canonical Flow artifact from this step.
    - `senti flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.
-   - The draft gate is strict. Do not attempt to acknowledge exceptions in draft.json; fix draft-time guardrail violations directly. Guardrail exception acknowledgments are valid only after spec.json exists and only in `constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`.
-   - **Before fixing**: scan these fields in `draft.json` for additional instances of the same violation pattern: `goal`, `analysis.problem`, `analysis.proposedApproach`, `analysis.validation`, `decisionMap.knownFacts`, `decisionMap.decisionPoints`, `decisionMap.resolvedByProjectRules`, `decisionMap.requiresUserJudgment`, `decisionMap.deferredToSpec`, `scopeVerification.in`, `scopeVerification.out`, `impactOnExisting`, `qa[].question`, `qa[].answer`, `qa[].why`, `qa[].droppedReason`, `openQuestions`. Excluded: `approval`, `qa[].evidence` (citations are not authored prose). Fix all instances in this iteration, not only the ones the reviewer enumerated, then re-run the gate.
+   - The draft gate is strict. Do not acknowledge exceptions in draft.json. On FAIL, refresh next-action and follow the guarded repair transition back to `draft-refine`; that step receives the exact persisted observations and owns mutation through worker-artifact handoff.
    - At semantic retry exhaustion, unresolved gate findings are recorded in `flow-findings.json`, the gate step completes as deferred, and `acceptance-review` owns final disposition before final-regression.
-   - Non-semantic failures such as schema, malformed artifact, failed command, no-progress guard, or missing mechanical evidence are not deferred. Recover them with changed evidence and a retry reset before re-running the gate.
+   - Non-semantic failures such as schema, malformed artifact, failed command, no-progress guard, or missing mechanical evidence are not deferred. Follow the next-action recovery route; never repair them by directly editing canonical artifacts from this step.
    - Do not proceed until PASS (`data.result === "pass"`).

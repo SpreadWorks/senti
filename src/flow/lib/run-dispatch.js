@@ -30,12 +30,13 @@ import {
 } from "./next-action-directive.js";
 import { finalRegressionWorktreeFingerprint } from "./test-artifacts.js";
 import GetNextActionCommand from "./get-next-action.js";
-import { RepairArtifactRegistry } from "./repair-state-identity.js";
+import { FlowDispatchArtifactRegistry } from "./repair-state-identity.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
+  WorkerArtifactMutationAuthoritySnapshot,
   WorkerArtifactHandoffRequest,
 } from "./worker-artifact-handoff.js";
 import {
@@ -83,9 +84,9 @@ function readFlowState(ctx) {
   }
 }
 
-function dispatchRepositoryFingerprint(ctx) {
+export function dispatchRepositoryFingerprint(ctx) {
   const state = ctx.flowState || readFlowState(ctx);
-  const registry = state?.specId ? new RepairArtifactRegistry(relativeFlowSpecFile(state)) : null;
+  const registry = state?.specId ? new FlowDispatchArtifactRegistry(relativeFlowSpecFile(state)) : null;
   return finalRegressionWorktreeFingerprint(ctx.executionRoot || ctx.root, {
     pathspecExcludes: registry?.gitPathspecExcludes() || [],
   });
@@ -746,6 +747,20 @@ export default class RunDispatchCommand extends FlowCommand {
           workerHandoffFailureData(ctx, error, null, dispatchCount),
         );
       }
+      let workerArtifactAuthority = null;
+      try {
+        workerArtifactAuthority = handoffRequest
+          ? WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest)
+          : null;
+      } catch (error) {
+        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        return this.failure(
+          ctx,
+          error.code,
+          error.message,
+          workerHandoffFailureData(ctx, error, handoffRequest, dispatchCount),
+        );
+      }
       const work = new FlowDispatchWork(invocation, handoffRequest);
       let agentError = null;
       try {
@@ -765,6 +780,7 @@ export default class RunDispatchCommand extends FlowCommand {
 
       if (handoffRequest) {
         try {
+          workerArtifactAuthority.assertUnchanged();
           this.handoffCoordinator.reconcile({ ctx, request: handoffRequest });
           agentError = null;
         } catch (error) {

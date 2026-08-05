@@ -16,6 +16,7 @@ import {
 import {
   AwaitingDecisionOutcome,
   ExternalBlockedOutcome,
+  RetryOutcome,
 } from "./step-outcome.js";
 import {
   FlowContinuation,
@@ -57,6 +58,18 @@ function requireActionId(value, field = "actionId") {
 
 function refreshCommand(state, binding) {
   return guardedCommand("senti flow get next-action", state, binding);
+}
+
+function planGateRepairDirective(state, binding, phase, reason) {
+  if (!["draft", "spec"].includes(phase)) return null;
+  return new RepairEvidenceDirective({
+    actionId: "REPAIR_PLAN_GATE_EVIDENCE",
+    evidenceKind: "gate",
+    phase,
+    instruction: "Run the guarded plan-gate repair transition. It freezes the canonical blocking observations and rewinds to the mapped worker-artifact handoff step; do not edit canonical spec artifacts directly.",
+    reason,
+    nextAction: guardedCommand("senti flow run repair-plan-gate", state, binding),
+  });
 }
 
 export class NextActionDirective {
@@ -295,6 +308,13 @@ function gateDirective({ state, binding, phase, recovery }) {
     });
   }
   if (recovery.recoveryReason === "unchanged-evidence") {
+    const planRepair = planGateRepairDirective(
+      state,
+      binding,
+      phase,
+      recovery.recoveryReason,
+    );
+    if (planRepair) return planRepair;
     return new RepairEvidenceDirective({
       actionId: "REPAIR_GATE_EVIDENCE",
       evidenceKind: "gate",
@@ -359,6 +379,16 @@ export class NextActionDirectiveResolver {
         prompt: this.stepAttempt.outcome.prompt,
         reason: this.stepAttempt.outcome.reason,
       });
+    }
+
+    if (this.stepAttempt?.outcome instanceof RetryOutcome) {
+      const planRepair = planGateRepairDirective(
+        this.state,
+        this.binding,
+        this.gatePhase,
+        "The draft/spec gate recorded blocking observations that require a new governed artifact revision before another attempt.",
+      );
+      if (planRepair) return planRepair;
     }
 
     if (this.stepAttempt?.outcome instanceof ExternalBlockedOutcome) {

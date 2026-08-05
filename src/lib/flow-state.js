@@ -16,6 +16,7 @@ import {
   validateWorkerArtifactPublicationState,
   validateWorkerArtifactReceiptsState,
 } from "../flow/lib/worker-artifact-handoff.js";
+import { PlanGateRepairRecord } from "../flow/lib/plan-gate-repair.js";
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
 
@@ -185,6 +186,9 @@ export class FlowState {
     }
     if (value.workerArtifactReceipts != null) {
       validateWorkerArtifactReceiptsState(value.workerArtifactReceipts, value);
+    }
+    if (value.planGateRepair != null) {
+      PlanGateRepairRecord.from(value.planGateRepair).assertFlow(value);
     }
     if (revision) {
       const identity = revision.identity;

@@ -1,0 +1,614 @@
+{
+  "entries": [
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.; The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.; The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.; The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.; The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.; The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-05T01:57:01.994Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5]"
+          },
+          "observed": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[7]"
+          },
+          "observed": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-f8a9291b-672b-469a-b36e-632272c57f63"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.; The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.; The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.; The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.; The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.; The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-05T01:58:22.539Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5]"
+          },
+          "observed": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[7]"
+          },
+          "observed": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-703ea32b-6c5f-4598-88da-ef15d4b59e9d"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.; The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.; The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.; The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.; The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.; The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-05T02:00:48.460Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5]"
+          },
+          "observed": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[7]"
+          },
+          "observed": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-530ec620-d465-4e0f-9bd4-77d7325b3c92"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.; The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.; The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.; The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.; The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.; The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-05T02:02:00.116Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5]"
+          },
+          "observed": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[7]"
+          },
+          "observed": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-6a00c949-c081-404f-803e-d0d0f1fc64bd"
+    },
+    {
+      "step": "spec-gate",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.; The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.; The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.; The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.; The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.; The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-08-05T02:04:34.932Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "impactOnExisting"
+          },
+          "observed": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "decisionMap.deferredToSpec[4]"
+          },
+          "observed": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[5]"
+          },
+          "observed": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "migration-parity",
+          "where": {
+            "file": "Content",
+            "locator": "qa[7]"
+          },
+          "observed": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface.",
+          "severity": "blocking",
+          "refs": [
+            "migration-parity"
+          ]
+        }
+      ],
+      "passedGuardrails": [],
+      "failedEvaluations": [
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that gate, review, set-step, test evidence, finalize, plugin hook, and repair/recovery behavior are affected, but does not inventory the existing public behavior being moved or replaced for each affected surface."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that worktree Flow artifact and execution checkout behavior will be maintained and strengthened, but does not map each retained behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft states that non-worktree Flow must use the same typed API, but does not map retained non-worktree public behavior to its new owner or an explicit removal decision."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft defers the legacy root inference removal error wording, post-migration expected behavior, and behavior-level verification to the spec instead of defining migration parity before implementation."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft says legacy root inference paths will be removed or replaced with explicit boundary errors, but does not state the user-visible impact and compatibility expectation for that intentional behavior removal."
+        },
+        {
+          "guardrail_id": "migration-parity",
+          "reason": "The draft lists authority matrix, migration parity, worktree/non-worktree common API, and regression confirmation as sufficient validation, but does not include at least one behavior-level verification for each retained public surface."
+        }
+      ],
+      "issueLogId": "issue-log-411fffc8-0515-4c22-93c0-7d6acaf98eff"
+    }
+  ]
+}

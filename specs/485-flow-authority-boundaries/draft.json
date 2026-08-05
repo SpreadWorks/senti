@@ -1,0 +1,155 @@
+{
+  "devType": "refactor",
+  "goal": "must: 現行mainを唯一のベースとして、Flow artifact authorityとexecution checkoutの境界を明示的な型で再構築し、artifact APIとGit・実装・プロジェクトテストAPIのroot取り違えを構造的に防ぐ。",
+  "analysis": {
+    "problem": "Issue #494は、旧Issue #491の未統合ブランチを機械的に取り込むのではなく、現行main上でFlow artifactとexecution checkoutのauthority境界を再構築することを求めている。現状はFlowWorkspaceがrepositoryRootとexecutionRootを持つ一方、reviewやrepair fingerprint周辺ではroot、executionRoot、artifactRootの組み合わせを呼び出し側が直接扱う経路が残り、仕様artifactのauthorityと実装checkoutのauthorityを混同できる。",
+    "proposedApproach": "FlowWorkspaceを基点に、base-side artifact authority、execution checkout、command authorityを専用classとして表現し、Flow command surface全体のartifact読み書き、Git操作、fingerprint、file-map reconciliation、review/gate/test evidence/plugin/finalizeを同じ境界モデルへ寄せる。旧ブランチは設計・テスト観点として参照し、コミットの一括取り込みや無検証cherry-pickは行わない。",
+    "validation": "この approach は、raw root文字列の受け渡しを専用authority型へ置き換えるため、surface requestである旧ブランチの再利用問題だけでなく、root causeであるartifact authorityとexecution checkoutの取り違え可能性を直接扱う。既存のFlowTargetIdentityAuthorityとの契約維持、fingerprint capture/revalidationの統一、worktree/non-worktree共通API化を要求に含めることで、Issue #489-#493後の現行境界を壊さない形で検証できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "must: Issue #494は旧Issue #491のreopenではなく、現行mainを唯一のベースにした新規対応として扱う。",
+      "must: 旧ブランチfix/491-flow-authority-boundariesと参考コミット8845e8eb/814fad13は設計・テスト材料としてのみ扱い、無検証マージや一括cherry-pickをしない。",
+      "must: .senti/config.jsonのlangはjaであり、draft質問は日本語で作成する。",
+      "must: src/lib/flow-workspace.jsにはFlowWorkspace、FlowSpecRoot、FlowSpecLocationがあり、現状でもrepositoryRootとexecutionRootの概念は存在する。",
+      "must: src/flow/commands/review.jsではbuildRepairFingerprintにroot、executionRoot、artifactRootを渡す経路があり、authority境界の統一対象になる。",
+      "must: src/lib/flow-target-identity-authority.jsにはIssue #493文脈のFlowTargetIdentityAuthorityが存在し、この契約を維持する必要がある。",
+      "must: tests/unit/flow/shared-spec-execution-boundary.test.jsにはartifact rootとexecution rootを分ける既存テスト観点がある。",
+      "must: q1 resolved from Issue/draft context: Issue #494は現行mainを唯一のベースにした新規refactorであり、旧Issue #491の再オープンや旧ブランチの機械的取り込みではない。",
+      "must: q3/q5 resolved by alpha版ポリシー: 旧ブランチ由来の例外互換挙動やlegacy root inference pathの互換fallbackは保持しない。",
+      "must: q6 resolved from authority separation: Flow artifactの更新とimplementation checkoutのfingerprintは分離し、implementation target fingerprintは実装checkout変更を表す。",
+      "must: q7 resolved from existing contract: FlowTargetIdentityAuthorityの契約は維持し、target identity semanticsの変更は今回の主scopeに含めない。"
+    ],
+    "decisionPoints": [
+      "must: 導入するauthority class群の公開境界を、Flow command全体で直接受け渡す契約にするか、既存FlowWorkspace/FlowSpecLocationの内側に隠す契約にするかを決める必要がある。",
+      "must: 旧ブランチから移植するテスト観点の範囲を、Issue本文の列挙どおりauthority-focused tests中心にするか、追加でdispatcher/recovery regressionまで広げるかを決める必要がある。",
+      "must: legacy root inference pathを削除するとき、互換fallbackを完全削除するか、境界で明示エラーにするかのユーザー可視影響を決める必要がある。"
+    ],
+    "resolvedByProjectRules": [
+      "must: 外部依存を追加せず、Node.js組み込みモジュールのみで実装する。",
+      "must: alpha版ポリシーにより旧フォーマットや非推奨pathの後方互換コードは保持しない。",
+      "must: TypeScriptを使わず、意味のある値は専用classでinvariantを表現する。",
+      "must: src/以下に特定プロジェクトや環境固有の情報を含めない。",
+      "must: Issueを勝手に分割提案せず、Issue #494の範囲を1つのconcernとして扱う。",
+      "must: migration parity guardrailにより、既存public behaviorを移す・置き換える箇所は移行前後の対応とbehavior-level verificationを定義する。",
+      "must: q4 resolved by OOP/type-boundary and migration parity rules: authority型境界は内部helperとtest fixtureにも適用し、raw rootを受け渡すfixture/helperを新APIへ更新する。",
+      "must: q5 resolved by alpha policy: legacy root inference pathは互換維持せず、削除または明示エラーとしてspecで定義する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "must: 個別class名、メソッド構成、モジュール分割、内部control flowはspec段階で要求単位に分解する。",
+      "must: raw root構築経路の静的監査対象一覧と置換順序はspec段階でauthority matrixとして具体化する。",
+      "must: focused unit/E2E、spec-local tests、final regressionの実行順と証跡形式はspec段階で定義する。",
+      "must: q2 resolved scopeを前提に、列挙surfaceと必要な呼び出し経路をauthority matrixへ落とし込み、範囲外commandを無制限に追加しない。",
+      "must: q5 resolved policyを前提に、legacy root inference削除時のユーザー可視エラー文言、移行後期待動作、behavior-level verificationをspecで定義する。",
+      "must: q8 resolved validationを前提に、authority matrix、migration parity、worktree/non-worktree、Issue #489-#493回帰確認をspec-local testsとfinal regressionへ分解する。"
+    ]
+  },
+  "scopeVerification": [
+    "must: scopeはFlow artifact authority、execution checkout、command authority、file-map reconciliation、fingerprint、review/gate/set-step/test evidence/plugin artifact/finalizeに限定する。",
+    "must: 旧Issue #491の再オープン、旧ブランチの無検証マージ、worktree側spec copyの第二authority復活、target guardやstep completion guardの緩和は非対象にする。",
+    "should: Issue #489-#493で導入されたtarget resolution、dispatcher、recovery、side-effect-before-failure契約への回帰確認を含める。"
+  ],
+  "impactOnExisting": [
+    "must: Flow command surface全体でartifact読み書きとexecution checkout操作の境界が変わるため、gate、review、set-step、test evidence、finalize、plugin hook、repair/recoveryの既存動作に影響する。",
+    "must: worktree Flowではbase-side spec、task spec、file-map、issue-log、plugin artifact、Flow evidenceをauthorityとし、実装diffやtest実行はexecution checkoutを対象にする動作を維持・強化する。",
+    "must: non-worktree Flowでは両authorityが同一repositoryに解決されるが、同じtyped APIを通ることを要求する。",
+    "should: raw root文字列を受ける内部APIの削除・置換により、テストfixtureやhelperの呼び出し形も更新対象になる可能性がある。"
+  ],
+  "openQuestions": [],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #494は旧Issue #491の再オープンではなく、現行mainを唯一のベースにしてFlow artifact authorityとexecution checkout境界を再構築する新規refactorとして扱いますか？\n\n用語: artifact authorityはspec、task spec、file-map、issue-log、review/gate/test evidenceなどFlow成果物の正規保存元です。execution checkoutはGit diff、実装変更、プロジェクトテストを行う作業ツリーです。",
+      "answer": "はい。Issue #494は旧Issue #491の再オープンではなく、現行mainを唯一のベースにした新規refactorとして扱う。旧ブランチfix/491-flow-authority-boundariesと参考コミット8845e8eb/814fad13は設計・テスト材料としてのみ参照し、無検証マージや一括cherry-pickは行わない。",
+      "evidence": "draft.goal、analysis.problem、decisionMap.knownFacts、scopeVerification、およびIssue #494文脈の「現行mainを唯一のベース」「旧ブランチは参考のみ」という要求。",
+      "why": "ユーザー要求の中心がbase authorityとexecution checkoutの境界再構築であり、旧ブランチ取り込みではないため。これは既存draftの既知事実として明示済みで、追加のユーザー判断を必要としない。",
+      "considered": "旧Issue #491の再オープンとして扱う案、旧ブランチを機械的に取り込む案は、要求とscopeVerificationの非対象に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "対象surfaceに、spec、task spec、file-map、issue-log、review/gate/test evidence、plugin artifact、set-step、finalize、repair/recovery、dispatcher/target identity周辺以外のcommand群も含めますか？\n\n用語: surfaceはユーザーやFlow lifecycleから呼ばれる機能境界です。",
+      "answer": "いいえ。対象surfaceはspec、task spec、file-map、issue-log、review/gate/test evidence、plugin artifact、set-step、finalize、repair/recovery、dispatcher/target identity周辺に限定する。追加command群は、authority境界へ到達する呼び出し経路として必要な場合だけspecで監査対象に含める。",
+      "evidence": "scopeVerificationの「scopeはFlow artifact authority、execution checkout、command authority、file-map reconciliation、fingerprint、review/gate/set-step/test evidence/plugin artifact/finalizeに限定」、およびIssueを分割せず1 concernとして扱うproject rule。",
+      "why": "列挙surfaceでIssue #494のroot causeを十分に覆える。範囲外commandを無制限に広げるとrefactorの完了条件が曖昧になり、coverage reviewで検証しにくくなる。",
+      "considered": "Flow command全体を無条件に対象化する案は過大scope。列挙surfaceのみを厳格に対象化する案を基本にし、必要な呼び出し経路の静的監査はspecへ委ねる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "旧ブランチfix/491-flow-authority-boundaries由来で例外的に保持したい互換挙動はありますか？",
+      "answer": "ありません。旧ブランチ由来で例外的に保持する互換挙動は設けず、必要な設計・テスト観点だけを現行main上の新しいauthority境界として再設計する。",
+      "evidence": "project ruleのalpha版ポリシー「旧フォーマット・非推奨パスは保持せず削除」、decisionMap.knownFactsの旧ブランチは設計・テスト材料のみ、scopeVerificationの旧ブランチ無検証マージ非対象。",
+      "why": "互換fallbackを残すと、root文字列からartifact authorityやexecution checkoutを推測できる旧経路が温存され、今回の構造的防止という目的を弱める。",
+      "considered": "旧ブランチの挙動をそのまま保持する案、互換fallbackを残す案はalpha版ポリシーとauthority境界の目的に反するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "artifact APIとexecution APIのauthority型境界の受け入れ条件は、内部helperやtest fixtureも対象にしますか？",
+      "answer": "はい。artifact APIとexecution APIのauthority型境界の受け入れ条件は、内部helperとtest fixtureも対象にする。ただしpublic behaviorの互換確認と実装surfaceの検証を優先し、fixture更新は新しい境界APIに合わせるための従属作業として扱う。",
+      "evidence": "impactOnExistingの「raw root文字列を受ける内部APIの削除・置換により、テストfixtureやhelperの呼び出し形も更新対象になる可能性」、project ruleのOOPによる型表現、migration parity guardrail。",
+      "why": "内部helperやfixtureにraw root受け渡しが残ると、テストが誤ったauthorityモデルを固定し続ける。受け入れ条件に含めることで構造的な取り違え防止を検証できる。",
+      "considered": "public commandだけを対象にする案は、内部helper経由の混同を見逃すリスクがあるため不十分。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "legacy root inference pathについて、ユーザー可視コマンドで互換維持したい例外はありますか？\n\n用語: legacy root inference pathは、artifact保存元やexecution checkoutを専用authorityではなく呼び出し側のroot文字列から推測する旧経路です。",
+      "answer": "ありません。legacy root inference pathについて、ユーザー可視コマンドで互換維持する例外は設けない。削除または境界での明示エラーに置き換え、エラー文言と移行後の期待動作はspecで定義する。",
+      "evidence": "project ruleのalpha版ポリシー、decisionMap.resolvedByProjectRulesの後方互換コード禁止、openQuestionsの「legacy root inference path削除時のユーザー可視エラー文言」、decisionMap.deferredToSpecのraw root構築経路監査。",
+      "why": "今回の目的はroot取り違えを構造的に防ぐことなので、推測fallbackの互換維持は目的に反する。ユーザー可視影響は互換保持ではなく明示エラーと検証で扱う。",
+      "considered": "一部コマンドだけ互換fallbackを残す案は、authority境界をsurfaceごとに不均一にし再発原因になるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "Flow artifactだけの更新ではimplementation target fingerprintが変わらず、実装checkoutの変更時だけ変わるfingerprint方針でよいですか？\n\n用語: fingerprintは、対象入力が前回確認時から変わっていないかを判定するためのハッシュ証跡です。",
+      "answer": "はい。Flow artifactだけの更新ではimplementation target fingerprintを変えず、実装checkoutの変更時だけ変わる方針にする。Flow artifact authorityの変更はartifact側の証跡・revisionで扱い、implementation target fingerprintとは分離する。",
+      "evidence": "goalのartifact APIとGit・実装・プロジェクトテストAPIのroot取り違え防止、impactOnExistingのworktree FlowではFlow artifactをbase-side authority、実装diffやtest実行をexecution checkout対象にする要求、analysis.validationのfingerprint capture/revalidation統一。",
+      "why": "artifact更新と実装checkout更新を同じfingerprintに混ぜると、authority境界が曖昧になり、Flow artifactの改訂だけで実装targetが変化したように見える。分離することで検証対象を正確に表現できる。",
+      "considered": "artifact変更もimplementation fingerprintへ混ぜる案は、target identityとexecution checkoutの意味を濁すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "target identity側の挙動変更を今回のscopeに含める必要はありますか？",
+      "answer": "target identity側の契約は維持対象に含めるが、挙動変更そのものは今回のscopeに含めない。必要な変更はauthority境界との接続・呼び出し整理に限定し、Issue #493文脈のFlowTargetIdentityAuthority契約を壊さない。",
+      "evidence": "decisionMap.knownFactsのFlowTargetIdentityAuthority契約維持、scopeVerificationのdispatcher/target identity周辺を回帰確認対象にする記述、analysis.validationの既存契約維持。",
+      "why": "Issue #494の主対象はartifact authorityとexecution checkoutの境界であり、target identity semanticsの再設計ではない。契約維持を受け入れ条件に含めれば、隣接領域への回帰を防げる。",
+      "considered": "target identity semanticsを積極的に変更する案はscope拡大。完全に対象外にする案はauthority接続の回帰を見逃すため、契約維持と限定的接続整理にする。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "提示済みの検証範囲に追加で必須にしたい検証はありますか？",
+      "answer": "追加で必須にする検証はない。既存の検証範囲に、authority matrix、migration parity、worktree/non-worktree共通API、Issue #489-#493由来のtarget resolution・dispatcher・recovery・side-effect-before-failure回帰確認を含めれば十分とする。",
+      "evidence": "scopeVerification、decisionMap.deferredToSpecのfocused unit/E2E・spec-local tests・final regression、resolvedByProjectRulesのmigration parity guardrail、knownFactsの既存shared-spec-execution-boundary test。",
+      "why": "提示済み範囲がroot causeと主要surfaceを覆っている。追加必須検証をここで増やすより、spec段階でsurface別のauthority matrixとして具体化する方が有限で検証可能。",
+      "considered": "追加command群や旧ブランチ期待値の全面移植を必須化する案は、scopeと検証負荷を過大化するため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-08-05T01:55:38.760Z",
+    "notes": ""
+  }
+}

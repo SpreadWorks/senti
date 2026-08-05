@@ -622,6 +622,16 @@ export class FinalizeFlowArtifactRegistry extends RepairArtifactRegistry {
   }
 }
 
+export class FlowDispatchArtifactRegistry extends RepairArtifactRegistry {
+  gitPathspecExcludes() {
+    const specRoot = path.posix.dirname(this.specDir);
+    return Object.freeze([
+      ...super.gitPathspecExcludes(),
+      `:(exclude,top,glob)${specRoot}/**`,
+    ]);
+  }
+}
+
 function assertSafeRunId(runId) {
   const value = requireString(runId, "runId");
   if (!RUN_ID_PATTERN.test(value) || value === "." || value === "..") {

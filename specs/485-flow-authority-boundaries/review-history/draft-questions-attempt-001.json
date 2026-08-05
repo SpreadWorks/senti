@@ -1,0 +1,193 @@
+{
+  "version": 2,
+  "phase": "draft-questions",
+  "sourceDraft": "draft.json",
+  "sourceDraftRevision": {
+    "version": 1,
+    "runId": "c8947f16-867d-4f2a-b35a-02c1dbf8c4ee",
+    "specId": "485-flow-authority-boundaries",
+    "sourceStepId": "draft",
+    "digest": "8f3eb42379239e32e9068d9e72530392bb33bae4db756112eb8f6958afae1e1b",
+    "byteLength": 12271,
+    "finalizedAt": "2026-08-05T01:50:54.231Z"
+  },
+  "generatedAt": "2026-08-05T01:51:39.452Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 8 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. 推奨文が回答を含む",
+      "target": "q1",
+      "rationale": "「Issue #494は旧Issue #491の再オープンではなく、現行mainを唯一のベースにした新規refactorとして扱いますか？」",
+      "evidence": "質問本文が「推奨: mustとして...」で始まり、回答・指示を含んでいる。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "2. 推奨文が回答を含む",
+      "target": "q2",
+      "rationale": "「対象surfaceに、spec、task spec、file-map、issue-log、review/gate/test evidence、plugin artifact、set-step、finalize、repair/recovery、dispatcher/target identity周辺以外のcommand群も含めますか？」",
+      "evidence": "質問本文が推奨scopeを提示しており、質問のみになっていない。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "3. 推奨文が指示を含む",
+      "target": "q3",
+      "rationale": "「旧ブランチfix/491-flow-authority-boundaries由来で例外的に保持したい互換挙動はありますか？」",
+      "evidence": "質問本文が禁止方針を含んでおり、質問のみになっていない。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "4. 推奨文が受け入れ条件を含む",
+      "target": "q4",
+      "rationale": "「artifact APIとexecution APIのauthority型境界の受け入れ条件は、内部helperやtest fixtureも対象にしますか？」",
+      "evidence": "質問本文が受け入れ条件の提案を含んでいる。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "5. 推奨文が実装方針を含む",
+      "target": "q5",
+      "rationale": "「legacy root inference pathについて、ユーザー可視コマンドで互換維持したい例外はありますか？」",
+      "evidence": "質問本文が削除方針と境界エラー方針を含んでいる。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "6. 推奨文が実装方針を含む",
+      "target": "q6",
+      "rationale": "「Flow artifactだけの更新ではimplementation target fingerprintが変わらず、実装checkoutの変更時だけ変わるfingerprint方針でよいですか？」",
+      "evidence": "質問本文が集約先とfingerprint仕様を提示しており、質問のみになっていない。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "7. 推奨文がscope制限を含む",
+      "target": "q7",
+      "rationale": "「target identity側の挙動変更を今回のscopeに含める必要はありますか？」",
+      "evidence": "質問本文が契約の扱いとscope制限の指示を含んでいる。",
+      "classification": "repair_target"
+    },
+    {
+      "title": "8. 推奨文が検証計画を含む",
+      "target": "q8",
+      "rationale": "「提示済みの検証範囲に追加で必須にしたい検証はありますか？」",
+      "evidence": "質問本文が具体的な検証計画を含んでおり、質問のみになっていない。",
+      "classification": "repair_target"
+    }
+  ],
+  "sourceArtifact": "draft-review-questions.json",
+  "attempt": 1,
+  "findings": [
+    {
+      "id": "draft-questions-001-non-blocking-001",
+      "findingId": "draft-questions-001-non-blocking-001",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "1. 推奨文が回答を含む",
+      "body": "「Issue #494は旧Issue #491の再オープンではなく、現行mainを唯一のベースにした新規refactorとして扱いますか？」",
+      "category": "repair_target",
+      "target": "q1",
+      "evidence": "質問本文が「推奨: mustとして...」で始まり、回答・指示を含んでいる。",
+      "rationale": "「Issue #494は旧Issue #491の再オープンではなく、現行mainを唯一のベースにした新規refactorとして扱いますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-002",
+      "findingId": "draft-questions-001-non-blocking-002",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "2. 推奨文が回答を含む",
+      "body": "「対象surfaceに、spec、task spec、file-map、issue-log、review/gate/test evidence、plugin artifact、set-step、finalize、repair/recovery、dispatcher/target identity周辺以外のcommand群も含めますか？」",
+      "category": "repair_target",
+      "target": "q2",
+      "evidence": "質問本文が推奨scopeを提示しており、質問のみになっていない。",
+      "rationale": "「対象surfaceに、spec、task spec、file-map、issue-log、review/gate/test evidence、plugin artifact、set-step、finalize、repair/recovery、dispatcher/target identity周辺以外のcommand群も含めますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-003",
+      "findingId": "draft-questions-001-non-blocking-003",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "3. 推奨文が指示を含む",
+      "body": "「旧ブランチfix/491-flow-authority-boundaries由来で例外的に保持したい互換挙動はありますか？」",
+      "category": "repair_target",
+      "target": "q3",
+      "evidence": "質問本文が禁止方針を含んでおり、質問のみになっていない。",
+      "rationale": "「旧ブランチfix/491-flow-authority-boundaries由来で例外的に保持したい互換挙動はありますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-004",
+      "findingId": "draft-questions-001-non-blocking-004",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "4. 推奨文が受け入れ条件を含む",
+      "body": "「artifact APIとexecution APIのauthority型境界の受け入れ条件は、内部helperやtest fixtureも対象にしますか？」",
+      "category": "repair_target",
+      "target": "q4",
+      "evidence": "質問本文が受け入れ条件の提案を含んでいる。",
+      "rationale": "「artifact APIとexecution APIのauthority型境界の受け入れ条件は、内部helperやtest fixtureも対象にしますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-005",
+      "findingId": "draft-questions-001-non-blocking-005",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "5. 推奨文が実装方針を含む",
+      "body": "「legacy root inference pathについて、ユーザー可視コマンドで互換維持したい例外はありますか？」",
+      "category": "repair_target",
+      "target": "q5",
+      "evidence": "質問本文が削除方針と境界エラー方針を含んでいる。",
+      "rationale": "「legacy root inference pathについて、ユーザー可視コマンドで互換維持したい例外はありますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-006",
+      "findingId": "draft-questions-001-non-blocking-006",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "6. 推奨文が実装方針を含む",
+      "body": "「Flow artifactだけの更新ではimplementation target fingerprintが変わらず、実装checkoutの変更時だけ変わるfingerprint方針でよいですか？」",
+      "category": "repair_target",
+      "target": "q6",
+      "evidence": "質問本文が集約先とfingerprint仕様を提示しており、質問のみになっていない。",
+      "rationale": "「Flow artifactだけの更新ではimplementation target fingerprintが変わらず、実装checkoutの変更時だけ変わるfingerprint方針でよいですか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-007",
+      "findingId": "draft-questions-001-non-blocking-007",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "7. 推奨文がscope制限を含む",
+      "body": "「target identity側の挙動変更を今回のscopeに含める必要はありますか？」",
+      "category": "repair_target",
+      "target": "q7",
+      "evidence": "質問本文が契約の扱いとscope制限の指示を含んでいる。",
+      "rationale": "「target identity側の挙動変更を今回のscopeに含める必要はありますか？」"
+    },
+    {
+      "id": "draft-questions-001-non-blocking-008",
+      "findingId": "draft-questions-001-non-blocking-008",
+      "phase": "draft-questions",
+      "sourceArtifact": "draft-review-questions.json",
+      "attempt": 1,
+      "severity": "non-blocking",
+      "title": "8. 推奨文が検証計画を含む",
+      "body": "「提示済みの検証範囲に追加で必須にしたい検証はありますか？」",
+      "category": "repair_target",
+      "target": "q8",
+      "evidence": "質問本文が具体的な検証計画を含んでおり、質問のみになっていない。",
+      "rationale": "「提示済みの検証範囲に追加で必須にしたい検証はありますか？」"
+    }
+  ]
+}

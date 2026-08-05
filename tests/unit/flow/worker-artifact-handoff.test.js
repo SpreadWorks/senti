@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,6 +17,7 @@ import SetStepCommand from "../../../src/flow/lib/set-step.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
+  WorkerArtifactMutationAuthoritySnapshot,
   sealWorkerArtifactHandoff,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
@@ -74,6 +76,15 @@ function fixture(stepId = "draft", {
 
 function canonicalSpecDir(value) {
   return path.join(value.mainRoot, "specs", value.specId);
+}
+
+function initializeGitRepository(value) {
+  execFileSync("git", ["init", "-q", "-b", "main"], { cwd: value.mainRoot });
+  execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: value.mainRoot });
+  execFileSync("git", ["config", "user.name", "Test User"], { cwd: value.mainRoot });
+  fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 1;\n");
+  execFileSync("git", ["add", "."], { cwd: value.mainRoot });
+  execFileSync("git", ["commit", "-q", "-m", "fixture"], { cwd: value.mainRoot });
 }
 
 function seal(request) {
@@ -500,6 +511,150 @@ describe("worker artifact handoff", () => {
       } finally {
         removeTmpDir(value.mainRoot);
       }
+    }
+  });
+
+  it("rejects a handoff worker that mutates another spec in the execution checkout", async () => {
+    const value = fixture("draft", { worktree: true });
+    try {
+      const action = {
+        taskId: null,
+        step: "draft",
+        action: "write-draft",
+        instructions: { key: "plan.draft", content: "Write the draft." },
+        context: { workerArtifactHandoff: { required: true } },
+        output_schema: {},
+        requires_approval: false,
+        maxAttempts: 1,
+        directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+      };
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(action); } },
+        agent: {
+          async call(_prompt, options) {
+            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
+              json({ goal: "valid handoff payload" }),
+            );
+            const wrongSpec = path.join(value.executionRoot, "specs", "484-flow-authority-boundaries");
+            fs.mkdirSync(wrongSpec, { recursive: true });
+            fs.writeFileSync(path.join(wrongSpec, "draft.json"), json({ overwrittenBy: value.specId }));
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: "run-worker-handoff",
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION");
+      assert.equal(result.data.dispatch.dispatchCount, 1);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("rejects canonical-main mutations made outside the handoff payload authority", () => {
+    const value = fixture("draft", { worktree: true });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      fs.writeFileSync(
+        path.join(canonicalSpecDir(value), "draft.json"),
+        json({ goal: "illicit canonical write" }),
+      );
+
+      assert.throws(
+        () => authority.assertUnchanged(),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+          && error.data.authorities.includes("canonical")
+          && error.data.changedPaths.some((entry) => entry.endsWith("draft.json")),
+      );
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("accepts unchanged pre-existing Git dirt but rejects any further mutation", () => {
+    const value = fixture("draft", { worktree: false });
+    try {
+      initializeGitRepository(value);
+      const productPath = path.join(value.mainRoot, "product.js");
+      const untrackedPath = path.join(canonicalSpecDir(value), "preexisting.json");
+      fs.writeFileSync(productPath, "export const value = 2;\n");
+      fs.writeFileSync(untrackedPath, json({ value: 1 }));
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "payload-only write" }));
+      seal(request);
+      assert.doesNotThrow(() => authority.assertUnchanged());
+
+      fs.writeFileSync(productPath, "export const value = 3;\n");
+      fs.writeFileSync(untrackedPath, json({ value: 2 }));
+      assert.throws(
+        () => authority.assertUnchanged(),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+          && error.data.changedPaths.includes("product.js")
+          && error.data.changedPaths.includes(
+            path.relative(value.mainRoot, untrackedPath).split(path.sep).join("/"),
+          ),
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("does not content-scan clean historical specs in a Git repository", () => {
+    const value = fixture("draft", { worktree: false });
+    try {
+      const historyDir = path.join(value.mainRoot, "specs", "history");
+      fs.mkdirSync(historyDir, { recursive: true });
+      for (let index = 0; index < 200; index += 1) {
+        fs.writeFileSync(path.join(historyDir, `${index}.json`), json({ index }));
+      }
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+
+      assert.equal(authority.repositories.length, 1);
+      assert.equal(authority.repositories[0].mode, "git");
+      assert.deepEqual(authority.repositories[0].entries, []);
+      assert.doesNotThrow(() => authority.assertUnchanged());
+    } finally {
+      removeTmpDir(value.mainRoot);
     }
   });
 

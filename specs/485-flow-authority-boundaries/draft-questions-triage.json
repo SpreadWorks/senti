@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "8 repair targets are valid draft-question issues; all can be handled by small question-only rewrites in the downstream repair step.",
+  "items": [
+    {
+      "title": "1. 推奨文が回答を含む",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q1 and asks for removing an embedded recommendation/answer from the question text. This is a small directly supported draft-question rewrite.",
+      "evidence": "draft.json qa[0].question begins with a recommendation and then asks whether to treat Issue #494 as a new refactor on current main."
+    },
+    {
+      "title": "2. 推奨文が回答を含む",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q2 and asks for converting a scope recommendation into a neutral question. This can be repaired without new user input.",
+      "evidence": "draft.json qa[1].question presents the recommended target surface before asking whether to include additional command groups."
+    },
+    {
+      "title": "3. 推奨文が指示を含む",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q3 and identifies instruction-like wording inside the question. Removing the directive wording while preserving the compatibility question is a small draft change.",
+      "evidence": "draft.json qa[2].question states a must-level restriction on use of the old branch before asking about exceptional compatibility behavior."
+    },
+    {
+      "title": "4. 推奨文が受け入れ条件を含む",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q4 and can be fixed by asking about acceptance-criteria scope without embedding the proposed acceptance criterion as the answer.",
+      "evidence": "draft.json qa[3].question proposes dedicated authority classes and boundary rejection as acceptance criteria before asking whether helpers and fixtures are included."
+    },
+    {
+      "title": "5. 推奨文が実装方針を含む",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q5 and asks for removing an implementation/migration policy recommendation from the question text. The remaining compatibility-exception question is directly repairable.",
+      "evidence": "draft.json qa[4].question recommends deleting legacy root inference fallback and using explicit boundary errors before asking about user-visible exceptions."
+    },
+    {
+      "title": "6. 推奨文が実装方針を含む",
+      "target": "q6",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q6 and can be fixed by making the fingerprint policy a neutral decision question rather than a recommended implementation direction.",
+      "evidence": "draft.json qa[5].question recommends consolidating fingerprint capture and revalidation into a typed service before asking whether the policy is acceptable."
+    },
+    {
+      "title": "7. 推奨文がscope制限を含む",
+      "target": "q7",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q7 and asks for removing scope-limiting recommendation language. The target-identity scope question can be rewritten without inventing an answer.",
+      "evidence": "draft.json qa[6].question states that the existing FlowTargetIdentityAuthority contract should be treated as authoritative before asking whether behavior changes are in scope."
+    },
+    {
+      "title": "8. 推奨文が検証計画を含む",
+      "target": "q8",
+      "decision": "apply",
+      "rationale": "The review target is grounded in q8 and identifies a detailed proposed verification plan inside the question. It can be rewritten as a neutral question about required additional verification.",
+      "evidence": "draft.json qa[7].question lists specific test files, focused tests, regression tests, and static audit work before asking whether more verification is required."
+    }
+  ]
+}

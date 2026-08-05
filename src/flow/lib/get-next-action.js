@@ -67,6 +67,7 @@ import {
   flowArtifactAuthorityForStep,
   requiresWorkerArtifactHandoff,
 } from "./flow-artifact-authority.js";
+import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -427,6 +428,8 @@ function buildNextActionResult(
       completionValidator: authority.completionValidator,
     });
   }
+  const planGateRepair = PlanGateRepairRecord.forTarget(state, target.stepId);
+  if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
   const draftReview = resolveDraftReviewWorkerContext({
     root: ctx.mainRoot || ctx.root,
     state,

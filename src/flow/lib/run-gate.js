@@ -2534,7 +2534,7 @@ function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
 }
 
 function persistGateSourceFromResult(ctx, result, phase) {
-  if (result?.result !== "fail") return;
+  if (result?.result !== "fail" || result?.artifacts?.failureKind !== "ai_semantic_fail") return;
   if (!ctx?.root || !ctx?.flowState?.specId) return;
   const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase];
   if (!sourceArtifact || sourceArtifact === IMPL_GATE_RESULT_FILE) return;
@@ -2574,15 +2574,6 @@ function persistGateSourceFromResult(ctx, result, phase) {
   };
   result.artifacts.evaluations = artifact.evaluations;
   result.artifacts.generatedAt = generatedAt;
-  const classification = classifyGateRetryExhaustionSource({
-    sourceArtifact: artifact,
-    ...gateRetryClassificationContext({ root: ctx.root, flowState: ctx.flowState, phase }),
-  });
-  if (
-    !classification.deferAllowed
-    && classification.reason !== "missing_repair_evidence"
-    && phase !== "task-impl"
-  ) return;
   const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
   writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
 }
@@ -2934,6 +2925,81 @@ export function computeGitState(root) {
     .update(status.stdout)
     .digest("hex");
   return { headSha: head.stdout.trim(), worktreeHash };
+}
+
+const PLAN_GATE_EVIDENCE_FILES = Object.freeze({
+  draft: Object.freeze([
+    "draft.json",
+    "draft-review-questions.json",
+    "draft-questions-triage.json",
+    "draft-questions-repair.json",
+    "draft-review-coverage.json",
+    "draft-coverage-triage.json",
+    "draft-coverage-repair.json",
+  ]),
+  spec: Object.freeze([
+    "spec.json",
+    "spec-review.json",
+    "spec-triage.json",
+    "spec-repair.json",
+  ]),
+});
+
+export class PlanGateEvidenceTarget {
+  constructor({ root, phase, specDir, files }) {
+    this.root = path.resolve(root);
+    if (!new Set(["draft", "spec"]).has(phase)) {
+      throw new Error(`invalid plan gate evidence phase: ${phase}`);
+    }
+    this.phase = phase;
+    this.specDir = path.resolve(specDir);
+    const relative = path.relative(this.root, this.specDir);
+    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error("plan gate evidence target escapes the repository root");
+    }
+    this.files = Object.freeze([...files]);
+    Object.freeze(this);
+  }
+
+  static resolve({ root, flowState, phase, targetPath = null }) {
+    const files = PLAN_GATE_EVIDENCE_FILES[phase];
+    if (!files) return null;
+    let specDir;
+    if (phase === "spec" && targetPath) {
+      const specJsonPath = resolveSpecJsonPath(path.resolve(root, targetPath));
+      specDir = path.dirname(specJsonPath);
+    } else {
+      specDir = specDirFromFlowState(root, flowState);
+    }
+    return new PlanGateEvidenceTarget({ root, phase, specDir, files });
+  }
+
+  fingerprint() {
+    const hash = crypto.createHash("sha256");
+    for (const filename of this.files) {
+      const file = path.join(this.specDir, filename);
+      hash.update(filename).update("\x00");
+      if (fs.existsSync(file)) hash.update(fs.readFileSync(file));
+      else hash.update("<missing>");
+      hash.update("\x00");
+    }
+    return hash.digest("hex");
+  }
+}
+
+export function computeGateEvidenceState({
+  root,
+  executionRoot,
+  flowState,
+  phase,
+  targetPath = null,
+}) {
+  const files = PLAN_GATE_EVIDENCE_FILES[phase];
+  if (!files) return computeGitState(executionRoot);
+  const head = runGit(["rev-parse", "HEAD"], { cwd: executionRoot });
+  assertOk(head, "failed to read HEAD sha");
+  const target = PlanGateEvidenceTarget.resolve({ root, flowState, phase, targetPath });
+  return { headSha: head.stdout.trim(), worktreeHash: target.fingerprint() };
 }
 
 /**
@@ -5106,7 +5172,7 @@ export class RunGateCommand extends FlowCommand {
     try {
       let result;
       if (phase === "draft") {
-        result = await this.executeDraft(ctx, root, level, skipGuardrail);
+        result = await this.executeDraft(ctx, root, executionRoot, level, skipGuardrail);
       } else if (phase === "task-impl" || phase === "integration") {
         result = await this.executeDiffBasedGate(
           ctx,
@@ -5121,7 +5187,7 @@ export class RunGateCommand extends FlowCommand {
         result = await this.executeTaskSpec(ctx, root, level, skipGuardrail);
       } else {
         // "spec" — parent spec.json
-        result = await this.executeSpec(ctx, root, level, skipGuardrail);
+        result = await this.executeSpec(ctx, root, executionRoot, level, skipGuardrail);
       }
       if (!inferredTransition) return recordRequiredGateFailureOutcome(ctx, result, phase);
       if (!completedSemanticGateResult(result)) {
@@ -5162,7 +5228,7 @@ export class RunGateCommand extends FlowCommand {
     }
   }
 
-  async executeDraft(ctx, root, level, skipGuardrail) {
+  async executeDraft(ctx, root, executionRoot, level, skipGuardrail) {
     const state = ctx.flowState;
     const specPath = state?.specId ? relativeFlowSpecFile(state) : null;
     const specDir = specPath ? path.dirname(path.resolve(root, specPath)) : null;
@@ -5195,7 +5261,12 @@ export class RunGateCommand extends FlowCommand {
     const draftObj = completedDraft.artifact;
     const targetText = JSON.stringify(draftObj, null, 2) + "\n";
 
-    const gitState = computeGitState(root);
+    const gitState = computeGateEvidenceState({
+      root,
+      executionRoot,
+      flowState: state,
+      phase: "draft",
+    });
     ctx.gitState = gitState;
     const issueLog = specPath ? loadIssueLog(root, specPath) : { entries: [] };
 
@@ -5218,7 +5289,7 @@ export class RunGateCommand extends FlowCommand {
     });
   }
 
-  async executeSpec(ctx, root, level, skipGuardrail) {
+  async executeSpec(ctx, root, executionRoot, level, skipGuardrail) {
     let specInput = ctx.spec || "";
     if (!specInput) {
       const state = ctx.flowState;
@@ -5269,7 +5340,14 @@ export class RunGateCommand extends FlowCommand {
       specTasks: spec?.tasks,
     });
 
-    const gitState = computeGitState(root);
+    const gitState = computeGateEvidenceState({
+      root,
+      executionRoot,
+      flowState: ctx.flowState,
+      phase: "spec",
+      targetPath: jsonPath,
+    });
+    ctx.gateEvidenceTargetPath = jsonPath;
     ctx.gitState = gitState;
     const issueLog = ctx.flowState?.specId
       ? loadIssueLog(root, relativeFlowSpecFile(ctx.flowState))
@@ -5805,15 +5883,28 @@ export {
 
 export function appendIssueLogFromGateResult(ctx, result) {
   if (result?.result !== "pass" && result?.result !== "fail") return;
+  const phase = result?.artifacts?.phase || ctx.phase;
+  if (!phase) throw new Error("gate issue-log phase is unavailable");
   const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
+  const needsProgressIdentity = result.result === "fail"
+    && (result?.artifacts?.failureKind === "ai_semantic_fail" || observations.length > 0);
+  const gitState = ctx.gitState || (needsProgressIdentity && RETRY_TRACKED_PHASES.includes(phase)
+    ? computeGateEvidenceState({
+        root: ctx.root,
+        executionRoot: ctx.executionRoot || ctx.root,
+        flowState: ctx.flowState,
+        phase,
+        targetPath: ctx.gateEvidenceTargetPath || (phase === "spec" ? ctx.spec : null),
+      })
+    : null);
   const reasons = result?.artifacts?.issues?.length
     ? result.artifacts.issues.join("; ")
     : observations.map((observation) => observation.observed).join("; ")
       || (result?.artifacts?.reasons || []).map((r) => r.detail || r).join("; ");
   const entry = {
-    step: resolveGateStepId(ctx.phase),
+    step: resolveGateStepId(phase),
     level: result?.artifacts?.level,
-    phase: result?.artifacts?.phase,
+    phase,
     reason: reasons || "gate FAIL (no details)",
     trigger: "gate post hook (auto)",
     timestamp: new Date().toISOString(),
@@ -5821,9 +5912,9 @@ export function appendIssueLogFromGateResult(ctx, result) {
   // spec 210 REQ-1: persist the state identifier captured before AI evaluation
   // so a subsequent impl-gate run can reject unchanged re-execution. Only
   // tracked phases carry gitState; gate it explicitly to document the invariant.
-  if (ctx.gitState && RETRY_TRACKED_PHASES.includes(ctx.phase)) {
-    entry.headSha = ctx.gitState.headSha;
-    entry.worktreeHash = ctx.gitState.worktreeHash;
+  if (gitState && RETRY_TRACKED_PHASES.includes(phase)) {
+    entry.headSha = gitState.headSha;
+    entry.worktreeHash = gitState.worktreeHash;
   }
   if (observations.length > 0) {
     entry.observations = observations;
@@ -5835,23 +5926,23 @@ export function appendIssueLogFromGateResult(ctx, result) {
     entry.failedEvaluations = failedEvaluations;
   }
 
-  if (RETRY_TRACKED_PHASES.includes(ctx.phase) && observations.length > 0) {
+  if (RETRY_TRACKED_PHASES.includes(phase) && observations.length > 0) {
     const status = observations.some((observation) => observation.severity === "blocking")
       ? "blocking"
       : "advisory";
     const update = (state) => updateGateImplMemory({
       root: ctx.root,
       flowState: state,
-      phase: ctx.phase,
-      round: nextGateImplMemoryRound(ctx.root, state, ctx.phase),
+      phase,
+      round: nextGateImplMemoryRound(ctx.root, state, phase),
       status,
       statusReason: entry.reason,
-      gitState: ctx.gitState,
+      gitState,
       passedGuardrails,
       observations,
     });
     if (ctx.flowManager) {
-      const owner = new GateMutationOwner({ flowState: ctx.flowState, phase: ctx.phase });
+      const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
       ctx.flowManager.mutate(update, owner.routeOptions());
     } else {
       update(ctx.flowState);
@@ -5862,9 +5953,11 @@ export function appendIssueLogFromGateResult(ctx, result) {
 
 export function appendIssueLogFromGateError(ctx, err) {
   const evidence = err?.data || {};
+  const phase = evidence.effectivePhase || evidence.phase || ctx.phase;
+  if (!phase) throw new Error("gate error issue-log phase is unavailable");
   const entry = {
-    step: resolveGateStepId(ctx.phase),
-    phase: ctx.phase,
+    step: resolveGateStepId(phase),
+    phase,
     reason: err.message || String(err),
     trigger: "gate onError hook (auto)",
     timestamp: new Date().toISOString(),

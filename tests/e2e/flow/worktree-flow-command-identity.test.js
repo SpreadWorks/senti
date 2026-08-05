@@ -539,6 +539,7 @@ describe("worktree command identity", () => {
       "run.direct",
       "run.finalize-cleanup",
       "run.abort",
+      "run.repair-plan-gate",
       "run.start-task",
       "run.complete-task",
     ]);

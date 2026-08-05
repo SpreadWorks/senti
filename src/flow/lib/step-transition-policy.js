@@ -3,6 +3,7 @@ import {
   SetStepStatus,
   getFlowDefinitionOrder,
 } from "../definition.js";
+import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
 
 const TERMINAL_STATUSES = new Set(["done", "skipped"]);
 const LIFECYCLE_STATUSES = new Set(["in_progress", "done", "skipped"]);
@@ -10,6 +11,7 @@ const REOPEN_DRAFT_ENTRYPOINT = "reopen-draft";
 const RESET_SKIPPED_ENTRYPOINT = "reset-skipped-downstream";
 const EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT = "existing-implementation-revalidation";
 const PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT = "preimplementation-bootstrap";
+export const PLAN_GATE_REPAIR_ENTRYPOINT = "plan-gate-repair";
 
 export class StepTransitionError extends Error {
   constructor(message) {
@@ -234,6 +236,27 @@ export class ExplicitRecoveryTransition {
           transitionError(`preimplementation bootstrap has invalid change for ${change.stepId}`);
         }
       }
+    } else if (this.entrypoint === PLAN_GATE_REPAIR_ENTRYPOINT) {
+      const route = planGateRepairRouteForTargetStep(this.stepId);
+      if (!route || this.requestedStatus !== "in_progress") {
+        transitionError("plan gate repair must target its mapped worker handoff step");
+      }
+      const byStep = new Map(recoveryChanges.map((change) => [change.stepId, change]));
+      if (byStep.size !== route.resetStepIds.length || recoveryChanges.length !== byStep.size) {
+        transitionError("plan gate repair requires its complete unique reset sequence");
+      }
+      for (const stepId of route.resetStepIds) {
+        const change = byStep.get(stepId);
+        if (!change || change.requestedStatus !== route.requestedStatus(stepId)) {
+          transitionError(`plan gate repair has invalid change for ${stepId}`);
+        }
+        if (stepId === route.gateStepId && change.currentStatus !== "in_progress") {
+          transitionError("plan gate repair requires an active gate source");
+        }
+        if (stepId !== route.gateStepId && change.currentStatus !== "done") {
+          transitionError(`plan gate repair requires completed upstream step ${stepId}`);
+        }
+      }
     } else {
       transitionError(`unsupported recovery entrypoint: ${this.entrypoint}`);
     }
@@ -268,6 +291,7 @@ export function isStepTransition(value) {
         "impl-repair-invalidation",
         EXISTING_IMPLEMENTATION_REVALIDATION_ENTRYPOINT,
         PREIMPLEMENTATION_BOOTSTRAP_ENTRYPOINT,
+        PLAN_GATE_REPAIR_ENTRYPOINT,
       ].includes(value.entrypoint)
     );
 }
