@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-08-04T10:06:18.773Z",
+  "analyzedAt": "2026-08-06T09:15:10.461Z",
   "package": {
     "entries": [
       {
@@ -2674,9 +2674,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "e9f67e522adb7f06717548c67b1a9756",
-        "lines": 4296,
-        "mtime": "2026-08-04T07:09:32.008Z",
+        "hash": "ed0d5cde615f5407c8b5232b1235a954",
+        "lines": 4333,
+        "mtime": "2026-08-05T13:50:11.141Z",
         "className": "review",
         "methods": [
           "writeReviewAttemptHistory",
@@ -2864,6 +2864,7 @@
           "../../lib/guardrail.js",
           "../definition.js",
           "../lib/step-tree.js",
+          "../lib/worker-artifact-revision.js",
           "../../docs/lib/minify.js"
         ],
         "exports": [
@@ -2934,32 +2935,13 @@
         ],
         "extends": "ImplReviewPersistenceStrategy",
         "usedBy": null,
-        "id": "331cf497",
-        "summary": "Implements the `flow review` command and its multi-phase review pipeline for implementation, test, spec, and draft artifacts. It combines diff scoping, agent prompting, schema validation, and artifact persistence in a single command module.",
-        "detail": "The file builds review inputs from Git diffs, spec files, requirement maps, and optional task scopes, then filters files through exclusion and relevance rules before calling the review agent. It defines structured schemas and domain objects for findings, proposals, coverage, tooling failures, and persisted review artifacts, with repair paths when model JSON is malformed. The implementation supports both single-shot and looped review strategies, including chunked per-file analysis, cross-check passes, reuse of prior review memory, and policy-based handling of blocking versus non-blocking findings. It writes normalized outputs such as `review.md`, `impl-review.json`, `spec-review.json`, `test-review.json`, and review-history snapshots while translating runtime and provider issues into review-specific failure types.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.803Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "review command",
-          "code review",
-          "spec review",
-          "test review",
-          "diff analysis",
-          "JSON schema validation",
-          "artifact persistence",
-          "review loop",
-          "guardrails"
-        ]
+        "id": "331cf497"
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "ba6ffffa8587a8a6d16edd10ad18e98e",
-        "lines": 1640,
-        "mtime": "2026-08-04T05:50:23.008Z",
+        "hash": "3c5ba272db81a6a7f402b323eff9520f",
+        "lines": 1635,
+        "mtime": "2026-08-04T15:19:51.892Z",
         "className": "definition",
         "methods": [
           "SetStepStatus",
@@ -3098,25 +3080,7 @@
         "usedBy": [
           "src/flow/registry.js"
         ],
-        "id": "2cb27b93",
-        "summary": "Defines the core flow and task graphs and resolves lifecycle actions for review, gate, finalize, and report phases. It is the central registry for step metadata, retry rules, and traversal helpers.",
-        "detail": "The module validates flow definitions with small domain types for positive integer max-attempt policies, auto/manual attempt modes, execution commands, and lifecycle-owned step invariants. Lifecycle transitions are represented as immutable action objects such as SetStepStatus, ResetSteps, RunLifecycleHook, and outbox effect markers, then assembled into DefinitionLifecyclePlan instances from runtime input. It constructs the concrete FLOW_DEFINITION and TASK_DEFINITION trees, including draft review branches, approval behavior, failure policies, and execution command ownership. Utility functions derive phase maps, prerequisite chains, initial nested step state, active in-progress leaves, branch ranges, and gate mappings while enforcing a maximum tree depth.",
-        "chapter": "internal_design",
-        "role": "model",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.820Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow definition",
-          "workflow graph",
-          "step lifecycle",
-          "phase map",
-          "retry policy",
-          "review routing",
-          "prerequisites",
-          "active step"
-        ]
+        "id": "2cb27b93"
       },
       {
         "file": "src/flow/lib/acceptance-review-artifacts.js",
@@ -3480,7 +3444,10 @@
           "src/flow/lib/set-review-evidence.js",
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
-          "src/lib/dispatcher.js"
+          "src/lib/dispatcher.js",
+          "src/flow/lib/run-repair-plan-gate.js",
+          "src/flow/lib/run-repair-test-review.js",
+          "src/flow/lib/run-seal-handoff.js"
         ],
         "id": "83f60bd3",
         "summary": "Provides the abstract base class for flow-aware CLI commands. It centralizes flow target validation, context resolution, and mismatch handling before subclass logic runs.",
@@ -3579,7 +3546,8 @@
         ],
         "extends": "FlowDispatchAuthorization",
         "usedBy": [
-          "src/flow/lib/run-dispatch.js"
+          "src/flow/lib/run-dispatch.js",
+          "src/flow/lib/run-seal-handoff.js"
         ],
         "id": "1ec973b0",
         "summary": "Defines the immutable dispatch invocation contract that binds a next action to a flow target, repository fingerprint, and approval state. It also serializes the worker environment and detects stale authorizations.",
@@ -3602,9 +3570,9 @@
       },
       {
         "file": "src/flow/lib/draft-artifact-promotion.js",
-        "hash": "136b2618a497a7f96f789d9471f9c43f",
-        "lines": 906,
-        "mtime": "2026-08-04T09:10:05.185Z",
+        "hash": "7b32efd43be4f31e419e43414f75cca4",
+        "lines": 915,
+        "mtime": "2026-08-05T01:06:49.110Z",
         "className": "draft-artifact-promotion",
         "methods": [
           "DraftArtifactRecoveryError",
@@ -3663,34 +3631,16 @@
         "extends": "Error",
         "usedBy": [
           "src/flow/lib/draft-review-artifacts.js",
+          "src/flow/lib/draft-review-pass-commit.js",
           "src/flow/lib/draft-review-revision.js",
           "src/flow/lib/review-target-authority.js",
           "src/flow/lib/run-prepare-spec.js",
           "src/flow/lib/run-recover-review-pass.js",
           "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/run-review.js",
-          "src/flow/lib/set-step.js",
-          "src/flow/registry.js"
+          "src/flow/lib/worker-artifact-handoff.js"
         ],
-        "id": "407e7df6",
-        "summary": "Implements revision tracking and promotion for the canonical draft artifact across execution and canonical worktrees. It protects draft updates with digests, locks, and conflict detection.",
-        "detail": "The module models draft snapshots, revisions, and promotions as validated value objects that carry version, digest, byte length, timestamps, and source-step metadata. File boundaries are read defensively by rejecting symlinks, checking inode stability, and opening files with no-follow semantics before creating immutable snapshots. Promotion planning compares the execution copy, canonical copy, and any persisted pending promotion to decide whether to reuse, create, or reject a transition. Completion helpers persist state under repository locks, use AtomicFile for canonical writes, integrate with step-transition commit intents, and support both writer-step promotion and canonical mutation flows.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.820Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "draft artifact",
-          "revision tracking",
-          "artifact promotion",
-          "conflict detection",
-          "atomic write",
-          "repository lock",
-          "digest verification",
-          "flow state"
-        ]
+        "id": "407e7df6"
       },
       {
         "file": "src/flow/lib/draft-lifecycle.js",
@@ -3755,9 +3705,9 @@
       },
       {
         "file": "src/flow/lib/draft-review-artifacts.js",
-        "hash": "c54bc13164992077b48fb4e53fe5bd7b",
-        "lines": 839,
-        "mtime": "2026-08-04T09:10:05.185Z",
+        "hash": "c216487d98154c57bc6b8db4aaf7a4c5",
+        "lines": 951,
+        "mtime": "2026-08-04T10:27:43.580Z",
         "className": "draft-review-artifacts",
         "methods": [
           "normalizeDraftReviewText",
@@ -3776,6 +3726,7 @@
           "DraftReviewArtifactRecoveryError",
           "isDraftReviewArtifactStep",
           "completeDraftReviewArtifactStep",
+          "completeDraftReviewRepairStep",
           "requireString",
           "sha256",
           "deepFreeze",
@@ -3791,7 +3742,10 @@
           "draftFindingTitleTargetKey",
           "validateDraftTriageArtifact",
           "validateDraftRepairArtifact",
-          "assertFlowIdentity"
+          "assertFlowIdentity",
+          "findDraftReviewArtifactRecoveryCause",
+          "withDraftReviewArtifactOperation",
+          "draftReviewArtifactCompletion"
         ],
         "imports": [
           "node:crypto",
@@ -3820,35 +3774,47 @@
           "registerDraftReviewRevision",
           "DraftReviewArtifactRecoveryError",
           "isDraftReviewArtifactStep",
-          "completeDraftReviewArtifactStep"
+          "completeDraftReviewArtifactStep",
+          "completeDraftReviewRepairStep"
         ],
         "extends": "Error",
         "usedBy": [
+          "src/flow/lib/draft-review-pass-commit.js",
           "src/flow/lib/get-next-action.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-review.js",
-          "src/flow/lib/set-step.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "66b61303"
+      },
+      {
+        "file": "src/flow/lib/draft-review-pass-commit.js",
+        "hash": "d07e371e214e7ba395f586d0bf063fbf",
+        "lines": 126,
+        "mtime": "2026-08-05T01:22:26.688Z",
+        "className": "draft-review-pass-commit",
+        "methods": [
+          "DraftReviewPassCommitResult",
+          "DraftReviewPassCommit"
+        ],
+        "imports": [
+          "node:path",
+          "../../lib/flow-workspace.js",
+          "../definition.js",
+          "./draft-artifact-promotion.js",
+          "./draft-review-artifacts.js",
+          "./draft-review-routes.js"
+        ],
+        "exports": [
+          "DraftReviewPassCommitResult",
+          "DraftReviewPassCommit"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-review.js",
           "src/flow/registry.js"
         ],
-        "id": "66b61303",
-        "summary": "Validates draft review, triage, and repair artifacts and binds them to the active draft revision and review route. It also manages canonical worker context and safe completion of review artifact steps.",
-        "detail": "The module defines normalized document and finding models with strict limits on artifact size, item counts, classifications, decisions, and truncated text fields. Review files are loaded through secure file checks, parsed as JSON, and validated against route-specific schemas, recorded revision bindings, and current canonical draft state. Evidence-set and worker-context classes distinguish execution artifacts from canonical artifacts and ensure that triage, repair, and output targets all match the active review route. Registration and completion paths run under repository locks, create revision bindings, and use step-transition commit intents to publish canonical review artifacts safely. Cross-file validation also verifies that triage and repair outputs remain consistent with the original review findings.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.820Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "draft review",
-          "artifact validation",
-          "triage document",
-          "repair document",
-          "revision binding",
-          "worker context",
-          "canonical artifact",
-          "review route"
-        ]
+        "id": "f04dc9ac"
       },
       {
         "file": "src/flow/lib/draft-review-revision.js",
@@ -3922,7 +3888,9 @@
           "src/flow/lib/review-route.js",
           "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/run-review.js",
-          "src/flow/registry.js"
+          "src/flow/registry.js",
+          "src/flow/lib/draft-review-pass-commit.js",
+          "src/flow/lib/worker-artifact-handoff.js"
         ],
         "id": "41c7d805",
         "summary": "Declares the supported draft review routes and exposes lookups by key, retry phase, and step ID. It is the single source of truth for route-specific step wiring and artifact names.",
@@ -4443,6 +4411,38 @@
           "must-fix",
           "deferred finding"
         ]
+      },
+      {
+        "file": "src/flow/lib/flow-artifact-authority.js",
+        "hash": "ffd5719a9d0d45a3e7928111e5cd8472",
+        "lines": 200,
+        "mtime": "2026-08-05T13:50:11.141Z",
+        "className": "flow-artifact-authority",
+        "methods": [
+          "FlowArtifactAuthorityEntry",
+          "flowArtifactAuthorityForStep",
+          "requiresWorkerArtifactHandoff",
+          "requiredString",
+          "commandOwned",
+          "workerSourceOwned",
+          "workerHandoffOwned",
+          "userOwned"
+        ],
+        "imports": [],
+        "exports": [
+          "FlowArtifactAuthorityEntry",
+          "flowArtifactAuthorityForStep",
+          "requiresWorkerArtifactHandoff",
+          "FLOW_ARTIFACT_AUTHORITY_MATRIX",
+          "WORKER_ARTIFACT_HANDOFF_STEPS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "e8bfe572"
       },
       {
         "file": "src/flow/lib/flow-completion.js",
@@ -5209,9 +5209,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "0caa286e3f48f7f87949f1b86d7a43c0",
-        "lines": 785,
-        "mtime": "2026-08-04T06:57:56.900Z",
+        "hash": "26f721238ed044838e2d502cf3b71f13",
+        "lines": 851,
+        "mtime": "2026-08-05T13:50:11.141Z",
         "className": "get-next-action",
         "methods": [
           "NextActionPlanError",
@@ -5235,6 +5235,8 @@
           "buildGateRetryRecovery",
           "captureNextActionBinding",
           "buildPreimplementationBootstrapDirective",
+          "buildScenarioTestRepairDirective",
+          "buildTestReviewRepairDirective",
           "buildCanonicalReviewPassRecoveryDirective",
           "promoteNextAvailableTarget",
           "completedNextAction",
@@ -5276,7 +5278,11 @@
           "./review-route.js",
           "./task-gate-completion.js",
           "./review-target-authority.js",
-          "./draft-review-artifacts.js"
+          "./draft-review-artifacts.js",
+          "./flow-artifact-authority.js",
+          "./plan-gate-repair.js",
+          "./run-repair-plan-gate.js",
+          "./test-review-repair.js"
         ],
         "exports": [
           "NextActionPlanError",
@@ -5288,24 +5294,7 @@
         "usedBy": [
           "src/flow/lib/run-dispatch.js"
         ],
-        "id": "c68afd69",
-        "summary": "Plans the next executable action for a flow run and returns either a promotion plan or a terminal outcome. It is the main decision engine behind the next-action command.",
-        "detail": "The module traverses task and step trees to find unresolved in-progress work, normalize task cursors, and promote the next pending target. It loads schemas and cached skill rules, then injects persistent rule blocks and step-specific instructions into the action context. Recovery handling is a major concern: the planner branches for retries, review failures, gate deferrals, preimplementation bootstrap, canonical review pass repair, and finalization recovery. Results are wrapped in typed plan objects with strict validation so command effects can execute safely against the current flow state.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.839Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "next action planner",
-          "workflow orchestration",
-          "step promotion",
-          "flow state transition",
-          "recovery directive",
-          "task cursor",
-          "command planning"
-        ]
+        "id": "c68afd69"
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -6072,9 +6061,9 @@
       },
       {
         "file": "src/flow/lib/next-action-directive.js",
-        "hash": "61d6065acc262fa8d47daeac3ed86d7c",
-        "lines": 427,
-        "mtime": "2026-08-04T06:58:56.606Z",
+        "hash": "2c0b8a89033f8079dc52b60147d2ba8e",
+        "lines": 457,
+        "mtime": "2026-08-05T02:53:00.105Z",
         "className": "next-action-directive",
         "methods": [
           "NextActionDirective",
@@ -6091,6 +6080,7 @@
           "requireString",
           "requireActionId",
           "refreshCommand",
+          "planGateRepairDirective",
           "reviewDirective",
           "gateDirective"
         ],
@@ -6121,23 +6111,7 @@
           "src/flow/lib/run-dispatch.js",
           "src/flow/lib/task-gate-completion.js"
         ],
-        "id": "8ab50868",
-        "summary": "Defines the serializable directive types emitted by the next-action planner. It converts flow state and recovery context into concrete commands, step executions, blocked states, or user decisions.",
-        "detail": "The module uses a small abstract base class with common validation and JSON serialization, then specializes it for execute-step, execute-command, repair-evidence, blocked, completed, aborted, and idle directives. Helper validators enforce stable action identifiers, bounded text fields, boolean flags, and supported directive kinds. Review and gate helper functions map recovery phases and permitted operations into the appropriate directive subtype. NextActionDirectiveResolver centralizes the policy that turns state, binding, and authority checks into the next directive a caller should surface.",
-        "chapter": "development",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.839Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "next action directive",
-          "command continuation",
-          "workflow instruction",
-          "serialized action",
-          "recovery directive",
-          "state resolver"
-        ]
+        "id": "8ab50868"
       },
       {
         "file": "src/flow/lib/nonblocking-command-failure.js",
@@ -6602,6 +6576,45 @@
         ]
       },
       {
+        "file": "src/flow/lib/plan-gate-repair.js",
+        "hash": "3911ae4ef08a52581b7e8327f392cb7c",
+        "lines": 269,
+        "mtime": "2026-08-06T05:04:41.160Z",
+        "className": "plan-gate-repair",
+        "methods": [
+          "PlanGateRepairLocation",
+          "PlanGateRepairObservation",
+          "PlanGateRepairRoute",
+          "planGateRepairRouteForPhase",
+          "planGateRepairRouteForTargetStep",
+          "PlanGateRepairRecord",
+          "requiredString",
+          "requiredDigest",
+          "requiredTimestamp",
+          "stableStringify",
+          "digest"
+        ],
+        "imports": [
+          "node:crypto"
+        ],
+        "exports": [
+          "PlanGateRepairLocation",
+          "PlanGateRepairObservation",
+          "PlanGateRepairRoute",
+          "planGateRepairRouteForPhase",
+          "planGateRepairRouteForTargetStep",
+          "PlanGateRepairRecord"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/run-repair-plan-gate.js",
+          "src/flow/lib/step-transition-policy.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "5791341e"
+      },
+      {
         "file": "src/flow/lib/plan-rewind.js",
         "hash": "a2db7efc5d430b22ab61affc6f8597a5",
         "lines": 520,
@@ -7062,9 +7075,9 @@
       },
       {
         "file": "src/flow/lib/repair-state-identity.js",
-        "hash": "d2ecba8c22360081b0ee87c7d4f53e8d",
-        "lines": 1480,
-        "mtime": "2026-08-03T14:30:54.124Z",
+        "hash": "36ea0ed381cbaa121c9e13cb04d6abd4",
+        "lines": 1491,
+        "mtime": "2026-08-05T13:50:11.142Z",
         "className": "repair-state-identity",
         "methods": [
           "RepairStateError",
@@ -7078,6 +7091,7 @@
           "RepairFingerprintReference",
           "RepairArtifactRegistry",
           "FinalizeFlowArtifactRegistry",
+          "FlowDispatchArtifactRegistry",
           "captureRepairBaseline",
           "beginRepairBaselinePublication",
           "completeRepairBaselinePublication",
@@ -7150,6 +7164,7 @@
           "RepairFingerprintReference",
           "RepairArtifactRegistry",
           "FinalizeFlowArtifactRegistry",
+          "FlowDispatchArtifactRegistry",
           "captureRepairBaseline",
           "beginRepairBaselinePublication",
           "completeRepairBaselinePublication",
@@ -7192,24 +7207,7 @@
           "src/flow/lib/run-scenario-validity.js",
           "src/flow/lib/set-step.js"
         ],
-        "id": "12c0ba47",
-        "summary": "Builds and persists canonical repair-state identity for a flow using Git baselines and filesystem manifests. It underpins repair fingerprinting, baseline publication, and delta generation.",
-        "detail": "The module normalizes repository-relative paths, validates hashes and refs, and models immutable Git baselines, repair entries, manifest versions, and publication records with strict invariants. It gathers changed paths from Git, explicit filesystem trees, and artifact ownership rules, then hashes files and symlinks defensively to detect races while reading. Baseline publication helpers coordinate temporary refs and recovery files so a flow can pin, recover, or delete repair baselines safely. Manifest writers use atomic JSON writes and canonical hashing to guarantee reproducible fingerprints, while comparison utilities compute changed repair paths and delta artifacts between manifests. The result is a durable identity layer that lets repair workflows detect drift and reason about exactly what changed.",
-        "chapter": "development",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.839Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "repair fingerprint",
-          "Git baseline",
-          "state identity",
-          "manifest hashing",
-          "delta artifact",
-          "change detection",
-          "repository snapshot"
-        ]
+        "id": "12c0ba47"
       },
       {
         "file": "src/flow/lib/req-map.js",
@@ -8055,7 +8053,8 @@
           "src/flow/lib/get-next-action.js",
           "src/flow/lib/run-recover-review-pass.js",
           "src/flow/lib/run-review.js",
-          "src/flow/lib/set-review-evidence.js"
+          "src/flow/lib/set-review-evidence.js",
+          "src/flow/lib/test-review-repair.js"
         ],
         "id": "27e73108",
         "summary": "Provides an authority object that captures the authoritative review target identity from the current flow state and workspace. It bridges repair fingerprints, tree SHA resolution, and review target-state construction.",
@@ -8343,39 +8342,48 @@
       },
       {
         "file": "src/flow/lib/run-dispatch.js",
-        "hash": "e9e8876055edcf9eb45c917c49ce28c1",
-        "lines": 721,
-        "mtime": "2026-08-02T16:15:06.196Z",
+        "hash": "15020eb6e328a4456e1e1e57f208dcf5",
+        "lines": 1057,
+        "mtime": "2026-08-06T09:10:42.790Z",
         "className": "run-dispatch",
         "methods": [
+          "dispatchRepositoryFingerprint",
           "FlowDispatchLease",
           "FlowDispatchRepositoryFingerprintError",
           "FlowDispatchAction",
           "FlowDispatchBoundary",
           "FlowDispatchWork",
+          "specWorkerAgentOptions",
+          "freshWorkerInvocation",
           "errorMessages",
           "errorCode",
           "targetGuardInput",
           "readFlowState",
-          "dispatchRepositoryFingerprint",
           "dispatchLockError",
           "persistDispatchApproval",
+          "workerHandoffFailureData",
           "blockedBoundary"
         ],
         "imports": [
           "node:path",
+          "../../lib/spec-json.js",
           "./base-command.js",
           "../../lib/flow-envelope.js",
           "../../lib/agent-failure.js",
+          "../../lib/agent-invocation-metric.js",
+          "../../lib/command-registry.js",
           "../../lib/process-owned-lock.js",
           "./next-action-directive.js",
           "./test-artifacts.js",
           "./get-next-action.js",
           "./repair-state-identity.js",
           "../../lib/flow-workspace.js",
+          "./set-issue-log.js",
+          "./worker-artifact-handoff.js",
           "./dispatch-invocation.js"
         ],
         "exports": [
+          "dispatchRepositoryFingerprint",
           "FlowDispatchLease",
           "FlowDispatchRepositoryFingerprintError",
           "FlowDispatchAction",
@@ -8385,24 +8393,7 @@
         ],
         "extends": "Error",
         "usedBy": null,
-        "id": "6c7fd82a",
-        "summary": "Runs the agent-independent dispatch loop that repeatedly fetches guarded next actions and delegates one continuation at a time to the configured agent service. It enforces locking, approval boundaries, repository fingerprint checks, and durable-progress verification.",
-        "detail": "The command captures an exact target, acquires a process-owned lease under `.senti`, and resolves the next action inside a bounded continuation loop. For dispatchable actions, it creates an invocation tied to the current repository fingerprint, persists explicit approvals when needed, and supports auto-approve only for the declared choice `1`. It sends the worker a machine-readable prompt plus environment variables, then refreshes guarded authority after execution instead of trusting the worker response as a completion signal. The loop terminates at user-decision, auto-upgrade, blocked, terminal, stall, or safety-limit boundaries and returns structured envelopes for agent failures, stale approvals, target mismatches, and fingerprint capture problems.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-08-02T16:26:44.563Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow dispatch",
-          "agent loop",
-          "approval boundary",
-          "process lock",
-          "repository fingerprint",
-          "durable progress",
-          "worker prompt"
-        ]
+        "id": "6c7fd82a"
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
@@ -8904,9 +8895,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "602e65c25cf677ace39789a2a28f5ca0",
-        "lines": 6028,
-        "mtime": "2026-08-04T09:10:05.186Z",
+        "hash": "db0289416897563fd8f3c4a54ccb351b",
+        "lines": 5976,
+        "mtime": "2026-08-05T04:17:43.020Z",
         "className": "run-gate",
         "methods": [
           "parsePublicGateArguments",
@@ -8941,6 +8932,8 @@
           "evaluateGuardrailObservationsWithRetry",
           "updateGateRetryCounter",
           "computeGitState",
+          "PlanGateEvidenceTarget",
+          "computeGateEvidenceState",
           "updateGateImplMemory",
           "readGateImplMemoryForPrompt",
           "buildGateImplPriorMemoryPrompt",
@@ -8991,7 +8984,6 @@
           "findUnresolvedMatch",
           "checkSpecText",
           "checkSpecJson",
-          "readJsonIfExists",
           "validateSpecRepairAudit",
           "computeForestDepth",
           "walkStrings",
@@ -9117,6 +9109,7 @@
           "./observation.js",
           "./task-scope.js",
           "./draft-review-artifacts.js",
+          "./spec-review-artifacts.js",
           "./retry-recovery.js",
           "./flow-findings.js",
           "./artifact-completion.js",
@@ -9163,6 +9156,8 @@
           "evaluateGuardrailObservationsWithRetry",
           "updateGateRetryCounter",
           "computeGitState",
+          "PlanGateEvidenceTarget",
+          "computeGateEvidenceState",
           "updateGateImplMemory",
           "readGateImplMemoryForPrompt",
           "buildGateImplPriorMemoryPrompt",
@@ -9231,25 +9226,7 @@
           "src/flow/lib/nonblocking.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "b4aa4dad",
-        "summary": "Implements the flow gate runner for draft, spec, task implementation, and integration phases. It is the central command-layer module for semantic checks, retry control, and gate result persistence.",
-        "detail": "The module collects gate inputs from draft and spec artifacts, computes scoped Git diffs, filters generated lifecycle files, and performs structural validation before semantic evaluation begins. It builds prompt payloads for guardrail and requirement checks, validates strict JSON response schemas, and converts agent output into normalized gate reports and durable result artifacts. It also manages retry budgets, recovery baselines, deferral rules, and repeated-failure detection using issue logs, Git state fingerprints, and prior review evidence. The RunGateCommand orchestration path coordinates phase-specific execution, side effects, state transitions, and artifact checkpointing so gate runs can fail safely and resume consistently.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.877Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow gate",
-          "guardrail evaluation",
-          "CLI command",
-          "retry recovery",
-          "Git diff analysis",
-          "artifact persistence",
-          "requirement validation",
-          "state transition"
-        ]
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -9746,6 +9723,64 @@
         ]
       },
       {
+        "file": "src/flow/lib/run-repair-plan-gate.js",
+        "hash": "68004a785d8ada79102ea2ef5bf028ce",
+        "lines": 187,
+        "mtime": "2026-08-05T08:47:55.271Z",
+        "className": "run-repair-plan-gate",
+        "methods": [
+          "inspectScenarioValidityTestRepair",
+          "phaseForActiveGate",
+          "latestRepairableGateEntry",
+          "repairTransition"
+        ],
+        "imports": [
+          "../../lib/flow-envelope.js",
+          "../../lib/flow-workspace.js",
+          "../../lib/repository-maintenance-lock.js",
+          "./base-command.js",
+          "./set-issue-log.js",
+          "./plan-gate-repair.js",
+          "./step-transition-policy.js",
+          "../definition.js",
+          "./step-tree.js"
+        ],
+        "exports": [
+          "inspectScenarioValidityTestRepair",
+          "default"
+        ],
+        "extends": "StepTransitionCommitIntent",
+        "usedBy": [
+          "src/flow/lib/get-next-action.js"
+        ],
+        "id": "bc7e1869"
+      },
+      {
+        "file": "src/flow/lib/run-repair-test-review.js",
+        "hash": "29cef9c51c0187d3d1a7df4d67083899",
+        "lines": 146,
+        "mtime": "2026-08-05T13:50:11.142Z",
+        "className": "run-repair-test-review",
+        "methods": [
+          "repairTransition"
+        ],
+        "imports": [
+          "../../lib/flow-envelope.js",
+          "../../lib/repository-maintenance-lock.js",
+          "../definition.js",
+          "./base-command.js",
+          "./step-tree.js",
+          "./step-transition-policy.js",
+          "./test-review-repair.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "StepTransitionCommitIntent",
+        "usedBy": null,
+        "id": "2eb1b668"
+      },
+      {
         "file": "src/flow/lib/run-report-show.js",
         "hash": "625e93109e1fad85a5c80e1c50538e91",
         "lines": 101,
@@ -9933,9 +9968,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "6fad5299d1b3191730e8ea974e97529f",
-        "lines": 2576,
-        "mtime": "2026-08-04T07:09:40.519Z",
+        "hash": "f45dc9d52321216e8a18fe000b5b09e1",
+        "lines": 2588,
+        "mtime": "2026-08-05T01:22:19.859Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -10055,7 +10090,8 @@
           "./stale-test-evidence-refresh.js",
           "./review-route.js",
           "./review-target-authority.js",
-          "./draft-artifact-promotion.js"
+          "./draft-artifact-promotion.js",
+          "./draft-review-pass-commit.js"
         ],
         "exports": [
           "countReviewRetry",
@@ -10095,24 +10131,7 @@
           "src/flow/lib/review-recovery-authority.js",
           "src/flow/lib/set-retry.js"
         ],
-        "id": "d4e97204",
-        "summary": "Implements the multi-phase flow run review command for draft, spec, test, and implementation reviews. It parses reviewer output, enforces target consistency, and records normalized results.",
-        "detail": "The module defines phase-specific constants, retry counters, verdict parsing patterns, and route resolution for review retries and downstream steps. It canonicalizes findings by generating stable IDs and SHA-256 fingerprints, separates mechanical failures from semantic findings, and persists normalized review artifacts into the spec directory. Guard objects and helper functions compare the current tree SHA and repair fingerprint with the expected review target so stale or finalized evidence cannot be promoted accidentally. The command also wraps subprocess execution with bounded retries, converts provider and post-hook failures into structured tooling outcomes, and funnels success or failure through a ReviewExecutionPipeline that writes evidence, projections, and step attempts.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.933Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow review",
-          "review pipeline",
-          "review retry",
-          "canonical findings",
-          "tooling failure",
-          "stale target guard",
-          "review evidence"
-        ]
+        "id": "d4e97204"
       },
       {
         "file": "src/flow/lib/run-rewind-test-evidence.js",
@@ -10185,17 +10204,21 @@
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
-        "hash": "c9c66eac046b1b4da7823ee096478bcf",
-        "lines": 513,
-        "mtime": "2026-08-02T00:10:09.143Z",
+        "hash": "a358fa25bb57ace8d937b4625b11aa78",
+        "lines": 650,
+        "mtime": "2026-08-05T08:51:39.274Z",
         "className": "run-scenario-validity",
         "methods": [
+          "ScenarioValidityExecution",
           "discoverScenarioValidityTestFiles",
           "validateScenarioValidityPreflightPaths",
           "buildScenarioValidityDiffArgs",
           "listScenarioValidityPreflightFiles",
           "runScenarioValidityProcess",
+          "buildScenarioValidityExecutions",
           "runScenarioValidityTestFiles",
+          "buildScenarioValiditySummary",
+          "recordScenarioValidityRepairEvidence",
           "normalizePath",
           "walkFiles",
           "activeSpecPrefix",
@@ -10209,7 +10232,7 @@
           "sourceLooksSkipped",
           "processPassed",
           "processInvalid",
-          "buildSummary",
+          "evidenceRange",
           "writeScenarioValidityFallbackArtifacts"
         ],
         "imports": [
@@ -10224,38 +10247,46 @@
           "./repair-state-identity.js",
           "../../lib/flow-workspace.js",
           "./shared-spec-test-execution.js",
+          "./set-issue-log.js",
           "./test-artifacts.js"
         ],
         "exports": [
+          "ScenarioValidityExecution",
           "discoverScenarioValidityTestFiles",
           "validateScenarioValidityPreflightPaths",
           "buildScenarioValidityDiffArgs",
           "listScenarioValidityPreflightFiles",
           "runScenarioValidityProcess",
+          "buildScenarioValidityExecutions",
           "runScenarioValidityTestFiles",
+          "buildScenarioValiditySummary",
+          "recordScenarioValidityRepairEvidence",
           "default",
           "resolveScenarioValidityBaselineAuthority"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "c99f2f87",
-        "summary": "Runs scenario-validity tests for spec requirements and writes structured result artifacts. It also blocks execution when changed files or repair baselines make the scenario evidence unsafe to trust.",
-        "detail": "The command discovers scenario test files under the spec-local tests directory, filters eligible changed paths, and blocks execution when implementation-target edits fall outside allowed preflight areas. It runs each scenario test file through the shared spec test executor or Node's test runner, then aggregates stdout, stderr, exit state, timeouts, and raw log ranges. It parses test source entries to connect requirements to observed test names and skipped expectations, producing per-requirement summary records. It writes JSON and raw-output artifacts even for blocked or fallback paths so later flow steps can consume consistent evidence.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-02T07:52:37.008Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "scenario validity",
-          "scenario tests",
-          "preflight diff",
-          "requirement verification",
-          "node test runner",
-          "baseline authority",
-          "raw output artifact"
-        ]
+        "id": "c99f2f87"
+      },
+      {
+        "file": "src/flow/lib/run-seal-handoff.js",
+        "hash": "7e18d142d9328cabbf183a9020c225db",
+        "lines": 45,
+        "mtime": "2026-08-06T09:10:42.790Z",
+        "className": "run-seal-handoff",
+        "methods": [],
+        "imports": [
+          "../../lib/flow-envelope.js",
+          "./dispatch-invocation.js",
+          "./base-command.js",
+          "./worker-artifact-handoff.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "ed147df7"
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -10809,7 +10840,10 @@
           "src/flow/lib/set-step.js",
           "src/flow/registry.js",
           "src/lib/agent.js",
-          "src/lib/container.js"
+          "src/lib/container.js",
+          "src/flow/lib/run-dispatch.js",
+          "src/flow/lib/run-repair-plan-gate.js",
+          "src/flow/lib/run-scenario-validity.js"
         ],
         "id": "65ac9e4f",
         "summary": "Implements `flow set issue-log` helpers for reading and appending issue log entries. It validates operator-supplied fields and normalizes repair-reference metadata before persistence.",
@@ -11188,9 +11222,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "126e3204646efae4bb217ea094c1d3ad",
-        "lines": 779,
-        "mtime": "2026-08-04T05:50:23.016Z",
+        "hash": "392d54d3c410762ae989ddf38daee2bf",
+        "lines": 667,
+        "mtime": "2026-08-05T01:12:13.830Z",
         "className": "set-step",
         "methods": [
           "preValidateImplementStepCompletion",
@@ -11204,7 +11238,6 @@
           "missingGateObservedFindingIds",
           "validateBlockedImplRepairRecovery",
           "collectSideEffects",
-          "preValidateTestStep",
           "preValidateApprovalStep",
           "validatePostHookManagedStep",
           "implementFailure",
@@ -11221,7 +11254,6 @@
           "./run-auto-check.js",
           "./resolve-auto-check-input.js",
           "../definition.js",
-          "./test-headers.js",
           "../../lib/spec-json.js",
           "../../lib/flow-workspace.js",
           "./flow-judgment-contract.js",
@@ -11233,8 +11265,7 @@
           "./step-outcome.js",
           "./repair-state-identity.js",
           "./step-transition-policy.js",
-          "./draft-artifact-promotion.js",
-          "./draft-review-artifacts.js"
+          "./flow-artifact-authority.js"
         ],
         "exports": [
           "preValidateImplementStepCompletion",
@@ -11242,24 +11273,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "d4cb8d93",
-        "summary": "Implements the flow set step command with validation, recovery, and side-effect orchestration for flow step state changes. It is the main gatekeeper for manual and automated step completion.",
-        "detail": "The module validates normal lifecycle transitions, definition-driven transitions, and explicit recovery paths before mutating step state. It performs prechecks for test, approval, and implementation steps by loading spec artifacts, verifying headers and review outputs, and ensuring durable evidence exists when a step is marked complete. Special recovery logic handles blocked impl-repair scenarios, missing repair evidence, and stale recovery artifacts so retries only happen under tightly controlled conditions. On success it can trigger auto-check inputs, issue-log updates, post-hook-managed validations, and next-step hints while reporting failures through structured Envelope objects.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.933Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "step transition",
-          "flow step",
-          "impl repair recovery",
-          "artifact validation",
-          "auto check",
-          "issue log",
-          "step completion"
-        ]
+        "id": "d4cb8d93"
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -11406,6 +11420,70 @@
           "state digest",
           "spec correction"
         ]
+      },
+      {
+        "file": "src/flow/lib/spec-review-artifacts.js",
+        "hash": "9dedf5934c2cd18c96bfb382e2d64f82",
+        "lines": 207,
+        "mtime": "2026-08-04T15:19:51.894Z",
+        "className": "spec-review-artifacts",
+        "methods": [
+          "SpecReviewArtifact",
+          "SpecTriageArtifact",
+          "SpecRepairArtifact",
+          "validateSpecTriageDocument",
+          "validateSpecRepairDocument",
+          "validateSpecRepairAudit",
+          "nonEmpty",
+          "artifactError",
+          "readJson"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path"
+        ],
+        "exports": [
+          "SpecReviewArtifact",
+          "SpecTriageArtifact",
+          "SpecRepairArtifact",
+          "validateSpecTriageDocument",
+          "validateSpecRepairDocument",
+          "validateSpecRepairAudit"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "d7849cb7"
+      },
+      {
+        "file": "src/flow/lib/spec-test-bootstrap-validator.js",
+        "hash": "81963afac295768eb8e6497ee24fb38e",
+        "lines": 191,
+        "mtime": "2026-08-05T08:39:08.152Z",
+        "className": "spec-test-bootstrap-validator",
+        "methods": [
+          "SpecTestBootstrapValidation",
+          "SpecTestBootstrapValidator",
+          "maskCommentsAndTemplates",
+          "isWithin",
+          "existingRegularFile"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "./test-headers.js"
+        ],
+        "exports": [
+          "SpecTestBootstrapValidation",
+          "SpecTestBootstrapValidator"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "eb468636"
       },
       {
         "file": "src/flow/lib/spec-test-coverage.js",
@@ -11573,9 +11651,9 @@
       },
       {
         "file": "src/flow/lib/step-transition-policy.js",
-        "hash": "69f58f9b7527ed6897e266ad37818bff",
-        "lines": 274,
-        "mtime": "2026-08-04T09:10:05.187Z",
+        "hash": "a0c66585c09e154f7100f9d95326f65d",
+        "lines": 326,
+        "mtime": "2026-08-05T13:50:11.142Z",
         "className": "step-transition-policy",
         "methods": [
           "StepTransitionError",
@@ -11591,7 +11669,8 @@
           "validateReopenChanges"
         ],
         "imports": [
-          "../definition.js"
+          "../definition.js",
+          "./plan-gate-repair.js"
         ],
         "exports": [
           "StepTransitionError",
@@ -11600,7 +11679,9 @@
           "DefinitionLifecycleTransition",
           "ExplicitRecoveryTransition",
           "RecoveryStepChange",
-          "isStepTransition"
+          "isStepTransition",
+          "PLAN_GATE_REPAIR_ENTRYPOINT",
+          "TEST_REVIEW_REPAIR_ENTRYPOINT"
         ],
         "extends": "Error",
         "usedBy": [
@@ -11611,29 +11692,16 @@
           "src/flow/lib/run-preimplementation-bootstrap.js",
           "src/flow/lib/run-recover-existing-implementation.js",
           "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-repair-plan-gate.js",
+          "src/flow/lib/run-repair-test-review.js",
           "src/flow/lib/run-rewind-test-evidence.js",
           "src/flow/lib/set-step.js",
           "src/flow/lib/sync-spec-tasks.js",
           "src/flow/lib/task-gate-completion.js",
+          "src/flow/lib/worker-artifact-handoff.js",
           "src/flow/registry.js"
         ],
-        "id": "fdbadaab",
-        "summary": "Defines the policy objects that describe allowed step transitions and how they commit into flow state. It centralizes lifecycle statuses, recovery entrypoints, and transition validation.",
-        "detail": "The module distinguishes terminal and lifecycle statuses and names specialized entrypoints such as reopen, reset skipped downstream, revalidation, and preimplementation bootstrap. A StepTransitionCommitIntent base class establishes the contract for concrete transition types by requiring a concrete type and an applyTo(state) implementation. Concrete transition classes represent normal changes, definition lifecycle changes, explicit recovery actions, and individual recovery step mutations. Validation helpers convert malformed inputs into StepTransitionError instances, giving callers a consistent way to reject unsupported reopen or recovery changes.",
-        "chapter": "internal_design",
-        "role": "model",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.933Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "transition policy",
-          "step transition",
-          "recovery entrypoint",
-          "lifecycle status",
-          "commit intent",
-          "state mutation"
-        ]
+        "id": "fdbadaab"
       },
       {
         "file": "src/flow/lib/step-tree.js",
@@ -11697,7 +11765,10 @@
           "src/flow/lib/implementation-revalidation.js",
           "src/flow/lib/recovery-contract.js",
           "src/flow/lib/run-direct.js",
-          "src/flow/lib/run-recover-review-pass.js"
+          "src/flow/lib/run-recover-review-pass.js",
+          "src/flow/lib/run-repair-plan-gate.js",
+          "src/flow/lib/run-repair-test-review.js",
+          "src/flow/lib/worker-artifact-handoff.js"
         ],
         "id": "bc04b8b6",
         "summary": "Provides recursive utilities for navigating nested flow step trees. The helpers support flattening, lookup, and choosing the next executable leaf step.",
@@ -12209,7 +12280,9 @@
         "extends": null,
         "usedBy": [
           "src/flow/lib/run-retro.js",
-          "src/flow/lib/set-step.js"
+          "src/flow/lib/set-step.js",
+          "src/flow/lib/spec-test-bootstrap-validator.js",
+          "src/flow/lib/worker-artifact-handoff.js"
         ],
         "id": "dc8ef567",
         "summary": "Test header parser and validator enforcing `// spec: Rn` annotations on spec test files.",
@@ -12353,6 +12426,55 @@
           "test timeout",
           "assertion detection"
         ]
+      },
+      {
+        "file": "src/flow/lib/test-review-repair.js",
+        "hash": "af39acc175f5a9b6d2e603bfa7b720ee",
+        "lines": 426,
+        "mtime": "2026-08-06T01:09:15.115Z",
+        "className": "test-review-repair",
+        "methods": [
+          "TestReviewRepairError",
+          "TestReviewRepairFinding",
+          "TestReviewRepairRecord",
+          "TestReviewRepairCompletion",
+          "inspectTestReviewRepair",
+          "requiredString",
+          "requiredDigest",
+          "requiredTimestamp",
+          "digest",
+          "deepFreeze",
+          "frozenDocument",
+          "findingIdentity",
+          "hasDuplicateFindingField",
+          "flowIssue",
+          "latestTestReviewRecord",
+          "readTestReviewArtifact"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "../../lib/flow-workspace.js",
+          "../../lib/spec-json.js",
+          "../definition.js",
+          "./review-target-authority.js",
+          "./worker-artifact-revision.js"
+        ],
+        "exports": [
+          "TestReviewRepairError",
+          "TestReviewRepairFinding",
+          "TestReviewRepairRecord",
+          "TestReviewRepairCompletion",
+          "inspectTestReviewRepair"
+        ],
+        "extends": "Error",
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/run-repair-test-review.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "f27f6efd"
       },
       {
         "file": "src/flow/lib/upgrade-evidence-paths.js",
@@ -12568,10 +12690,216 @@
         ]
       },
       {
+        "file": "src/flow/lib/worker-artifact-handoff.js",
+        "hash": "b054f3250921fa2fbcc4cf45bae30fb4",
+        "lines": 2855,
+        "mtime": "2026-08-06T09:10:42.791Z",
+        "className": "worker-artifact-handoff",
+        "methods": [
+          "WorkerArtifactHandoffError",
+          "WorkerArtifactRetryExhaustedError",
+          "WorkerArtifactPayloadRule",
+          "WorkerArtifactInputContract",
+          "WorkerArtifactHandoffPolicy",
+          "workerArtifactHandoffPolicy",
+          "WorkerArtifactInputSnapshot",
+          "WorkerArtifactRepositoryMutationSnapshot",
+          "WorkerArtifactMutationAuthoritySnapshot",
+          "WorkerArtifactHandoffRequest",
+          "WorkerArtifactManifestEntry",
+          "WorkerArtifactHandoffSubmission",
+          "sealWorkerArtifactHandoff",
+          "WorkerArtifactPublicationJournal",
+          "validateWorkerArtifactPublicationState",
+          "WorkerArtifactHandoffReceipt",
+          "validateWorkerArtifactReceiptsState",
+          "WorkerArtifactHandoffCoordinator",
+          "requiredString",
+          "requiredDigest",
+          "exactObjectKeys",
+          "stableStringify",
+          "digest",
+          "boundedJson",
+          "readRegularFile",
+          "readOptionalSnapshot",
+          "normalizedRelativePath",
+          "isWithin",
+          "ensureRealDirectory",
+          "removeEmptyParents",
+          "scanTree",
+          "parentRelativePaths",
+          "isCommandOwnedSpecTestTarget",
+          "assertPayloadDirectoryMatchesManifest",
+          "manifestDigest",
+          "treeSnapshot",
+          "specDirectory",
+          "handoffActionDirectory",
+          "authoritySnapshotError",
+          "isWorkerRuntimePath",
+          "boundedGitOutput",
+          "exactGitRoot",
+          "nullSeparatedPaths",
+          "digestAuthorityFile",
+          "authorityFileEntry",
+          "filteredIndexDigest",
+          "gitAuthoritySnapshot",
+          "filesystemAuthoritySnapshot",
+          "baseInputRevision",
+          "inputRevision",
+          "requiresDraftWorkerContext",
+          "handoffInputDigest",
+          "validateFilePayloadAtCliBoundary",
+          "invalidUnsealedFilePayload",
+          "prePublicationArtifactError",
+          "pendingPublicationRecoveryError",
+          "publicationRecoveryError",
+          "requestFromStored",
+          "validateSubmission",
+          "payloadDocument",
+          "validateDraftPayload",
+          "assertPlanGateRepairMadeProgress",
+          "assertTestReviewRepairMadeProgress",
+          "validatePayload",
+          "manifestByTarget",
+          "currentFileIdentity",
+          "manifestPayloadBytes",
+          "publicationCommitGuard",
+          "assertFilePublishable",
+          "publishJournal",
+          "assertJournalPublished",
+          "revisionFor",
+          "readSubmission",
+          "receiptFor",
+          "receiptForRequest",
+          "cleanupCompletedHandoff"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:child_process",
+          "node:fs",
+          "node:path",
+          "../../lib/atomic-file.js",
+          "../../lib/repository-maintenance-lock.js",
+          "../../lib/flow-workspace.js",
+          "../../lib/spec-json.js",
+          "../../lib/regular-file-snapshot.js",
+          "./draft-artifact-promotion.js",
+          "./draft-review-artifacts.js",
+          "./draft-review-routes.js",
+          "../definition.js",
+          "./step-tree.js",
+          "./step-transition-policy.js",
+          "./test-headers.js",
+          "./spec-test-bootstrap-validator.js",
+          "./spec-review-artifacts.js",
+          "./worker-artifact-revision.js",
+          "./flow-artifact-authority.js",
+          "./plan-gate-repair.js",
+          "./test-review-repair.js",
+          "./worker-context-snapshot.js"
+        ],
+        "exports": [
+          "WorkerArtifactHandoffError",
+          "WorkerArtifactRetryExhaustedError",
+          "WorkerArtifactPayloadRule",
+          "WorkerArtifactInputContract",
+          "WorkerArtifactHandoffPolicy",
+          "workerArtifactHandoffPolicy",
+          "WorkerArtifactInputSnapshot",
+          "WorkerArtifactRepositoryMutationSnapshot",
+          "WorkerArtifactMutationAuthoritySnapshot",
+          "WorkerArtifactHandoffRequest",
+          "WorkerArtifactManifestEntry",
+          "WorkerArtifactHandoffSubmission",
+          "sealWorkerArtifactHandoff",
+          "WorkerArtifactPublicationJournal",
+          "validateWorkerArtifactPublicationState",
+          "WorkerArtifactHandoffReceipt",
+          "validateWorkerArtifactReceiptsState",
+          "WorkerArtifactHandoffCoordinator",
+          "WORKER_ARTIFACT_HANDOFF_REQUEST_ENV",
+          "WORKER_ARTIFACT_HANDOFF_VERSION",
+          "WORKER_ARTIFACT_HANDOFF_ROOT"
+        ],
+        "extends": "Error",
+        "usedBy": [
+          "src/flow/lib/run-dispatch.js",
+          "src/flow/lib/run-seal-handoff.js"
+        ],
+        "id": "58154956"
+      },
+      {
+        "file": "src/flow/lib/worker-artifact-revision.js",
+        "hash": "eed2d92f0fafa8134a06e63e6bafeaf7",
+        "lines": 51,
+        "mtime": "2026-08-04T15:19:51.895Z",
+        "className": "worker-artifact-revision",
+        "methods": [
+          "WorkerArtifactRevision",
+          "requiredString"
+        ],
+        "imports": [],
+        "exports": [
+          "WorkerArtifactRevision"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/test-review-repair.js",
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "32ebdf4c"
+      },
+      {
+        "file": "src/flow/lib/worker-context-snapshot.js",
+        "hash": "ea1f518f9ba43721e69a250a0a8e84ef",
+        "lines": 318,
+        "mtime": "2026-08-05T06:21:53.394Z",
+        "className": "worker-context-snapshot",
+        "methods": [
+          "WorkerContextBinding",
+          "WorkerContextDocument",
+          "WorkerContextOmission",
+          "DraftInputAuthority",
+          "DraftWorkerContextSnapshot",
+          "requireString",
+          "requireDigest",
+          "requireIssue",
+          "stableStringify",
+          "digest",
+          "deepFreeze",
+          "immutableDocument",
+          "readContextText",
+          "entryFromStored",
+          "issueContext",
+          "requestContext",
+          "guardrailContext",
+          "projectOverviewContext"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path",
+          "../../lib/guardrail.js",
+          "../../lib/regular-file-snapshot.js"
+        ],
+        "exports": [
+          "WorkerContextBinding",
+          "WorkerContextDocument",
+          "WorkerContextOmission",
+          "DraftInputAuthority",
+          "DraftWorkerContextSnapshot"
+        ],
+        "extends": "WorkerContextEntry",
+        "usedBy": [
+          "src/flow/lib/worker-artifact-handoff.js"
+        ],
+        "id": "4fb38cfd"
+      },
+      {
         "file": "src/flow/registry.js",
-        "hash": "dc264083a09bfe0e47bdcec0b43c0062",
-        "lines": 1998,
-        "mtime": "2026-08-04T05:50:23.016Z",
+        "hash": "5c53bfd59f95c9d16019442eabcd3ddb",
+        "lines": 2018,
+        "mtime": "2026-08-05T13:50:11.144Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -12603,8 +12931,7 @@
           "./definition.js",
           "./lib/step-tree.js",
           "./lib/draft-review-routes.js",
-          "./lib/draft-review-artifacts.js",
-          "./lib/draft-artifact-promotion.js",
+          "./lib/draft-review-pass-commit.js",
           "./lib/flow-judgment-contract.js",
           "../lib/plugin-registry.js",
           "./lib/set-issue-log.js",
@@ -12623,24 +12950,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095",
-        "summary": "Acts as the central flow command registry and dispatch layer for the CLI. It binds command names to handlers, help text, lifecycle hooks, and runtime guard options.",
-        "detail": "The module defines shared runtime flags for flow execution and target-guard validation, then reuses them when composing command-specific option lists. It contains routing helpers for gate phases, review phases, nonblocking routes, skipped-step resets, and active-step detection so registry actions remain phase aware. A RegistryLifecycleAdapter translates registry events into finalize, review, gate, step-status, and issue-log side effects while also bridging plugin hook execution. The exported FLOW_COMMANDS table is the top-level dispatch map that wraps command execution with validation, lifecycle follow-up, artifact checks, and structured error handling.",
-        "chapter": "cli_commands",
-        "role": "route",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.933Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "CLI dispatch",
-          "flow commands",
-          "lifecycle hooks",
-          "target guard",
-          "plugin hook",
-          "route table"
-        ]
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -13003,6 +13313,36 @@
         ]
       },
       {
+        "file": "src/lib/agent-invocation-metric.js",
+        "hash": "d34ac0a8e5d628252eb187f3cba970db",
+        "lines": 171,
+        "mtime": "2026-08-05T06:21:53.394Z",
+        "className": "agent-invocation-metric",
+        "methods": [
+          "AgentInvocationMetric",
+          "DeferredAgentInvocationMetric",
+          "persistAgentInvocationMetric",
+          "requireFlowManager",
+          "requireDuration",
+          "buildMetricEntry",
+          "shouldPersistFinalizeMetricToSidecar",
+          "persistFinalizeMetricToSidecar"
+        ],
+        "imports": [
+          "./agent-metrics.js"
+        ],
+        "exports": [
+          "AgentInvocationMetric",
+          "DeferredAgentInvocationMetric",
+          "persistAgentInvocationMetric"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/agent.js"
+        ],
+        "id": "def1c7a4"
+      },
+      {
         "file": "src/lib/agent-metrics.js",
         "hash": "d05c612837ceef0bf0f698b416670b79",
         "lines": 10,
@@ -13018,7 +13358,8 @@
         "extends": null,
         "usedBy": [
           "src/lib/flow-store.js",
-          "src/lib/agent.js"
+          "src/lib/agent.js",
+          "src/lib/agent-invocation-metric.js"
         ],
         "id": "38813272",
         "summary": "Tiny utility that normalizes a metric dimension string, defaulting empty values to 'unknown'.",
@@ -13076,16 +13417,13 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "57e9209f073c33ceb702f0d4a97ce974",
-        "lines": 1547,
-        "mtime": "2026-08-02T05:33:19.008Z",
+        "hash": "73dc19ba0b83574334d49a20b79b22bf",
+        "lines": 1493,
+        "mtime": "2026-08-06T09:10:42.791Z",
         "className": "agent",
         "methods": [
           "createPluginAgentApi",
-          "buildAgentMetricEntry",
           "normalizedExecutionEnvironment",
-          "shouldPersistFinalizeMetricToSidecar",
-          "persistFinalizeMetricToSidecar",
           "readLinuxProcessGroupMembers",
           "processGroupHasNoLiveMembers",
           "runWindowsTaskkill",
@@ -13123,7 +13461,7 @@
           "./provider.js",
           "./error-preview.js",
           "./agent-defaults.js",
-          "./agent-metrics.js",
+          "./agent-invocation-metric.js",
           "./agent-timeout.js",
           "./process-identity.js",
           "./agent-failure.js"
@@ -13140,24 +13478,7 @@
           "src/lib/container.js",
           "src/lib/plugin-registry.js"
         ],
-        "id": "13ddf392",
-        "summary": "Runs configured agents as supervised child processes with retry, timeout, caching, and metric hooks. It also resolves agent profiles and provider overrides into deterministic invocations.",
-        "detail": "Configuration is resolved through profile selection, provider-family aliases, and optional provider overrides. The invocation builder validates working directories and environment variables, injects prompt or schema arguments, and can spill large JSON Schema payloads to temporary files. Execution supports retry with backoff, timeout handling, structured logging, and metric accumulation, while child-process supervision tracks process groups on POSIX and uses taskkill on Windows. A filesystem-backed prompt cache stores deterministic keys and can emit cache-hit metrics back into flow state.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-02T07:52:37.067Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "agent execution",
-          "child process",
-          "prompt cache",
-          "retry backoff",
-          "timeout handling",
-          "provider profile",
-          "process supervision"
-        ]
+        "id": "13ddf392"
       },
       {
         "file": "src/lib/agents-md.js",
@@ -14295,9 +14616,9 @@
       },
       {
         "file": "src/lib/flow-state.js",
-        "hash": "aa085b024eeb3d6df6044a902ed9efe6",
-        "lines": 193,
-        "mtime": "2026-08-04T05:50:23.017Z",
+        "hash": "98835758164e14c83ed2a40e738f02d7",
+        "lines": 230,
+        "mtime": "2026-08-05T13:50:11.144Z",
         "className": "flow-state",
         "methods": [
           "FlowStateInvariantError",
@@ -14318,7 +14639,11 @@
           "./flow-spec-id.js",
           "./flow-workspace.js",
           "../flow/lib/draft-artifact-promotion.js",
-          "../flow/lib/draft-review-revision.js"
+          "../flow/lib/draft-review-revision.js",
+          "../flow/lib/worker-artifact-revision.js",
+          "../flow/lib/worker-artifact-handoff.js",
+          "../flow/lib/plan-gate-repair.js",
+          "../flow/lib/test-review-repair.js"
         ],
         "exports": [
           "FlowStateInvariantError",
@@ -14330,24 +14655,7 @@
           "src/lib/flow-store.js",
           "src/lib/preparing-flow-store.js"
         ],
-        "id": "e67fa14b",
-        "summary": "Defines the validated in-memory flow state model and helper ledgers used by the flow engine. It enforces structural invariants for steps, spec binding, and recovery-related subdocuments.",
-        "detail": "The module establishes the allowed step status set and uses plain-object, invariant, and deep-freeze helpers to reject malformed state early. The step-list validator checks nested step trees against expected ids and active leaves so task progress remains internally consistent. FlowStateInvariantError provides a dedicated error type, while ledger wrappers return structured clones instead of exposing mutable internals. FlowState binds together spec identification, outbox and recovery ledgers, revision metadata, and optional location-aware state so higher layers can treat persisted JSON as a validated model.",
-        "chapter": "development",
-        "role": "model",
-        "enrich": {
-          "processedAt": "2026-08-04T10:10:10.957Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow state",
-          "state model",
-          "invariants",
-          "step ledger",
-          "immutable snapshot",
-          "recovery ledger",
-          "nested steps"
-        ]
+        "id": "e67fa14b"
       },
       {
         "file": "src/lib/flow-store.js",
@@ -16264,6 +16572,31 @@
         ]
       },
       {
+        "file": "src/lib/regular-file-snapshot.js",
+        "hash": "d7d0cbe8a76fbfbb233f43c06cab6f41",
+        "lines": 66,
+        "mtime": "2026-08-05T06:21:53.396Z",
+        "className": "regular-file-snapshot",
+        "methods": [
+          "sameFileIdentity",
+          "RegularFileSnapshot",
+          "captureRegularFile"
+        ],
+        "imports": [
+          "node:crypto",
+          "node:fs",
+          "node:path"
+        ],
+        "exports": [
+          "sameFileIdentity",
+          "RegularFileSnapshot",
+          "captureRegularFile"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "4397fc44"
+      },
+      {
         "file": "src/lib/repository-maintenance-lock.js",
         "hash": "f6799d3bb4dd99cce3b859fcaddc2204",
         "lines": 349,
@@ -16529,11 +16862,12 @@
       },
       {
         "file": "src/lib/spec-json.js",
-        "hash": "0808b8c36f945fed73543f8a5ab809fa",
-        "lines": 264,
-        "mtime": "2026-08-01T17:21:23.924Z",
+        "hash": "48e9b246a5b46a43e7e40b11e2a00692",
+        "lines": 274,
+        "mtime": "2026-08-06T09:10:42.791Z",
         "className": "spec-json",
         "methods": [
+          "loadSpecJsonSchema",
           "resolveSpecJsonPath",
           "resolveSpecDir",
           "loadSpecJson",
@@ -16555,6 +16889,7 @@
           "./schema-validate.js"
         ],
         "exports": [
+          "loadSpecJsonSchema",
           "resolveSpecJsonPath",
           "resolveSpecDir",
           "loadSpecJson",
@@ -16570,23 +16905,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "e288cfbd",
-        "summary": "Provides loading, validation, saving, and small transformations for `spec.json` files. It also converts spec content into normalized requirement data and prompt-friendly text.",
-        "detail": "The module resolves a spec path from either a directory or file input and reads the associated JSON document with clear parse and missing-file errors. Schema validation is delegated to a validator loaded from a cached schema file, ensuring `spec.json` structure stays compliant. Utility functions normalize requirement status defaults, enumerate usable requirement IDs, and update a single requirement status in place before saving. It also exposes an empty stub factory and a text renderer that turns spec fields into prompt content for downstream tooling.",
-        "chapter": "cli_commands",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-08-02T07:52:37.097Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "spec.json",
-          "schema validation",
-          "requirements tracking",
-          "spec loader",
-          "prompt generation",
-          "JSON persistence"
-        ]
+        "id": "e288cfbd"
       },
       {
         "file": "src/lib/step-id-rename.js",
@@ -17726,8 +18045,8 @@
       }
     ],
     "summary": {
-      "total": 307,
-      "totalMethods": 3427
+      "total": 321,
+      "totalMethods": 3603
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
