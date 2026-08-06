@@ -35,6 +35,7 @@ export default class RunSealHandoffCommand extends FlowCommand {
         {
           classification,
           retryBudgetConsumed: false,
+          retryable: error?.retryable === true,
           recoveryPossible: error?.recoveryPossible === true,
         },
       );

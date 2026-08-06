@@ -101,6 +101,33 @@ function seal(request) {
   });
 }
 
+function draftWorkerAction() {
+  return {
+    taskId: null,
+    step: "draft",
+    action: "write-draft",
+    instructions: { key: "plan.draft", content: "Write the draft." },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: {},
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-draft" },
+  };
+}
+
+function completedWorkerAction() {
+  return {
+    taskId: null,
+    step: null,
+    action: "completed",
+    instructions: null,
+    context: null,
+    output_schema: null,
+    requires_approval: false,
+    directive: { kind: "completed", terminal: true, requiresUserAction: false },
+  };
+}
+
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (value && typeof value === "object") {
@@ -1273,16 +1300,212 @@ describe("worker artifact handoff", () => {
         invocation: value.invocation,
       });
       fs.writeFileSync(request.payloadPath("draft.json"), "{ malformed\n");
-      seal(request);
-
       assert.throws(
-        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+        () => seal(request),
         (error) => error instanceof WorkerArtifactHandoffError
           && error.classification === "invalid"
           && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID",
       );
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
       assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
+      assert.equal(fs.existsSync(request.submissionPath), false);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("retries one invalid pre-publication payload in a fresh handoff and preserves the first seal", async () => {
+    const value = fixture("draft");
+    try {
+      fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
+      const current = { value: draftWorkerAction() };
+      let calls = 0;
+      let firstHandoffDirectory = null;
+      let firstPayloadBytes = null;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "draft").status === "done"
+              ? completedWorkerAction()
+              : structuredClone(current.value);
+          },
+        },
+        agent: {
+          async call(_prompt, options) {
+            calls += 1;
+            assert.equal(options.jsonSchema, undefined);
+            assert.equal(options.fmtFallback, undefined);
+            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            const payloadPath = request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath;
+            fs.writeFileSync(payloadPath, calls === 1 ? "[]\n" : json({ goal: "retry succeeded" }));
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            if (calls === 1) {
+              firstHandoffDirectory = path.dirname(requestPath);
+              firstPayloadBytes = fs.readFileSync(payloadPath);
+            }
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 2);
+      assert.equal(calls, 2);
+      assert.ok(firstHandoffDirectory);
+      assert.equal(fs.existsSync(firstHandoffDirectory), true);
+      assert.deepEqual(
+        fs.readFileSync(path.join(firstHandoffDirectory, "payload", "draft.json")),
+        firstPayloadBytes,
+      );
+      assert.equal(value.flowManager.load().workerArtifactPublication, undefined);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
+        { goal: "retry succeeded" },
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("passes schema guidance only to the spec artifact worker", async () => {
+    const value = fixture("spec");
+    try {
+      const specDir = canonicalSpecDir(value);
+      fs.writeFileSync(path.join(specDir, "draft.json"), json({ goal: "Create the specification." }));
+      const current = { value: {
+        ...draftWorkerAction(),
+        step: "spec",
+        action: "write-spec",
+        instructions: { key: "plan.spec", content: "Write the specification." },
+      } };
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(value.flowManager.load().steps, "spec").status === "done"
+              ? completedWorkerAction()
+              : structuredClone(current.value);
+          },
+        },
+        agent: {
+          async call(_prompt, options) {
+            calls += 1;
+            assert.ok(options.jsonSchema);
+            assert.match(options.fmtFallback, /Spec artifact schema:/);
+            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "spec.json").payloadPath, json(validSpec()));
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+            });
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 1);
+      assert.equal(calls, 1);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("reports retry exhaustion after the second invalid output with durable diagnostics", async () => {
+    const value = fixture("draft");
+    try {
+      const specDir = canonicalSpecDir(value);
+      fs.writeFileSync(path.join(specDir, "spec.json"), json(validSpec()));
+      const current = { value: draftWorkerAction() };
+      const handoffDirectories = [];
+      let calls = 0;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return structuredClone(current.value);
+          },
+        },
+        agent: {
+          async call(_prompt, options) {
+            calls += 1;
+            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
+            fs.writeFileSync(
+              request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
+              "[]\n",
+            );
+            sealWorkerArtifactHandoff({
+              requestPath,
+              invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+            });
+            handoffDirectories.push(path.dirname(requestPath));
+          },
+        },
+        repositoryFingerprint: () => "stable-fixture",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        ...value.ctx,
+        flowState: value.flowManager.load(),
+        expectRunId: value.flowManager.load().runId,
+        expectSpec: value.specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.errors[0].code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+      assert.equal(result.data.retryExhausted, true);
+      assert.equal(result.data.attempts, 2);
+      assert.equal(result.data.dispatch.dispatchCount, 2);
+      assert.equal(result.data.first.handoffDirectory, handoffDirectories[0]);
+      assert.equal(result.data.second.handoffDirectory, handoffDirectories[1]);
+      assert.notEqual(result.data.first.handoffDirectory, result.data.second.handoffDirectory);
+      assert.equal(result.data.first.classification, "invalid");
+      assert.equal(result.data.second.classification, "invalid");
+      assert.equal(value.flowManager.load().workerArtifactPublication, undefined);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.equal(fs.existsSync(path.join(specDir, "draft.json")), false);
+
+      const issueLog = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
+      const entry = issueLog.entries.find((candidate) => candidate.issueLogId === (
+        `worker-handoff-${result.data.actionDigest}-invalid`
+      ));
+      assert.ok(entry);
+      assert.equal(entry.diagnostic.code, "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED");
+      assert.equal(entry.diagnostic.attempts, 2);
+      assert.equal(entry.diagnostic.first.handoffDirectory, handoffDirectories[0]);
+      assert.equal(entry.diagnostic.second.handoffDirectory, handoffDirectories[1]);
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -1627,6 +1850,43 @@ describe("worker artifact handoff", () => {
       assert.equal(state.runId, runId);
       assert.equal(findStepById(state.steps, "draft").status, "done");
       assert.equal(state.workerArtifactReceipts.at(-1).runId, runId);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("keeps a pending publication journal in the recovery path instead of retrying it", () => {
+    const value = fixture("draft");
+    try {
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "recover the journal" }));
+      seal(request);
+      const interrupted = new WorkerArtifactHandoffCoordinator({
+        faultInjector({ phase }) {
+          if (phase === "after-worker-handoff-journal") throw new Error("simulated journal interruption");
+        },
+      });
+      assert.throws(
+        () => interrupted.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "recovery-required",
+      );
+      const pendingBefore = structuredClone(value.flowManager.load().workerArtifactPublication);
+      fs.rmSync(request.submissionPath);
+
+      assert.throws(
+        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.classification === "recovery-required"
+          && error.retryable === false
+          && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      );
+      assert.deepEqual(value.flowManager.load().workerArtifactPublication, pendingBefore);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
     } finally {
       removeTmpDir(value.mainRoot);
     }

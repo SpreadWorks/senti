@@ -87,6 +87,50 @@ describe("Agent.call() — basic invocation", () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
+  it("passes the spec schema through a schema-capable provider profile", (t) => {
+    const root = tmpDir();
+    const agentWorkDir = path.join(root, ".tmp");
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agent = makeAgent(null, {
+      config: { agent: { default: "codex/gpt-5.4" } },
+      paths: { root, agentWorkDir },
+    });
+    const schema = { type: "object", properties: { goal: { type: "string" } } };
+
+    const invocation = agent._buildInvocationForTest("write spec", {
+      commandId: "flow.dispatch",
+      executionWorkDir: root,
+      jsonSchema: schema,
+      fmtFallback: "FALLBACK SPEC INSTRUCTIONS",
+    });
+
+    assert.ok(invocation.finalArgs.includes("--output-schema"));
+    assert.equal(invocation.pendingSchemaWrite != null, true);
+    assert.deepEqual(JSON.parse(invocation.pendingSchemaWrite.content), schema);
+    assert.doesNotMatch(invocation.finalArgs.join(" "), /FALLBACK SPEC INSTRUCTIONS/);
+  });
+
+  it("uses the equivalent prompt fallback for a provider without schema support", (t) => {
+    const root = tmpDir();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agent = makeAgent({
+      command: "worker",
+      args: ["{{PROMPT}}"],
+      jsonSchemaFlag: "--schema",
+    }, { paths: { root, agentWorkDir: path.join(root, ".tmp") } });
+
+    const invocation = agent._buildInvocationForTest("write spec", {
+      commandId: "flow.dispatch",
+      executionWorkDir: root,
+      jsonSchema: { type: "object" },
+      fmtFallback: "FALLBACK SPEC INSTRUCTIONS",
+    });
+
+    assert.equal(invocation.pendingSchemaWrite, null);
+    assert.equal(invocation.finalArgs.includes("--schema"), false);
+    assert.match(invocation.finalArgs[0], /^FALLBACK SPEC INSTRUCTIONS\n\nwrite spec$/);
+  });
+
   it("rejects an execution directory outside the repository before spawning", async (t) => {
     const root = tmpDir();
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));

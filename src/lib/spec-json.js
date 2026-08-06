@@ -32,6 +32,16 @@ function loadSchema() {
 }
 
 /**
+ * Return an isolated copy of the canonical spec artifact schema.
+ *
+ * Agent invocation code may pass this object to a provider, so callers must
+ * not receive the mutable module cache itself.
+ */
+export function loadSpecJsonSchema() {
+  return structuredClone(loadSchema());
+}
+
+/**
  * Resolve a caller-provided path (directory, `.json`, or `.md`) to the
  * concrete spec.json file path.
  */

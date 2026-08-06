@@ -318,7 +318,10 @@ class Agent {
         ],
       });
     }
-    if (jsonSchema && schemaFlag) {
+    const schemaCapable = jsonSchema
+      && schemaFlag
+      && ["inline", "file"].includes(schemaMode);
+    if (jsonSchema && schemaCapable) {
       if (schemaMode === "file") {
         const schemaPath = path.join(this._paths.agentWorkDir, `schema-${crypto.randomUUID()}.json`);
         pendingSchemaWrite = { path: schemaPath, content: JSON.stringify(jsonSchema) };
@@ -326,7 +329,7 @@ class Agent {
       } else {
         schemaSuffix.push(schemaFlag, JSON.stringify(jsonSchema));
       }
-    } else if (jsonSchema && !schemaFlag && options.fmtFallback) {
+    } else if (jsonSchema && options.fmtFallback) {
       effectivePrompt = `${options.fmtFallback}\n\n${effectivePrompt}`;
     }
 

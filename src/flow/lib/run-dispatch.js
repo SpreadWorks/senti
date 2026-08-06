@@ -10,6 +10,7 @@
  */
 
 import path from "node:path";
+import { loadSpecJsonSchema } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
@@ -38,6 +39,7 @@ import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
+  WorkerArtifactRetryExhaustedError,
   WorkerArtifactMutationAuthoritySnapshot,
   WorkerArtifactHandoffRequest,
 } from "./worker-artifact-handoff.js";
@@ -58,6 +60,47 @@ const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
   "repair-plan-gate",
   "repair-test-review",
 ]);
+const SPEC_WORKER_STEPS = new Set(["spec", "spec-repair"]);
+
+function specWorkerAgentOptions(stepId) {
+  if (!SPEC_WORKER_STEPS.has(stepId)) return {};
+  const schema = loadSpecJsonSchema();
+  return {
+    jsonSchema: schema,
+    fmtFallback: [
+      "The handoff file named spec.json is the canonical spec artifact.",
+      "Write valid JSON that matches this schema exactly; do not add properties outside the schema.",
+      "The CLI validates the file before it can be sealed or published.",
+      "Spec artifact schema:",
+      JSON.stringify(schema, null, 2),
+    ].join("\n"),
+  };
+}
+
+function freshWorkerInvocation(invocation, nextAction) {
+  const session = new FlowDispatchSession({ target: invocation.target });
+  const action = session.captureAction(nextAction, invocation.action.repositoryFingerprint);
+  if (action.digest !== invocation.action.digest) {
+    throw new Error("fresh worker handoff action changed before retry");
+  }
+  let authorization = invocation.authorization;
+  if (authorization instanceof ExplicitFlowDispatchAuthorization) {
+    authorization = new ExplicitFlowDispatchAuthorization({
+      action,
+      runId: invocation.target.runId,
+      approvalToken: action.approvalToken(),
+      approvedAt: authorization.approvedAt,
+    });
+  } else if (authorization instanceof AutoApprovedFlowDispatchAuthorization) {
+    authorization = new AutoApprovedFlowDispatchAuthorization({
+      action,
+      choiceId: authorization.choiceId,
+    });
+  } else {
+    authorization = new UnapprovedFlowDispatchAuthorization(action);
+  }
+  return new FlowDispatchInvocation({ session, action, authorization });
+}
 
 function errorMessages(envelope) {
   return (envelope?.errors || [])
@@ -367,9 +410,20 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
           step: stepId,
           reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
           trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
-          resolution: error.recoveryPossible
+          resolution: error instanceof WorkerArtifactRetryExhaustedError
+            ? "One fresh worker handoff retry was consumed; correct the artifact producer before dispatching this step again."
+            : error.recoveryPossible
             ? "Resume the guarded dispatcher to replay the pending publication journal."
             : "Correct the worker artifact payload and dispatch the current action again.",
+          ...(error instanceof WorkerArtifactRetryExhaustedError && {
+            diagnostic: {
+              code: error.code,
+              classification: error.classification,
+              attempts: error.data.attempts,
+              first: error.data.first,
+              second: error.data.second,
+            },
+          }),
           taskId: null,
           timestamp: new Date().toISOString(),
         },
@@ -390,6 +444,8 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
     classification: error.classification || "invalid",
     retryBudgetConsumed: false,
     recoveryPossible: error.recoveryPossible === true,
+    retryable: error.retryable === true,
+    ...(error instanceof WorkerArtifactRetryExhaustedError && { retryExhausted: true }),
     actionDigest,
     dispatchInvocationId,
     ...(error.data || {}),
@@ -482,6 +538,74 @@ export default class RunDispatchCommand extends FlowCommand {
     });
   }
 
+  async runWorkerAttempt(ctx, invocation) {
+    const action = new FlowDispatchAction(invocation.action.nextAction);
+    let handoffRequest;
+    try {
+      handoffRequest = this.handoffCoordinator.createRequest({
+        ctx,
+        state: readFlowState(ctx),
+        invocation,
+      });
+    } catch (error) {
+      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+      return { error, handoffRequest: null, agentError: null };
+    }
+
+    let workerArtifactAuthority = null;
+    try {
+      workerArtifactAuthority = handoffRequest
+        ? WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest)
+        : null;
+    } catch (error) {
+      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+      return { error, handoffRequest, agentError: null };
+    }
+
+    const work = new FlowDispatchWork(invocation, handoffRequest);
+    const deferredMetric = handoffRequest
+      ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
+      : null;
+    let agentError = null;
+    try {
+      const agent = this.agent || (this.agent = this.container.get("agent"));
+      await agent.call(work.prompt(), {
+        commandId: "flow.dispatch",
+        executionWorkDir: ctx.executionRoot || ctx.root,
+        cacheMode: "bypass",
+        retryCount: 0,
+        waitForProcessTree: true,
+        executionEnvironment: work.executionEnvironment(),
+        deferredMetric,
+        ...specWorkerAgentOptions(action.nextAction.step),
+      });
+    } catch (error) {
+      agentError = error;
+    }
+
+    if (!handoffRequest) return { error: null, handoffRequest: null, agentError };
+
+    let mutationError = null;
+    try {
+      workerArtifactAuthority.assertUnchanged();
+    } catch (error) {
+      mutationError = error;
+    }
+    await deferredMetric.flush();
+    if (mutationError) {
+      if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
+      return { error: mutationError, handoffRequest, agentError };
+    }
+    try {
+      this.handoffCoordinator.reconcile({ ctx, request: handoffRequest });
+      agentError = null;
+    } catch (error) {
+      if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+      return { error, handoffRequest, agentError };
+    }
+    return { error: null, handoffRequest, agentError };
+  }
+
   async execute(ctx) {
     let target;
     try {
@@ -547,7 +671,6 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async dispatchContinuation(ctx, session) {
     const { target } = session;
-    let agent = this.agent;
     let dispatchCount = 0;
     let stalledDispatches = 0;
     let suppliedApproval = ctx.approve || null;
@@ -798,87 +921,76 @@ export default class RunDispatchCommand extends FlowCommand {
         continue;
       }
 
-      let handoffRequest;
-      try {
-        handoffRequest = this.handoffCoordinator.createRequest({
-          ctx,
-          state: readFlowState(ctx),
-          invocation,
-        });
-      } catch (error) {
-        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
-        return this.failure(
-          ctx,
-          error.code,
-          error.message,
-          workerHandoffFailureData(ctx, error, null, dispatchCount),
-        );
-      }
-      let workerArtifactAuthority = null;
-      try {
-        workerArtifactAuthority = handoffRequest
-          ? WorkerArtifactMutationAuthoritySnapshot.capture(handoffRequest)
-          : null;
-      } catch (error) {
-        if (!(error instanceof WorkerArtifactHandoffError)) throw error;
-        return this.failure(
-          ctx,
-          error.code,
-          error.message,
-          workerHandoffFailureData(ctx, error, handoffRequest, dispatchCount),
-        );
-      }
-      const work = new FlowDispatchWork(invocation, handoffRequest);
-      const deferredMetric = handoffRequest
-        ? new DeferredAgentInvocationMetric({ flowManager: ctx.flowManager })
-        : null;
-      let agentError = null;
-      try {
-        agent ||= this.container.get("agent");
-        await agent.call(work.prompt(), {
-          commandId: "flow.dispatch",
-          executionWorkDir: ctx.executionRoot || ctx.root,
-          cacheMode: "bypass",
-          retryCount: 0,
-          waitForProcessTree: true,
-          executionEnvironment: work.executionEnvironment(),
-          deferredMetric,
-        });
-      } catch (error) {
-        agentError = error;
-      }
+      let attempt = await this.runWorkerAttempt(ctx, invocation);
       dispatchCount += 1;
+      if (attempt.error) {
+        if (attempt.error.retryable !== true || !attempt.handoffRequest) {
+          return this.failure(
+            ctx,
+            attempt.error.code,
+            attempt.error.message,
+            workerHandoffFailureData(
+              ctx,
+              attempt.error,
+              attempt.handoffRequest,
+              dispatchCount,
+              attempt.agentError,
+            ),
+          );
+        }
 
-      if (handoffRequest) {
-        let mutationError = null;
-        try {
-          workerArtifactAuthority.assertUnchanged();
-        } catch (error) {
-          mutationError = error;
-        }
-        await deferredMetric.flush();
-        if (mutationError) {
-          if (!(mutationError instanceof WorkerArtifactHandoffError)) throw mutationError;
+        // A producer-side invalid payload is retried exactly once with a new
+        // dispatch invocation and therefore a new handoff directory. The
+        // first sealed payload is intentionally left byte-for-byte untouched.
+        const retryCurrent = await this.fetchNextAction(target);
+        if (
+          retryCurrent instanceof Envelope
+          || retryCurrent.step !== invocation.action.nextAction.step
+          || retryCurrent.action !== invocation.action.nextAction.action
+        ) {
           return this.failure(
             ctx,
-            mutationError.code,
-            mutationError.message,
-            workerHandoffFailureData(ctx, mutationError, handoffRequest, dispatchCount, agentError),
+            attempt.error.code,
+            attempt.error.message,
+            workerHandoffFailureData(
+              ctx,
+              attempt.error,
+              attempt.handoffRequest,
+              dispatchCount,
+              attempt.agentError,
+            ),
           );
         }
-        try {
-          this.handoffCoordinator.reconcile({ ctx, request: handoffRequest });
-          agentError = null;
-        } catch (error) {
-          if (!(error instanceof WorkerArtifactHandoffError)) throw error;
+        const retryInvocation = freshWorkerInvocation(invocation, retryCurrent);
+        const firstError = attempt.error;
+        const firstRequest = attempt.handoffRequest;
+        attempt = await this.runWorkerAttempt(ctx, retryInvocation);
+        dispatchCount += 1;
+        if (attempt.error) {
+          const exhausted = attempt.error.retryable === true
+            ? new WorkerArtifactRetryExhaustedError({
+                firstError,
+                secondError: attempt.error,
+                firstRequest,
+                secondRequest: attempt.handoffRequest,
+              })
+            : attempt.error;
           return this.failure(
             ctx,
-            error.code,
-            error.message,
-            workerHandoffFailureData(ctx, error, handoffRequest, dispatchCount, agentError),
+            exhausted.code,
+            exhausted.message,
+            workerHandoffFailureData(
+              ctx,
+              exhausted,
+              attempt.handoffRequest,
+              dispatchCount,
+              attempt.agentError,
+            ),
           );
         }
+        invocation = retryInvocation;
       }
+      const agentError = attempt.agentError;
 
       const refreshed = await this.fetchNextAction(target);
       if (refreshed instanceof Envelope) {

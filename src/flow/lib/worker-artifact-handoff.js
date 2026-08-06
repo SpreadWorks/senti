@@ -217,16 +217,58 @@ function removeEmptyParents(directory, stop) {
 }
 
 export class WorkerArtifactHandoffError extends Error {
-  constructor(classification, code, message, { cause = null, data = {} } = {}) {
+  constructor(classification, code, message, { cause = null, data = {}, retryable = false } = {}) {
     if (!["missing", "invalid", "stale", "conflict", "recovery-required"].includes(classification)) {
       throw new Error(`invalid worker artifact handoff classification: ${classification}`);
     }
+    if (typeof retryable !== "boolean") throw new Error("worker artifact handoff retryable must be boolean");
     super(message, cause ? { cause } : undefined);
     this.name = "WorkerArtifactHandoffError";
     this.classification = classification;
     this.code = requiredString(code, "worker artifact handoff error code");
     this.recoveryPossible = classification === "recovery-required";
+    this.retryable = retryable;
     this.data = Object.freeze({ ...data });
+  }
+}
+
+/**
+ * The worker produced an invalid payload twice. The parent must stop before
+ * creating a publication journal; the canonical artifact and Flow step remain
+ * untouched so a later operator retry starts from the same authority.
+ */
+export class WorkerArtifactRetryExhaustedError extends WorkerArtifactHandoffError {
+  constructor({ firstError, secondError, firstRequest, secondRequest }) {
+    if (!(firstError instanceof WorkerArtifactHandoffError)) {
+      throw new Error("worker artifact retry exhaustion requires the first handoff error");
+    }
+    if (!(secondError instanceof WorkerArtifactHandoffError)) {
+      throw new Error("worker artifact retry exhaustion requires the second handoff error");
+    }
+    const summarize = (error, request) => ({
+      code: error.code,
+      classification: error.classification,
+      message: error.message,
+      handoffDirectory: request?.directory || error.data?.handoffDirectory || null,
+      actionDigest: request?.actionDigest || error.data?.actionDigest || null,
+      dispatchInvocationId: request?.dispatchInvocationId || error.data?.dispatchInvocationId || null,
+    });
+    super(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_RETRY_EXHAUSTED",
+      "worker artifact handoff remained invalid after one fresh retry",
+      {
+        cause: secondError,
+        retryable: false,
+        data: {
+          retryExhausted: true,
+          attempts: 2,
+          first: summarize(firstError, firstRequest),
+          second: summarize(secondError, secondRequest),
+        },
+      },
+    );
+    this.name = "WorkerArtifactRetryExhaustedError";
   }
 }
 
@@ -1485,6 +1527,7 @@ export class WorkerArtifactHandoffSubmission {
       const { rule } = payload;
       const source = request.payloadPath(rule.logicalName);
       if (rule.kind === "file") {
+        validateFilePayloadAtCliBoundary(request, rule, source);
         const snapshot = readRegularFile(source, `handoff payload ${rule.logicalName}`);
         const relativePath = path.relative(request.payloadDirectory, source).split(path.sep).join("/");
         manifest.push(new WorkerArtifactManifestEntry({
@@ -1529,6 +1572,123 @@ export class WorkerArtifactHandoffSubmission {
       handoffDigest: digest(stableStringify(unsigned)),
     });
   }
+}
+
+function validateFilePayloadAtCliBoundary(request, rule, source) {
+  try {
+    // Every file payload is JSON. Parsing it here keeps malformed worker
+    // output outside the sealed handoff protocol and gives the parent a
+    // retryable producer error before any publication journal can exist.
+    const { document } = boundedJson(source, `handoff payload ${rule.logicalName}`);
+    if (
+      rule.logicalName === "spec.json"
+      && ["spec", "spec-repair"].includes(request.stepId)
+    ) {
+      validateSpecJsonObject(document);
+    }
+  } catch (cause) {
+    if (cause instanceof WorkerArtifactHandoffError) {
+      throw new WorkerArtifactHandoffError(
+        cause.classification,
+        cause.code,
+        cause.message,
+        {
+          cause,
+          retryable: cause.classification === "invalid" || cause.classification === "missing",
+          data: {
+            stepId: request.stepId,
+            logicalName: rule.logicalName,
+            payloadPath: source,
+            ...cause.data,
+          },
+        },
+      );
+    }
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      `handoff payload ${rule.logicalName} failed CLI boundary validation: ${cause.message}`,
+      {
+        cause,
+        retryable: true,
+        data: {
+          stepId: request.stepId,
+          logicalName: rule.logicalName,
+          payloadPath: source,
+        },
+      },
+    );
+  }
+}
+
+function invalidUnsealedFilePayload(request) {
+  for (const { rule } of request.payloads) {
+    if (rule.kind !== "file") continue;
+    try {
+      validateFilePayloadAtCliBoundary(request, rule, request.payloadPath(rule.logicalName));
+    } catch (cause) {
+      if (cause instanceof WorkerArtifactHandoffError && cause.classification === "invalid") {
+        return cause;
+      }
+    }
+  }
+  return null;
+}
+
+function prePublicationArtifactError(request, error) {
+  if (
+    !(error instanceof WorkerArtifactHandoffError)
+    || error.classification !== "invalid"
+    || error.retryable === true
+  ) return error;
+  return new WorkerArtifactHandoffError(
+    error.classification,
+    error.code,
+    error.message,
+    {
+      cause: error,
+      retryable: true,
+      data: {
+        stepId: request.stepId,
+        actionDigest: request.actionDigest,
+        dispatchInvocationId: request.dispatchInvocationId,
+        handoffDirectory: request.directory,
+        ...error.data,
+      },
+    },
+  );
+}
+
+function pendingPublicationRecoveryError(request, state, error) {
+  const pending = state?.workerArtifactPublication;
+  if (!pending || path.resolve(pending.handoffDirectory || "") !== request.directory) return null;
+  return publicationRecoveryError(request, error, {
+    stepId: pending.stepId,
+    actionDigest: pending.actionDigest,
+    dispatchInvocationId: pending.dispatchInvocationId,
+    handoffDirectory: pending.handoffDirectory,
+    requestDigest: pending.requestDigest,
+    handoffDigest: pending.handoffDigest,
+  });
+}
+
+function publicationRecoveryError(request, error, data = {}) {
+  return new WorkerArtifactHandoffError(
+    "recovery-required",
+    "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+    `worker artifact publication requires recovery: ${error.message}`,
+    {
+      cause: error,
+      data: {
+        stepId: request.stepId,
+        actionDigest: request.actionDigest,
+        dispatchInvocationId: request.dispatchInvocationId,
+        handoffDirectory: request.directory,
+        ...data,
+        ...error.data,
+      },
+    },
+  );
 }
 
 function requestFromStored(filePath) {
@@ -2072,7 +2232,14 @@ function validatePayload(request, submission, state) {
       "invalid",
       "FLOW_ARTIFACT_HANDOFF_INVALID",
       `worker artifact payload failed ${request.stepId} validation: ${cause.message}`,
-      { cause },
+      {
+        cause,
+        retryable: true,
+        data: {
+          stepId: request.stepId,
+          handoffDirectory: request.directory,
+        },
+      },
     );
   }
 }
@@ -2511,6 +2678,8 @@ export class WorkerArtifactHandoffCoordinator {
     }
     const operation = new RepositoryFlowOperationLock({ mainRoot: request.mainRoot });
     let operationOwnerToken;
+    let journal = null;
+    let publicationJournalActive = false;
     try {
       operationOwnerToken = operation.acquire();
     } catch (cause) {
@@ -2522,8 +2691,50 @@ export class WorkerArtifactHandoffCoordinator {
       );
     }
     try {
-      const submission = readSubmission(request);
-      validateSubmission(request, submission);
+      let submission;
+      try {
+        submission = readSubmission(request);
+      } catch (cause) {
+        const recoveryError = pendingPublicationRecoveryError(request, state, cause);
+        if (recoveryError) throw recoveryError;
+        // A worker that could not seal a file payload leaves no submission and
+        // therefore no publication journal. An invalid file is retryable, but
+        // a worker that never produced a payload remains a non-retryable
+        // missing-handoff failure. A missing submission while a journal is
+        // already pending remains recovery-owned below.
+        if (
+          cause instanceof WorkerArtifactHandoffError
+          && cause.classification === "missing"
+          && state.workerArtifactPublication == null
+        ) {
+          const invalidPayload = invalidUnsealedFilePayload(request);
+          if (invalidPayload) throw invalidPayload;
+          throw new WorkerArtifactHandoffError(
+            "missing",
+            cause.code,
+            cause.message,
+            {
+              cause,
+              retryable: false,
+              data: {
+                stepId: request.stepId,
+                actionDigest: request.actionDigest,
+                dispatchInvocationId: request.dispatchInvocationId,
+                handoffDirectory: request.directory,
+                ...cause.data,
+              },
+            },
+          );
+        }
+        throw prePublicationArtifactError(request, cause);
+      }
+      try {
+        validateSubmission(request, submission);
+      } catch (cause) {
+        const recoveryError = pendingPublicationRecoveryError(request, state, cause);
+        if (recoveryError) throw recoveryError;
+        throw prePublicationArtifactError(request, cause);
+      }
       state = ctx.flowManager.load(request.specId);
       if (receiptFor(state, submission.handoffDigest)) {
         cleanupCompletedHandoff(
@@ -2534,15 +2745,20 @@ export class WorkerArtifactHandoffCoordinator {
         return { completed: true, replayed: true };
       }
       const hasJournal = state.workerArtifactPublication != null;
-      let journal = hasJournal
+      journal = hasJournal
         ? new WorkerArtifactPublicationJournal(state.workerArtifactPublication)
         : WorkerArtifactPublicationJournal.create(request, submission, this.now);
       if (!journal.matches(request, submission)) {
         throw new WorkerArtifactHandoffError("conflict", "FLOW_ARTIFACT_HANDOFF_CONFLICT", "another worker artifact publication is already pending");
       }
+      publicationJournalActive = hasJournal;
       if (!hasJournal) {
         request.assertCurrent(state);
-        validatePayload(request, submission, state);
+        try {
+          validatePayload(request, submission, state);
+        } catch (cause) {
+          throw prePublicationArtifactError(request, cause);
+        }
         ctx.flowManager.mutate((current) => {
           request.assertCurrent(current);
           current.workerArtifactPublication = journal.toJSON();
@@ -2551,6 +2767,7 @@ export class WorkerArtifactHandoffCoordinator {
           expectedOriginal: state,
           operationOwnerToken,
         });
+        publicationJournalActive = true;
         state = ctx.flowManager.load(request.specId);
       }
       this.faultInjector({ phase: "after-worker-handoff-journal", stepId: request.stepId });
@@ -2611,7 +2828,12 @@ export class WorkerArtifactHandoffCoordinator {
         payloadDigest: manifestDigest(submission.payloadManifest),
       };
     } catch (cause) {
-      if (cause instanceof WorkerArtifactHandoffError) throw cause;
+      if (cause instanceof WorkerArtifactHandoffError) {
+        if (publicationJournalActive && cause.classification === "invalid") {
+          throw publicationRecoveryError(request, cause);
+        }
+        throw cause;
+      }
       throw new WorkerArtifactHandoffError(
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
