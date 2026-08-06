@@ -28,7 +28,11 @@ import { dispatchRepositoryFingerprint } from "../../../src/flow/lib/run-dispatc
 import { recordScenarioValidityRepairEvidence } from "../../../src/flow/lib/run-scenario-validity.js";
 import { appendIssueLogEntry, loadIssueLog } from "../../../src/flow/lib/set-issue-log.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import {
+  makeDefaultTask,
+  makeFlowState,
+  moveFlowToStep,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { validWorkerHandoffSpec } from "../../helpers/worker-artifact.js";
 
@@ -57,7 +61,7 @@ function initGit(root) {
   execFileSync("git", ["commit", "-q", "-m", "fixture"], { cwd: root });
 }
 
-function planGateFixture({ worktree = true, phase = "draft" } = {}) {
+function planGateFixture({ worktree = true, phase = "draft", currentTask = false } = {}) {
   const mainRoot = createTmpDir("plan-gate-repair-");
   initGit(mainRoot);
   const executionRoot = worktree ? path.join(mainRoot, "execution") : mainRoot;
@@ -72,6 +76,10 @@ function planGateFixture({ worktree = true, phase = "draft" } = {}) {
       { phase, counter: "gateRetry", delta: 5 },
       { phase: phase === "draft" ? "draft-coverage" : "spec", counter: "reviewRetry", delta: 2 },
     ],
+    ...(currentTask ? {
+      tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+      currentTaskId: "T-1",
+    } : {}),
   }), phase === "draft" ? "draft-gate" : "spec-gate");
   const flowManager = new FlowManager({
     root: executionRoot,
@@ -107,7 +115,7 @@ function planGateFixture({ worktree = true, phase = "draft" } = {}) {
   return { mainRoot, executionRoot, specDir, flowManager, ctx };
 }
 
-function scenarioRepairFixture() {
+function scenarioRepairFixture({ currentTask = false } = {}) {
   const mainRoot = createTmpDir("scenario-test-repair-");
   initGit(mainRoot);
   const executionRoot = path.join(mainRoot, "execution");
@@ -127,6 +135,10 @@ function scenarioRepairFixture() {
       byteLength: 100,
       finalizedAt: "2026-08-05T00:00:00.000Z",
     },
+    ...(currentTask ? {
+      tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+      currentTaskId: "T-1",
+    } : {}),
   }), "scenario-validity");
   const flowManager = new FlowManager({
     root: executionRoot,
@@ -252,6 +264,59 @@ describe("governed plan-gate repair", () => {
     }
   });
 
+  it("repairs the flow route without mutating an active current task", () => {
+    const value = planGateFixture({ currentTask: true });
+    try {
+      const before = value.flowManager.load();
+      const taskSnapshot = structuredClone(before.tasks);
+
+      const result = repair(value);
+      const state = value.flowManager.load();
+
+      assert.equal(result.data.previousStep, "draft-gate");
+      assert.equal(findActiveNode(state).stepId, "draft-refine");
+      assert.equal(state.currentTaskId, "T-1");
+      assert.deepEqual(state.tasks, taskSnapshot);
+      assert.equal(state.planGateRepair.phase, "draft");
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
+  it("does not partially update either scope when plan-gate evidence changes before commit", () => {
+    const value = planGateFixture({ currentTask: true });
+    try {
+      const before = value.flowManager.load();
+      const taskSnapshot = structuredClone(before.tasks);
+      const metricSnapshot = structuredClone(before.metrics);
+      const originalUpdate = value.flowManager.updateStepStatus.bind(value.flowManager);
+      value.flowManager.updateStepStatus = (transition, options, intent) => {
+        appendIssueLogEntry(value.mainRoot, `specs/${SPEC_ID}/spec.json`, {
+          step: "draft-gate",
+          phase: "draft",
+          reason: "The canonical gate evidence changed before repair commit.",
+          observations: [OBSERVATION],
+          timestamp: "2026-08-05T00:00:01.000Z",
+        }, "draft-gate-concurrent-evidence");
+        return originalUpdate(transition, options, intent);
+      };
+
+      assert.throws(
+        () => new RunRepairPlanGateCommand().execute(value.ctx),
+        /plan gate repair source evidence changed before transition/,
+      );
+
+      const state = value.flowManager.load();
+      assert.equal(findActiveNode(state).stepId, "draft-gate");
+      assert.equal(state.planGateRepair, undefined);
+      assert.equal(state.currentTaskId, "T-1");
+      assert.deepEqual(state.tasks, taskSnapshot);
+      assert.deepEqual(state.metrics, metricSnapshot);
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("uses the same governed route for spec-gate repair", () => {
     const value = planGateFixture({ phase: "spec" });
     try {
@@ -289,8 +354,9 @@ describe("governed plan-gate repair", () => {
   });
 
   it("routes invalid scenario evidence through a changed test handoff instead of repeating scenario-validity", () => {
-    const value = scenarioRepairFixture();
+    const value = scenarioRepairFixture({ currentTask: true });
     try {
+      const taskSnapshot = structuredClone(value.flowManager.load().tasks);
       const plan = new NextActionPlanner().build({
         root: value.mainRoot,
         mainRoot: value.mainRoot,
@@ -309,6 +375,8 @@ describe("governed plan-gate repair", () => {
       assert.equal(findActiveNode(state).stepId, "test");
       assert.equal(state.planGateRepair.phase, "test");
       assert.equal(state.specTestArtifactRevision, undefined);
+      assert.equal(state.currentTaskId, "T-1");
+      assert.deepEqual(state.tasks, taskSnapshot);
 
       const coordinator = new WorkerArtifactHandoffCoordinator();
       const request = coordinator.createRequest({
@@ -344,6 +412,7 @@ describe("governed plan-gate repair", () => {
       assert.equal(state.planGateRepair, undefined);
       assert.equal(findActiveNode(state).stepId, "scenario-validity");
       assert.equal(state.specTestArtifactRevision.stepId, "test");
+      assert.deepEqual(state.tasks, taskSnapshot);
     } finally {
       removeTmpDir(value.mainRoot);
     }

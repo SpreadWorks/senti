@@ -1,5 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "fs";
 import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
@@ -24,6 +25,37 @@ function assertPrepareArtifacts(root, specDir) {
   assert.ok(fs.existsSync(join(root, specDir, "draft.json")));
 }
 
+function expectedSpecId(runId, slug) {
+  const compact = runId.replaceAll("-", "").toLowerCase();
+  const source = /^[0-9a-f]+$/.test(compact) && compact.length >= 8
+    ? compact
+    : crypto.createHash("sha256").update(runId).digest("hex");
+  return `${source.slice(0, 8)}-${slug}`;
+}
+
+function assertRunDerivedSpecIdentity(data, slug) {
+  assert.equal(data.specId, expectedSpecId(data.runId, slug));
+  assert.equal(data.artifacts.specDir, `specs/${data.specId}`);
+  assert.equal(data.artifacts.branch, `feature/${data.specId}`);
+}
+
+function assertDryRunSpecIdentity(data, slug) {
+  assert.match(data.artifacts.specDir, new RegExp(`^specs/[0-9a-f]{8}-${slug}$`));
+  const specId = data.artifacts.specDir.slice("specs/".length);
+  assert.equal(data.artifacts.branch, `feature/${specId}`);
+}
+
+function assertCanonicalFlowState(root, data, { worktree }) {
+  const flow = JSON.parse(fs.readFileSync(
+    join(root, data.artifacts.specDir, "flow.json"),
+    "utf8",
+  ));
+  assert.equal(flow.specId, data.specId);
+  assert.equal(flow.runId, data.runId);
+  assert.equal(flow.featureBranch, `feature/${data.specId}`);
+  assert.equal(flow.worktree === true, worktree);
+}
+
 describe("spec init CLI", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -40,7 +72,7 @@ describe("spec init CLI", () => {
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.match(envelope.data.result, /dry-run/);
-    assert.match(envelope.data.artifacts.specDir, /001-test-feature/);
+    assertDryRunSpecIdentity(envelope.data, "test-feature");
   });
 
   it("throws when no title given", () => {
@@ -72,7 +104,13 @@ describe("spec init CLI", () => {
     assert.equal(envelope.ok, true);
     assert.match(envelope.data.output, /created branch/);
     assert.match(envelope.data.output, /created spec/);
-    assertPrepareArtifacts(tmp, "specs/001-my-feat");
+    assertRunDerivedSpecIdentity(envelope.data, "my-feat");
+    assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
+    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
+    assert.equal(
+      execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim(),
+      `feature/${envelope.data.specId}`,
+    );
   });
 
   it("shows help with --help", () => {
@@ -101,7 +139,9 @@ describe("spec init CLI", () => {
     // Should create spec but NOT branch
     assert.match(envelope.data.output, /created spec/);
     assert.ok(!envelope.data.output.includes("created branch"));
-    assertPrepareArtifacts(tmp, "specs/001-nb-feat");
+    assertRunDerivedSpecIdentity(envelope.data, "nb-feat");
+    assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
+    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
 
     // Should still be on main
     const branch = execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
@@ -135,9 +175,17 @@ describe("spec init CLI", () => {
     assert.equal(envelope.ok, true);
     assert.match(envelope.data.output, /created worktree/);
     assert.match(envelope.data.output, /created branch/);
-    const wtPath = join(tmp, ".senti", "worktree", "feature-001-wt-feat");
-    assertPrepareArtifacts(tmp, "specs/001-wt-feat");
-    assert.equal(fs.existsSync(join(wtPath, "specs", "001-wt-feat")), false);
+    assertRunDerivedSpecIdentity(envelope.data, "wt-feat");
+    const wtPath = join(tmp, ".senti", "worktree", `feature-${envelope.data.specId}`);
+    assert.equal(envelope.data.worktreePath, wtPath);
+    assert.equal(envelope.data.artifacts.worktree, wtPath);
+    assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
+    assertCanonicalFlowState(tmp, envelope.data, { worktree: true });
+    assert.equal(fs.existsSync(join(wtPath, "specs", envelope.data.specId)), false);
+    assert.equal(
+      execFileSync("git", ["-C", wtPath, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim(),
+      `feature/${envelope.data.specId}`,
+    );
 
     // Cleanup worktree
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
@@ -156,6 +204,11 @@ describe("spec init CLI", () => {
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.artifacts.mode, "worktree");
     assert.ok(envelope.data.artifacts.worktree, "should have worktree path");
+    assertDryRunSpecIdentity(envelope.data, "test-wt");
+    assert.equal(
+      envelope.data.artifacts.worktree,
+      join(tmp, ".senti", "worktree", envelope.data.artifacts.branch.replace("/", "-")),
+    );
   });
 
   it("auto-detects worktree and skips branch creation", () => {
@@ -190,8 +243,11 @@ describe("spec init CLI", () => {
     // Should detect worktree and create spec-only (no branch)
     assert.ok(!envelope.data.output.includes("created branch"));
     assert.match(envelope.data.output, /created spec/);
-    assertPrepareArtifacts(tmp, "specs/001-auto-feat");
-    assert.equal(fs.existsSync(join(wtPath, "specs", "001-auto-feat")), false);
+    assert.equal(envelope.data.runId, initialized.data.runId);
+    assertRunDerivedSpecIdentity(envelope.data, "auto-feat");
+    assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
+    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
+    assert.equal(fs.existsSync(join(wtPath, "specs", envelope.data.specId)), false);
 
     const specId = envelope.data.specId;
     const mainSpecDir = join(tmp, "specs", specId);

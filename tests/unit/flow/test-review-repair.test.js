@@ -22,7 +22,11 @@ import {
   WorkerArtifactHandoffError,
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import {
+  makeDefaultTask,
+  makeFlowState,
+  moveFlowToStep,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { validWorkerHandoffSpec } from "../../helpers/worker-artifact.js";
 
@@ -87,7 +91,7 @@ function testSource(label = "original premise") {
   ].join("\n");
 }
 
-function fixture({ worktree = false, mixedFindings = false } = {}) {
+function fixture({ worktree = false, mixedFindings = false, currentTask = false } = {}) {
   const root = createTmpDir("test-review-repair-");
   initGit(root);
   const executionRoot = worktree ? path.join(root, "execution") : root;
@@ -114,6 +118,10 @@ function fixture({ worktree = false, mixedFindings = false } = {}) {
       byteLength: 100,
       finalizedAt: "2026-08-05T00:00:00.000Z",
     },
+    ...(currentTask ? {
+      tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
+      currentTaskId: "T-1",
+    } : {}),
   }), "test-review");
   const flowManager = new FlowManager({
     root: executionRoot,
@@ -353,6 +361,57 @@ describe("governed test-review repair", () => {
       });
       assert.equal(repairPlan.result.context.testReviewRepair.sourceEvidenceId, EVIDENCE_ID);
       assert.equal(repairPlan.result.context.testReviewRepair.blockingFindings[0].findingId, FINDING_ID);
+    } finally {
+      removeTmpDir(value.root);
+    }
+  });
+
+  for (const worktree of [false, true]) {
+    it(`repairs flow-level test evidence without mutating an active current task (${worktree ? "worktree" : "local"})`, () => {
+      const value = fixture({ worktree, currentTask: true });
+      try {
+        const before = value.flowManager.load();
+        const taskSnapshot = structuredClone(before.tasks);
+        const revisionSnapshot = structuredClone(before.specTestArtifactRevision);
+
+        const result = repair(value);
+        const state = value.flowManager.load();
+
+        assert.equal(result.ok, true);
+        assert.equal(findActiveNode(state).stepId, "test");
+        assert.equal(findStepById(state.steps, "scenario-validity").status, "pending");
+        assert.equal(findStepById(state.steps, "test-review").status, "pending");
+        assert.equal(state.currentTaskId, "T-1");
+        assert.deepEqual(state.tasks, taskSnapshot);
+        assert.deepEqual(state.specTestArtifactRevision, revisionSnapshot);
+        assert.equal(state.testReviewRepair.sourceEvidenceId, EVIDENCE_ID);
+      } finally {
+        removeTmpDir(value.root);
+      }
+    });
+  }
+
+  it("does not partially update either scope when the planned test-review repair loses its CAS", () => {
+    const value = fixture({ currentTask: true });
+    try {
+      const before = value.flowManager.load();
+      const taskSnapshot = structuredClone(before.tasks);
+      const revisionSnapshot = structuredClone(before.specTestArtifactRevision);
+      value.flowManager.mutate((state) => {
+        state.request = "A concurrent flow mutation invalidated this repair plan.";
+      });
+
+      assert.throws(
+        () => new RunRepairTestReviewCommand().execute(value.ctx),
+        /flow state changed after promotion planning/,
+      );
+
+      const state = value.flowManager.load();
+      assert.equal(findActiveNode(state).stepId, "test-review");
+      assert.equal(state.testReviewRepair, undefined);
+      assert.equal(state.currentTaskId, "T-1");
+      assert.deepEqual(state.tasks, taskSnapshot);
+      assert.deepEqual(state.specTestArtifactRevision, revisionSnapshot);
     } finally {
       removeTmpDir(value.root);
     }

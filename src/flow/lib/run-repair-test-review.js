@@ -119,6 +119,7 @@ export default class RunRepairTestReviewCommand extends FlowCommand {
         transition,
         {
           specId: ctx.flowState.specId,
+          taskId: null,
           expectedOriginal: ctx.flowState,
           operationOwnerToken,
         },

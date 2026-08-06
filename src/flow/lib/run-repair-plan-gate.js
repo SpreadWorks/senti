@@ -167,6 +167,7 @@ export default class RunRepairPlanGateCommand extends FlowCommand {
         transition,
         {
           specId: state.specId,
+          taskId: null,
           expectedOriginal: state,
           operationOwnerToken,
         },
