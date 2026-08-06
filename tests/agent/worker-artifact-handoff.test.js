@@ -16,8 +16,64 @@ import { ProviderRegistry } from "../../src/lib/provider.js";
 import { makeFlowState, moveFlowToStep } from "../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../helpers/tmp-dir.js";
+import {
+  validWorkerHandoffSpec,
+  workerArtifactJson,
+} from "../helpers/worker-artifact.js";
 
 const SENTI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/senti.js");
+const WORKER_ARTIFACT_HANDOFF_SCHEMA = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
+);
+
+function installSentiWrapper(executionRoot) {
+  const binDir = path.join(executionRoot, ".test-bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, "senti"), [
+    "#!/bin/sh",
+    `exec ${JSON.stringify(process.execPath)} ${JSON.stringify(SENTI)} "$@"`,
+    "",
+  ].join("\n"), { mode: 0o755 });
+  return binDir;
+}
+
+function realCodexAgent({ mainRoot, executionRoot, flowManager }) {
+  return new Agent({
+    config: {
+      agent: {
+        default: "codex/gpt-5.4",
+        timeout: 240,
+        retryCount: 0,
+      },
+    },
+    paths: { root: mainRoot, agentWorkDir: path.join(executionRoot, ".tmp") },
+    registry: new ProviderRegistry(),
+    logger: new Logger({ logDir: path.join(executionRoot, ".tmp", "logs"), enabled: false }),
+    flowManager,
+  });
+}
+
+function specWorkerAction() {
+  return {
+    taskId: null,
+    step: "spec",
+    action: "write-spec",
+    instructions: {
+      key: "plan.spec",
+      content: [
+        "Write the declared spec.json handoff payload with exactly this JSON document:",
+        JSON.stringify(validWorkerHandoffSpec()),
+        "Run the exact sealCommand once after writing it.",
+      ].join(" "),
+    },
+    context: { workerArtifactHandoff: { required: true } },
+    output_schema: JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA, "utf8")),
+    requires_approval: false,
+    maxAttempts: 1,
+    directive: { kind: "execute_step", terminal: false, requiresUserAction: false, action: "write-spec" },
+  };
+}
 
 function action(stepId) {
   if (stepId == null) {
@@ -74,17 +130,11 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
     const originalPath = process.env.PATH;
     try {
       const executionRoot = path.join(mainRoot, "execution");
-      const binDir = path.join(executionRoot, ".test-bin");
-      fs.mkdirSync(binDir, { recursive: true });
+      fs.mkdirSync(executionRoot, { recursive: true });
       initGitRepo(executionRoot);
       fs.writeFileSync(path.join(executionRoot, "README.md"), "worker handoff fixture\n");
       commitAll(executionRoot, "worker handoff fixture");
-      const wrapper = path.join(binDir, "senti");
-      fs.writeFileSync(wrapper, [
-        "#!/bin/sh",
-        `exec ${JSON.stringify(process.execPath)} ${JSON.stringify(SENTI)} \"$@\"`,
-        "",
-      ].join("\n"), { mode: 0o755 });
+      const binDir = installSentiWrapper(executionRoot);
       process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
 
       const specId = "500-worker-handoff-agent";
@@ -120,20 +170,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       }, null, 2)}\n`);
       const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
       flowManager.create(state);
-      const config = {
-        agent: {
-          default: "codex/gpt-5.4",
-          timeout: 240,
-          retryCount: 0,
-        },
-      };
-      const agent = new Agent({
-        config,
-        paths: { root: mainRoot, agentWorkDir: path.join(executionRoot, ".tmp") },
-        registry: new ProviderRegistry(),
-        logger: new Logger({ logDir: path.join(executionRoot, ".tmp", "logs"), enabled: false }),
-        flowManager,
-      });
+      const agent = realCodexAgent({ mainRoot, executionRoot, flowManager });
       const dispatcher = new RunDispatchCommand({
         nextAction: {
           async run() {
@@ -204,6 +241,77 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
         downstreamRequest.inputs[0].document,
         JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "draft.json"), "utf8")),
       );
+    } finally {
+      process.env.PATH = originalPath;
+      removeTmpDir(mainRoot);
+    }
+  });
+
+  it("has a real Codex spec worker seal and publish a canonical spec", async () => {
+    const mainRoot = createTmpDir("worker-handoff-agent-spec-main-");
+    const originalPath = process.env.PATH;
+    try {
+      const executionRoot = path.join(mainRoot, "execution");
+      fs.mkdirSync(executionRoot, { recursive: true });
+      initGitRepo(executionRoot);
+      fs.writeFileSync(path.join(executionRoot, "README.md"), "spec worker handoff fixture\n");
+      commitAll(executionRoot, "spec worker handoff fixture");
+      const binDir = installSentiWrapper(executionRoot);
+      process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
+
+      const specId = "505-worker-handoff-agent-spec";
+      const canonicalSpecDir = path.join(mainRoot, "specs", specId);
+      fs.mkdirSync(canonicalSpecDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(canonicalSpecDir, "draft.json"),
+        workerArtifactJson({ goal: "Publish the canonical spec through the parent dispatcher." }),
+      );
+      const state = moveFlowToStep(makeFlowState({
+        specId,
+        runId: "run-worker-handoff-agent-spec",
+        worktree: true,
+        request: "Exercise the real spec worker response schema and publication path.",
+      }), "spec");
+      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+      flowManager.create(state);
+      const currentAction = specWorkerAction();
+      const dispatcher = new RunDispatchCommand({
+        nextAction: {
+          async run() {
+            return findStepById(flowManager.load().steps, "spec").status === "done"
+              ? action(null)
+              : structuredClone(currentAction);
+          },
+        },
+        agent: realCodexAgent({ mainRoot, executionRoot, flowManager }),
+        repositoryFingerprint: () => "real-agent-spec-handoff",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+      });
+      dispatcher.container = {};
+
+      const result = await dispatcher.execute({
+        root: executionRoot,
+        executionRoot,
+        mainRoot,
+        specId,
+        flowManager,
+        flowState: flowManager.load(),
+        expectRunId: state.runId,
+        expectSpec: specId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+      });
+
+      assert.equal(result.dispatch?.boundary, "completed", JSON.stringify(result, null, 2));
+      assert.equal(result.dispatch.dispatchCount, 1);
+      const completed = flowManager.load();
+      assert.equal(findStepById(completed.steps, "spec").status, "done");
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "spec.json"), "utf8")),
+        validWorkerHandoffSpec(),
+      );
+      assert.equal(completed.workerArtifactReceipts?.length, 1);
+      assert.equal(completed.workerArtifactReceipts[0].stepId, "spec");
     } finally {
       process.env.PATH = originalPath;
       removeTmpDir(mainRoot);

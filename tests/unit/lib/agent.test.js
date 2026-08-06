@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { EventEmitter } from "events";
+import { fileURLToPath } from "url";
 import { Agent, ChildProcessSupervisor } from "../../../src/lib/agent.js";
 import {
   AgentAuthenticationFailure,
@@ -18,6 +19,11 @@ import { Logger } from "../../../src/lib/log.js";
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "agent-test-"));
 }
+
+const WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
+);
 
 function makeAgent(profile, { config, paths, flowManager, logger } = {}) {
   const root = paths?.root || tmpDir();
@@ -111,6 +117,30 @@ describe("Agent.call() — basic invocation", () => {
     assert.equal(providerSchema.additionalProperties, false);
     assert.deepEqual(providerSchema.properties.goal.type, ["string", "null"]);
     assert.doesNotMatch(invocation.finalArgs.join(" "), /FALLBACK SPEC INSTRUCTIONS/);
+  });
+
+  it("writes a Codex-compatible sealed handoff response schema", (t) => {
+    const root = tmpDir();
+    const agentWorkDir = path.join(root, ".tmp");
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agent = makeAgent(null, {
+      config: { agent: { default: "codex/gpt-5.4" } },
+      paths: { root, agentWorkDir },
+    });
+    const canonical = JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH, "utf8"));
+
+    const invocation = agent._buildInvocationForTest("seal handoff", {
+      commandId: "flow.dispatch",
+      executionWorkDir: root,
+      jsonSchema: canonical,
+    });
+    const providerSchema = JSON.parse(invocation.pendingSchemaWrite.content);
+
+    assert.deepEqual(providerSchema.properties.sealed, { const: true, type: "boolean" });
+    assert.ok(providerSchema.required.includes("runtimeLog"));
+    assert.deepEqual(providerSchema.properties.runtimeLog.type, ["object", "null"]);
+    assert.equal(providerSchema.properties.runtimeLog.additionalProperties, false);
+    assert.deepEqual(canonical.properties.sealed, { const: true });
   });
 
   it("uses the equivalent prompt fallback for a provider without schema support", (t) => {
