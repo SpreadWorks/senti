@@ -57,6 +57,15 @@ function frozenDocument(value, field) {
   return deepFreeze(structuredClone(value));
 }
 
+function findingIdentity(finding) {
+  return `${finding?.findingId}\u0000${finding?.fingerprint}`;
+}
+
+function hasDuplicateFindingField(findings, field) {
+  const values = findings.map((finding) => finding?.[field]);
+  return new Set(values).size !== values.length;
+}
+
 export class TestReviewRepairError extends Error {
   constructor(code, message) {
     super(message);
@@ -126,8 +135,9 @@ function readTestReviewArtifact(root, state) {
     artifact?.phase !== "test"
     || artifact?.verdict !== "REJECTED"
     || !Array.isArray(artifact.blockingFindings)
+    || !Array.isArray(artifact.advisoryFindings)
     || artifact.blockingFindings.length === 0
-    || artifact.blockingFindings.length > MAX_FINDINGS
+    || artifact.blockingFindings.length + artifact.advisoryFindings.length > MAX_FINDINGS
     || artifact.toolingOutcome != null
   ) {
     throw new TestReviewRepairError(
@@ -151,11 +161,24 @@ function readTestReviewArtifact(root, state) {
       "canonical test-review evidence source revision does not belong to test",
     );
   }
+  const blockingFindings = artifact.blockingFindings.map((finding) => new TestReviewRepairFinding(finding));
+  const advisoryFindings = artifact.advisoryFindings.map((finding) => new TestReviewRepairFinding(finding));
+  const findings = [...blockingFindings, ...advisoryFindings];
+  for (const field of ["findingId", "fingerprint"]) {
+    if (hasDuplicateFindingField(findings, field)) {
+      throw new TestReviewRepairError(
+        "TEST_REVIEW_REPAIR_EVIDENCE_INVALID",
+        `canonical test-review evidence contains duplicate ${field} values`,
+      );
+    }
+  }
   return {
     artifact,
     artifactDigest: digest(bytes),
     artifactTestRevision,
-    findings: artifact.blockingFindings.map((finding) => new TestReviewRepairFinding(finding)),
+    blockingFindings,
+    advisoryFindings,
+    findings,
   };
 }
 
@@ -219,7 +242,7 @@ export class TestReviewRepairRecord {
       sourceEvidenceId: source.reviewRecord.evidence.evidenceId,
       sourceTargetStateDigest: source.reviewRecord.targetStateDigest,
       sourceTestRevision: source.testRevision.toJSON(),
-      blockingFindings: source.findings,
+      blockingFindings: source.blockingFindings,
       requestedAt,
     });
   }
@@ -377,14 +400,14 @@ export function inspectTestReviewRepair({ root, executionRoot = root, state }) {
       "canonical test-review evidence targets a stale canonical test revision",
     );
   }
-  const artifactFindingIdentities = new Set(artifact.findings.map((finding) => (
-    `${finding.findingId}\u0000${finding.fingerprint}`
-  )));
-  const convergenceFindingIdentities = new Set(reviewRecord.handoffFindings.map((finding) => (
-    `${finding?.findingId}\u0000${finding?.fingerprint}`
-  )));
+  const artifactFindingIdentities = new Set(artifact.findings.map(findingIdentity));
+  const convergenceFindingIdentities = new Set(reviewRecord.handoffFindings.map(findingIdentity));
   if (
-    artifactFindingIdentities.size !== convergenceFindingIdentities.size
+    reviewRecord.handoffFindings.length !== artifact.findings.length
+    || ["findingId", "fingerprint"].some((field) => (
+      hasDuplicateFindingField(reviewRecord.handoffFindings, field)
+    ))
+    || artifactFindingIdentities.size !== convergenceFindingIdentities.size
     || [...artifactFindingIdentities].some((identity) => !convergenceFindingIdentities.has(identity))
   ) {
     throw new TestReviewRepairError(

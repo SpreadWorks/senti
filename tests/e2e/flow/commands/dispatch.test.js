@@ -453,7 +453,7 @@ describe("flow dispatch CLI", () => {
       version: 1,
       phase: "test",
       verdict: "REJECTED",
-      counts: { blocking: 1, advisory: 0, total: 1 },
+      counts: { blocking: 1, advisory: 1, total: 2 },
       coverageArtifact: `specs/${state.specId}/test-coverage.json`,
       sourceTestArtifactRevision: state.specTestArtifactRevision,
       blockingFindings: [{
@@ -468,7 +468,17 @@ describe("flow dispatch CLI", () => {
         whyBlocking: "Implementation cannot proceed with self-fulfilling evidence.",
         rationale: "The evidence must change before review runs again.",
       }],
-      advisoryFindings: [],
+      advisoryFindings: [{
+        findingId: "repair-advisory",
+        fingerprint: "c".repeat(64),
+        disposition: "informational",
+        kind: "advisory",
+        title: "Add a boundary assertion for the repaired behavior.",
+        target: "tests/recovery.test.mjs",
+        improvement: "Add a boundary assertion for the repaired behavior.",
+        whyNonBlocking: "The current test still exercises the required behavior.",
+        rationale: "The existing test is sufficient to block the known regression.",
+      }],
     }, null, 2)}\n`);
     const worker = installReviewRecoveryWorker(root, state);
     initGitRepo(root);
@@ -508,6 +518,11 @@ describe("flow dispatch CLI", () => {
           handoffFindings: [{
             findingId: "repair-required",
             fingerprint: "a".repeat(64),
+            sourceStep: "test-review",
+            canonicalEvidenceRef: `review-evidence/${"b".repeat(64)}.json`,
+          }, {
+            findingId: "repair-advisory",
+            fingerprint: "c".repeat(64),
             sourceStep: "test-review",
             canonicalEvidenceRef: `review-evidence/${"b".repeat(64)}.json`,
           }],

@@ -31,6 +31,7 @@ const RUN_ID = "run-test-review-repair";
 const SOURCE_REVISION = "1".repeat(64);
 const EVIDENCE_ID = "2".repeat(64);
 const FINDING_ID = "3".repeat(64);
+const ADVISORY_FINDING_ID = "4".repeat(64);
 
 function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -61,6 +62,21 @@ function blockingFinding(overrides = {}) {
   };
 }
 
+function advisoryFinding(overrides = {}) {
+  return {
+    kind: "advisory",
+    title: "Add a boundary assertion for the repaired behavior.",
+    target: "tests/review-repair.test.js",
+    findingId: ADVISORY_FINDING_ID,
+    fingerprint: ADVISORY_FINDING_ID,
+    disposition: "informational",
+    rationale: "The existing test is sufficient to block the known regression.",
+    improvement: "Add a boundary assertion for the repaired behavior.",
+    whyNonBlocking: "The current test still exercises the required behavior.",
+    ...overrides,
+  };
+}
+
 function testSource(label = "original premise") {
   return [
     "// spec: R1",
@@ -71,7 +87,7 @@ function testSource(label = "original premise") {
   ].join("\n");
 }
 
-function fixture({ worktree = false } = {}) {
+function fixture({ worktree = false, mixedFindings = false } = {}) {
   const root = createTmpDir("test-review-repair-");
   initGit(root);
   const executionRoot = worktree ? path.join(root, "execution") : root;
@@ -120,15 +136,16 @@ function fixture({ worktree = false } = {}) {
     phase: "test-review",
     requirements: [{ id: "R1", status: "covered" }],
   }));
+  const advisoryFindings = mixedFindings ? [advisoryFinding()] : [];
   fs.writeFileSync(path.join(specDir, "test-review.json"), json({
     version: 1,
     phase: "test",
     verdict: "REJECTED",
-    counts: { blocking: 1, advisory: 0, total: 1 },
+    counts: { blocking: 1, advisory: advisoryFindings.length, total: 1 + advisoryFindings.length },
     coverageArtifact: `specs/${SPEC_ID}/test-coverage.json`,
     sourceTestArtifactRevision: state.specTestArtifactRevision,
     blockingFindings: [blockingFinding()],
-    advisoryFindings: [],
+    advisoryFindings,
   }));
   const current = flowManager.load();
   const authority = new ReviewTargetAuthority({
@@ -156,7 +173,12 @@ function fixture({ worktree = false } = {}) {
           fingerprint: FINDING_ID,
           sourceStep: "test-review",
           canonicalEvidenceRef: `review-evidence/${EVIDENCE_ID}.json`,
-        }],
+        }, ...advisoryFindings.map((finding) => ({
+          findingId: finding.findingId,
+          fingerprint: finding.fingerprint,
+          sourceStep: "test-review",
+          canonicalEvidenceRef: `review-evidence/${EVIDENCE_ID}.json`,
+        }))],
         blocker: null,
         toolingOutcome: null,
         provider: "independent-reviewer",
@@ -226,6 +248,66 @@ function writeChangedPayload(handoff) {
 }
 
 describe("governed test-review repair", () => {
+  it("matches mixed blocking and advisory evidence but repairs only blocking findings", () => {
+    const value = fixture({ mixedFindings: true });
+    try {
+      const plan = new NextActionPlanner().build({
+        root: value.root,
+        mainRoot: value.root,
+        executionRoot: value.root,
+        flowState: value.flowManager.load(),
+        config: {},
+        flowCommandBoundary: false,
+      });
+      assert.equal(plan.result.directive.actionId, "REPAIR_TEST_REVIEW");
+
+      const result = repair(value);
+      const state = value.flowManager.load();
+      const record = TestReviewRepairRecord.from(state.testReviewRepair);
+      assert.equal(result.ok, true);
+      assert.deepEqual(
+        record.blockingFindings.map((finding) => finding.findingId),
+        [FINDING_ID],
+      );
+      assert.deepEqual(
+        record.toWorkerJSON().blockingFindings.map((finding) => finding.findingId),
+        [FINDING_ID],
+      );
+    } finally {
+      removeTmpDir(value.root);
+    }
+  });
+
+  it("rejects advisory mismatches and duplicate identities across canonical buckets", () => {
+    const mismatch = fixture({ mixedFindings: true });
+    try {
+      const review = JSON.parse(fs.readFileSync(path.join(mismatch.specDir, "test-review.json"), "utf8"));
+      review.advisoryFindings[0].fingerprint = "6".repeat(64);
+      fs.writeFileSync(path.join(mismatch.specDir, "test-review.json"), json(review));
+      const rejected = repair(mismatch);
+      assert.equal(rejected.ok, false);
+      assert.equal(rejected.errors[0].code, "TEST_REVIEW_REPAIR_FINDINGS_MISMATCH");
+      assert.equal(findActiveNode(mismatch.flowManager.load()).stepId, "test-review");
+    } finally {
+      removeTmpDir(mismatch.root);
+    }
+
+    for (const field of ["findingId", "fingerprint"]) {
+      const duplicate = fixture({ mixedFindings: true });
+      try {
+        const review = JSON.parse(fs.readFileSync(path.join(duplicate.specDir, "test-review.json"), "utf8"));
+        review.advisoryFindings[0][field] = FINDING_ID;
+        fs.writeFileSync(path.join(duplicate.specDir, "test-review.json"), json(review));
+        const rejected = repair(duplicate);
+        assert.equal(rejected.ok, false);
+        assert.equal(rejected.errors[0].code, "TEST_REVIEW_REPAIR_EVIDENCE_INVALID");
+        assert.equal(findActiveNode(duplicate.flowManager.load()).stepId, "test-review");
+      } finally {
+        removeTmpDir(duplicate.root);
+      }
+    }
+  });
+
   it("routes rejected semantic evidence through the guarded test handoff and preserves review budgets", () => {
     const value = fixture();
     try {
