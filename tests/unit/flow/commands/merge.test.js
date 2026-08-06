@@ -1,6 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseSpec, buildPrTitle, buildPrBody } from "../../../../src/flow/commands/merge.js";
+import {
+  parseSpec,
+  buildPrTitle,
+  buildPrBody,
+  fallbackTitleFromSpecId,
+} from "../../../../src/flow/commands/merge.js";
 
 const SAMPLE_SPEC_JSON = {
   goal: "flow-finalize の PR ルートで PR description を自動生成する。",
@@ -80,6 +85,19 @@ describe("buildPrTitle", () => {
   it("falls back when spec is null", () => {
     const title = buildPrTitle(null, "fallback-title");
     assert.equal(title, "fallback-title");
+  });
+});
+
+describe("fallbackTitleFromSpecId", () => {
+  it("removes the runId-derived tag from the new specId format", () => {
+    assert.equal(
+      fallbackTitleFromSpecId("04072896-flow-authority-boundaries", "feature/fallback"),
+      "flow-authority-boundaries",
+    );
+  });
+
+  it("uses the feature branch when specId is absent", () => {
+    assert.equal(fallbackTitleFromSpecId(null, "feature/fallback"), "feature/fallback");
   });
 });
 

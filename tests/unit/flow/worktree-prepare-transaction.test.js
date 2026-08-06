@@ -1,5 +1,6 @@
 import { afterEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -13,6 +14,14 @@ import { FlowManager } from "../../../src/lib/flow-manager.js";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const fixtureRoot = path.join(repoRoot, ".tmp", "issue-440-prepare-transaction");
 const roots = [];
+
+function expectedSpecId(runId, title = "binding-transaction") {
+  const compact = runId.replaceAll("-", "").toLowerCase();
+  const source = /^[0-9a-f]+$/.test(compact) && compact.length >= 8
+    ? compact
+    : crypto.createHash("sha256").update(runId).digest("hex");
+  return `${source.slice(0, 8)}-${title}`;
+}
 
 function git(root, args, { allowFailure = false } = {}) {
   const result = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
@@ -155,12 +164,13 @@ function killSetIssueAtWriterPhase({ root, worktreePath, specId, phase }) {
   ]);
 }
 
-function attemptArtifacts(root) {
-  const worktreePath = path.join(root, ".senti", "worktree", "feature-001-binding-transaction");
+function attemptArtifacts(root, runId = "run-440") {
+  const specId = expectedSpecId(runId);
+  const worktreePath = path.join(root, ".senti", "worktree", `feature-${specId}`);
   return {
     worktree: fs.existsSync(worktreePath),
-    branch: git(root, ["branch", "--list", "feature/001-binding-transaction"], { allowFailure: true }),
-    mainSpec: fs.existsSync(path.join(root, "specs", "001-binding-transaction")),
+    branch: git(root, ["branch", "--list", `feature/${specId}`], { allowFailure: true }),
+    mainSpec: fs.existsSync(path.join(root, "specs", specId)),
   };
 }
 
@@ -270,8 +280,20 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(ctx.flowManager.loadPreparingFlow("run-440"), null);
     assert.deepEqual(
       JSON.parse(fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8")),
-      [{ specId: "001-binding-transaction", mode: "worktree" }],
+      [{ specId: expectedSpecId("run-440"), mode: "worktree" }],
     );
+    assert.match(result.specId, /^[0-9a-f]{8}-binding-transaction$/);
+  });
+
+  it("derives the normal specId tag from the normalized runId UUID", async () => {
+    const { root, config } = createProject();
+    const runId = "04072896-1234-4234-8234-abcdefabcdef";
+    const result = await new RunPrepareSpecCommand().execute(
+      prepareContext(root, config, { runId, issue: null }),
+    );
+
+    assert.equal(result.specId, "04072896-binding-transaction");
+    assert.equal(result.artifacts.branch, "feature/04072896-binding-transaction");
   });
 
   it("recovers an exact stale prepare attempt after SIGKILL following git worktree add", async () => {
@@ -279,9 +301,13 @@ describe("worktree prepare binding transaction", () => {
     const ctx = prepareContext(root, config);
     const stopped = interruptPrepareAfterWorktreeAdd(root, config);
     assert.equal(stopped.signal, "SIGKILL");
+    const attempt = JSON.parse(fs.readFileSync(
+      path.join(root, ".senti", ".worktree-prepare-attempt.json"),
+      "utf8",
+    ));
     assert.deepEqual(attemptArtifacts(root), {
       worktree: true,
-      branch: "+ feature/001-binding-transaction",
+      branch: `+ feature/${attempt.specId}`,
       mainSpec: false,
     });
     assert.equal(fs.existsSync(path.join(root, ".senti", ".worktree-prepare-attempt.json")), true);
@@ -290,6 +316,7 @@ describe("worktree prepare binding transaction", () => {
 
     assert.equal(retried.result, "ok");
     assert.equal(retried.runId, "run-440");
+    assert.equal(retried.specId, attempt.specId);
     assert.equal(fs.existsSync(path.join(root, ".senti", ".worktree-prepare-attempt.json")), false);
   });
 
@@ -297,7 +324,12 @@ describe("worktree prepare binding transaction", () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config);
     assert.equal(interruptPrepareAfterWorktreeAdd(root, config).signal, "SIGKILL");
-    const worktreePath = path.join(root, ".senti", "worktree", "feature-001-binding-transaction");
+    const worktreePath = path.join(
+      root,
+      ".senti",
+      "worktree",
+      `feature-${expectedSpecId("run-440")}`,
+    );
     fs.writeFileSync(path.join(worktreePath, "foreign.txt"), "foreign authority\n");
     git(worktreePath, ["add", "foreign.txt"]);
     git(worktreePath, ["commit", "-m", "foreign mutation"]);
@@ -876,31 +908,28 @@ describe("worktree prepare binding transaction", () => {
     });
   }
 
-  it("counts a feature branch checked out in another worktree when choosing the next index", async () => {
+  it("selects the next runId block when the candidate spec directory exists", async () => {
     const { root, config } = createProject();
-    const foreignPath = path.join(root, "foreign-index-worktree");
-    git(root, ["worktree", "add", "-b", "feature/001-binding-transaction", foreignPath]);
-    const foreignFlowPath = path.join(foreignPath, "specs", "001-binding-transaction", "flow.json");
-    fs.mkdirSync(path.dirname(foreignFlowPath), { recursive: true });
-    fs.writeFileSync(foreignFlowPath, "preserve sequential flow bytes\n");
-    const foreignOid = git(root, ["rev-parse", "feature/001-binding-transaction"]);
-    const ctx = prepareContext(root, config, { runId: "run-plus-index", issue: null });
+    const runId = "01234567-89ab-4cde-8fab-cdef01234567";
+    const firstSpecId = expectedSpecId(runId);
+    fs.mkdirSync(path.join(root, "specs", firstSpecId), { recursive: true });
+    const ctx = prepareContext(root, config, { runId, issue: null });
 
     const result = await new RunPrepareSpecCommand().execute(ctx);
 
-    assert.equal(result.specId, "002-binding-transaction");
-    assert.equal(git(root, ["rev-parse", "feature/001-binding-transaction"]), foreignOid);
-    assert.equal(fs.readFileSync(foreignFlowPath, "utf8"), "preserve sequential flow bytes\n");
+    assert.equal(result.specId, "89ab4cde-binding-transaction");
+    assert.equal(fs.existsSync(path.join(root, "specs", firstSpecId)), true);
   });
 
   it("does not roll back a same-name worktree and branch created before this attempt acquires authority", async () => {
     const { root, config } = createProject();
     const ctx = prepareContext(root, config, { runId: "run-collision", issue: null });
+    const collisionSpecId = expectedSpecId(ctx.runId);
     const collisionPath = path.join(
       root,
       ".senti",
       "worktree",
-      "feature-001-binding-transaction",
+      `feature-${collisionSpecId}`,
     );
     const registryPath = path.join(root, ".senti", ".active-flow");
     const registryBytes = `${JSON.stringify([{ specId: "900-foreign", mode: "branch" }], null, 2)}\n`;
@@ -914,13 +943,13 @@ describe("worktree prepare binding transaction", () => {
           "worktree",
           "add",
           "-b",
-          "feature/001-binding-transaction",
+          `feature/${collisionSpecId}`,
           collisionPath,
         ]);
         const foreignFlowPath = path.join(
           collisionPath,
           "specs",
-          "001-binding-transaction",
+          collisionSpecId,
           "flow.json",
         );
         fs.mkdirSync(path.dirname(foreignFlowPath), { recursive: true });
@@ -937,12 +966,12 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(fs.existsSync(collisionPath), true);
     assert.equal(
       fs.readFileSync(
-        path.join(collisionPath, "specs", "001-binding-transaction", "flow.json"),
+        path.join(collisionPath, "specs", collisionSpecId, "flow.json"),
         "utf8",
       ),
       "preserve collision flow bytes\n",
     );
-    assert.notEqual(git(root, ["branch", "--list", "feature/001-binding-transaction"]), "");
+    assert.notEqual(git(root, ["branch", "--list", `feature/${collisionSpecId}`]), "");
     assert.equal(fs.readFileSync(registryPath, "utf8"), registryBytes);
   });
 
@@ -1015,8 +1044,8 @@ describe("worktree prepare binding transaction", () => {
     ));
     assert.doesNotThrow(() => [...iterateAnalysisCategories(analysis, { strict: true })]);
     assert.equal(
-      git(root, ["branch", "--list", "feature/001-binding-transaction"]).replace(/^[+* ]+/, ""),
-      "feature/001-binding-transaction",
+      git(root, ["branch", "--list", `feature/${expectedSpecId("run-440")}`]).replace(/^[+* ]+/, ""),
+      `feature/${expectedSpecId("run-440")}`,
     );
     const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
     assert.deepEqual(

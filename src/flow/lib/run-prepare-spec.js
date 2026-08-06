@@ -99,27 +99,41 @@ function slugify(input) {
     .slice(0, 48);
 }
 
-function nextIndex(root, specsDir) {
-  let max = 0;
+const SPEC_TAG_LENGTH = 8;
 
-  if (fs.existsSync(specsDir)) {
-    for (const ent of fs.readdirSync(specsDir, { withFileTypes: true })) {
-      if (!ent.isDirectory()) continue;
-      const m = ent.name.match(/^([0-9]{3})-/);
-      if (m) max = Math.max(max, Number(m[1]));
+function specTagSource(runId) {
+  const compact = runId.replaceAll("-", "").toLowerCase();
+  if (/^[0-9a-f]+$/.test(compact) && compact.length >= SPEC_TAG_LENGTH) return compact;
+  return crypto.createHash("sha256").update(runId).digest("hex");
+}
+
+function isSpecDirectory(directory) {
+  try {
+    return fs.statSync(directory).isDirectory();
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+function generateSpecIdentity(runId, slug, specsDir) {
+  const source = specTagSource(runId);
+  for (let offset = 0; offset + SPEC_TAG_LENGTH <= source.length; offset += SPEC_TAG_LENGTH) {
+    const tag = source.slice(offset, offset + SPEC_TAG_LENGTH);
+    const specId = FlowSpecId.from(`${tag}-${slug}`).toString();
+    if (!isSpecDirectory(path.join(specsDir, specId))) {
+      return {
+        specId,
+        branchName: `feature/${specId}`,
+      };
     }
   }
+  throw new Error(`runId-derived spec ID candidates are exhausted for ${runId}`);
+}
 
-  const branchLines = runGitTrim(root, ["branch", "--list", "feature/[0-9][0-9][0-9]-*"])
-    .split("\n")
-    .map((x) => x.replace(/^[*+ ]+/, "").trim())
-    .filter(Boolean);
-  for (const b of branchLines) {
-    const m = b.match(/^feature\/([0-9]{3})-/);
-    if (m) max = Math.max(max, Number(m[1]));
-  }
-
-  return max + 1;
+function titleFromSpecId(specId) {
+  const separator = specId.indexOf("-");
+  return separator < 0 ? specId : specId.slice(separator + 1);
 }
 
 function ensureBaseBranch(root, base) {
@@ -867,9 +881,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
       }
       issue = retryAttempt.issue;
       request = retryAttempt.request;
-      if (!title) title = retryAttempt.specId.replace(/^[0-9]{3}-/, "");
     } else {
       ({ issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request));
+    }
+    if (retryAttempt?.runId === runIdArg && !title) {
+      title = titleFromSpecId(retryAttempt.specId);
     }
     if (ctx.flowState && !runIdArg) {
       return Envelope.fail(
@@ -939,11 +955,15 @@ export class RunPrepareSpecCommand extends FlowCommand {
     if (pendingAttempt && runGitTrim(mainRoot, ["rev-parse", resolvedBase]) !== pendingAttempt.expectedOid) {
       throw new Error("stale worktree prepare attempt base revision does not match this exact retry target");
     }
-    const idx = pendingAttempt
-      ? pendingAttempt.specId.slice(0, 3)
-      : String(nextIndex(root, (ctx.specRoot ?? flowManager.specRoot).resolve(mainRoot))).padStart(3, "0");
-    const branchName = `feature/${idx}-${slug}`;
-    const specId = `${idx}-${slug}`;
+    const flowRunId = runIdArg || pendingAttempt?.runId || flowManager.generateRunId();
+    const identity = pendingAttempt
+      ? { specId: pendingAttempt.specId, branchName: pendingAttempt.branchName }
+      : generateSpecIdentity(
+          flowRunId,
+          slug,
+          (ctx.specRoot ?? flowManager.specRoot).resolve(mainRoot),
+        );
+    const { branchName, specId } = identity;
 
     // Determine where spec files live
     const worktreePath = useWorktree
@@ -1034,7 +1054,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     // Helper: write flow.json state
-    const flowRunId = runIdArg || pendingAttempt?.runId || flowManager.generateRunId();
     recoverRepairBaselinePublications({
       root: currentExecutionRoot,
       mainRoot,

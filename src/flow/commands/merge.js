@@ -223,6 +223,12 @@ function resolveMergeStrategy(state, config, ghAvailable = isGhAvailable) {
   return ghEnabled && ghAvailable() ? "pr" : "squash";
 }
 
+function fallbackTitleFromSpecId(specId, featureBranch) {
+  if (!specId) return featureBranch;
+  const separator = specId.indexOf("-");
+  return separator < 0 ? specId : specId.slice(separator + 1);
+}
+
 /**
  * Execute merge operation.
  * @param {Object} ctx
@@ -249,7 +255,7 @@ function runMerge(ctx) {
   if (strategy === "pr") {
     const remote = resolveRemote(cfg);
     const spec = loadSpec(state, artifactRoot);
-    const fallbackTitle = state.specId?.replace(/^\d+-/, "") || featureBranch;
+    const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
     const title = buildPrTitle(spec, fallbackTitle);
     const marker = idempotencyKey ? `<!-- senti:${idempotencyKey} -->` : null;
     const body = [buildPrBody(state, spec), marker].filter(Boolean).join("\n\n");
@@ -282,7 +288,7 @@ function runMerge(ctx) {
   }
 
   // Squash merge route
-  const fallbackTitle = state.specId?.replace(/^\d+-/, "") || featureBranch;
+  const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
   let spec = null;
   try {
     spec = loadSpec(state, artifactRoot);
@@ -421,5 +427,6 @@ export {
   buildPrBody,
   buildSquashCommitMessage,
   collectImplementationSubjects,
+  fallbackTitleFromSpecId,
   runPreSync,
 };
