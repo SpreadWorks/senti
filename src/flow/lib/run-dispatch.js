@@ -14,6 +14,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
 import { DeferredAgentInvocationMetric } from "../../lib/agent-invocation-metric.js";
+import { flowCommands } from "../../lib/command-registry.js";
 import {
   ProcessOwnedLock,
   RealDirectoryAuthority,
@@ -53,6 +54,10 @@ import {
 const DEFAULT_MAX_DISPATCHES = 256;
 const DEFAULT_MAX_STALLED_DISPATCHES = 3;
 const DISPATCH_LOCK_KIND = "flow-dispatch";
+const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
+  "repair-plan-gate",
+  "repair-test-review",
+]);
 
 function errorMessages(envelope) {
   return (envelope?.errors || [])
@@ -411,6 +416,7 @@ export default class RunDispatchCommand extends FlowCommand {
     maxStalledDispatches = DEFAULT_MAX_STALLED_DISPATCHES,
     leaseFactory = (session) => new FlowDispatchLease(session),
     handoffCoordinator = new WorkerArtifactHandoffCoordinator(),
+    repairCommandRunner = null,
   } = {}) {
     super({ explicitTargetResolution: true });
     this.nextAction = nextAction;
@@ -420,6 +426,7 @@ export default class RunDispatchCommand extends FlowCommand {
     this.maxStalledDispatches = maxStalledDispatches;
     this.leaseFactory = leaseFactory;
     this.handoffCoordinator = handoffCoordinator;
+    this.repairCommandRunner = repairCommandRunner;
   }
 
   async fetchNextAction(target) {
@@ -447,6 +454,32 @@ export default class RunDispatchCommand extends FlowCommand {
       messages,
       data,
     );
+  }
+
+  async runDispatcherOwnedRepair(ctx, target, action) {
+    if (!(action.directive instanceof RepairEvidenceDirective)) return null;
+    const match = /^senti flow run ([a-z][a-z0-9-]*)(?:\s|$)/.exec(action.directive.nextAction);
+    const commandName = match?.[1] || null;
+    if (!DISPATCHER_OWNED_REPAIR_COMMANDS.has(commandName)) return null;
+
+    if (this.repairCommandRunner) {
+      return this.repairCommandRunner({ ctx, target, action, commandName });
+    }
+
+    const entry = flowCommands.run?.[commandName];
+    if (!entry?.command) {
+      throw new Error(`dispatcher-owned repair command is not registered: ${commandName}`);
+    }
+    const module = await entry.command();
+    const CommandClass = module.default;
+    if (typeof CommandClass !== "function") {
+      throw new Error(`dispatcher-owned repair command has no command class: ${commandName}`);
+    }
+    return new CommandClass().run(this.container, {
+      ...target.guardInput(),
+      _envelopeType: "run",
+      _envelopeKey: commandName,
+    });
   }
 
   async execute(ctx) {
@@ -730,6 +763,39 @@ export default class RunDispatchCommand extends FlowCommand {
             invocation: error.data ?? invocation.toJSON(),
           },
         );
+      }
+
+      let dispatcherOwnedRepair;
+      try {
+        dispatcherOwnedRepair = await this.runDispatcherOwnedRepair(ctx, target, action);
+      } catch (error) {
+        return this.failure(
+          ctx,
+          error.code || "FLOW_DISPATCH_REPAIR_COMMAND_FAILED",
+          error.message || String(error),
+          blockedBoundary({
+            nextAction: validated,
+            dispatchCount,
+            message: "The dispatcher-owned repair command failed before the worker handoff could begin.",
+          }),
+        );
+      }
+      if (dispatcherOwnedRepair != null) {
+        dispatchCount += 1;
+        if (dispatcherOwnedRepair instanceof Envelope && !dispatcherOwnedRepair.ok) {
+          return this.failure(
+            ctx,
+            errorCode(dispatcherOwnedRepair),
+            errorMessages(dispatcherOwnedRepair),
+            blockedBoundary({
+              nextAction: validated,
+              dispatchCount,
+              message: "The dispatcher-owned repair command did not complete the guarded Flow transition.",
+            }),
+          );
+        }
+        current = await this.fetchNextAction(target);
+        continue;
       }
 
       let handoffRequest;

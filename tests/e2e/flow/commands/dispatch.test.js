@@ -100,8 +100,7 @@ function installReviewRecoveryWorker(root, state) {
     "  }",
     "  return command[0];",
     "}",
-    "if(current===1)runGuarded('repair-test-review');",
-    "if(current===2){",
+    "if(current===1){",
     "  const requestPath=process.env.SENTI_FLOW_HANDOFF_REQUEST;",
     "  if(!requestPath){process.stderr.write('missing test repair handoff request');process.exit(1);}",
     "  const request=JSON.parse(fs.readFileSync(requestPath,'utf8'));",
@@ -121,8 +120,8 @@ function installReviewRecoveryWorker(root, state) {
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(sealed.status!==0){process.stderr.write(sealed.stderr||sealed.stdout);process.exit(sealed.status||1);}",
     "}",
-    "if(current===3)runGuarded('scenario-validity');",
-    "if(current===4){",
+    "if(current===2)runGuarded('scenario-validity');",
+    "if(current===3){",
     "  const nextAction=runGuarded('review',['--phase','test']);",
     `  fs.writeFileSync(${JSON.stringify(nextActionFile)},nextAction);`,
     "}",
@@ -588,7 +587,7 @@ describe("flow dispatch CLI", () => {
       JSON.stringify(result.envelope, null, 2),
     );
     assert.equal(result.envelope.data.nextAction.step, "implement");
-    assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 7, true);
+    assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 6, true);
     assert.match(
       fs.readFileSync(worker.nextActionFile, "utf8"),
       /^senti flow run review --phase test --expect-binding '[^']+' --expect-no-issue$/,

@@ -140,7 +140,7 @@ function context(state, overrides = {}) {
   };
 }
 
-function command({ current, state, agent, maxStalledDispatches = 3 }) {
+function command({ current, state, agent, maxStalledDispatches = 3, repairCommandRunner = async () => null }) {
   const instance = new RunDispatchCommand({
     nextAction: {
       async run() {
@@ -151,6 +151,7 @@ function command({ current, state, agent, maxStalledDispatches = 3 }) {
     repositoryFingerprint: () => state.repositoryRevision,
     maxStalledDispatches,
     leaseFactory: NOOP_LEASE_FACTORY,
+    repairCommandRunner,
   });
   instance.container = {};
   return instance;
@@ -192,6 +193,7 @@ describe("Flow continuation dispatcher", () => {
       agent,
       repositoryFingerprint: () => state.repositoryRevision,
       leaseFactory: NOOP_LEASE_FACTORY,
+      repairCommandRunner: async () => null,
     });
     dispatcher.container = {};
 
@@ -202,6 +204,34 @@ describe("Flow continuation dispatcher", () => {
     assert.equal(result.nextAction.directive.kind, "await_user_decision");
     assert.equal(calls, 3);
     assert.equal(maxActive, 1);
+  });
+
+  it("executes dispatcher-owned repair transitions before invoking a worker", async () => {
+    const state = { runId: "run-dispatch", autoApprove: false, repositoryRevision: "r0" };
+    const current = { value: REPAIR_ACTION };
+    let repairs = 0;
+    let workers = 0;
+    const result = await command({
+      current,
+      state,
+      repairCommandRunner: async ({ commandName }) => {
+        repairs += 1;
+        assert.equal(commandName, "repair-test-review");
+        current.value = REVIEW_ACTION;
+        return { ok: true };
+      },
+      agent: {
+        async call() {
+          workers += 1;
+          current.value = COMPLETED_ACTION;
+        },
+      },
+    }).execute(context(state));
+
+    assert.equal(result.dispatch.boundary, "completed");
+    assert.equal(result.dispatch.dispatchCount, 2);
+    assert.equal(repairs, 1);
+    assert.equal(workers, 1);
   });
 
   it("returns an exact approval token and accepts it only for the unchanged guarded action", async () => {
