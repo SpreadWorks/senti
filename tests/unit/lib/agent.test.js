@@ -106,7 +106,10 @@ describe("Agent.call() — basic invocation", () => {
 
     assert.ok(invocation.finalArgs.includes("--output-schema"));
     assert.equal(invocation.pendingSchemaWrite != null, true);
-    assert.deepEqual(JSON.parse(invocation.pendingSchemaWrite.content), schema);
+    const providerSchema = JSON.parse(invocation.pendingSchemaWrite.content);
+    assert.deepEqual(providerSchema.required, ["goal"]);
+    assert.equal(providerSchema.additionalProperties, false);
+    assert.deepEqual(providerSchema.properties.goal.type, ["string", "null"]);
     assert.doesNotMatch(invocation.finalArgs.join(" "), /FALLBACK SPEC INSTRUCTIONS/);
   });
 

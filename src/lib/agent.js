@@ -303,7 +303,9 @@ class Agent {
       : prompt;
 
     // jsonSchema handling: profile-property-based flag or fmtFallback
-    const jsonSchema = options.jsonSchema ?? null;
+    const jsonSchema = options.jsonSchema
+      ? provider.prepareJsonSchema(options.jsonSchema)
+      : null;
     const schemaFlag = jsonSchema ? (profile.jsonSchemaFlag || null) : null;
     const schemaMode = jsonSchema ? (profile.jsonSchemaMode || null) : null;
     const schemaSuffix = [];

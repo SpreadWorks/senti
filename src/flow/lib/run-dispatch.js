@@ -62,18 +62,20 @@ const DISPATCHER_OWNED_REPAIR_COMMANDS = new Set([
 ]);
 const SPEC_WORKER_STEPS = new Set(["spec", "spec-repair"]);
 
-function specWorkerAgentOptions(stepId) {
+function specWorkerAgentOptions(stepId, outputSchema) {
   if (!SPEC_WORKER_STEPS.has(stepId)) return {};
   const schema = loadSpecJsonSchema();
+  const schemaGuidance = [
+    "The handoff file named spec.json is the canonical spec artifact.",
+    "Write valid JSON that matches this schema exactly; do not add properties outside the schema.",
+    "The CLI validates the file before it can be sealed or published.",
+    "Spec artifact schema:",
+    JSON.stringify(schema, null, 2),
+  ].join("\n");
   return {
-    jsonSchema: schema,
-    fmtFallback: [
-      "The handoff file named spec.json is the canonical spec artifact.",
-      "Write valid JSON that matches this schema exactly; do not add properties outside the schema.",
-      "The CLI validates the file before it can be sealed or published.",
-      "Spec artifact schema:",
-      JSON.stringify(schema, null, 2),
-    ].join("\n"),
+    jsonSchema: outputSchema,
+    fmtFallback: schemaGuidance,
+    promptGuidance: schemaGuidance,
   };
 }
 
@@ -332,7 +334,7 @@ export class FlowDispatchWork {
     };
   }
 
-  prompt() {
+  prompt(promptGuidance = "") {
     const { action, authorization, target } = this.invocation;
     const authorizationInstruction = authorization.workerInstruction();
     const nonblockingRule = action.nextAction.nonblockingDecision
@@ -360,6 +362,14 @@ export class FlowDispatchWork {
           JSON.stringify(this.handoffRequest.toWorkerJSON(), null, 2),
         ].join("\n")
       : "";
+    const schemaInstruction = promptGuidance
+      ? [
+          "",
+          "The provider may receive a separate response schema for this worker report.",
+          "Use the following canonical spec artifact guidance when writing spec.json:",
+          promptGuidance,
+        ].join("\n")
+      : "";
     return [
       "You are a worker owned by the senti Flow CLI dispatcher.",
       "Execute exactly one supplied non-terminal Flow action in the current repository.",
@@ -381,6 +391,7 @@ export class FlowDispatchWork {
       "When the directive includes nextAction, execute that exact CLI-generated",
       "command; do not infer completion from pre-existing artifacts.",
       nonblockingRule,
+      schemaInstruction,
       "",
       "Machine-readable dispatch invocation contract:",
       JSON.stringify(this.invocation.toJSON(), null, 2),
@@ -569,7 +580,12 @@ export default class RunDispatchCommand extends FlowCommand {
     let agentError = null;
     try {
       const agent = this.agent || (this.agent = this.container.get("agent"));
-      await agent.call(work.prompt(), {
+      const workerOptions = specWorkerAgentOptions(
+        action.nextAction.step,
+        action.nextAction.output_schema,
+      );
+      const { promptGuidance, ...agentOptions } = workerOptions;
+      await agent.call(work.prompt(promptGuidance), {
         commandId: "flow.dispatch",
         executionWorkDir: ctx.executionRoot || ctx.root,
         cacheMode: "bypass",
@@ -577,7 +593,7 @@ export default class RunDispatchCommand extends FlowCommand {
         waitForProcessTree: true,
         executionEnvironment: work.executionEnvironment(),
         deferredMetric,
-        ...specWorkerAgentOptions(action.nextAction.step),
+        ...agentOptions,
       });
     } catch (error) {
       agentError = error;

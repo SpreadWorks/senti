@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
@@ -14,6 +15,7 @@ import { createInitialDraftArtifactRevision } from "../../../src/flow/lib/draft-
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
+import { loadSpecJsonSchema } from "../../../src/lib/spec-json.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
@@ -30,6 +32,10 @@ import {
 } from "../../helpers/worker-artifact.js";
 
 const ACTION_DIGEST = "a".repeat(64);
+const WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
+);
 const PUBLICATION_FAULT_PHASES = Object.freeze([
   "after-worker-handoff-journal",
   "before-worker-handoff-publication-temp-open",
@@ -126,6 +132,10 @@ function completedWorkerAction() {
     requires_approval: false,
     directive: { kind: "completed", terminal: true, requiresUserAction: false },
   };
+}
+
+function loadWorkerArtifactHandoffSchema() {
+  return JSON.parse(fs.readFileSync(WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH, "utf8"));
 }
 
 function stableStringify(value) {
@@ -1383,7 +1393,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("passes schema guidance only to the spec artifact worker", async () => {
+  it("passes the guarded output schema and schema guidance to the spec artifact worker", async () => {
     const value = fixture("spec");
     try {
       const specDir = canonicalSpecDir(value);
@@ -1393,21 +1403,27 @@ describe("worker artifact handoff", () => {
         step: "spec",
         action: "write-spec",
         instructions: { key: "plan.spec", content: "Write the specification." },
+        output_schema: loadWorkerArtifactHandoffSchema(),
       } };
+      let guardedOutputSchema = null;
+      let workerOptions = null;
+      let workerPrompt = null;
       let calls = 0;
       const dispatcher = new RunDispatchCommand({
         nextAction: {
           async run() {
-            return findStepById(value.flowManager.load().steps, "spec").status === "done"
+            const nextAction = findStepById(value.flowManager.load().steps, "spec").status === "done"
               ? completedWorkerAction()
               : structuredClone(current.value);
+            if (nextAction.step === "spec") guardedOutputSchema = nextAction.output_schema;
+            return nextAction;
           },
         },
         agent: {
-          async call(_prompt, options) {
+          async call(prompt, options) {
             calls += 1;
-            assert.ok(options.jsonSchema);
-            assert.match(options.fmtFallback, /Spec artifact schema:/);
+            workerOptions = options;
+            workerPrompt = prompt;
             const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "spec.json").payloadPath, json(validSpec()));
@@ -1431,6 +1447,12 @@ describe("worker artifact handoff", () => {
         _envelopeKey: "dispatch",
       });
 
+      assert.deepEqual(workerOptions.jsonSchema, guardedOutputSchema);
+      assert.deepEqual(workerOptions.jsonSchema, loadWorkerArtifactHandoffSchema());
+      assert.notDeepEqual(workerOptions.jsonSchema, loadSpecJsonSchema());
+      assert.ok(workerOptions.jsonSchema.properties.runtimeLog);
+      assert.match(workerOptions.fmtFallback, /Spec artifact schema:/);
+      assert.match(workerPrompt, /Spec artifact schema:/);
       assert.equal(result.dispatch.boundary, "completed", JSON.stringify(result, null, 2));
       assert.equal(result.dispatch.dispatchCount, 1);
       assert.equal(calls, 1);

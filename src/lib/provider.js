@@ -15,6 +15,7 @@
  */
 
 import { defaultAgentProviders } from "./agent-defaults.js";
+import { adaptJsonSchemaForProvider } from "./provider-schema.js";
 
 class Provider {
   static key = null;
@@ -29,6 +30,10 @@ class Provider {
 
   workDirFlag() {
     return null;
+  }
+
+  prepareJsonSchema(schema) {
+    return structuredClone(schema);
   }
 
   builtinProfiles() {
@@ -133,6 +138,10 @@ class CodexProvider extends Provider {
 
   workDirFlag() {
     return "-C";
+  }
+
+  prepareJsonSchema(schema) {
+    return adaptJsonSchemaForProvider(CodexProvider.key, schema);
   }
 
   builtinProfiles() {
