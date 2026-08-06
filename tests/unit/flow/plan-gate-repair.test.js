@@ -201,6 +201,30 @@ function handoffRequest(value, invocationId) {
 }
 
 describe("governed plan-gate repair", () => {
+  it("normalizes document-level observations without a locator", () => {
+    for (const where of [{ file: "spec.json" }, { file: "spec.json", locator: null }]) {
+      const issueLogEntry = {
+        issueLogId: "draft-gate-document-observation",
+        phase: "draft",
+        observations: [{
+          ...OBSERVATION,
+          where,
+        }],
+      };
+      const record = PlanGateRepairRecord.create({
+        state: { runId: RUN_ID, specId: SPEC_ID, issue: 494 },
+        phase: "draft",
+        issueLogEntry,
+        requestedAt: "2026-08-05T00:00:00.000Z",
+      });
+
+      assert.deepEqual(record.observations[0].where.toJSON(), { file: "spec.json" });
+      assert.deepEqual(record.toJSON().observations[0].where, { file: "spec.json" });
+      assert.deepEqual(record.toWorkerJSON().observations[0].where, { file: "spec.json" });
+      assert.equal(record.matchesIssueLogEntry(issueLogEntry), true);
+    }
+  });
+
   it("rewinds the whole downstream validation route and freezes exact gate evidence", () => {
     const value = planGateFixture();
     try {

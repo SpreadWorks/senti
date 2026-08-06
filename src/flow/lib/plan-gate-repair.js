@@ -42,12 +42,16 @@ function digest(value) {
 export class PlanGateRepairLocation {
   constructor(input = {}) {
     this.file = requiredString(input.file, "plan gate repair location file", 1000);
-    this.locator = requiredString(input.locator, "plan gate repair location locator", 1000);
+    this.locator = input.locator == null
+      ? null
+      : requiredString(input.locator, "plan gate repair location locator", 1000);
     Object.freeze(this);
   }
 
   toJSON() {
-    return { file: this.file, locator: this.locator };
+    const location = { file: this.file };
+    if (this.locator != null) location.locator = this.locator;
+    return location;
   }
 }
 
