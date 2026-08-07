@@ -18,16 +18,23 @@ const NOW = "2026-08-07T00:00:00.000Z";
 const LATER = "2026-08-07T00:02:00.000Z";
 
 function result(summary) {
-  return { outcome: "passed", summary, confirmedAt: LATER, artifactRefs: [`${summary}-artifact`] };
+  return { outcome: "passed", summary, confirmedAt: LATER, artifactRefs: [{ kind: "artifact", id: `${summary}-artifact` }] };
 }
 
-function attemptFor(state, currentPath, id, number = 1, tooling = 0) {
+function attemptFor(state, currentPath, id, sequence = null, tooling = 0) {
   const contract = state.definition.contractFor(currentPath.at(-1), state.root);
+  const leaf = state.findNode(currentPath.at(-1));
+  const nextSequence = sequence ?? leaf.attemptSequence + 1;
+  const previous = state.current?.at(-1) === leaf.id ? state.attempt : null;
   return new CurrentAttempt({
     id,
-    number,
+    sequence: nextSequence,
     startedAt: NOW,
-    consumption: { semantic: number - 1 - tooling, tooling },
+    consumption: {
+      semantic: previous === null ? 0 : previous.consumption.semantic + (tooling === previous.consumption.tooling ? 1 : 0),
+      tooling,
+    },
+    failure: null,
     blocker: null,
     incomplete: [],
     operationClaims: [{ operation: "execute", resources: [...contract.resourceContract.required] }],
@@ -53,6 +60,7 @@ function activity({
     start_attempt: "attempt_started",
     retry_attempt: "attempt_retried",
     update_attempt: "attempt_updated",
+    fail_attempt: "attempt_failed",
     confirm_attempt: "result_confirmed",
     rewind: "recovery",
     recover_attempt: "recovery",
@@ -62,7 +70,7 @@ function activity({
     nodeId: node.id,
     nodeKey: node.key,
     attemptId: effectiveAttempt?.id ?? null,
-    sequence: effectiveAttempt?.number ?? null,
+    sequence: effectiveAttempt?.sequence ?? null,
     confirmationOrder: order,
     type,
     transition: new ActivityTransition({
@@ -173,13 +181,32 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "start_attempt",
     }));
     apply(activity({
+      id: "task-a-review-failed",
+      state,
+      currentPath: reviewPath,
+      order,
+      operation: "fail_attempt",
+      activityResult: {
+        outcome: "failed",
+        summary: "Review needs retry.",
+        confirmedAt: LATER,
+        artifactRefs: [],
+      },
+      failure: {
+        category: "review",
+        code: "review_failed",
+        message: "Review needs retry.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+    }));
+    apply(activity({
       id: "task-a-review-retry",
       state,
       currentPath: reviewPath,
       activityAttempt: attemptFor(state, reviewPath, "review-2", 2),
       order,
       operation: "retry_attempt",
-      failure: { kind: "semantic", code: "review_failed", message: "Review needs retry.", retryable: true },
     }));
     apply(activity({
       id: "task-a-review-confirm",
@@ -205,6 +232,8 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "rewind",
     }));
     assert.equal(state.current.at(-1), "task-a/task-review");
+    assert.equal(state.attempt.sequence, 3);
+    assert.equal(state.findNode("task-a/task-review").attemptSequence, 3);
     assert.equal(state.findNode("task-a/task-gate").status, "invalidated");
     assert.equal(state.findNode("task-b").status, "invalidated");
     apply(activity({
@@ -237,6 +266,8 @@ describe("Current Flow state filesystem lifecycle", () => {
       order,
       operation: "recover_attempt",
     }));
+    assert.equal(state.attempt.sequence, 2);
+    assert.equal(state.findNode("task-a/task-gate").attemptSequence, 2);
     apply(activity({
       id: "task-a-gate-recovered",
       state,
@@ -310,9 +341,12 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.deepEqual(journal.map((entry) => entry.confirmationOrder), Array.from({ length: journal.length }, (_, index) => index + 1));
     assert.deepEqual(
       journal.filter((entry) => entry.attemptId === "review-1").map((entry) => [entry.sequence, entry.confirmationOrder]),
-      [[1, journal.find((entry) => entry.id === "task-a-review-start").confirmationOrder], [1, journal.find((entry) => entry.id === "task-a-review-retry").confirmationOrder]],
+      [[1, journal.find((entry) => entry.id === "task-a-review-start").confirmationOrder], [1, journal.find((entry) => entry.id === "task-a-review-failed").confirmationOrder], [1, journal.find((entry) => entry.id === "task-a-review-retry").confirmationOrder]],
     );
-    assert.equal(journal.find((entry) => entry.id === "task-a-review-retry").failure.code, "review_failed");
+    assert.equal(journal.find((entry) => entry.id === "task-a-review-failed").failure.code, "review_failed");
+    assert.equal(journal.find((entry) => entry.id === "task-a-review-retry").transition.attempt.sequence, 2);
+    assert.equal(journal.find((entry) => entry.id === "task-a-review-rewind").sequence, 3);
+    assert.equal(journal.find((entry) => entry.id === "task-a-gate-recover").sequence, 2);
     assert.equal(journal.find((entry) => entry.id === "task-a-gate-recovered").result.summary, "task-a-gate-recovered");
     store.writeActivitiesView();
     assert.match(fs.readFileSync(path.join(directory, "activities.md"), "utf8"), /attempt_retried/);

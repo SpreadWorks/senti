@@ -17,6 +17,7 @@ import {
   FlowActivity,
   FlowActivityJournal,
   FlowDefinitionNode,
+  NodeResult,
   TaskNode,
 } from "../../../src/flow/lib/current-flow-state.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -28,26 +29,34 @@ function definition() {
   return buildCurrentFlowDefinition();
 }
 
-function passedResult(summary = "Confirmed.") {
-  return { outcome: "passed", summary, confirmedAt: LATER, artifactRefs: ["artifact-1"] };
+function passedResult(summary = "Confirmed.", artifactRefs = [{ kind: "artifact", id: "artifact-1" }]) {
+  return { outcome: "passed", summary, confirmedAt: LATER, artifactRefs };
 }
 
 function skippedResult(summary = "Skipped.") {
-  return { outcome: "skipped", summary, confirmedAt: LATER, artifactRefs: ["skipped-artifact"] };
+  return { outcome: "skipped", summary, confirmedAt: LATER, artifactRefs: [{ kind: "artifact", id: "skipped-artifact" }] };
 }
 
-function attemptFor(state, currentPath, id, number = 1, {
+function attemptFor(state, currentPath, id, sequence = null, {
   tooling = 0,
+  semantic = null,
   blocker = null,
   incomplete = [],
   operationClaims = null,
 } = {}) {
   const contract = state.definition.contractFor(currentPath.at(-1), state.root);
+  const leaf = state.findNode(currentPath.at(-1));
+  const nextSequence = sequence ?? leaf.attemptSequence + 1;
+  const previous = state.current?.at(-1) === leaf.id ? state.attempt : null;
+  const semanticConsumption = semantic ?? (previous === null
+    ? 0
+    : previous.consumption.semantic + (tooling === previous.consumption.tooling ? 1 : 0));
   return new CurrentAttempt({
     id,
-    number,
+    sequence: nextSequence,
     startedAt: NOW,
-    consumption: { semantic: number - 1 - tooling, tooling },
+    consumption: { semantic: semanticConsumption, tooling },
+    failure: null,
     blocker,
     incomplete,
     operationClaims: operationClaims ?? [{
@@ -70,11 +79,11 @@ function startDescriptor(state, id, options = {}) {
   throw new Error(`cannot start an already-resumable action: ${descriptor.nodeId}`);
 }
 
-function completeNext(state, id, { status = "done", summary = id } = {}) {
+function completeNext(state, id, { status = "done", summary = id, artifactRefs } = {}) {
   const active = startDescriptor(state, id);
   return active.confirmCurrentAttempt({
     status,
-    result: status === "done" ? passedResult(summary) : skippedResult(summary),
+    result: status === "done" ? passedResult(summary, artifactRefs) : skippedResult(summary),
   });
 }
 
@@ -110,6 +119,7 @@ function flowActivity({
     start_attempt: "attempt_started",
     retry_attempt: "attempt_retried",
     update_attempt: "attempt_updated",
+    fail_attempt: "attempt_failed",
     confirm_attempt: "result_confirmed",
     rewind: "recovery",
     recover_attempt: "recovery",
@@ -119,7 +129,7 @@ function flowActivity({
     nodeId: node.id,
     nodeKey: node.key,
     attemptId: activityAttempt?.id ?? null,
-    sequence: activityAttempt?.number ?? null,
+    sequence: activityAttempt?.sequence ?? null,
     confirmationOrder,
     type,
     transition: new ActivityTransition({ operation, path: currentPath, task, attempt, status }),
@@ -175,7 +185,18 @@ function tinyDefinition() {
           key: "phase",
           steps: [
             new FlowDefinitionNode({ id: "first", key: "first", action: tinyAction("first") }),
-            new FlowDefinitionNode({ id: "second", key: "second", action: tinyAction("second") }),
+            new FlowDefinitionNode({
+              id: "second",
+              key: "second",
+              contract: {
+                transitions: [
+                  "pending:in_progress", "in_progress:done", "in_progress:skipped",
+                  "done:in_progress", "skipped:in_progress", "invalidated:in_progress",
+                  "pending:invalidated", "in_progress:invalidated", "done:invalidated", "skipped:invalidated",
+                ],
+              },
+              action: tinyAction("second"),
+            }),
           ],
         }),
         new FlowDefinitionNode({
@@ -225,6 +246,7 @@ describe("Current Flow state foundation", () => {
       sideEffects: null,
       failurePolicy: "retry",
       executionCommand: "senti flow run review --phase impl",
+      artifactAuthority: { sourceScopes: ["same_task", "flow"], selection: "latest_upstream" },
     });
     assert.deepEqual(
       withBoth.definition.contractFor("task-1/task-review", withBoth.root).resourceContract.required,
@@ -243,6 +265,23 @@ describe("Current Flow state foundation", () => {
       assert.deepEqual(leaf.contract.resourceContract.required, metadata.contextKinds);
     }
     assert.equal(getFlowNode("impl").children[1].id, "test-execute");
+  });
+
+  it("preserves production skippable semantics instead of granting a permissive default", () => {
+    let state = CurrentFlowState.create({ definition: definition() });
+    const branch = state.nextAction();
+    assert.equal(branch.nodeId, "branch");
+    assert.equal(getFlowNode("branch").skippable, true);
+    state = state.startAttempt({ path: branch.path, attempt: attemptFor(state, branch.path, "branch-skip") });
+    state = state.confirmCurrentAttempt({ status: "skipped", result: skippedResult("No branch needed.") });
+    state = advanceUntil(state, "prepare-spec", "before-prepare");
+    const prepare = state.nextAction();
+    assert.equal(getFlowNode("prepare-spec").skippable, false);
+    state = state.startAttempt({ path: prepare.path, attempt: attemptFor(state, prepare.path, "prepare-skip") });
+    assert.throws(
+      () => state.confirmCurrentAttempt({ status: "skipped", result: skippedResult("Invalid skip.") }),
+      /definition forbids transition in_progress:skipped for prepare-spec/,
+    );
   });
 
   it("rejects out-of-order starts and exposes one definition-owned flow/task frontier", () => {
@@ -290,11 +329,11 @@ describe("Current Flow state foundation", () => {
     });
     state = state.replaceCurrentAttempt({ attempt: replacement });
     assert.equal(state.attempt.id, "review-1");
-    assert.equal(state.attempt.number, 1);
+    assert.equal(state.attempt.sequence, 1);
     assert.equal(state.attempt.blocker.code, "resolved");
     assert.equal(initial.blocker.code, "waiting");
-    assert.equal(state.retryEligibility().semanticRemaining, 3);
-    assert.equal(state.retryEligibility().toolingRemaining, 1);
+    assert.equal(state.retryEligibility().semanticRemaining, 0);
+    assert.equal(state.retryEligibility().toolingRemaining, 0);
     assert.throws(
       () => state.replaceCurrentAttempt({ attempt: replacement.replaceFacts({ operationClaims: [{ operation: "bad", resources: ["unknown"] }] }) }),
       /exceeds definition contract/,
@@ -318,12 +357,27 @@ describe("Current Flow state foundation", () => {
       /duplicates or conflicts/,
     );
     const activeReview = state;
+    state = state.failCurrentAttempt({ failure: {
+      category: "review",
+      code: "review_failed",
+      message: "Review needs another pass.",
+      retryable: true,
+      retryKind: "semantic",
+    } });
+    assert.equal(state.retryEligibility().semanticRemaining, 3);
     state = state.retryCurrentAttempt({
       attempt: attemptFor(state, pathToReview, "review-2", 2),
       kind: "semantic",
     });
     assert.equal(state.attempt.id, "review-2");
     assert.equal(state.attempt.consumption.semantic, 1);
+    state = state.failCurrentAttempt({ failure: {
+      category: "review",
+      code: "review_failed_again",
+      message: "Review still needs work.",
+      retryable: true,
+      retryKind: "semantic",
+    } });
     assert.throws(
       () => state.retryCurrentAttempt({
         attempt: attemptFor(state, pathToReview, "review-gap", 4),
@@ -336,15 +390,7 @@ describe("Current Flow state foundation", () => {
         attempt: attemptFor(state, pathToReview, "review-wrong-kind", 3),
         kind: "tooling",
       }),
-      /tooling retry must increment only tooling/,
-    );
-    assert.throws(
-      () => new CurrentAttempt({
-        ...state.attempt.toJSON(),
-        id: "review-wrong-number",
-        number: 3,
-      }),
-      /number must equal/,
+      /retry kind must match/,
     );
 
     let semanticLimit = state;
@@ -352,27 +398,47 @@ describe("Current Flow state foundation", () => {
       attempt: attemptFor(semanticLimit, pathToReview, "review-3", 3),
       kind: "semantic",
     });
+    semanticLimit = semanticLimit.failCurrentAttempt({ failure: {
+      category: "review",
+      code: "review_failed_third",
+      message: "Review still needs work.",
+      retryable: true,
+      retryKind: "semantic",
+    } });
     semanticLimit = semanticLimit.retryCurrentAttempt({
       attempt: attemptFor(semanticLimit, pathToReview, "review-4", 4),
       kind: "semantic",
     });
     assert.throws(
-      () => semanticLimit.retryCurrentAttempt({
-        attempt: attemptFor(semanticLimit, pathToReview, "review-semantic-over", 5),
-        kind: "semantic",
-      }),
-      /semanticRetryLimit/,
+      () => semanticLimit.failCurrentAttempt({ failure: {
+        category: "review",
+        code: "review_exhausted",
+        message: "Retry budget is exhausted.",
+        retryable: true,
+        retryKind: "semantic",
+      } }),
+      /exceeds the definition retry budget/,
     );
 
     const toolingAttempt = attemptFor(activeReview, pathToReview, "review-tooling-2", 2, { tooling: 1 });
-    const toolingLimit = activeReview.retryCurrentAttempt({ attempt: toolingAttempt, kind: "tooling" });
+    const toolingFailed = activeReview.failCurrentAttempt({ failure: {
+      category: "provider",
+      code: "provider_failed",
+      message: "Provider failed.",
+      retryable: true,
+      retryKind: "tooling",
+    } });
+    const toolingLimit = toolingFailed.retryCurrentAttempt({ attempt: toolingAttempt, kind: "tooling" });
     assert.equal(toolingLimit.attempt.consumption.tooling, 1);
     assert.throws(
-      () => toolingLimit.retryCurrentAttempt({
-        attempt: attemptFor(toolingLimit, pathToReview, "review-tooling-over", 3, { tooling: 2 }),
-        kind: "tooling",
-      }),
-      /toolingRetryLimit/,
+      () => toolingLimit.failCurrentAttempt({ failure: {
+        category: "provider",
+        code: "provider_exhausted",
+        message: "Provider retry budget is exhausted.",
+        retryable: true,
+        retryKind: "tooling",
+      } }),
+      /exceeds the definition retry budget/,
     );
 
     let implementation = CurrentFlowState.create({ definition: definition() })
@@ -384,11 +450,14 @@ describe("Current Flow state foundation", () => {
       attempt: attemptFor(implementation, implementationPath, "impl-1"),
     });
     assert.throws(
-      () => implementation.retryCurrentAttempt({
-        attempt: attemptFor(implementation, implementationPath, "impl-tooling", 2, { tooling: 1 }),
-        kind: "tooling",
-      }),
-      /tooling consumption is not authorized/,
+      () => implementation.failCurrentAttempt({ failure: {
+        category: "provider",
+        code: "provider_failed",
+        message: "Provider failed.",
+        retryable: true,
+        retryKind: "tooling",
+      } }),
+      /exceeds the definition retry budget/,
     );
   });
 
@@ -403,6 +472,7 @@ describe("Current Flow state foundation", () => {
     const pendingBeforeDone = structuredClone(valid);
     pendingBeforeDone.steps[0].steps[0].status = "pending";
     pendingBeforeDone.steps[0].steps[0].result = null;
+    pendingBeforeDone.steps[0].steps[0].attemptSequence = 0;
     pendingBeforeDone.steps[0].status = "in_progress";
     assert.throws(
       () => new CurrentFlowState(pendingBeforeDone, { definition: tiny }),
@@ -414,6 +484,13 @@ describe("Current Flow state foundation", () => {
     assert.throws(
       () => new CurrentFlowState(badParent, { definition: tiny }),
       /pending branch/,
+    );
+    const terminalChildrenActiveParent = structuredClone(valid);
+    terminalChildrenActiveParent.steps[0].status = "in_progress";
+    terminalChildrenActiveParent.steps[0].result = null;
+    assert.throws(
+      () => new CurrentFlowState(terminalChildrenActiveParent, { definition: tiny }),
+      /in_progress branch cannot retain an all-terminal child set/,
     );
     const wrongLeafOutcome = structuredClone(valid);
     wrongLeafOutcome.steps[0].steps[0].result = skippedResult("wrong leaf outcome");
@@ -467,13 +544,16 @@ describe("Current Flow state foundation", () => {
 
   it("resolves next action, artifact sources, and recovery legality from current state plus definition without Activity history", () => {
     let state = CurrentFlowState.create({ definition: definition(), execution: { mode: "branch" } });
-    state = completeNext(state, "branch", { summary: "branch-artifact" });
-    state = completeNext(state, "prepare", { summary: "prepare-artifact" });
-    state = completeNext(state, "draft", { summary: "draft-artifact" });
+    state = completeNext(state, "branch", { summary: "branch-artifact", artifactRefs: [{ kind: "issue", id: "issue-from-branch" }] });
+    state = completeNext(state, "prepare", { summary: "prepare-artifact", artifactRefs: [{ kind: "spec", id: "spec-from-prepare" }] });
+    state = completeNext(state, "draft", { summary: "draft-artifact", artifactRefs: [{ kind: "draft", id: "draft-from-draft" }] });
     const authority = state.artifactAuthority();
     assert.equal(state.nextAction().nodeId, "draft-questions-review");
     assert.deepEqual(authority.requiredResources, ["draft", "issue"]);
-    assert.deepEqual(authority.sources.map((source) => source.nodeId), ["branch", "prepare-spec", "draft"]);
+    assert.deepEqual(authority.resolutions.map((resolution) => [resolution.resourceKind, resolution.source?.nodeId]), [
+      ["draft", "draft"],
+      ["issue", "branch"],
+    ]);
     tmp = createTmpDir("current-flow-read-api-");
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
     // Simulate a durably persisted current state with unrelated historical
@@ -494,10 +574,42 @@ describe("Current Flow state foundation", () => {
     const rewindPath = ["flow", "plan", "prepare-spec"];
     state = state.rewind({ path: rewindPath, attempt: attemptFor(state, rewindPath, "prepare-rewind") });
     const duringRewind = state.artifactAuthority();
-    assert.deepEqual(duringRewind.sources.map((source) => source.nodeId), ["branch"]);
+    assert.deepEqual(duringRewind.requiredResources, []);
     assert.equal(state.findNode("draft").status, "invalidated");
-    assert.equal(duringRewind.sources.some((source) => source.nodeId === "draft"), false);
+    assert.equal(duringRewind.resolutions.some((resolution) => resolution.source?.nodeId === "draft"), false);
     assert.equal(state.recoveryTarget(["flow", "plan", "draft"]).legal, false);
+    state = state.confirmCurrentAttempt({ result: passedResult("prepare repaired", [{ kind: "spec", id: "repaired-spec" }]) });
+    const recoveryAuthority = state.artifactAuthority();
+    assert.equal(state.nextAction().nodeId, "draft");
+    assert.deepEqual(
+      recoveryAuthority.resolutions.filter((resolution) => !resolution.missing).map((resolution) => resolution.source.nodeId),
+      ["branch"],
+    );
+    assert.equal(recoveryAuthority.resolutions.some((resolution) => resolution.source?.nodeId === "draft"), false);
+  });
+
+  it("resolves Task resources from the same Task and excludes sibling Task evidence", () => {
+    const taskArtifacts = (taskId) => [
+      { kind: "task_spec", id: `${taskId}-spec` },
+      { kind: "diff", id: `${taskId}-diff` },
+      { kind: "testlog", id: `${taskId}-testlog` },
+    ];
+    let state = CurrentFlowState.create({ definition: definition() })
+      .addTask({ id: "task-a", key: "first" })
+      .addTask({ id: "task-b", key: "second" });
+    state = advanceUntil(state, "task-a/task-impl", "scope-prelude");
+    state = completeNext(state, "task-a-impl", { artifactRefs: taskArtifacts("task-a") });
+    state = completeNext(state, "task-a-review", { artifactRefs: taskArtifacts("task-a") });
+    state = completeNext(state, "task-a-gate", { artifactRefs: taskArtifacts("task-a") });
+    state = completeNext(state, "task-b-impl", { artifactRefs: taskArtifacts("task-b") });
+    assert.equal(state.nextAction().nodeId, "task-b/task-review");
+    const authority = state.artifactAuthority();
+    assert.deepEqual(authority.requiredResources, ["task_spec", "diff", "testlog"]);
+    assert.ok(authority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b/task-impl"));
+    assert.equal(
+      authority.resolutions.some((resolution) => resolution.source?.path.includes("task-a")),
+      false,
+    );
   });
 
   it("uses typed update Activity and a JSONL-derived Markdown view without reading activities.md as control input", () => {
@@ -554,6 +666,91 @@ describe("Current Flow state foundation", () => {
     assert.match(fs.readFileSync(markdownPath, "utf8"), /generated from `activities\.jsonl`/);
   });
 
+  it("journals non-retryable, exhausted, and incomplete Attempt outcomes without creating an unauthorized retry", () => {
+    tmp = createTmpDir("current-flow-failures-");
+    const runFailure = ({ name, outcome, failure }) => {
+      const directory = path.join(tmp, name);
+      const initial = CurrentFlowState.create({ definition: definition() });
+      const currentPath = initial.nextAction().path;
+      const store = new CurrentFlowStateStore({ directory, definition: definition() });
+      store.create(initial);
+      const started = store.apply({ activity: flowActivity({
+        id: `${name}-start`,
+        state: initial,
+        currentPath,
+        confirmationOrder: 1,
+        operation: "start_attempt",
+        attempt: attemptFor(initial, currentPath, `${name}-attempt`),
+      }) });
+      const failed = store.apply({ activity: flowActivity({
+        id: `${name}-failure`,
+        state: started,
+        currentPath,
+        confirmationOrder: 2,
+        operation: "fail_attempt",
+        result: {
+          outcome,
+          summary: `${name} execution completed without success.`,
+          confirmedAt: LATER,
+          artifactRefs: [],
+        },
+        failure,
+      }) });
+      assert.equal(failed.attempt.failure.category, failure.category);
+      assert.equal(failed.retryEligibility().semantic, false);
+      assert.equal(failed.retryEligibility().tooling, false);
+      assert.equal(store.journal.read().at(-1).result.outcome, outcome);
+      return { store, state: failed, currentPath };
+    };
+
+    const nonRetryable = runFailure({
+      name: "non-retryable",
+      outcome: "failed",
+      failure: {
+        category: "policy",
+        code: "policy_denied",
+        message: "Policy does not authorize retry.",
+        retryable: false,
+        retryKind: null,
+      },
+    });
+    assert.throws(
+      () => nonRetryable.store.apply({ activity: flowActivity({
+        id: "unauthorized-retry",
+        state: nonRetryable.state,
+        currentPath: nonRetryable.currentPath,
+        confirmationOrder: 3,
+        operation: "retry_attempt",
+        attempt: attemptFor(nonRetryable.state, nonRetryable.currentPath, "forbidden-retry"),
+      }) }),
+      /requires a retryable failed active Attempt/,
+    );
+    assert.equal(nonRetryable.store.journal.read().length, 2);
+
+    runFailure({
+      name: "retry-exhausted",
+      outcome: "failed",
+      failure: {
+        category: "retry_exhausted",
+        code: "retry_budget_exhausted",
+        message: "No retry budget remains.",
+        retryable: false,
+        retryKind: "semantic",
+      },
+    });
+    runFailure({
+      name: "incomplete",
+      outcome: "incomplete",
+      failure: {
+        category: "incomplete",
+        code: "required_input_missing",
+        message: "A required input is missing.",
+        retryable: false,
+        retryKind: null,
+      },
+    });
+  });
+
   it("recovers idempotently from a journal-first crash and exposes the deferred conversion adoption boundary", () => {
     tmp = createTmpDir("current-flow-crash-");
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: definition() });
@@ -604,7 +801,7 @@ describe("Current Flow state foundation", () => {
     assert.deepEqual(plan.toJSON(), {
       sourceFormat: "legacy-flow-json",
       targetDirectory: tmp,
-      targetSchemaRevision: 1,
+      targetSchemaRevision: 2,
       freshStateOnly: true,
       conversionImplemented: false,
       legacyRead: "deferred",
@@ -612,6 +809,22 @@ describe("Current Flow state foundation", () => {
       doubleWrite: "forbidden",
     });
     assert.throws(() => plan.assertCurrentStateOnly({}), /conversion is deferred/);
+    assert.equal(plan.assertCurrentStateOnly(initial), initial);
+    assert.throws(
+      () => plan.assertCurrentStateOnly(initial.addTask({ id: "progressed-task", key: "progressed" })),
+      /freshStateOnly rejects progressed current state/,
+    );
+    assert.throws(
+      () => plan.assertCurrentStateOnly(completeNext(initial, "progressed-node")),
+      /freshStateOnly rejects progressed current state/,
+    );
+    assert.throws(
+      () => plan.assertCurrentStateOnly(initial.startAttempt({
+        path: branchPath,
+        attempt: attemptFor(initial, branchPath, "progressed-attempt"),
+      })),
+      /freshStateOnly rejects progressed current state/,
+    );
   });
 
   it("rejects a partial Activity journal tail rather than treating it as control input", () => {
@@ -621,31 +834,64 @@ describe("Current Flow state foundation", () => {
     assert.throws(() => new FlowActivityJournal(journalPath).read(), /partial line/);
   });
 
+  it("fails closed when flow state confirmation order is ahead of the durable Activity journal", () => {
+    tmp = createTmpDir("current-flow-order-conflict-");
+    const initial = CurrentFlowState.create({ definition: definition() });
+    const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
+    store.create(initial);
+    fs.writeFileSync(store.statePath, `${JSON.stringify(initial.withConfirmationOrder(1).toJSON())}\n`);
+    assert.throws(
+      () => store.load(),
+      /flow state confirmation order is ahead of its Activity journal/,
+    );
+  });
+
   it("derives append order from the durable journal instead of caller-supplied entries", () => {
     tmp = createTmpDir("current-flow-journal-order-");
     const initial = CurrentFlowState.create({ definition: definition() });
     const branchPath = ["flow", "plan", "branch"];
-    const journal = new FlowActivityJournal(path.join(tmp, "activities.jsonl"));
-    journal.append(flowActivity({
+    const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
+    store.create(initial);
+    const first = flowActivity({
       id: "first",
       state: initial,
       currentPath: branchPath,
       confirmationOrder: 1,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "branch-first"),
-    }));
+    });
+    store.apply({ activity: first });
+    const duplicateOrder = flowActivity({
+      id: "duplicate-order",
+      state: initial,
+      currentPath: branchPath,
+      confirmationOrder: 1,
+      operation: "start_attempt",
+      attempt: attemptFor(initial, branchPath, "branch-second"),
+    });
     assert.throws(
-      () => journal.append(flowActivity({
-        id: "duplicate-order",
-        state: initial,
-        currentPath: branchPath,
-        confirmationOrder: 1,
-        operation: "start_attempt",
-        attempt: attemptFor(initial, branchPath, "branch-second"),
-      }), []),
-      /confirmationOrder must follow/,
+      () => store.journal.append(duplicateOrder),
+      /appended only by CurrentFlowStateStore/,
     );
-    assert.equal(journal.read().length, 1);
+    assert.throws(
+      () => store.apply({ activity: duplicateOrder }),
+      /state confirmation order is ahead/,
+    );
+    const reused = flowActivity({
+      id: "reused-attempt-id",
+      state: initial,
+      currentPath: branchPath,
+      confirmationOrder: 2,
+      operation: "rewind",
+      attempt: attemptFor(initial, branchPath, "branch-first", 2),
+    });
+    const corruptPath = path.join(tmp, "attempt-id-reuse.jsonl");
+    fs.writeFileSync(corruptPath, `${JSON.stringify(first.toJSON())}\n${JSON.stringify(reused.toJSON())}\n`);
+    assert.throws(
+      () => new FlowActivityJournal(corruptPath).read(),
+      /Attempt id branch-first is reused/,
+    );
+    assert.equal(store.journal.read().length, 1);
   });
 
   it("creates only fresh state against an absent or empty Activity journal", () => {
@@ -714,11 +960,26 @@ describe("Current Flow state foundation", () => {
       );
     }
     assert.throws(
+      () => new CurrentFlowState({ ...clean, schemaRevision: 1 }, { definition: definition() }),
+      /unsupported schemaRevision: 1/,
+    );
+    const missingCursor = structuredClone(clean);
+    delete missingCursor.steps[0].attemptSequence;
+    assert.throws(
+      () => new CurrentFlowState(missingCursor, { definition: definition() }),
+      /node.attemptSequence is required/,
+    );
+    assert.throws(
+      () => new NodeResult(passedResult("opaque artifact", ["legacy-artifact"])),
+      /artifact reference must be an object/,
+    );
+    assert.throws(
       () => new CurrentAttempt({
         id: "bad",
-        number: 1,
+        sequence: 1,
         startedAt: NOW,
         consumption: { semantic: 0, tooling: 0 },
+        failure: null,
         blocker: null,
         incomplete: [{ code: "bad", message: "Bad resource.", operation: null, resources: ["spec"] }],
         operationClaims: [],

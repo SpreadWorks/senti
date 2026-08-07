@@ -1367,18 +1367,31 @@ export function collectTaskNodes() {
  * legacy-schema fallback or a double-write bridge.
  */
 export function buildCurrentFlowDefinition() {
+  const transitionsFor = ({ skippable = false } = {}) => [
+    "pending:in_progress",
+    "in_progress:done",
+    ...(skippable ? ["in_progress:skipped"] : []),
+    "done:in_progress",
+    "skipped:in_progress",
+    "invalidated:in_progress",
+    "pending:invalidated",
+    "in_progress:invalidated",
+    "done:invalidated",
+    "skipped:invalidated",
+  ];
   const transitionContract = (node) => new CurrentFlowNodeContract({
     // Existing maxAttempts counts the initial Attempt.  The next-generation
     // contract keeps only retry budgets, so it subtracts that initial work.
     semanticRetryLimit: node.resolveMaxAttempts({ autoApprove: false }) - 1,
     // null remains an explicit zero-budget tooling policy in NodeContract.
     toolingRetryLimit: node.resolveToolingMaxAttempts({ autoApprove: false }),
+    transitions: transitionsFor(node),
     // Context requirements stay definition-owned. Current Attempt claims may
     // cover them as completed operations or typed incomplete operations, but
     // never copy the contract into flow.json.
     resourceContract: { required: node.contextKinds, authority: "definition" },
   });
-  const actionMetadata = (node) => ({
+  const actionMetadata = (node, sourceScopes) => ({
     action: node.action ?? null,
     instructionsKey: node.instructionsKey ?? null,
     contextKinds: [...node.contextKinds],
@@ -1389,14 +1402,15 @@ export function buildCurrentFlowDefinition() {
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
     failurePolicy: node.failurePolicy ?? null,
     executionCommand: node.executionCommand?.toString() ?? null,
+    artifactAuthority: { sourceScopes },
   });
-  const adapt = (node, kind = "step") => new CurrentFlowDefinitionNode({
+  const adapt = (node, kind = "step", sourceScopes = ["all_tasks", "flow"]) => new CurrentFlowDefinitionNode({
     kind,
     id: node.id,
     key: node.instructionsKey || node.id,
     contract: transitionContract(node),
-    steps: (node.children || []).map((child) => adapt(child)),
-    action: node.children ? null : actionMetadata(node),
+    steps: (node.children || []).map((child) => adapt(child, "step", sourceScopes)),
+    action: node.children ? null : actionMetadata(node, sourceScopes),
   });
   return new CurrentFlowDefinition({
     root: new CurrentFlowDefinitionNode({
@@ -1407,6 +1421,7 @@ export function buildCurrentFlowDefinition() {
         semanticRetryLimit: 0,
         toolingRetryLimit: null,
         resourceContract: { required: [], authority: "definition" },
+        transitions: transitionsFor(),
       }),
       steps: FLOW_DEFINITION.map((node) => adapt(node)),
     }),
@@ -1418,8 +1433,9 @@ export function buildCurrentFlowDefinition() {
         semanticRetryLimit: 0,
         toolingRetryLimit: null,
         resourceContract: { required: [], authority: "definition" },
+        transitions: transitionsFor(),
       }),
-      steps: TASK_DEFINITION.map((node) => adapt(node)),
+      steps: TASK_DEFINITION.map((node) => adapt(node, "step", ["same_task", "flow"])),
     }),
     dynamicTaskContainerId: "impl",
     dynamicTaskInsertionAfterId: "implement",
