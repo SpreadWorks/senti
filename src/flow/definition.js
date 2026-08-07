@@ -1373,9 +1373,22 @@ export function buildCurrentFlowDefinition() {
     semanticRetryLimit: node.resolveMaxAttempts({ autoApprove: false }) - 1,
     // null remains an explicit zero-budget tooling policy in NodeContract.
     toolingRetryLimit: node.resolveToolingMaxAttempts({ autoApprove: false }),
-    // Context requirements are definition-owned resource contracts. They do
-    // not become mutable runtime state or retry counters.
-    resources: node.contextKinds,
+    // Context requirements stay definition-owned. Current Attempt claims may
+    // cover them as completed operations or typed incomplete operations, but
+    // never copy the contract into flow.json.
+    resourceContract: { required: node.contextKinds, authority: "definition" },
+  });
+  const actionMetadata = (node) => ({
+    action: node.action ?? null,
+    instructionsKey: node.instructionsKey ?? null,
+    contextKinds: [...node.contextKinds],
+    outputSchemaRef: node.outputSchemaRef ?? null,
+    requiresApproval: node.requiresApproval === true,
+    autoApproveChoiceId: node.autoApproveChoiceId ?? null,
+    maxAttempts: node.resolveMaxAttempts({ autoApprove: false }),
+    sideEffects: node.sideEffects ? [...node.sideEffects] : null,
+    failurePolicy: node.failurePolicy ?? null,
+    executionCommand: node.executionCommand?.toString() ?? null,
   });
   const adapt = (node, kind = "step") => new CurrentFlowDefinitionNode({
     kind,
@@ -1383,6 +1396,7 @@ export function buildCurrentFlowDefinition() {
     key: node.instructionsKey || node.id,
     contract: transitionContract(node),
     steps: (node.children || []).map((child) => adapt(child)),
+    action: node.children ? null : actionMetadata(node),
   });
   return new CurrentFlowDefinition({
     root: new CurrentFlowDefinitionNode({
@@ -1392,7 +1406,7 @@ export function buildCurrentFlowDefinition() {
       contract: new CurrentFlowNodeContract({
         semanticRetryLimit: 0,
         toolingRetryLimit: null,
-        resources: [],
+        resourceContract: { required: [], authority: "definition" },
       }),
       steps: FLOW_DEFINITION.map((node) => adapt(node)),
     }),
@@ -1400,10 +1414,15 @@ export function buildCurrentFlowDefinition() {
       kind: "task",
       id: "task",
       key: "task",
-      contract: new CurrentFlowNodeContract({ semanticRetryLimit: 0, toolingRetryLimit: null, resources: [] }),
+      contract: new CurrentFlowNodeContract({
+        semanticRetryLimit: 0,
+        toolingRetryLimit: null,
+        resourceContract: { required: [], authority: "definition" },
+      }),
       steps: TASK_DEFINITION.map((node) => adapt(node)),
     }),
     dynamicTaskContainerId: "impl",
+    dynamicTaskInsertionAfterId: "implement",
   });
 }
 
