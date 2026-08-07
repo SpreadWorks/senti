@@ -14,6 +14,11 @@
 import fs from "fs";
 import path from "path";
 import { AtomicFile } from "../lib/atomic-file.js";
+import {
+  CurrentFlowDefinition,
+  FlowDefinitionNode as CurrentFlowDefinitionNode,
+  NodeContract as CurrentFlowNodeContract,
+} from "./lib/current-flow-state.js";
 import { draftReviewRouteForKey, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 import {
   flattenSteps,
@@ -1351,6 +1356,55 @@ export function collectFlowNodes() {
 
 export function collectTaskNodes() {
   return [...TASK_DEFINITION];
+}
+
+/**
+ * Produce the explicit input contract for the next-generation state model.
+ *
+ * This is intentionally an adapter, not a converter: it reads the production
+ * definition only and never reads or rewrites the currently deployed
+ * flow.json.  The migration work can therefore select this contract without a
+ * legacy-schema fallback or a double-write bridge.
+ */
+export function buildCurrentFlowDefinition() {
+  const transitionContract = (node) => new CurrentFlowNodeContract({
+    // Existing maxAttempts counts the initial Attempt.  The next-generation
+    // contract keeps only retry budgets, so it subtracts that initial work.
+    semanticRetryLimit: node.resolveMaxAttempts({ autoApprove: false }) - 1,
+    // null remains an explicit zero-budget tooling policy in NodeContract.
+    toolingRetryLimit: node.resolveToolingMaxAttempts({ autoApprove: false }),
+    // Context requirements are definition-owned resource contracts. They do
+    // not become mutable runtime state or retry counters.
+    resources: node.contextKinds,
+  });
+  const adapt = (node, kind = "step") => new CurrentFlowDefinitionNode({
+    kind,
+    id: node.id,
+    key: node.instructionsKey || node.id,
+    contract: transitionContract(node),
+    steps: (node.children || []).map((child) => adapt(child)),
+  });
+  return new CurrentFlowDefinition({
+    root: new CurrentFlowDefinitionNode({
+      kind: "flow",
+      id: "flow",
+      key: "flow",
+      contract: new CurrentFlowNodeContract({
+        semanticRetryLimit: 0,
+        toolingRetryLimit: null,
+        resources: [],
+      }),
+      steps: FLOW_DEFINITION.map((node) => adapt(node)),
+    }),
+    taskTemplate: new CurrentFlowDefinitionNode({
+      kind: "task",
+      id: "task",
+      key: "task",
+      contract: new CurrentFlowNodeContract({ semanticRetryLimit: 0, toolingRetryLimit: null, resources: [] }),
+      steps: TASK_DEFINITION.map((node) => adapt(node)),
+    }),
+    dynamicTaskContainerId: "impl",
+  });
 }
 
 export function getFlowNode(id) {
