@@ -7,7 +7,33 @@
  * ownership.
  */
 
-import { ArtifactAuthority } from "../../lib/flow-version.js";
+import { ArtifactAuthority, ArtifactAuthoritySlot } from "../../lib/artifact-authority.js";
+
+const CLAIM_MINT = Symbol("canonical-flow-artifact-publication-claim");
+
+export class ArtifactPublicationClaim {
+  constructor({ producer, stepId, authority } = {}, mint = null) {
+    if (mint !== CLAIM_MINT) throw new Error("artifact publication claims can only be issued by the canonical Flow authority matrix");
+    this.producer = requiredString(producer, "publication producer");
+    this.stepId = requiredString(stepId, "publication stepId");
+    this.authority = ArtifactAuthority.from(authority);
+    Object.freeze(this);
+  }
+  assertSlot(slot) {
+    if (!(slot instanceof ArtifactAuthoritySlot)) throw new Error("ArtifactAuthoritySlot is required for publication authority");
+    if (this.authority.toString() !== slot.authority.toString()) {
+      throw new Error(`artifact publication claim authority mismatch for ${this.stepId}`);
+    }
+    if (slot.publicationStep !== this.stepId) {
+      throw new Error(`artifact publication claim step mismatch: ${this.stepId} cannot publish ${slot.publicationStep}`);
+    }
+    const entry = BY_STEP.get(this.stepId);
+    if (entry !== undefined && entry.producer !== this.producer) {
+      throw new Error(`artifact publication claim producer mismatch for ${this.stepId}`);
+    }
+    return slot;
+  }
+}
 
 const PRODUCERS = new Set(["cli", "worker", "user"]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
@@ -197,4 +223,12 @@ export function assertCatalogPublicationAuthority(stepId, authority) {
   const catalogAuthority = ArtifactAuthority.from(authority);
   if (entry.writableAuthority !== catalogAuthority.toString()) throw new Error(`catalog authority mismatch for ${stepId}: expected ${entry.writableAuthority}`);
   return entry;
+}
+
+export function artifactPublicationClaimForStep(stepId) {
+  const entry = flowArtifactAuthorityForStep(stepId);
+  if (!entry) throw new Error(`unknown Flow artifact authority step: ${stepId}`);
+  return new ArtifactPublicationClaim({
+    producer: entry.producer, stepId: entry.stepId, authority: entry.writableAuthority,
+  }, CLAIM_MINT);
 }

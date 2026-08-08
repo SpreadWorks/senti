@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
+  FlowWorkspace,
   FlowSpecLocation,
   FlowSpecRoot,
   relativeFlowSpecFile,
@@ -84,5 +85,41 @@ describe("FlowWorkspace configured artifact authority", () => {
     assert.throws(() => new FlowSpecRoot("/tmp/specs"), /repository-relative/);
     assert.throws(() => new FlowSpecRoot("../specs"), /parent path/);
     assert.throws(() => new FlowSpecRoot("specs//nested"), /empty/);
+  });
+
+  it("keeps canonical and execution Version authorities explicit in a worktree", () => {
+    root = createTmpDir("senti-flow-version-workspace-");
+    const executionRoot = path.join(root, "worktree");
+    fs.mkdirSync(executionRoot);
+    const workspace = new FlowWorkspace({ repositoryRoot: root, executionRoot, specRoot: "specs" });
+    const canonical = workspace.canonicalVersion("485-shared-artifacts", 1);
+    const execution = workspace.executionVersion("485-shared-artifacts", 1);
+    assert.equal(canonical.repositoryRoot, root);
+    assert.equal(canonical.authorityScope.toString(), "canonical");
+    assert.equal(execution.repositoryRoot, executionRoot);
+    assert.equal(execution.authorityScope.toString(), "execution");
+    assert.notEqual(canonical.consumers.report(), execution.consumers.report());
+
+    const manager = new FlowManager({
+      root: executionRoot,
+      mainRoot: root,
+      inWorktree: true,
+      specId: "485-shared-artifacts",
+    });
+    assert.equal(manager.canonicalVersionLocation(1).repositoryRoot, root);
+    assert.equal(manager.executionVersionLocation(1).repositoryRoot, executionRoot);
+    assert.equal(typeof manager.versionLocation, "undefined");
+  });
+
+  it("rejects repository and execution roots reached through symlink ancestors", () => {
+    root = createTmpDir("senti-flow-version-symlink-root-");
+    const real = path.join(root, "real");
+    const linked = path.join(root, "linked");
+    fs.mkdirSync(real);
+    fs.symlinkSync(real, linked);
+    const canonicalLinked = new FlowWorkspace({ repositoryRoot: linked, executionRoot: real });
+    const executionLinked = new FlowWorkspace({ repositoryRoot: real, executionRoot: linked });
+    assert.throws(() => canonicalLinked.canonicalVersion("485-shared-artifacts", 1), /symbolic-link|canonical/);
+    assert.throws(() => executionLinked.executionVersion("485-shared-artifacts", 1), /symbolic-link|canonical/);
   });
 });

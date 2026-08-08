@@ -12,7 +12,8 @@ import {
   resolveReviewPermittedOperation,
 } from "./review-convergence.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
-import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { ArtifactAuthoritySlot, FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { ArtifactPublicationClaim } from "./flow-artifact-authority.js";
 
 function isInside(parent, child) {
   const relative = path.relative(parent, child);
@@ -188,22 +189,26 @@ export class ReviewEvidenceWrite {
 }
 
 export class ReviewEvidenceStore {
-  static forVersion({ location } = {}) {
+  static forVersion({ location, publicationClaim } = {}) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Version review evidence storage");
-    return new ReviewEvidenceStore({ location });
+    location.requireScope("canonical");
+    if (!(publicationClaim instanceof ArtifactPublicationClaim)) throw new Error("ArtifactPublicationClaim is required for Version review evidence storage");
+    return new ReviewEvidenceStore({ location, publicationClaim });
   }
 
-  constructor({ root, specDir, location = null } = {}) {
+  constructor({ root, specDir, location = null, publicationClaim = null } = {}) {
     if (location instanceof FlowVersionLocation) {
       this.root = location.directory;
       this.specDir = location.directory;
       this.evidenceDir = location.reviewEvidenceDirectory;
       this.catalogStore = new FlowArtifactCatalogStore({ location });
+      this.publicationClaim = publicationClaim;
     } else {
       this.root = fs.realpathSync(path.resolve(root));
       this.specDir = fs.realpathSync(path.resolve(specDir));
       this.evidenceDir = path.join(this.specDir, "review-evidence");
       this.catalogStore = null;
+      this.publicationClaim = null;
     }
     if (!isInside(this.root, this.specDir)) {
       throw new Error("specDir must be inside root");
@@ -233,8 +238,8 @@ export class ReviewEvidenceStore {
 
   contains(evidence) {
     if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
-    this.catalogStore?.require();
     const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
+    const contains = () => {
     let stat;
     try {
       stat = fs.lstatSync(artifactPath);
@@ -245,6 +250,14 @@ export class ReviewEvidenceStore {
     if (!stat.isFile() || stat.isSymbolicLink()) return false;
     const expected = Buffer.from(`${evidence.canonicalText}\n`, "utf8");
     return fs.readFileSync(artifactPath).equals(expected);
+    };
+    if (!this.catalogStore) return contains();
+    return this.catalogStore.read({
+      read: (catalog) => {
+        if (fs.existsSync(artifactPath)) catalog.resolve(path.relative(this.root, artifactPath).split(path.sep).join("/"));
+        return contains();
+      },
+    });
   }
 
   write(evidence) {
@@ -259,11 +272,15 @@ export class ReviewEvidenceStore {
       if (this.catalogStore) {
         this.catalogStore.publish({
           relativePath: path.relative(this.root, artifactPath).split(path.sep).join("/"),
-          kind: "review-evidence",
+          authoritySlot: ArtifactAuthoritySlot.collectionMember({
+            kind: "review-evidence",
+            authority: "canonical-flow-artifacts",
+            memberId: evidence.identity.evidenceDigest,
+            publicationStep: evidence.taskId == null ? `${evidence.phase}-review` : "task-review",
+          }),
+          publicationClaim: this.publicationClaim,
           mediaType: "application/json",
-          authority: "canonical-flow-artifacts",
           retention: "permanent",
-          activityId: evidence.identity.evidenceDigest,
           write: () => fs.writeFileSync(artifactPath, bytes, { flag: "wx", mode: 0o600 }),
         });
       } else {

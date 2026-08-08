@@ -485,8 +485,11 @@ export class FlowManager {
   }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   specLocation(specId) { return this._workspace.forSpec(withSpecIdArgDefault(specId, this._boundSpecId)); }
-  versionLocation(specId, version) {
-    return this._workspace.forVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
+  canonicalVersionLocation(version, { specId } = {}) {
+    return this._workspace.canonicalVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
+  }
+  executionVersionLocation(version, { specId } = {}) {
+    return this._workspace.executionVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
   }
   pathForCurrent() { return this._store.pathForCurrent(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
-import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { ArtifactAuthoritySlot, FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
@@ -123,7 +123,14 @@ export class IssueLogSnapshot {
 export class IssueLogStore {
   static forVersion({ location, ...options } = {}) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Version issue-log storage");
-    return new IssueLogStore({ ...options, root: location.directory, spec: "spec.json", versionLocation: location });
+    location.requireScope("canonical");
+    return new IssueLogStore({
+      ...options,
+      root: location.directory,
+      mainRoot: location.repositoryRoot,
+      spec: "spec.json",
+      versionLocation: location,
+    });
   }
 
   constructor({
@@ -271,20 +278,24 @@ export class IssueLogStore {
   }
 
   #readFresh() {
-    this.catalogStore?.require();
-    return new IssueLogSnapshot(new IssueLogDocument(
-      this.file.read({ entries: [] }),
-      { allowLegacyArray: this.allowLegacyArray },
+    const read = () => new IssueLogSnapshot(new IssueLogDocument(
+      this.file.read({ entries: [] }), { allowLegacyArray: this.allowLegacyArray },
     ));
+    if (!this.catalogStore) return read();
+    return this.catalogStore.read({
+      read: (catalog) => {
+        if (fs.existsSync(this.filePath)) catalog.resolve("issue-log.json");
+        return read();
+      },
+    });
   }
 
   #write(document) {
     if (!this.catalogStore) return this.file.write(document);
-    return this.catalogStore.publish({
+    return this.catalogStore.publishSystem({
       relativePath: "issue-log.json",
-      kind: "issue-log",
+      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "issue-log", authority: "repository-metadata" }),
       mediaType: "application/json",
-      authority: "repository-metadata",
       retention: "permanent",
       write: () => this.file.write(document),
     }).result;
@@ -292,11 +303,10 @@ export class IssueLogStore {
 
   #writeExact(bytes, mode) {
     if (!this.catalogStore) return writeExactIssueLog(this.filePath, bytes, mode);
-    return this.catalogStore.publish({
+    return this.catalogStore.publishSystem({
       relativePath: "issue-log.json",
-      kind: "issue-log",
+      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "issue-log", authority: "repository-metadata" }),
       mediaType: "application/json",
-      authority: "repository-metadata",
       retention: "permanent",
       write: () => writeExactIssueLog(this.filePath, bytes, mode),
     }).result;
@@ -308,7 +318,7 @@ export class IssueLogStore {
       fsyncDirectory(this.directory);
       return;
     }
-    return this.catalogStore.unpublish({
+    return this.catalogStore.unpublishSystem({
       relativePath: "issue-log.json",
       write: () => {
         fs.unlinkSync(this.filePath);

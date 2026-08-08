@@ -1,6 +1,6 @@
 import path from "node:path";
 import { FlowSpecId } from "./flow-spec-id.js";
-import { FlowVersion, FlowVersionLocation } from "./flow-version.js";
+import { FlowVersion, FlowVersionAuthorityScope, FlowVersionLocation } from "./flow-version.js";
 
 export const DEFAULT_FLOW_SPEC_DIR = "specs";
 const FLOW_STATE_LOCATIONS = new WeakMap();
@@ -109,9 +109,20 @@ export class FlowWorkspace {
     });
   }
 
-  forVersion(specId, version) {
+  canonicalVersion(specId, version) {
     return new FlowVersionLocation({
       repositoryRoot: this.repositoryRoot,
+      authorityScope: FlowVersionAuthorityScope.canonical(),
+      specRoot: this.specRoot.toString(),
+      specId: FlowSpecId.from(specId).toString(),
+      version: FlowVersion.from(version),
+    });
+  }
+
+  executionVersion(specId, version) {
+    return new FlowVersionLocation({
+      repositoryRoot: this.executionRoot,
+      authorityScope: FlowVersionAuthorityScope.execution(),
       specRoot: this.specRoot.toString(),
       specId: FlowSpecId.from(specId).toString(),
       version: FlowVersion.from(version),
