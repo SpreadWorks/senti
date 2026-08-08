@@ -16,6 +16,7 @@ import path from "path";
 import { AtomicFile } from "../lib/atomic-file.js";
 import {
   CurrentFlowDefinition,
+  DefinitionFailurePolicy,
   FlowDefinitionNode as CurrentFlowDefinitionNode,
   NodeContract as CurrentFlowNodeContract,
 } from "./lib/current-flow-state.js";
@@ -102,7 +103,6 @@ function requireStepList(value, field) {
 }
 
 const STEP_STATUSES = new Set(["pending", "in_progress", "done", "skipped"]);
-const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
 
 export class SetStepStatus {
   constructor({ step, status, suppressAutoPromotion = false }) {
@@ -791,6 +791,7 @@ class FlowNode {
     sideEffects = null,
     gatePhase = null,
     failurePolicy = null,
+    failureTargetId = null,
     definitionLifecycleOwned = false,
     executionCommand = null,
   }) {
@@ -826,10 +827,14 @@ class FlowNode {
       throw new Error(`only definition lifecycle-owned steps may declare executionCommand: ${this.id}`);
     }
     this.executionCommand = executionCommand;
-    if (failurePolicy !== null && !FAILURE_POLICIES.has(failurePolicy)) {
-      throw new Error(`invalid failurePolicy: ${failurePolicy}`);
+    if (failurePolicy === null && failureTargetId !== null) {
+      throw new Error(`failureTargetId requires a failurePolicy: ${this.id}`);
     }
-    this.failurePolicy = failurePolicy;
+    const parsedFailurePolicy = failurePolicy === null
+      ? null
+      : new DefinitionFailurePolicy(failurePolicy, { targetNodeId: failureTargetId });
+    this.failurePolicy = parsedFailurePolicy?.value ?? null;
+    this.failureTargetId = parsedFailurePolicy?.targetNodeId ?? null;
   }
 
   get isBranch() { return this.children != null; }
@@ -1171,6 +1176,7 @@ const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 1,
         sideEffects: ["promoteFinalRegression"],
         failurePolicy: "amend-spec",
+        failureTargetId: "spec",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("acceptance-review"),
       }),
@@ -1367,10 +1373,13 @@ export function collectTaskNodes() {
  * legacy-schema fallback or a double-write bridge.
  */
 export function buildCurrentFlowDefinition() {
-  const transitionsFor = ({ skippable = false } = {}) => [
+  const transitionsFor = ({ skippable = false, failurePolicy = null } = {}) => [
     "pending:in_progress",
     "in_progress:done",
     ...(skippable ? ["in_progress:skipped"] : []),
+    ...(["retry", "record"].includes(failurePolicy)
+      ? ["in_progress:failed", "failed:in_progress", "failed:invalidated"]
+      : []),
     "done:in_progress",
     "skipped:in_progress",
     "invalidated:in_progress",
@@ -1400,7 +1409,9 @@ export function buildCurrentFlowDefinition() {
     autoApproveChoiceId: node.autoApproveChoiceId ?? null,
     maxAttempts: node.resolveMaxAttempts({ autoApprove: false }),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
-    failurePolicy: node.failurePolicy ?? null,
+    failurePolicy: new DefinitionFailurePolicy(node.failurePolicy ?? "block", {
+      targetNodeId: node.failureTargetId ?? null,
+    }),
     executionCommand: node.executionCommand?.toString() ?? null,
     artifactAuthority: { sourceScopes },
   });

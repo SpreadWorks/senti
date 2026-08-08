@@ -19,20 +19,30 @@ export const CURRENT_FLOW_SCHEMA_REVISION = 2;
 export const CURRENT_FLOW_RESULT_VERSION = 1;
 
 const NODE_KINDS = new Set(["flow", "step", "task"]);
-const NODE_STATUSES = new Set(["pending", "in_progress", "done", "skipped", "invalidated"]);
+const NODE_STATUSES = new Set(["pending", "in_progress", "done", "skipped", "failed", "invalidated"]);
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
+const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
 const ATTEMPT_TYPES = new Set([
   "task_added",
   "attempt_started",
   "attempt_retried",
   "attempt_updated",
   "attempt_failed",
+  "failure_recorded",
   "result_confirmed",
   "recovery",
 ]);
-const TERMINAL_NODE_STATUSES = new Set(["done", "skipped"]);
+const TRANSITION_ATTEMPT_OPERATIONS = new Set([
+  "start_attempt",
+  "retry_attempt",
+  "update_attempt",
+  "rewind",
+  "recover_attempt",
+]);
+const TERMINAL_NODE_STATUSES = new Set(["done", "skipped", "failed"]);
+const AUTHORITATIVE_NODE_STATUSES = new Set(["done", "skipped"]);
 const EXECUTABLE_NODE_STATUSES = new Set(["pending", "invalidated"]);
 const FORBIDDEN_TOP_LEVEL_FIELDS = new Set([
   "currentTaskId",
@@ -127,6 +137,10 @@ function digest(bytes) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
+function sameFileIdentity(left, right) {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
 function fsyncDirectory(directory) {
   const descriptor = fs.openSync(directory, "r");
   try { fs.fsyncSync(descriptor); } finally { fs.closeSync(descriptor); }
@@ -146,15 +160,21 @@ function replaceNode(root, nodeId, replacement) {
   return root.withSteps(nextSteps);
 }
 
+function transitionNode(node, status, definition, changes = {}) {
+  if (node.status !== status && !definition.contractForNode(node).permits(node.status, status)) {
+    throw new CurrentFlowStateInvariantError(
+      `definition forbids transition ${node.status}:${status} for ${node.id}`,
+    );
+  }
+  return node.with({ ...changes, status });
+}
+
 function reconcileInvalidatedParents(node, definition) {
   if (node.steps.length === 0) return node;
   const steps = node.steps.map((step) => reconcileInvalidatedParents(step, definition));
   const hasInvalidatedChild = steps.some((step) => step.status === "invalidated");
   if (hasInvalidatedChild) {
-    if (node.status !== "invalidated" && !definition.contractForNode(node).permits(node.status, "invalidated")) {
-      throw new CurrentFlowStateInvariantError(`definition forbids transition ${node.status}:invalidated for ${node.id}`);
-    }
-    return node.with({ status: "invalidated", result: null, steps });
+    return transitionNode(node, "invalidated", definition, { result: null, steps });
   }
   return node.withSteps(steps);
 }
@@ -164,16 +184,13 @@ function reconcileCompletedParents(node, definition) {
   const steps = node.steps.map((step) => reconcileCompletedParents(step, definition));
   if (
     definition.contractForNode(node).completion === "all_children_terminal"
-    && steps.every((step) => step.status === "done" || step.status === "skipped")
+    && steps.every((step) => TERMINAL_NODE_STATUSES.has(step.status))
   ) {
     const result = [...steps].reverse().find((step) => step.result != null)?.result ?? null;
-    if (node.status !== "done" && !definition.contractForNode(node).permits(node.status, "done")) {
-      throw new CurrentFlowStateInvariantError(`definition forbids transition ${node.status}:done for ${node.id}`);
-    }
-    return node.with({ status: "done", result, steps });
+    return transitionNode(node, "done", definition, { result, steps });
   }
   if (steps.some((step) => step.status === "in_progress")) {
-    return node.with({ status: "in_progress", steps });
+    return transitionNode(node, "in_progress", definition, { steps });
   }
   return node.withSteps(steps);
 }
@@ -525,8 +542,9 @@ export class DefinitionAction {
     this.maxAttempts = requirePositiveInteger(maxAttempts, "definition.action.maxAttempts");
     if (sideEffects !== null) requireStringList(sideEffects, "definition.action.sideEffects");
     this.sideEffects = sideEffects === null ? null : Object.freeze([...sideEffects]);
-    if (failurePolicy !== null) requireString(failurePolicy, "definition.action.failurePolicy");
-    this.failurePolicy = failurePolicy;
+    this.failurePolicy = failurePolicy === null
+      ? null
+      : DefinitionFailurePolicy.from(failurePolicy);
     if (executionCommand !== null) requireString(executionCommand, "definition.action.executionCommand");
     this.executionCommand = executionCommand;
     this.artifactAuthority = artifactAuthority instanceof ArtifactAuthorityPolicy
@@ -545,9 +563,126 @@ export class DefinitionAction {
       autoApproveChoiceId: this.autoApproveChoiceId,
       maxAttempts: this.maxAttempts,
       sideEffects: this.sideEffects === null ? null : [...this.sideEffects],
-      failurePolicy: this.failurePolicy,
+      failurePolicy: this.failurePolicy?.toJSON() ?? null,
       executionCommand: this.executionCommand,
       artifactAuthority: this.artifactAuthority.toJSON(),
+    };
+  }
+}
+
+export class DefinitionFailurePolicy {
+  constructor(value, { targetNodeId = null } = {}) {
+    if (!FAILURE_POLICIES.has(value)) {
+      throw new CurrentFlowStateInvariantError(`definition.action.failurePolicy is invalid: ${value}`);
+    }
+    if (targetNodeId !== null) requireString(targetNodeId, "definition.action.failurePolicy.targetNodeId");
+    if ((value === "amend-spec") !== (targetNodeId !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        "amend-spec failure policy requires exactly one definition-owned target node",
+      );
+    }
+    this.value = value;
+    this.targetNodeId = targetNodeId;
+    Object.freeze(this);
+  }
+
+  decide({ failure, consumption, contract }) {
+    if (!(failure instanceof ActivityFailure)) {
+      throw new CurrentFlowStateInvariantError("failure policy decision requires a typed failure");
+    }
+    if (!(consumption instanceof AttemptConsumption) || !(contract instanceof NodeContract)) {
+      throw new CurrentFlowStateInvariantError("failure policy decision requires typed retry accounting");
+    }
+    const remaining = failure.retryKind === null
+      ? 0
+      : Math.max(0, contract.remainingRetries(consumption, failure.retryKind));
+    if (this.value === "retry" && failure.retryable && remaining > 0) {
+      return new DefinitionFailureDecision({
+        policy: this,
+        operation: "retry",
+        retryKind: failure.retryKind,
+        remaining,
+        targetNodeId: null,
+        reason: `the definition authorizes a ${failure.retryKind} retry with ${remaining} remaining`,
+      });
+    }
+    if (this.value === "retry" || this.value === "record") {
+      return new DefinitionFailureDecision({
+        policy: this,
+        operation: "record",
+        retryKind: null,
+        remaining: 0,
+        targetNodeId: null,
+        reason: this.value === "retry"
+          ? "the definition records the exhausted or non-retryable failure before continuing"
+          : "the definition records this terminal failure before continuing",
+      });
+    }
+    if (this.value === "amend-spec") {
+      return new DefinitionFailureDecision({
+        policy: this,
+        operation: "rewind",
+        retryKind: null,
+        remaining: 0,
+        targetNodeId: this.targetNodeId,
+        reason: "the definition rewinds to its specification amendment target",
+      });
+    }
+    return new DefinitionFailureDecision({
+      policy: this,
+      operation: "blocked",
+      retryKind: null,
+      remaining: 0,
+      targetNodeId: null,
+      reason: "the definition blocks after this terminal failure",
+    });
+  }
+
+  static from(value) {
+    if (value instanceof DefinitionFailurePolicy) return value;
+    if (typeof value === "string") return new DefinitionFailurePolicy(value);
+    requireExactFields(value, new Set(["kind", "targetNodeId"]), "definition.action.failurePolicy");
+    return new DefinitionFailurePolicy(value.kind, { targetNodeId: value.targetNodeId });
+  }
+
+  toJSON() { return { kind: this.value, targetNodeId: this.targetNodeId }; }
+}
+
+export class DefinitionFailureDecision {
+  constructor({ policy, operation, retryKind, remaining, targetNodeId, reason }) {
+    if (!(policy instanceof DefinitionFailurePolicy)) {
+      throw new CurrentFlowStateInvariantError("failure decision requires a definition-owned policy");
+    }
+    if (!["retry", "record", "rewind", "blocked"].includes(operation)) {
+      throw new CurrentFlowStateInvariantError("failure decision operation is invalid");
+    }
+    if (retryKind !== null && !RETRY_KINDS.has(retryKind)) {
+      throw new CurrentFlowStateInvariantError("failure decision retryKind is invalid");
+    }
+    requirePositiveInteger(remaining, "failure decision remaining", { allowZero: true });
+    if ((operation === "retry") !== (retryKind !== null && remaining > 0)) {
+      throw new CurrentFlowStateInvariantError("only a retry decision may expose retry accounting");
+    }
+    if ((operation === "rewind") !== (targetNodeId !== null)) {
+      throw new CurrentFlowStateInvariantError("only a rewind decision may identify a target node");
+    }
+    this.policy = policy;
+    this.operation = operation;
+    this.retryKind = retryKind;
+    this.remaining = remaining;
+    this.targetNodeId = targetNodeId;
+    this.reason = requireString(reason, "failure decision reason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      policy: this.policy.toJSON(),
+      operation: this.operation,
+      retryKind: this.retryKind,
+      remaining: this.remaining,
+      targetNodeId: this.targetNodeId,
+      reason: this.reason,
     };
   }
 }
@@ -580,6 +715,12 @@ export class NodeContract {
     if (!Array.isArray(transitions) || transitions.some((value) => typeof value !== "string" || !/^[a-z_]+:[a-z_]+$/.test(value))) {
       throw new CurrentFlowStateInvariantError("contract.transitions must be transition strings");
     }
+    if (new Set(transitions).size !== transitions.length) {
+      throw new CurrentFlowStateInvariantError("contract.transitions must not contain duplicates");
+    }
+    if (transitions.some((transition) => transition.split(":").some((status) => !NODE_STATUSES.has(status)))) {
+      throw new CurrentFlowStateInvariantError("contract.transitions must use known node statuses");
+    }
     this.transitions = Object.freeze([...transitions]);
     this.resourceContract = resourceContract instanceof ResourceContract
       ? resourceContract
@@ -594,6 +735,21 @@ export class NodeContract {
   permits(from, to) {
     return this.transitions.includes(`${from}:${to}`);
   }
+
+  permitsStatus(status) {
+    if (!NODE_STATUSES.has(status)) return false;
+    if (status === "pending") return true;
+    return this.transitions.some((transition) => transition.endsWith(`:${status}`));
+  }
+
+  remainingRetries(consumption, kind) {
+    if (!(consumption instanceof AttemptConsumption) || !RETRY_KINDS.has(kind)) {
+      throw new CurrentFlowStateInvariantError("retry budget lookup requires typed consumption and retry kind");
+    }
+    const limit = kind === "semantic" ? this.semanticRetryLimit : this.toolingRetryLimit ?? 0;
+    return limit - consumption[kind];
+  }
+
 }
 
 export class FlowDefinitionNode {
@@ -609,8 +765,45 @@ export class FlowDefinitionNode {
     if (this.steps.length === 0 && this.action === null) {
       throw new CurrentFlowStateInvariantError(`definition leaf requires action metadata: ${this.id}`);
     }
+    if (this.steps.length === 0 && this.action.failurePolicy === null) {
+      throw new CurrentFlowStateInvariantError(`definition leaf requires an explicit failure policy: ${this.id}`);
+    }
     if (this.steps.length > 0 && this.action !== null) {
       throw new CurrentFlowStateInvariantError(`definition branch must not carry action metadata: ${this.id}`);
+    }
+    if (this.steps.length > 0 && this.contract.transitions.some((transition) => transition.endsWith(":failed"))) {
+      throw new CurrentFlowStateInvariantError(`definition branch cannot transition to failed: ${this.id}`);
+    }
+    if (
+      this.steps.length === 0
+      && ["retry", "record"].includes(this.action.failurePolicy.value)
+      && !this.contract.permits("in_progress", "failed")
+    ) {
+      throw new CurrentFlowStateInvariantError(
+        `recording failure policy requires an in_progress:failed transition: ${this.id}`,
+      );
+    }
+    if (
+      this.steps.length === 0
+      && !["retry", "record"].includes(this.action.failurePolicy.value)
+      && this.contract.permits("in_progress", "failed")
+    ) {
+      throw new CurrentFlowStateInvariantError(
+        `non-recording failure policy forbids an in_progress:failed transition: ${this.id}`,
+      );
+    }
+    if (this.steps.length === 0 && this.action.maxAttempts !== this.contract.semanticRetryLimit + 1) {
+      throw new CurrentFlowStateInvariantError(
+        `definition action maxAttempts must equal semanticRetryLimit + 1: ${this.id}`,
+      );
+    }
+    if (
+      this.steps.length === 0
+      && !jsonEqual([...this.action.contextKinds], [...this.contract.resourceContract.required])
+    ) {
+      throw new CurrentFlowStateInvariantError(
+        `definition action contextKinds must equal required resource contract: ${this.id}`,
+      );
     }
     Object.freeze(this);
   }
@@ -648,6 +841,22 @@ export class CurrentFlowDefinition {
       if (ids.has(node.id)) throw new CurrentFlowStateInvariantError(`definition duplicates stable id: ${node.id}`);
       ids.add(node.id);
     }
+    const taskTemplateNodes = collectDefinitionNodes(this.taskTemplate);
+    const taskTemplateIds = new Set();
+    const taskTemplateKeys = new Set();
+    for (const node of taskTemplateNodes) {
+      if (taskTemplateIds.has(node.id)) {
+        throw new CurrentFlowStateInvariantError(`definition task template duplicates relative id: ${node.id}`);
+      }
+      if (taskTemplateKeys.has(node.key)) {
+        throw new CurrentFlowStateInvariantError(`definition task template duplicates semantic key: ${node.key}`);
+      }
+      if (node !== this.taskTemplate && node.kind !== "step") {
+        throw new CurrentFlowStateInvariantError("definition Task descendants must be Step nodes");
+      }
+      taskTemplateIds.add(node.id);
+      taskTemplateKeys.add(node.key);
+    }
     const dynamicContainer = collectDefinitionNodes(this.root).find((node) => node.id === this.dynamicTaskContainerId);
     if (!dynamicContainer) {
       throw new CurrentFlowStateInvariantError("definition.dynamicTaskContainerId must identify a static node");
@@ -655,11 +864,45 @@ export class CurrentFlowDefinition {
     if (!dynamicContainer.steps.some((node) => node.id === this.dynamicTaskInsertionAfterId)) {
       throw new CurrentFlowStateInvariantError("definition.dynamicTaskInsertionAfterId must identify a direct dynamic-container child");
     }
+    const staticNodes = collectDefinitionNodes(this.root);
+    const staticLeaves = staticNodes.filter((node) => node.steps.length === 0);
+    const insertionAnchor = dynamicContainer.steps.find((node) => node.id === this.dynamicTaskInsertionAfterId);
+    const insertionAnchorLeaves = collectDefinitionNodes(insertionAnchor).filter((node) => node.steps.length === 0);
+    const insertionPosition = staticLeaves.indexOf(insertionAnchorLeaves.at(-1)) + 0.5;
+    for (const source of [...staticNodes, ...taskTemplateNodes]) {
+      const targetId = source.action?.failurePolicy?.targetNodeId ?? null;
+      if (targetId === null) continue;
+      const target = staticLeaves.find((candidate) => candidate.id === targetId);
+      if (!target || target.steps.length !== 0) {
+        throw new CurrentFlowStateInvariantError(
+          `definition failure policy target must identify a static leaf: ${targetId}`,
+        );
+      }
+      const sourcePosition = staticNodes.includes(source)
+        ? staticLeaves.indexOf(source)
+        : insertionPosition;
+      const targetPosition = staticLeaves.indexOf(target);
+      if (targetPosition >= sourcePosition || !target.contract.permits("done", "in_progress")) {
+        throw new CurrentFlowStateInvariantError(
+          `definition failure policy target must be an earlier rewindable leaf: ${targetId}`,
+        );
+      }
+    }
     Object.freeze(this);
   }
 
   materializeRoot() {
     return this.root.materialize();
+  }
+
+  // A persisted state does not carry definition semantics. Every authority
+  // boundary therefore discards the caller's binding and reconstructs the
+  // value under the definition that owns that boundary.
+  bindState(value) {
+    const serialized = value instanceof CurrentFlowState
+      ? CurrentFlowState.prototype.toJSON.call(value)
+      : value;
+    return new CurrentFlowState(serialized, { definition: this });
   }
 
   taskFrom({ id, key }) {
@@ -671,18 +914,7 @@ export class CurrentFlowDefinition {
       status: "pending",
       result: null,
       attemptSequence: 0,
-      steps: this.taskTemplate.steps.map((step) => new StepNode({
-        // A task-step semantic key is repeatable; its stable identity is not.
-        // This makes paths unambiguous even when an arbitrary number of Tasks
-        // are materialized from the same template.
-        kind: "step",
-        id: `${taskId}/${step.id}`,
-        key: step.key,
-        status: "pending",
-        result: null,
-        attemptSequence: 0,
-        steps: [],
-      })),
+      steps: this.taskTemplate.steps.map((step) => materializeTaskStep(step, taskId)),
     });
   }
 
@@ -707,7 +939,7 @@ export class CurrentFlowDefinition {
     const staticNode = collectDefinitionNodes(this.root).find((candidate) => candidate.id === node.id);
     if (staticNode) return staticNode;
     if (node instanceof TaskNode) return this.taskTemplate;
-    const template = this.taskTemplate.steps.find((step) => step.key === node.key);
+    const template = collectDefinitionNodes(this.taskTemplate).find((step) => step.key === node.key);
     if (template) return template;
     throw new CurrentFlowStateInvariantError(`definition has no node for current state: ${node.id}`);
   }
@@ -781,14 +1013,7 @@ function assertStaticShape(definition, state, dynamicContainerId, taskTemplate, 
       if (!(task instanceof TaskNode)) throw new CurrentFlowStateInvariantError("dynamic container may contain Task nodes only");
       if (task.steps.length !== taskTemplate.steps.length) throw new CurrentFlowStateInvariantError("Task.steps does not match task template");
       for (const [index, step] of task.steps.entries()) {
-        const expected = taskTemplate.steps[index];
-        if (
-          !(step instanceof StepNode)
-          || step.id !== `${task.id}/${expected.id}`
-          || step.key !== expected.key
-        ) {
-          throw new CurrentFlowStateInvariantError("Task.steps does not match task template");
-        }
+        assertTaskStepShape(taskTemplate.steps[index], step, task.id);
       }
     }
     for (const [offset, staticNode] of definition.steps.slice(taskStart).entries()) {
@@ -805,6 +1030,32 @@ function assertStaticShape(definition, state, dynamicContainerId, taskTemplate, 
   if (definition.steps.length !== state.steps.length) throw new CurrentFlowStateInvariantError(`state children do not match definition: ${definition.id}`);
   for (const [index, child] of state.steps.entries()) {
     assertStaticShape(definition.steps[index], child, dynamicContainerId, taskTemplate, insertionAfterId);
+  }
+}
+
+function materializeTaskStep(definition, parentId) {
+  return new StepNode({
+    kind: "step",
+    id: `${parentId}/${definition.id}`,
+    key: definition.key,
+    status: "pending",
+    result: null,
+    attemptSequence: 0,
+    steps: definition.steps.map((child) => materializeTaskStep(child, `${parentId}/${definition.id}`)),
+  });
+}
+
+function assertTaskStepShape(definition, state, parentId) {
+  if (
+    !(state instanceof StepNode)
+    || state.id !== `${parentId}/${definition.id}`
+    || state.key !== definition.key
+    || state.steps.length !== definition.steps.length
+  ) {
+    throw new CurrentFlowStateInvariantError("Task.steps does not match task template");
+  }
+  for (const [index, child] of state.steps.entries()) {
+    assertTaskStepShape(definition.steps[index], child, state.id);
   }
 }
 
@@ -849,19 +1100,72 @@ export class CurrentCursor {
   toJSON() { return { path: [...this.path], attempt: this.attempt.toJSON() }; }
 }
 
+export class CurrentFailureDisposition {
+  constructor({ attempt, decision, outcome, targetPath = null }) {
+    if (!(attempt instanceof CurrentAttempt) || attempt.failure === null) {
+      throw new CurrentFlowStateInvariantError("failure disposition requires a failed current Attempt");
+    }
+    if (!(decision instanceof DefinitionFailureDecision)) {
+      throw new CurrentFlowStateInvariantError("failure disposition requires a definition-owned decision");
+    }
+    if (!["failed", "incomplete"].includes(outcome)) {
+      throw new CurrentFlowStateInvariantError("failure disposition outcome must be failed or incomplete");
+    }
+    if (targetPath !== null && (!Array.isArray(targetPath) || targetPath.length === 0)) {
+      throw new CurrentFlowStateInvariantError("failure disposition target path must be null or a stable-id path");
+    }
+    if ((decision.operation === "rewind") !== (targetPath !== null)) {
+      throw new CurrentFlowStateInvariantError("rewind failure disposition requires exactly one target path");
+    }
+    if (targetPath !== null && targetPath.at(-1) !== decision.targetNodeId) {
+      throw new CurrentFlowStateInvariantError("failure disposition path must end at the definition target node");
+    }
+    this.attemptId = attempt.id;
+    this.sequence = attempt.sequence;
+    this.policy = decision.policy;
+    this.operation = decision.operation;
+    this.outcome = outcome;
+    this.retryKind = decision.retryKind;
+    this.remaining = decision.remaining;
+    this.targetPath = targetPath === null ? null : Object.freeze([...targetPath]);
+    this.reason = decision.reason;
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      attemptId: this.attemptId,
+      sequence: this.sequence,
+      policy: this.policy.toJSON(),
+      operation: this.operation,
+      outcome: this.outcome,
+      retryKind: this.retryKind,
+      remaining: this.remaining,
+      targetPath: this.targetPath === null ? null : [...this.targetPath],
+      reason: this.reason,
+    };
+  }
+}
+
 export class CurrentNextActionDescriptor {
-  constructor({ path: currentPath, node, operation, action }) {
+  constructor({ path: currentPath, node, operation, action, failureDisposition = null }) {
     if (!Array.isArray(currentPath) || currentPath.length === 0) {
       throw new CurrentFlowStateInvariantError("next action path must be a non-empty stable-id array");
     }
     if (!(node instanceof CurrentFlowNode)) {
       throw new CurrentFlowStateInvariantError("next action requires a current-state node");
     }
-    if (!["start", "recover", "resume"].includes(operation)) {
+    if (!["start", "recover", "resume", "retry", "record", "rewind", "blocked"].includes(operation)) {
       throw new CurrentFlowStateInvariantError("next action operation is invalid");
     }
     if (!(action instanceof DefinitionAction)) {
       throw new CurrentFlowStateInvariantError("next action requires definition-owned action metadata");
+    }
+    if (failureDisposition !== null && !(failureDisposition instanceof CurrentFailureDisposition)) {
+      throw new CurrentFlowStateInvariantError("next action failure disposition is invalid");
+    }
+    if (["retry", "record", "rewind", "blocked"].includes(operation) !== (failureDisposition !== null)) {
+      throw new CurrentFlowStateInvariantError("failed next action requires exactly one typed failure disposition");
     }
     this.path = Object.freeze([...currentPath]);
     this.nodeId = node.id;
@@ -869,6 +1173,7 @@ export class CurrentNextActionDescriptor {
     this.status = node.status;
     this.operation = operation;
     this.action = action;
+    this.failureDisposition = failureDisposition;
     Object.freeze(this);
   }
 
@@ -880,6 +1185,7 @@ export class CurrentNextActionDescriptor {
       status: this.status,
       operation: this.operation,
       action: this.action.toJSON(),
+      failureDisposition: this.failureDisposition?.toJSON() ?? null,
     };
   }
 }
@@ -1047,6 +1353,9 @@ function assertLeafLifecycle(node) {
   if (node.status === "skipped" && node.result?.outcome !== "skipped") {
     throw new CurrentFlowStateInvariantError(`skipped leaf requires a skipped result: ${node.id}`);
   }
+  if (node.status === "failed" && !["failed", "incomplete"].includes(node.result?.outcome)) {
+    throw new CurrentFlowStateInvariantError(`failed leaf requires a failed or incomplete result: ${node.id}`);
+  }
   if (["pending", "in_progress", "invalidated"].includes(node.status) && node.result !== null) {
     throw new CurrentFlowStateInvariantError(`${node.status} leaf must not retain a result: ${node.id}`);
   }
@@ -1084,6 +1393,9 @@ function assertBranchLifecycle(node) {
       throw new CurrentFlowStateInvariantError(`invalidated branch requires an invalidated child and no result: ${node.id}`);
     }
     return;
+  }
+  if (node.status !== "in_progress") {
+    throw new CurrentFlowStateInvariantError(`branch status is incompatible with completion lifecycle: ${node.id}`);
   }
   if (allTerminal) {
     throw new CurrentFlowStateInvariantError(`in_progress branch cannot retain an all-terminal child set: ${node.id}`);
@@ -1184,6 +1496,11 @@ export class CurrentFlowState {
     for (const node of all) {
       if (ids.has(node.id)) throw new CurrentFlowStateInvariantError(`state duplicates stable id: ${node.id}`);
       ids.add(node.id);
+      if (!this.definition.contractForNode(node).permitsStatus(node.status)) {
+        throw new CurrentFlowStateInvariantError(
+          `state status is unreachable in the definition transition graph for ${node.id}: ${node.status}`,
+        );
+      }
     }
     assertNodeLifecycle(this.root);
     assertExecutionFrontier(this.definition, this.root, this.current);
@@ -1222,6 +1539,9 @@ export class CurrentFlowState {
     if (!this.definition.canAddTask(this.root)) {
       throw new CurrentFlowStateInvariantError("dynamic Task insertion is closed after the definition-owned flow suffix begins");
     }
+    if (this.current !== null) {
+      throw new CurrentFlowStateInvariantError("dynamic Task insertion requires no active Attempt");
+    }
     const task = this.definition.taskFrom({ id, key });
     const insertionIndex = this.definition.taskInsertionIndex(container);
     return this.#replaceRoot(replaceNode(this.root, container.id, container.withSteps([
@@ -1254,6 +1574,9 @@ export class CurrentFlowState {
     if (this.attempt.failure === null || !this.attempt.failure.retryable) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires a retryable failed active Attempt");
     }
+    if (this.failureDisposition().operation !== "retry") {
+      throw new CurrentFlowStateInvariantError("the definition failure policy does not authorize retry");
+    }
     if (kind !== this.attempt.failure.retryKind) {
       throw new CurrentFlowStateInvariantError("retry kind must match the active Attempt failure decision");
     }
@@ -1262,7 +1585,7 @@ export class CurrentFlowState {
     return this.#replaceRoot(root, this.current, next);
   }
 
-  failCurrentAttempt({ failure }) {
+  failCurrentAttempt({ failure, result }) {
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("failCurrentAttempt requires an active Attempt");
     }
@@ -1270,20 +1593,41 @@ export class CurrentFlowState {
       throw new CurrentFlowStateInvariantError("active Attempt failure is already recorded");
     }
     const recorded = failure instanceof ActivityFailure ? failure : new ActivityFailure(failure);
-    if (recorded.retryable) {
-      const leaf = nodeAtPath(this.root, this.current);
-      const contract = this.definition.contractFor(leaf.id, this.root);
-      const remaining = recorded.retryKind === "semantic"
-        ? contract.semanticRetryLimit - this.attempt.consumption.semantic
-        : (contract.toolingRetryLimit ?? 0) - this.attempt.consumption.tooling;
-      if (remaining <= 0) {
-        throw new CurrentFlowStateInvariantError("retryable failure exceeds the definition retry budget");
-      }
+    const completed = result instanceof NodeResult ? result : new NodeResult(result);
+    if (!["failed", "incomplete"].includes(completed.outcome)) {
+      throw new CurrentFlowStateInvariantError("failed Attempt result must be failed or incomplete");
+    }
+    const hasIncompleteWork = this.attempt.incomplete.length > 0;
+    if ((completed.outcome === "incomplete") !== hasIncompleteWork) {
+      throw new CurrentFlowStateInvariantError(
+        "incomplete Attempt result and typed incomplete operation/resource claims must agree",
+      );
     }
     const leaf = nodeAtPath(this.root, this.current);
     const replacement = this.attempt.replaceFacts({ failure: recorded });
     this.#assertAttemptContractForLeaf(leaf, replacement);
     return this.#replaceRoot(this.root, this.current, replacement);
+  }
+
+  recordCurrentFailure({ result }) {
+    if (this.current === null || this.attempt === null || this.attempt.failure === null) {
+      throw new CurrentFlowStateInvariantError("recordCurrentFailure requires a failed active Attempt");
+    }
+    const disposition = this.failureDisposition();
+    if (disposition.operation !== "record") {
+      throw new CurrentFlowStateInvariantError("the definition failure policy does not authorize recording this failure");
+    }
+    const recorded = result instanceof NodeResult ? result : new NodeResult(result);
+    if (recorded.outcome !== disposition.outcome) {
+      throw new CurrentFlowStateInvariantError("recorded failure result must match the active failure outcome");
+    }
+    const leafId = this.current.at(-1);
+    const leaf = this.findNode(leafId);
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, leafId, transitionNode(leaf, "failed", this.definition, { result: recorded })),
+      this.definition,
+    );
+    return this.#replaceRoot(root, null, null);
   }
 
   replaceCurrentAttempt({ attempt }) {
@@ -1314,6 +1658,9 @@ export class CurrentFlowState {
     if (this.attempt.failure !== null) {
       throw new CurrentFlowStateInvariantError("a failed Attempt cannot be confirmed without a new retry Attempt");
     }
+    if (this.attempt.blocker !== null || this.attempt.incomplete.length > 0) {
+      throw new CurrentFlowStateInvariantError("a blocked or incomplete Attempt cannot be confirmed");
+    }
     if (!NODE_STATUSES.has(status) || !["done", "skipped"].includes(status)) {
       throw new CurrentFlowStateInvariantError("confirmed current Attempt status must be done or skipped");
     }
@@ -1326,11 +1673,8 @@ export class CurrentFlowState {
     }
     const leafId = this.current.at(-1);
     const leaf = this.findNode(leafId);
-    if (!this.definition.contractFor(leafId, this.root).permits(leaf.status, status)) {
-      throw new CurrentFlowStateInvariantError(`definition forbids transition ${leaf.status}:${status} for ${leafId}`);
-    }
     const root = reconcileCompletedParents(
-      replaceNode(this.root, leafId, leaf.with({ status, result: confirmed })),
+      replaceNode(this.root, leafId, transitionNode(leaf, status, this.definition, { result: confirmed })),
       this.definition,
     );
     return this.#replaceRoot(root, null, null);
@@ -1348,14 +1692,14 @@ export class CurrentFlowState {
     let root = this.root;
     for (const id of downstreamIds) {
       const node = findNodeInRoot(root, id);
-      root = replaceNode(root, id, node.with({ status: "invalidated", result: null }));
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
     }
     root = reconcileInvalidatedParents(root, this.definition);
     const state = this.#replaceRoot(root, null, null);
     return state.#activateAttempt({
       path: currentPath,
       attempt,
-      allowedLeafStatuses: ["done", "skipped", "invalidated"],
+      allowedLeafStatuses: ["done", "skipped", "failed", "invalidated"],
       initial: true,
       operation: "rewind",
     });
@@ -1385,12 +1729,15 @@ export class CurrentFlowState {
 
   nextAction() {
     if (this.current !== null) {
-      const node = nodeAtPath(this.root, this.current);
+      const failureDisposition = this.failureDisposition();
+      const descriptorPath = failureDisposition?.targetPath ?? this.current;
+      const node = nodeAtPath(this.root, descriptorPath);
       return new CurrentNextActionDescriptor({
-        path: this.current,
+        path: descriptorPath,
         node,
-        operation: "resume",
+        operation: failureDisposition?.operation ?? "resume",
         action: this.definition.actionFor(node.id, this.root),
+        failureDisposition,
       });
     }
     const node = this.definition.nextExecutableLeaf(this.root);
@@ -1407,6 +1754,28 @@ export class CurrentFlowState {
     return this.nextAction();
   }
 
+  failureDisposition() {
+    if (this.current === null || this.attempt === null || this.attempt.failure === null) return null;
+    const leaf = nodeAtPath(this.root, this.current);
+    const action = this.definition.actionFor(leaf.id, this.root);
+    const failure = this.attempt.failure;
+    const policy = action.failurePolicy;
+    const decision = policy.decide({
+      failure,
+      consumption: this.attempt.consumption,
+      contract: this.definition.contractForNode(leaf),
+    });
+    const targetPath = decision.targetNodeId === null
+      ? null
+      : this.definition.pathFor(this.root, decision.targetNodeId);
+    return new CurrentFailureDisposition({
+      attempt: this.attempt,
+      decision,
+      outcome: this.attempt.incomplete.length > 0 ? "incomplete" : "failed",
+      targetPath,
+    });
+  }
+
   retryEligibility() {
     if (this.current === null || this.attempt === null) {
       return new CurrentRetryEligibility({
@@ -1419,31 +1788,46 @@ export class CurrentFlowState {
     const leaf = nodeAtPath(this.root, this.current);
     const contract = this.definition.contractFor(leaf.id, this.root);
     const failure = this.attempt.failure;
+    const decision = failure === null
+      ? null
+      : this.definition.actionFor(leaf.id, this.root).failurePolicy.decide({
+        failure,
+        consumption: this.attempt.consumption,
+        contract,
+      });
     return new CurrentRetryEligibility({
       path: this.current,
       attempt: this.attempt,
-      semanticRemaining: failure?.retryable === true && failure.retryKind === "semantic"
-        ? contract.semanticRetryLimit - this.attempt.consumption.semantic
+      semanticRemaining: decision?.operation === "retry" && decision.retryKind === "semantic"
+        ? decision.remaining
         : 0,
-      toolingRemaining: failure?.retryable === true && failure.retryKind === "tooling"
-        ? (contract.toolingRetryLimit ?? 0) - this.attempt.consumption.tooling
+      toolingRemaining: decision?.operation === "retry" && decision.retryKind === "tooling"
+        ? decision.remaining
         : 0,
     });
   }
 
   recoveryTarget(currentPath) {
-    if (this.current !== null) {
-      const active = nodeAtPath(this.root, this.current);
-      return new CurrentRecoveryTarget({
-        path: this.current,
-        node: active,
-        operation: "unavailable",
-        legal: false,
-        reason: "an active Attempt must be confirmed before rewind",
-      });
-    }
     const target = nodeAtPath(this.root, currentPath);
     const contract = this.definition.contractFor(target.id, this.root);
+    if (this.current !== null) {
+      const disposition = this.failureDisposition();
+      const policyRewind = disposition?.operation === "rewind"
+        && jsonEqual(disposition.targetPath, currentPath);
+      const legal = policyRewind
+        && target.steps.length === 0
+        && TERMINAL_NODE_STATUSES.has(target.status)
+        && contract.permits(target.status, "in_progress");
+      return new CurrentRecoveryTarget({
+        path: currentPath,
+        node: target,
+        operation: legal ? "rewind" : "unavailable",
+        legal,
+        reason: legal
+          ? "the active failure policy authorizes rewind to this definition target"
+          : "an active Attempt permits only its definition-owned failure recovery target",
+      });
+    }
     const next = this.definition.nextExecutableLeaf(this.root);
     const terminal = target.steps.length === 0 && TERMINAL_NODE_STATUSES.has(target.status);
     const invalidated = target.steps.length === 0
@@ -1471,7 +1855,7 @@ export class CurrentFlowState {
       .map((id) => this.findNode(id))
       .find((candidate) => candidate instanceof TaskNode) ?? null;
     const candidates = leaves.slice(0, targetIndex)
-      .filter((leaf) => TERMINAL_NODE_STATUSES.has(leaf.status) && leaf.result !== null)
+      .filter((leaf) => AUTHORITATIVE_NODE_STATUSES.has(leaf.status) && leaf.result !== null)
       .map((leaf) => {
         const sourcePath = this.definition.pathFor(this.root, leaf.id);
         const sourceTask = sourcePath.map((id) => this.findNode(id)).find((candidate) => candidate instanceof TaskNode) ?? null;
@@ -1522,11 +1906,7 @@ export class CurrentFlowState {
     for (const id of currentPath) {
       const node = findNodeInRoot(root, id);
       if (node.status !== "in_progress") {
-        if (!this.definition.contractFor(node.id, root).permits(node.status, "in_progress")) {
-          throw new CurrentFlowStateInvariantError(`definition forbids transition ${node.status}:in_progress for ${node.id}`);
-        }
-        root = replaceNode(root, id, node.with({
-          status: "in_progress",
+        root = replaceNode(root, id, transitionNode(node, "in_progress", this.definition, {
           result: id === leaf.id ? null : node.result,
           attemptSequence: id === leaf.id ? parsedAttempt.sequence : node.attemptSequence,
         }));
@@ -1610,6 +1990,9 @@ export class CurrentFlowState {
 
 export class ActivityReference {
   constructor(value) {
+    if (new.target === ActivityReference) {
+      throw new CurrentFlowStateInvariantError("activity reference requires a concrete reference type");
+    }
     requireExactFields(value, new Set(["id", "label"]), "activity reference");
     const { id, label } = value;
     this.id = requireString(id, "activity reference.id");
@@ -1621,13 +2004,25 @@ export class ActivityReference {
   toJSON() { return { id: this.id, label: this.label }; }
 }
 
+export class ActivityEvaluationReference extends ActivityReference {}
+export class ActivityFindingReference extends ActivityReference {}
+export class ActivityRepairReference extends ActivityReference {}
+export class ActivityArtifactReference extends ActivityReference {}
+
 export class ActivityReferences {
   constructor(value) {
     requireExactFields(value, new Set(["evaluations", "findings", "repairs", "artifacts"]), "activity.references");
     const { evaluations, findings, repairs, artifacts } = value;
+    const referenceTypes = {
+      evaluations: ActivityEvaluationReference,
+      findings: ActivityFindingReference,
+      repairs: ActivityRepairReference,
+      artifacts: ActivityArtifactReference,
+    };
     for (const [field, values] of Object.entries({ evaluations, findings, repairs, artifacts })) {
       if (!Array.isArray(values)) throw new CurrentFlowStateInvariantError(`activity.references.${field} must be an array`);
-      this[field] = Object.freeze(values.map((value) => value instanceof ActivityReference ? value : new ActivityReference(value)));
+      const Reference = referenceTypes[field];
+      this[field] = Object.freeze(values.map((value) => value instanceof Reference ? value : new Reference(value)));
     }
     Object.freeze(this);
   }
@@ -1655,7 +2050,7 @@ export class ActivityTransition {
   constructor(value) {
     requireExactFields(value, new Set(["operation", "path", "task", "attempt", "status"]), "activity.transition");
     const { operation, path: currentPath, task, attempt, status } = value;
-    if (!["add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "confirm_attempt", "rewind", "recover_attempt"].includes(operation)) {
+    if (!["add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "recover_attempt"].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     if (!Array.isArray(currentPath) || currentPath.length === 0) {
@@ -1665,18 +2060,17 @@ export class ActivityTransition {
     this.path = Object.freeze(currentPath.map((id) => requireString(id, "activity.transition.path id")));
     this.task = task == null ? null : task instanceof ActivityTask ? task : new ActivityTask(task);
     this.attempt = attempt == null ? null : attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
-    if (operation === "add_task") {
-      if (this.task == null || this.attempt !== null || status !== null) {
-        throw new CurrentFlowStateInvariantError("add_task transition requires only a Task payload");
-      }
-    } else if (this.task !== null) {
-      throw new CurrentFlowStateInvariantError("only add_task transition may carry a Task payload");
+    const taskRequired = operation === "add_task";
+    if (taskRequired !== (this.task !== null)) {
+      throw new CurrentFlowStateInvariantError("add_task is the only transition that requires a Task payload");
     }
-    if (["start_attempt", "retry_attempt", "update_attempt", "rewind", "recover_attempt"].includes(operation) && this.attempt == null) {
-      throw new CurrentFlowStateInvariantError(`activity.transition ${operation} requires an Attempt`);
-    }
-    if (operation === "confirm_attempt" && this.attempt !== null) {
-      throw new CurrentFlowStateInvariantError("confirm_attempt transition derives its Attempt from current state");
+    const attemptRequired = TRANSITION_ATTEMPT_OPERATIONS.has(operation);
+    if (attemptRequired !== (this.attempt !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        attemptRequired
+          ? `activity.transition ${operation} requires an Attempt payload`
+          : `activity.transition ${operation} forbids an Attempt payload`,
+      );
     }
     if (operation === "confirm_attempt") {
       if (!["done", "skipped"].includes(status)) {
@@ -1735,7 +2129,17 @@ export class ActivityTransition {
       if (activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("fail_attempt Activity must identify the active Attempt");
       }
-      return state.failCurrentAttempt({ failure: activity.failure });
+      return state.failCurrentAttempt({ failure: activity.failure, result: activity.result });
+    }
+    if (this.operation === "record_failure") {
+      if (state.current == null || state.current.at(-1) !== targetId) {
+        throw new CurrentFlowStateInvariantError("record_failure Activity must target the active current leaf");
+      }
+      if (activity.attemptId !== state.attempt.id || activity.sequence !== state.attempt.sequence) {
+        throw new CurrentFlowStateInvariantError("record_failure Activity must identify the active failed Attempt");
+      }
+      if (activity.result == null) throw new CurrentFlowStateInvariantError("record_failure Activity requires a result");
+      return state.recordCurrentFailure({ result: activity.result });
     }
     if (state.current == null || state.current.at(-1) !== targetId) {
       throw new CurrentFlowStateInvariantError("confirm_attempt Activity must target the active current leaf");
@@ -1788,6 +2192,7 @@ export class FlowActivity {
       retry_attempt: "attempt_retried",
       update_attempt: "attempt_updated",
       fail_attempt: "attempt_failed",
+      record_failure: "failure_recorded",
       confirm_attempt: "result_confirmed",
       rewind: "recovery",
       recover_attempt: "recovery",
@@ -1796,14 +2201,14 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("activity.type must match its deterministic transition operation");
     }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "fail_attempt"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "fail_attempt", "record_failure"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "fail_attempt"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "fail_attempt", "record_failure"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
-    if (this.transition.operation === "fail_attempt" && !["failed", "incomplete"].includes(this.result.outcome)) {
-      throw new CurrentFlowStateInvariantError("fail_attempt Activity result must be failed or incomplete");
+    if (["fail_attempt", "record_failure"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
+      throw new CurrentFlowStateInvariantError(`${this.transition.operation} Activity result must be failed or incomplete`);
     }
     if (this.transition.operation === "add_task") {
       if (this.attemptId !== null || this.sequence !== null) {
@@ -1838,6 +2243,13 @@ export class FlowActivity {
     this.usage = usage == null ? null : new ActivityUsage(usage);
     this.references = references instanceof ActivityReferences ? references : new ActivityReferences(references);
     Object.freeze(this);
+  }
+
+  static canonical(value) {
+    const serialized = value instanceof FlowActivity
+      ? FlowActivity.prototype.toJSON.call(value)
+      : value;
+    return new FlowActivity(serialized);
   }
 
   toJSON() {
@@ -1897,6 +2309,7 @@ export class ActivityUsage {
 function assertJournalAttemptIdentities(entries) {
   const identities = new Map();
   const lastSequenceByNode = new Map();
+  const lastActivityByAttempt = new Map();
   const registerIdentity = (attemptId, sequence, nodeId) => {
     const previous = identities.get(attemptId);
     if (previous && (previous.sequence !== sequence || previous.nodeId !== nodeId)) {
@@ -1906,6 +2319,17 @@ function assertJournalAttemptIdentities(entries) {
   };
   const introductions = new Set(["start_attempt", "retry_attempt", "rewind", "recover_attempt"]);
   for (const entry of entries) {
+    if (entry.transition.operation === "record_failure") {
+      const failureActivity = lastActivityByAttempt.get(entry.attemptId);
+      if (
+        failureActivity?.transition.operation !== "fail_attempt"
+        || !jsonEqual(failureActivity.result.toJSON(), entry.result.toJSON())
+      ) {
+        throw new CurrentFlowStateInvariantError(
+          "record_failure Activity must immediately preserve the failed Attempt result",
+        );
+      }
+    }
     if (introductions.has(entry.transition.operation)) {
       const introduced = entry.transition.attempt;
       const previousSequence = lastSequenceByNode.get(entry.nodeId) ?? 0;
@@ -1925,19 +2349,32 @@ function assertJournalAttemptIdentities(entries) {
     if (entry.transition.operation === "update_attempt") {
       registerIdentity(entry.transition.attempt.id, entry.transition.attempt.sequence, entry.nodeId);
     }
+    if (entry.attemptId !== null) lastActivityByAttempt.set(entry.attemptId, entry);
   }
 }
 
 export class FlowActivityJournal {
   constructor(filePath) {
     this.filePath = path.resolve(filePath);
+    this.directoryAuthority = new RealDirectoryAuthority(path.dirname(this.filePath));
     Object.freeze(this);
   }
 
   read() {
-    if (!fs.existsSync(this.filePath)) return [];
-    const content = fs.readFileSync(this.filePath, "utf8");
-    if (content === "") return [];
+    return this.#readSnapshot().entries;
+  }
+
+  #readSnapshot() {
+    const opened = this.#openExisting(fs.constants.O_RDONLY);
+    if (opened === null) return { entries: [], identity: null };
+    let content;
+    try {
+      content = fs.readFileSync(opened.descriptor, "utf8");
+    } finally {
+      fs.closeSync(opened.descriptor);
+    }
+    this.#assertVisibleIdentity(opened.identity);
+    if (content === "") return { entries: [], identity: opened.identity };
     if (!content.endsWith("\n")) {
       throw new CurrentFlowStateInvariantError("activities.jsonl ends with a partial line");
     }
@@ -1955,15 +2392,16 @@ export class FlowActivityJournal {
       order = entry.confirmationOrder;
     }
     assertJournalAttemptIdentities(entries);
-    return entries;
+    return { entries, identity: opened.identity };
   }
 
   append(activity, writerAuthority) {
     if (writerAuthority !== JOURNAL_WRITER_AUTHORITY) {
       throw new CurrentFlowStateInvariantError("activities.jsonl may be appended only by CurrentFlowStateStore");
     }
-    const entries = this.read();
-    const next = activity instanceof FlowActivity ? activity : new FlowActivity(activity);
+    const snapshot = this.#readSnapshot();
+    const { entries } = snapshot;
+    const next = FlowActivity.canonical(activity);
     const existing = entries.find((entry) => entry.id === next.id);
     if (existing) {
       if (!jsonEqual(existing.toJSON(), next.toJSON())) {
@@ -1976,15 +2414,15 @@ export class FlowActivityJournal {
       throw new CurrentFlowStateConflictError("new Activity confirmationOrder must follow the append-only journal");
     }
     assertJournalAttemptIdentities([...entries, next]);
-    const created = !fs.existsSync(this.filePath);
-    const descriptor = fs.openSync(this.filePath, "a", 0o644);
+    const opened = this.#openAppend(snapshot.identity);
     try {
-      fs.writeFileSync(descriptor, `${JSON.stringify(next.toJSON())}\n`, "utf8");
-      fs.fsyncSync(descriptor);
+      fs.writeFileSync(opened.descriptor, `${JSON.stringify(next.toJSON())}\n`, "utf8");
+      fs.fsyncSync(opened.descriptor);
     } finally {
-      fs.closeSync(descriptor);
+      fs.closeSync(opened.descriptor);
     }
-    if (created) fsyncDirectory(path.dirname(this.filePath));
+    this.#assertVisibleIdentity(opened.identity);
+    if (opened.created) fsyncDirectory(path.dirname(this.filePath));
     return { appended: true, activity: next };
   }
 
@@ -1997,6 +2435,88 @@ export class FlowActivityJournal {
     new AtomicFile(resolvedViewPath, { phaseNamespace: "current-flow-activity-view" })
       .write(Buffer.from(view.toMarkdown()));
     return view;
+  }
+
+  #openExisting(flags) {
+    this.directoryAuthority.assertStable();
+    let visible;
+    try {
+      visible = fs.lstatSync(this.filePath);
+    } catch (cause) {
+      if (cause.code === "ENOENT") return null;
+      throw cause;
+    }
+    this.#assertRegularRealFile(visible);
+    const descriptor = fs.openSync(this.filePath, flags | (fs.constants.O_NOFOLLOW || 0));
+    return { descriptor, identity: this.#openedIdentity(descriptor, visible) };
+  }
+
+  #openAppend(expectedIdentity) {
+    const existing = this.#openExisting(fs.constants.O_WRONLY | fs.constants.O_APPEND);
+    if (expectedIdentity !== null) {
+      if (existing === null || !sameFileIdentity(existing.identity, expectedIdentity)) {
+        if (existing !== null) fs.closeSync(existing.descriptor);
+        throw new CurrentFlowStateInvariantError("Activity journal authority changed between read and append");
+      }
+      return { ...existing, created: false };
+    }
+    if (existing !== null) {
+      fs.closeSync(existing.descriptor);
+      throw new CurrentFlowStateInvariantError("Activity journal authority appeared between read and append");
+    }
+    this.directoryAuthority.assertStable();
+    const descriptor = fs.openSync(
+      this.filePath,
+      fs.constants.O_WRONLY
+        | fs.constants.O_APPEND
+        | fs.constants.O_CREAT
+        | fs.constants.O_EXCL
+        | (fs.constants.O_NOFOLLOW || 0),
+      0o644,
+    );
+    return { descriptor, identity: this.#openedIdentity(descriptor), created: true };
+  }
+
+  #openedIdentity(descriptor, expected = null) {
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (
+        !opened.isFile()
+        || opened.nlink !== 1
+        || (expected !== null && !sameFileIdentity(expected, opened))
+      ) {
+        throw new CurrentFlowStateInvariantError("Activity journal authority changed while opening");
+      }
+      return { dev: opened.dev, ino: opened.ino };
+    } catch (cause) {
+      fs.closeSync(descriptor);
+      throw cause;
+    }
+  }
+
+  #assertVisibleIdentity(identity) {
+    this.directoryAuthority.assertStable();
+    let visible;
+    try {
+      visible = fs.lstatSync(this.filePath);
+    } catch (cause) {
+      throw new CurrentFlowStateInvariantError("Activity journal authority disappeared", { cause });
+    }
+    this.#assertRegularRealFile(visible);
+    if (!sameFileIdentity(visible, identity)) {
+      throw new CurrentFlowStateInvariantError("Activity journal authority changed during access");
+    }
+  }
+
+  #assertRegularRealFile(stat) {
+    if (
+      !stat.isFile()
+      || stat.isSymbolicLink()
+      || stat.nlink !== 1
+      || fs.realpathSync(this.filePath) !== this.filePath
+    ) {
+      throw new CurrentFlowStateInvariantError("Activity journal authority must be a regular real file");
+    }
   }
 }
 
@@ -2031,6 +2551,20 @@ export class ActivityMarkdownView {
       ].join(" | ") + " |");
     }
     return `${lines.join("\n")}\n`;
+  }
+}
+
+export class CurrentFlowStateSnapshot {
+  constructor({ state, revision }) {
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("flow state snapshot requires a typed current state");
+    }
+    if (typeof revision !== "string" || !/^[a-f0-9]{64}$/.test(revision)) {
+      throw new CurrentFlowStateInvariantError("flow state snapshot revision must be a SHA-256 digest");
+    }
+    this.state = state;
+    this.revision = revision;
+    Object.freeze(this);
   }
 }
 
@@ -2073,7 +2607,7 @@ export class CurrentFlowStateStore {
   }
 
   create(state) {
-    const next = state instanceof CurrentFlowState ? state : new CurrentFlowState(state, { definition: this.definition });
+    const next = this.definition.bindState(state);
     return this.#withLock(() => {
       if (fs.existsSync(this.statePath)) throw new CurrentFlowStateConflictError("current flow state already exists");
       if (next.confirmationOrder !== 0 || next.current !== null || next.attempt !== null) {
@@ -2097,10 +2631,23 @@ export class CurrentFlowStateStore {
   }
 
   load() {
-    if (!fs.existsSync(this.statePath)) return null;
-    const state = this.#parse(fs.readFileSync(this.statePath));
-    this.#assertJournalPosition(state, this.journal.read());
-    return state;
+    return this.loadSnapshot()?.state ?? null;
+  }
+
+  loadSnapshot() {
+    return this.#withLock(() => {
+      const bytes = this.#readStateBytes();
+      if (bytes === null) {
+        const entries = this.journal.read();
+        if (entries.length !== 0) {
+          throw new CurrentFlowStateConflictError("Activity journal exists without flow state");
+        }
+        return null;
+      }
+      const state = this.#parse(bytes);
+      this.#assertJournalConsistency(state, this.journal.read());
+      return new CurrentFlowStateSnapshot({ state, revision: digest(bytes) });
+    });
   }
 
   writeActivitiesView(viewPath = path.join(this.directory, "activities.md")) {
@@ -2112,15 +2659,18 @@ export class CurrentFlowStateStore {
   }
 
   apply({ activity, expectedRevision = null }) {
-    const proposed = activity instanceof FlowActivity ? activity : new FlowActivity(activity);
+    const proposed = FlowActivity.canonical(activity);
     return this.#withLock(() => {
-      const originalBytes = fs.readFileSync(this.statePath);
+      const originalBytes = this.#readStateBytes();
+      if (originalBytes === null) {
+        throw new CurrentFlowStateConflictError("current flow state does not exist");
+      }
       const original = this.#parse(originalBytes);
       if (expectedRevision !== null && expectedRevision !== digest(originalBytes)) {
         throw new CurrentFlowStateConflictError("flow state changed before update");
       }
       const entries = this.journal.read();
-      this.#assertJournalPosition(original, entries);
+      this.#assertJournalConsistency(original, entries);
       const existing = entries.find((entry) => entry.id === proposed.id);
       if (existing && !jsonEqual(existing.toJSON(), proposed.toJSON())) {
         throw new CurrentFlowStateConflictError(`activity id ${proposed.id} was already appended with a different payload`);
@@ -2132,17 +2682,12 @@ export class CurrentFlowStateStore {
       if (proposed.confirmationOrder !== original.confirmationOrder + 1) {
         throw new CurrentFlowStateConflictError("Activity confirmationOrder must immediately follow current state");
       }
-      const activityNode = original.findNode(proposed.nodeId);
-      if (!activityNode || activityNode.key !== proposed.nodeKey) {
-        throw new CurrentFlowStateInvariantError("Activity must reference a current-state node by stable id and semantic key");
-      }
       // The update is carried by the Activity itself.  This is important for
       // journal-first crash recovery: a replay cannot silently substitute a
       // different callback for a persisted Activity id/order.
-      const transitioned = proposed.transition.apply(original, proposed);
+      const next = this.#applyActivity(original, proposed);
       this.journal.append(proposed, JOURNAL_WRITER_AUTHORITY);
       this.faultInjector({ phase: "activity-appended", activity: proposed, state: original });
-      const next = transitioned.withConfirmationOrder(proposed.confirmationOrder);
       this.#write(next, originalBytes);
       this.faultInjector({ phase: "state-written", activity: proposed, state: next });
       return next;
@@ -2150,13 +2695,13 @@ export class CurrentFlowStateStore {
   }
 
   #parse(bytes) {
-    try { return new CurrentFlowState(JSON.parse(bytes.toString("utf8")), { definition: this.definition }); } catch (error) {
+    try { return this.definition.bindState(JSON.parse(bytes.toString("utf8"))); } catch (error) {
       if (error instanceof CurrentFlowStateInvariantError) throw error;
       throw new CurrentFlowStateInvariantError(`invalid flow.json: ${error.message}`);
     }
   }
 
-  #assertJournalPosition(state, entries) {
+  #assertJournalConsistency(state, entries) {
     const journalOrder = entries.at(-1)?.confirmationOrder ?? 0;
     if (journalOrder < state.confirmationOrder) {
       throw new CurrentFlowStateConflictError("flow state confirmation order is ahead of its Activity journal");
@@ -2164,6 +2709,36 @@ export class CurrentFlowStateStore {
     if (journalOrder > state.confirmationOrder + 1) {
       throw new CurrentFlowStateConflictError("Activity journal is more than one transition ahead of flow state");
     }
+    let replayed = CurrentFlowState.create({
+      definition: this.definition,
+      execution: state.execution.toJSON(),
+      version: state.version,
+    });
+    try {
+      for (const entry of entries.slice(0, state.confirmationOrder)) {
+        replayed = this.#applyActivity(replayed, entry);
+      }
+    } catch (error) {
+      throw new CurrentFlowStateConflictError(`Activity journal cannot reproduce flow state: ${error.message}`);
+    }
+    if (!jsonEqual(replayed.toJSON(), state.toJSON())) {
+      throw new CurrentFlowStateConflictError("flow state content conflicts with its Activity journal");
+    }
+    if (journalOrder === state.confirmationOrder + 1) {
+      try {
+        this.#applyActivity(replayed, entries.at(-1));
+      } catch (error) {
+        throw new CurrentFlowStateConflictError(`pending Activity cannot advance flow state: ${error.message}`);
+      }
+    }
+  }
+
+  #applyActivity(state, activity) {
+    const activityNode = state.findNode(activity.nodeId);
+    if (!activityNode || activityNode.key !== activity.nodeKey) {
+      throw new CurrentFlowStateInvariantError("Activity must reference a current-state node by stable id and semantic key");
+    }
+    return activity.transition.apply(state, activity).withConfirmationOrder(activity.confirmationOrder);
   }
 
   #write(state, expectedBytes) {
@@ -2173,14 +2748,30 @@ export class CurrentFlowStateStore {
       faultInjector: this.faultInjector,
       commitGuard: () => {
         if (expectedBytes === null) {
-          if (fs.existsSync(this.statePath)) throw new CurrentFlowStateConflictError("current flow state already exists");
+          if (this.#readStateBytes() !== null) throw new CurrentFlowStateConflictError("current flow state already exists");
           return;
         }
-        const visible = fs.readFileSync(this.statePath);
+        const visible = this.#readStateBytes();
+        if (visible === null) throw new CurrentFlowStateConflictError("current flow state disappeared during update");
         if (!visible.equals(expectedBytes)) throw new CurrentFlowStateConflictError("flow state changed during update");
       },
     });
     file.write(content);
+  }
+
+  #readStateBytes() {
+    const bytes = new AtomicFile(this.statePath, { phaseNamespace: "current-flow-state-read" }).read(null);
+    if (bytes === null) return null;
+    const visible = fs.lstatSync(this.statePath);
+    if (
+      !visible.isFile()
+      || visible.isSymbolicLink()
+      || visible.nlink !== 1
+      || fs.realpathSync(this.statePath) !== this.statePath
+    ) {
+      throw new CurrentFlowStateInvariantError("flow state authority must be a single-link regular real file");
+    }
+    return bytes;
   }
 
   #withLock(operation) {
@@ -2232,15 +2823,16 @@ export class CurrentFlowStateConversionPlan {
     if (!(value instanceof CurrentFlowState)) {
       throw new CurrentFlowStateInvariantError("conversion is deferred; only a freshly constructed CurrentFlowState may enter this boundary");
     }
+    const bound = this.definition.bindState(value);
     const fresh = CurrentFlowState.create({
       definition: this.definition,
-      execution: value.execution.toJSON(),
-      version: value.version,
+      execution: bound.execution.toJSON(),
+      version: bound.version,
     });
-    if (!jsonEqual(value.toJSON(), fresh.toJSON())) {
+    if (!jsonEqual(bound.toJSON(), fresh.toJSON())) {
       throw new CurrentFlowStateInvariantError("freshStateOnly rejects progressed current state");
     }
-    return value;
+    return bound;
   }
 
   toJSON() {

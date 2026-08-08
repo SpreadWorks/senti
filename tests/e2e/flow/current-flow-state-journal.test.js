@@ -61,6 +61,7 @@ function activity({
     retry_attempt: "attempt_retried",
     update_attempt: "attempt_updated",
     fail_attempt: "attempt_failed",
+    record_failure: "failure_recorded",
     confirm_attempt: "result_confirmed",
     rewind: "recovery",
     recover_attempt: "recovery",
@@ -200,6 +201,8 @@ describe("Current Flow state filesystem lifecycle", () => {
         retryKind: "semantic",
       },
     }));
+    assert.equal(state.nextAction().operation, "retry");
+    assert.equal(state.nextAction().failureDisposition.retryKind, "semantic");
     apply(activity({
       id: "task-a-review-retry",
       state,
@@ -296,8 +299,24 @@ describe("Current Flow state filesystem lifecycle", () => {
       order,
       operation: "confirm_attempt",
       status: "done",
-      activityResult: result("task-b-impl"),
+      activityResult: {
+        outcome: "passed",
+        summary: "task-b-impl",
+        confirmedAt: LATER,
+        artifactRefs: [
+          { kind: "task_spec", id: "task-b-spec" },
+          { kind: "diff", id: "task-b-diff" },
+          { kind: "testlog", id: "task-b-testlog" },
+        ],
+      },
     }));
+    const taskBReviewAuthority = state.artifactAuthority();
+    assert.ok(taskBReviewAuthority.resolutions.every((resolution) => (
+      resolution.source?.nodeId === "task-b/task-impl"
+    )));
+    assert.equal(taskBReviewAuthority.resolutions.some((resolution) => (
+      resolution.source?.path.includes("task-a")
+    )), false);
     const taskBReviewPath = state.nextAction().path;
     apply(activity({
       id: "task-b-review-recover",
@@ -307,15 +326,80 @@ describe("Current Flow state filesystem lifecycle", () => {
       order,
       operation: "recover_attempt",
     }));
-    apply(activity({
-      id: "task-b-review-confirm",
+    const failTaskBReview = (suffix, summary) => apply(activity({
+      id: `task-b-review-fail-${suffix}`,
       state,
       currentPath: taskBReviewPath,
       order,
-      operation: "confirm_attempt",
-      status: "done",
-      activityResult: result("task-b-review"),
+      operation: "fail_attempt",
+      activityResult: {
+        outcome: "failed",
+        summary,
+        confirmedAt: LATER,
+        artifactRefs: [],
+      },
+      failure: {
+        category: "review",
+        code: `review_failed_${suffix}`,
+        message: summary,
+        retryable: true,
+        retryKind: "semantic",
+      },
     }));
+    const retryTaskBReview = (sequence) => apply(activity({
+      id: `task-b-review-retry-${sequence}`,
+      state,
+      currentPath: taskBReviewPath,
+      activityAttempt: attemptFor(state, taskBReviewPath, `task-b-review-${sequence}`, sequence),
+      order,
+      operation: "retry_attempt",
+    }));
+    failTaskBReview("one", "Task B review failed once.");
+    retryTaskBReview(2);
+    failTaskBReview("two", "Task B review failed twice.");
+    retryTaskBReview(3);
+    failTaskBReview("three", "Task B review failed three times.");
+    retryTaskBReview(4);
+    const exhaustedResult = {
+      outcome: "failed",
+      summary: "Task B review exhausted its semantic retry budget.",
+      confirmedAt: LATER,
+      artifactRefs: [{ kind: "guardrail", id: "failed-review-guardrail" }],
+    };
+    apply(activity({
+      id: "task-b-review-fail-exhausted",
+      state,
+      currentPath: taskBReviewPath,
+      order,
+      operation: "fail_attempt",
+      activityResult: exhaustedResult,
+      failure: {
+        category: "review",
+        code: "review_retry_exhausted",
+        message: exhaustedResult.summary,
+        retryable: true,
+        retryKind: "semantic",
+      },
+    }));
+    assert.equal(state.nextAction().operation, "record");
+    assert.equal(state.retryEligibility().semantic, false);
+    apply(activity({
+      id: "task-b-review-record-exhaustion",
+      state,
+      currentPath: taskBReviewPath,
+      order,
+      operation: "record_failure",
+      activityResult: exhaustedResult,
+    }));
+    assert.equal(state.findNode("task-b/task-review").status, "failed");
+    const taskBGateAuthority = state.artifactAuthority();
+    assert.equal(
+      taskBGateAuthority.resolutions.find((resolution) => resolution.resourceKind === "guardrail").missing,
+      true,
+    );
+    assert.equal(taskBGateAuthority.resolutions.some((resolution) => (
+      resolution.source?.nodeId === "task-b/task-review"
+    )), false);
     const taskBGatePath = state.nextAction().path;
     apply(activity({
       id: "task-b-gate-recover",
@@ -348,7 +432,207 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.equal(journal.find((entry) => entry.id === "task-a-review-rewind").sequence, 3);
     assert.equal(journal.find((entry) => entry.id === "task-a-gate-recover").sequence, 2);
     assert.equal(journal.find((entry) => entry.id === "task-a-gate-recovered").result.summary, "task-a-gate-recovered");
+    assert.equal(journal.find((entry) => entry.id === "task-b-review-fail-exhausted").failure.retryable, true);
+    assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").type, "failure_recorded");
+    assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").result.outcome, "failed");
     store.writeActivitiesView();
     assert.match(fs.readFileSync(path.join(directory, "activities.md"), "utf8"), /attempt_retried/);
+  });
+
+  it("reloads a terminal failed Attempt as an explicit blocked disposition without contradictory journal payloads", () => {
+    tmp = createTmpDir("current-flow-terminal-failure-e2e-");
+    const definition = buildCurrentFlowDefinition();
+    const directory = path.join(tmp, "specs", "901-terminal-failure");
+    const store = new CurrentFlowStateStore({ directory, definition });
+    const initial = CurrentFlowState.create({ definition, execution: { mode: "worktree" } });
+    const currentPath = initial.nextAction().path;
+    const firstAttempt = attemptFor(initial, currentPath, "terminal-attempt-1");
+    store.create(initial);
+    const started = store.apply({ activity: activity({
+      id: "terminal-start",
+      state: initial,
+      currentPath,
+      activityAttempt: firstAttempt,
+      order: 1,
+      operation: "start_attempt",
+    }) });
+    store.apply({ activity: activity({
+      id: "terminal-failure",
+      state: started,
+      currentPath,
+      order: 2,
+      operation: "fail_attempt",
+      activityResult: {
+        outcome: "failed",
+        summary: "The execution reached a non-retryable terminal failure.",
+        confirmedAt: LATER,
+        artifactRefs: [],
+      },
+      failure: {
+        category: "policy",
+        code: "terminal_failure",
+        message: "The failure cannot be retried.",
+        retryable: false,
+        retryKind: null,
+      },
+    }) });
+
+    const reloaded = new CurrentFlowStateStore({ directory, definition }).load();
+    assert.equal(reloaded.nextAction().operation, "blocked");
+    assert.equal(reloaded.nextAction().failureDisposition.outcome, "failed");
+    assert.equal(reloaded.nextAction().failureDisposition.remaining, 0);
+    const journal = store.journal.read();
+    assert.equal(journal.length, 2);
+    assert.equal(journal[1].attemptId, "terminal-attempt-1");
+    assert.equal(journal[1].transition.attempt, null);
+    assert.throws(
+      () => store.apply({ activity: activity({
+        id: "terminal-illegal-retry",
+        state: reloaded,
+        currentPath,
+        activityAttempt: attemptFor(reloaded, currentPath, "terminal-attempt-2", 2),
+        order: 3,
+        operation: "retry_attempt",
+      }) }),
+      /requires a retryable failed active Attempt/,
+    );
+    assert.equal(store.journal.read().length, 2);
+  });
+
+  it("persists the production amend-spec policy as a definition-targeted rewind", () => {
+    tmp = createTmpDir("current-flow-amend-spec-e2e-");
+    const definition = buildCurrentFlowDefinition();
+    const directory = path.join(tmp, "specs", "902-amend-spec");
+    const store = new CurrentFlowStateStore({ directory, definition });
+    let state = CurrentFlowState.create({ definition, execution: { mode: "worktree" } });
+    store.create(state);
+    let order = 1;
+    const apply = (entry) => {
+      state = new CurrentFlowStateStore({ directory, definition }).apply({ activity: entry });
+      state = new CurrentFlowStateStore({ directory, definition }).load();
+      order += 1;
+    };
+    let index = 0;
+    while (state.nextAction().nodeId !== "acceptance-review") {
+      const descriptor = state.nextAction();
+      const currentPath = descriptor.path;
+      apply(activity({
+        id: `amend-prelude-${index}-start`,
+        state,
+        currentPath,
+        activityAttempt: attemptFor(state, currentPath, `amend-prelude-${index}-attempt`),
+        order,
+        operation: "start_attempt",
+      }));
+      apply(activity({
+        id: `amend-prelude-${index}-confirm`,
+        state,
+        currentPath,
+        order,
+        operation: "confirm_attempt",
+        status: "done",
+        activityResult: result(`amend-prelude-${index}`),
+      }));
+      index += 1;
+      if (index > 100) throw new Error("acceptance-review traversal did not converge");
+    }
+    const acceptancePath = state.nextAction().path;
+    apply(activity({
+      id: "acceptance-amend-start",
+      state,
+      currentPath: acceptancePath,
+      activityAttempt: attemptFor(state, acceptancePath, "acceptance-amend-attempt"),
+      order,
+      operation: "start_attempt",
+    }));
+    apply(activity({
+      id: "acceptance-amend-failure",
+      state,
+      currentPath: acceptancePath,
+      order,
+      operation: "fail_attempt",
+      activityResult: {
+        outcome: "failed",
+        summary: "Acceptance requires a specification amendment.",
+        confirmedAt: LATER,
+        artifactRefs: [],
+      },
+      failure: {
+        category: "acceptance",
+        code: "specification_incomplete",
+        message: "Acceptance requires a specification amendment.",
+        retryable: false,
+        retryKind: null,
+      },
+    }));
+    const amendment = state.nextAction();
+    assert.equal(amendment.operation, "rewind");
+    assert.equal(amendment.nodeId, "spec");
+    assert.equal(amendment.failureDisposition.policy.value, "amend-spec");
+    assert.equal(amendment.failureDisposition.policy.targetNodeId, "spec");
+    apply(activity({
+      id: "acceptance-amend-rewind",
+      state,
+      currentPath: amendment.path,
+      activityAttempt: attemptFor(state, amendment.path, "spec-amendment-attempt"),
+      order,
+      operation: "rewind",
+    }));
+    assert.equal(state.current.at(-1), "spec");
+    assert.equal(state.attempt.sequence, 2);
+    assert.equal(state.findNode("acceptance-review").status, "invalidated");
+    const journal = store.journal.read();
+    assert.equal(journal.at(-1).transition.operation, "rewind");
+    assert.equal(journal.at(-1).nodeId, "spec");
+    assert.equal(journal.at(-1).sequence, 2);
+  });
+
+  it("replays both durable crash windows through filesystem reload without duplicate facts", () => {
+    tmp = createTmpDir("current-flow-crash-e2e-");
+    const definition = buildCurrentFlowDefinition();
+    const directory = path.join(tmp, "specs", "903-crash-replay");
+    const store = new CurrentFlowStateStore({ directory, definition });
+    const initial = CurrentFlowState.create({ definition });
+    store.create(initial);
+    const currentPath = initial.nextAction().path;
+    const startedActivity = activity({
+      id: "crash-start",
+      state: initial,
+      currentPath,
+      activityAttempt: attemptFor(initial, currentPath, "crash-attempt"),
+      order: 1,
+      operation: "start_attempt",
+    });
+    const journalCrash = new CurrentFlowStateStore({
+      directory,
+      definition,
+      faultInjector({ phase }) {
+        if (phase === "activity-appended") throw new Error("journal durable");
+      },
+    });
+    assert.throws(() => journalCrash.apply({ activity: startedActivity }), /journal durable/);
+    assert.equal(new CurrentFlowStateStore({ directory, definition }).load().confirmationOrder, 0);
+    const started = new CurrentFlowStateStore({ directory, definition }).apply({ activity: startedActivity });
+    const confirmedActivity = activity({
+      id: "crash-confirm",
+      state: started,
+      currentPath,
+      order: 2,
+      operation: "confirm_attempt",
+      status: "done",
+      activityResult: result("crash-confirmed"),
+    });
+    const stateCrash = new CurrentFlowStateStore({
+      directory,
+      definition,
+      faultInjector({ phase }) {
+        if (phase === "state-written") throw new Error("state durable");
+      },
+    });
+    assert.throws(() => stateCrash.apply({ activity: confirmedActivity }), /state durable/);
+    const reloaded = new CurrentFlowStateStore({ directory, definition });
+    assert.equal(reloaded.load().confirmationOrder, 2);
+    assert.equal(reloaded.apply({ activity: confirmedActivity }).confirmationOrder, 2);
+    assert.deepEqual(reloaded.journal.read().map((entry) => entry.id), ["crash-start", "crash-confirm"]);
   });
 });
