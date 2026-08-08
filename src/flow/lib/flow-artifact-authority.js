@@ -7,14 +7,9 @@
  * ownership.
  */
 
+import { ArtifactAuthority } from "../../lib/flow-version.js";
+
 const PRODUCERS = new Set(["cli", "worker", "user"]);
-const AUTHORITIES = new Set([
-  "canonical-flow-artifacts",
-  "execution-checkout",
-  "dispatcher-handoff",
-  "repository-metadata",
-  "user-decision",
-]);
 const OWNERS = new Set(["cli", "dispatcher", "worker", "user"]);
 
 function requiredString(value, field) {
@@ -54,9 +49,7 @@ export class FlowArtifactAuthorityEntry {
     this.sourceBinding = requiredString(sourceBinding, `${this.stepId}.sourceBinding`);
     this.recoveryOwner = requiredString(recoveryOwner, `${this.stepId}.recoveryOwner`);
     if (!PRODUCERS.has(this.producer)) throw new Error(`invalid producer for ${this.stepId}`);
-    if (!AUTHORITIES.has(this.writableAuthority)) {
-      throw new Error(`invalid writable authority for ${this.stepId}`);
-    }
+    ArtifactAuthority.from(this.writableAuthority);
     if (!OWNERS.has(this.publicationOwner) || !OWNERS.has(this.recoveryOwner)) {
       throw new Error(`invalid owner for ${this.stepId}`);
     }
@@ -196,4 +189,12 @@ export function flowArtifactAuthorityForStep(stepId) {
 
 export function requiresWorkerArtifactHandoff(stepId) {
   return flowArtifactAuthorityForStep(stepId)?.workerHandoff === true;
+}
+
+export function assertCatalogPublicationAuthority(stepId, authority) {
+  const entry = flowArtifactAuthorityForStep(stepId);
+  if (!entry) throw new Error(`unknown Flow artifact authority step: ${stepId}`);
+  const catalogAuthority = ArtifactAuthority.from(authority);
+  if (entry.writableAuthority !== catalogAuthority.toString()) throw new Error(`catalog authority mismatch for ${stepId}: expected ${entry.writableAuthority}`);
+  return entry;
 }

@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
+import { FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowVersionIdentityStore, FlowVersionLocation, FlowVersionRecord } from "../../lib/flow-version.js";
 
 export const CURRENT_FLOW_SCHEMA_REVISION = 2;
 // `version` is the result-generation version persisted in flow.json.  It is
@@ -2871,11 +2872,106 @@ export class CurrentFlowStateAdoptionBoundary {
     });
   }
 
+  openVersionStore({ location, identity, faultInjector, processIdentitySource } = {}) {
+    if (!(location instanceof FlowVersionLocation)) throw new CurrentFlowStateInvariantError("FlowVersionLocation is required for Version storage");
+    return new CurrentFlowVersionStore({ location, identity, definition: this.definition, ...(faultInjector && { faultInjector }), ...(processIdentitySource && { processIdentitySource }) });
+  }
+
   conversionPlan({ sourceFormat, targetDirectory }) {
     return new CurrentFlowStateConversionPlan({
       definition: this.definition,
       sourceFormat,
       targetDirectory,
     });
+  }
+}
+
+/** Version-1-only persistence facade. It has no legacy-layout lookup. */
+export class CurrentFlowVersionStore {
+  #stateStore = null;
+  constructor({ location, identity, definition, faultInjector, processIdentitySource } = {}) {
+    if (!(location instanceof FlowVersionLocation)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a FlowVersionLocation");
+    if (!(identity instanceof FlowVersionRecord)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a FlowVersionRecord");
+    if (location.version.value !== 1 || identity.identity.version.value !== 1) {
+      throw new CurrentFlowStateInvariantError("Current Flow Version store supports Version 1 only");
+    }
+    if (
+      !identity.identity.specId.equals(location.specId)
+      || identity.identity.version.value !== location.version.value
+    ) {
+      throw new CurrentFlowStateInvariantError("Current Flow Version identity must match its Version location");
+    }
+    if (!(definition instanceof CurrentFlowDefinition)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a CurrentFlowDefinition");
+    this.location = location;
+    this.identity = identity;
+    this.definition = definition;
+    this.faultInjector = faultInjector;
+    this.processIdentitySource = processIdentitySource;
+    this.catalogStore = new FlowArtifactCatalogStore({ location });
+    this.identityStore = new FlowVersionIdentityStore({ location });
+    Object.freeze(this);
+  }
+  create(state, { specRecord = null } = {}) {
+    if (state?.version !== 1 || state.version !== this.location.version.value) throw new CurrentFlowStateInvariantError("current Flow state version must match Version 1 storage");
+    if (specRecord !== null) {
+      if (!specRecord || typeof specRecord !== "object" || Array.isArray(specRecord) || (specRecord.id ?? specRecord.specId) !== this.location.specId.toString()) {
+        throw new CurrentFlowStateInvariantError("Version spec record must match its Version location specId");
+      }
+    }
+    if (fs.existsSync(this.location.directory)) throw new CurrentFlowStateConflictError("Current Flow Version root must be absent before creation");
+    try {
+      fs.mkdirSync(path.dirname(this.location.directory), { recursive: true, mode: 0o755 });
+      fs.mkdirSync(this.location.directory, { recursive: false, mode: 0o755 });
+      if (specRecord !== null) {
+        fs.writeFileSync(this.location.specFile, `${JSON.stringify(specRecord, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+      }
+      fs.writeFileSync(this.location.activitiesFile, "", { flag: "wx", mode: 0o600 });
+      this.identityStore.create(this.identity);
+      const created = this.#store().create(state);
+      const artifacts = [
+        FlowArtifactDescriptor.fromFile({ location: this.location, kind: "flow-state", relativePath: "flow.json", mediaType: "application/json", authority: "repository-metadata", retention: "permanent" }),
+        FlowArtifactDescriptor.fromFile({ location: this.location, kind: "flow-version-identity", relativePath: "flow-version.json", mediaType: "application/json", authority: "repository-metadata", retention: "permanent" }),
+        FlowArtifactDescriptor.fromFile({ location: this.location, kind: "activity-ledger", relativePath: "activities.jsonl", mediaType: "application/x-ndjson", authority: "canonical-flow-artifacts", retention: "permanent" }),
+      ];
+      if (fs.existsSync(this.location.specFile)) {
+        artifacts.push(FlowArtifactDescriptor.fromFile({ location: this.location, kind: "spec-record", relativePath: "spec.json", mediaType: "application/json", authority: "repository-metadata", retention: "permanent" }));
+      }
+      this.catalogStore.save(new FlowArtifactCatalog({ artifacts }));
+      return created;
+    } catch (error) {
+      this.#stateStore = null;
+      try {
+        fs.rmSync(this.location.directory, { recursive: true, force: true });
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Current Flow Version creation authority corrupted during cleanup", { cause: error });
+      }
+      throw error;
+    }
+  }
+  load() { this.catalogStore.require(); return this.#store().load(); }
+  loadSnapshot() { this.catalogStore.require(); return this.#store().loadSnapshot(); }
+  apply(input) {
+    return this.catalogStore.publishMany({
+      artifacts: [
+        { relativePath: "flow.json", kind: "flow-state", mediaType: "application/json", authority: "repository-metadata", retention: "permanent" },
+        { relativePath: "activities.jsonl", kind: "activity-ledger", mediaType: "application/x-ndjson", authority: "canonical-flow-artifacts", retention: "permanent" },
+      ],
+      write: () => this.#store().apply(input),
+    }).result;
+  }
+  catalog() { return this.catalogStore.require(); }
+  flowVersionIdentity() { this.catalogStore.require(); return this.identityStore.load(); }
+  regenerateCatalog(descriptors) { return this.catalogStore.regenerate(descriptors); }
+  #store() {
+    if (!fs.existsSync(this.location.directory)) throw new CurrentFlowStateConflictError("Current Flow Version root does not exist");
+    if (this.#stateStore === null) {
+      this.#stateStore = new CurrentFlowStateStore({
+        directory: this.location.directory,
+        definition: this.definition,
+        ...(this.faultInjector && { faultInjector: this.faultInjector }),
+        ...(this.processIdentitySource && { processIdentitySource: this.processIdentitySource }),
+      });
+    }
+    return this.#stateStore;
   }
 }

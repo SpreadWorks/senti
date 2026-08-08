@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
+import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
@@ -120,6 +121,11 @@ export class IssueLogSnapshot {
 }
 
 export class IssueLogStore {
+  static forVersion({ location, ...options } = {}) {
+    if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Version issue-log storage");
+    return new IssueLogStore({ ...options, root: location.directory, spec: "spec.json", versionLocation: location });
+  }
+
   constructor({
     root,
     spec,
@@ -129,6 +135,7 @@ export class IssueLogStore {
     mainRoot = null,
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
+    versionLocation = null,
   } = {}) {
     this.root = path.resolve(requireAuthorityString(root, "issue-log root"));
     this.mainRoot = mainRoot == null
@@ -164,6 +171,9 @@ export class IssueLogStore {
       errorFactory: (status, message, data) => issueLogError(status, message, data),
     });
     this.file = new AtomicJsonFile(this.filePath, { faultInjector });
+    this.catalogStore = versionLocation instanceof FlowVersionLocation
+      ? new FlowArtifactCatalogStore({ location: versionLocation })
+      : null;
     this.allowLegacyArray = allowLegacyArray;
   }
 
@@ -175,7 +185,7 @@ export class IssueLogStore {
     return this.#withLock(() => {
       const snapshot = this.#readFresh();
       const result = snapshot.document.append(entry, idempotencyKey);
-      if (result.appended) this.file.write(snapshot.document.toJSON());
+      if (result.appended) this.#write(snapshot.document.toJSON());
       return {
         ...result,
         total: snapshot.document.entries.length,
@@ -193,7 +203,7 @@ export class IssueLogStore {
         const result = snapshot.document.append(item.entry, item.idempotencyKey);
         if (result.appended) appended.push(result.entry);
       }
-      if (appended.length > 0) this.file.write(snapshot.document.toJSON());
+      if (appended.length > 0) this.#write(snapshot.document.toJSON());
       return { appended, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
@@ -207,7 +217,7 @@ export class IssueLogStore {
         throw issueLogError("revision-conflict", "issue-log changed before the requested mutation");
       }
       const result = mutator(snapshot.document);
-      this.file.write(snapshot.document.toJSON());
+      this.#write(snapshot.document.toJSON());
       return { result, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
@@ -216,7 +226,7 @@ export class IssueLogStore {
     return this.#withLock(() => {
       const snapshot = this.#readFresh();
       const removed = snapshot.document.remove(idempotencyKey);
-      if (removed) this.file.write(snapshot.document.toJSON());
+      if (removed) this.#write(snapshot.document.toJSON());
       return { removed, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
@@ -244,27 +254,67 @@ export class IssueLogStore {
       }
       if (revisionOf(snapshot.document) === revisionOf(beforeDocument)) {
         if (before.exists) {
-          writeExactIssueLog(this.filePath, beforeBytes, before.mode);
+          this.#writeExact(beforeBytes, before.mode);
         } else {
           try {
-            fs.unlinkSync(this.filePath);
+            this.#removeFile();
             fsyncDirectory(this.directory);
           } catch (error) {
             if (error.code !== "ENOENT") throw error;
           }
         }
       } else if (removed) {
-        this.file.write(snapshot.document.toJSON());
+        this.#write(snapshot.document.toJSON());
       }
       return { removed, exact: revisionOf(snapshot.document) === revisionOf(beforeDocument) };
     });
   }
 
   #readFresh() {
+    this.catalogStore?.require();
     return new IssueLogSnapshot(new IssueLogDocument(
       this.file.read({ entries: [] }),
       { allowLegacyArray: this.allowLegacyArray },
     ));
+  }
+
+  #write(document) {
+    if (!this.catalogStore) return this.file.write(document);
+    return this.catalogStore.publish({
+      relativePath: "issue-log.json",
+      kind: "issue-log",
+      mediaType: "application/json",
+      authority: "repository-metadata",
+      retention: "permanent",
+      write: () => this.file.write(document),
+    }).result;
+  }
+
+  #writeExact(bytes, mode) {
+    if (!this.catalogStore) return writeExactIssueLog(this.filePath, bytes, mode);
+    return this.catalogStore.publish({
+      relativePath: "issue-log.json",
+      kind: "issue-log",
+      mediaType: "application/json",
+      authority: "repository-metadata",
+      retention: "permanent",
+      write: () => writeExactIssueLog(this.filePath, bytes, mode),
+    }).result;
+  }
+
+  #removeFile() {
+    if (!this.catalogStore) {
+      fs.unlinkSync(this.filePath);
+      fsyncDirectory(this.directory);
+      return;
+    }
+    return this.catalogStore.unpublish({
+      relativePath: "issue-log.json",
+      write: () => {
+        fs.unlinkSync(this.filePath);
+        fsyncDirectory(this.directory);
+      },
+    }).result;
   }
 
   #withLock(operation) {

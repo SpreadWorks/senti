@@ -22,6 +22,7 @@ import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
 import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
+import { FlowVersion } from "./flow-version.js";
 import {
   FlowTargetAuthorityError,
   FlowTargetIdentity,
@@ -484,6 +485,9 @@ export class FlowManager {
   }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   specLocation(specId) { return this._workspace.forSpec(withSpecIdArgDefault(specId, this._boundSpecId)); }
+  versionLocation(specId, version) {
+    return this._workspace.forVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
+  }
   pathForCurrent() { return this._store.pathForCurrent(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
   flowStatePath() { return this._store.pathForCurrent(); }

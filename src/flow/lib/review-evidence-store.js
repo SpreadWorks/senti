@@ -12,6 +12,7 @@ import {
   resolveReviewPermittedOperation,
 } from "./review-convergence.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
+import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
 
 function isInside(parent, child) {
   const relative = path.relative(parent, child);
@@ -187,13 +188,26 @@ export class ReviewEvidenceWrite {
 }
 
 export class ReviewEvidenceStore {
-  constructor({ root, specDir } = {}) {
-    this.root = fs.realpathSync(path.resolve(root));
-    this.specDir = fs.realpathSync(path.resolve(specDir));
+  static forVersion({ location } = {}) {
+    if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Version review evidence storage");
+    return new ReviewEvidenceStore({ location });
+  }
+
+  constructor({ root, specDir, location = null } = {}) {
+    if (location instanceof FlowVersionLocation) {
+      this.root = location.directory;
+      this.specDir = location.directory;
+      this.evidenceDir = location.reviewEvidenceDirectory;
+      this.catalogStore = new FlowArtifactCatalogStore({ location });
+    } else {
+      this.root = fs.realpathSync(path.resolve(root));
+      this.specDir = fs.realpathSync(path.resolve(specDir));
+      this.evidenceDir = path.join(this.specDir, "review-evidence");
+      this.catalogStore = null;
+    }
     if (!isInside(this.root, this.specDir)) {
       throw new Error("specDir must be inside root");
     }
-    this.evidenceDir = path.join(this.specDir, "review-evidence");
     Object.freeze(this);
   }
 
@@ -219,6 +233,7 @@ export class ReviewEvidenceStore {
 
   contains(evidence) {
     if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
+    this.catalogStore?.require();
     const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
     let stat;
     try {
@@ -241,7 +256,19 @@ export class ReviewEvidenceStore {
     this.ensureEvidenceDirectory();
     const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
     try {
-      fs.writeFileSync(artifactPath, bytes, { flag: "wx", mode: 0o600 });
+      if (this.catalogStore) {
+        this.catalogStore.publish({
+          relativePath: path.relative(this.root, artifactPath).split(path.sep).join("/"),
+          kind: "review-evidence",
+          mediaType: "application/json",
+          authority: "canonical-flow-artifacts",
+          retention: "permanent",
+          activityId: evidence.identity.evidenceDigest,
+          write: () => fs.writeFileSync(artifactPath, bytes, { flag: "wx", mode: 0o600 }),
+        });
+      } else {
+        fs.writeFileSync(artifactPath, bytes, { flag: "wx", mode: 0o600 });
+      }
       return new ReviewEvidenceWrite({ path: artifactPath, created: true });
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
