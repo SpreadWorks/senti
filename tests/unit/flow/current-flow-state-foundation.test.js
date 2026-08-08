@@ -1009,6 +1009,20 @@ describe("Current Flow state foundation", () => {
     assert.equal(updated.attempt.blocker.code, "ready");
     const journalEntries = store.journal.read();
     assert.deepEqual(journalEntries.map((entry) => entry.type), ["attempt_started", "attempt_updated"]);
+    assert.deepEqual(journalEntries[0].timing.toJSON(), {
+      startedAt: NOW,
+      finishedAt: LATER,
+      durationMs: 60000,
+    });
+    assert.equal(journalEntries[0].provider, "provider");
+    assert.equal(journalEntries[0].model, "model");
+    assert.equal(journalEntries[0].effort, "standard");
+    assert.deepEqual(journalEntries[0].usage.toJSON(), {
+      inputTokens: 11,
+      outputTokens: 7,
+      cacheReadTokens: 2,
+      cost: 0,
+    });
     assert.ok(journalEntries[0].references.evaluations[0] instanceof ActivityEvaluationReference);
     assert.ok(journalEntries[0].references.findings[0] instanceof ActivityFindingReference);
     assert.ok(journalEntries[0].references.repairs[0] instanceof ActivityRepairReference);

@@ -21,6 +21,10 @@ function result(summary) {
   return { outcome: "passed", summary, confirmedAt: LATER, artifactRefs: [{ kind: "artifact", id: `${summary}-artifact` }] };
 }
 
+function skippedResult(summary) {
+  return { outcome: "skipped", summary, confirmedAt: LATER, artifactRefs: [] };
+}
+
 function attemptFor(state, currentPath, id, sequence = null, tooling = 0) {
   const contract = state.definition.contractFor(currentPath.at(-1), state.root);
   const leaf = state.findNode(currentPath.at(-1));
@@ -101,7 +105,7 @@ describe("Current Flow state filesystem lifecycle", () => {
   let tmp = null;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("persists production flow/task order, review retry, gate recovery, and append-only Activity facts across reload", () => {
+  it("persists production skip policy, flow/task order, retry, recovery, and append-only Activity facts across reload", () => {
     tmp = createTmpDir("current-flow-e2e-");
     const definition = buildCurrentFlowDefinition();
     const directory = path.join(tmp, "specs", "900-current-state");
@@ -115,7 +119,7 @@ describe("Current Flow state filesystem lifecycle", () => {
       state = new CurrentFlowStateStore({ directory, definition }).load();
       order += 1;
     };
-    const completeDescriptor = (label) => {
+    const completeDescriptor = (label, { status = "done", activityResult = result(label) } = {}) => {
       const descriptor = state.nextAction();
       assert.equal(descriptor.operation, "start", `expected normal start for ${descriptor.nodeId}`);
       const currentPath = descriptor.path;
@@ -133,8 +137,8 @@ describe("Current Flow state filesystem lifecycle", () => {
         currentPath,
         order,
         operation: "confirm_attempt",
-        status: "done",
-        activityResult: result(label),
+        status,
+        activityResult,
       }));
     };
     const advanceUntil = (nodeId, label) => {
@@ -166,6 +170,52 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.deepEqual(state.findNode("impl").steps.slice(0, 5).map((node) => node.id), [
       "implement", "task-a", "task-b", "test-execute", "test-result-review",
     ]);
+
+    assert.equal(state.nextAction().nodeId, "branch");
+    completeDescriptor("branch-skipped", {
+      status: "skipped",
+      activityResult: skippedResult("No branch is required."),
+    });
+    assert.equal(state.findNode("branch").status, "skipped");
+    assert.equal(state.findNode("branch").result.outcome, "skipped");
+
+    assert.equal(state.nextAction().nodeId, "prepare-spec");
+    const prepareSpecPath = state.nextAction().path;
+    apply(activity({
+      id: "prepare-spec-start",
+      state,
+      currentPath: prepareSpecPath,
+      activityAttempt: attemptFor(state, prepareSpecPath, "prepare-spec-attempt"),
+      order,
+      operation: "start_attempt",
+    }));
+    const orderBeforeForbiddenSkip = order;
+    const journalLengthBeforeForbiddenSkip = store.journal.read().length;
+    assert.throws(
+      () => new CurrentFlowStateStore({ directory, definition }).apply({ activity: activity({
+        id: "prepare-spec-forbidden-skip",
+        state,
+        currentPath: prepareSpecPath,
+        order,
+        operation: "confirm_attempt",
+        status: "skipped",
+        activityResult: skippedResult("A required specification cannot be skipped."),
+      }) }),
+      (error) => error instanceof CurrentFlowStateInvariantError
+        && /definition forbids transition in_progress:skipped for prepare-spec/.test(error.message),
+    );
+    assert.equal(order, orderBeforeForbiddenSkip);
+    assert.equal(store.journal.read().length, journalLengthBeforeForbiddenSkip);
+    assert.equal(new CurrentFlowStateStore({ directory, definition }).load().current.at(-1), "prepare-spec");
+    apply(activity({
+      id: "prepare-spec-confirm",
+      state,
+      currentPath: prepareSpecPath,
+      order,
+      operation: "confirm_attempt",
+      status: "done",
+      activityResult: result("prepare-spec"),
+    }));
 
     advanceUntil("task-a/task-impl", "prelude");
     const taskAImpl = state.nextAction().path;
@@ -432,11 +482,16 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.equal(journal.find((entry) => entry.id === "task-a-review-rewind").sequence, 3);
     assert.equal(journal.find((entry) => entry.id === "task-a-gate-recover").sequence, 2);
     assert.equal(journal.find((entry) => entry.id === "task-a-gate-recovered").result.summary, "task-a-gate-recovered");
+    assert.equal(journal.find((entry) => entry.id === "branch-skipped-confirm").transition.status, "skipped");
+    assert.equal(journal.find((entry) => entry.id === "branch-skipped-confirm").result.outcome, "skipped");
+    assert.equal(journal.some((entry) => entry.id === "prepare-spec-forbidden-skip"), false);
     assert.equal(journal.find((entry) => entry.id === "task-b-review-fail-exhausted").failure.retryable, true);
     assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").type, "failure_recorded");
     assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").result.outcome, "failed");
     store.writeActivitiesView();
-    assert.match(fs.readFileSync(path.join(directory, "activities.md"), "utf8"), /attempt_retried/);
+    const markdown = fs.readFileSync(path.join(directory, "activities.md"), "utf8");
+    assert.match(markdown, /attempt_retried/);
+    assert.match(markdown, /\| skipped \|/);
   });
 
   it("reloads a terminal failed Attempt as an explicit blocked disposition without contradictory journal payloads", () => {

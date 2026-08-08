@@ -4827,7 +4827,7 @@ export async function runGateFlow(args) {
   validateLevelPhase(level, phase);
 
   try {
-    validateConfiguredPresetChains(root);
+    validateConfiguredPresetChains(root, config);
   } catch (error) {
     const failure = gateFail(level, phase, targetPath, [], [error.message]);
     failure.artifacts.failureKind = "prerequisite";

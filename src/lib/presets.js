@@ -197,13 +197,16 @@ export function resolveMultiChains(types, projectRoot, opts = {}) {
 }
 
 /**
- * Resolve every preset chain configured by a project without applying the
- * tolerant fallback used by presentation-oriented preset consumers.
+ * Resolve every preset chain from the command-owned configuration without
+ * applying the tolerant fallback used by presentation-oriented preset
+ * consumers. Callers that already resolved command context must not trigger a
+ * second configuration read from a different repository/worktree authority.
  *
+ * @param {string} projectRoot
+ * @param {object} config
  * @returns {object|null} the project config, or null when no config exists
  */
-export function validateConfiguredPresetChains(projectRoot) {
-  const config = loadConfig(projectRoot);
+export function validateConfiguredPresetChains(projectRoot, config) {
   if (!config.type) return config;
   resolveMultiChains(config.type, projectRoot);
   return config;
