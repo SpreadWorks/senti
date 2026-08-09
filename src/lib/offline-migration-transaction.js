@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { RealDirectoryAuthority } from "./process-owned-lock.js";
+import { PRODUCT } from "./product.js";
 
 const VERSION = 7;
 const PHASES = new Set(["staged", "applying", "rolling-back", "rolled-back", "applied"]);
@@ -89,7 +90,7 @@ class OfflineMigrationWorkspaceAuthority {
     this.root = path.resolve(root);
     const located = withinRoot(this.root, path.join(this.root, relativePath));
     if (
-      !located.relative.startsWith(".senti/recovery/offline-migration-workspaces/")
+      !located.relative.startsWith(`${PRODUCT.managedPath("recovery", "offline-migration-workspaces")}/`)
       || typeof token !== "string"
       || !/^[0-9a-f-]{36}$/.test(token)
       || (dev === null) !== (ino === null)
@@ -108,7 +109,7 @@ class OfflineMigrationWorkspaceAuthority {
     const token = crypto.randomUUID();
     return new OfflineMigrationWorkspaceAuthority({
       root,
-      relativePath: `.senti/recovery/offline-migration-workspaces/${token}`,
+      relativePath: `${PRODUCT.managedPath("recovery", "offline-migration-workspaces")}/${token}`,
       token,
     });
   }
@@ -148,11 +149,11 @@ class OfflineMigrationWorkspace {
     const directory = path.join(authority.root, authority.relativePath);
     const parent = path.dirname(directory);
     if (allowMissing && authority.dev !== null && !fs.existsSync(directory)) return null;
-    const senti = new RealDirectoryAuthority(path.join(authority.root, ".senti"));
-    senti.ensure();
-    const recovery = new RealDirectoryAuthority(path.join(authority.root, ".senti", "recovery"), {
+    const senrail = new RealDirectoryAuthority(path.join(authority.root, PRODUCT.managedDirName));
+    senrail.ensure();
+    const recovery = new RealDirectoryAuthority(path.join(authority.root, PRODUCT.managedDirName, "recovery"), {
       create: true,
-      parentAuthority: senti,
+      parentAuthority: senrail,
     });
     recovery.ensure();
     new RealDirectoryAuthority(parent, { create: true, parentAuthority: recovery }).ensure();
@@ -449,7 +450,7 @@ class OfflineMigrationGeneration {
     return !this.reserved
       && stat.nlink === 1
       && (stat.mode & 0o777) === this.mode
-      && bytes.equals(Buffer.from(`senti-migration-reservation-v1:${this.reservationToken}\n`));
+      && bytes.equals(Buffer.from(`${PRODUCT.protocol("migration-reservation", "v1")}:${this.reservationToken}\n`));
   }
 
   asPrepared() {
@@ -538,7 +539,7 @@ class AtomicBytesFile {
     try {
       descriptor = fs.openSync(tempPath, "wx", generation.mode);
       created = true;
-      fs.writeFileSync(descriptor, `senti-migration-reservation-v1:${generation.reservationToken}\n`);
+      fs.writeFileSync(descriptor, `${PRODUCT.protocol("migration-reservation", "v1")}:${generation.reservationToken}\n`);
       fs.fchmodSync(descriptor, generation.mode);
       fs.fsyncSync(descriptor);
       fs.closeSync(descriptor);
@@ -971,11 +972,11 @@ class MigrationJournalStore {
   constructor(root, relativePath) {
     const located = withinRoot(path.resolve(root), path.join(root, relativePath));
     this.path = located.resolved;
-    const senti = new RealDirectoryAuthority(path.join(root, ".senti"));
-    senti.ensure();
+    const senrail = new RealDirectoryAuthority(path.join(root, PRODUCT.managedDirName));
+    senrail.ensure();
     this.directoryAuthority = new RealDirectoryAuthority(path.dirname(this.path), {
       create: true,
-      parentAuthority: senti,
+      parentAuthority: senrail,
     });
     this.directoryAuthority.ensure();
     this.file = new AtomicJsonFile(this.path);

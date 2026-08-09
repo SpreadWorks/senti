@@ -57,7 +57,7 @@ function requireActionId(value, field = "actionId") {
 }
 
 function refreshCommand(state, binding) {
-  return guardedCommand("senti flow get next-action", state, binding);
+  return guardedCommand("senrail flow get next-action", state, binding);
 }
 
 function planGateRepairDirective(state, binding, phase, reason) {
@@ -68,7 +68,7 @@ function planGateRepairDirective(state, binding, phase, reason) {
     phase,
     instruction: "Run the guarded plan-gate repair transition. It freezes the canonical blocking observations and rewinds to the mapped worker-artifact handoff step; do not edit canonical spec artifacts directly.",
     reason,
-    nextAction: guardedCommand("senti flow run repair-plan-gate", state, binding),
+    nextAction: guardedCommand("senrail flow run repair-plan-gate", state, binding),
   });
 }
 

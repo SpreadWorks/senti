@@ -6,6 +6,7 @@ import { runGit, runGitToFile } from "../../lib/git-helpers.js";
 import { UPGRADE_RECOVERY_AUDIT_FILE } from "./upgrade-evidence-paths.js";
 import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
+import { PRODUCT } from "../../lib/product.js";
 
 export const REPAIR_STATE_VERSION = 3;
 export const LEGACY_REPAIR_STATE_VERSION = 2;
@@ -16,12 +17,12 @@ export const REPAIR_DELTA_DIR = "repair-deltas";
 export const REPAIR_TRANSACTION_FILE = "impl-repair-transaction.json";
 export const REPAIR_MIGRATION_FILE = "repair-state-migration.json";
 export const REPAIR_LOCK_DIR = ".impl-repair.lock";
-export const REPAIR_BASELINE_PUBLICATION_DIR = path.join(".senti", "recovery", "repair-baselines");
+export const REPAIR_BASELINE_PUBLICATION_DIR = path.join(PRODUCT.managedDirName, "recovery", "repair-baselines");
 
 const MAX_PATH_LENGTH = 4096;
 const HASH_PATTERN = /^[a-f0-9]{64}$/i;
 const RUN_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
-const REPAIR_REF_PATTERN = /^refs\/senti\/flows\/([A-Za-z0-9._-]+)\/baseline$/;
+const REPAIR_REF_PATTERN = new RegExp(`^refs/${PRODUCT.machineName}/flows/([A-Za-z0-9._-]+)/baseline$`);
 const ENTRY_MODE_PATTERN = /^(?:100644|100755|120000|160000|missing)$/;
 const ENTRY_STATUS_PATTERN = /^(?:(?:committed|index|worktree):(?:[ACDMTUXBR]|untracked)|explicit:(?:input|missing)|filesystem:input)$/;
 const ENTRY_OID_PATTERN = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i;
@@ -139,7 +140,7 @@ export class ImmutableGitBaseline {
     if (this.kind === "git" && this.ref != null) {
       const match = REPAIR_REF_PATTERN.exec(this.ref);
       if (!match || match[1] === "." || match[1] === "..") {
-        throw new Error("repair baseline ref must use the refs/senti/flows/<runId>/baseline namespace");
+        throw new Error(`repair baseline ref must use the refs/${PRODUCT.machineName}/flows/<runId>/baseline namespace`);
       }
     }
     this.createdRef = input.createdRef === true;
@@ -162,7 +163,7 @@ export class ImmutableGitBaseline {
 }
 
 function expectedRepairBaselineRef(runId) {
-  return `refs/senti/flows/${assertSafeRunId(runId)}/baseline`;
+  return PRODUCT.flowBaselineRef(assertSafeRunId(runId));
 }
 
 function resolveRepairBaselineRef({ root, ref }) {
@@ -325,7 +326,7 @@ export class RepairBaselinePublication {
     this.baseline = input.baseline instanceof ImmutableGitBaseline
       ? input.baseline
       : new ImmutableGitBaseline(input.baseline);
-    const expectedRef = `refs/senti/flows/${this.runId}/baseline`;
+    const expectedRef = PRODUCT.flowBaselineRef(this.runId);
     if (this.baseline.kind !== "git" || this.baseline.ref !== expectedRef) {
       throw new Error("repair baseline publication ref does not match its runId");
     }
@@ -557,29 +558,29 @@ export class RepairArtifactRegistry {
       REPAIR_MIGRATION_FILE,
     ].map((name) => `${this.specDir}/${name}`);
     this.#exact = new Set([
-      ".senti/.active-flow",
+      PRODUCT.managedPath(".active-flow"),
       ...FlowTargetIdentityAuthority.repositoryPaths(),
-      ".senti/.repository-flow-operation.lock",
-      ".senti/.repository-maintenance.lock",
-      ".senti/.worktree-prepare-attempt.json",
-      ".senti/flow-identity.json",
-      ".senti/flow-identity.issue-transaction.json",
-      ".senti/.flow-identity.publication.json",
-      ".senti/.flow-identity.publication.intent",
-      ".senti/.flow-identity.publication.receipt.tmp",
-      ".senti/.flow-identity.publication.binding.tmp",
-      ".senti/last-finalized-spec",
+      PRODUCT.managedPath(".repository-flow-operation.lock"),
+      PRODUCT.managedPath(".repository-maintenance.lock"),
+      PRODUCT.managedPath(".worktree-prepare-attempt.json"),
+      PRODUCT.managedPath("flow-identity.json"),
+      PRODUCT.managedPath("flow-identity.issue-transaction.json"),
+      PRODUCT.managedPath(".flow-identity.publication.json"),
+      PRODUCT.managedPath(".flow-identity.publication.intent"),
+      PRODUCT.managedPath(".flow-identity.publication.receipt.tmp"),
+      PRODUCT.managedPath(".flow-identity.publication.binding.tmp"),
+      PRODUCT.managedPath("last-finalized-spec"),
       ...specArtifacts,
     ]);
     this.#prefixes = Object.freeze([
       ".tmp/",
-      ".senti/.active-flow.",
-      ".senti/.flow-dispatch-",
-      ".senti/agent-cache/",
-      ".senti/agent-work/",
-      ".senti/output/",
-      ".senti/recovery/",
-      ".senti/worktree/",
+      `${PRODUCT.managedPath(".active-flow")}.`,
+      `${PRODUCT.managedPath(".flow-dispatch-")}`,
+      `${PRODUCT.managedPath("agent-cache")}/`,
+      `${PRODUCT.managedPath("agent-work")}/`,
+      `${PRODUCT.managedPath("output")}/`,
+      `${PRODUCT.managedPath("recovery")}/`,
+      `${PRODUCT.managedPath("worktree")}/`,
       `${this.specDir}/tests/.raw/`,
       `${this.specDir}/review-history/`,
       `${this.specDir}/review-evidence/`,
@@ -664,7 +665,7 @@ function resolveSingleMergeBase(root, baseRef) {
 export function captureRepairBaseline({ root, baseRef, runId, useMergeBase = false, pin = true }) {
   const objectFormat = gitObjectFormat(root);
   const sourceRef = requireString(baseRef, "baseRef");
-  const ref = pin ? `refs/senti/flows/${assertSafeRunId(runId)}/baseline` : null;
+  const ref = pin ? PRODUCT.flowBaselineRef(assertSafeRunId(runId)) : null;
   const pinned = ref ? runGit(["rev-parse", "--verify", ref], { cwd: root }) : null;
   let commitCandidate = pinned?.ok ? pinned.stdout.trim() : null;
   if (commitCandidate == null) {
@@ -777,7 +778,7 @@ export function beginRepairBaselinePublication({
     const resolved = captureRepairBaseline({ root, baseRef, runId, useMergeBase, pin: false });
     const baseline = new ImmutableGitBaseline({
       ...resolved.toJSON(),
-      ref: `refs/senti/flows/${requireArtifactId(runId, "runId")}/baseline`,
+      ref: PRODUCT.flowBaselineRef(requireArtifactId(runId, "runId")),
     });
     publication = new RepairBaselinePublication({
       version: 1,
@@ -882,7 +883,7 @@ export function deleteRepairBaselineRef({ root, baseline }) {
 
 export function deleteRepairBaselineForFlow(root, flowState) {
   if (!flowState?.repairBaseline) return false;
-  const expectedRef = `refs/senti/flows/${assertSafeRunId(flowState.runId)}/baseline`;
+  const expectedRef = PRODUCT.flowBaselineRef(assertSafeRunId(flowState.runId));
   if (flowState.repairBaseline.ref !== expectedRef) {
     throw new RepairStateError(
       "REPAIR_BASELINE_AUTHORITY_MISMATCH",
@@ -916,7 +917,7 @@ function isGitRepository(root) {
 }
 
 function readConfiguredBoundary(root) {
-  const file = path.join(root, ".senti", "config.json");
+  const file = path.join(root, PRODUCT.managedDirName, "config.json");
   if (!fs.existsSync(file)) return { maxChangedPaths: DEFAULT_REPAIR_CHANGED_PATH_LIMIT, include: [] };
   const config = JSON.parse(fs.readFileSync(file, "utf8"));
   const input = config?.flow?.repairFingerprint || {};
@@ -939,7 +940,7 @@ function readConfiguredBoundary(root) {
 }
 
 function forEachGitNulField(root, args, label, visit) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "senti-repair-git-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), PRODUCT.temporaryPrefix("repair-git")));
   const outputPath = path.join(directory, "stdout.bin");
   try {
     const result = runGitToFile(args, { cwd: root, outputPath });
@@ -1272,7 +1273,7 @@ function baselineFromStateOrRepository({ root, state, specDir }) {
   const objectFormat = gitObjectFormat(root);
   const runId = state?.runId;
   if (runId) {
-    const ref = `refs/senti/flows/${assertSafeRunId(runId)}/baseline`;
+    const ref = PRODUCT.flowBaselineRef(assertSafeRunId(runId));
     const pinned = runGit(["rev-parse", "--verify", ref], { cwd: root });
     if (pinned.ok) {
       const commitOid = requireOid(pinned.stdout.trim(), "commitOid", objectFormat);
@@ -1312,8 +1313,8 @@ export function buildRepairStateManifest({ root, artifactRoot = null, specPath, 
   const baseline = baselineFromStateOrRepository({ root, state, specDir });
   const skipWorktreePaths = assertSupportedIndexFlags(root);
   const changed = collectGitChangedPaths(root, baseline, boundary);
-  collectExplicitTree(root, ".senti/config.json", changed, registry, boundary);
-  collectExplicitTree(root, ".senti/config.local.json", changed, registry, boundary);
+  collectExplicitTree(root, PRODUCT.managedPath("config.json"), changed, registry, boundary);
+  collectExplicitTree(root, PRODUCT.managedPath("config.local.json"), changed, registry, boundary);
   collectExplicitTree(resolvedArtifactRoot, normalizedSpec, changed, registry, boundary);
   collectExplicitTree(resolvedArtifactRoot, path.posix.join(path.posix.dirname(normalizedSpec), "tests"), changed, registry, boundary);
   for (const relPath of boundary.include) collectExplicitTree(root, relPath, changed, registry, boundary);

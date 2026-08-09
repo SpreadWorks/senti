@@ -93,9 +93,9 @@ test("FlowTargetBinding command exposes no-Issue guard explicitly", () => {
     },
   }));
 
-  const command = binding.guardCommand("senti flow get next-action");
+  const command = binding.guardCommand("senrail flow get next-action");
 
-  assert.match(command, /^senti flow get next-action --expect-binding '[^']+' --expect-no-issue$/);
+  assert.match(command, /^senrail flow get next-action --expect-binding '[^']+' --expect-no-issue$/);
 });
 
 test("target guard envelope compares opaque binding authority before mutation", () => {

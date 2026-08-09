@@ -57,7 +57,7 @@ function initRepository({ config = {} } = {}) {
   git("init", "-q", "-b", "main");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "Test User");
-  write(".senti/config.json", JSON.stringify(config));
+  write(".senrail/config.json", JSON.stringify(config));
   write("specs/demo/spec.json", JSON.stringify({ requirements: [] }));
   write("specs/demo/tests/demo.test.js", "export const test = true;\n");
   write("app/original.js", "export const value = 1;\n");
@@ -162,8 +162,8 @@ describe("repair state identity", () => {
     assert.ok(paths.has("packages/api/untracked.js"));
     assert.ok(paths.has("src/node_modules/tracked.js"));
     assert.ok(!paths.has("src/node_modules/ignored.js"));
-    assert.ok(paths.has(".senti/config.json"));
-    assert.ok(paths.has(".senti/config.local.json"));
+    assert.ok(paths.has(".senrail/config.json"));
+    assert.ok(paths.has(".senrail/config.local.json"));
     assert.ok(paths.has("specs/demo/spec.json"));
     assert.equal(deleteRepairBaselineRef({ root: tmp, baseline }), true);
     assert.equal(deleteRepairBaselineRef({ root: tmp, baseline }), false);
@@ -342,7 +342,7 @@ describe("repair state identity", () => {
   it("treats sparse-checkout omissions as environment state instead of deletions", () => {
     const { state } = initRepository();
     git("sparse-checkout", "init", "--cone");
-    git("sparse-checkout", "set", "app", "specs", ".senti");
+    git("sparse-checkout", "set", "app", "specs", ".senrail");
     assert.equal(fs.existsSync(path.join(tmp, "src/node_modules/tracked.js")), false);
     const sparse = buildRepairFingerprint({ root: tmp, state });
     assert.equal(sparse.entries.some((entry) => entry.path === "src/node_modules/tracked.js"), false);
@@ -387,7 +387,7 @@ describe("repair state identity", () => {
     const second = captureRepairBaseline({ root: tmp, baseRef: "main", runId: "another-run" });
     assert.equal(deleteRepairBaselineForFlow(tmp, { runId: "run-test", repairBaseline: baseline.toJSON() }), true);
     assert.equal(deleteRepairBaselineForFlow(tmp, { runId: "run-test", repairBaseline: baseline.toJSON() }), false);
-    assert.equal(git("rev-parse", "refs/senti/flows/another-run/baseline"), second.commitOid);
+    assert.equal(git("rev-parse", "refs/senrail/flows/another-run/baseline"), second.commitOid);
     assert.throws(
       () => deleteRepairBaselineForFlow(tmp, { runId: "run-test", repairBaseline: second.toJSON() }),
       (error) => error.code === "REPAIR_BASELINE_AUTHORITY_MISMATCH",
@@ -402,10 +402,10 @@ describe("repair state identity", () => {
     assert.match(diff, /backend\/service\.js/);
     assert.doesNotMatch(diff, /must-not-leak|impl-review\.json/);
     const registry = new RepairArtifactRegistry("specs/demo/spec.json");
-    assert.equal(registry.owns(".senti/.active-flow"), true);
-    assert.equal(registry.owns(".senti/.active-flow.other-run"), true);
-    assert.equal(registry.owns(".senti/agent-cache/other-flow.json"), true);
-    assert.equal(registry.owns(".senti/recovery/finalize-cleanup/other.json"), true);
+    assert.equal(registry.owns(".senrail/.active-flow"), true);
+    assert.equal(registry.owns(".senrail/.active-flow.other-run"), true);
+    assert.equal(registry.owns(".senrail/agent-cache/other-flow.json"), true);
+    assert.equal(registry.owns(".senrail/recovery/finalize-cleanup/other.json"), true);
     assert.equal(registry.owns("specs/demo/upgrade-result.json"), true);
     assert.equal(registry.owns("specs/demo/upgrade-recovery-audit.json"), true);
     assert.equal(registry.owns("specs/demo/nonblocking-handoffs.json"), true);
@@ -466,7 +466,7 @@ describe("repair state identity", () => {
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/final-regression-result.json")));
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/report.json")));
     assert.ok(!fs.existsSync(path.join(tmp, "specs/demo/repair-state-migration.json")));
-    assert.equal(git("rev-parse", "refs/senti/flows/run-test/baseline"), result.state.repairBaseline.commitOid);
+    assert.equal(git("rev-parse", "refs/senrail/flows/run-test/baseline"), result.state.repairBaseline.commitOid);
   });
 
   it("returns integration-gate recovery for a baseline-bearing legacy v2 fingerprint", async () => {
@@ -578,7 +578,7 @@ describe("bounded repair audit and acceptance prompt", () => {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, content);
     };
-    writeAt(".senti/config.json", "{}");
+    writeAt(".senrail/config.json", "{}");
     writeAt("specs/demo/spec.json", JSON.stringify({ requirements: [] }));
     writeAt("specs/demo/tests/demo.test.js", "export const test = true;\n");
     writeAt("app/example.js", "export const value = 1;\n");
@@ -616,7 +616,7 @@ describe("bounded repair audit and acceptance prompt", () => {
 
   it("resumes a journaled repair after a crash without forking the ledger", () => {
     tmp = createTmpDir("repair-transaction-");
-    write(".senti/config.json", "{}");
+    write(".senrail/config.json", "{}");
     write("specs/demo/spec.json", JSON.stringify({ requirements: [] }));
     write("specs/demo/tests/demo.test.js", "export const test = true;\n");
     write("app/example.js", "export const value = 1;\n");

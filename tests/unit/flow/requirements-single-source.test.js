@@ -16,16 +16,16 @@ import os from "node:os";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
-const SENTI = path.resolve("src/senti.js");
+const SENRAIL = path.resolve("src/senrail.js");
 
 function createProject() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "req-source-"));
-  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
   fs.writeFileSync(
-    path.join(tmp, ".senti", "config.json"),
+    path.join(tmp, ".senrail", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -59,10 +59,10 @@ function setupFlow(tmp, specId) {
 }
 
 function run(tmp, argv) {
-  return spawnSync("node", [SENTI, ...argv], {
+  return spawnSync("node", [SENRAIL, ...argv], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 

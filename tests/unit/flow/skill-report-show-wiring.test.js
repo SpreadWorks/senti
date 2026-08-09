@@ -19,12 +19,12 @@ import path from "node:path";
 
 const SKILL_PATH = path.join(
   process.cwd(),
-  "src/skills/senti.flow/SKILL.md",
+  "src/skills/senrail.flow/SKILL.md",
 );
 
-const LEGACY_INSTRUCTION_PATTERN = /senti flow report show/;
+const LEGACY_INSTRUCTION_PATTERN = /senrail flow report show/;
 
-describe("senti.flow skill — cleanup envelope wiring (spec 251)", () => {
+describe("senrail.flow skill — cleanup envelope wiring (spec 251)", () => {
   const text = fs.readFileSync(SKILL_PATH, "utf8");
 
   it("SKILL.md does not carry the legacy post-cleanup streaming instruction", () => {

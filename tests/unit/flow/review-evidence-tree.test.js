@@ -43,11 +43,11 @@ describe("resolveCurrentReviewTreeSha", () => {
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "Test User");
     fs.mkdirSync(path.join(tmp, "specs", "demo", "review-history"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, ".senti", "output"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senrail", "output"), { recursive: true });
     fs.writeFileSync(path.join(tmp, "subject.js"), "export const value = 1;\n");
     fs.writeFileSync(path.join(tmp, "specs", "demo", "flow.json"), "{\"metrics\":[]}\n");
     fs.writeFileSync(path.join(tmp, "specs", "demo", "review-history", "test-attempt-001.json"), "{}\n");
-    fs.writeFileSync(path.join(tmp, ".senti", "output", "analysis.json"), "{}\n");
+    fs.writeFileSync(path.join(tmp, ".senrail", "output", "analysis.json"), "{}\n");
     git("add", ".");
     git("commit", "-q", "-m", "baseline");
 
@@ -55,7 +55,7 @@ describe("resolveCurrentReviewTreeSha", () => {
     const baseline = resolveCurrentReviewTreeSha(tmp, specPath);
     fs.writeFileSync(path.join(tmp, "specs", "demo", "flow.json"), "{\"metrics\":[1]}\n");
     fs.writeFileSync(path.join(tmp, "specs", "demo", "review-history", "test-attempt-001.json"), "{\"attempt\":1}\n");
-    fs.writeFileSync(path.join(tmp, ".senti", "output", "analysis.json"), "{\"entries\":[]}\n");
+    fs.writeFileSync(path.join(tmp, ".senrail", "output", "analysis.json"), "{\"entries\":[]}\n");
     assert.equal(resolveCurrentReviewTreeSha(tmp, specPath), baseline);
 
     fs.writeFileSync(path.join(tmp, "subject.js"), "export const value = 2;\n");

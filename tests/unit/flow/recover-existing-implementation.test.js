@@ -91,7 +91,7 @@ describe("recover existing implementation", () => {
   it("exposes the guarded recovery command through the flow registry", () => {
     const entry = FLOW_COMMANDS.run["recover-existing-implementation"];
     assert.ok(entry);
-    assert.match(entry.help, /Usage: senti flow run recover-existing-implementation/);
+    assert.match(entry.help, /Usage: senrail flow run recover-existing-implementation/);
     assert.ok(entry.args.options.includes("--expect-run-id"));
   });
 });

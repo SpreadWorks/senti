@@ -4,6 +4,7 @@ import fs from "fs";
 import { repoRoot } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { runCmd } from "./lib/process.js";
+import { PRODUCT } from "./lib/product.js";
 import {
   addPluginRepo,
   findPluginCandidates,
@@ -76,9 +77,13 @@ function upgradeSkip(reason) {
 }
 
 function runAutomaticUpgrade(root) {
-  const result = runCmd("senti", ["upgrade"], {
+  const result = runCmd("senrail", ["upgrade"], {
     cwd: root,
-    env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+    env: {
+      ...process.env,
+      [PRODUCT.env("WORK_ROOT")]: root,
+      [PRODUCT.env("SOURCE_ROOT")]: root,
+    },
     maxBuffer: 50 * 1024 * 1024,
   });
   const upgrade = {
@@ -197,7 +202,7 @@ export async function main() {
       }
       if (repoCommand === "add") {
         const source = stripFlags(repoRest)[0];
-        if (!source) throw new Error("Usage: senti plugin source add <git URL|local path>");
+        if (!source) throw new Error("Usage: senrail plugin source add <git URL|local path>");
         output(addPluginRepo(root, source, refArg(repoRest)), false);
         return;
       }
@@ -219,7 +224,7 @@ export async function main() {
     }
     if (command === "install") {
       const id = stripFlags(rest)[0];
-      if (!id) throw new Error("Usage: senti plugin install <id>");
+      if (!id) throw new Error("Usage: senrail plugin install <id>");
       const result = installPlugin(root, id);
       if (!result?.id) throw new Error(`plugin install failed: ${id}`);
       const upgrade = hasNoUpgrade(rest)
@@ -234,7 +239,7 @@ export async function main() {
     }
     if (command === "enable" || command === "disable") {
       const id = stripFlags(rest)[0];
-      if (!id) throw new Error(`Usage: senti plugin ${command} <id>`);
+      if (!id) throw new Error(`Usage: senrail plugin ${command} <id>`);
       output(setPluginEnabled(root, id, command === "enable"), false);
       return;
     }

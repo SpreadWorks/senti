@@ -25,7 +25,7 @@ function writeDataSource(dir, name, code) {
 
 // Helper: create a minimal analysis.json with dataSourceHash
 function writeAnalysis(dir, categories) {
-  const outputDir = path.join(dir, ".senti", "output");
+  const outputDir = path.join(dir, ".senrail", "output");
   fs.mkdirSync(outputDir, { recursive: true });
   const analysis = { analyzedAt: "2026-01-01T00:00:00Z" };
   for (const [cat, data] of Object.entries(categories)) {
@@ -37,7 +37,7 @@ function writeAnalysis(dir, categories) {
 
 // Helper: read analysis.json
 function readAnalysis(dir) {
-  return JSON.parse(fs.readFileSync(path.join(dir, ".senti", "output", "analysis.json"), "utf8"));
+  return JSON.parse(fs.readFileSync(path.join(dir, ".senrail", "output", "analysis.json"), "utf8"));
 }
 
 describe("scan dataSourceHash", () => {

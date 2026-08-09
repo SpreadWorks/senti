@@ -21,18 +21,18 @@ import {
   workerArtifactJson,
 } from "../helpers/worker-artifact.js";
 
-const SENTI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/senti.js");
+const SENRAIL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../src/senrail.js");
 const WORKER_ARTIFACT_HANDOFF_SCHEMA = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
 );
 
-function installSentiWrapper(executionRoot) {
+function installSenrailWrapper(executionRoot) {
   const binDir = path.join(executionRoot, ".test-bin");
   fs.mkdirSync(binDir, { recursive: true });
-  fs.writeFileSync(path.join(binDir, "senti"), [
+  fs.writeFileSync(path.join(binDir, "senrail"), [
     "#!/bin/sh",
-    `exec ${JSON.stringify(process.execPath)} ${JSON.stringify(SENTI)} "$@"`,
+    `exec ${JSON.stringify(process.execPath)} ${JSON.stringify(SENRAIL)} "$@"`,
     "",
   ].join("\n"), { mode: 0o755 });
   return binDir;
@@ -134,7 +134,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       initGitRepo(executionRoot);
       fs.writeFileSync(path.join(executionRoot, "README.md"), "worker handoff fixture\n");
       commitAll(executionRoot, "worker handoff fixture");
-      const binDir = installSentiWrapper(executionRoot);
+      const binDir = installSenrailWrapper(executionRoot);
       process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
 
       const specId = "500-worker-handoff-agent";
@@ -256,7 +256,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       initGitRepo(executionRoot);
       fs.writeFileSync(path.join(executionRoot, "README.md"), "spec worker handoff fixture\n");
       commitAll(executionRoot, "spec worker handoff fixture");
-      const binDir = installSentiWrapper(executionRoot);
+      const binDir = installSenrailWrapper(executionRoot);
       process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
 
       const specId = "505-worker-handoff-agent-spec";

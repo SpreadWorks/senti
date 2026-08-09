@@ -73,7 +73,7 @@ class RepositoryLockAuthority {
     this.mainRoot = path.resolve(mainRoot);
     const authorityError = repositoryErrorFactory(MAINTENANCE_KIND);
     this.root = new RealDirectoryAuthority(this.mainRoot, { errorFactory: authorityError });
-    this.directory = new RealDirectoryAuthority(path.join(this.mainRoot, ".senti"), {
+    this.directory = new RealDirectoryAuthority(path.join(this.mainRoot, ".senrail"), {
       create: true,
       parentAuthority: this.root,
       errorFactory: authorityError,
@@ -167,7 +167,7 @@ export class RepositoryMaintenanceLock {
   }
 
   static pathFor(mainRoot) {
-    return path.join(path.resolve(mainRoot), ".senti", MAINTENANCE_FILE);
+    return path.join(path.resolve(mainRoot), ".senrail", MAINTENANCE_FILE);
   }
 
   get ownerToken() {
@@ -212,7 +212,7 @@ export class RepositoryFlowOperationLock {
       throw new Error("repository flow-operation process-owner borrowing flag must be boolean");
     }
     const repositoryAuthority = new RepositoryLockAuthority(mainRoot);
-    this.lockPath = path.join(repositoryAuthority.mainRoot, ".senti", FLOW_OPERATION_FILE);
+    this.lockPath = path.join(repositoryAuthority.mainRoot, ".senrail", FLOW_OPERATION_FILE);
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.operationOwnerToken = operationOwnerToken;
     this.allowProcessOwnerBorrow = allowProcessOwnerBorrow;

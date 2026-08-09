@@ -1,3 +1,3 @@
 **MUST: Record key decisions for compaction recovery.**
 
-- After each user choice, record: `senti flow set note "<step>: <choice summary>"`
+- After each user choice, record: `senrail flow set note "<step>: <choice summary>"`

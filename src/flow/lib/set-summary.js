@@ -20,7 +20,7 @@ export default class SetSummaryCommand extends FlowCommand {
       "summary",
       "DEPRECATED",
       [
-        "`senti flow set summary` is deprecated and has been removed.",
+        "`senrail flow set summary` is deprecated and has been removed.",
         "Requirements live in spec.json and are finalized when the spec gate passes — no manual transfer step is needed.",
       ],
     );

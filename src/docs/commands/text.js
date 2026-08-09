@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * senti/engine/tfill.js
+ * senrail/engine/tfill.js
  *
  * {{text}} ディレクティブ専用プロセッサ。
  * テンプレート内の {{text}} を LLM エージェント（claude / codex）で解決し、
  * ディレクティブ直後に説明文を挿入する。
  *
  * Usage:
- *   node senti/engine/tfill.js --agent claude [--dry-run] [--timeout 60000] [--id <id>]
+ *   node senrail/engine/tfill.js --agent claude [--dry-run] [--timeout 60000] [--id <id>]
  */
 
 import fs from "fs";
@@ -541,7 +541,7 @@ export async function textFillFromAnalysis(root, analysis, commandId, srcRoot, o
   const cfg = container.get("config");
   const agent = container.get("agent");
   if (!agent.resolve(commandId || "docs.text")) {
-    throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
+    throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
   }
   const preamblePatterns = loadPreamblePatterns();
   const documentStyle = cfg?.docs?.style;
@@ -680,7 +680,7 @@ async function runText(ctx, rawArgs) {
   }
   const agent = ctx.agent || container.get("agent");
   if (!agent.resolve(ctx.commandId || "docs.text")) {
-    throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
+    throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
   }
 
   const preamblePatterns = loadPreamblePatterns();

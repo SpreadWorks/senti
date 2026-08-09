@@ -84,7 +84,7 @@ describe("dispatcher (unified runner)", () => {
   });
 
   it("binds dispatcher-generated nonblocking continuations to the current target authority", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-binding-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-binding-"));
     try {
       const state = makeFlowState({
         nonblocking: {
@@ -183,7 +183,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("rejects a target mismatch before command loading or runtime metadata persistence", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -245,7 +245,7 @@ describe("dispatcher (unified runner)", () => {
         ["FLOW_TARGET_RECOVERY_REQUIRED", 1],
         ["FLOW_TARGET_AUTHORITY_CORRUPT", 1],
       ]) {
-        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-resolution-"));
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-resolution-"));
         try {
           container.register("paths", {
             root: tmp,
@@ -305,7 +305,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("rejects a preparing target before runtime logs, metadata, commands, or hooks", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-preparing-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-preparing-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -380,7 +380,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run envelope mode writes automatic runtime log without changing stdout envelope", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -427,7 +427,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run uses root .tmp/logs/<flowId>.log", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -467,7 +467,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("persists runtime metadata in the resolved flow or task scope", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -546,7 +546,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("runtime log captures dispatcher stderr callback writes", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         container.register("paths", {
           root: tmp,
@@ -587,7 +587,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("flow run without active flow uses root .tmp/logs/no-flow.log", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -626,7 +626,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("allows a strict no-Flow read to suppress the runtime log", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -664,7 +664,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("runtime log write is best-effort when cleanup removes the log directory", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });
@@ -701,9 +701,9 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("writes finalize cleanup runtime logs outside the managed worktree", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-finalize-cleanup-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-finalize-cleanup-"));
       const mainRoot = path.join(tmp, "main");
-      const worktreeRoot = path.join(mainRoot, ".senti", "worktree", "feature-demo");
+      const worktreeRoot = path.join(mainRoot, ".senrail", "worktree", "feature-demo");
       try {
         fs.mkdirSync(worktreeRoot, { recursive: true });
         container.register("paths", {
@@ -766,7 +766,7 @@ describe("dispatcher (unified runner)", () => {
     });
 
     it("persists cleanup runtime metadata through the loaded command module and main flow authority", async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senti-dispatcher-cleanup-metadata-"));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-dispatcher-cleanup-metadata-"));
       try {
         const agentWorkDir = path.join(tmp, ".agent-work");
         container.register("paths", { root: tmp, agentWorkDir });

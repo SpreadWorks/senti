@@ -82,13 +82,13 @@ function decisionPrompt() {
       new UserActionChoice({
         actionId: "USE_RECORDED_RULE",
         label: "Use the recorded rule",
-        nextAction: "senti flow set decision recorded",
+        nextAction: "senrail flow set decision recorded",
         impact: new UserActionImpact({ changes: ["decision record"] }),
       }),
       new UserActionChoice({
         actionId: "REVISE_RECORDED_RULE",
         label: "Revise the recorded rule",
-        nextAction: "senti flow set decision revise",
+        nextAction: "senrail flow set decision revise",
         impact: new UserActionImpact({ changes: ["decision record"] }),
       }),
     ],
@@ -129,7 +129,7 @@ describe("single next-action directive authority", () => {
       state: flowState(),
       binding: targetBinding,
       action: "run-review",
-      nextAction: targetBinding.guardCommand("senti flow run review --phase spec"),
+      nextAction: targetBinding.guardCommand("senrail flow run review --phase spec"),
       reviewPhase: "spec",
       stepAttempt: blockedAttempt(),
       reviewOperation: operation,
@@ -137,7 +137,7 @@ describe("single next-action directive authority", () => {
 
     assert.equal(directive.kind, "execute_command");
     assert.equal(directive.actionId, "RETRY_REVIEW");
-    assert.match(directive.nextAction, /^senti flow run review --phase spec /);
+    assert.match(directive.nextAction, /^senrail flow run review --phase spec /);
     assert.match(directive.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
     assert.doesNotMatch(directive.nextAction, /--expect-run-id|--expect-issue|--expect-spec/);
   });
@@ -188,14 +188,14 @@ describe("single next-action directive authority", () => {
       state: flowState(),
       binding: targetBinding,
       action: "run-review-test",
-      nextAction: targetBinding.guardCommand("senti flow run review --phase test"),
+      nextAction: targetBinding.guardCommand("senrail flow run review --phase test"),
       reviewPhase: "test",
       reviewOperation: operation,
     }).resolve().toJSON();
 
     assert.equal(directive.kind, "execute_command");
     assert.equal(directive.actionId, "COMPLETE_REVIEW_LIFECYCLE");
-    assert.match(directive.nextAction, /^senti flow run review --phase test /);
+    assert.match(directive.nextAction, /^senrail flow run review --phase test /);
     assert.match(directive.nextAction, /--expect-binding '[A-Za-z0-9_-]+'/);
     assert.doesNotMatch(directive.nextAction, /--expect-run-id|--expect-issue|--expect-spec/);
   });
@@ -229,7 +229,7 @@ describe("single next-action directive authority", () => {
       gateRecovery: {
         recoveryPossible: true,
         recoveryReason: "recovery-resume-required",
-        recoveryCommand: "senti flow set retry reset gate spec --reason \"repair\" --yes",
+        recoveryCommand: "senrail flow set retry reset gate spec --reason \"repair\" --yes",
       },
     }).resolve().toJSON();
 
@@ -283,7 +283,7 @@ describe("single next-action directive authority", () => {
       },
       continuation: {
         actionId: "INSPECT_FLOW_STATUS",
-        nextAction: "senti flow get status",
+        nextAction: "senrail flow get status",
       },
     }), /NEXT_ACTION_DIRECTIVE_CONFLICT/);
   });

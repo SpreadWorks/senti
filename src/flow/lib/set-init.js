@@ -2,7 +2,7 @@
  * src/flow/lib/set-init.js
  *
  * Initialize a preparing flow state before flow prepare.
- * Creates .senti/.active-flow.<runId> with a flow.json-compatible schema.
+ * Creates .senrail/.active-flow.<runId> with a flow.json-compatible schema.
  * Accepts --issue and --request to seed the preparing state so that a later
  * `flow prepare --run-id <id>` can inherit them.
  */

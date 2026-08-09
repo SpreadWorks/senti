@@ -36,13 +36,13 @@ import {
 import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 
-const CLI = join(process.cwd(), "src/senti.js");
+const CLI = join(process.cwd(), "src/senrail.js");
 
 function runCli(tmp, args) {
   try {
     const out = execFileSync("node", [CLI, ...args], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
     return { envelope: JSON.parse(out), exitCode: 0 };
   } catch (err) {
@@ -309,7 +309,7 @@ describe("flow get next-action", () => {
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
       assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_COMMIT_OUTBOX");
-      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-commit /);
+      assert.match(envelope.data.directive.nextAction, /^senrail flow run finalize-commit /);
       assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
       assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });
@@ -334,7 +334,7 @@ describe("flow get next-action", () => {
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
       assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_MERGE_OUTBOX");
-      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-merge /);
+      assert.match(envelope.data.directive.nextAction, /^senrail flow run finalize-merge /);
       assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
       assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });
@@ -391,7 +391,7 @@ describe("flow get next-action", () => {
       assert.equal(exitCode, 0);
       assert.equal(envelope.data.directive.kind, "execute_command");
       assert.equal(envelope.data.directive.actionId, "RECOVER_FINALIZE_SYNC_OUTBOX");
-      assert.match(envelope.data.directive.nextAction, /^senti flow run finalize-sync /);
+      assert.match(envelope.data.directive.nextAction, /^senrail flow run finalize-sync /);
       assert.equal(makeFlowManager(tmp).load().outbox[0].status, "pending");
       assert.ok(makeFlowManager(tmp).load().outbox[0].exactRecoveryReceipt);
     });

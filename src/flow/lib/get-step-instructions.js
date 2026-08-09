@@ -20,11 +20,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { PKG_DIR } from "../../lib/cli.js";
 import { resolveIncludes } from "../../lib/include.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const DEFAULT_PROMPTS_DIR = fileURLToPath(new URL("../prompts/", import.meta.url));
 
 function resolvePromptsDir() {
-  return process.env.SENTI_NEXT_ACTION_PROMPTS_DIR || DEFAULT_PROMPTS_DIR;
+  return process.env[PRODUCT.env("NEXT_ACTION_PROMPTS_DIR")] || DEFAULT_PROMPTS_DIR;
 }
 
 /**

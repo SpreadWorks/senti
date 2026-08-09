@@ -14,6 +14,7 @@ import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
+import { PRODUCT } from "../../lib/product.js";
 
 export const CACHE_VERSION = 4;
 const DEFAULT_FORMAT = "text";
@@ -70,7 +71,7 @@ export class TokenMetricsInputFingerprint {
     ));
     const paths = new Set();
     const hash = createHash("sha256");
-    hash.update("senti-token-metrics-input-v1\0");
+    hash.update(PRODUCT.hashSalt("token-metrics-input", "v1"));
     for (const input of sorted) {
       if (paths.has(input.relativePath)) {
         throw new Error(`duplicate token metrics input path: ${input.relativePath}`);
@@ -89,7 +90,7 @@ export class TokenMetricsInputFingerprint {
 
 function formatUsage() {
   return [
-    "Usage: senti metrics token [options]",
+    "Usage: senrail metrics token [options]",
     "",
     "Options:",
     "  --format <text|json|csv>   Output format (default: text)",
@@ -453,9 +454,9 @@ async function isCacheFresh(metricsOutputPath, inputFingerprint) {
   } catch (err) {
     if (err.code === "ENOENT") {
       // Cache miss on first run is expected; rebuild silently-but-visibly.
-      process.stderr.write(`senti metrics token: cache miss (first run), rebuilding\n`);
+      process.stderr.write(`senrail metrics token: cache miss (first run), rebuilding\n`);
     } else {
-      process.stderr.write(`senti metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
+      process.stderr.write(`senrail metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
     }
     return false;
   }
@@ -463,11 +464,11 @@ async function isCacheFresh(metricsOutputPath, inputFingerprint) {
   try {
     parsed = JSON.parse(text);
   } catch (err) {
-    process.stderr.write(`senti metrics token: cache parse failed (${err.message}), rebuilding\n`);
+    process.stderr.write(`senrail metrics token: cache parse failed (${err.message}), rebuilding\n`);
     return false;
   }
   if (parsed.version !== CACHE_VERSION) {
-    process.stderr.write(`senti metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
+    process.stderr.write(`senrail metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
     return false;
   }
   if (typeof parsed?.inputFingerprint !== "string") return false;
@@ -709,7 +710,7 @@ async function buildRows(flowEntries) {
     const { path: filePath, parsed } = entry;
     const date = isoDateFromFinalizedAt(parsed?.state?.finalizedAt);
     if (!date) {
-      process.stderr.write(`senti metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
+      process.stderr.write(`senrail metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
       continue;
     }
     const specDir = path.dirname(filePath);
@@ -778,7 +779,7 @@ async function runToken(rawArgs, container) {
 
   const root = container.get("mainRoot");
   const specsDir = container.get("flowSpecRoot").resolve(root);
-  const metricsOutputPath = path.join(root, ".senti", "output", "metrics.json");
+  const metricsOutputPath = path.join(root, ".senrail", "output", "metrics.json");
 
   let specsStat;
   try {

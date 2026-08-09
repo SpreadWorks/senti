@@ -1,7 +1,7 @@
 /**
  * src/docs/commands/build.js
  *
- * senti docs build — full documentation generation pipeline.
+ * senrail docs build — full documentation generation pipeline.
  * Orchestrates scan → enrich → init → data → text → readme → agents → [translate]
  * by invoking each pipeline step's Command class via the unified Command contract
  * (`cmd.run(container, input)`).
@@ -41,7 +41,7 @@ async function dirExists(p) {
 function validateBuildArgs(rawArgs) {
   for (const a of rawArgs) {
     if (a.startsWith("-") && !VALID_BUILD_FLAGS.has(a)) {
-      process.stderr.write(`senti docs build: unknown option '${a}'\n`);
+      process.stderr.write(`senrail docs build: unknown option '${a}'\n`);
       process.exit(EXIT_ERROR);
     }
   }
@@ -101,7 +101,7 @@ async function runBuild(rawArgs, container) {
     const { createProgress } = await import(pathToFileURL(path.join(PKG_DIR, "lib/progress.js")).href);
     const progress = createProgress(pipelineSteps, {
       verbose: isVerbose,
-      title: "Generating docs with senti...",
+      title: "Generating docs with senrail...",
     });
 
     const logger = container.get("logger");

@@ -6,7 +6,7 @@
  * Compares mtime of source vs target file; re-translates only when needed.
  *
  * Usage:
- *   senti docs translate [--dry-run] [--force] [--lang <lang>]
+ *   senrail docs translate [--dry-run] [--force] [--lang <lang>]
  */
 
 import fs from "fs";
@@ -162,7 +162,7 @@ async function runTranslate(ctx, rawArgs) {
   }
 
   if (docsMode !== "translate") {
-    logger.log(`Output mode is '${docsMode}', not 'translate'. Use 'senti build' for generate mode.`);
+    logger.log(`Output mode is '${docsMode}', not 'translate'. Use 'senrail build' for generate mode.`);
     return;
   }
 
@@ -177,7 +177,7 @@ async function runTranslate(ctx, rawArgs) {
     : docsCfg.languages.filter((l) => l !== defaultLang);
 
   if (!fs.existsSync(docsDir)) {
-    throw new Error("docs/ directory not found. Run 'senti init' first.");
+    throw new Error("docs/ directory not found. Run 'senrail init' first.");
   }
 
   const sourceFiles = getChapterFiles(docsDir, { type: ctx.type, configChapters: ctx.config?.chapters, projectRoot: root });

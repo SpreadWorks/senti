@@ -110,7 +110,7 @@ function taskReviewState(overrides = {}) {
 
 function prepareSpecRoot() {
   tmp = createTmpDir("retry-exhaustion-defer-");
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     name: "deferred-finding-test",
     lang: "en",
     type: "base",
@@ -957,12 +957,12 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
   writeFile(fixture.specDir, "tests/.raw/upgrade.log", "upgrade complete\n");
   writeJson(fixture.specDir, "upgrade-result.json", {
     version: 1,
-    command: "senti upgrade",
+    command: "senrail upgrade",
     dryRun: false,
     exitCode: 0,
     result: "success-updated",
     summary: {},
-    checkedPaths: ["src/skills/senti.flow/SKILL.md"],
+    checkedPaths: ["src/skills/senrail.flow/SKILL.md"],
     rawLogPath: "tests/.raw/upgrade.log",
   });
   const state = makeFlowState({
@@ -971,9 +971,9 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
     request: "Refresh generated skills after changing the source skill.",
   });
   const diff = [
-    "diff --git a/src/skills/senti.flow/SKILL.md b/src/skills/senti.flow/SKILL.md",
-    "--- a/src/skills/senti.flow/SKILL.md",
-    "+++ b/src/skills/senti.flow/SKILL.md",
+    "diff --git a/src/skills/senrail.flow/SKILL.md b/src/skills/senrail.flow/SKILL.md",
+    "--- a/src/skills/senrail.flow/SKILL.md",
+    "+++ b/src/skills/senrail.flow/SKILL.md",
     "",
   ].join("\n");
 
@@ -981,17 +981,17 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
 
   assert.deepEqual(context.evidence.upgradeEvidence, {
     required: true,
-    requiredPaths: ["src/skills/senti.flow/SKILL.md"],
+    requiredPaths: ["src/skills/senrail.flow/SKILL.md"],
     valid: true,
     ref: "upgrade-result.json",
     artifact: {
       version: 1,
-      command: "senti upgrade",
+      command: "senrail upgrade",
       dryRun: false,
       exitCode: 0,
       result: "success-updated",
       summary: {},
-      checkedPaths: ["src/skills/senti.flow/SKILL.md"],
+      checkedPaths: ["src/skills/senrail.flow/SKILL.md"],
       rawLogPath: "tests/.raw/upgrade.log",
     },
     invalidReason: null,

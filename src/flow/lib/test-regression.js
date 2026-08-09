@@ -27,7 +27,7 @@ export const CHILD_PROCESS_RESULT_KINDS = Object.freeze([
 ]);
 const MAX_BUFFER_ERROR_CODES = new Set(["ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "ENOBUFS"]);
 const ASSERTION_EVIDENCE_PATTERN = /\bERR_ASSERTION\b|\bAssertionError\b|\bassert(?:ion)?(?:\s+(?:failed|failure|detail))\b/i;
-const CHILD_PROCESS_RECORD_PREFIX = "[senti] child process execution record ";
+const CHILD_PROCESS_RECORD_PREFIX = "[senrail] child process execution record ";
 export const REGRESSION_COMMAND_CHECKED_SOURCES = Object.freeze([
   "test.command",
   "package.json:scripts.test",
@@ -790,7 +790,7 @@ function isTextLike(filePath) {
 
 function isRegressionConfigPath(filePath) {
   const base = path.posix.basename(filePath);
-  return filePath === ".senti/config.json" ||
+  return filePath === ".senrail/config.json" ||
     base === "package.json" ||
     base === "composer.json" ||
     base === "Makefile" ||
@@ -798,7 +798,7 @@ function isRegressionConfigPath(filePath) {
 }
 
 function isGeneratedSpecDrivenDevelopmentArtifact(filePath, activeSpec) {
-  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(".senti/");
+  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(".senrail/");
 }
 
 function isDocumentationPath(filePath) {

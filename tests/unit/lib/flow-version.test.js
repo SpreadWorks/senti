@@ -426,8 +426,8 @@ describe("Flow artifact catalog authority slots", () => {
       location, authoritySlot: singleton("source"), relativePath: "artifacts/source.json",
       mediaType: "application/json", retention: "permanent",
     });
-    fs.mkdirSync(location.resolve(".senti"));
-    fs.writeFileSync(location.resolve(".senti/arbitrary.json"), "rogue");
+    fs.mkdirSync(location.resolve(".senrail"));
+    fs.writeFileSync(location.resolve(".senrail/arbitrary.json"), "rogue");
     assert.throws(() => saveCatalog(location, [source]), /unclassified artifact/);
   });
 

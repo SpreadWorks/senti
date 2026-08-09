@@ -9,8 +9,8 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("R1: saveFinalizedAt writes state.finalizedAt in ISO 8601 UTC", () => {
-    tmp = createTmpDir("senti-finalize-write-");
-    writeJson(tmp, ".senti/config.json", {
+    tmp = createTmpDir("senrail-finalize-write-");
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -34,8 +34,8 @@ describe("flow finalize — state.finalizedAt write (R1)", () => {
   });
 
   it("R1: ISO 8601 UTC format is enforced (Z suffix)", () => {
-    tmp = createTmpDir("senti-finalize-format-");
-    writeJson(tmp, ".senti/config.json", {
+    tmp = createTmpDir("senrail-finalize-format-");
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },

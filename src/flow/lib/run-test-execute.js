@@ -24,7 +24,7 @@ import fs from "fs";
 import path from "path";
 import { container } from "../../lib/container.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
@@ -77,7 +77,7 @@ function recordPrerequisiteIssue(root, executionRoot, state, err) {
     commandSource: err.commandSource || null,
     commandCandidates: Array.isArray(err.commandCandidates) ? err.commandCandidates : [],
     changedFileCount,
-    trigger: "senti flow run test-execute",
+    trigger: "senrail flow run test-execute",
     resolution: "fix the prerequisite failure and rerun test-execute",
     taskId: null,
     timestamp: new Date().toISOString(),
@@ -173,8 +173,8 @@ function requirementSummaryResult(reqId, specLocal, failedIds) {
 function requirementRawResultLine(req, specLocal, failedIds) {
   const result = requirementSummaryResult(req.id, specLocal, failedIds);
   return result === "not_applicable"
-    ? `[senti] requirement ${req.id} result not_applicable reason ${NO_TESTS_DECLARED_REASON}`
-    : `[senti] requirement ${req.id} result ${result}`;
+    ? `[senrail] requirement ${req.id} result not_applicable reason ${NO_TESTS_DECLARED_REASON}`
+    : `[senrail] requirement ${req.id} result ${result}`;
 }
 
 function buildSummary({ root, specDir, testableRequirements, specLocal, range, failedIds = null }) {
@@ -293,7 +293,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const spec = readJsonStrict(path.join(specDir, "spec.json"));
       const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
       const testableRequirements = testableRequirementsForSummary(requirements);
-      const analysisPath = path.join(sentiOutputDir(executionRoot), "analysis.json");
+      const analysisPath = path.join(senrailOutputDir(executionRoot), "analysis.json");
       if (!fs.existsSync(analysisPath)) {
         throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
       }
@@ -312,12 +312,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
       }
       const specLocalFailedIds = failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
       const specRange = appendRaw(rawLines, [
-        "[senti] spec-local tests start",
+        "[senrail] spec-local tests start",
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
         ...testableRequirements
           .map((req) => requirementRawResultLine(req, specLocal, specLocalFailedIds)),
-        "[senti] spec-local tests end",
+        "[senrail] spec-local tests end",
       ]);
       const summary = buildSummary({
         root,
@@ -354,12 +354,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
         }
         const regressionResult = processPassed(result) ? "pass" : "fail";
         const range = appendRaw(rawLines, [
-          `[senti] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
+          `[senrail] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
           `command: ${command.toString()}`,
           `mode: ${regressionPlan.classification.mode}`,
           ...processOutputLines(result),
           `result: ${regressionResult}`,
-          `[senti] project regression end result=${regressionResult}`,
+          `[senrail] project regression end result=${regressionResult}`,
         ]);
         regression = buildRequiredRegression({ root: executionRoot, classification: regressionPlan.classification, rootCommand, command, result, range });
       }

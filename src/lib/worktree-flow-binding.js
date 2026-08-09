@@ -5,25 +5,25 @@ import { AtomicFile } from "./atomic-file.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 
-export const WORKTREE_FLOW_BINDING_FILE = path.join(".senti", "flow-identity.json");
+export const WORKTREE_FLOW_BINDING_FILE = path.join(".senrail", "flow-identity.json");
 export const WORKTREE_FLOW_ISSUE_TRANSITION_FILE = path.join(
-  ".senti",
+  ".senrail",
   "flow-identity.issue-transaction.json",
 );
 export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_FILE = path.join(
-  ".senti",
+  ".senrail",
   ".flow-identity.publication.json",
 );
 export const WORKTREE_FLOW_BINDING_PUBLICATION_INTENT_FILE = path.join(
-  ".senti",
+  ".senrail",
   ".flow-identity.publication.intent",
 );
 export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_TEMP_FILE = path.join(
-  ".senti",
+  ".senrail",
   ".flow-identity.publication.receipt.tmp",
 );
 export const WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE = path.join(
-  ".senti",
+  ".senrail",
   ".flow-identity.publication.binding.tmp",
 );
 

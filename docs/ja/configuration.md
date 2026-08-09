@@ -182,9 +182,9 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 
 ### built-in エージェント profile
 
-`senti setup` は選択した agent family を `agent.default` に `claude` または `codex` として保存し、routing intent を `agent.useProfile` に保存します。built-in profile 名は `claude-only`, `codex-only`, `claude-main`, `codex-main` です。
+`senrail setup` は選択した agent family を `agent.default` に `claude` または `codex` として保存し、routing intent を `agent.useProfile` に保存します。built-in profile 名は `claude-only`, `codex-only`, `claude-main`, `codex-main` です。
 
-built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.senti/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
+built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.senrail/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
 
 ```json
 {

@@ -50,7 +50,7 @@ describe("CommandDefinition registry", () => {
     assert.deepEqual(definition.args, flowEntry.args);
     assert.equal(definition.requiresFlow, flowEntry.requiresFlow);
     assert.equal(definition.runtimeLog, flowEntry.runtimeLog);
-    assert.match(definition.help, /Usage: senti flow run gate/);
+    assert.match(definition.help, /Usage: senrail flow run gate/);
     assert.equal(definition.metadata(["flow", "run"]).name, "flow run gate");
   });
 

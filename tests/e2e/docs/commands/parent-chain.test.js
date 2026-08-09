@@ -5,21 +5,21 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const SENTI = join(process.cwd(), "src/senti.js");
+const SENRAIL = join(process.cwd(), "src/senrail.js");
 
 function env(tmp) {
-  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
+  return { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp };
 }
 
 function setup(tmp, type = "sample-node-command") {
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "ja",
     type,
     docs: { languages: ["ja"], defaultLanguage: "ja" },
   });
   writeJson(tmp, "package.json", { name: "fixture-project" });
   writeFile(tmp, "src/sample-command.js", "export function run() {}\n");
-  writeJson(tmp, ".senti/output/analysis.json", {
+  writeJson(tmp, ".senrail/output/analysis.json", {
     analyzedAt: "2026-01-01",
     modules: { entries: [{ file: "src/sample-command.js", role: "module" }], summary: { total: 1 } },
   });
@@ -33,7 +33,7 @@ describe("plugin parent chain: docs commands", () => {
     tmp = createTmpDir();
     setup(tmp, "sample-node-command");
 
-    const result = execFileSync("node", [SENTI, "docs", "scan", "--stdout"], {
+    const result = execFileSync("node", [SENRAIL, "docs", "scan", "--stdout"], {
       encoding: "utf8",
       env: env(tmp),
     });
@@ -47,7 +47,7 @@ describe("plugin parent chain: docs commands", () => {
     tmp = createTmpDir();
     setup(tmp, "sample-preset");
 
-    execFileSync("node", [SENTI, "docs", "init", "--force"], {
+    execFileSync("node", [SENRAIL, "docs", "init", "--force"], {
       encoding: "utf8",
       env: env(tmp),
     });
@@ -67,7 +67,7 @@ describe("plugin parent chain: docs commands", () => {
       "",
     ].join("\n"));
 
-    execFileSync("node", [SENTI, "docs", "data"], {
+    execFileSync("node", [SENRAIL, "docs", "data"], {
       encoding: "utf8",
       env: env(tmp),
     });

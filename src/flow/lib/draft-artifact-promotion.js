@@ -6,10 +6,11 @@ import { AtomicFile } from "../../lib/atomic-file.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { StepTransitionCommitIntent } from "./step-transition-policy.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const DRAFT_ARTIFACT_VERSION = 1;
-export const DRAFT_ARTIFACT_FAILURE_MARKER_PREFIX = "SENTI_DRAFT_ARTIFACT_FAILURE ";
+export const DRAFT_ARTIFACT_FAILURE_MARKER_PREFIX = `${PRODUCT.env("DRAFT_ARTIFACT_FAILURE")} `;
 
 export const DRAFT_ARTIFACT_WRITER_STEPS = Object.freeze([
   "draft",
@@ -513,7 +514,7 @@ function planPromotion({ state, sourceStepId, source, canonical, sameAuthority }
     throw new DraftArtifactRecoveryError(
       "DRAFT_PROMOTION_BASELINE_MISSING",
       "worktree draft promotion requires the canonical draft revision recorded during prepare",
-      { recoveryCommand: "senti flow run abort" },
+      { recoveryCommand: "senrail flow run abort" },
     );
   }
   if (
@@ -525,7 +526,7 @@ function planPromotion({ state, sourceStepId, source, canonical, sameAuthority }
       "DRAFT_PROMOTION_CANONICAL_STALE",
       "canonical draft no longer matches the expected revision recorded by the Flow",
       {
-        recoveryCommand: "senti flow run dispatch",
+        recoveryCommand: "senrail flow run dispatch",
         data: {
           expectedCanonicalDigest: previous.digest,
           canonicalDigest: canonical.digest,
@@ -644,7 +645,7 @@ export function completeDraftArtifactStep({
       `draft promotion did not complete; resume the guarded dispatcher: ${cause.message}`,
       {
         cause,
-        recoveryCommand: "senti flow run dispatch",
+        recoveryCommand: "senrail flow run dispatch",
         data: { sourceStepId: transition.stepId },
       },
     );
@@ -823,7 +824,7 @@ export function completeCanonicalDraftMutation({
       `canonical draft metadata mutation did not complete: ${cause.message}`,
       {
         cause,
-        recoveryCommand: `senti flow run review --phase draft`,
+        recoveryCommand: `senrail flow run review --phase draft`,
         data: { sourceStepId },
       },
     );
@@ -834,7 +835,7 @@ export function completeCanonicalDraftMutation({
 
 function reviewRecoveryCommand(phase) {
   return [
-    "senti flow run reopen-draft",
+    "senrail flow run reopen-draft",
     `--reason "recover canonical draft authority before ${phase || "draft"} review"`,
   ].join(" ");
 }
@@ -845,7 +846,7 @@ function requireDraftReviewRevision(state, phase) {
       "DRAFT_REVIEW_REVISION_MISSING",
       "draft review requires the finalized canonical draft revision recorded by prepare or draft completion",
       {
-        recoveryCommand: "senti flow run abort",
+        recoveryCommand: "senrail flow run abort",
         data: { phase },
       },
     );
@@ -863,7 +864,7 @@ export function inspectCanonicalDraftRevision({ root, state, phase = null, expec
       "DRAFT_PROMOTION_INCOMPLETE",
       "draft review cannot start while canonical draft promotion is incomplete",
       {
-        recoveryCommand: "senti flow run dispatch",
+        recoveryCommand: "senrail flow run dispatch",
         data: { sourceStepId: pending.sourceStepId },
       },
     );

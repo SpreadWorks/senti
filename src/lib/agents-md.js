@@ -19,19 +19,19 @@ import { PRESETS_DIR, resolvePresetEntriesForSearch } from "./presets.js";
 export function loadSpecDrivenDevelopmentTemplate(lang, options = {}) {
   if (options.projectRoot && options.presetTypes) {
     for (const l of [lang, "en"]) {
-      const projectPath = path.join(options.projectRoot, ".senti", "templates", l, "AGENTS.senti.md");
+      const projectPath = path.join(options.projectRoot, ".senrail", "templates", l, "flow-agent-instructions.md");
       if (fs.existsSync(projectPath)) return fs.readFileSync(projectPath, "utf8");
     }
     for (const preset of resolvePresetEntriesForSearch(options.presetTypes, options.projectRoot)) {
       for (const l of [lang, "en"]) {
-        const p = path.join(preset.dir, "templates", l, "AGENTS.senti.md");
+        const p = path.join(preset.dir, "templates", l, "flow-agent-instructions.md");
         if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
       }
     }
     return "";
   }
   for (const l of [lang, "en"]) {
-    const p = path.join(PRESETS_DIR, "base", "templates", l, "AGENTS.senti.md");
+    const p = path.join(PRESETS_DIR, "base", "templates", l, "flow-agent-instructions.md");
     if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
   }
   return "";

@@ -764,7 +764,7 @@ class FlowExecutionCommand {
     ))) {
       throw new Error("flow execution command tokens must be non-empty strings without whitespace");
     }
-    this.tokens = Object.freeze(["senti", "flow", "run", ...tokens]);
+    this.tokens = Object.freeze(["senrail", "flow", "run", ...tokens]);
     Object.freeze(this);
   }
 

@@ -1,7 +1,7 @@
 /**
  * tests/unit/metrics/token-duration.test.js
  *
- * Tests for duration display in `senti metrics token` output (spec 191 R4).
+ * Tests for duration display in `senrail metrics token` output (spec 191 R4).
  * Verifies that per-phase duration is rendered in seconds (one decimal) in
  * the text and included in CSV/JSON rows.
  */

@@ -18,7 +18,7 @@ function baseConfig(command) {
 }
 
 function writeConfig(root, command) {
-  writeJson(root, ".senti/config.json", baseConfig(command));
+  writeJson(root, ".senrail/config.json", baseConfig(command));
 }
 
 async function captureWarnings(fn) {
@@ -38,7 +38,7 @@ describe("flow hooks", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("returns a no-op envelope when PostWorktree is not configured", async () => {
-    tmp = createTmpDir("senti-hooks-unit-noop-");
+    tmp = createTmpDir("senrail-hooks-unit-noop-");
     writeConfig(tmp);
 
     const result = await onHook("PostWorktree", { CWD: tmp });
@@ -47,7 +47,7 @@ describe("flow hooks", () => {
   });
 
   it("executes configured hook commands with placeholders, cwd, shell, and timeout", async () => {
-    tmp = createTmpDir("senti-hooks-unit-exec-");
+    tmp = createTmpDir("senrail-hooks-unit-exec-");
     writeConfig(tmp, "printf '{{CWD}}'");
     const originalSpawnSync = childProcess.spawnSync;
     let captured;
@@ -72,7 +72,7 @@ describe("flow hooks", () => {
   });
 
   it("leaves missing placeholders unchanged and warns", async () => {
-    tmp = createTmpDir("senti-hooks-unit-missing-");
+    tmp = createTmpDir("senrail-hooks-unit-missing-");
     writeConfig(tmp, "printf '{{MISSING}}'");
 
     const { result, warnings } = await captureWarnings(() => onHook("PostWorktree", { CWD: tmp }));
@@ -83,7 +83,7 @@ describe("flow hooks", () => {
   });
 
   it("returns ok:false without throwing when the shell command fails", async () => {
-    tmp = createTmpDir("senti-hooks-unit-failure-");
+    tmp = createTmpDir("senrail-hooks-unit-failure-");
     writeConfig(tmp, "node -e \"process.stderr.write('hook failed'); process.exit(7)\"");
 
     const { result, warnings } = await captureWarnings(() => onHook("PostWorktree", { CWD: tmp }));

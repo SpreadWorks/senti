@@ -217,8 +217,8 @@ export function taskScopeViolationMessages(decision, step) {
   const reason = decision?.reason || "task cursor is required";
   return [
     `${reason}.`,
-    `Restore a task cursor with: senti flow run start-task --task-id <task-id>`,
-    `For intentional broad ${step} work, first run: senti flow set broad on --step ${step} --reason "<reason>"`,
+    `Restore a task cursor with: senrail flow run start-task --task-id <task-id>`,
+    `For intentional broad ${step} work, first run: senrail flow set broad on --step ${step} --reason "<reason>"`,
   ];
 }
 

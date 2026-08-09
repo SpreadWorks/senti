@@ -27,7 +27,7 @@ import {
 } from "../../../src/flow/lib/run-gate.js";
 
 function initRepo() {
-  const root = createTmpDir("senti-gate-untracked-");
+  const root = createTmpDir("senrail-gate-untracked-");
   execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
   // Provide a starting commit so `git status` / `git ls-files` behave
   // identically to a normal repository.

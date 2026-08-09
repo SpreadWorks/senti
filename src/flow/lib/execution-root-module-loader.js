@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { PRODUCT } from "../../lib/product.js";
 
 function requiredDirectory(name) {
   const value = process.env[name];
@@ -10,9 +11,9 @@ function requiredDirectory(name) {
   return path.resolve(value);
 }
 
-const repositoryRoot = requiredDirectory("SENTI_TEST_REPOSITORY_ROOT");
-const executionRoot = requiredDirectory("SENTI_TEST_EXECUTION_ROOT");
-const specRoot = requiredDirectory("SENTI_TEST_SPEC_ROOT");
+const repositoryRoot = requiredDirectory(PRODUCT.env("TEST_REPOSITORY_ROOT"));
+const executionRoot = requiredDirectory(PRODUCT.env("TEST_EXECUTION_ROOT"));
+const specRoot = requiredDirectory(PRODUCT.env("TEST_SPEC_ROOT"));
 
 function isWithin(root, candidate) {
   const relative = path.relative(root, candidate);

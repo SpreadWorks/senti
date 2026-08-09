@@ -14,8 +14,8 @@ describe("CI workflow contract", () => {
     assert.match(WORKFLOW, /node-version: "lts\/\*"/);
     assert.match(WORKFLOW, /run: npm run test:ci/);
     assert.match(WORKFLOW, /fail-fast: false/);
-    assert.match(WORKFLOW, /GIT_AUTHOR_NAME: senti CI/);
-    assert.match(WORKFLOW, /GIT_COMMITTER_EMAIL: senti-ci@example\.invalid/);
+    assert.match(WORKFLOW, /GIT_AUTHOR_NAME: senrail CI/);
+    assert.match(WORKFLOW, /GIT_COMMITTER_EMAIL: senrail-ci@example\.invalid/);
   });
 
   it("provides a stable required-check aggregator for the complete matrix", () => {

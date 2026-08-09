@@ -5,7 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp-dir.js";
 
-const SENTI = path.join(process.cwd(), "src/senti.js");
+const SENRAIL = path.join(process.cwd(), "src/senrail.js");
 
 function snapshotTree(root) {
   const snapshot = [];
@@ -31,13 +31,13 @@ function snapshotTree(root) {
 }
 
 function runCommand(tmp, args, extraEnv = {}) {
-  return spawnSync("node", [SENTI, ...args], {
+  return spawnSync("node", [SENRAIL, ...args], {
     cwd: tmp,
     encoding: "utf8",
     env: {
       ...process.env,
-      SENTI_SOURCE_ROOT: tmp,
-      SENTI_WORK_ROOT: tmp,
+      SENRAIL_SOURCE_ROOT: tmp,
+      SENRAIL_WORK_ROOT: tmp,
       ...extraEnv,
     },
   });
@@ -79,8 +79,8 @@ function writeDocsFixture(tmp, { withAgent = false } = {}) {
       },
     };
   }
-  writeJson(tmp, ".senti/config.json", config);
-  writeJson(tmp, ".senti/output/analysis.json", {
+  writeJson(tmp, ".senrail/config.json", config);
+  writeJson(tmp, ".senrail/output/analysis.json", {
     analyzedAt: "2026-01-01T00:00:00.000Z",
     files: { entries: [], summary: { total: 0 } },
   });
@@ -125,7 +125,7 @@ describe("dry-run zero-side-effect contract", () => {
 
   it("docs changelog renders a plan without creating its output directory", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -159,7 +159,7 @@ describe("dry-run zero-side-effect contract", () => {
     const result = runCommand(tmp, ["docs", "build", "--force"]);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.ok(fs.existsSync(path.join(tmp, ".senti/output/analysis.json")));
+    assert.ok(fs.existsSync(path.join(tmp, ".senrail/output/analysis.json")));
     assert.ok(fs.readdirSync(path.join(tmp, "docs")).some((name) => name.endsWith(".md")));
     assert.ok(fs.existsSync(path.join(tmp, "AGENTS.md")));
   });

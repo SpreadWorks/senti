@@ -106,7 +106,7 @@ describe("060-B: validateConfig with nested agent structure", () => {
     assert.throws(() => validate(cfg), /providers/);
   });
 
-  it("accepts full config matching real .senti/config.json structure", () => {
+  it("accepts full config matching real .senrail/config.json structure", () => {
     const cfg = {
       lang: "ja",
       type: "sample-node-command",

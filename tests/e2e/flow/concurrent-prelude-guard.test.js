@@ -7,13 +7,13 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
 
-const CMD = path.join(process.cwd(), "src/senti.js");
+const CMD = path.join(process.cwd(), "src/senrail.js");
 
 function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 
@@ -168,7 +168,7 @@ describe("e2e — concurrent flow prelude isolation", () => {
     assert.equal(mismatchEnvelope.errors[0].code, "FLOW_TARGET_NOT_FOUND");
     assert.equal(mismatchEnvelope.data.matchCount, 0);
 
-    const activeFlows = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", ".active-flow"), "utf8"));
+    const activeFlows = JSON.parse(fs.readFileSync(path.join(tmp, ".senrail", ".active-flow"), "utf8"));
     assert.equal(
       activeFlows.some((entry) => entry.mode === "worktree" && entry.specId === issue11Data.specId),
       true,

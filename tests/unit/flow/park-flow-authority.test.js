@@ -25,7 +25,7 @@ function createRoot() {
 }
 
 function createManagedFlow(root, specId, issue = 453) {
-  const worktreePath = path.join(root, ".senti", "worktree", `feature-${specId}`);
+  const worktreePath = path.join(root, ".senrail", "worktree", `feature-${specId}`);
   fs.mkdirSync(worktreePath, { recursive: true });
   const runId = `run-${specId}`;
   const manager = new FlowManager({
@@ -66,7 +66,7 @@ function createManagedFlow(root, specId, issue = 453) {
     runId,
     issue,
     flowPath: path.join(specDir, "flow.json"),
-    bindingPath: path.join(worktreePath, ".senti", "flow-identity.json"),
+    bindingPath: path.join(worktreePath, ".senrail", "flow-identity.json"),
     specPath: path.join(specDir, "spec.json"),
     reviewPath: path.join(specDir, "spec-review.json"),
     gatePath: path.join(specDir, "spec-gate.json"),
@@ -83,7 +83,7 @@ function exactIdentity(flow, overrides = {}) {
 }
 
 function registryPath(root) {
-  return path.join(root, ".senti", ".active-flow");
+  return path.join(root, ".senrail", ".active-flow");
 }
 
 function snapshot(paths) {

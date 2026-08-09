@@ -36,7 +36,7 @@ test("preimplementation bootstrap records the preflight recovery and resumes imp
   const state = moveFlowToStep(makeFlowState({
     runId: "bootstrap-run",
     specId: "001-bootstrap",
-    repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
+    repairBaseline: { ref: "refs/senrail/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
   manager.create(state);
@@ -74,7 +74,7 @@ test("next action dispatches persisted preimplementation bootstrap recovery", as
     runId: "bootstrap-run",
     issue: 473,
     specId: "001-bootstrap",
-    repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
+    repairBaseline: { ref: "refs/senrail/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
   manager.create(state);
@@ -88,7 +88,7 @@ test("next action dispatches persisted preimplementation bootstrap recovery", as
 
   assert.equal(result.directive.kind, "execute_command");
   assert.equal(result.directive.actionId, "RECOVER_PREIMPLEMENTATION_BOOTSTRAP");
-  assert.match(result.directive.nextAction, /^senti flow run preimplementation-bootstrap /);
+  assert.match(result.directive.nextAction, /^senrail flow run preimplementation-bootstrap /);
   assert.match(result.directive.nextAction, /--expect-run-id 'bootstrap-run'/);
   assert.match(result.directive.nextAction, /--expect-spec '001-bootstrap'/);
   assert.match(result.directive.nextAction, /--expect-issue 473/);
@@ -101,7 +101,7 @@ test("preimplementation bootstrap rejects a missing preflight block", () => {
   const state = moveFlowToStep(makeFlowState({
     runId: "bootstrap-run",
     specId: "001-bootstrap",
-    repairBaseline: { ref: "refs/senti/flows/bootstrap-run/baseline" },
+    repairBaseline: { ref: "refs/senrail/flows/bootstrap-run/baseline" },
   }), "scenario-validity");
   const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
   manager.create(state);

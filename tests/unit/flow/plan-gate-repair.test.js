@@ -367,7 +367,7 @@ describe("governed plan-gate repair", () => {
       });
       assert.equal(plan.result.directive.kind, "repair_evidence");
       assert.equal(plan.result.directive.actionId, "REPAIR_SCENARIO_TESTS");
-      assert.match(plan.result.directive.nextAction, /^senti flow run repair-plan-gate /);
+      assert.match(plan.result.directive.nextAction, /^senrail flow run repair-plan-gate /);
 
       const result = repair(value);
       let state = value.flowManager.load();
@@ -635,7 +635,7 @@ describe("governed plan-gate repair", () => {
 
     assert.equal(directive.kind, "repair_evidence");
     assert.equal(directive.actionId, "REPAIR_PLAN_GATE_EVIDENCE");
-    assert.match(directive.nextAction, /^senti flow run repair-plan-gate /);
+    assert.match(directive.nextAction, /^senrail flow run repair-plan-gate /);
     assert.match(directive.nextAction, /--expect-run-id 'run-plan-gate-repair'/);
   });
 

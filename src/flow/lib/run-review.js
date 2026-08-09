@@ -22,6 +22,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "node:crypto";
 import { runGit } from "../../lib/git-helpers.js";
+import { PRODUCT } from "../../lib/product.js";
 import {
   REVIEW_FAILURE_MARKER_PREFIX,
   ReviewFailure,
@@ -659,7 +660,7 @@ export function checkReviewRetryBelowMax(
   const envelope = Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
       `review retry limit exhausted: ${count}/${max} REJECTED attempts recorded for phase "${persistedPhase}".`,
-      "Resume after changed evidence with `senti flow set retry reset review <phase> --reason <text> --yes`.",
+      "Resume after changed evidence with `senrail flow set retry reset review <phase> --reason <text> --yes`.",
     ],
     failure.toEnvelopeData());
   const attempt = recordReviewOutcome(ctx, null, persistedPhase, count, reviewExternalBlock(failure));
@@ -1297,7 +1298,7 @@ function persistCanonicalToolingOutcome(ctx, {
   stage,
   reason,
   outcome = null,
-  provider = "senti-review",
+  provider = PRODUCT.provider("review"),
   evidence = null,
   canonicalEvidencePersisted = false,
   finalizedEvidenceAvailable = false,
@@ -1355,7 +1356,7 @@ export function persistReviewPostHookToolingFailure(ctx, result, error) {
     phase,
     taskId,
     treeSha,
-    provider: "senti-review",
+    provider: PRODUCT.provider("review"),
     outcome,
     finalizedEvidenceAvailable: Boolean(current.evidence || current.finalizedEvidenceAvailable),
     targetStateDigest,
@@ -1641,7 +1642,7 @@ function persistCanonicalReviewArtifact(
       verdict,
       ...canonicalFindings,
       provenance: {
-        provider: "senti-review",
+        provider: PRODUCT.provider("review"),
         invocationId: sha256Hex(bytes),
         capturedAt,
       },

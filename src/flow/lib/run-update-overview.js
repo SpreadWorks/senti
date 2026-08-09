@@ -88,7 +88,7 @@ export function validateOverviewAdditions(raw) {
 }
 
 /**
- * FlowCommand: `senti flow run update-overview --json <additions>`.
+ * FlowCommand: `senrail flow run update-overview --json <additions>`.
  *
  * Spec 226: The task-scope `update-overview` step has been removed; its
  * functionality is now invoked from the impl step via this CLI (production

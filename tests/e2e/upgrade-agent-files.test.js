@@ -5,16 +5,16 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senti.js");
+const CMD = join(process.cwd(), "src/senrail.js");
 
-function staleAgentFileContent(dataSource = "agents.senti") {
+function staleAgentFileContent(dataSource = "agents.flow") {
   return [
     '# fixture',
     '',
     `<!-- {{data("${dataSource}")}} -->`,
     '## Spec-Driven Development (Spec-Driven Development)',
     '',
-    '- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/senti.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**',
+    '- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/senrail.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**',
     '  - **判定が迷う場合は flow を Recommended にする**',
     '<!-- {{/data}} -->',
     '',
@@ -29,7 +29,7 @@ function staleAgentFileContent(dataSource = "agents.senti") {
 }
 
 function setupProject(tmp) {
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -43,7 +43,7 @@ function runUpgrade(tmp, args = []) {
   return execFileSync("node", [CMD, "upgrade", ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
   });
 }
 
@@ -60,8 +60,8 @@ describe("upgrade agent instruction files", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("refreshes agents.senti blocks in AGENTS.md and CLAUDE.md", () => {
-    tmp = createTmpDir("senti-upgrade-agent-files-");
+  it("refreshes agents.flow blocks in AGENTS.md and CLAUDE.md", () => {
+    tmp = createTmpDir("senrail-upgrade-agent-files-");
     setupProject(tmp);
 
     const output = runUpgrade(tmp);
@@ -71,11 +71,11 @@ describe("upgrade agent instruction files", () => {
     assertRefreshed(fs.readFileSync(join(tmp, "AGENTS.md"), "utf8"));
     assertRefreshed(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"));
     assert.equal(fs.existsSync(join(tmp, ".codex/hooks.json")), false);
-    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")), false);
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs")), false);
   });
 
   it("reports pending agent file refreshes in dry-run without writing", () => {
-    tmp = createTmpDir("senti-upgrade-agent-files-dry-");
+    tmp = createTmpDir("senrail-upgrade-agent-files-dry-");
     setupProject(tmp);
     const before = fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8");
 
@@ -87,17 +87,17 @@ describe("upgrade agent instruction files", () => {
   });
 
   it("removes the legacy Flow hook while preserving project-owned hooks", () => {
-    tmp = createTmpDir("senti-upgrade-agent-hook-cleanup-");
+    tmp = createTmpDir("senrail-upgrade-agent-hook-cleanup-");
     setupProject(tmp);
     writeJson(tmp, ".codex/hooks.json", {
       hooks: {
         Stop: [
           { hooks: [{ type: "command", command: "node project-stop.mjs" }] },
-          { hooks: [{ type: "command", command: "node .codex/hooks/senti-flow-final-response-guard.mjs" }] },
+          { hooks: [{ type: "command", command: "node .codex/hooks/senrail-flow-final-response-guard.mjs" }] },
         ],
       },
     });
-    writeFile(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs", "legacy\n");
+    writeFile(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs", "legacy\n");
 
     const output = runUpgrade(tmp);
 
@@ -107,19 +107,7 @@ describe("upgrade agent instruction files", () => {
         Stop: [{ hooks: [{ type: "command", command: "node project-stop.mjs" }] }],
       },
     });
-    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senti-flow-final-response-guard.mjs")), false);
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs")), false);
   });
 
-  it("refreshes legacy agents.sdd blocks without rewriting project-owned content", () => {
-    tmp = createTmpDir("senti-upgrade-legacy-agent-files-");
-    setupProject(tmp);
-    writeFile(tmp, "AGENTS.md", `${staleAgentFileContent("agents.sdd")}\nLegacy sdd project note.\n`);
-
-    runUpgrade(tmp);
-
-    const content = fs.readFileSync(join(tmp, "AGENTS.md"), "utf8");
-    assertRefreshed(content);
-    assert.match(content, /data\("agents\.senti"\)/);
-    assert.match(content, /Legacy sdd project note\./);
-  });
 });

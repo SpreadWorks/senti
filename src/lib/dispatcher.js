@@ -43,7 +43,7 @@ function attachNonblockingContinuation(envelope, ctx, reason) {
   const binding = FlowTargetBinding.captureContext(ctx);
   return attachFlowContinuation(envelope, new FlowContinuation({
     actionId: "REFRESH_NONBLOCKING_FLOW",
-    nextAction: guardedCommand("senti flow get next-action", state, binding),
+    nextAction: guardedCommand("senrail flow get next-action", state, binding),
     instruction: "Refresh the guarded next action and continue the normal Flow route.",
     reason,
   }));
@@ -416,7 +416,7 @@ export async function dispatch({
     const mode = await resolveOutputMode(entry);
     const helpHint = entry.helpPath
       ? `Run: ${entry.helpPath}`
-      : `Run: senti ${envelopeType || "flow"} ${envelopeKey || ""} --help`.trimEnd();
+      : `Run: senrail ${envelopeType || "flow"} ${envelopeKey || ""} --help`.trimEnd();
     if (mode === "envelope" || entry.parseErrorsAsEnvelope === true) {
       const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", "ARGS_ERROR", [
         String(err.message || err),
@@ -541,7 +541,7 @@ export async function dispatch({
   // 5a. requiresConfig — reject early when the command declares config as a
   // precondition but the container has no config registered (setup not run).
   if (entry.requiresConfig && container.get("config") == null) {
-    emitPreconditionFailure("NO_CONFIG", "config.json not found. Run senti setup first.");
+    emitPreconditionFailure("NO_CONFIG", "config.json not found. Run senrail setup first.");
     closeRuntimeLog();
     persistRuntimeLogMetadata(null);
     if (restoreStreams) restoreStreams();

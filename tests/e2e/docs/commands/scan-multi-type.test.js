@@ -11,11 +11,11 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senti.js");
+const CMD = join(process.cwd(), "src/senrail.js");
 const CMD_ARGS = ["docs", "scan"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
+  return { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp };
 }
 
 describe("scan multi-type pattern merging", () => {
@@ -24,7 +24,7 @@ describe("scan multi-type pattern merging", () => {
 
   it("single type with no scan patterns collects 0 files", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "sample-endpoint",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -45,7 +45,7 @@ describe("scan multi-type pattern merging", () => {
   it("multi-type merges scan patterns from all chains", () => {
     tmp = createTmpDir();
     // sample-endpoint has no matching scan results, sample-node-command has scan patterns for src/**/*.js
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: ["sample-endpoint", "sample-node-command"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -65,7 +65,7 @@ describe("scan multi-type pattern merging", () => {
   it("multi-type loads DataSources from all chains", () => {
     tmp = createTmpDir();
     // sample-node-command provides modules scan, child-preset provides controllers scan
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: ["sample-node-command", "child-preset"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -86,7 +86,7 @@ describe("scan multi-type pattern merging", () => {
 
   it("config.scan overrides all preset patterns", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: ["sample-endpoint", "sample-node-command"],
       docs: { languages: ["ja"], defaultLanguage: "ja" },

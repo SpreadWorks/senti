@@ -164,9 +164,9 @@ describe("T-5: auto-promote function and callers", () => {
     tmp = createTmpDir();
     const specDir = path.join(tmp, "specs/226-gate-impl");
     fs.mkdirSync(path.join(specDir, "tasks"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, ".senti/config.json"), JSON.stringify({
+    fs.writeFileSync(path.join(tmp, ".senrail/config.json"), JSON.stringify({
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -244,7 +244,7 @@ describe("T-5: auto-promote function and callers", () => {
     fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 2;\n");
     const fm = makeFlowManager(tmp);
 
-    const cli = path.join(process.cwd(), "src/senti.js");
+    const cli = path.join(process.cwd(), "src/senrail.js");
     const result = spawnSync(process.execPath, [
       cli,
       "flow", "run", "gate",
@@ -252,7 +252,7 @@ describe("T-5: auto-promote function and callers", () => {
     ], {
       cwd: tmp,
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
     });
     assert.equal(result.status, 0, `gate failed: ${result.stderr}`);
 
@@ -351,10 +351,10 @@ describe("T-5: auto-promote function and callers", () => {
     const fm = makeFlowManager(tmp);
     fm.mutate(() => {}); // persist through the shared writer to validate schema
 
-    const CLI = path.join(process.cwd(), "src/senti.js");
+    const CLI = path.join(process.cwd(), "src/senrail.js");
     const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);
@@ -380,10 +380,10 @@ describe("T-5: auto-promote function and callers", () => {
       currentTaskId: "T-1",
     });
 
-    const CLI = path.join(process.cwd(), "src/senti.js");
+    const CLI = path.join(process.cwd(), "src/senrail.js");
     const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);

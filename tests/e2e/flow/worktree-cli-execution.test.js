@@ -25,8 +25,8 @@ function createGitWorktree({ packageName, copySource = false }) {
     version: "0.0.0",
     type: "module",
   }, null, 2));
-  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify({
+  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -42,13 +42,13 @@ function createGitWorktree({ packageName, copySource = false }) {
 }
 
 function createFixture() {
-  return createGitWorktree({ packageName: "@fixture/senti", copySource: true });
+  return createGitWorktree({ packageName: "@fixture/senrail", copySource: true });
 }
 
 function invokeGlobalCli(root, worktreePath, argv = ["flow", "get", "status"]) {
-  const env = { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root };
-  delete env.SENTI_WORKTREE_CLI_REEXEC;
-  return spawnSync(process.execPath, [path.join(root, "src", "senti.js"), ...argv], {
+  const env = { ...process.env, SENRAIL_WORK_ROOT: root, SENRAIL_SOURCE_ROOT: root };
+  delete env.SENRAIL_WORKTREE_CLI_REEXEC;
+  return spawnSync(process.execPath, [path.join(root, "src", "senrail.js"), ...argv], {
     cwd: worktreePath,
     encoding: "utf8",
     env,
@@ -62,7 +62,7 @@ afterEach(() => {
 describe("global CLI execution from a managed worktree", () => {
   it("uses the worktree CLI source while retaining the base artifact configuration authority", () => {
     const { root, worktreePath } = createFixture();
-    const worktreeCli = path.join(worktreePath, "src", "senti.js");
+    const worktreeCli = path.join(worktreePath, "src", "senrail.js");
     const worktreeSource = fs.readFileSync(worktreeCli, "utf8");
     fs.writeFileSync(
       worktreeCli,
@@ -80,20 +80,20 @@ describe("global CLI execution from a managed worktree", () => {
 
   it("fails closed when the worktree-local CLI source is absent", () => {
     const { root, worktreePath } = createFixture();
-    const worktreeCli = path.join(worktreePath, "src", "senti.js");
+    const worktreeCli = path.join(worktreePath, "src", "senrail.js");
     fs.rmSync(worktreeCli);
 
     const result = invokeGlobalCli(root, worktreePath);
 
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, new RegExp(`Execution target: ${path.join(root, "src", "senti.js")}`));
+    assert.match(result.stderr, new RegExp(`Execution target: ${path.join(root, "src", "senrail.js")}`));
     assert.match(result.stderr, new RegExp(`Expected worktree source: ${worktreeCli}`));
     assert.match(result.stderr, /Recovery: restore the worktree source, then run: node /);
   });
 
   it("preserves global package execution in an unrelated worktree", () => {
     const { worktreePath } = createGitWorktree({ packageName: "consumer-project" });
-    const result = spawnSync(process.execPath, [path.join(repoRoot, "src", "senti.js"), "flow", "get", "status"], {
+    const result = spawnSync(process.execPath, [path.join(repoRoot, "src", "senrail.js"), "flow", "get", "status"], {
       cwd: worktreePath,
       encoding: "utf8",
       env: process.env,

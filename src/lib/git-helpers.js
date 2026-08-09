@@ -452,7 +452,7 @@ export function commentOnIssueOnce(issueNumber, body, cwd, idempotencyKey) {
   if (typeof idempotencyKey !== "string" || idempotencyKey === "") {
     throw new Error("issue comment idempotencyKey is required");
   }
-  const marker = `<!-- senti:${idempotencyKey} -->`;
+  const marker = `<!-- senrail:${idempotencyKey} -->`;
   const existing = runCmd("gh", [
     "issue", "view", String(issueNumber),
     "--json", "comments",

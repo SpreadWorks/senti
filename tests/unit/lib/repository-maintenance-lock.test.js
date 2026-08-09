@@ -57,15 +57,15 @@ describe("repository maintenance lock", () => {
 
     assert.equal(nested.acquire(), ownerToken);
     nested.release();
-    assert.equal(fs.existsSync(path.join(tmp, ".senti", ".repository-flow-operation.lock")), true);
+    assert.equal(fs.existsSync(path.join(tmp, ".senrail", ".repository-flow-operation.lock")), true);
 
     outer.release();
-    assert.equal(fs.existsSync(path.join(tmp, ".senti", ".repository-flow-operation.lock")), false);
+    assert.equal(fs.existsSync(path.join(tmp, ".senrail", ".repository-flow-operation.lock")), false);
   });
 
   it("reports structured diagnostics for a foreign live flow-operation owner", () => {
     tmp = createTmpDir("repository-flow-foreign-diagnostics-");
-    const lockPath = path.join(tmp, ".senti", ".repository-flow-operation.lock");
+    const lockPath = path.join(tmp, ".senrail", ".repository-flow-operation.lock");
     fs.mkdirSync(path.dirname(lockPath), { recursive: true });
     fs.writeFileSync(lockPath, `${JSON.stringify({
       version: 1,
@@ -166,14 +166,14 @@ describe("repository maintenance lock", () => {
     maintenance.release();
   });
 
-  it("rejects symlink, non-directory, and replaced .senti authorities without external writes", () => {
+  it("rejects symlink, non-directory, and replaced .senrail authorities without external writes", () => {
     for (const Lock of [RepositoryMaintenanceLock, RepositoryFlowOperationLock]) {
       const external = createTmpDir("repository-lock-external-");
       const sentinel = path.join(external, "sentinel");
       fs.writeFileSync(sentinel, "unchanged");
       try {
         const symlinkRoot = createTmpDir("repository-lock-symlink-");
-        fs.symlinkSync(external, path.join(symlinkRoot, ".senti"), "dir");
+        fs.symlinkSync(external, path.join(symlinkRoot, ".senrail"), "dir");
         assert.throws(
           () => new Lock({ mainRoot: symlinkRoot }).acquire(),
           (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
@@ -182,19 +182,19 @@ describe("repository maintenance lock", () => {
         removeTmpDir(symlinkRoot);
 
         const fileRoot = createTmpDir("repository-lock-file-");
-        fs.writeFileSync(path.join(fileRoot, ".senti"), "not-a-directory");
+        fs.writeFileSync(path.join(fileRoot, ".senrail"), "not-a-directory");
         assert.throws(
           () => new Lock({ mainRoot: fileRoot }).acquire(),
           (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
         );
-        assert.equal(fs.readFileSync(path.join(fileRoot, ".senti"), "utf8"), "not-a-directory");
+        assert.equal(fs.readFileSync(path.join(fileRoot, ".senrail"), "utf8"), "not-a-directory");
         removeTmpDir(fileRoot);
 
         const replacementRoot = createTmpDir("repository-lock-replaced-");
-        fs.mkdirSync(path.join(replacementRoot, ".senti"));
+        fs.mkdirSync(path.join(replacementRoot, ".senrail"));
         const lock = new Lock({ mainRoot: replacementRoot });
-        fs.renameSync(path.join(replacementRoot, ".senti"), path.join(replacementRoot, ".senti-original"));
-        fs.symlinkSync(external, path.join(replacementRoot, ".senti"), "dir");
+        fs.renameSync(path.join(replacementRoot, ".senrail"), path.join(replacementRoot, ".senrail-original"));
+        fs.symlinkSync(external, path.join(replacementRoot, ".senrail"), "dir");
         assert.throws(
           () => lock.acquire(),
           (error) => error.code === "REPOSITORY_LOCK_AUTHORITY_INVALID",
@@ -209,7 +209,7 @@ describe("repository maintenance lock", () => {
 
   it("reclaims only a proven-stale flow-operation owner and preserves all rejected owners", () => {
     tmp = createTmpDir("repository-flow-operation-stale-");
-    const lockPath = path.join(tmp, ".senti", ".repository-flow-operation.lock");
+    const lockPath = path.join(tmp, ".senrail", ".repository-flow-operation.lock");
     fs.mkdirSync(path.dirname(lockPath), { recursive: true });
     const owner = (overrides = {}) => ({
       version: 1,

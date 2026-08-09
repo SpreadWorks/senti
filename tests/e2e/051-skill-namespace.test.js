@@ -8,7 +8,7 @@ import { resolveIncludes } from "../../src/lib/include.js";
 import { stripDataMarkers } from "../../src/docs/lib/directive-parser.js";
 import { loadRules, expandSkillRulesDirectives } from "../../src/lib/skill-rules.js";
 
-const CMD = join(process.cwd(), "src/senti.js");
+const CMD = join(process.cwd(), "src/senrail.js");
 const CMD_ARGS_PREFIX = ["setup"];
 const PKG_DIR = join(process.cwd(), "src");
 const SKILL_SOURCES_DIR = join(PKG_DIR, "skills");
@@ -41,7 +41,7 @@ function listSkillSourceNames() {
 
 function assertSkillNamesUseNamespace(skillNames, label) {
   for (const skillName of skillNames) {
-    assert.ok(skillName.startsWith("senti."), `${label}/${skillName} should use senti.* naming`);
+    assert.ok(skillName.startsWith("senrail."), `${label}/${skillName} should use senrail.* naming`);
   }
 }
 
@@ -65,20 +65,20 @@ describe("051: skill namespace with dot separator", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   describe("src/skills/ naming", () => {
-    it("skill source directories use senti.* naming", () => {
+    it("skill source directories use senrail.* naming", () => {
       const skillSourceNames = listSkillSourceNames();
       assert.ok(skillSourceNames.length > 0, "should have skill sources");
       assertSkillNamesUseNamespace(skillSourceNames, "src/skills");
     });
 
-    it("SKILL.md name fields use senti.* naming", () => {
+    it("SKILL.md name fields use senrail.* naming", () => {
       const skillSourceNames = listSkillSourceNames();
       for (const skillName of skillSourceNames) {
         const skillFile = resolveSkillFile(skillName);
         const content = fs.readFileSync(skillFile, "utf8");
         const match = content.match(/^name:\s*(.+)$/m);
         assert.ok(match, `skill in "${skillName}" should have a name field`);
-        assert.ok(match[1].startsWith("senti."), `name "${match[1]}" should start with "senti."`);
+        assert.ok(match[1].startsWith("senrail."), `name "${match[1]}" should start with "senrail."`);
       }
     });
   });
@@ -92,7 +92,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
 
@@ -121,7 +121,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
 
       const claudeSkills = join(tmp, ".claude", "skills");
@@ -138,7 +138,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
 
       const skillSourceNames = listSkillSourceNames();
@@ -173,7 +173,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
 
       const agentsPath = join(tmp, "AGENTS.md");
@@ -191,7 +191,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
 
       const claudePath = join(tmp, "CLAUDE.md");
@@ -209,7 +209,7 @@ describe("051: skill namespace with dot separator", () => {
         encoding: "utf8",
         cwd: tmp,
         timeout: 10000,
-        env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       });
 
       // Recursively check no symlinks exist

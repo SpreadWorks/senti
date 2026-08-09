@@ -2,10 +2,10 @@
 /**
  * src/check/commands/freshness.js
  *
- * senti check freshness — compare docs/ and source modification timestamps.
+ * senrail check freshness — compare docs/ and source modification timestamps.
  *
- * Determines whether `senti docs build` is needed by comparing the newest mtime
- * of files under SENTI_SOURCE_ROOT with the newest mtime of files under docs/.
+ * Determines whether `senrail docs build` is needed by comparing the newest mtime
+ * of files under SENRAIL_SOURCE_ROOT with the newest mtime of files under docs/.
  *
  * Results:
  *   fresh       — docs/ is up to date (exit 0)
@@ -225,9 +225,9 @@ export class FreshnessResult {
       case "fresh":
         return "fresh — docs/ is up to date";
       case "stale":
-        return "stale — source is newer than docs/, run: senti docs build";
+        return "stale — source is newer than docs/, run: senrail docs build";
       case "never-built":
-        return "never-built — docs/ does not exist, run: senti docs build";
+        return "never-built — docs/ does not exist, run: senrail docs build";
       case "indeterminate":
         return `indeterminate — ${this.limits.join(", ")}`;
     }
@@ -237,15 +237,15 @@ export class FreshnessResult {
 function printHelp() {
   console.log(
     [
-      "Usage: senti check freshness [options]",
+      "Usage: senrail check freshness [options]",
       "",
       "Compare docs/ and source modification timestamps to determine if",
-      "senti docs build is needed.",
+      "senrail docs build is needed.",
       "",
       "Results:",
       "  fresh       docs/ is up to date",
-      "  stale       source is newer than docs/ — run senti docs build",
-      "  never-built docs/ does not exist — run senti docs build",
+      "  stale       source is newer than docs/ — run senrail docs build",
+      "  never-built docs/ does not exist — run senrail docs build",
       "  indeterminate traversal limits prevent a reliable result",
       "",
       "Exit codes:",
@@ -406,7 +406,7 @@ async function runFreshnessCheck(rawArgs, container) {
 
   const format = cli.format;
   if (!["text", "json"].includes(format)) {
-    process.stderr.write(`senti check freshness: unknown format '${format}'. Use text or json.\n`);
+    process.stderr.write(`senrail check freshness: unknown format '${format}'. Use text or json.\n`);
     process.exit(EXIT_ERROR);
   }
 

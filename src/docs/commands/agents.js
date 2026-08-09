@@ -3,14 +3,14 @@
  * src/docs/commands/agents.js
  *
  * AGENTS.md を更新する。
- * AGENTS.md 内の {{data("agents.senti")}} / {{data("agents.project")}} ディレクティブを解決し、
+ * AGENTS.md 内の {{data("agents.flow")}} / {{data("agents.project")}} ディレクティブを解決し、
  * PROJECT セクションは AI で精査する。
  */
 
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
 import { createResolver } from "../lib/resolver-factory.js";
@@ -81,7 +81,7 @@ function resolveAgentsDirectives(text, resolveFn) {
     (preset, source, method, labels, params) => resolveFn(preset, source, method, {}, labels, params),
     {
       onResolve(d, rendered) {
-        if (d.source === "agents" && d.method === "senti") specDrivenDevelopmentContent = rendered;
+        if (d.source === "agents" && d.method === "flow") specDrivenDevelopmentContent = rendered;
         if (d.source === "agents" && d.method === "project") projectContent = rendered;
       },
     },
@@ -148,7 +148,7 @@ async function runAgents(ctx, rawArgs) {
     const template = [
       `# ${path.basename(srcRoot)}`,
       "",
-      '<!-- {{data("agents.senti")}} -->',
+      '<!-- {{data("agents.flow")}} -->',
       specDrivenDevelopmentSection,
       "<!-- {{/data}} -->",
       "",
@@ -163,7 +163,7 @@ async function runAgents(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(sentiOutputDir(root), "analysis.json") }));
+    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(senrailOutputDir(root), "analysis.json") }));
   }
 
   // Load generated docs as context (instead of raw analysis.json)
@@ -186,7 +186,7 @@ async function runAgents(ctx, rawArgs) {
   if (projectContent) {
     const agent = container.get("agent");
     if (!agent.resolve("docs.agents")) {
-      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
+      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
     }
 
     logger.log(t("messages:agents.refining"));

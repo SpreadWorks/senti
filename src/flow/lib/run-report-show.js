@@ -1,14 +1,14 @@
 /**
  * src/flow/lib/run-report-show.js
  *
- * `senti flow report show` — stream the most recent finalize Report text
+ * `senrail flow report show` — stream the most recent finalize Report text
  * to stdout.
  *
  * Source of truth is `<configured-spec-root>/<id>/report.json` (generated from validated
  * test-execute-result.json v2 and test-result-review.json artifacts by the
  * finalize post-commit hook and merged into the base branch). `finalize` writes the
  * specId of the latest finalized spec to
- * `.senti/last-finalized-spec` in the main repo; this command reads that
+ * `.senrail/last-finalized-spec` in the main repo; this command reads that
  * pointer and echoes the report's `text` field.
  */
 
@@ -21,7 +21,7 @@ import {
   FlowSpecLocation,
 } from "../../lib/flow-workspace.js";
 
-export const POINTER_REL_PATH = path.join(".senti", "last-finalized-spec");
+export const POINTER_REL_PATH = path.join(".senrail", "last-finalized-spec");
 
 function reportShowError(code, message) {
   const err = new Error(message);

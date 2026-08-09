@@ -21,7 +21,7 @@ import {
   moveFlowToStep,
 } from "../../helpers/flow-setup.js";
 
-const CLI = path.join(process.cwd(), "src/senti.js");
+const CLI = path.join(process.cwd(), "src/senrail.js");
 
 function validSpec() {
   return {
@@ -117,7 +117,7 @@ function runCli(root, args) {
   const result = spawnSync(process.execPath, [CLI, ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: root, SENTI_SOURCE_ROOT: root },
+    env: { ...process.env, SENRAIL_WORK_ROOT: root, SENRAIL_SOURCE_ROOT: root },
   });
   return {
     exitCode: result.status,

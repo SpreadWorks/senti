@@ -7,6 +7,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "../lib/config.js";
+import { PRODUCT } from "../lib/product.js";
 import { FlowSpecId } from "../lib/flow-spec-id.js";
 import { FlowManager } from "../lib/flow-manager.js";
 import { FlowSpecLocation, FlowSpecRoot, flowSpecRootFromConfig } from "../lib/flow-workspace.js";
@@ -23,7 +24,7 @@ import {
 const ONE_TO_ONE_TOKENS = Object.keys(ONE_TO_ONE_STEP_RENAMES).sort((a, b) => b.length - a.length);
 const ACTIVE_FLOW_LIMIT = 1024 * 1024;
 const MIGRATION_NAME = "rename-phase-steps";
-const MIGRATION_JOURNAL = path.join(".senti", "migrations", `${MIGRATION_NAME}.json`);
+const MIGRATION_JOURNAL = PRODUCT.managedPath("migrations", `${MIGRATION_NAME}.json`);
 const MIGRATION_FILES = Object.freeze(["flow.json", "issue-log.json", "report.json", "retro.json", "review.md"]);
 const MIGRATION_RELEVANT_SPEC_FILES = Object.freeze(["spec.json", "spec.md", ...MIGRATION_FILES]);
 
@@ -206,12 +207,12 @@ function resolveRepositoryTopology(startRoot) {
 }
 
 function configuredSpecRoot(root) {
-  const configPath = path.join(root, ".senti", "config.json");
+  const configPath = path.join(root, PRODUCT.managedPath("config.json"));
   return flowSpecRootFromConfig(fs.existsSync(configPath) ? loadConfig(root) : {});
 }
 
 function readActiveFlows(mainRoot) {
-  const registryPath = path.join(mainRoot, ".senti", ".active-flow");
+  const registryPath = path.join(mainRoot, PRODUCT.managedPath(".active-flow"));
   let stat;
   try {
     stat = fs.lstatSync(registryPath);
@@ -289,8 +290,8 @@ function assertApplySafety(topology, specRoot, { checkClean = true } = {}) {
       "--porcelain",
       "--",
       ".",
-      ":!.senti/.repository-maintenance.lock",
-      ":!.senti/.repository-flow-operation.lock",
+      `:!${PRODUCT.managedPath(".repository-maintenance.lock")}`,
+      `:!${PRODUCT.managedPath(".repository-flow-operation.lock")}`,
     ]).trim() !== "") {
       throw new Error(`--apply requires every git worktree to be clean: ${worktree.path}`);
     }
@@ -491,7 +492,7 @@ function main() {
     throw new Error(`unknown argument: ${args.find((arg) => arg !== "--apply") || "--apply"}`);
   }
   const apply = args.includes("--apply");
-  const requestedRoot = path.resolve(process.env.SENTI_WORK_ROOT || process.cwd());
+  const requestedRoot = path.resolve(process.env[PRODUCT.env("WORK_ROOT")] || process.cwd());
   let root = requestedRoot;
   let plan;
   if (apply) {

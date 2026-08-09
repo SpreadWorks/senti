@@ -3,7 +3,7 @@
  *
  * AI agent service. Built once at Container init time and accessed via
  * `container.get("agent")`. The class encapsulates:
- *   - profile resolution (SENTI_PROFILE > config.agent.useProfile > default profile > default)
+ *   - profile resolution (SENRAIL_PROFILE > config.agent.useProfile > default profile > default)
  *   - prompt building (system prompt, JSON output flag, workDir flag injection)
  *   - argv-size based stdin fallback (config-driven threshold)
  *   - spawn-based asynchronous invocation (no blocking on stdin EOF)
@@ -26,6 +26,7 @@ import { defaultAgentProfiles } from "./agent-defaults.js";
 import { persistAgentInvocationMetric } from "./agent-invocation-metric.js";
 import { AgentTimeout } from "./agent-timeout.js";
 import { LinuxProcessStat } from "./process-identity.js";
+import { PRODUCT } from "./product.js";
 import {
   AgentFailure,
   AgentPermissionConfigurationFailure,
@@ -78,7 +79,7 @@ function normalizedExecutionEnvironment(value) {
 class Agent {
   /**
    * @param {Object} opts
-   * @param {Object} opts.config       - SentiConfig
+   * @param {Object} opts.config       - SenrailConfig
    * @param {Object} opts.paths        - Container paths ({ root, agentWorkDir, ... })
    * @param {ProviderRegistry} opts.registry
    * @param {Object} opts.logger       - Logger instance
@@ -95,7 +96,7 @@ class Agent {
 
   /**
    * Resolve a profile for the given commandId.
-   * Priority: SENTI_PROFILE env > config.agent.useProfile > default profile > default.
+   * Priority: SENRAIL_PROFILE env > config.agent.useProfile > default profile > default.
    * Returns null when no profile is configured.
    */
   resolve(commandId, options = {}) {
@@ -1006,7 +1007,7 @@ class AgentPromptCache {
   constructor({ root, specId }) {
     this.root = root;
     this.specId = specId;
-    this.filePath = path.join(root, ".senti", "agent-cache", `${cacheFileName(specId)}.json`);
+    this.filePath = path.join(root, ".senrail", "agent-cache", `${cacheFileName(specId)}.json`);
   }
 
   get(key) {
@@ -1064,10 +1065,10 @@ function resolvePromptCacheContext(flowManager) {
 }
 
 async function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
-  if (!flowManager || !context?.sentiPhase) return;
+  if (!flowManager || !context?.senrailPhase) return;
   try {
     const metric = {
-      phase: context.sentiPhase,
+      phase: context.senrailPhase,
       kind: "agent-cache",
       provider,
       profileKey,
@@ -1081,7 +1082,7 @@ async function recordPromptCacheHit({ flowManager, context, provider, profileKey
     }
     flowManager.appendMetric(metric, { specId: context.specId, taskId: context.taskId ?? null });
   } catch (err) {
-    process.stderr.write(`[senti] agent: cache-hit metric failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] agent: cache-hit metric failed: ${err.message}\n`);
   }
 }
 
@@ -1096,7 +1097,7 @@ function formatSpawnError(err, { command, env, providerKey, profileKey, commandI
     `provider=${providerKey || "unknown"}`,
     `profile=${profileKey || "unknown"}`,
     `commandId=${commandId || "unknown"}`,
-    "guidance=add the target CLI to the PATH of the environment that starts senti, or configure the provider command as an absolute path",
+    "guidance=add the target CLI to the PATH of the environment that starts senrail, or configure the provider command as an absolute path",
   ].join(" | "));
 
   diagnostic.name = err.name || "Error";
@@ -1202,7 +1203,7 @@ class AgentResolutionAttempt {
       `selected=${this.selectedProfileKey || "none"}`,
       `lookup=${this.lookupKey || "none"}`,
       "reason=no provider resolved",
-      "Set 'agent.default' in config.json or run 'senti setup'.",
+      "Set 'agent.default' in config.json or run 'senrail setup'.",
     ].join(" ");
   }
 }
@@ -1235,12 +1236,12 @@ function resolveProfileSelection(agentSection, commandId, options = {}) {
   const defaultKey = agentSection.default;
   const profileSource = options.profileName
     ? "explicitProfile"
-    : process.env.SENTI_PROFILE
-      ? "SENTI_PROFILE"
+    : process.env[PRODUCT.env("PROFILE")]
+      ? PRODUCT.env("PROFILE")
       : agentSection.useProfile
         ? "useProfile"
         : "none";
-  const profileName = options.profileName || process.env.SENTI_PROFILE || agentSection.useProfile || null;
+  const profileName = options.profileName || process.env[PRODUCT.env("PROFILE")] || agentSection.useProfile || null;
   if (!profileName) {
     return new ProfileSelection({ profileSource, profileName, keySource: "default", key: defaultKey });
   }
@@ -1355,7 +1356,7 @@ function tryParseProvider(provider, stdout) {
   try {
     return provider.parse(stdout);
   } catch (err) {
-    process.stderr.write(`[senti] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
+    process.stderr.write(`[senrail] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
     return null;
   }
 }
@@ -1363,7 +1364,7 @@ function tryParseProvider(provider, stdout) {
 function reportMissingJsonSchemaProfileFields({ commandId, profileKey, missing }) {
   if (!missing || missing.length === 0) return;
   process.stderr.write(
-    `[senti] agent: jsonSchema requested but resolved profile is missing ${missing.join(", ")} ` +
+    `[senrail] agent: jsonSchema requested but resolved profile is missing ${missing.join(", ")} ` +
     `(commandId=${commandId || "unknown"}, profile=${profileKey || "unknown"})\n`,
   );
 }

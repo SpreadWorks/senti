@@ -16,7 +16,7 @@ import {
   hasExplicitOption,
 } from "./flow-options.js";
 import { runGit } from "./git-helpers.js";
-import { sentiDir } from "./config.js";
+import { senrailDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import {
@@ -502,7 +502,7 @@ export class FlowStore {
       content = readBoundedFlowStateContent(p);
       state = JSON.parse(content.toString("utf8"));
     } catch (err) {
-      process.stderr.write(`[senti] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
+      process.stderr.write(`[senrail] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
     return bindCurrentFlowState(state, content, p, this._mainRoot, this._specRoot, specId);
@@ -699,7 +699,7 @@ export class FlowStore {
 
     const dirName = state.featureBranch.replace(/\//g, "-");
     return {
-      worktreePath: path.join(sentiDir(this._root), "worktree", dirName),
+      worktreePath: path.join(senrailDir(this._root), "worktree", dirName),
       mainRepoPath: this._root,
     };
   }

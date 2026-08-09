@@ -23,7 +23,7 @@ function fixture(source) {
   const repositoryRoot = path.join(root, "base");
   const executionRoot = path.join(root, "worktree");
   const canonicalSpecDir = path.join(repositoryRoot, "specs", "001-bootstrap");
-  const payloadSpecDir = path.join(executionRoot, ".senti", "handoffs", "payload");
+  const payloadSpecDir = path.join(executionRoot, ".senrail", "handoffs", "payload");
   write(path.join(payloadSpecDir, "tests", "bootstrap.test.js"), source);
   return {
     repositoryRoot,

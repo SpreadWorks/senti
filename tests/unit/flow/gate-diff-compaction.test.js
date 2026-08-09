@@ -246,7 +246,7 @@ function taskGateState() {
 }
 
 function setupTaskGateRepository(root) {
-  writeJson(root, ".senti/config.json", {
+  writeJson(root, ".senrail/config.json", {
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },

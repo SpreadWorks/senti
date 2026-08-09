@@ -1,5 +1,5 @@
 /**
- * senti/lib/types.js
+ * senrail/lib/types.js
  *
  * JSDoc 型定義。
  */
@@ -83,7 +83,7 @@
  */
 
 /**
- * @typedef {Object} SentiConfig
+ * @typedef {Object} SenrailConfig
  * @property {string} [name]                 - Project name (optional, set by setup wizard)
  * @property {DocsConfig} docs               - Documentation configuration (required)
  * @property {string} lang                   - Operating language for CLI, AGENTS.md, skills, specs

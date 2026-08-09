@@ -27,7 +27,7 @@ describe("flow get prompt plan.test-mode (reworked)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "plan.test-mode"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -39,7 +39,7 @@ describe("flow get prompt plan.test-mode (reworked)", () => {
     setupFlowState(tmp, "ja");
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "plan.test-mode"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     const labels = envelope.data.choices.map((c) => c.label);
@@ -54,7 +54,7 @@ describe("flow get prompt plan.test-mode (reworked)", () => {
     setupFlowState(tmp, "ja");
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "plan.test-mode"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.ok(
@@ -72,7 +72,7 @@ describe("flow get prompt plan.test-mode (reworked)", () => {
     setupFlowState(tmp, "ja");
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "plan.test-mode"],
-      { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     const labels = envelope.data.choices.map((c) => c.label);

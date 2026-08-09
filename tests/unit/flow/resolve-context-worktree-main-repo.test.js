@@ -24,11 +24,11 @@ import GetResolveContextCommand from "../../../src/flow/lib/get-resolve-context.
 import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 
 function setupMainAndWorktree() {
-  const mainRoot = createTmpDir("senti-main-");
+  const mainRoot = createTmpDir("senrail-main-");
   execFileSync("git", ["init", mainRoot], { encoding: "utf8" });
   execFileSync("git", ["-C", mainRoot, "commit", "--allow-empty", "-m", "init"], { encoding: "utf8" });
 
-  const worktreePath = path.join(mainRoot, ".senti", "worktree", "feature-001-test");
+  const worktreePath = path.join(mainRoot, ".senrail", "worktree", "feature-001-test");
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
   execFileSync(
     "git",

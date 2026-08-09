@@ -50,7 +50,7 @@ describe("finalization command crash resumption", () => {
   it("passes the pre-hook outbox entry unchanged to report issue comment idempotency", async () => {
     const root = createTmpDir("finalize-outbox-report-dispatch-");
     const originalPath = process.env.PATH;
-    const originalGhLog = process.env.SENTI_TEST_GH_LOG;
+    const originalGhLog = process.env.SENRAIL_TEST_GH_LOG;
     try {
       const { state, flowManager } = setupFinalizationRepo(root, { issue: 414 });
       const entry = pendingEntry(state, "report");
@@ -58,13 +58,13 @@ describe("finalization command crash resumption", () => {
       const ghLog = path.join(root, "gh.log");
       writeFile(root, "bin/gh", [
         "#!/bin/sh",
-        "printf '%s\\n' \"$@\" >> \"$SENTI_TEST_GH_LOG\"",
+        "printf '%s\\n' \"$@\" >> \"$SENRAIL_TEST_GH_LOG\"",
         "exit 0",
         "",
       ].join("\n"));
       fs.chmodSync(path.join(binDir, "gh"), 0o755);
       process.env.PATH = `${binDir}:${originalPath}`;
-      process.env.SENTI_TEST_GH_LOG = ghLog;
+      process.env.SENRAIL_TEST_GH_LOG = ghLog;
 
       let receivedEntry;
       class CapturingRunReportCommand extends RunReportCommand {
@@ -98,11 +98,11 @@ describe("finalization command crash resumption", () => {
 
       assert.strictEqual(receivedEntry, entry);
       assert.equal(JSON.parse(stdout.join("")).ok, true);
-      assert.match(fs.readFileSync(ghLog, "utf8"), new RegExp(`senti:${entry.idempotencyKey}`));
+      assert.match(fs.readFileSync(ghLog, "utf8"), new RegExp(`senrail:${entry.idempotencyKey}`));
     } finally {
       process.env.PATH = originalPath;
-      if (originalGhLog === undefined) delete process.env.SENTI_TEST_GH_LOG;
-      else process.env.SENTI_TEST_GH_LOG = originalGhLog;
+      if (originalGhLog === undefined) delete process.env.SENRAIL_TEST_GH_LOG;
+      else process.env.SENRAIL_TEST_GH_LOG = originalGhLog;
       removeTmpDir(root);
     }
   });
@@ -241,7 +241,7 @@ describe("finalization command crash resumption", () => {
     const root = createTmpDir("finalize-sync-main-root-");
     try {
       const { state } = setupFinalizationRepo(root, { worktree: true });
-      const worktreeRoot = path.join(root, ".senti", "worktree", "feature");
+      const worktreeRoot = path.join(root, ".senrail", "worktree", "feature");
       fs.mkdirSync(worktreeRoot, { recursive: true });
       let docsBuildOptions = null;
       const resultFor = ({ ok = true, status = 0, stdout = "", stderr = "" } = {}) => ({
@@ -278,8 +278,8 @@ describe("finalization command crash resumption", () => {
 
       assert.equal(result.status, "skipped");
       assert.equal(docsBuildOptions.cwd, root);
-      assert.equal(docsBuildOptions.env.SENTI_WORK_ROOT, root);
-      assert.equal(docsBuildOptions.env.SENTI_SOURCE_ROOT, root);
+      assert.equal(docsBuildOptions.env.SENRAIL_WORK_ROOT, root);
+      assert.equal(docsBuildOptions.env.SENRAIL_SOURCE_ROOT, root);
     } finally {
       removeTmpDir(root);
     }

@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { Command } from "../../lib/command.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles } from "../lib/command-context.js";
@@ -113,7 +113,7 @@ function runReview(rawArgs, container) {
   // Discover chapter files
   let chapterFiles = [];
   if (fs.existsSync(targetDir) && fs.statSync(targetDir).isDirectory()) {
-    chapterFiles = getChapterFiles(targetDir, { type, configChapters: config.chapters, projectRoot: root });
+    chapterFiles = getChapterFiles(targetDir, { type, configChapters: config?.chapters, projectRoot: root });
   }
 
   if (chapterFiles.length === 0) {
@@ -215,7 +215,7 @@ function runReview(rawArgs, container) {
   }
 
   // analysis.json existence check
-  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
+  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) {
     reportFail("messages:review.analysisNotFound");
   }
@@ -226,48 +226,44 @@ function runReview(rawArgs, container) {
   }
 
   // Multi-language checks
-  try {
-    const docsCfg = config.docs;
-    if (docsCfg.languages.length >= 2) {
-      const docsBase = path.join(root, "docs");
-      const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
-      for (const lang of nonDefaultLangs) {
-        const langDir = path.join(docsBase, lang);
-        if (!fs.existsSync(langDir)) {
-          reportFail("messages:review.langDirMissing", { lang });
-          continue;
+  const docsCfg = config?.docs;
+  if (docsCfg?.languages?.length >= 2) {
+    const docsBase = path.join(root, "docs");
+    const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
+    for (const lang of nonDefaultLangs) {
+      const langDir = path.join(docsBase, lang);
+      if (!fs.existsSync(langDir)) {
+        reportFail("messages:review.langDirMissing", { lang });
+        continue;
+      }
+      const langFiles = getChapterFiles(langDir, { type, configChapters: config?.chapters, projectRoot: root });
+      if (langFiles.length === 0) {
+        reportFail("messages:review.langNoChapters", { lang });
+        continue;
+      }
+      for (const f of langFiles) {
+        const filePath = path.join(langDir, f);
+        const content = fs.readFileSync(filePath, "utf8");
+        const lines = content.split("\n");
+        const label = `${lang}/${f}`;
+        if (lines.length < MIN_LINES) {
+          reportFail("messages:review.tooShort", { lines: lines.length, file: label });
         }
-        const langFiles = getChapterFiles(langDir, { type, configChapters: config.chapters, projectRoot: root });
-        if (langFiles.length === 0) {
-          reportFail("messages:review.langNoChapters", { lang });
-          continue;
+        if (!lines.some((line) => /^# /.test(line))) {
+          reportFail("messages:review.missingH1", { file: label });
         }
-        for (const f of langFiles) {
-          const filePath = path.join(langDir, f);
-          const content = fs.readFileSync(filePath, "utf8");
-          const lines = content.split("\n");
-          const label = `${lang}/${f}`;
-          if (lines.length < MIN_LINES) {
-            reportFail("messages:review.tooShort", { lines: lines.length, file: label });
-          }
-          if (!lines.some((line) => /^# /.test(line))) {
-            reportFail("messages:review.missingH1", { file: label });
-          }
-          const result = checkOutputIntegrity(content);
-          if (result.exposedDirectives > 0) {
-            reportFail("messages:review.exposedDirective", { count: result.exposedDirectives, file: label });
-          }
-          if (result.brokenComments) {
-            reportFail("messages:review.brokenComment", { file: label });
-          }
-          if (result.residualBlocks > 0) {
-            reportFail("messages:review.residualBlock", { count: result.residualBlocks, file: label });
-          }
+        const result = checkOutputIntegrity(content);
+        if (result.exposedDirectives > 0) {
+          reportFail("messages:review.exposedDirective", { count: result.exposedDirectives, file: label });
+        }
+        if (result.brokenComments) {
+          reportFail("messages:review.brokenComment", { file: label });
+        }
+        if (result.residualBlocks > 0) {
+          reportFail("messages:review.residualBlock", { count: result.residualBlocks, file: label });
         }
       }
     }
-  } catch (_) {
-    // config not available — skip multi-lang check
   }
 
   // Analysis coverage check

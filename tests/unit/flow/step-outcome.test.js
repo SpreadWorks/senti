@@ -90,13 +90,13 @@ function decisionPrompt() {
       new UserActionChoice({
         actionId: "ACCEPT_RESOLUTION",
         label: "Accept the recorded resolution",
-        nextAction: "senti flow set decision accept",
+        nextAction: "senrail flow set decision accept",
         impact: new UserActionImpact({ changes: ["decision record"] }),
       }),
       new UserActionChoice({
         actionId: "REJECT_RESOLUTION",
         label: "Reject the recorded resolution",
-        nextAction: "senti flow set decision reject",
+        nextAction: "senrail flow set decision reject",
         impact: new UserActionImpact({ changes: ["decision record"] }),
       }),
     ],
@@ -468,11 +468,11 @@ describe("typed dispatcher settlement", () => {
 
 describe("flow skill liveness contract", () => {
   it("delegates non-terminal ownership to the guarded CLI dispatcher", () => {
-    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    const skill = fs.readFileSync("src/skills/senrail.flow/SKILL.md", "utf8");
     const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
     assert.doesNotMatch(skill, /When that limit is reached, STOP/);
     assert.doesNotMatch(skill, /On budget exhaustion, STOP/);
-    assert.match(skill, /senti flow run dispatch --expect-binding <token>/);
+    assert.match(skill, /senrail flow run dispatch --expect-binding <token>/);
     assert.match(skill, /only owner of\s+`execute_step`, `execute_command`, and `repair_evidence`/);
     assert.match(dispatcher, /await agent\.call/);
     assert.match(dispatcher, /await this\.fetchNextAction/);
@@ -480,10 +480,10 @@ describe("flow skill liveness contract", () => {
   });
 
   it("forbids ending a turn at an ordinary intermediate step", () => {
-    const skill = fs.readFileSync("src/skills/senti.flow/SKILL.md", "utf8");
+    const skill = fs.readFileSync("src/skills/senrail.flow/SKILL.md", "utf8");
     assert.match(skill, /A worker's text response is diagnostic only/);
     assert.match(skill, /never accepts that text\s+as step completion/);
-    assert.match(skill, /Do not ask the user to invoke `\$senti\.flow`\s+again/);
+    assert.match(skill, /Do not ask the user to invoke `\$senrail\.flow`\s+again/);
     assert.match(skill, /The loop exits only at a dispatcher boundary/);
   });
 
@@ -502,7 +502,7 @@ describe("flow skill liveness contract", () => {
 
   it("prioritizes an agent-owned nonblocking decision over the strict directive", () => {
     const dispatcher = fs.readFileSync("src/flow/lib/run-dispatch.js", "utf8");
-    const nonblockingSkill = fs.readFileSync("src/skills/senti.flow-nonblocking/SKILL.md", "utf8");
+    const nonblockingSkill = fs.readFileSync("src/skills/senrail.flow-nonblocking/SKILL.md", "utf8");
     assert.match(dispatcher, /A nonblockingDecision is present/);
     assert.match(dispatcher, /before the ordinary directive/);
     assert.match(nonblockingSkill, /If `nonblockingDecision` is absent, run the returned normal check action/);

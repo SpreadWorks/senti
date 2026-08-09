@@ -5,7 +5,7 @@ import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { resolvePreparingRunId } from "../../../src/flow/lib/resolve-preparing-run-id.js";
 
 function setupProject(tmp) {
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },

@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { execFileSync } from "child_process";
 import { StringDecoder } from "string_decoder";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
@@ -1677,8 +1677,8 @@ export function validateTestExecuteResultEvidence(result, {
     if (regression.raw_output_lines.end_line > rawLines.length) {
       throw new Error("regression.raw_output_lines is outside raw output");
     }
-    const startMarker = `[senti] project regression start command=${regression.command} mode=${regression.mode}`;
-    const endMarker = `[senti] project regression end result=${regression.result}`;
+    const startMarker = `[senrail] project regression start command=${regression.command} mode=${regression.mode}`;
+    const endMarker = `[senrail] project regression end result=${regression.result}`;
     if (!rawOutputText.includes(startMarker) || !rawOutputText.includes(endMarker)) {
       throw new Error("raw output missing project regression start/end markers matching artifact command/result");
     }
@@ -2002,7 +2002,7 @@ function assertIntegrationRegressionAuthority({ root, state, specDir, config = {
       regression.trigger_relevant_changed_files,
       "regression.trigger_relevant_changed_files",
     );
-    const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
+    const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
     const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
     const changedFiles = listRegressionChangedFiles({ root, state });
     const current = classifyRegression({ root, state, analysis, config, changedFiles });

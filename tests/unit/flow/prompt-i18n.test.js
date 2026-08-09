@@ -25,7 +25,7 @@ function getPromptEnvelope(workRoot, promptId) {
     "node", [FLOW_CMD, "get", "prompt", promptId],
     {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: workRoot },
+      env: { ...process.env, SENRAIL_WORK_ROOT: workRoot },
       timeout: PROMPT_TEST_TIMEOUT_MS,
     },
   );
@@ -92,7 +92,7 @@ describe("flow get prompt i18n — English", () => {
 
 describe("flow SKILL.md has no hardcoded prompt text", () => {
   it("does not contain fixed choice blocks for plan prompts", () => {
-    const skillPath = join(process.cwd(), "src/skills/senti.flow/SKILL.md");
+    const skillPath = join(process.cwd(), "src/skills/senrail.flow/SKILL.md");
     const content = fs.readFileSync(skillPath, "utf8");
     assert.ok(!content.includes("[1] Organize requirements"), "should not hardcode approach choices");
     assert.ok(!content.includes("[1] Write test code"), "should not hardcode test-mode choices");

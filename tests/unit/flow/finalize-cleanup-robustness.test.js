@@ -65,7 +65,7 @@ describe("finalize-cleanup robustness", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("registry post hooks switch ctx.flowManager to main repo authority", async () => {
-    tmp = createTmpDir("senti-finalize-auth-switch-");
+    tmp = createTmpDir("senrail-finalize-auth-switch-");
     const mainRoot = path.join(tmp, "main");
     const worktreeRoot = path.join(tmp, "worktree");
     fs.mkdirSync(mainRoot);
@@ -98,7 +98,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("finalize stops before every teardown side effect when main metadata sync is busy, then succeeds on retry", async () => {
     const { runTeardown } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-finalize-sync-required-");
+    tmp = createTmpDir("senrail-finalize-sync-required-");
     const mainRoot = path.join(tmp, "main");
     const worktreePath = path.join(tmp, "worktree");
     const specId = "125";
@@ -123,7 +123,7 @@ describe("finalize-cleanup robustness", () => {
     execFileSync("git", ["-C", worktreePath, "commit", "--quiet", "-m", "record runtime log"]);
 
     const fm = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true, specId });
-    const registryPath = path.join(mainRoot, ".senti", ".active-flow");
+    const registryPath = path.join(mainRoot, ".senrail", ".active-flow");
     const lockPath = writeLiveFlowWriterLock(mainRoot, specId);
     const before = {
       mainFlow: fs.readFileSync(path.join(mainRoot, `specs/${specId}/flow.json`)),
@@ -173,7 +173,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("validateTeardown detects remaining branch", async () => {
     const { validateTeardown } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-validate-teardown-");
+    tmp = createTmpDir("senrail-validate-teardown-");
     initGitRepo(tmp);
     const featureBranch = "feature/test";
     execFileSync("git", ["-C", tmp, "checkout", "-b", featureBranch], { encoding: "utf8" });
@@ -191,7 +191,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue updates the base without changing the caller checkout, HEAD, or index", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-isolated-");
+    tmp = createTmpDir("senrail-auto-rescue-isolated-");
     initGitRepo(tmp);
     const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
     const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -223,7 +223,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue materializes an updated base checkout and leaves its index clean", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-base-checkout-");
+    tmp = createTmpDir("senrail-auto-rescue-base-checkout-");
     initGitRepo(tmp);
     const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
     const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -249,7 +249,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("public auto-rescue resumes a ref-update crash before dirty preflight", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-ref-crash-");
+    tmp = createTmpDir("senrail-auto-rescue-ref-crash-");
     initGitRepo(tmp);
     const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
     const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -268,7 +268,7 @@ describe("finalize-cleanup robustness", () => {
       `real=${JSON.stringify(realGit)}`,
       'case "$*" in *update-ref*refs/heads/*)',
       '  "$real" "$@" || exit $?',
-      '  kill -KILL "$SENTI_RESCUE_PID"',
+      '  kill -KILL "$SENRAIL_RESCUE_PID"',
       "  sleep 5",
       "  exit 91",
       ";; esac",
@@ -278,7 +278,7 @@ describe("finalize-cleanup robustness", () => {
     const moduleUrl = pathToFileURL(path.resolve("src/flow/lib/run-finalize-cleanup.js")).href;
     const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
       const { runAutoRescue } = await import(${JSON.stringify(moduleUrl)});
-      process.env.SENTI_RESCUE_PID = String(process.pid);
+      process.env.SENRAIL_RESCUE_PID = String(process.pid);
       runAutoRescue(${JSON.stringify({
         mainRepoPath: tmp,
         baseBranch,
@@ -309,7 +309,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue adopts a successful ref CAS reported as a Git failure", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-ref-ambiguous-");
+    tmp = createTmpDir("senrail-auto-rescue-ref-ambiguous-");
     initGitRepo(tmp);
     const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
     const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -354,7 +354,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue fails closed when conflict-file probing fails", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-conflict-probe-");
+    tmp = createTmpDir("senrail-auto-rescue-conflict-probe-");
     initGitRepo(tmp);
     const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
     const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -397,7 +397,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue exempts only its exact conflict audit from issue-log dirtiness", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-issue-log-allowance-");
+    tmp = createTmpDir("senrail-auto-rescue-issue-log-allowance-");
     initGitRepo(tmp);
     const specId = "issue-log-allowance";
     const specDirectory = path.join(tmp, "specs", specId);
@@ -445,7 +445,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("auto-rescue fails closed when repository status cannot be established", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-auto-rescue-status-failure-");
+    tmp = createTmpDir("senrail-auto-rescue-status-failure-");
 
     const result = runAutoRescue({
       mainRepoPath: tmp,
@@ -461,7 +461,7 @@ describe("finalize-cleanup robustness", () => {
   });
 
   it("runTeardown fails if worktree remove fails (e.g. dirty)", async () => {
-    tmp = createTmpDir("senti-teardown-fail-");
+    tmp = createTmpDir("senrail-teardown-fail-");
     const mainRoot = path.join(tmp, "main");
     initGitRepo(mainRoot);
 
@@ -510,7 +510,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("forced teardown failure compensates only its stable audit id after another process appends", async () => {
     const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-finalize-audit-compensation-");
+    tmp = createTmpDir("senrail-finalize-audit-compensation-");
     initGitRepo(tmp);
     const specId = "126";
     const spec = `specs/${specId}/spec.json`;
@@ -567,7 +567,7 @@ describe("finalize-cleanup robustness", () => {
 
   it("forced teardown fails closed before destructive work when audit append fails", async () => {
     const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
-    tmp = createTmpDir("senti-finalize-audit-fail-stop-");
+    tmp = createTmpDir("senrail-finalize-audit-fail-stop-");
     initGitRepo(tmp);
     const specId = "127";
     const spec = `specs/${specId}/spec.json`;

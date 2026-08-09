@@ -1,5 +1,5 @@
 ---
-name: senti.flow-resume
+name: senrail.flow-resume
 description: Resume Spec-Driven Development flow after context compaction. Outputs a context summary and guides to the appropriate flow skill.
 ---
 
@@ -9,9 +9,9 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 
 ## Procedure
 
-1. Run `senti flow resume` and read the output.
+1. Run `senrail flow resume` and read the output.
    - If it reports "no active flow", tell the user there is no flow to resume and stop.
-   - If it reports "multiple active flows", ask the user which spec to resume and re-run with `senti flow resume --spec <specId>`.
+   - If it reports "multiple active flows", ask the user which spec to resume and re-run with `senrail flow resume --spec <specId>`.
 
 2. Display the resume summary to the user in a concise format:
    - What was being worked on (Request)
@@ -21,12 +21,12 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 3. Read `spec.json` from the selected worktree when `worktreePath` is present, otherwise from `mainRepoPath`. Treat `spec.md` as a generated human-readable view only.
 
 4. Tell the user the exact step to resume from, and the skill to invoke:
-   - Mainline phases (`plan` / `impl` / `finalize`) → run `/senti.flow`.
-   - `sync` → run `/senti.flow-sync`.
+   - Mainline phases (`plan` / `impl` / `finalize`) → run `/senrail.flow`.
+   - `sync` → run `/senrail.flow-sync`.
 
 ## Notes
 
 - This skill is read-only. It does not modify any files or state.
-- Normal resume only reads flows registered in `.senti/.active-flow`.
-- Restoring a deliberately parked flow is a separate, exact-identity operation through `senti flow resume --parked`.
+- Normal resume only reads flows registered in `.senrail/.active-flow`.
+- Restoring a deliberately parked flow is a separate, exact-identity operation through `senrail flow resume --parked`.
 - After running this skill, the user should invoke the appropriate flow skill to continue.

@@ -2,6 +2,7 @@ import path from "path";
 import { runCmd } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
 import { runGit } from "../../lib/git-helpers.js";
+import { PRODUCT } from "../../lib/product.js";
 import { FlowCommand } from "./base-command.js";
 import { hasOutboxCommit } from "./run-finalize.js";
 import { FINALIZE_DOCUMENTATION_PATHS } from "./finalize-commit-paths.js";
@@ -49,8 +50,8 @@ export class RunFinalizeSyncCommand extends FlowCommand {
         cwd: syncCwd,
         env: {
           ...process.env,
-          SENTI_WORK_ROOT: syncCwd,
-          SENTI_SOURCE_ROOT: syncCwd,
+          [PRODUCT.env("WORK_ROOT")]: syncCwd,
+          [PRODUCT.env("SOURCE_ROOT")]: syncCwd,
         },
       }));
       const statRes = run("git-diff-stat", () => this.git(["diff", "--stat", "--", ...FINALIZE_DOCUMENTATION_PATHS], { cwd: syncCwd }));

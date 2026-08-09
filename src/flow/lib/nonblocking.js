@@ -106,7 +106,7 @@ function activationStep(root, state) {
 }
 
 function guardCommand(state, binding = null) {
-  return guardedCommand("senti flow get next-action", state, binding);
+  return guardedCommand("senrail flow get next-action", state, binding);
 }
 
 function continuationFor(state, actionId, instruction, reason, binding = null) {

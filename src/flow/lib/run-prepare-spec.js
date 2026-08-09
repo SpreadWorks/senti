@@ -9,7 +9,8 @@ import crypto from "node:crypto";
 import fs from "fs";
 import path from "path";
 import { isInsideWorktree, PKG_DIR } from "../../lib/cli.js";
-import { sentiDir, sentiOutputDir } from "../../lib/config.js";
+import { senrailDir, senrailOutputDir } from "../../lib/config.js";
+import { PRODUCT } from "../../lib/product.js";
 import { assertOk, runCmd } from "../../lib/process.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
@@ -41,15 +42,15 @@ import {
 } from "./repair-state-identity.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
-const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senti/config.json"]);
+const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senrail/config.json"]);
 const MAX_REQUIRED_WORKTREE_BRANCH_FILES = 16;
 const WORKTREE_FLOW_INTERNAL_IGNORES = Object.freeze([
-  "/.senti/flow-identity.json",
-  "/.senti/flow-identity.issue-transaction.json",
-  "/.senti/.flow-identity.publication.json",
-  "/.senti/.flow-identity.publication.intent",
-  "/.senti/.flow-identity.publication.receipt.tmp",
-  "/.senti/.flow-identity.publication.binding.tmp",
+  "/.senrail/flow-identity.json",
+  "/.senrail/flow-identity.issue-transaction.json",
+  "/.senrail/.flow-identity.publication.json",
+  "/.senrail/.flow-identity.publication.intent",
+  "/.senrail/.flow-identity.publication.receipt.tmp",
+  "/.senrail/.flow-identity.publication.binding.tmp",
 ]);
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const WORKTREE_PREPARE_ATTEMPT_FILE = ".worktree-prepare-attempt.json";
@@ -148,7 +149,7 @@ function detectBaseBranch(root) {
   try {
     return runGitTrim(root, ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
   } catch (e) {
-    process.stderr.write(`[senti] failed to detect current branch, falling back to "main": ${e.message}\n`);
+    process.stderr.write(`[senrail] failed to detect current branch, falling back to "main": ${e.message}\n`);
     return "main";
   }
 }
@@ -198,13 +199,13 @@ export function buildDraftTemplate() {
 }
 
 function runDocsScanAndValidate(root) {
-  const res = runCmd(process.execPath, [path.join(PKG_DIR, "senti.js"), "docs", "scan"], {
+  const res = runCmd(process.execPath, [path.join(PKG_DIR, "senrail.js"), "docs", "scan"], {
     cwd: root,
     timeout: 600000,
-    env: { ...process.env, SENTI_WORK_ROOT: root },
+    env: { ...process.env, [PRODUCT.env("WORK_ROOT")]: root },
   });
   assertOk(res, "docs scan failed during prepare-spec");
-  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
+  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) throw new Error(`analysis.json not found after docs scan: ${analysisPath}`);
   let analysis;
   try {
@@ -240,18 +241,18 @@ function copyPluginRuntimeDirectory(src, dest, counter = { files: 0 }) {
 
 function syncPluginRuntimeToWorktree(root, worktreePath) {
   const config = readProjectConfig(root);
-  const sourceSentiDir = sentiDir(root);
-  const targetSentiDir = sentiDir(worktreePath);
-  const localConfigPath = path.join(sourceSentiDir, "config.local.json");
+  const sourceSenrailDir = senrailDir(root);
+  const targetSenrailDir = senrailDir(worktreePath);
+  const localConfigPath = path.join(sourceSenrailDir, "config.local.json");
   if (fs.existsSync(localConfigPath)) {
-    fs.mkdirSync(targetSentiDir, { recursive: true });
-    fs.copyFileSync(localConfigPath, path.join(targetSentiDir, "config.local.json"));
+    fs.mkdirSync(targetSenrailDir, { recursive: true });
+    fs.copyFileSync(localConfigPath, path.join(targetSenrailDir, "config.local.json"));
   }
   for (const pkg of config.plugin?.packages || []) {
     if (pkg.enabled === false) continue;
-    const sourcePluginRoot = path.join(sourceSentiDir, "plugins", pkg.id);
+    const sourcePluginRoot = path.join(sourceSenrailDir, "plugins", pkg.id);
     if (!fs.existsSync(sourcePluginRoot)) continue;
-    const targetPluginRoot = path.join(targetSentiDir, "plugins", pkg.id);
+    const targetPluginRoot = path.join(targetSenrailDir, "plugins", pkg.id);
     fs.rmSync(targetPluginRoot, { recursive: true, force: true });
     copyPluginRuntimeDirectory(sourcePluginRoot, targetPluginRoot);
   }
@@ -457,14 +458,14 @@ class WorktreePrepareAttemptRecord {
       }
     }
     const expectedWorktreePath = path.join(
-      sentiDir(value.mainRoot),
+      senrailDir(value.mainRoot),
       "worktree",
       value.branchName.replace(/\//g, "-"),
     );
     if (value.worktreePath !== expectedWorktreePath) {
       throw new Error("worktree prepare attempt managed path is invalid");
     }
-    if (value.preparingPath !== path.join(sentiDir(value.mainRoot), `.active-flow.${value.runId}`)) {
+    if (value.preparingPath !== path.join(senrailDir(value.mainRoot), `.active-flow.${value.runId}`)) {
       throw new Error("worktree prepare attempt preparing path is invalid");
     }
     const rawExclude = runGitTrim(value.mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
@@ -498,7 +499,7 @@ class WorktreePrepareAttemptRecord {
 
   static create({ mainRoot, runId, issue, request, branchName, worktreePath, specId, expectedOid, processIdentitySource }) {
     const attemptId = crypto.randomUUID();
-    const preparingPath = path.join(sentiDir(mainRoot), `.active-flow.${runId}`);
+    const preparingPath = path.join(senrailDir(mainRoot), `.active-flow.${runId}`);
     const rawExclude = runGitTrim(mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
     const excludePath = path.isAbsolute(rawExclude) ? rawExclude : path.resolve(mainRoot, rawExclude);
     const preparingBefore = optionalBytes(preparingPath);
@@ -548,7 +549,7 @@ class WorktreePrepareAttemptRecord {
 class WorktreePrepareAttemptJournal {
   constructor({ mainRoot, processIdentitySource = new ProcessIdentitySource() }) {
     this.mainRoot = fs.realpathSync(mainRoot);
-    this.path = path.join(sentiDir(this.mainRoot), WORKTREE_PREPARE_ATTEMPT_FILE);
+    this.path = path.join(senrailDir(this.mainRoot), WORKTREE_PREPARE_ATTEMPT_FILE);
     this.processIdentitySource = processIdentitySource;
   }
 
@@ -750,7 +751,7 @@ class WorktreePrepareAttemptJournal {
       }
     }
     if (worktree) {
-      const bindingPath = path.join(record.worktreePath, ".senti", "flow-identity.json");
+      const bindingPath = path.join(record.worktreePath, ".senrail", "flow-identity.json");
       const bindingBytes = optionalBytes(bindingPath);
       if (bindingBytes != null) {
         const binding = JSON.parse(bindingBytes.toString("utf8"));
@@ -892,7 +893,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         "run",
         "prepare-spec",
         "TARGET_REQUIRED",
-        "Cannot run bare prepare while another flow is active; run `senti flow set init` and pass the returned --run-id.",
+        "Cannot run bare prepare while another flow is active; run `senrail flow set init` and pass the returned --run-id.",
         {
           active: {
             runId: ctx.flowState.runId || null,
@@ -967,7 +968,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     // Determine where spec files live
     const worktreePath = useWorktree
-      ? path.join(sentiDir(root), "worktree", branchName.replace(/\//g, "-"))
+      ? path.join(senrailDir(root), "worktree", branchName.replace(/\//g, "-"))
       : null;
     const executionRoot = useWorktree ? worktreePath : currentExecutionRoot;
     const specLocation = flowManager.specLocation(specId);
@@ -1146,7 +1147,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     ];
     const fillAndGateNext = [
       `fill ${specLocation.relativeArtifact("draft.json")}`,
-      `run: senti flow run gate --phase draft`,
+      `run: senrail flow run gate --phase draft`,
       `start implementation`,
     ];
     const lines = [];

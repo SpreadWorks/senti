@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * senti/engine/populate.js
+ * senrail/engine/populate.js
  *
  * ディレクティブベースのテンプレートエンジン。
  * analysis.json を読み、テンプレート内の {{data}} ディレクティブを解決してレンダリングする。
  * {{text}} はスキップしてログ出力する（後続タスクで LLM 連携を実装予定）。
  *
  * Usage:
- *   node senti/engine/populate.js [--dry-run] [--stdout]
+ *   node senrail/engine/populate.js [--dry-run] [--stdout]
  */
 
 import fs from "fs";
@@ -15,7 +15,7 @@ import path from "path";
 import { resolveDataDirectives } from "../lib/directive-parser.js";
 import { createResolver } from "../lib/resolver-factory.js";
 import { parseArgs } from "../../lib/cli.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { createLogger } from "../../lib/progress.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles } from "../lib/command-context.js";
@@ -133,7 +133,7 @@ async function runData(ctx, rawArgs) {
 
   const { root, type, docsDir, t } = ctx;
 
-  const analysisPath = path.join(sentiOutputDir(root), "analysis.json");
+  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {
     throw new Error(`${t("messages:data.analysisNotFound", { path: analysisPath })}\n${t("messages:data.runScanFirst")}`);

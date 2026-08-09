@@ -12,9 +12,10 @@
 import { FlowTargetExpectation } from "../../lib/flow-target-guard.js";
 import { WorktreeFlowProvenance } from "../../lib/worktree-flow-binding.js";
 import { FlowSpecLocation, flowSpecRootFromConfig } from "../../lib/flow-workspace.js";
+import { FLOW_DISPATCH_INVOCATION_ID_ENV } from "./dispatch-invocation.js";
 
 const MISSING_PREPARING_FLOW_STATE = Object.freeze({});
-const DISPATCH_INVOCATION_ENV = "SENTI_FLOW_DISPATCH_INVOCATION_ID";
+const DISPATCH_INVOCATION_ENV = FLOW_DISPATCH_INVOCATION_ID_ENV;
 
 function dispatchInvocationIdFromEnvironment() {
   const value = process.env[DISPATCH_INVOCATION_ENV];

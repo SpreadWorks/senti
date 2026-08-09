@@ -6,11 +6,11 @@ export const FINALIZE_DOCUMENTATION_PATHS = Object.freeze([
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
-  ".senti/output/analysis.json",
+  ".senrail/output/analysis.json",
 ]);
 
 export const FINALIZE_PRE_MERGE_DEFERRED_PATHS = Object.freeze([
-  ".senti/output/analysis.json",
+  ".senrail/output/analysis.json",
 ]);
 
 export class FinalizeCommitPathSet {

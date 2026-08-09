@@ -12,15 +12,15 @@ import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { SetStepStatus } from "../../../src/flow/definition.js";
 import { DefinitionLifecycleTransition } from "../../../src/flow/lib/step-transition-policy.js";
-import { runSentiUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
+import { runSenrailUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
 
 // spec: R3 R8
 it("runs canonical upgrade from the package entrypoint in the consuming project", () => {
   const calls = [];
   const consumerRoot = "/consumer/project";
-  const packageDir = "/installed/senti/src";
+  const packageDir = "/installed/senrail/src";
 
-  runSentiUpgradeForRecovery(consumerRoot, {
+  runSenrailUpgradeForRecovery(consumerRoot, {
     packageDir,
     execFileSyncImpl(...args) {
       calls.push(args);
@@ -29,7 +29,7 @@ it("runs canonical upgrade from the package entrypoint in the consuming project"
 
   assert.deepEqual(calls, [[
     process.execPath,
-    [path.join(packageDir, "senti.js"), "upgrade"],
+    [path.join(packageDir, "senrail.js"), "upgrade"],
     {
       cwd: consumerRoot,
       stdio: "inherit",

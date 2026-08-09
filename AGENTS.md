@@ -1,12 +1,12 @@
-# senti
+# Senrail
 
 ソースコード解析に基づくドキュメント自動生成と、Spec-Driven Development ワークフローを提供する CLI ツール。
 
 ## タスク管理
 
-ボード操作は skill `senti.workflow` を使うこと。skill は `senti workflow <subcommand>` コマンドを呼ぶ。
+ボード操作は skill `senrail.workflow` を使うこと。skill は `senrail workflow <subcommand>` コマンドを呼ぶ。
 
-> `senti workflow` は有効化済みの `workflow` plugin が提供するコマンドである。利用可能な操作とオプションは `senti workflow --help` を参照すること。
+> `senrail workflow` は有効化済みの `workflow` plugin が提供するコマンドである。利用可能な操作とオプションは `senrail workflow --help` を参照すること。
 
 ## プロジェクトルール
 
@@ -19,9 +19,9 @@
 
 ### エージェント非依存性
 
-- **MUST: senti の機能開発では、Codex hooks、Claude Code hooks、IDE や agent host 固有の lifecycle callback・独自 API など、特定のエージェントに固有の機能を利用または前提とする実装を禁止する。**
-- 実行制御、状態遷移、継続・終了条件、正当性の保証は、Node.js 組み込みモジュールと senti CLI 内部のエージェント非依存な仕組みで実装すること。
-- 特定エージェント向けの設定・信頼操作・セッション再起動を、senti の機能を正しく動作させるための必須条件にしてはならない。
+- **MUST: Senrail の機能開発では、Codex hooks、Claude Code hooks、IDE や agent host 固有の lifecycle callback・独自 API など、特定のエージェントに固有の機能を利用または前提とする実装を禁止する。**
+- 実行制御、状態遷移、継続・終了条件、正当性の保証は、Node.js 組み込みモジュールと Senrail CLI 内部のエージェント非依存な仕組みで実装すること。
+- 特定エージェント向けの設定・信頼操作・セッション再起動を、Senrail の機能を正しく動作させるための必須条件にしてはならない。
 
 ### コード品質の維持
 
@@ -62,7 +62,7 @@
 
 ### npm 公開
 - **MUST: `npm publish` / `npm dist-tag` はユーザーがリリースの意図を明示した場合のみ実行する。** バージョン上げ・コミット・push の指示はリリース指示ではない。
-- pre-release は `npm publish --tag alpha` → `npm dist-tag add senti@<version> latest` の 2 ステップ。
+- pre-release は `npm publish --tag alpha` → `npm dist-tag add senrail@<version> latest` の 2 ステップ。
 - 公開前に `npm pack --dry-run` で機密情報がないことを確認する。
 
 ## ソースコード（src/）

@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import path from "path";
-import { sentiOutputDir, loadConfig } from "../../lib/config.js";
+import { senrailOutputDir, loadConfig } from "../../lib/config.js";
 import { FlowCommand } from "./base-command.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
@@ -268,7 +268,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
       fmtFallback: kwBuilt.fmtFallback,
     });
   } catch (err) {
-    process.stderr.write(`[senti] context aiSearch agent call failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] context aiSearch agent call failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -280,7 +280,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
     selectedKeywords = Array.isArray(parsed) ? parsed : parsed?.keywords;
     if (!Array.isArray(selectedKeywords)) return fallbackSearch(allEntries, query);
   } catch (err) {
-    process.stderr.write(`[senti] context aiSearch JSON parse failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] context aiSearch JSON parse failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -417,11 +417,11 @@ function filterEntry(entry) {
  * @returns {{ analysis: Object, entries: Object[] }}
  */
 function loadAnalysisEntries(root) {
-  const outputDir = sentiOutputDir(root);
+  const outputDir = senrailOutputDir(root);
   const analysisPath = path.join(outputDir, "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {
-    throw new Error("analysis.json not found. Run: senti docs scan");
+    throw new Error("analysis.json not found. Run: senrail docs scan");
   }
 
   let analysis;

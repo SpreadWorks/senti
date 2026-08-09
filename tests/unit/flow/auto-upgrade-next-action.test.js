@@ -10,10 +10,10 @@ import { findStepById } from "../../../src/flow/lib/step-tree.js";
 
 function createTmp() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-upgrade-na-"));
-  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   fs.writeFileSync(
-    path.join(tmp, ".senti", "config.json"),
+    path.join(tmp, ".senrail", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -25,11 +25,11 @@ function createTmp() {
 }
 
 function runNextAction(tmp) {
-  const script = path.resolve("src/senti.js");
+  const script = path.resolve("src/senrail.js");
   return spawnSync("node", [script, "flow", "get", "next-action"], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 

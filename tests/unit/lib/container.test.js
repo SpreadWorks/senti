@@ -49,11 +49,11 @@ describe("Container", () => {
       const paths = {
         root: "/abs/root",
         srcRoot: "/abs/src",
-        sentiDir: "/abs/root/.senti",
-        outputDir: "/abs/root/.senti/output",
+        senrailDir: "/abs/root/.senrail",
+        outputDir: "/abs/root/.senrail/output",
         agentWorkDir: "/abs/root/.tmp",
         logDir: "/abs/root/.tmp/logs",
-        configPath: "/abs/root/.senti/config.json",
+        configPath: "/abs/root/.senrail/config.json",
       };
       c.register("paths", paths);
       const got = c.get("paths");

@@ -1,28 +1,28 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeSentiGitignore } from "../../../src/lib/gitignore.js";
+import { normalizeSenrailGitignore } from "../../../src/lib/gitignore.js";
 
-describe("normalizeSentiGitignore", () => {
-  it("keeps .senti contents ignored while allowing managed files and directories", () => {
-    const normalized = normalizeSentiGitignore([
-      ".senti/*",
-      "!.senti/config.json",
-      "!.senti/templates/",
-      "!.senti/output/",
-      ".senti/output/acceptance-report-*.json",
-      ".senti/",
+describe("normalizeSenrailGitignore", () => {
+  it("keeps .senrail contents ignored while allowing managed files and directories", () => {
+    const normalized = normalizeSenrailGitignore([
+      ".senrail/*",
+      "!.senrail/config.json",
+      "!.senrail/templates/",
+      "!.senrail/output/",
+      ".senrail/output/acceptance-report-*.json",
+      ".senrail/",
       "",
       "node_modules",
       "",
     ].join("\n"));
 
     assert.equal(normalized, [
-      ".senti/*",
-      "!.senti/config.json",
-      "!.senti/templates/",
-      "!.senti/output/",
-      "!.senti/presets/",
-      ".senti/output/acceptance-report-*.json",
+      ".senrail/*",
+      "!.senrail/config.json",
+      "!.senrail/templates/",
+      "!.senrail/output/",
+      "!.senrail/presets/",
+      ".senrail/output/acceptance-report-*.json",
       "",
       "node_modules",
       "",
@@ -30,48 +30,22 @@ describe("normalizeSentiGitignore", () => {
   });
 
   it("normalizes a mechanically renamed legacy directory ignore", () => {
-    const normalized = normalizeSentiGitignore([
-      ".senti/",
+    const normalized = normalizeSenrailGitignore([
+      ".senrail/",
       "",
       ".tmp/",
       "",
     ].join("\n"));
 
     assert.equal(normalized, [
-      ".senti/*",
-      "!.senti/config.json",
-      "!.senti/templates/",
-      "!.senti/output/",
-      "!.senti/presets/",
-      ".senti/output/acceptance-report-*.json",
+      ".senrail/*",
+      "!.senrail/config.json",
+      "!.senrail/templates/",
+      "!.senrail/output/",
+      "!.senrail/presets/",
+      ".senrail/output/acceptance-report-*.json",
       "",
       ".tmp/",
-      "",
-    ].join("\n"));
-  });
-
-  it("replaces legacy sdd-forge entries without changing unrelated rules", () => {
-    const normalized = normalizeSentiGitignore([
-      ".sdd-forge/*",
-      "!.sdd-forge/config.json",
-      "!.sdd-forge/templates/",
-      "!.sdd-forge/output/",
-      ".sdd-forge/output/acceptance-report-*.json",
-      "",
-      "vendor/",
-      "",
-    ].join("\n"), { appendIfMissing: false });
-
-    assert.equal(normalized, [
-      ".senti/*",
-      "!.senti/config.json",
-      "!.senti/templates/",
-      "!.senti/output/",
-      "!.senti/presets/",
-      ".senti/output/acceptance-report-*.json",
-      ".sdd-forge/",
-      "",
-      "vendor/",
       "",
     ].join("\n"));
   });
@@ -82,6 +56,6 @@ describe("normalizeSentiGitignore", () => {
       ".tmp/",
     ].join("\n");
 
-    assert.equal(normalizeSentiGitignore(content, { appendIfMissing: false }), content);
+    assert.equal(normalizeSenrailGitignore(content, { appendIfMissing: false }), content);
   });
 });

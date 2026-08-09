@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { PRODUCT } from "../../lib/product.js";
 
 import {
   FlowTargetBinding,
@@ -10,9 +11,9 @@ const DISPATCH_INVOCATION_VERSION = 1;
 const APPROVAL_RECEIPT_VERSION = 1;
 const APPROVAL_TOKEN_VERSION = "flow-dispatch-approval-v2";
 
-export const FLOW_DISPATCH_INVOCATION_ENV = "SENTI_FLOW_DISPATCH_INVOCATION";
-export const FLOW_DISPATCH_INVOCATION_ID_ENV = "SENTI_FLOW_DISPATCH_INVOCATION_ID";
-export const FLOW_TARGET_BINDING_ENV = "SENTI_FLOW_TARGET_BINDING";
+export const FLOW_DISPATCH_INVOCATION_ENV = PRODUCT.env("FLOW_DISPATCH_INVOCATION");
+export const FLOW_DISPATCH_INVOCATION_ID_ENV = PRODUCT.env("FLOW_DISPATCH_INVOCATION_ID");
+export const FLOW_TARGET_BINDING_ENV = PRODUCT.env("FLOW_TARGET_BINDING");
 
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") {

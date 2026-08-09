@@ -1,7 +1,7 @@
 /**
  * tests/unit/flow/run-report-show.test.js
  *
- * Covers AC1/AC2/AC3 of spec 211: `senti flow report show` streams the
+ * Covers AC1/AC2/AC3 of spec 211: `senrail flow report show` streams the
  * latest finalize Report text from `report.json`, and fails clearly when the
  * pointer or `report.json` is missing.
  */
@@ -22,7 +22,7 @@ describe("flow report show — resolve + read", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("AC1: resolves latest report.json from pointer and returns its text field", () => {
-    tmp = createTmpDir("senti-report-show-");
+    tmp = createTmpDir("senrail-report-show-");
     writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     const reportText = "  Report\n\n  Implementation\n──\n    feat: demo\n";
     writeFile(
@@ -40,7 +40,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("resolves a report from a configured spec root", () => {
-    tmp = createTmpDir("senti-report-show-configured-root-");
+    tmp = createTmpDir("senrail-report-show-configured-root-");
     writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     writeFile(tmp, "flow-artifacts/specs/001-demo/report.json", JSON.stringify({ data: {}, text: "ok" }));
 
@@ -51,7 +51,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("AC2: throws NO_POINTER when the pointer file is absent", () => {
-    tmp = createTmpDir("senti-report-show-no-ptr-");
+    tmp = createTmpDir("senrail-report-show-no-ptr-");
     assert.throws(
       () => resolveLatestReportPath(tmp),
       (err) => err.code === "NO_POINTER" && /pointer not found/.test(err.message),
@@ -59,7 +59,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("AC2: throws EMPTY_POINTER when the pointer file is empty", () => {
-    tmp = createTmpDir("senti-report-show-empty-ptr-");
+    tmp = createTmpDir("senrail-report-show-empty-ptr-");
     writeFile(tmp, POINTER_REL_PATH, "   \n");
     assert.throws(
       () => resolveLatestReportPath(tmp),
@@ -68,7 +68,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("AC3: throws NO_REPORT when pointer exists but report.json is missing", () => {
-    tmp = createTmpDir("senti-report-show-no-report-");
+    tmp = createTmpDir("senrail-report-show-no-report-");
     writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     assert.throws(
       () => resolveLatestReportPath(tmp),
@@ -77,7 +77,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("readReportText: throws PARSE_ERROR on invalid JSON", () => {
-    tmp = createTmpDir("senti-report-show-bad-json-");
+    tmp = createTmpDir("senrail-report-show-bad-json-");
     const reportPath = path.join(tmp, "report.json");
     fs.writeFileSync(reportPath, "{ not json");
     assert.throws(
@@ -87,7 +87,7 @@ describe("flow report show — resolve + read", () => {
   });
 
   it("readReportText: throws NO_TEXT when text field is missing", () => {
-    tmp = createTmpDir("senti-report-show-no-text-");
+    tmp = createTmpDir("senrail-report-show-no-text-");
     const reportPath = path.join(tmp, "report.json");
     fs.writeFileSync(reportPath, JSON.stringify({ data: {} }));
     assert.throws(

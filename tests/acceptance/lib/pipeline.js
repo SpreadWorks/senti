@@ -1,7 +1,7 @@
 /**
  * tests/acceptance/lib/pipeline.js
  *
- * Runs the senti pipeline (scan → enrich → init → data → text → readme)
+ * Runs the senrail pipeline (scan → enrich → init → data → text → readme)
  * against a fixture project by instantiating each pipeline step's Command
  * class and invoking `cmd.run(container, { docsCtx, _rawArgs: [] })`.
  */
@@ -28,13 +28,13 @@ export function copyFixtureInto(fixtureDir, dest, configOverrides) {
   copyDirSync(fixtureDir, dest);
 
   if (configOverrides) {
-    const configPath = path.join(dest, ".senti", "config.json");
+    const configPath = path.join(dest, ".senrail", "config.json");
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     Object.assign(config, configOverrides);
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   }
 
-  fs.mkdirSync(path.join(dest, ".senti", "output"), { recursive: true });
+  fs.mkdirSync(path.join(dest, ".senrail", "output"), { recursive: true });
   fs.mkdirSync(path.join(dest, "docs"), { recursive: true });
 
   return dest;
@@ -59,7 +59,7 @@ export function copyFixture(fixtureDir, configOverrides) {
  * still see fixture-scoped values.
  */
 export function buildCtx(tmp, { agent: injectedAgent = null } = {}) {
-  const configPath = path.join(tmp, ".senti", "config.json");
+  const configPath = path.join(tmp, ".senrail", "config.json");
   const config = validate(loadJsonFile(configPath));
   const lang = config.lang || "en";
   const outputLang = config.docs?.defaultLanguage || lang;

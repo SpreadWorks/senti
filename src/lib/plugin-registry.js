@@ -4,7 +4,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createPluginAgentApi } from "./agent.js";
 import { repoRoot } from "./cli.js";
-import { loadConfig, loadRawConfig, sentiConfigPath, sentiDir, sentiLocalConfigPath } from "./config.js";
+import { loadConfig, loadRawConfig, senrailConfigPath, senrailDir, senrailLocalConfigPath } from "./config.js";
+import { PRODUCT } from "./product.js";
 import { Envelope } from "./flow-envelope.js";
 import { EsmModule } from "./esm-module.js";
 import { officialPresetPluginRoot } from "./official-plugins.js";
@@ -89,18 +90,18 @@ export function readProjectConfig(root = repoRoot()) {
 }
 
 function readStoredProjectConfig(root = repoRoot(), { missingAsEmpty = false } = {}) {
-  if (missingAsEmpty && !fs.existsSync(sentiConfigPath(root))) {
+  if (missingAsEmpty && !fs.existsSync(senrailConfigPath(root))) {
     const config = {};
     ensurePluginConfig(config);
     return config;
   }
-  const config = readJson(sentiConfigPath(root));
+  const config = readJson(senrailConfigPath(root));
   ensurePluginConfig(config);
   return config;
 }
 
 function readStoredLocalProjectConfig(root = repoRoot(), { missingAsEmpty = false } = {}) {
-  const localPath = sentiLocalConfigPath(root);
+  const localPath = senrailLocalConfigPath(root);
   if (missingAsEmpty && !fs.existsSync(localPath)) {
     const config = {};
     ensurePluginConfig(config);
@@ -167,7 +168,7 @@ function readPluginOperationConfig(root = repoRoot()) {
 }
 
 export function writeProjectConfig(root, config) {
-  writeJson(sentiConfigPath(root), config);
+  writeJson(senrailConfigPath(root), config);
 }
 
 export function maskPluginSource(source) {
@@ -328,7 +329,7 @@ export class PluginManifest {
     const skills = this.contributions.skills || [];
     if (!Array.isArray(skills)) throw new Error("plugin skills contribution must be an array");
     for (const skill of skills) {
-      assertId(String(skill.name).replace(/^senti\./, ""), "skill name");
+      assertId(String(skill.name).replace(/^senrail\./, ""), "skill name");
       if (!isUnderFileAllowlist(skill.path, this.files)) throw new Error(`contribution path outside files allowlist: ${skill.path}`);
     }
     const config = this.contributions.config;
@@ -502,7 +503,7 @@ export class PluginRuntime {
     }
     const manifests = [];
     for (const pkg of enabledPackages) {
-      const pluginRoot = path.join(sentiDir(this.root), "plugins", pkg.id);
+      const pluginRoot = path.join(senrailDir(this.root), "plugins", pkg.id);
       const manifestPath = path.join(pluginRoot, "plugin.json");
       if (!fs.existsSync(manifestPath)) continue;
       manifests.push(PluginManifest.fromRoot(pluginRoot, pkg.id));
@@ -529,17 +530,17 @@ export function loadPluginConfigDefaults(root = repoRoot()) {
 }
 
 export function discoverCorePresets() {
-  const { PRESETS_DIR } = globalThis.__sentiPresetModule || {};
+  const { PRESETS_DIR } = globalThis.__senrailPresetModule || {};
   if (!PRESETS_DIR) return [];
   return [];
 }
 
 function pluginSourcesDir(root) {
-  return path.join(sentiDir(root), "plugin-sources");
+  return path.join(senrailDir(root), "plugin-sources");
 }
 
 function installedPluginsDir(root) {
-  return path.join(sentiDir(root), "plugins");
+  return path.join(senrailDir(root), "plugins");
 }
 
 export function isGitUrl(source) {
@@ -576,7 +577,7 @@ function checkedOutSourceRoot(root, source) {
 function assertManagedGitCachePath(root, dest, source) {
   assertId(source.id, "plugin source id");
   const rootPath = path.resolve(root);
-  const stateDir = path.resolve(sentiDir(root));
+  const stateDir = path.resolve(senrailDir(root));
   const base = path.resolve(pluginSourcesDir(root));
   const resolved = path.resolve(dest);
   if (resolved === base || !isUnderPath(resolved, base)) {
@@ -584,12 +585,12 @@ function assertManagedGitCachePath(root, dest, source) {
   }
   if (fs.existsSync(stateDir)) {
     if (fs.lstatSync(stateDir).isSymbolicLink()) {
-      throw new Error(`unsafe plugin source cache path: .senti is a symlink`);
+      throw new Error(`unsafe plugin source cache path: .senrail is a symlink`);
     }
     const realRoot = fs.realpathSync(rootPath);
     const realStateDir = fs.realpathSync(stateDir);
     if (!isUnderPath(realStateDir, realRoot)) {
-      throw new Error(`unsafe plugin source cache path: .senti escapes project root`);
+      throw new Error(`unsafe plugin source cache path: .senrail escapes project root`);
     }
   }
   if (fs.existsSync(base) && fs.lstatSync(base).isSymbolicLink()) {
@@ -786,7 +787,7 @@ export function findPluginCandidates(root) {
 }
 
 function materializeCommit(sourceRoot, commit, root) {
-  const tmp = fs.mkdtempSync(path.join(sentiDir(root), "tmp-plugin-"));
+  const tmp = fs.mkdtempSync(path.join(senrailDir(root), "tmp-plugin-"));
   const archivePath = path.join(tmp, "package.tar");
   const archive = runCmd("git", ["archive", "--format=tar", "-o", archivePath, commit], { cwd: sourceRoot, maxBuffer: 50 * 1024 * 1024 });
   if (!archive.ok) {
@@ -863,9 +864,9 @@ function preparePluginConfigTransaction(root, source, pluginId, commit, {
   const publicHasSource = publicPlugin.sources.some((entry) => entry.id === source.id);
   const localHasSource = localPlugin.sources.some((entry) => entry.id === source.id);
   const target = publicExisting || (!localExisting && publicHasSource)
-    ? { config: publicConfig, plugin: publicPlugin, existing: publicExisting, path: sentiConfigPath(root) }
+    ? { config: publicConfig, plugin: publicPlugin, existing: publicExisting, path: senrailConfigPath(root) }
     : localExisting || localHasSource
-      ? { config: localConfig, plugin: localPlugin, existing: localExisting, path: sentiLocalConfigPath(root) }
+      ? { config: localConfig, plugin: localPlugin, existing: localExisting, path: senrailLocalConfigPath(root) }
       : null;
   if (!target) throw new Error(`plugin source is not registered in public or local config: ${source.id}`);
 
@@ -878,11 +879,11 @@ function preparePluginConfigTransaction(root, source, pluginId, commit, {
     target.plugin.packages.push(entry);
   }
   const updates = [{ filePath: target.path, value: target.config }];
-  if (proposedPublicConfig && target.path !== sentiConfigPath(root)) {
-    updates.push({ filePath: sentiConfigPath(root), value: publicConfig });
+  if (proposedPublicConfig && target.path !== senrailConfigPath(root)) {
+    updates.push({ filePath: senrailConfigPath(root), value: publicConfig });
   }
-  if (proposedLocalConfig && target.path !== sentiLocalConfigPath(root)) {
-    updates.push({ filePath: sentiLocalConfigPath(root), value: localConfig });
+  if (proposedLocalConfig && target.path !== senrailLocalConfigPath(root)) {
+    updates.push({ filePath: senrailLocalConfigPath(root), value: localConfig });
   }
   return new PluginConfigTransaction(updates);
 }
@@ -1081,7 +1082,7 @@ export function setPluginEnabled(root, id, enabled) {
   if (!entry) {
     const merged = readProjectConfig(root);
     if (merged.plugin.packages.find((pkg) => pkg.id === id)) {
-      throw new Error(`plugin package ${id} is provided by .senti/config.local.json; edit the local overlay to enable or disable it`);
+      throw new Error(`plugin package ${id} is provided by .senrail/config.local.json; edit the local overlay to enable or disable it`);
     }
     throw new Error(`plugin not installed: ${id}`);
   }
@@ -1179,7 +1180,7 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
   if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
   const plans = [];
   for (const pkg of enabledPackages) {
-    const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
+    const pluginRoot = path.join(senrailDir(root), "plugins", pkg.id);
     const hooksDir = path.join(pluginRoot, "hooks");
     if (!fs.existsSync(hooksDir)) continue;
     const files = fs.readdirSync(hooksDir).filter((file) => file.endsWith(".js")).sort();
@@ -1238,7 +1239,7 @@ function artifactRoot(root, pluginId, flow = {}, {
   if (requireSpec) {
     throw new Error(`plugin hook artifact context requires flow.specId for ${pluginId}`);
   }
-  return path.join(sentiDir(artifactRepositoryRoot), "plugin-artifacts", pluginId);
+  return path.join(senrailDir(artifactRepositoryRoot), "plugin-artifacts", pluginId);
 }
 
 function artifactHelpers(root, pluginId, flow = {}, options = {}) {
@@ -1273,7 +1274,7 @@ function buildPluginContext({
 }) {
   const rootConfig = readProjectConfig(root);
   const pluginConfig = pluginConfigFor(root, pluginId);
-  const coreAgent = globalThis.__sentiPluginAgent || {
+  const coreAgent = globalThis.__senrailPluginAgent || {
     resolve() {
       return false;
     },
@@ -1332,7 +1333,7 @@ function snapshotPluginRoot(root, plan) {
   const pkg = config.plugin.packages.find((entry) => entry.id === plan.pluginId);
   if (!pkg) throw new Error(`snapshot plugin missing: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
   if (pkg.enabled === false) throw new Error(`snapshot plugin disabled: ${plan.pluginId}; re-enable the plugin package or re-prepare the flow`);
-  const pluginRoot = path.join(sentiDir(root), "plugins", plan.pluginId);
+  const pluginRoot = path.join(senrailDir(root), "plugins", plan.pluginId);
   if (!fs.existsSync(pluginRoot)) throw new Error(`snapshot plugin removed: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
   return pluginRoot;
 }
@@ -1484,7 +1485,7 @@ function composePluginLifecycleResult(result, pre, terminal, ok) {
 const DEFAULT_OFFICIAL_PRESET_SOURCE = Object.freeze({
   id: "official-presets",
   type: "git",
-  remote: "git@github.com:SpreadWorks/senti-presets.git",
+  remote: `git@github.com:${PRODUCT.officialRepository("presets")}.git`,
 });
 
 function cloneOfficialPresetSource(source = DEFAULT_OFFICIAL_PRESET_SOURCE) {

@@ -620,7 +620,7 @@ class MaterialRepairCandidateSet {
         const relPath = normalizeRepoPath(reference, "issue-log repairRef.files[]");
         if (
           relPath.startsWith(specPrefix)
-          || relPath.startsWith(".senti/")
+          || relPath.startsWith(".senrail/")
           || registry.owns(relPath)
         ) continue;
         const matches = references.get(relPath) || new Map();

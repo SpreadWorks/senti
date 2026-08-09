@@ -4,11 +4,11 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 
-const SENTI = join(process.cwd(), "src/senti.js");
+const SENRAIL = join(process.cwd(), "src/senrail.js");
 
 function createHookConfigProject(command) {
-  const root = createTmpDir("senti-hook-list-e2e-");
-  writeJson(root, ".senti/config.json", {
+  const root = createTmpDir("senrail-hook-list-e2e-");
+  writeJson(root, ".senrail/config.json", {
     lang: "en",
     type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -24,7 +24,7 @@ function createHookConfigProject(command) {
 function expectDispatcherFailure(args, assertions, message = "should exit non-zero") {
   let failure;
   try {
-    execFileSync("node", [SENTI, ...args], { encoding: "utf8" });
+    execFileSync("node", [SENRAIL, ...args], { encoding: "utf8" });
   } catch (err) {
     failure = err;
   }
@@ -38,17 +38,17 @@ function expectUnknownCommand(args, message) {
   }, message);
 }
 
-describe("senti dispatcher", () => {
+describe("senrail dispatcher", () => {
   it("routes 'help' to help output", () => {
-    const result = execFileSync("node", [SENTI, "help"], { encoding: "utf8" });
-    assert.match(result, /senti/);
-    assert.match(result, /コマンド一覧/);
+    const result = execFileSync("node", [SENRAIL, "help"], { encoding: "utf8" });
+    assert.match(result, /senrail/);
+    assert.match(result, /Commands/);
   });
 
   it("routes 'docs build' through docs dispatcher", () => {
     // build requires analysis.json etc, but should at least start the pipeline
     try {
-      execFileSync("node", [SENTI, "docs", "build", "--help"], { encoding: "utf8" });
+      execFileSync("node", [SENRAIL, "docs", "build", "--help"], { encoding: "utf8" });
     } catch (err) {
       // --help may exit 0 or non-zero depending on implementation
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -62,7 +62,7 @@ describe("senti dispatcher", () => {
 
   it("routes 'docs review' correctly", () => {
     try {
-      execFileSync("node", [SENTI, "docs", "review"], { encoding: "utf8" });
+      execFileSync("node", [SENRAIL, "docs", "review"], { encoding: "utf8" });
     } catch (err) {
       // review may fail if no docs dir, but it should have run the review command
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -71,13 +71,13 @@ describe("senti dispatcher", () => {
   });
 
   it("routes 'setup --help' as independent command", () => {
-    const result = execFileSync("node", [SENTI, "setup", "--help"], { encoding: "utf8" });
+    const result = execFileSync("node", [SENRAIL, "setup", "--help"], { encoding: "utf8" });
     assert.match(result, /setup/i);
   });
 
   it("routes 'flow' to flow dispatcher", () => {
     try {
-      execFileSync("node", [SENTI, "flow"], { encoding: "utf8" });
+      execFileSync("node", [SENRAIL, "flow"], { encoding: "utf8" });
       assert.fail("should exit non-zero without subcommand");
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
@@ -86,13 +86,13 @@ describe("senti dispatcher", () => {
   });
 
   it("routes exact worktree park and parked resume help", () => {
-    const park = execFileSync("node", [SENTI, "flow", "park", "--help"], { encoding: "utf8" });
+    const park = execFileSync("node", [SENRAIL, "flow", "park", "--help"], { encoding: "utf8" });
     assert.match(park, /flow park/);
     assert.match(park, /--expect-run-id/);
     assert.match(park, /--expect-spec/);
     assert.match(park, /--expect-issue|--expect-no-issue/);
 
-    const resume = execFileSync("node", [SENTI, "flow", "resume", "--help"], { encoding: "utf8" });
+    const resume = execFileSync("node", [SENRAIL, "flow", "resume", "--help"], { encoding: "utf8" });
     assert.match(resume, /--parked/);
     assert.match(resume, /--expect-run-id/);
     assert.match(resume, /no discovery/i);
@@ -100,7 +100,7 @@ describe("senti dispatcher", () => {
 
   it("shows docs subcommand list when 'docs' has no args", () => {
     try {
-      execFileSync("node", [SENTI, "docs"], { encoding: "utf8" });
+      execFileSync("node", [SENRAIL, "docs"], { encoding: "utf8" });
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
       assert.match(out, /build|scan|forge/);
@@ -109,17 +109,17 @@ describe("senti dispatcher", () => {
 
   it("shows spec subcommand usage when 'spec' has no args", () => {
     try {
-      execFileSync("node", [SENTI, "spec"], { encoding: "utf8" });
+      execFileSync("node", [SENRAIL, "spec"], { encoding: "utf8" });
       assert.fail("should exit non-zero without subcommand");
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
-      assert.match(out, /Usage: senti spec/);
+      assert.match(out, /Usage: senrail spec/);
       assert.match(out, /render/);
     }
   });
 
   it("routes 'hook list' through hook dispatcher", () => {
-    const result = execFileSync("node", [SENTI, "hook", "list"], { encoding: "utf8" });
+    const result = execFileSync("node", [SENRAIL, "hook", "list"], { encoding: "utf8" });
     assert.match(result, /PostWorktree/);
     assert.match(result, /worktree/i);
   });
@@ -127,9 +127,9 @@ describe("senti dispatcher", () => {
   it("routes 'hook list --json' and includes the current configured command", () => {
     const tmp = createHookConfigProject("printf hook-json");
     try {
-      const result = execFileSync("node", [SENTI, "hook", "list", "--json"], {
+      const result = execFileSync("node", [SENRAIL, "hook", "list", "--json"], {
         encoding: "utf8",
-        env: { ...process.env, SENTI_WORK_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
       });
       const hooks = JSON.parse(result);
       const postWorktree = hooks.find((hook) => hook.name === "PostWorktree");
@@ -148,8 +148,8 @@ describe("senti dispatcher", () => {
   });
 
   it("shows help when no subcommand", () => {
-    const result = execFileSync("node", [SENTI], { encoding: "utf8" });
-    assert.match(result, /senti/);
+    const result = execFileSync("node", [SENRAIL], { encoding: "utf8" });
+    assert.match(result, /senrail/);
   });
 
   it("exits non-zero for unknown subcommand", () => {
@@ -159,7 +159,7 @@ describe("senti dispatcher", () => {
   it("suggests the canonical status command for mistyped flow status", () => {
     expectDispatcherFailure(["flow", "status"], (err) => {
       assert.match(err.stderr, /unknown command 'status'/);
-      assert.match(err.stderr, /Did you mean: senti flow get status/);
+      assert.match(err.stderr, /Did you mean: senrail flow get status/);
     });
   });
 

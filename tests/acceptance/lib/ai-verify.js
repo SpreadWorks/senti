@@ -188,7 +188,7 @@ export function extractQualityData(result) {
  * Run AI quality verification on generated docs.
  *
  * @param {string} tmp - Project root
- * @param {Object} config - SentiConfig
+ * @param {Object} config - SenrailConfig
  * @param {string} presetName - Preset name for context
  * @returns {{ quality: Object }} Evaluation results (throws on failure)
  */

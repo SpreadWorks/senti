@@ -46,7 +46,7 @@ const IMPL_REPAIR_LEDGER_SIZE_LIMIT = 1024 * 1024;
 const CHANGED_PATH_PREVIEW_LIMIT = 20;
 const CHANGED_PATH_GROUP_LIMIT = 20;
 const WORKFLOW_ARTIFACT_PATH_PREFIXES = Object.freeze([
-  ".senti/",
+  ".senrail/",
   ".tmp/",
   "docs/",
 ]);
@@ -642,7 +642,7 @@ export class RepairStateMigration {
 
 export class RepairStateMigratedError extends Error {
   constructor() {
-    super("legacy repair fingerprint state was migrated safely; rerun senti flow get next-action and regenerate test evidence");
+    super("legacy repair fingerprint state was migrated safely; rerun senrail flow get next-action and regenerate test evidence");
     this.name = "RepairStateMigratedError";
     this.code = "REPAIR_STATE_MIGRATED";
   }
@@ -1907,7 +1907,7 @@ class MigrationEvidenceInspection {
       const failure = error instanceof Error ? error.message : String(error);
       process.emitWarning(
         `Migration evidence is not current because it is unreadable or invalid: ${failure}`,
-        { code: "SENTI_MIGRATION_EVIDENCE_INVALID", type: "SentiMigrationEvidenceWarning" },
+        { code: "SENRAIL_MIGRATION_EVIDENCE_INVALID", type: "SenrailMigrationEvidenceWarning" },
       );
       return new MigrationEvidenceInspection({
         current: false,

@@ -14,25 +14,25 @@ import { validatePresetChain } from "../../../src/lib/presets.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
 function writePluginPreset(root, { key = "myext", chapters = [{ chapter: "missing.md" }] } = {}) {
-  writeJson(root, ".senti/config.json", {
+  writeJson(root, ".senrail/config.json", {
     lang: "ja",
     type: key,
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     plugin: { packages: [{ id: "local-presets" }] },
   });
-  writeJson(root, ".senti/plugins/local-presets/plugin.json", {
+  writeJson(root, ".senrail/plugins/local-presets/plugin.json", {
     name: "local-presets",
     files: ["plugin.json", "presets/"],
     contributions: {
       presets: [{ key, path: `presets/${key}` }],
     },
   });
-  writeJson(root, `.senti/plugins/local-presets/presets/${key}/preset.json`, {
+  writeJson(root, `.senrail/plugins/local-presets/presets/${key}/preset.json`, {
     parent: "base",
     label: "My Extension",
     chapters,
   });
-  writeFile(root, `.senti/plugins/local-presets/presets/${key}/templates/.keep`, "");
+  writeFile(root, `.senrail/plugins/local-presets/presets/${key}/templates/.keep`, "");
 }
 
 describe("validatePresetChain", () => {
@@ -79,9 +79,9 @@ describe("validatePresetChain", () => {
   // Project-local templates directory satisfies the requirement
   // ---------------------------------------------------------------------
 
-  it("accepts a template provided under .senti/templates/<lang>/docs/<chapter>", () => {
+  it("accepts a template provided under .senrail/templates/<lang>/docs/<chapter>", () => {
     writePluginPreset(tmp, { chapters: [{ chapter: "custom.md" }] });
-    writeFile(tmp, ".senti/templates/ja/docs/custom.md", "# Custom (ja)\n");
+    writeFile(tmp, ".senrail/templates/ja/docs/custom.md", "# Custom (ja)\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });
@@ -138,9 +138,9 @@ describe("validatePresetChain", () => {
 
   it("does not throw when a template exists without a matching chapter (warning only)", () => {
     writePluginPreset(tmp, { chapters: [{ chapter: "custom.md" }] });
-    writeFile(tmp, ".senti/plugins/local-presets/presets/myext/templates/ja/custom.md", "# Custom\n");
+    writeFile(tmp, ".senrail/plugins/local-presets/presets/myext/templates/ja/custom.md", "# Custom\n");
     // Extra template not listed in chapters — should be warned but not fail.
-    writeFile(tmp, ".senti/plugins/local-presets/presets/myext/templates/ja/extra.md", "# Extra\n");
+    writeFile(tmp, ".senrail/plugins/local-presets/presets/myext/templates/ja/extra.md", "# Extra\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });

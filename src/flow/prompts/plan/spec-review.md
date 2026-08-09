@@ -1,4 +1,4 @@
-   - Run `senti flow run review --phase spec` to perform AI-powered spec review.
+   - Run `senrail flow run review --phase spec` to perform AI-powered spec review.
    - The review uses a classification pipeline: AI separates blocking findings from non-blocking improvements.
    - Blocking findings are limited to concrete failures: contradiction with verified existing behavior, missing implementation target/integration point required by codebase context, missing observable acceptance/test basis, omitted mandatory error/data/compatibility path, or conflicting spec fields that change what should be implemented.
    - Do not treat clearer wording, extra rationale, additional related-file mentions, or optional alternatives as blocking. Those are non-blocking improvements when they are useful at all.

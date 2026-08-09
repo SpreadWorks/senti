@@ -1,5 +1,5 @@
 /**
- * senti/lib/config.js
+ * senrail/lib/config.js
  *
  * JSON / package.json 読み込みユーティリティ + Spec-Driven Development 設定管理。
  */
@@ -10,6 +10,7 @@ import { ProviderRegistry } from "./provider.js";
 import { validateSchema } from "./schema-validate.js";
 import { defaultAgentProfiles } from "./agent-defaults.js";
 import { flowSpecRootFromConfig } from "./flow-workspace.js";
+import { PRODUCT } from "./product.js";
 
 /** Default concurrency for parallel file processing. */
 export const DEFAULT_CONCURRENCY = 5;
@@ -62,25 +63,25 @@ export function loadPackageField(root, field) {
 }
 
 // ---------------------------------------------------------------------------
-// .senti パスヘルパー
+// .senrail パスヘルパー
 // ---------------------------------------------------------------------------
 
-const SENTI_DIR_NAME = ".senti";
+const SENRAIL_DIR_NAME = PRODUCT.managedDirName;
 
-export function sentiDir(root) {
-  return path.join(root, SENTI_DIR_NAME);
+export function senrailDir(root) {
+  return path.join(root, SENRAIL_DIR_NAME);
 }
 
-export function sentiConfigPath(root) {
-  return path.join(root, SENTI_DIR_NAME, "config.json");
+export function senrailConfigPath(root) {
+  return path.join(root, SENRAIL_DIR_NAME, "config.json");
 }
 
-export function sentiLocalConfigPath(root) {
-  return path.join(root, SENTI_DIR_NAME, "config.local.json");
+export function senrailLocalConfigPath(root) {
+  return path.join(root, SENRAIL_DIR_NAME, "config.local.json");
 }
 
-export function sentiOutputDir(root) {
-  return path.join(root, SENTI_DIR_NAME, "output");
+export function senrailOutputDir(root) {
+  return path.join(root, SENRAIL_DIR_NAME, "output");
 }
 
 /**
@@ -103,7 +104,7 @@ export function resolveWorkDir(root, cfg, opts = {}) {
 }
 
 /**
- * .senti/config.json から lang を読み込む。
+ * .senrail/config.json から lang を読み込む。
  * ファイルが存在しないかパースに失敗した場合は "en" を返す。
  * ヘルプ表示など、バリデーション前に言語が必要な場面で使用する。
  *
@@ -345,7 +346,7 @@ const CONFIG_SCHEMA = {
  * Throws on any validation failure.
  *
  * @param {*} raw - Parsed config object
- * @returns {import("./types.js").SentiConfig} Validated config
+ * @returns {import("./types.js").SenrailConfig} Validated config
  */
 const MISSING_TYPE_ERROR = "type: required field is missing";
 
@@ -417,7 +418,7 @@ export function validate(raw, options = {}) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
 
-  return /** @type {import("./types.js").SentiConfig} */ (raw);
+  return /** @type {import("./types.js").SenrailConfig} */ (raw);
 }
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
@@ -475,10 +476,10 @@ function validateProjectTestPath(entry, index, errors) {
 // ---------------------------------------------------------------------------
 
 /**
- * .senti/config.json を読み込みバリデーションする。
+ * .senrail/config.json を読み込みバリデーションする。
  *
  * @param {string} root - リポジトリルート
- * @returns {import("./types.js").SentiConfig}
+ * @returns {import("./types.js").SenrailConfig}
  */
 export function loadConfig(root, options = {}) {
   const raw = loadRawConfig(root);
@@ -488,8 +489,8 @@ export function loadConfig(root, options = {}) {
 }
 
 export function loadRawConfig(root) {
-  const raw = loadJsonFile(sentiConfigPath(root));
-  const localPath = sentiLocalConfigPath(root);
+  const raw = loadJsonFile(senrailConfigPath(root));
+  const localPath = senrailLocalConfigPath(root);
   if (!fs.existsSync(localPath)) return raw;
   const local = loadJsonFile(localPath);
   if (!local || typeof local !== "object" || Array.isArray(local)) {
@@ -534,7 +535,7 @@ function loadEnabledPluginConfig(root, raw) {
   const defaults = [];
   for (const pkg of raw?.plugin?.packages || []) {
     if (pkg.enabled === false) continue;
-    const pluginRoot = path.join(sentiDir(root), "plugins", pkg.id);
+    const pluginRoot = path.join(senrailDir(root), "plugins", pkg.id);
     const manifestPath = path.join(pluginRoot, "plugin.json");
     if (!fs.existsSync(manifestPath)) continue;
     try {

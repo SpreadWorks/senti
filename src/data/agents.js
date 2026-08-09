@@ -21,7 +21,7 @@ export default function register(container) {
   }
 
   /** Return Spec-Driven Development section template for the configured language. */
-  senti(_analysis, _labels) {
+  flow(_analysis, _labels) {
     const lang = this._lang();
     const config = this._loadConfig();
     const presetTypes = config.type || "base";
@@ -126,7 +126,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".senti", "config.json"));
+      return loadJsonFile(path.join(this._root, ".senrail", "config.json"));
     } catch (_) {
       return {};
     }

@@ -30,7 +30,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("R2: uses state.finalizedAt as the date column (not file mtime)", () => {
-    tmp = createTmpDir("senti-metrics-finalized-at-");
+    tmp = createTmpDir("senrail-metrics-finalized-at-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,
@@ -45,7 +45,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R3: skips specs missing state.finalizedAt and prints a warning", () => {
-    tmp = createTmpDir("senti-metrics-finalized-at-missing-");
+    tmp = createTmpDir("senrail-metrics-finalized-at-missing-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", metricsFlow());
     writeJson(
@@ -68,14 +68,14 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R4/R5: cache without an input fingerprint is invalidated and rebuilt", () => {
-    tmp = createTmpDir("senti-metrics-finalized-at-cache-");
+    tmp = createTmpDir("senrail-metrics-finalized-at-cache-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,
       "specs/001-alpha/flow.json",
       metricsFlow("2025-06-15T12:00:00Z"),
     );
-    writeJson(tmp, ".senti/output/metrics.json", {
+    writeJson(tmp, ".senrail/output/metrics.json", {
       generatedAt: "2020-01-01T00:00:00Z",
       rows: [
         {
@@ -109,7 +109,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
   });
 
   it("R4: cache is reused when the input fingerprint matches", () => {
-    tmp = createTmpDir("senti-metrics-finalized-at-cache-reuse-");
+    tmp = createTmpDir("senrail-metrics-finalized-at-cache-reuse-");
     writeBaseConfig(tmp);
     writeJson(
       tmp,

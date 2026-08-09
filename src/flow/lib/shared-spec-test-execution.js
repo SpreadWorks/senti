@@ -1,5 +1,6 @@
 import path from "node:path";
 import { PKG_DIR } from "../../lib/cli.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const LOADER_PATH = path.join(PKG_DIR, "flow", "lib", "execution-root-module-loader.js");
 
@@ -32,9 +33,9 @@ export class SharedSpecTestExecution {
   get environment() {
     if (!this.usesModuleRedirect) return {};
     return {
-      SENTI_TEST_REPOSITORY_ROOT: this.repositoryRoot,
-      SENTI_TEST_EXECUTION_ROOT: this.executionRoot,
-      SENTI_TEST_SPEC_ROOT: this.specRoot,
+      [PRODUCT.env("TEST_REPOSITORY_ROOT")]: this.repositoryRoot,
+      [PRODUCT.env("TEST_EXECUTION_ROOT")]: this.executionRoot,
+      [PRODUCT.env("TEST_SPEC_ROOT")]: this.specRoot,
     };
   }
 

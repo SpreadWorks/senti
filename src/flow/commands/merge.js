@@ -21,6 +21,7 @@ import {
 } from "../lib/finalize-merge-transaction.js";
 import { FinalizeFlowArtifactRegistry } from "../lib/repair-state-identity.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const MAX_IMPLEMENTATION_SUBJECTS = 50;
 const MAX_SUBJECT_INPUT_CHARS = 4000;
@@ -174,7 +175,7 @@ function collectImplementationSubjects({
   if (!cwd || !baseBranch || !featureBranch || boundedLimit === 0) return [];
   const res = runGit(["-C", cwd, "log", `--max-count=${boundedLimit}`, "--format=%s", `${baseBranch}..${featureBranch}`]);
   if (!res.ok) {
-    process.stderr.write(`[senti] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
+    process.stderr.write(`[senrail] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
     return [];
   }
   return String(res.stdout || "")
@@ -203,7 +204,7 @@ function buildSquashCommitMessage({
     || "finalize-merge";
   const paragraphs = [subject];
   if (state.issue) paragraphs.push(`fixes #${state.issue}`);
-  if (idempotencyKey) paragraphs.push(`senti-outbox: ${idempotencyKey}`);
+  if (idempotencyKey) paragraphs.push(`${PRODUCT.artifactMarker("outbox")}: ${idempotencyKey}`);
   return paragraphs.join("\n\n");
 }
 
@@ -257,7 +258,7 @@ function runMerge(ctx) {
     const spec = loadSpec(state, artifactRoot);
     const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
     const title = buildPrTitle(spec, fallbackTitle);
-    const marker = idempotencyKey ? `<!-- senti:${idempotencyKey} -->` : null;
+    const marker = idempotencyKey ? `<!-- senrail:${idempotencyKey} -->` : null;
     const body = [buildPrBody(state, spec), marker].filter(Boolean).join("\n\n");
 
     if (idempotencyKey) {
@@ -293,7 +294,7 @@ function runMerge(ctx) {
   try {
     spec = loadSpec(state, artifactRoot);
   } catch (err) {
-    process.stderr.write(`[senti] warning: failed to load spec for squash commit message: ${err.message}\n`);
+    process.stderr.write(`[senrail] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
 
   if (worktree && mainRepoPath) {

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * senti/upgrade.js
+ * senrail/upgrade.js
  *
  * Upgrade skill-derived files (skills, AGENTS.md Spec-Driven Development section) to match
- * the currently installed senti version.
+ * the currently installed senrail version.
  *
  * Safe to run repeatedly — only overwrites skill-managed content. config.json
  * is migrated in place for supported legacy shapes while preserving user agent
@@ -11,14 +11,14 @@
  * being copied during normal upgrade. context.json is untouched.
  *
  * Usage:
- *   senti upgrade [--dry-run]
+ *   senrail upgrade [--dry-run]
  */
 
 import fs from "fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
-import { DEFAULT_LANG, loadConfig, sentiConfigPath, sentiDir } from "./lib/config.js";
+import { DEFAULT_LANG, loadConfig, senrailConfigPath, senrailDir } from "./lib/config.js";
 import { container } from "./lib/container.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
@@ -32,209 +32,9 @@ import {
 } from "./lib/skills.js";
 import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
-import { normalizeSentiGitignore } from "./lib/gitignore.js";
-import { normalizeSentiGitattributes } from "./lib/gitattributes.js";
-import { AGENT_CONFIG_FILE_NAMES, refreshAgentSentiFile } from "./lib/agent-config-files.js";
-import { DEFAULT_SCAN_POLICY, FileTreeWalker } from "./lib/file-tree-walker.js";
+import { AGENT_CONFIG_FILE_NAMES, refreshAgentFlowFile } from "./lib/agent-config-files.js";
 import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.js";
-import {
-  DEFAULT_FLOW_SPEC_DIR,
-  flowSpecRootFromConfig,
-  relativeFlowSpecFile,
-} from "./lib/flow-workspace.js";
-
-class RenameRule {
-  constructor(from, to) {
-    this.from = from;
-    this.to = to;
-  }
-
-  apply(text) {
-    return text.split(this.from).join(this.to);
-  }
-}
-
-export class RenameMigration {
-  constructor(root, { walker = new FileTreeWalker(DEFAULT_SCAN_POLICY) } = {}) {
-    this.root = root;
-    this.walker = walker;
-    try {
-      this.specRoot = flowSpecRootFromConfig(loadConfig(root)).toString();
-    } catch (_) {
-      this.specRoot = DEFAULT_FLOW_SPEC_DIR;
-    }
-    this.textRules = [
-      new RenameRule(".sdd-forge", ".senti"),
-      new RenameRule("senti-forge", "senti"),
-      new RenameRule("sdd-forge", "senti"),
-      new RenameRule("SDD-FORGE", "SENTI"),
-      new RenameRule("SDD_FORGE", "SENTI"),
-      new RenameRule("SDD_WORK_ROOT", "SENTI_WORK_ROOT"),
-      new RenameRule("SDD_SOURCE_ROOT", "SENTI_SOURCE_ROOT"),
-      new RenameRule("sdd_forge", "senti"),
-      new RenameRule("SddForge", "Senti"),
-      new RenameRule("sddForge", "senti"),
-      new RenameRule("SddConfig", "SentiConfig"),
-      new RenameRule("sddConfig", "sentiConfig"),
-      new RenameRule("sddDir", "sentiDir"),
-      new RenameRule("sddOutput", "sentiOutput"),
-      new RenameRule("sddPhase", "sentiPhase"),
-      new RenameRule("agents.sdd", "agents.senti"),
-      new RenameRule("AGENTS.sdd", "AGENTS.senti"),
-      new RenameRule("SDD Forge", "senti"),
-      new RenameRule("SDD section", "Spec-Driven Development section"),
-      new RenameRule("SDD セクション", "Spec-Driven Development セクション"),
-      new RenameRule("The SDD Flow", "The Spec-Driven Development Flow"),
-      new RenameRule("SDD flow", "Spec-Driven Development flow"),
-      new RenameRule("SDD フロー", "Spec-Driven Development フロー"),
-      new RenameRule("sdd:gate", "senti:gate"),
-    ];
-  }
-
-  run({ dryRun = false } = {}) {
-    const changed = [];
-    this.migrateManagedDirectory(changed, { dryRun });
-    this.migrateLegacySkillDirectories(changed, { dryRun });
-    this.migrateRootMetadata(changed, { dryRun });
-    return changed;
-  }
-
-  recordChange(changed, rel) {
-    if (!changed.includes(rel)) changed.push(rel);
-  }
-
-  renameText(text) {
-    let next = text;
-    for (const rule of this.textRules) next = rule.apply(next);
-    next = next.replace(/\bSDD\b/g, "Spec-Driven Development");
-    next = next.replace(/\bsdd\b/g, "senti");
-    return next;
-  }
-
-  migrateManagedDirectory(changed, { dryRun }) {
-    const legacyDir = path.join(this.root, ".sdd-forge");
-    if (!fs.existsSync(legacyDir)) return;
-
-    for (const rel of this.listFilesUnder(legacyDir)) {
-      const src = path.join(legacyDir, rel);
-      const renamedRel = this.renamePath(rel);
-      const dest = path.join(this.root, ".senti", ...renamedRel.split("/"));
-      if (this.isExcludedPath(src)) continue;
-      if (fs.existsSync(dest)) continue;
-      if (!dryRun) {
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.renameSync(src, dest);
-        this.migrateManagedFileContent(dest);
-      }
-      this.recordChange(changed, path.relative(this.root, dest));
-    }
-  }
-
-  migrateLegacySkillDirectories(changed, { dryRun }) {
-    for (const base of [".agents", ".claude"]) {
-      const skillsDir = path.join(this.root, base, "skills");
-      if (!fs.existsSync(skillsDir)) continue;
-      for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-        if (!entry.isDirectory() || !entry.name.startsWith("sdd-forge.")) continue;
-
-        const src = path.join(skillsDir, entry.name);
-        const destName = this.renamePath(entry.name);
-        const dest = path.join(skillsDir, destName);
-        if (!dryRun) {
-          if (fs.existsSync(dest)) {
-            fs.rmSync(src, { recursive: true, force: true });
-          } else {
-            fs.renameSync(src, dest);
-          }
-        }
-        this.recordChange(changed, path.relative(this.root, dest));
-      }
-    }
-  }
-
-  migrateManagedFileContent(file) {
-    if (!this.isTextFile(file)) return;
-    const before = fs.readFileSync(file, "utf8");
-    const after = this.renameText(before);
-    if (after !== before) fs.writeFileSync(file, after, "utf8");
-  }
-
-  migrateRootMetadata(changed, { dryRun }) {
-    this.migrateRootTextFile(
-      changed,
-      ".gitignore",
-      (content) => normalizeSentiGitignore(content, { appendIfMissing: false }),
-      { dryRun },
-    );
-    this.migrateRootTextFile(
-      changed,
-      ".gitattributes",
-      (content) => normalizeSentiGitattributes(content, { appendIfMissing: false }),
-      { dryRun },
-    );
-  }
-
-  migrateRootTextFile(changed, relativePath, transform, { dryRun }) {
-    const file = path.join(this.root, relativePath);
-    if (!fs.existsSync(file)) return;
-    const before = fs.readFileSync(file, "utf8");
-    const after = transform(before);
-    if (after === before) return;
-    if (!dryRun) fs.writeFileSync(file, after, "utf8");
-    this.recordChange(changed, relativePath);
-  }
-
-  renamePath(rel) {
-    return rel
-      .split(".sdd-forge").join(".senti")
-      .split("senti-forge").join("senti")
-      .split("sdd-forge").join("senti")
-      .split("AGENTS.sdd").join("AGENTS.senti")
-      .split("agents.sdd").join("agents.senti");
-  }
-
-  listFilesUnder(dir) {
-    if (!fs.existsSync(dir)) return [];
-    const result = this.walker.walk(dir, {
-      shouldEnterDirectory: (_relativePath, absolutePath) => !this.isExcludedPath(absolutePath),
-      includeFile: (_relativePath, absolutePath) => !this.isExcludedPath(absolutePath),
-    });
-    result.assertComplete(`upgrade traversal for ${dir}`);
-    return [...result.files];
-  }
-
-  isExcludedPath(file) {
-    const rel = path.relative(this.root, file).split(path.sep).join("/");
-    const segments = rel.split("/");
-    if (rel === ".git" || rel.startsWith(".git/")) return true;
-    if (segments.includes("node_modules")) return true;
-    if (rel === "docs" || rel.startsWith("docs/")) return true;
-    if (rel === this.specRoot || rel.startsWith(`${this.specRoot}/`)) return true;
-    if (rel === ".tmp" || rel.startsWith(".tmp/")) return true;
-    if (rel.startsWith(".claude/projects/")) return true;
-    if (rel.startsWith(".sdd-forge/worktree/")) return true;
-    if (rel.startsWith(".sdd-forge/.tmp/")) return true;
-    if (rel.startsWith(".sdd-forge/agent-work/")) return true;
-    if (rel.startsWith(".sdd-forge/agent-cache/")) return true;
-    if (rel.startsWith(".sdd-forge/tmp/")) return true;
-    if (rel.startsWith(".senti/worktree/")) return true;
-    if (rel.startsWith(".senti/.tmp/")) return true;
-    if (rel.startsWith(".senti/agent-work/")) return true;
-    if (rel.startsWith(".senti/agent-cache/")) return true;
-    if (rel.startsWith(".senti/tmp/")) return true;
-    return false;
-  }
-
-  isTextFile(file) {
-    try {
-      const buf = fs.readFileSync(file);
-      return !buf.includes(0);
-    } catch (_) {
-      return false;
-    }
-  }
-}
-
+import { relativeFlowSpecFile } from "./lib/flow-workspace.js";
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -366,7 +166,7 @@ function normalizeTypeList(types) {
 }
 
 function legacyPresetKeys(root) {
-  const dir = path.join(root, ".senti", "presets");
+  const dir = path.join(root, ".senrail", "presets");
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -424,12 +224,12 @@ function localPresetPluginManifest(keys) {
 }
 
 function migrateLegacyPresetDirectories(root, { dryRun, logger }) {
-  const legacyRoot = path.join(root, ".senti", "presets");
+  const legacyRoot = path.join(root, ".senrail", "presets");
   const keys = legacyPresetKeys(root);
   if (keys.length === 0) return false;
   if (dryRun) return true;
 
-  const sourceRoot = path.join(sentiDir(root), "plugin-sources", "local-presets");
+  const sourceRoot = path.join(senrailDir(root), "plugin-sources", "local-presets");
   const sourcePresetRoot = path.join(sourceRoot, "presets");
   const registry = loadPluginRegistry(root);
   fs.rmSync(sourcePresetRoot, { recursive: true, force: true });
@@ -444,16 +244,16 @@ function migrateLegacyPresetDirectories(root, { dryRun, logger }) {
 
   writeJson(path.join(sourceRoot, "plugin.json"), localPresetPluginManifest(keys));
 
-  const config = readJson(sentiConfigPath(root));
+  const config = readJson(senrailConfigPath(root));
   if (!config.plugin || typeof config.plugin !== "object") config.plugin = {};
   if (!Array.isArray(config.plugin.sources)) config.plugin.sources = [];
   if (!Array.isArray(config.plugin.packages)) config.plugin.packages = [];
   const changed = ensureSource(config, {
     id: "local-presets",
     type: "local",
-    path: ".senti/plugin-sources/local-presets",
+    path: ".senrail/plugin-sources/local-presets",
   });
-  if (changed) writeJson(sentiConfigPath(root), config);
+  if (changed) writeJson(senrailConfigPath(root), config);
   installPlugin(root, "local-presets");
   fs.rmSync(legacyRoot, { recursive: true, force: true });
   logger.log(`[upgrade] migrated legacy presets to local plugin: ${keys.join(", ")}`);
@@ -508,7 +308,7 @@ async function main() {
   const root = repoRoot();
   const activeFlow = resolveActiveUpgradeFlow(root);
   const logger = createUpgradeLogger();
-  const command = ["senti", "upgrade", ...process.argv.slice(2)].join(" ");
+  const command = ["senrail", "upgrade", ...process.argv.slice(2)].join(" ");
   const dryRun = cli.dryRun;
 
   if (cli.help) {
@@ -533,16 +333,9 @@ async function main() {
     agentFiles: { updated: 0, unchanged: 0, missing: 0 },
     plugins: { changed: false },
     config: { changed: false },
-    rename: { changed: 0 },
   };
 
-  const renameChanges = new RenameMigration(root).run({ dryRun });
-  summary.rename.changed = renameChanges.length;
-  for (const rel of renameChanges) {
-    logger.log(`[upgrade] migrated rename target: ${rel}`);
-  }
-
-  const configPath = sentiConfigPath(root);
+  const configPath = senrailConfigPath(root);
   let preConfigChanged = false;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -650,7 +443,7 @@ async function main() {
   summary.skills.updated = skillResults.filter((r) => r.status === "updated").length;
   summary.skills.unchanged = skillResults.filter((r) => r.status === "unchanged").length;
 
-  // Remove obsolete senti.* skills no longer in the skill source directory
+  // Remove obsolete senrail.* skills no longer in the skill source directory
   const removedSkills = cleanupObsoleteSkills(root, [MAIN_SKILLS_DIR, ...pluginSkillSourceDirs(root)], { dryRun });
   summary.skills.removed = removedSkills.length;
   for (const { name } of removedSkills) {
@@ -690,7 +483,7 @@ async function main() {
   }
 
   const agentFileResults = AGENT_CONFIG_FILE_NAMES.map((fileName) =>
-    refreshAgentSentiFile(path.join(root, fileName), config.lang || DEFAULT_LANG, {
+    refreshAgentFlowFile(path.join(root, fileName), config.lang || DEFAULT_LANG, {
       dryRun,
       projectRoot: root,
       presetTypes: config.type || "base",
@@ -726,8 +519,7 @@ async function main() {
   summary.config.changed = configChanged;
 
   // Summary
-  const hasChanges = renameChanges.length > 0
-    || skillResults.some((r) => r.status === "updated")
+  const hasChanges = skillResults.some((r) => r.status === "updated")
     || removedSkills.length > 0
     || summary.legacyAgentArtifacts.removed > 0
     || summary.agentFiles.updated > 0

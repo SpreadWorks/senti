@@ -10,7 +10,7 @@ import {
 } from "../../src/lib/worktree-flow-binding.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const cliPath = path.join(repoRoot, "src/senti.js");
+const cliPath = path.join(repoRoot, "src/senrail.js");
 const fixtureRoot = path.join(repoRoot, ".tmp", "flow-park-resume");
 const diagnosticPath = path.join(repoRoot, ".tmp", "park-flow-diagnostic-v2.jsonl");
 const roots = [];
@@ -88,8 +88,8 @@ function createProject() {
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const root = fs.mkdtempSync(path.join(fixtureRoot, "project-"));
   roots.push(root);
-  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify({
+  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -99,25 +99,25 @@ function createProject() {
     version: "0.0.0",
     type: "module",
   }, null, 2));
-  fs.writeFileSync(path.join(root, ".gitignore"), ".senti/*\n!.senti/config.json\n");
+  fs.writeFileSync(path.join(root, ".gitignore"), ".senrail/*\n!.senrail/config.json\n");
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
-  git(root, ["add", ".senti/config.json", ".gitignore", "package.json"]);
+  git(root, ["add", ".senrail/config.json", ".gitignore", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
   return root;
 }
 
-function runSenti(step, root, args) {
+function runSenrail(step, root, args) {
   const argv = ["node", cliPath, ...args];
   diagnostic.commandStart(step, root, argv);
   const result = spawnSync("node", [cliPath, ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: root },
+    env: { ...process.env, SENRAIL_WORK_ROOT: root },
   });
   diagnostic.commandResult(step, root, argv, result);
-  diagnostic.expectation(step, "senti child process starts without a spawn error");
+  diagnostic.expectation(step, "senrail child process starts without a spawn error");
   assert.equal(
     result.error,
     undefined,
@@ -142,8 +142,8 @@ function expectSuccess(result) {
 function prepareWorktree(root, issue, title) {
   const initArgs = ["flow", "set", "init", "--request", `recover ${title}`];
   if (issue != null) initArgs.push("--issue", String(issue));
-  const initialized = expectSuccess(runSenti(`prepare:${title}:init`, root, initArgs));
-  const prepared = expectSuccess(runSenti(`prepare:${title}:worktree`, root, [
+  const initialized = expectSuccess(runSenrail(`prepare:${title}:init`, root, initArgs));
+  const prepared = expectSuccess(runSenrail(`prepare:${title}:worktree`, root, [
     "flow", "prepare", "--title", title, "--base", "main", "--worktree",
     "--run-id", initialized.runId,
   ]));
@@ -166,7 +166,7 @@ function targetArgs(flow) {
 }
 
 function registryPath(root) {
-  return path.join(root, ".senti", ".active-flow");
+  return path.join(root, ".senrail", ".active-flow");
 }
 
 function snapshotFiles(files) {
@@ -178,7 +178,7 @@ function snapshotFiles(files) {
 
 function authorityFiles(flow) {
   return [
-    path.join(flow.worktreePath, ".senti", "flow-identity.json"),
+    path.join(flow.worktreePath, ".senrail", "flow-identity.json"),
     path.join(flow.root, "specs", flow.specId, "flow.json"),
     path.join(flow.root, "specs", flow.specId, "spec.json"),
   ];
@@ -212,7 +212,7 @@ describe("flow park and exact parked resume", () => {
     const filesBefore = snapshotFiles(protectedFiles);
     const gitBefore = gitSnapshot(root);
 
-    const parked = expectSuccess(runSenti("concurrent:park-target", target.worktreePath, [
+    const parked = expectSuccess(runSenrail("concurrent:park-target", target.worktreePath, [
       "flow", "park", ...targetArgs(target),
     ]));
 
@@ -238,7 +238,7 @@ describe("flow park and exact parked resume", () => {
     });
 
     const registryBeforeWrongRoot = fs.readFileSync(registryPath(root));
-    const wrongRoot = runSenti("concurrent:resume-wrong-root", root, parked.resume.argv);
+    const wrongRoot = runSenrail("concurrent:resume-wrong-root", root, parked.resume.argv);
     diagnostic.expectation("concurrent:resume-wrong-root", "resume from the main root exits non-zero");
     assert.notEqual(wrongRoot.status, 0);
     diagnostic.expectation("concurrent:resume-wrong-root", "wrong-root resume reports FLOW_PARK_MODE_UNSUPPORTED");
@@ -246,7 +246,7 @@ describe("flow park and exact parked resume", () => {
     diagnostic.expectation("concurrent:resume-wrong-root", "wrong-root resume leaves active registry bytes unchanged");
     assert.deepEqual(fs.readFileSync(registryPath(root)), registryBeforeWrongRoot);
 
-    const resumed = expectSuccess(runSenti(
+    const resumed = expectSuccess(runSenrail(
       "concurrent:resume-exact",
       parked.resume.executionRoot,
       parked.resume.argv,
@@ -261,7 +261,7 @@ describe("flow park and exact parked resume", () => {
       { specId: target.specId, mode: "worktree" },
     ]);
     const registryAfterResume = fs.readFileSync(registryPath(root));
-    const retry = expectSuccess(runSenti(
+    const retry = expectSuccess(runSenrail(
       "concurrent:resume-idempotent-retry",
       parked.resume.executionRoot,
       parked.resume.argv,
@@ -284,7 +284,7 @@ describe("flow park and exact parked resume", () => {
     const files = authorityFiles(flow);
     const filesBefore = snapshotFiles(files);
 
-    const pendingPath = path.join(flow.worktreePath, ".senti", "flow-identity.issue-transaction.json");
+    const pendingPath = path.join(flow.worktreePath, ".senrail", "flow-identity.issue-transaction.json");
     const originalIdentity = new WorktreeFlowIdentity({
       runId: flow.runId,
       issue: null,
@@ -297,7 +297,7 @@ describe("flow park and exact parked resume", () => {
     );
     fs.writeFileSync(pendingPath, `${JSON.stringify(pending.toJSON(), null, 2)}\n`);
     const pendingBefore = snapshotFiles([registryPath(root), pendingPath, ...files]);
-    const parseError = runSenti("no-issue:resume-parked-parse-error", flow.worktreePath, [
+    const parseError = runSenrail("no-issue:resume-parked-parse-error", flow.worktreePath, [
       "flow", "resume", "--parked", "--expect-run-id",
     ]);
     diagnostic.expectation("no-issue:resume-parked-parse-error", "parked resume with a missing option value exits non-zero");
@@ -307,7 +307,7 @@ describe("flow park and exact parked resume", () => {
     diagnostic.expectation("no-issue:resume-parked-parse-error", "parse error leaves registry, pending transition, binding, state, and spec bytes unchanged");
     assert.deepEqual(snapshotFiles([registryPath(root), pendingPath, ...files]), pendingBefore);
 
-    const unsettled = runSenti("no-issue:park-unsettled-transition", flow.worktreePath, [
+    const unsettled = runSenrail("no-issue:park-unsettled-transition", flow.worktreePath, [
       "flow", "park", ...targetArgs(flow),
     ]);
     diagnostic.expectation("no-issue:park-unsettled-transition", "park with a pending identity transition exits non-zero");
@@ -325,7 +325,7 @@ describe("flow park and exact parked resume", () => {
     ]) {
       const step = `no-issue:park-incomplete:${name}`;
       const before = snapshotFiles([registryPath(root), ...files]);
-      const result = runSenti(step, flow.worktreePath, ["flow", "park", ...incomplete]);
+      const result = runSenrail(step, flow.worktreePath, ["flow", "park", ...incomplete]);
       diagnostic.expectation(step, "park with an incomplete exact identity exits non-zero");
       assert.notEqual(result.status, 0);
       diagnostic.expectation(step, "incomplete exact identity reports FLOW_PARK_TARGET_REQUIRED");
@@ -335,7 +335,7 @@ describe("flow park and exact parked resume", () => {
     }
 
     const mismatchedBefore = snapshotFiles([registryPath(root), ...files]);
-    const mismatch = runSenti("no-issue:park-mismatched-run", flow.worktreePath, [
+    const mismatch = runSenrail("no-issue:park-mismatched-run", flow.worktreePath, [
       "flow", "park",
       "--expect-run-id", "foreign-run",
       "--expect-spec", flow.specId,
@@ -348,7 +348,7 @@ describe("flow park and exact parked resume", () => {
     diagnostic.expectation("no-issue:park-mismatched-run", "mismatched identity leaves registry, binding, and state bytes unchanged");
     assert.deepEqual(snapshotFiles([registryPath(root), ...files]), mismatchedBefore);
 
-    const parked = expectSuccess(runSenti("no-issue:park-last-pointer", flow.worktreePath, [
+    const parked = expectSuccess(runSenrail("no-issue:park-last-pointer", flow.worktreePath, [
       "flow", "park", ...targetArgs(flow),
     ]));
     diagnostic.expectation("no-issue:park-last-pointer", "last pointer authority contains durable [] bytes");

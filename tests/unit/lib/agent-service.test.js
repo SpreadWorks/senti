@@ -64,7 +64,7 @@ describe("Agent.resolve(commandId)", () => {
     assert.equal(resolved.profile.command, "claude");
   });
 
-  it("resolves to a profile-routed provider when SENTI_PROFILE is unset and useProfile is configured", () => {
+  it("resolves to a profile-routed provider when SENRAIL_PROFILE is unset and useProfile is configured", () => {
     const cfg = {
       agent: {
         default: "claude/opus",

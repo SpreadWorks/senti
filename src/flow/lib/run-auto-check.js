@@ -1,7 +1,7 @@
 /**
  * src/flow/lib/run-auto-check.js
  *
- * `senti flow run auto-check` — phase-aware eligibility check for auto mode.
+ * `senrail flow run auto-check` — phase-aware eligibility check for auto mode.
  *
  * Flow (spec 220):
  *   - resolve the target flow (active flow.json or preparing record via --run-id)

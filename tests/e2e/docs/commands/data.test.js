@@ -5,21 +5,21 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senti.js");
+const CMD = join(process.cwd(), "src/senrail.js");
 const CMD_ARGS = ["docs", "data"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp };
+  return { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp };
 }
 
 function setupProject(tmp, opts = {}) {
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "ja", type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
     ...opts.config,
   });
   writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
-  writeJson(tmp, ".senti/output/analysis.json", {
+  writeJson(tmp, ".senrail/output/analysis.json", {
     analyzedAt: "2026-01-01", extras: {}, ...opts.analysis,
   });
 }

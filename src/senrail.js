@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * src/senti.js
+ * src/senrail.js
  *
- * senti CLI entry point.
+ * senrail CLI entry point.
  * Routes top-level subcommands to dedicated dispatchers:
  *   docs    → src/docs.js
  *   flow    → src/flow.js
@@ -115,10 +115,10 @@ if (definition) {
     if (isHelpRequest(rest)) {
       await renderSharedHelp([subCmd, ...rest]);
     }
-    console.error(`senti: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senti plugin list`);
+    console.error(`senrail: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senrail plugin list`);
   } catch (err) {
-    console.error(`senti: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);
+    console.error(`senrail: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);
   }
-  console.error("Run: senti help");
+  console.error("Run: senrail help");
   process.exit(EXIT_ERROR);
 }

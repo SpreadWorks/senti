@@ -6,8 +6,9 @@
 
 import { reviewPhaseForFlowStepId } from "./review-route.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
+import { PRODUCT } from "../../lib/product.js";
 
-export const REVIEW_FAILURE_MARKER_PREFIX = "SENTI_REVIEW_FAILURE ";
+export const REVIEW_FAILURE_MARKER_PREFIX = `${PRODUCT.env("REVIEW_FAILURE")} `;
 
 const CLASSIFICATIONS = Object.freeze([
   "review_verdict_failure",
@@ -37,13 +38,13 @@ function cleanReason(value, fallback) {
 }
 
 function retryResetCommand(phase) {
-  return `senti flow set retry reset review ${phase} --reason <text> --yes`;
+  return `senrail flow set retry reset review ${phase} --reason <text> --yes`;
 }
 
 function retryReviewCommand(phase) {
   return phase === "impl"
-    ? "senti flow run review"
-    : `senti flow run review --phase ${phase}`;
+    ? "senrail flow run review"
+    : `senrail flow run review --phase ${phase}`;
 }
 
 export function reviewPhaseForStepId(stepId) {

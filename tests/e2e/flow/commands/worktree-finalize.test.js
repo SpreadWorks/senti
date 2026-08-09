@@ -7,8 +7,8 @@
  * envelope contract:
  *   - data.report is null when no report.json exists (and an errors entry
  *     with code REPORT_MISSING is attached at level 'warn', preserving ok:true)
- *   - .senti/last-finalized-spec is written
- *   - .senti/.active-flow is cleared
+ *   - .senrail/last-finalized-spec is written
+ *   - .senrail/.active-flow is cleared
  *   - flow get status returns active:false post-cleanup (R17)
  *
  * The full worktree path (commit → merge → sync → cleanup with squash) is
@@ -35,7 +35,7 @@ import { FlowOutbox, finalizationOutboxIdentity } from "../../../../src/flow/lib
 import { WorktreeFlowBindingStore, WorktreeFlowIdentity } from "../../../../src/lib/worktree-flow-binding.js";
 import { FlowManager } from "../../../../src/lib/flow-manager.js";
 
-const FLOW_CMD = path.join(process.cwd(), "src/senti.js");
+const FLOW_CMD = path.join(process.cwd(), "src/senrail.js");
 
 function git(args, cwd) {
   return execSync(`git ${args}`, { cwd, encoding: "utf8" });
@@ -46,7 +46,7 @@ function initGitRepo(tmp) {
   git('config user.email "test@example.com"', tmp);
   git('config user.name "Test"', tmp);
   fs.writeFileSync(path.join(tmp, "README.md"), "x\n");
-  fs.writeFileSync(path.join(tmp, ".gitignore"), ".tmp/\n.senti/.active-flow\n");
+  fs.writeFileSync(path.join(tmp, ".gitignore"), ".tmp/\n.senrail/.active-flow\n");
   git("add -A", tmp);
   git('commit -q -m "init"', tmp);
 }
@@ -91,7 +91,7 @@ function setupSpecOnlyFlow(tmp) {
 function runCli(args, tmp) {
   const result = spawnSync("node", [FLOW_CMD, "flow", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   return result.stdout;
@@ -100,7 +100,7 @@ function runCli(args, tmp) {
 function runCliResult(args, tmp) {
   return spawnSync("node", [FLOW_CMD, "flow", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 
@@ -127,13 +127,13 @@ function setupConflictWorktree(root, origin) {
   gitFile(["config", "user.name", "Test User"], root);
   setupFlowConfig(root, "en");
   fs.writeFileSync(path.join(root, "conflict.txt"), "base\n");
-  fs.writeFileSync(path.join(root, ".gitignore"), ".tmp/\n.senti/.active-flow\n");
+  fs.writeFileSync(path.join(root, ".gitignore"), ".tmp/\n.senrail/.active-flow\n");
   gitFile(["add", "."], root);
   gitFile(["commit", "--quiet", "-m", "base"], root);
   gitFile(["init", "--quiet", "--bare", origin], root);
   gitFile(["remote", "add", "origin", origin], root);
   gitFile(["push", "--quiet", "-u", "origin", "main"], root);
-  const worktree = path.join(root, ".senti", "worktree", "feature-478");
+  const worktree = path.join(root, ".senrail", "worktree", "feature-478");
   gitFile(["worktree", "add", "--quiet", "-b", "feature/478", worktree], root);
   fs.writeFileSync(path.join(worktree, "conflict.txt"), "feature\n");
   gitFile(["commit", "--all", "--quiet", "-m", "feature change"], worktree);
@@ -161,7 +161,7 @@ function setupConflictWorktree(root, origin) {
   fs.writeFileSync(path.join(specDir, "spec.md"), "# spec\n## Goal\nrecover merge\n## Scope\n");
   setupFlow(root, state);
   const bindingPath = path.resolve(worktree, gitFile(["rev-parse", "--git-path", "info/exclude"], worktree).trim());
-  fs.appendFileSync(bindingPath, "/.senti/flow-identity.json\n");
+  fs.appendFileSync(bindingPath, "/.senrail/flow-identity.json\n");
   new WorktreeFlowBindingStore({ worktreePath: worktree }).save(new WorktreeFlowIdentity({
     runId: state.runId,
     issue: state.issue,
@@ -185,7 +185,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("emits ok:true envelope with data.report=null + REPORT_MISSING warning when no report.json exists", () => {
-    tmp = createTmpDir("senti-finalize-e2e-");
+    tmp = createTmpDir("senrail-finalize-e2e-");
     setupSpecOnlyFlow(tmp);
 
     const out = runCli(["run", "finalize-cleanup"], tmp);
@@ -200,17 +200,17 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
     assert.equal(warn.level, "warn");
   });
 
-  it("writes .senti/last-finalized-spec and clears .active-flow", () => {
-    tmp = createTmpDir("senti-finalize-e2e-pointer-");
+  it("writes .senrail/last-finalized-spec and clears .active-flow", () => {
+    tmp = createTmpDir("senrail-finalize-e2e-pointer-");
     setupSpecOnlyFlow(tmp);
 
     runCli(["run", "finalize-cleanup"], tmp);
 
-    const pointer = path.join(tmp, ".senti", "last-finalized-spec");
+    const pointer = path.join(tmp, ".senrail", "last-finalized-spec");
     assert.ok(fs.existsSync(pointer), "last-finalized-spec pointer must be written");
     assert.equal(fs.readFileSync(pointer, "utf8").trim(), "001-test");
 
-    const activeFlow = path.join(tmp, ".senti", ".active-flow");
+    const activeFlow = path.join(tmp, ".senrail", ".active-flow");
     if (fs.existsSync(activeFlow)) {
       const content = fs.readFileSync(activeFlow, "utf8").trim();
       assert.ok(
@@ -221,7 +221,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
   });
 
   it("flow get status returns active:false after cleanup (R17 post-cleanup inactive)", () => {
-    tmp = createTmpDir("senti-finalize-e2e-status-");
+    tmp = createTmpDir("senrail-finalize-e2e-status-");
     setupSpecOnlyFlow(tmp);
 
     runCli(["run", "finalize-cleanup"], tmp);
@@ -233,7 +233,7 @@ describe("flow run finalize-cleanup — self-contained envelope (spec 251)", () 
   });
 
   it("completes cleanup with an explicit warning when docs sync previously failed", () => {
-    tmp = createTmpDir("senti-finalize-sync-warning-");
+    tmp = createTmpDir("senrail-finalize-sync-warning-");
     setupSpecOnlyFlow(tmp);
     const flowManager = makeFlowManager(tmp);
     flowManager.mutate((state) => {
@@ -264,7 +264,7 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
   });
 
   it("executes the finalize-merge CLI route before the main-side cleanup route", () => {
-    tmp = createTmpDir("senti-finalize-merge-cli-");
+    tmp = createTmpDir("senrail-finalize-merge-cli-");
     setupSpecOnlyFlow(tmp);
     const state = makeFlowManager(tmp).load();
     for (const step of state.steps) {
@@ -284,8 +284,8 @@ describe("flow run finalize-merge — shared CLI route (spec 478)", () => {
   });
 
   it("requires rebase repair before granting a finalize-merge retry, then accepts it", () => {
-    tmp = createTmpDir("senti-finalize-merge-worktree-");
-    origin = createTmpDir("senti-finalize-merge-origin-");
+    tmp = createTmpDir("senrail-finalize-merge-worktree-");
+    origin = createTmpDir("senrail-finalize-merge-origin-");
     const { worktree } = setupConflictWorktree(tmp, origin);
 
     const failed = runCliResult(["run", "finalize-merge"], worktree);

@@ -22,7 +22,7 @@ function hookConfigFor(context = {}) {
 }
 
 function warn(message) {
-  console.warn(`[senti] ${message}`);
+  console.warn(`[senrail] ${message}`);
 }
 
 export function replaceHookPlaceholders(command, context = {}) {

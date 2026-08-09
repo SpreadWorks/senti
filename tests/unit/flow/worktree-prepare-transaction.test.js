@@ -33,7 +33,7 @@ function createProject() {
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const root = fs.mkdtempSync(path.join(fixtureRoot, "project-"));
   roots.push(root);
-  fs.mkdirSync(path.join(root, ".senti"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
   const config = {
     lang: "en",
     type: "base",
@@ -44,7 +44,7 @@ function createProject() {
       },
     },
   };
-  fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify(config, null, 2));
+  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify(config, null, 2));
   fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({
     name: "prepare-binding-fixture",
     version: "0.0.0",
@@ -53,12 +53,12 @@ function createProject() {
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
-  git(root, ["add", ".senti/config.json", "package.json"]);
+  git(root, ["add", ".senrail/config.json", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
-  fs.writeFileSync(path.join(root, ".gitignore"), ".senti/*\n!.senti/config.json\n!.senti/output/\n");
-  fs.writeFileSync(path.join(root, ".senti", "config.local.json"), JSON.stringify({
+  fs.writeFileSync(path.join(root, ".gitignore"), ".senrail/*\n!.senrail/config.json\n!.senrail/output/\n");
+  fs.writeFileSync(path.join(root, ".senrail", "config.local.json"), JSON.stringify({
     plugin: {
-      sources: [{ id: "workflow-src", type: "local", path: ".senti/plugins/workflow" }],
+      sources: [{ id: "workflow-src", type: "local", path: ".senrail/plugins/workflow" }],
       packages: [{
         id: "workflow",
         source: "workflow-src",
@@ -66,7 +66,7 @@ function createProject() {
       }],
     },
   }, null, 2));
-  const pluginRoot = path.join(root, ".senti", "plugins", "workflow");
+  const pluginRoot = path.join(root, ".senrail", "plugins", "workflow");
   fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
   fs.writeFileSync(path.join(pluginRoot, "plugin.json"), JSON.stringify({
     name: "workflow",
@@ -166,7 +166,7 @@ function killSetIssueAtWriterPhase({ root, worktreePath, specId, phase }) {
 
 function attemptArtifacts(root, runId = "run-440") {
   const specId = expectedSpecId(runId);
-  const worktreePath = path.join(root, ".senti", "worktree", `feature-${specId}`);
+  const worktreePath = path.join(root, ".senrail", "worktree", `feature-${specId}`);
   return {
     worktree: fs.existsSync(worktreePath),
     branch: git(root, ["branch", "--list", `feature/${specId}`], { allowFailure: true }),
@@ -232,7 +232,7 @@ describe("worktree prepare binding transaction", () => {
     git(root, ["branch", `feature/${existingSpecId}`]);
     manager.addActiveFlow(existingSpecId, "branch");
     const headBefore = git(root, ["branch", "--show-current"]);
-    const registryBefore = fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8");
+    const registryBefore = fs.readFileSync(path.join(root, ".senrail", ".active-flow"), "utf8");
 
     await assert.rejects(
       () => new RunPrepareSpecCommand().execute(
@@ -246,7 +246,7 @@ describe("worktree prepare binding transaction", () => {
     );
 
     assert.equal(git(root, ["branch", "--show-current"]), headBefore);
-    assert.equal(fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8"), registryBefore);
+    assert.equal(fs.readFileSync(path.join(root, ".senrail", ".active-flow"), "utf8"), registryBefore);
     assert.equal(fs.existsSync(path.join(root, "specs", "002-second-branch-flow")), false);
   });
 
@@ -279,7 +279,7 @@ describe("worktree prepare binding transaction", () => {
     });
     assert.equal(ctx.flowManager.loadPreparingFlow("run-440"), null);
     assert.deepEqual(
-      JSON.parse(fs.readFileSync(path.join(root, ".senti", ".active-flow"), "utf8")),
+      JSON.parse(fs.readFileSync(path.join(root, ".senrail", ".active-flow"), "utf8")),
       [{ specId: expectedSpecId("run-440"), mode: "worktree" }],
     );
     assert.match(result.specId, /^[0-9a-f]{8}-binding-transaction$/);
@@ -302,7 +302,7 @@ describe("worktree prepare binding transaction", () => {
     const stopped = interruptPrepareAfterWorktreeAdd(root, config);
     assert.equal(stopped.signal, "SIGKILL");
     const attempt = JSON.parse(fs.readFileSync(
-      path.join(root, ".senti", ".worktree-prepare-attempt.json"),
+      path.join(root, ".senrail", ".worktree-prepare-attempt.json"),
       "utf8",
     ));
     assert.deepEqual(attemptArtifacts(root), {
@@ -310,14 +310,14 @@ describe("worktree prepare binding transaction", () => {
       branch: `+ feature/${attempt.specId}`,
       mainSpec: false,
     });
-    assert.equal(fs.existsSync(path.join(root, ".senti", ".worktree-prepare-attempt.json")), true);
+    assert.equal(fs.existsSync(path.join(root, ".senrail", ".worktree-prepare-attempt.json")), true);
 
     const retried = await new RunPrepareSpecCommand().execute(ctx);
 
     assert.equal(retried.result, "ok");
     assert.equal(retried.runId, "run-440");
     assert.equal(retried.specId, attempt.specId);
-    assert.equal(fs.existsSync(path.join(root, ".senti", ".worktree-prepare-attempt.json")), false);
+    assert.equal(fs.existsSync(path.join(root, ".senrail", ".worktree-prepare-attempt.json")), false);
   });
 
   it("fails stopped when stale prepare-attempt Git authority changed", async () => {
@@ -326,7 +326,7 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(interruptPrepareAfterWorktreeAdd(root, config).signal, "SIGKILL");
     const worktreePath = path.join(
       root,
-      ".senti",
+      ".senrail",
       "worktree",
       `feature-${expectedSpecId("run-440")}`,
     );
@@ -341,7 +341,7 @@ describe("worktree prepare binding transaction", () => {
     );
     assert.equal(git(worktreePath, ["rev-parse", "HEAD"]), foreignOid);
     assert.equal(fs.readFileSync(path.join(worktreePath, "foreign.txt"), "utf8"), "foreign authority\n");
-    assert.equal(fs.existsSync(path.join(root, ".senti", ".worktree-prepare-attempt.json")), true);
+    assert.equal(fs.existsSync(path.join(root, ".senrail", ".worktree-prepare-attempt.json")), true);
   });
 
   it("publishes explicit null for an Issue-less worktree", async () => {
@@ -351,7 +351,7 @@ describe("worktree prepare binding transaction", () => {
     const result = await new RunPrepareSpecCommand().execute(ctx);
 
     assert.equal(result.issue, null);
-    const binding = JSON.parse(fs.readFileSync(path.join(result.worktreePath, ".senti", "flow-identity.json"), "utf8"));
+    const binding = JSON.parse(fs.readFileSync(path.join(result.worktreePath, ".senrail", "flow-identity.json"), "utf8"));
     assert.equal(binding.issue, null);
     const flowPath = path.join(root, "specs", result.specId, "flow.json");
     assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(flowPath, "utf8")), "issue"), false);
@@ -444,7 +444,7 @@ describe("worktree prepare binding transaction", () => {
     const specDirectory = path.join(root, "specs", specId);
     const markerPath = path.join(
       result.worktreePath,
-      ".senti",
+      ".senrail",
       "flow-identity.issue-transaction.json",
     );
     let specDirectorySynced = false;
@@ -517,7 +517,7 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(stopped.signal, "SIGKILL");
 
     const specDirectory = path.join(root, "specs", specId);
-    const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
+    const markerPath = path.join(result.worktreePath, ".senrail", "flow-identity.issue-transaction.json");
     const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
     assert.equal(fs.existsSync(markerPath), true);
     assert.equal(fs.existsSync(lockPath), true);
@@ -558,7 +558,7 @@ describe("worktree prepare binding transaction", () => {
       assert.equal(stopped.signal, "SIGKILL");
 
       const specDirectory = path.join(root, "specs", specId);
-      const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
+      const markerPath = path.join(result.worktreePath, ".senrail", "flow-identity.issue-transaction.json");
       const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
       const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
       const ownerTempPath = path.join(specDirectory, marker.writerOwnerTempName);
@@ -603,7 +603,7 @@ describe("worktree prepare binding transaction", () => {
       assert.equal(stopped.signal, "SIGKILL");
 
       const specDirectory = path.join(root, "specs", specId);
-      const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
+      const markerPath = path.join(result.worktreePath, ".senrail", "flow-identity.issue-transaction.json");
       const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
       const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
       const ownerTempPath = path.join(specDirectory, marker.writerOwnerTempName);
@@ -622,7 +622,7 @@ describe("worktree prepare binding transaction", () => {
         path.join(specDirectory, "flow.json"),
         lockPath,
         markerPath,
-        path.join(result.worktreePath, ".senti", "flow-identity.json"),
+        path.join(result.worktreePath, ".senrail", "flow-identity.json"),
         ...(fs.existsSync(ownerTempPath) ? [ownerTempPath] : []),
         ...(fs.existsSync(foreignPath) ? [foreignPath] : []),
       ];
@@ -669,8 +669,8 @@ describe("worktree prepare binding transaction", () => {
     const specDirectory = path.join(root, "specs", specId);
     const flowPath = path.join(specDirectory, "flow.json");
     const lockPath = path.join(specDirectory, ".flow.json.writer.lock");
-    const markerPath = path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json");
-    const bindingPath = path.join(result.worktreePath, ".senti", "flow-identity.json");
+    const markerPath = path.join(result.worktreePath, ".senrail", "flow-identity.issue-transaction.json");
+    const bindingPath = path.join(result.worktreePath, ".senrail", "flow-identity.json");
     const owner = JSON.parse(fs.readFileSync(lockPath, "utf8"));
     owner.transitionId = "22222222-2222-4222-8222-222222222222";
     fs.writeFileSync(lockPath, `${JSON.stringify(owner, null, 2)}\n`);
@@ -736,7 +736,7 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(Object.hasOwn(restarted.load(), "issue"), false);
     assert.equal(restarted.resolveWorktreeBinding().issue, null);
     assert.equal(
-      fs.existsSync(path.join(result.worktreePath, ".senti", "flow-identity.issue-transaction.json")),
+      fs.existsSync(path.join(result.worktreePath, ".senrail", "flow-identity.issue-transaction.json")),
       false,
     );
   });
@@ -797,8 +797,8 @@ describe("worktree prepare binding transaction", () => {
     it(`rolls back only attempt-owned artifacts after binding ${fault} failure and permits same-run retry`, async () => {
       const { root, config } = createProject();
       const ctx = prepareContext(root, config, { issue: null });
-      const registryPath = path.join(root, ".senti", ".active-flow");
-      const currentPath = path.join(root, ".senti", ".current-flow");
+      const registryPath = path.join(root, ".senrail", ".active-flow");
+      const currentPath = path.join(root, ".senrail", ".current-flow");
       ctx.flowManager.create(makeFlowState({
         specId: "900-preexisting",
         runId: "run-900-preexisting",
@@ -927,11 +927,11 @@ describe("worktree prepare binding transaction", () => {
     const collisionSpecId = expectedSpecId(ctx.runId);
     const collisionPath = path.join(
       root,
-      ".senti",
+      ".senrail",
       "worktree",
       `feature-${collisionSpecId}`,
     );
-    const registryPath = path.join(root, ".senti", ".active-flow");
+    const registryPath = path.join(root, ".senrail", ".active-flow");
     const registryBytes = `${JSON.stringify([{ specId: "900-foreign", mode: "branch" }], null, 2)}\n`;
     fs.writeFileSync(registryPath, registryBytes);
     const originalAcquire = RepositoryFlowOperationLock.prototype.acquire;
@@ -981,15 +981,15 @@ describe("worktree prepare binding transaction", () => {
     const result = await new RunPrepareSpecCommand().execute(ctx);
     const exactTransition = path.join(
       result.worktreePath,
-      ".senti",
+      ".senrail",
       "flow-identity.issue-transaction.json",
     );
-    const similarBinding = path.join(result.worktreePath, ".senti", "flow-identity.backup.json");
+    const similarBinding = path.join(result.worktreePath, ".senrail", "flow-identity.backup.json");
     const similarTransition = `${exactTransition}.backup`;
-    const similarReceipt = path.join(result.worktreePath, ".senti", ".flow-identity.publication.json.backup");
-    const similarIntent = path.join(result.worktreePath, ".senti", ".flow-identity.publication.intent.backup");
-    const similarReceiptTemp = path.join(result.worktreePath, ".senti", ".flow-identity.publication.receipt.tmp.backup");
-    const similarBindingTemp = path.join(result.worktreePath, ".senti", ".flow-identity.publication.binding.tmp.backup");
+    const similarReceipt = path.join(result.worktreePath, ".senrail", ".flow-identity.publication.json.backup");
+    const similarIntent = path.join(result.worktreePath, ".senrail", ".flow-identity.publication.intent.backup");
+    const similarReceiptTemp = path.join(result.worktreePath, ".senrail", ".flow-identity.publication.receipt.tmp.backup");
+    const similarBindingTemp = path.join(result.worktreePath, ".senrail", ".flow-identity.publication.binding.tmp.backup");
     fs.writeFileSync(exactTransition, "{}\n");
     fs.writeFileSync(similarBinding, "visible binding prefix\n");
     fs.writeFileSync(similarTransition, "visible transition prefix\n");
@@ -998,29 +998,29 @@ describe("worktree prepare binding transaction", () => {
     fs.writeFileSync(similarReceiptTemp, "visible receipt temp prefix\n");
     fs.writeFileSync(similarBindingTemp, "visible binding temp prefix\n");
 
-    assert.notEqual(git(result.worktreePath, ["check-ignore", ".senti/flow-identity.json"]), "");
+    assert.notEqual(git(result.worktreePath, ["check-ignore", ".senrail/flow-identity.json"]), "");
     assert.notEqual(
-      git(result.worktreePath, ["check-ignore", ".senti/flow-identity.issue-transaction.json"]),
+      git(result.worktreePath, ["check-ignore", ".senrail/flow-identity.issue-transaction.json"]),
       "",
     );
     assert.notEqual(
-      git(result.worktreePath, ["check-ignore", ".senti/.flow-identity.publication.json"]),
+      git(result.worktreePath, ["check-ignore", ".senrail/.flow-identity.publication.json"]),
       "",
     );
     for (const authority of [
-      ".senti/.flow-identity.publication.intent",
-      ".senti/.flow-identity.publication.receipt.tmp",
-      ".senti/.flow-identity.publication.binding.tmp",
+      ".senrail/.flow-identity.publication.intent",
+      ".senrail/.flow-identity.publication.receipt.tmp",
+      ".senrail/.flow-identity.publication.binding.tmp",
     ]) {
       assert.notEqual(git(result.worktreePath, ["check-ignore", authority]), "", authority);
     }
     const status = git(result.worktreePath, ["status", "--porcelain", "--untracked-files=all"]);
-    assert.match(status, /\.senti\/flow-identity\.backup\.json/);
-    assert.match(status, /\.senti\/flow-identity\.issue-transaction\.json\.backup/);
-    assert.match(status, /\.senti\/\.flow-identity\.publication\.json\.backup/);
-    assert.match(status, /\.senti\/\.flow-identity\.publication\.intent\.backup/);
-    assert.match(status, /\.senti\/\.flow-identity\.publication\.receipt\.tmp\.backup/);
-    assert.match(status, /\.senti\/\.flow-identity\.publication\.binding\.tmp\.backup/);
+    assert.match(status, /\.senrail\/flow-identity\.backup\.json/);
+    assert.match(status, /\.senrail\/flow-identity\.issue-transaction\.json\.backup/);
+    assert.match(status, /\.senrail\/\.flow-identity\.publication\.json\.backup/);
+    assert.match(status, /\.senrail\/\.flow-identity\.publication\.intent\.backup/);
+    assert.match(status, /\.senrail\/\.flow-identity\.publication\.receipt\.tmp\.backup/);
+    assert.match(status, /\.senrail\/\.flow-identity\.publication\.binding\.tmp\.backup/);
   });
 
   it("retains PostWorktree, artifact, plugin, docs, Git, and registry behavior", async () => {
@@ -1035,11 +1035,11 @@ describe("worktree prepare binding transaction", () => {
     assert.equal(fs.existsSync(path.join(result.worktreePath, "specs", result.specId)), false);
     assert.equal(fs.readFileSync(path.join(result.worktreePath, "post-worktree.marker"), "utf8"), "ok");
     assert.deepEqual(
-      fs.readFileSync(path.join(result.worktreePath, ".senti", "config.local.json")),
-      fs.readFileSync(path.join(root, ".senti", "config.local.json")),
+      fs.readFileSync(path.join(result.worktreePath, ".senrail", "config.local.json")),
+      fs.readFileSync(path.join(root, ".senrail", "config.local.json")),
     );
     const analysis = JSON.parse(fs.readFileSync(
-      path.join(result.worktreePath, ".senti", "output", "analysis.json"),
+      path.join(result.worktreePath, ".senrail", "output", "analysis.json"),
       "utf8",
     ));
     assert.doesNotThrow(() => [...iterateAnalysisCategories(analysis, { strict: true })]);
@@ -1062,8 +1062,8 @@ describe("worktree prepare binding transaction", () => {
   it("writes a configured spec root only in the base repository", async () => {
     const { root, config } = createProject();
     config.flow.specDir = "flow-artifacts/specs";
-    fs.writeFileSync(path.join(root, ".senti", "config.json"), JSON.stringify(config, null, 2));
-    git(root, ["add", ".senti/config.json"]);
+    fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify(config, null, 2));
+    git(root, ["add", ".senrail/config.json"]);
     git(root, ["commit", "-m", "configure flow artifact root"]);
     const result = await new RunPrepareSpecCommand().execute(prepareContext(root, config));
     assert.equal(result?.result, "ok", JSON.stringify(result));
@@ -1081,10 +1081,10 @@ describe("worktree prepare binding transaction", () => {
 
   it("keeps required-config preflight ahead of worktree and binding side effects", async () => {
     const { root, config } = createProject();
-    fs.appendFileSync(path.join(root, ".senti", "config.json"), "\n");
+    fs.appendFileSync(path.join(root, ".senrail", "config.json"), "\n");
     const ctx = prepareContext(root, config);
-    const registryPath = path.join(root, ".senti", ".active-flow");
-    const currentPath = path.join(root, ".senti", ".current-flow");
+    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const currentPath = path.join(root, ".senrail", ".current-flow");
     const beforeRegistry = fileBytes(registryPath);
     const beforeCurrent = fileBytes(currentPath);
 

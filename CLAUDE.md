@@ -1,19 +1,19 @@
-# senti
+# Senrail
 
 ソースコード解析に基づくドキュメント自動生成と、Spec-Driven Development ワークフローを提供する CLI ツール。
 
 ## タスク管理
 
-ボード操作は skill `senti.workflow` を使うこと。skill は `senti workflow <subcommand>` コマンドを呼ぶ。
+ボード操作は skill `senrail.workflow` を使うこと。skill は `senrail workflow <subcommand>` コマンドを呼ぶ。
 
-> **`senti workflow` は experimental である。** 実装は安定しているが運用方法論は未確定で、usage patterns may change（使い方は今後変わる可能性がある）。昇格条件は `src/workflow/AGENTS.md` を参照。
+> **`senrail workflow` は experimental である。** 実装は安定しているが運用方法論は未確定で、usage patterns may change（使い方は今後変わる可能性がある）。昇格条件は `src/workflow/AGENTS.md` を参照。
 
 ## プロジェクトルール
 
 ### 開発ワークフロー
 
-- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `senti upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
-- `senti upgrade` はスキル（`.claude/skills/`, `.agents/skills/`）やテンプレートの差分を検出し、変更があったファイルのみ更新する。
+- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `senrail upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `senrail upgrade` はスキル（`.claude/skills/`, `.agents/skills/`）やテンプレートの差分を検出し、変更があったファイルのみ更新する。
 
 ### コーディング
 
@@ -61,7 +61,7 @@
 
 ### npm 公開
 - **MUST: `npm publish` / `npm dist-tag` はユーザーがリリースの意図を明示した場合のみ実行する。** バージョン上げ・コミット・push の指示はリリース指示ではない。
-- pre-release は `npm publish --tag alpha` → `npm dist-tag add senti@<version> latest` の 2 ステップ。
+- pre-release は `npm publish --tag alpha` → `npm dist-tag add senrail@<version> latest` の 2 ステップ。
 - 公開前に `npm pack --dry-run` で機密情報がないことを確認する。
 
 ## ソースコード（src/）

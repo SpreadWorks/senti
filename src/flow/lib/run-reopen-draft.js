@@ -721,7 +721,7 @@ export class RunReopenDraftCommand extends FlowCommand {
       appendIssueLog(root, state, {
         step: "draft",
         reason: `reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained${reason ? ` — ${reason}` : ""}`,
-        trigger: "user invoked senti flow reopen-draft before implementation task execution",
+        trigger: "user invoked senrail flow reopen-draft before implementation task execution",
         resolution: `draft step set to in_progress; reset plan steps: ${resetSteps.join(", ")}; stale artifacts retained: ${STALE_ARTIFACTS.join(", ")}`,
       });
 
@@ -756,7 +756,7 @@ export class RunReopenDraftCommand extends FlowCommand {
     appendIssueLog(root, state, {
       step: "draft",
       reason: `reopen-draft triggered: draft step rewound to add new tasks mid-implementation${reason ? ` — ${reason}` : ""}`,
-      trigger: "user invoked senti flow reopen-draft",
+      trigger: "user invoked senrail flow reopen-draft",
       resolution: `draft step set to in_progress; reset flow steps: ${resetSteps.join(", ")}`,
     });
 

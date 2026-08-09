@@ -143,7 +143,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".senti", "config.json"));
+      return loadJsonFile(path.join(this._root, ".senrail", "config.json"));
     } catch (_) {
       return {};
     }

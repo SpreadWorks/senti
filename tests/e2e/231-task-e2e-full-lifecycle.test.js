@@ -12,7 +12,7 @@ import { collectFlowLeafIds } from "../../src/flow/definition.js";
 import { captureRepairBaseline } from "../../src/flow/lib/repair-state-identity.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 
-const CMD = path.resolve("src/senti.js");
+const CMD = path.resolve("src/senrail.js");
 const SPEC_ID = "001-cli-lifecycle";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 const FEATURE_BRANCH = `feature/${SPEC_ID}`;
@@ -79,8 +79,8 @@ function run(tmp, args) {
     encoding: "utf8",
     env: {
       ...process.env,
-      SENTI_WORK_ROOT: tmp,
-      SENTI_SOURCE_ROOT: tmp,
+      SENRAIL_WORK_ROOT: tmp,
+      SENRAIL_SOURCE_ROOT: tmp,
     },
   });
 }
@@ -134,7 +134,7 @@ function setupFixture(tmp) {
     ],
     PASS_REVIEW,
   );
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -166,9 +166,9 @@ function setupFixture(tmp) {
     scripts: { test: "node --test tests/project.test.js" },
   });
   writeFile(tmp, ".gitignore", [
-    ".senti/*",
-    "!.senti/config.json",
-    "!.senti/output/",
+    ".senrail/*",
+    "!.senrail/config.json",
+    "!.senrail/output/",
     ".tmp/",
     "",
   ].join("\n"));
@@ -300,7 +300,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("stale integration evidence recovery regenerates the acceptance lifecycle", () => {
-    tmp = createTmpDir("senti-cli-lifecycle-");
+    tmp = createTmpDir("senrail-cli-lifecycle-");
     setupFixture(tmp);
 
     // The command creates both scenario-validity artifacts. The test never
@@ -424,7 +424,7 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assert.equal(status.data.active, false);
     const report = runOk(tmp, ["flow", "report", "show"]);
     assert.equal(report.stdout.trim(), cleanup.data.report.text.trim());
-    assert.equal(fs.existsSync(path.join(tmp, ".senti", "last-finalized-spec")), true);
+    assert.equal(fs.existsSync(path.join(tmp, ".senrail", "last-finalized-spec")), true);
     assert.equal(git(tmp, ["branch", "--list", FEATURE_BRANCH]).stdout.trim(), "");
   });
 });

@@ -238,10 +238,10 @@ describe("deterministic full Flow worker handoff", () => {
         },
         agent: {
           async call(_prompt, options) {
-            const invocation = JSON.parse(options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION);
+            const invocation = JSON.parse(options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION);
             const stepId = invocation.action.step;
             visited.push(stepId);
-            const requestPath = options.executionEnvironment.SENTI_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
             if (requestPath) {
               handoffCount += 1;
               const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
@@ -249,7 +249,7 @@ describe("deterministic full Flow worker handoff", () => {
               writeHandoffPayload(stepId, request, specDir);
               const sealed = sealWorkerArtifactHandoff({
                 requestPath,
-                invocationId: options.executionEnvironment.SENTI_FLOW_DISPATCH_INVOCATION_ID,
+                invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
               });
               pendingConsumer = {
                 stepId,

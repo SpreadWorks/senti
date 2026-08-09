@@ -1,5 +1,5 @@
 /**
- * senti/lib/log-masking.js
+ * senrail/lib/log-masking.js
  *
  * Sensitive information masking for Logger output (spec 192).
  *
@@ -16,6 +16,8 @@
  *     pruned).
  *   - Patterns are anchored / bounded so regex cost is linear in input length.
  */
+
+import { PRODUCT } from "./product.js";
 
 const MAX_DEPTH = 10;
 const MASK = "***";
@@ -47,7 +49,7 @@ const PATTERNS = [
  *   - `opts.trustedRoots` — explicit array from the caller (Logger passes
  *     its own logDir and cwd).
  *   - `opts.workRoot` — legacy alias for a single root.
- *   - `SENTI_WORK_ROOT` environment variable.
+ *   - `SENRAIL_WORK_ROOT` environment variable.
  */
 function resolveTrustedRoots(opts) {
   const roots = [];
@@ -55,8 +57,8 @@ function resolveTrustedRoots(opts) {
     for (const r of opts.trustedRoots) if (r) roots.push(r);
   }
   if (opts.workRoot) roots.push(opts.workRoot);
-  if (process.env.SENTI_WORK_ROOT) roots.push(process.env.SENTI_WORK_ROOT);
-  if (process.env.SENTI_SOURCE_ROOT) roots.push(process.env.SENTI_SOURCE_ROOT);
+  if (process.env[PRODUCT.env("WORK_ROOT")]) roots.push(process.env[PRODUCT.env("WORK_ROOT")]);
+  if (process.env[PRODUCT.env("SOURCE_ROOT")]) roots.push(process.env[PRODUCT.env("SOURCE_ROOT")]);
   roots.push(process.cwd());
   return roots;
 }

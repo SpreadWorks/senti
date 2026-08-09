@@ -14,14 +14,15 @@ import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lo
 import { GitStatusPathSet, runGit } from "../../lib/git-helpers.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { findOutboxCommit } from "./run-finalize.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const OUTPUT_LIMIT = 4_000;
-const FLOW_OPERATION_LOCK_PATH = ".senti/.repository-flow-operation.lock";
+const FLOW_OPERATION_LOCK_PATH = PRODUCT.managedPath(".repository-flow-operation.lock");
 
 function isFlowRuntimePath(filePath) {
   return filePath === FLOW_OPERATION_LOCK_PATH
-    || filePath === ".senti/.active-flow"
+    || filePath === PRODUCT.managedPath(".active-flow")
     || FlowTargetIdentityAuthority.managesRepositoryPath(filePath)
     || filePath.startsWith(".tmp/logs/");
 }
@@ -370,7 +371,7 @@ export class FinalizeMergeTransaction {
         allowFeatureMetadataPaths: this.allowedFeatureMetadataPaths,
         flowArtifactRegistry: this.flowArtifactRegistry,
       });
-      const temporaryRoot = path.join(os.tmpdir(), `senti-finalize-merge-${crypto.randomUUID()}`);
+      const temporaryRoot = path.join(os.tmpdir(), `${PRODUCT.temporaryPrefix("finalize-merge")}${crypto.randomUUID()}`);
       let added = false;
       try {
         const addedResult = runGit([
@@ -427,7 +428,7 @@ export class FinalizeMergeTransaction {
         if (added) {
           const removed = runGit(["-C", this.mainRoot, "worktree", "remove", "--force", temporaryRoot]);
           if (!removed.ok) {
-            process.stderr.write(`[senti] warning: unable to remove isolated merge worktree ${temporaryRoot}: ${gitFailureText(removed)}\n`);
+            process.stderr.write(`[senrail] warning: unable to remove isolated merge worktree ${temporaryRoot}: ${gitFailureText(removed)}\n`);
           }
         }
       }

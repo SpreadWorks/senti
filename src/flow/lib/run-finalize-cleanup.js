@@ -33,6 +33,7 @@ import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 import { runFlowCommandHooks } from "../../lib/plugin-registry.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
+import { PRODUCT } from "../../lib/product.js";
 import {
   FlowOutbox,
   finalizationOutboxIdentity,
@@ -258,7 +259,7 @@ function pathExistsStrict(filePath) {
 }
 
 function assertPointerReality(reportRoot, specId) {
-  const pointerPath = path.join(reportRoot, ".senti", "last-finalized-spec");
+  const pointerPath = path.join(reportRoot, ".senrail", "last-finalized-spec");
   let stat;
   try {
     stat = fs.lstatSync(pointerPath);
@@ -1071,7 +1072,7 @@ function composeFinalizePluginLifecycle(pre, post) {
 
 /**
  * Plugin side effects are outside the finalize-cleanup transaction boundary.
- * A pre hook may inspect state and veto cleanup, but senti does not snapshot or
+ * A pre hook may inspect state and veto cleanup, but senrail does not snapshot or
  * restore files or external systems changed by the plugin. Plugins that choose
  * to mutate state own idempotency, retry, recovery, and cleanup for that work.
  */
@@ -1162,7 +1163,7 @@ function appendForcedFinalizeAudit(root, state, authorization, { operationOwnerT
   appendIssueLog(root, relativeFlowSpecFile(state), {
     step: "finalize-cleanup",
     reason: "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
-    trigger: "senti flow run finalize-cleanup --force",
+    trigger: "senrail flow run finalize-cleanup --force",
     resolution: droppedCommits.length > 0
       ? `dropped ${authorization.droppedCount} commit(s); top sha=${droppedCommits[0]?.sha?.slice(0, 12) || "n/a"}`
       : authorization.diverged
@@ -1485,7 +1486,7 @@ class AutoRescueCleanupJournal {
       relativeTemp === ""
       || relativeTemp.startsWith("..")
       || path.isAbsolute(relativeTemp)
-      || !path.basename(tempWorktreePath).startsWith("senti-rescue-tmp-")
+      || !path.basename(tempWorktreePath).startsWith(PRODUCT.temporaryPrefix("rescue-tmp"))
     ) {
       throw new Error("auto-rescue temporary worktree authority is invalid");
     }
@@ -1604,7 +1605,7 @@ class AutoRescueCleanupStore {
   constructor(identity) {
     this.identity = identity;
     const token = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
-    this.directory = path.join(identity.mainRepoPath, ".git", "senti", "recovery", "auto-rescue");
+    this.directory = path.join(identity.mainRepoPath, ".git", "senrail", "recovery", "auto-rescue");
     ensureRealDirectory(this.directory);
     this.path = path.join(this.directory, `${token}.json`);
     this.file = new AtomicJsonFile(this.path);
@@ -1959,7 +1960,7 @@ export function runDetachedAutoRescue({
   worktreeAuthoritySource = new AutoRescueWorktreeAuthoritySource(mainRepoPath),
   tempWorktreePathFactory = () => path.join(
     os.tmpdir(),
-    `senti-rescue-tmp-${process.pid}-${Date.now()}`,
+    `${PRODUCT.temporaryPrefix("rescue-tmp")}${process.pid}-${Date.now()}`,
   ),
 }) {
   const identity = autoRescueIdentity({
@@ -2585,7 +2586,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
           appendIssueLog(mainRepoPath, relativeFlowSpecFile(state), {
             step: "finalize-cleanup",
             reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
-            trigger: "senti flow run finalize-cleanup --auto-rescue",
+            trigger: "senrail flow run finalize-cleanup --auto-rescue",
             resolution: rescue.abortFailure
               ? "cherry-pick abort failed; durable temporary-worktree cleanup authority retained for retry"
               : "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
@@ -3078,7 +3079,7 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
   if (syncWarning) {
     env.addWarning(
       "FINALIZE_SYNC_FAILED",
-      `Documentation sync did not complete: ${syncWarning.message}. Run 'senti flow run sync' after inspecting the recorded diagnostics.`,
+      `Documentation sync did not complete: ${syncWarning.message}. Run 'senrail flow run sync' after inspecting the recorded diagnostics.`,
     );
   }
   if (state.worktree && mainRepoPath) {

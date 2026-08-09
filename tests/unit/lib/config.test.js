@@ -49,7 +49,7 @@ describe("loadConfig", () => {
 
   it("loads and validates config", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const cfg = loadConfig(tmp);
     assert.equal(cfg.lang, "ja");
     assert.equal(cfg.type, "sample-command");
@@ -58,7 +58,7 @@ describe("loadConfig", () => {
 
   it("validates flow.hooks as a string map", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -73,7 +73,7 @@ describe("loadConfig", () => {
     assert.equal(cfg.flow.hooks.PostWorktree, "printf ok");
     assert.equal(cfg.flow.hooks.CustomHook, "printf custom");
 
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -93,14 +93,14 @@ describe("loadConfig", () => {
       type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     };
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       ...base,
       flow: { specDir: "flow-artifacts/specs" },
     });
     assert.equal(loadConfig(tmp).flow.specDir, "flow-artifacts/specs");
 
     for (const specDir of ["/tmp/specs", "../specs", "specs//nested", "specs\\nested"]) {
-      writeJson(tmp, ".senti/config.json", { ...base, flow: { specDir } });
+      writeJson(tmp, ".senrail/config.json", { ...base, flow: { specDir } });
       assert.throws(() => loadConfig(tmp), /flow\.specDir/);
     }
   });
@@ -112,7 +112,7 @@ describe("loadConfig", () => {
 
   it("merges ignored local config overlay into plugin sources and packages by id", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       lang: "ja",
       type: "sample-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -122,7 +122,7 @@ describe("loadConfig", () => {
         config: { public: { enabled: true } },
       },
     });
-    writeJson(tmp, ".senti/config.local.json", {
+    writeJson(tmp, ".senrail/config.local.json", {
       plugin: {
         sources: [
           { id: "private", type: "git", url: "git@example.invalid:private/plugin.git" },
@@ -152,13 +152,13 @@ describe("resolveWorkDir", () => {
   let savedEnv;
 
   afterEach(() => {
-    if (savedEnv === undefined) delete process.env.SENTI_WORK_DIR;
-    else process.env.SENTI_WORK_DIR = savedEnv;
+    if (savedEnv === undefined) delete process.env.SENRAIL_WORK_DIR;
+    else process.env.SENRAIL_WORK_DIR = savedEnv;
   });
 
-  it("ignores SENTI_WORK_DIR and uses config.agent.workDir", () => {
-    savedEnv = process.env.SENTI_WORK_DIR;
-    process.env.SENTI_WORK_DIR = ".env-work";
+  it("ignores SENRAIL_WORK_DIR and uses config.agent.workDir", () => {
+    savedEnv = process.env.SENRAIL_WORK_DIR;
+    process.env.SENRAIL_WORK_DIR = ".env-work";
     assert.equal(resolveWorkDir("/project", { agent: { workDir: ".config-work" } }), "/project/.config-work");
   });
 

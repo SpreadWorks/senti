@@ -15,7 +15,7 @@ describe("createResolver", () => {
 
   function setupTmp(name) {
     tmp = createTmpDir(name);
-    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
     return tmp;
   }
 
@@ -74,7 +74,7 @@ describe("createResolver", () => {
 
   it("loads overrides.json when present", async () => {
     setupTmp("resolver-overrides");
-    writeJson(tmp, ".senti/overrides.json", {
+    writeJson(tmp, ".senrail/overrides.json", {
       project: { summary: "Custom override" },
     });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
@@ -125,11 +125,11 @@ describe("createResolver", () => {
     assert.equal(resolver.resolve("base", "project", "name", {}, [""]).toMarkdown(), "base-pkg");
   });
 
-  it("loads project-specific DataSources from .senti/data/", async () => {
+  it("loads project-specific DataSources from .senrail/data/", async () => {
     setupTmp("resolver-projds");
     writeJson(tmp, "package.json", { name: "projds", version: "1.0.0" });
     // Project data dir exists but is empty — should not break
-    fs.mkdirSync(path.join(tmp, ".senti", "data"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senrail", "data"), { recursive: true });
     const resolver = await createResolver("sample-node-command", tmp);
     assert.equal(resolver.resolve("sample-node-command", "project", "name", {}, [""]).toMarkdown(), "projds");
   });

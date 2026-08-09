@@ -16,8 +16,8 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpe
  * Returns { tmpDir, cleanup }.
  */
 function withPluginPresets(presets, { type = presets[0]?.key } = {}) {
-  const tmpDir = createTmpDir("senti-test-local-preset-");
-  writeJson(tmpDir, ".senti/config.json", {
+  const tmpDir = createTmpDir("senrail-test-local-preset-");
+  writeJson(tmpDir, ".senrail/config.json", {
     lang: "ja",
     type,
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -26,7 +26,7 @@ function withPluginPresets(presets, { type = presets[0]?.key } = {}) {
   });
   writeFile(
     tmpDir,
-    ".senti/plugins/test-presets/plugin.json",
+    ".senrail/plugins/test-presets/plugin.json",
     JSON.stringify({
       name: "test-presets",
       files: ["plugin.json", "presets/"],
@@ -41,7 +41,7 @@ function withPluginPresets(presets, { type = presets[0]?.key } = {}) {
   for (const preset of presets) {
     writeFile(
       tmpDir,
-      `.senti/plugins/test-presets/presets/${preset.key}/preset.json`,
+      `.senrail/plugins/test-presets/presets/${preset.key}/preset.json`,
       JSON.stringify({
         parent: preset.parent ?? null,
         ...(preset.chapters ? { chapters: preset.chapters } : {}),
@@ -50,7 +50,7 @@ function withPluginPresets(presets, { type = presets[0]?.key } = {}) {
     if (preset.templateContent !== undefined) {
       writeFile(
         tmpDir,
-        `.senti/plugins/test-presets/presets/${preset.key}/templates/${preset.lang || "ja"}/overview.md`,
+        `.senrail/plugins/test-presets/presets/${preset.key}/templates/${preset.lang || "ja"}/overview.md`,
         preset.templateContent,
       );
     }
@@ -311,7 +311,7 @@ describe("resolveTemplates", () => {
     try {
       writeFile(
         tmpDir,
-        ".senti/plugins/test-presets/presets/sample-preset/templates/ja/README.md",
+        ".senrail/plugins/test-presets/presets/sample-preset/templates/ja/README.md",
         "# README\n",
       );
       const chaptersOrder = resolveChaptersOrder("sample-preset", null, tmpDir);
@@ -374,7 +374,7 @@ describe("buildLayers — projectRoot", () => {
     ]);
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".senti", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
+      const localTemplateDir = path.join(tmpDir, ".senrail", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
       assert.ok(
         layers.includes(localTemplateDir),
         `expected local preset template dir in layers, got: ${layers}`,
@@ -390,7 +390,7 @@ describe("buildLayers — projectRoot", () => {
     ]);
     try {
       const layers = buildLayers("mypreset", "ja", null, tmpDir);
-      const localTemplateDir = path.join(tmpDir, ".senti", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
+      const localTemplateDir = path.join(tmpDir, ".senrail", "plugins", "test-presets", "presets", "mypreset", "templates", "ja");
       // When no projectLocalDir is given, the plugin preset template should be first
       assert.equal(layers[0], localTemplateDir);
     } finally {
@@ -437,7 +437,7 @@ describe("resolveChaptersOrder — projectRoot", () => {
     const chaptersWithout = resolveChaptersOrder("base");
     const { tmpDir, cleanup } = withPluginPresets([{ key: "other-preset", parent: "base" }]);
     try {
-      // No .senti/presets/base/ — should return same as without projectRoot
+      // No .senrail/presets/base/ — should return same as without projectRoot
       const chaptersWithRoot = resolveChaptersOrder("base", null, tmpDir);
       assert.deepEqual(chaptersWithRoot, chaptersWithout);
     } finally {

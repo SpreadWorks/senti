@@ -30,7 +30,7 @@ export class CommandHelpMetadata {
     this.name = name;
     this.section = section;
     this.summary = summary;
-    this.usage = usage || `Usage: senti ${name}`;
+    this.usage = usage || `Usage: senrail ${name}`;
     this.help = help;
     this.args = args && typeof args === "object" ? args : {};
     this.options = Array.isArray(options) ? options : [];
@@ -153,7 +153,7 @@ export class CommandDefinition {
       : typeof help.text === "string"
         ? help.text
         : helpText({
-            usage: help.usage || `Usage: senti ${name}`,
+            usage: help.usage || `Usage: senrail ${name}`,
             summary: help.summary || "",
             options: help.options || [],
           });
@@ -270,18 +270,18 @@ function rawDefinition(name, modulePath, help, { args = null, passthroughArgs = 
 }
 
 const docsDefinitionData = [
-  ["build", "../docs/commands/build.js", "Generate docs (scan → enrich → init → data → text → readme)", "Usage: senti docs build [options]", "ui:help.commands.docs build"],
-  ["scan", "../docs/commands/scan.js", "Source code analysis → analysis.json", "Usage: senti docs scan [options]", "ui:help.commands.docs scan"],
-  ["enrich", "../docs/commands/enrich.js", "Enrich analysis entries with AI (summary/detail/chapter)", "Usage: senti docs enrich [options]", "ui:help.commands.docs enrich"],
-  ["init", "../docs/commands/init.js", "Initialize docs/ from templates", "Usage: senti docs init [options]", "ui:help.commands.docs init"],
-  ["data", "../docs/commands/data.js", "Resolve {{data}} directives with analysis data", "Usage: senti docs data [options]", "ui:help.commands.docs data"],
-  ["text", "../docs/commands/text.js", "Resolve {{text}} directives with AI", "Usage: senti docs text --agent <name> [options]", "ui:help.commands.docs text"],
-  ["readme", "../docs/commands/readme.js", "Auto-generate README.md", "Usage: senti docs readme [options]", "ui:help.commands.docs readme"],
-  ["forge", "../docs/commands/forge.js", "Iterative docs improvement (AI agent)", "Usage: senti docs forge --prompt \"...\" [options]", "ui:help.commands.docs forge"],
-  ["review", "../docs/commands/review.js", "Docs quality check", "Usage: senti docs review [<docs-dir>]", "ui:help.commands.docs review"],
-  ["translate", "../docs/commands/translate.js", "Translate docs to non-default languages", "Usage: senti docs translate [options]", "ui:help.commands.docs translate"],
-  ["changelog", "../docs/commands/changelog.js", "Generate change_log.md from the configured spec root", "Usage: senti docs changelog [--dry-run] [<output-file>]", "ui:help.commands.docs changelog"],
-  ["agents", "../docs/commands/agents.js", "Update AGENTS.md PROJECT section", "Usage: senti docs agents [--dry-run]", "ui:help.commands.docs agents"],
+  ["build", "../docs/commands/build.js", "Generate docs (scan → enrich → init → data → text → readme)", "Usage: senrail docs build [options]", "ui:help.commands.docs build"],
+  ["scan", "../docs/commands/scan.js", "Source code analysis → analysis.json", "Usage: senrail docs scan [options]", "ui:help.commands.docs scan"],
+  ["enrich", "../docs/commands/enrich.js", "Enrich analysis entries with AI (summary/detail/chapter)", "Usage: senrail docs enrich [options]", "ui:help.commands.docs enrich"],
+  ["init", "../docs/commands/init.js", "Initialize docs/ from templates", "Usage: senrail docs init [options]", "ui:help.commands.docs init"],
+  ["data", "../docs/commands/data.js", "Resolve {{data}} directives with analysis data", "Usage: senrail docs data [options]", "ui:help.commands.docs data"],
+  ["text", "../docs/commands/text.js", "Resolve {{text}} directives with AI", "Usage: senrail docs text --agent <name> [options]", "ui:help.commands.docs text"],
+  ["readme", "../docs/commands/readme.js", "Auto-generate README.md", "Usage: senrail docs readme [options]", "ui:help.commands.docs readme"],
+  ["forge", "../docs/commands/forge.js", "Iterative docs improvement (AI agent)", "Usage: senrail docs forge --prompt \"...\" [options]", "ui:help.commands.docs forge"],
+  ["review", "../docs/commands/review.js", "Docs quality check", "Usage: senrail docs review [<docs-dir>]", "ui:help.commands.docs review"],
+  ["translate", "../docs/commands/translate.js", "Translate docs to non-default languages", "Usage: senrail docs translate [options]", "ui:help.commands.docs translate"],
+  ["changelog", "../docs/commands/changelog.js", "Generate change_log.md from the configured spec root", "Usage: senrail docs changelog [--dry-run] [<output-file>]", "ui:help.commands.docs changelog"],
+  ["agents", "../docs/commands/agents.js", "Update AGENTS.md PROJECT section", "Usage: senrail docs agents [--dry-run]", "ui:help.commands.docs agents"],
 ];
 
 const docsArgs = {
@@ -323,9 +323,9 @@ function flowOptions(help) {
 }
 
 const flowGroupHelp = {
-  get: ["Read flow state (status, check, prompt, guardrail, ...)", "Usage: senti flow get <key> [options]"],
-  set: ["Update flow state (step, req, note, metric, ...)", "Usage: senti flow set <key> [options]"],
-  run: ["Execute flow actions (prepare-spec, gate, finalize, ...)", "Usage: senti flow run <action> [options]"],
+  get: ["Read flow state (status, check, prompt, guardrail, ...)", "Usage: senrail flow get <key> [options]"],
+  set: ["Update flow state (step, req, note, metric, ...)", "Usage: senrail flow set <key> [options]"],
+  run: ["Execute flow actions (prepare-spec, gate, finalize, ...)", "Usage: senrail flow run <action> [options]"],
 };
 
 function flowDefinition(name, entry) {
@@ -339,7 +339,7 @@ function flowDefinition(name, entry) {
       help: {
         section: "Flow",
         summary: flowSummary(help, `Run ${name}`),
-        usage: String(help || "").split(/\r?\n/, 1)[0] || `Usage: senti flow ${name}`,
+        usage: String(help || "").split(/\r?\n/, 1)[0] || `Usage: senrail flow ${name}`,
         options: flowOptions(help),
         localeKey: entry.helpKey ? `ui:${entry.helpKey}` : null,
         text: help,
@@ -347,7 +347,7 @@ function flowDefinition(name, entry) {
       dispatch: { ...dispatch, help },
     });
   }
-  const [summary, usage] = flowGroupHelp[name] || [`Flow ${name} commands`, `Usage: senti flow ${name} <command>`];
+  const [summary, usage] = flowGroupHelp[name] || [`Flow ${name} commands`, `Usage: senrail flow ${name} <command>`];
   return new CommandDefinition({
     name,
     help: {
@@ -368,9 +368,9 @@ function childRoute(name, help, subcommands = []) {
 }
 
 const pluginSourceSubcommands = [
-  ["add", "Add a plugin source", "Usage: senti plugin source add <git URL|local path> [--ref <ref>]", ["--ref <ref>", "-h, --help"]],
-  ["update", "Update plugin sources", "Usage: senti plugin source update", ["-h, --help"]],
-  ["list", "List plugin sources", "Usage: senti plugin source list [--json]", ["--json", "-h, --help"]],
+  ["add", "Add a plugin source", "Usage: senrail plugin source add <git URL|local path> [--ref <ref>]", ["--ref <ref>", "-h, --help"]],
+  ["update", "Update plugin sources", "Usage: senrail plugin source update", ["-h, --help"]],
+  ["list", "List plugin sources", "Usage: senrail plugin source list [--json]", ["--json", "-h, --help"]],
 ].map(([name, summary, usage, options]) => childRoute(name, {
   section: "Project",
   summary,
@@ -380,14 +380,14 @@ const pluginSourceSubcommands = [
 }));
 
 const pluginSubcommands = [
-  childRoute("source", { section: "Project", summary: "Manage plugin sources", usage: "Usage: senti plugin source <command>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin source" }, pluginSourceSubcommands),
-  childRoute("find", { section: "Project", summary: "Find installable plugin packages", usage: "Usage: senti plugin find [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin find" }),
-  childRoute("install", { section: "Project", summary: "Install a plugin package", usage: "Usage: senti plugin install <id> [--json] [--no-upgrade]", options: ["--json", "--no-upgrade", "-h, --help"], localeKey: "ui:help.commands.plugin install" }),
-  childRoute("list", { section: "Project", summary: "List installed plugin packages", usage: "Usage: senti plugin list [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin list" }),
-  childRoute("enable", { section: "Project", summary: "Enable an installed plugin package", usage: "Usage: senti plugin enable <id>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin enable" }),
-  childRoute("disable", { section: "Project", summary: "Disable an installed plugin package", usage: "Usage: senti plugin disable <id>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin disable" }),
-  childRoute("update", { section: "Project", summary: "Update installed plugin packages", usage: "Usage: senti plugin update [name] [--json] [--no-upgrade]", options: ["--json", "--no-upgrade", "-h, --help"], localeKey: "ui:help.commands.plugin update" }),
-  childRoute("sync", { section: "Project", summary: "Sync installed plugin packages", usage: "Usage: senti plugin sync [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin sync" }),
+  childRoute("source", { section: "Project", summary: "Manage plugin sources", usage: "Usage: senrail plugin source <command>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin source" }, pluginSourceSubcommands),
+  childRoute("find", { section: "Project", summary: "Find installable plugin packages", usage: "Usage: senrail plugin find [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin find" }),
+  childRoute("install", { section: "Project", summary: "Install a plugin package", usage: "Usage: senrail plugin install <id> [--json] [--no-upgrade]", options: ["--json", "--no-upgrade", "-h, --help"], localeKey: "ui:help.commands.plugin install" }),
+  childRoute("list", { section: "Project", summary: "List installed plugin packages", usage: "Usage: senrail plugin list [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin list" }),
+  childRoute("enable", { section: "Project", summary: "Enable an installed plugin package", usage: "Usage: senrail plugin enable <id>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin enable" }),
+  childRoute("disable", { section: "Project", summary: "Disable an installed plugin package", usage: "Usage: senrail plugin disable <id>", options: ["-h, --help"], localeKey: "ui:help.commands.plugin disable" }),
+  childRoute("update", { section: "Project", summary: "Update installed plugin packages", usage: "Usage: senrail plugin update [name] [--json] [--no-upgrade]", options: ["--json", "--no-upgrade", "-h, --help"], localeKey: "ui:help.commands.plugin update" }),
+  childRoute("sync", { section: "Project", summary: "Sync installed plugin packages", usage: "Usage: senrail plugin sync [--json]", options: ["--json", "-h, --help"], localeKey: "ui:help.commands.plugin sync" }),
 ];
 
 const definitions = [
@@ -395,64 +395,64 @@ const definitions = [
     name: "help",
     entrypoint: { modulePath: "../help.js", invocation: "main" },
     allowInvalidConfig: true,
-    help: { section: "Project", summary: "Show this help", usage: "Usage: senti help [command]", options: ["-h, --help"], localeKey: "ui:help.commands.help" },
+    help: { section: "Project", summary: "Show this help", usage: "Usage: senrail help [command]", options: ["-h, --help"], localeKey: "ui:help.commands.help" },
   }),
   new CommandDefinition({
     name: "setup",
     entrypoint: { modulePath: "../setup.js", invocation: "main" },
-    help: { section: "Project", summary: "Register project + generate config (interactive)", usage: "Usage: senti setup", options: ["-h, --help"], localeKey: "ui:help.commands.setup" },
+    help: { section: "Project", summary: "Register project + generate config (interactive)", usage: "Usage: senrail setup", options: ["-h, --help"], localeKey: "ui:help.commands.setup" },
   }),
   new CommandDefinition({
     name: "upgrade",
     entrypoint: { modulePath: "../upgrade.js", invocation: "main" },
     allowInvalidConfig: true,
-    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: senti upgrade [--dry-run]", options: ["--dry-run", "-h, --help"], localeKey: "ui:help.commands.upgrade" },
+    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: senrail upgrade [--dry-run]", options: ["--dry-run", "-h, --help"], localeKey: "ui:help.commands.upgrade" },
   }),
   new CommandDefinition({
     name: "plugin",
     entrypoint: { modulePath: "../plugin.js", invocation: "main" },
-    help: { section: "Project", summary: "Manage plugin sources, packages, commands, and presets", usage: "Usage: senti plugin <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.plugin" },
+    help: { section: "Project", summary: "Manage plugin sources, packages, commands, and presets", usage: "Usage: senrail plugin <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.plugin" },
     subcommands: pluginSubcommands,
   }),
   new CommandDefinition({
     name: "docs",
     entrypoint: { modulePath: "../docs.js", invocation: "script" },
-    help: { section: "Docs", summary: "Documentation commands", usage: "Usage: senti docs <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.docs build" },
+    help: { section: "Docs", summary: "Documentation commands", usage: "Usage: senrail docs <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.docs build" },
     subcommands: docsSubcommands,
   }),
   new CommandDefinition({
     name: "check",
     entrypoint: { modulePath: "../check.js", invocation: "script" },
-    help: { section: "Info", summary: "Repository checks", usage: "Usage: senti check <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check" },
+    help: { section: "Info", summary: "Repository checks", usage: "Usage: senrail check <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check" },
     subcommands: [
-      rawDefinition("config", "../check/commands/config.js", { section: "Info", summary: "Validate project configuration", usage: "Usage: senti check config [options]", options: ["--format <text|json>", "-h, --help"], localeKey: "ui:help.commands.check config" }),
-      rawDefinition("freshness", "../check/commands/freshness.js", { section: "Info", summary: "Check generated documentation freshness", usage: "Usage: senti check freshness [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check freshness" }),
-      rawDefinition("scan", "../check/commands/scan.js", { section: "Info", summary: "Check scan coverage", usage: "Usage: senti check scan [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check scan" }),
+      rawDefinition("config", "../check/commands/config.js", { section: "Info", summary: "Validate project configuration", usage: "Usage: senrail check config [options]", options: ["--format <text|json>", "-h, --help"], localeKey: "ui:help.commands.check config" }),
+      rawDefinition("freshness", "../check/commands/freshness.js", { section: "Info", summary: "Check generated documentation freshness", usage: "Usage: senrail check freshness [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check freshness" }),
+      rawDefinition("scan", "../check/commands/scan.js", { section: "Info", summary: "Check scan coverage", usage: "Usage: senrail check scan [options]", options: ["-h, --help"], localeKey: "ui:help.commands.check scan" }),
     ],
   }),
   new CommandDefinition({
     name: "metrics",
     entrypoint: { modulePath: "../metrics.js", invocation: "script" },
-    help: { section: "Metrics", summary: "Metrics commands", usage: "Usage: senti metrics <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics token" },
+    help: { section: "Metrics", summary: "Metrics commands", usage: "Usage: senrail metrics <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics token" },
     subcommands: [
-      rawDefinition("token", "../metrics/commands/token.js", { section: "Metrics", summary: "Aggregate and display token/cache/cost metrics", usage: "Usage: senti metrics token [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics token" }),
-      rawDefinition("review", "../metrics/commands/review.js", { section: "Metrics", summary: "Aggregate review metrics", usage: "Usage: senti metrics review [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics review" }),
+      rawDefinition("token", "../metrics/commands/token.js", { section: "Metrics", summary: "Aggregate and display token/cache/cost metrics", usage: "Usage: senrail metrics token [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics token" }),
+      rawDefinition("review", "../metrics/commands/review.js", { section: "Metrics", summary: "Aggregate review metrics", usage: "Usage: senrail metrics review [options]", options: ["-h, --help"], localeKey: "ui:help.commands.metrics review" }),
     ],
   }),
   new CommandDefinition({
     name: "spec",
     entrypoint: { modulePath: "../spec.js", invocation: "script" },
-    help: { section: "Flow", summary: "Specification commands", usage: "Usage: senti spec <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.spec" },
-    subcommands: [rawDefinition("render", "../spec/commands/render.js", { section: "Flow", summary: "Render a specification", usage: "Usage: senti spec render [options]", options: ["-h, --help"], localeKey: "ui:help.commands.spec render" })],
+    help: { section: "Flow", summary: "Specification commands", usage: "Usage: senrail spec <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.spec" },
+    subcommands: [rawDefinition("render", "../spec/commands/render.js", { section: "Flow", summary: "Render a specification", usage: "Usage: senrail spec render [options]", options: ["-h, --help"], localeKey: "ui:help.commands.spec render" })],
   }),
   new CommandDefinition({
     name: "hook",
     entrypoint: { modulePath: "../hook.js", invocation: "script" },
-    help: { section: "Info", summary: "Hook commands", usage: "Usage: senti hook <command>", options: ["-h, --help"], localeKey: "ui:help.commands.hook" },
+    help: { section: "Info", summary: "Hook commands", usage: "Usage: senrail hook <command>", options: ["-h, --help"], localeKey: "ui:help.commands.hook" },
     subcommands: [rawDefinition("list", "../hook/commands/list.js", {
       section: "Info",
       summary: "List available flow hooks and current configured commands.",
-      usage: "Usage: senti hook list [--json]",
+      usage: "Usage: senrail hook list [--json]",
       options: ["--json", "-h, --help"],
       localeKey: "ui:help.commands.hook list",
     }, { args: { flags: ["--json"] }, passthroughArgs: false })],
@@ -460,14 +460,14 @@ const definitions = [
   new CommandDefinition({
     name: "presets",
     entrypoint: { modulePath: "../presets-cmd.js", invocation: "main" },
-    help: { section: "Info", summary: "Preset commands", usage: "Usage: senti presets <command>", options: ["-h, --help"], localeKey: "ui:help.commands.presets list" },
-    subcommands: [childRoute("list", { section: "Info", summary: "Show preset inheritance tree", usage: "Usage: senti presets list", options: ["-h, --help"], localeKey: "ui:help.commands.presets list" })],
+    help: { section: "Info", summary: "Preset commands", usage: "Usage: senrail presets <command>", options: ["-h, --help"], localeKey: "ui:help.commands.presets list" },
+    subcommands: [childRoute("list", { section: "Info", summary: "Show preset inheritance tree", usage: "Usage: senrail presets list", options: ["-h, --help"], localeKey: "ui:help.commands.presets list" })],
   }),
   new CommandDefinition({
     name: "flow",
     entrypoint: { modulePath: "../flow.js", invocation: "script" },
     allowInvalidConfig: true,
-    help: { section: "Flow", summary: "Spec-Driven Development flow commands", usage: "Usage: senti flow <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.flow run" },
+    help: { section: "Flow", summary: "Spec-Driven Development flow commands", usage: "Usage: senrail flow <command> [options]", options: ["-h, --help"], localeKey: "ui:help.commands.flow run" },
     subcommands: flowSubcommands,
   }),
 ];

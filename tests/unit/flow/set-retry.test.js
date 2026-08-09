@@ -25,7 +25,7 @@ function git(root, args) {
 function initializeRepository(root) {
   git(root, ["init", "--initial-branch=main"]);
   git(root, ["config", "user.email", "tests@example.invalid"]);
-  git(root, ["config", "user.name", "Senti tests"]);
+  git(root, ["config", "user.name", "Senrail tests"]);
   fs.mkdirSync(path.join(root, "specs", "001-retry", "tests"), { recursive: true });
   fs.writeFileSync(path.join(root, "specs", "001-retry", "spec.json"), "{}\n");
   fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 1;\n");
@@ -36,7 +36,7 @@ function initializeRepository(root) {
 function initializeRepositoryWithUntrackedSpec(root) {
   git(root, ["init", "--initial-branch=main"]);
   git(root, ["config", "user.email", "tests@example.invalid"]);
-  git(root, ["config", "user.name", "Senti tests"]);
+  git(root, ["config", "user.name", "Senrail tests"]);
   fs.writeFileSync(path.join(root, "tracked.js"), "export const tracked = true;\n");
   git(root, ["add", "."]);
   git(root, ["commit", "-m", "initial fixture"]);

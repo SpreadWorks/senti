@@ -2,14 +2,14 @@
  * src/lib/container.js
  *
  * Dependency container for CLI-wide initialized services (config, logger, paths,
- * agent, i18n, flowManager, etc.). Built once in src/senti.js and
+ * agent, i18n, flowManager, etc.). Built once in src/senrail.js and
  * referenced by all dispatchers and commands via the module-level `container`
  * export.
  */
 
 import path from "path";
 import { repoRoot, sourceRoot, isInsideWorktree, getMainRepoPath } from "./cli.js";
-import { loadConfig, loadJsonFile, sentiConfigPath, sentiDir, sentiOutputDir, resolveWorkDir } from "./config.js";
+import { loadConfig, loadJsonFile, senrailConfigPath, senrailDir, senrailOutputDir, resolveWorkDir } from "./config.js";
 import { Logger } from "./log.js";
 import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
@@ -108,16 +108,16 @@ function buildPaths(root, config, opts = {}) {
   return Object.freeze({
     root,
     srcRoot: sourceRoot(),
-    sentiDir: sentiDir(root),
-    outputDir: sentiOutputDir(root),
+    senrailDir: senrailDir(root),
+    outputDir: senrailOutputDir(root),
     agentWorkDir,
     logDir,
-    configPath: sentiConfigPath(root),
+    configPath: senrailConfigPath(root),
   });
 }
 
 /**
- * Initialize the module-level container. Called once from src/senti.js.
+ * Initialize the module-level container. Called once from src/senrail.js.
  * Subsequent dispatchers and commands import `container` directly.
  *
  * Best-effort initialization: if config is absent (setup not run yet, help-only
@@ -135,7 +135,7 @@ function buildPaths(root, config, opts = {}) {
  *   migration commands can repair config that strict validation rejects.
  */
 export function initContainer(opts = {}) {
-  // Idempotent: if already initialized (e.g. by senti.js before a
+  // Idempotent: if already initialized (e.g. by senrail.js before a
   // dispatcher was imported), do not re-run initialization. This lets
   // each dispatcher safely call initContainer() at its top to support
   // standalone execution (direct `node src/flow.js` invocation in tests)
@@ -154,7 +154,7 @@ export function initContainer(opts = {}) {
         config = null;
         configLoaded = false;
       } else {
-      process.stderr.write(`[senti] config load failed: ${err?.message}\n`);
+      process.stderr.write(`[senrail] config load failed: ${err?.message}\n`);
       throw err;
       }
     }
@@ -162,9 +162,17 @@ export function initContainer(opts = {}) {
 
   const inWorktree = isInsideWorktree(root);
   const mainRoot = inWorktree ? getMainRepoPath(root) : root;
-  const mainConfig = inWorktree
-    ? loadConfig(mainRoot, { allowMissingType: true })
-    : config;
+  let mainConfig = config;
+  if (inWorktree) {
+    try {
+      mainConfig = loadConfig(mainRoot, { allowMissingType: true });
+    } catch (err) {
+      // A linked worktree can be a standalone project fixture. Its common
+      // repository is not required to carry Senrail configuration; use the
+      // worktree configuration unless a readable main configuration exists.
+      if (err?.code !== "ERR_MISSING_FILE") throw err;
+    }
+  }
   const flowSpecRoot = flowSpecRootFromConfig(mainConfig);
   const durableFinalizeRoot = opts.finalizeCleanupDurablePaths === true && inWorktree
     ? mainRoot
@@ -200,13 +208,13 @@ export function initContainer(opts = {}) {
   const registry = new ProviderRegistry(config?.agent?.providers || {});
   const agent = new Agent({ config, paths, registry, logger, flowManager });
   container.register("agent", agent);
-  globalThis.__sentiPluginAgent = agent;
+  globalThis.__senrailPluginAgent = agent;
   container.register("i18n", translate());
   container.register("lang", config?.lang);
 
   // Base classes and utilities exposed to presets. Presets access these via
   // container.get("base.DataSource") etc. so they never need to import from
-  // senti internal paths directly.
+  // senrail internal paths directly.
   container.register("base.DataSource", DataSource);
   container.register("base.Scannable", Scannable);
   container.register("base.AnalysisEntry", AnalysisEntry);

@@ -1,14 +1,14 @@
 /**
  * src/lib/preparing-flow-store.js
  *
- * Manages `.senti/.active-flow.<runId>` — transient state files
+ * Manages `.senrail/.active-flow.<runId>` — transient state files
  * created during the prepare phase before flow.json exists.
  */
 
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { sentiDir } from "./config.js";
+import { senrailDir } from "./config.js";
 import { AtomicFile } from "./atomic-file.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { FlowState } from "./flow-state.js";
@@ -197,7 +197,7 @@ export class PreparingFlowStore {
   delete(runId) {
     const id = new PreparingFlowId(runId);
     const p = this.#path(id);
-    if (!fs.existsSync(sentiDir(this._mainRoot))) return;
+    if (!fs.existsSync(senrailDir(this._mainRoot))) return;
     this.#withLock(id, () => {
       new AtomicFile(p, { faultInjector: this._faultInjector }).remove();
     });
@@ -205,7 +205,7 @@ export class PreparingFlowStore {
 
   /** @returns {string[]} runIds */
   list() {
-    const dir = sentiDir(this._mainRoot);
+    const dir = senrailDir(this._mainRoot);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir)
       .filter((f) => f.startsWith(PREPARING_PREFIX))
@@ -214,12 +214,12 @@ export class PreparingFlowStore {
   }
 
   #path(id) {
-    return path.join(sentiDir(this._mainRoot), `${PREPARING_PREFIX}${id}`);
+    return path.join(senrailDir(this._mainRoot), `${PREPARING_PREFIX}${id}`);
   }
 
   #withLock(id, body) {
     const rootAuthority = new RealDirectoryAuthority(this._mainRoot);
-    const directoryAuthority = new RealDirectoryAuthority(sentiDir(this._mainRoot), {
+    const directoryAuthority = new RealDirectoryAuthority(senrailDir(this._mainRoot), {
       create: true,
       parentAuthority: rootAuthority,
     });

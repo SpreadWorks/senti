@@ -6,10 +6,17 @@ import path from "node:path";
 const TEMPLATE_DIR = path.join(process.cwd(), "src/presets/base/templates");
 
 function readTemplate(lang) {
-  return fs.readFileSync(path.join(TEMPLATE_DIR, lang, "AGENTS.senti.md"), "utf8");
+  return fs.readFileSync(path.join(TEMPLATE_DIR, lang, "flow-agent-instructions.md"), "utf8");
 }
 
-describe("AGENTS.senti flow start policy", () => {
+describe("flow-agent-instructions start policy", () => {
+  it("uses the role-based template name and does not ship an AGENTS.senrail template", () => {
+    for (const lang of ["en", "ja"]) {
+      assert.equal(fs.existsSync(path.join(TEMPLATE_DIR, lang, "flow-agent-instructions.md")), true);
+      assert.equal(fs.existsSync(path.join(TEMPLATE_DIR, lang, "AGENTS.senrail.md")), false);
+    }
+  });
+
   it("Japanese template forbids proactive flow suggestions for ordinary fix requests", () => {
     const text = readTemplate("ja");
 

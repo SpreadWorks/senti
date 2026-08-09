@@ -1,5 +1,5 @@
 /**
- * senti/docs/lib/command-context.js
+ * senrail/docs/lib/command-context.js
  *
  * docs コマンドから共通利用される analysis / chapters / text ヘルパー群。
  * CLI コンテキスト解決は src/docs/lib/docs-context.js の resolveDocsContext() を参照。
@@ -7,18 +7,18 @@
 
 import fs from "fs";
 import path from "path";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { resolveChaptersOrder } from "./template-merger.js";
 
 /**
- * .senti/output/ 配下の JSON ファイルを読み込む。
+ * .senrail/output/ 配下の JSON ファイルを読み込む。
  *
  * @param {string} root - プロジェクトルート
  * @param {string} fileName - ファイル名（例: "analysis.json"）
  * @returns {Object|null} パース結果、見つからなければ null
  */
 function loadOutputJson(root, fileName) {
-  const filePath = path.join(sentiOutputDir(root), fileName);
+  const filePath = path.join(senrailOutputDir(root), fileName);
   if (!fs.existsSync(filePath)) return null;
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -50,13 +50,13 @@ export function loadFullAnalysis(root) {
 /**
  * docs ディレクトリから章ファイル一覧を取得する。
  * config.chapters > preset の chapters 順で返す。
- * フォールバック: *.md をアルファベット順（README.md, AGENTS.senti.md, layout.md 除外）。
+ * フォールバック: *.md をアルファベット順（README.md, flow-agent-instructions.md, layout.md 除外）。
  *
  * @param {string} docsDir - docs ディレクトリの絶対パス
  * @param {Object} [options]
  * @param {string} [options.type] - プロジェクトタイプ（例: "cli/node-cli"）
  * @param {string[]} [options.configChapters] - config.json の chapters 配列（最優先）
- * @param {string} [options.projectRoot] - プロジェクトルート（.senti/presets/ 検索用）
+ * @param {string} [options.projectRoot] - プロジェクトルート（.senrail/presets/ 検索用）
  * @returns {string[]} ファイル名の配列（順序付き）
  */
 export function getChapterFiles(docsDir, options) {
@@ -65,7 +65,7 @@ export function getChapterFiles(docsDir, options) {
   const type = options?.type;
   const configChapters = options?.configChapters;
   const projectRoot = options?.projectRoot;
-  const EXCLUDE = new Set(["README.md", "AGENTS.senti.md", "layout.md"]);
+  const EXCLUDE = new Set(["README.md", "flow-agent-instructions.md", "layout.md"]);
 
   if (type || configChapters?.length) {
     const chapters = resolveChaptersOrder(type || "base", configChapters, projectRoot);

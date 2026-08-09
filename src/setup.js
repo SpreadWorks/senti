@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * senti/setup/setup.js
+ * senrail/setup/setup.js
  *
  * Interactive setup wizard.
- * Registers a project and generates .senti/config.json.
+ * Registers a project and generates .senrail/config.json.
  *
  * Usage:
- *   senti setup
- *   senti setup --name myapp --path /path/to/src --type webapp/cakephp2
+ *   senrail setup
+ *   senrail setup --name myapp --path /path/to/src --type webapp/cakephp2
  */
 
 import fs from "fs";
@@ -16,19 +16,19 @@ import readline from "readline";
 import { parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { validate } from "./lib/config.js";
-import { DEFAULT_LANG, sentiDir as sentiDirFn } from "./lib/config.js";
+import { DEFAULT_LANG, senrailDir as senrailDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
 import { listSetupPresetCandidates, resolveMultiChains, resolvePresetCandidateChains, validatePresetCandidateChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
 import {
-  AGENTS_SENTI_DIRECTIVE_RE,
+  AGENTS_FLOW_DIRECTIVE_RE,
   buildAgentConfigContent,
 } from "./lib/agent-config-files.js";
 import { resolveWorkDir } from "./lib/config.js";
 import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
-import { SENTI_GITIGNORE_LINES, hasSentiGitignore, normalizeSentiGitignore } from "./lib/gitignore.js";
-import { SENTI_ANALYSIS_GITATTRIBUTE, normalizeSentiGitattributes } from "./lib/gitattributes.js";
+import { SENRAIL_GITIGNORE_LINES, hasSenrailGitignore, normalizeSenrailGitignore } from "./lib/gitignore.js";
+import { SENRAIL_ANALYSIS_GITATTRIBUTE, normalizeSenrailGitattributes } from "./lib/gitattributes.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
 import { ExecutionMode, WritePlan } from "./lib/execution-plan.js";
 import { flowSpecRootFromConfig } from "./lib/flow-workspace.js";
@@ -226,7 +226,7 @@ export function buildSetupAgentHelpText() {
   return [
     "agent.default stores the selected family alias: claude or codex.",
     `agent.useProfile stores one built-in profile name: ${profileNames}.`,
-    "Built-in agent.profiles and agent.providers are resolved by senti at runtime.",
+    "Built-in agent.profiles and agent.providers are resolved by senrail at runtime.",
     "Override a built-in profile/provider by defining the same key in config.json.",
     'Example "agent.profiles": { "codex-main": { "docs.readme": "my-codex" } }',
     'Example "agent.providers": { "my-codex": { "command": "codex", "args": ["exec", "{{PROMPT}}"] } }',
@@ -273,7 +273,7 @@ function restoreConfigFile(configPath, snapshot) {
 // ---------------------------------------------------------------------------
 
 function loadExistingDefaults(workRoot) {
-  const configPath = path.join(sentiDirFn(workRoot), "config.json");
+  const configPath = path.join(senrailDirFn(workRoot), "config.json");
   const cfg = readConfigFile(configPath);
   if (!cfg) return null;
   const types = Array.isArray(cfg.type) ? cfg.type : cfg.type ? [cfg.type] : [];
@@ -304,10 +304,10 @@ export const loadSetupDefaults = loadExistingDefaults;
 // ---------------------------------------------------------------------------
 
 function ensureProjectDirs(workRoot) {
-  const sentiDir = path.join(workRoot, ".senti");
-  const outputDir = path.join(sentiDir, "output");
+  const senrailDir = path.join(workRoot, ".senrail");
+  const outputDir = path.join(senrailDir, "output");
   const docsDir = path.join(workRoot, "docs");
-  [sentiDir, outputDir, docsDir].forEach((d) =>
+  [senrailDir, outputDir, docsDir].forEach((d) =>
     fs.mkdirSync(d, { recursive: true }),
   );
   fs.writeFileSync(path.join(outputDir, ".gitkeep"), "");
@@ -318,7 +318,7 @@ function ensureGitignore(workRoot) {
   const block = [
     ".tmp/",
     "",
-    ...SENTI_GITIGNORE_LINES,
+    ...SENRAIL_GITIGNORE_LINES,
     "",
     ".agents/*",
     "!.agents/skills*",
@@ -328,11 +328,11 @@ function ensureGitignore(workRoot) {
   ];
   if (fs.existsSync(rootGitignore)) {
     const content = fs.readFileSync(rootGitignore, "utf8");
-    const normalized = normalizeSentiGitignore(content, { appendIfMissing: false });
+    const normalized = normalizeSenrailGitignore(content, { appendIfMissing: false });
     if (normalized !== content) {
       fs.writeFileSync(rootGitignore, normalized, "utf8");
     }
-    if (hasSentiGitignore(normalized)) return;
+    if (hasSenrailGitignore(normalized)) return;
     const prefix = normalized.endsWith("\n") || normalized === "" ? "" : "\n";
     fs.appendFileSync(rootGitignore, `${prefix}${block.join("\n")}\n`);
   } else {
@@ -344,10 +344,10 @@ function ensureGitattributes(workRoot) {
   const gitattributesPath = path.join(workRoot, ".gitattributes");
   if (fs.existsSync(gitattributesPath)) {
     const content = fs.readFileSync(gitattributesPath, "utf8");
-    const normalized = normalizeSentiGitattributes(content);
+    const normalized = normalizeSenrailGitattributes(content);
     if (normalized !== content) fs.writeFileSync(gitattributesPath, normalized, "utf8");
   } else {
-    fs.writeFileSync(gitattributesPath, `${SENTI_ANALYSIS_GITATTRIBUTE}\n`);
+    fs.writeFileSync(gitattributesPath, `${SENRAIL_ANALYSIS_GITATTRIBUTE}\n`);
   }
 }
 
@@ -389,10 +389,10 @@ function ensureAgentConfigFile(filePath, lang, t, options = {}) {
 
   const content = fs.readFileSync(filePath, "utf8");
 
-  if (AGENTS_SENTI_DIRECTIVE_RE.test(content)) {
-    const sentiBlock = agentContent.match(AGENTS_SENTI_DIRECTIVE_RE)?.[0];
-    if (sentiBlock) {
-      const updated = content.replace(AGENTS_SENTI_DIRECTIVE_RE, sentiBlock);
+  if (AGENTS_FLOW_DIRECTIVE_RE.test(content)) {
+    const senrailBlock = agentContent.match(AGENTS_FLOW_DIRECTIVE_RE)?.[0];
+    if (senrailBlock) {
+      const updated = content.replace(AGENTS_FLOW_DIRECTIVE_RE, senrailBlock);
       if (updated !== content) {
         fs.writeFileSync(filePath, updated, "utf8");
         console.log(t("setup.messages.agentFileUpdated", { file: fileName }));
@@ -780,7 +780,7 @@ async function main() {
   const workRoot = resolveProjectRoot(sourcePath, workRootPath, t);
 
   // Build config: merge wizard values into existing config to preserve customizations
-  const configPath = path.join(workRoot, ".senti", "config.json");
+  const configPath = path.join(workRoot, ".senrail", "config.json");
   const selectedTypes = settings.additionalTypes.length > 0
     ? [settings.type, ...settings.additionalTypes]
     : [settings.type];

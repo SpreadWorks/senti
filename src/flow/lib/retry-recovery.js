@@ -139,7 +139,7 @@ function specDirFor(spec) {
 
 function recoveryCommandFor(input) {
   const reason = String(input.reason || "").replace(/"/g, '\\"');
-  return `senti flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
+  return `senrail flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
 }
 
 function sha256ForFiles(root, relPaths, runtimeFingerprints = []) {
@@ -425,7 +425,7 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
       paths: [
         "src",
         "plugins",
-        ".senti/config.json",
+        ".senrail/config.json",
         `${dir}/file-map.json`,
         `${dir}/test-execute-result.json`,
         `${dir}/test-result-review.json`,

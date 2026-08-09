@@ -2,7 +2,7 @@
 /**
  * src/hook.js
  *
- * Hook dispatcher. Routes `senti hook <command>` to hook management
+ * Hook dispatcher. Routes `senrail hook <command>` to hook management
  * commands.
  */
 

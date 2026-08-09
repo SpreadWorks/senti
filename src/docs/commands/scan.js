@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * senti/docs/commands/scan.js
+ * senrail/docs/commands/scan.js
  *
  * DataSource ベースのスキャンパイプライン。
  * include/exclude glob パターンでファイルを一括収集し、
@@ -22,7 +22,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { collectFiles } from "../lib/scanner.js";
 import { loadDataSources } from "../lib/data-source-loader.js";
 import { presetByLeaf, resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
@@ -176,7 +176,7 @@ function parseScanArgs(rawArgs) {
 // ---------------------------------------------------------------------------
 
 function resetCategories(root, resetValue) {
-  const outputDir = sentiOutputDir(root);
+  const outputDir = senrailOutputDir(root);
   const outputPath = path.join(outputDir, "analysis.json");
 
   if (!fs.existsSync(outputPath)) {
@@ -274,7 +274,7 @@ async function runScan(ctx, rawArgs) {
   logger.verbose(`collected ${files.length} files`);
 
   // 2. Load existing analysis.json
-  const outputDir = sentiOutputDir(root);
+  const outputDir = senrailOutputDir(root);
   const outputPath = path.join(outputDir, "analysis.json");
   let existing = null;
   if (!ctx.stdout && !ctx.dryRun) {

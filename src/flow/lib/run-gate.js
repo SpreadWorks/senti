@@ -250,11 +250,11 @@ class StaleIntegrationTestEvidence {
   }
 }
 
-export function runSentiUpgradeForRecovery(root, {
+export function runSenrailUpgradeForRecovery(root, {
   execFileSyncImpl = execFileSync,
   packageDir = PKG_DIR,
 } = {}) {
-  execFileSyncImpl(process.execPath, [path.join(packageDir, "senti.js"), "upgrade"], {
+  execFileSyncImpl(process.execPath, [path.join(packageDir, "senrail.js"), "upgrade"], {
     cwd: root,
     stdio: "inherit",
   });
@@ -301,7 +301,7 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
   });
   const recoveryResult = recovery.resolve({
     runUpgrade() {
-      runSentiUpgradeForRecovery(executionRoot);
+      runSenrailUpgradeForRecovery(executionRoot);
     },
     refreshCurrentFingerprint() {
       return buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state }).hash;
@@ -1854,7 +1854,7 @@ function formatRetryHistory(root, specPath, limit, phase) {
   try {
     log = loadIssueLog(root, specPath);
   } catch (err) {
-    process.stderr.write(`[senti] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
     return "";
   }
   const gateEntries = (log.entries || [])
@@ -1872,7 +1872,7 @@ export function warnGateRetryBudget(ctx, phase) {
   const max = resolveRetryMax(ctx, phase);
   const remaining = Math.max(0, max - used);
   process.stderr.write(
-    `[senti] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
+    `[senrail] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
   );
 }
 
@@ -3192,7 +3192,7 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
     "Modify the spec or implementation before retrying.",
   ];
   process.stderr.write(
-    `[senti] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
+    `[senrail] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
   );
   appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
@@ -4659,7 +4659,7 @@ export class GateFailureRecovery {
 
 const DRAFT_GATE_REOPEN_RECOVERY = new GateFailureRecovery({
   failureCode: "DRAFT_GATE_REOPEN_REQUIRED",
-  recoveryCommand: "senti flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
+  recoveryCommand: "senrail flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
   recoveryHint: "Run the supplied reopen-draft command to invalidate obsolete draft review evidence, then continue the normal Flow.",
 });
 
@@ -5202,7 +5202,7 @@ export class RunGateCommand extends FlowCommand {
       ctx.flowState = flowManager.load();
       for (const transition of committed) {
         process.stderr.write(
-          `[senti] gate: stale in_progress step "${transition.stepId}" ` +
+          `[senrail] gate: stale in_progress step "${transition.stepId}" ` +
             `transitioned to done (committed phase=${phase})\n`,
         );
       }
@@ -5782,7 +5782,7 @@ export class RunGateCommand extends FlowCommand {
       if (unrecorded.length === 0) return [];
       return [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
     } catch (err) {
-      process.stderr.write(`[senti] file-map reconciliation skipped: ${err.message}\n`);
+      process.stderr.write(`[senrail] file-map reconciliation skipped: ${err.message}\n`);
       return [];
     }
   }

@@ -3,12 +3,12 @@ Commit implementation changes as a finalize sub-step. This is the first step of 
 ## Required Sequence
 
 1. Resolve context.
-   - Run `senti flow get resolve-context` to get JSON with:
+   - Run `senrail flow get resolve-context` to get JSON with:
      - `mainRepoPath`, `worktreePath`, `activeFlow`, `flowJsonPath`
      - `spec`, `baseBranch`, `featureBranch`, `worktree`
      - `dirty`, `dirtyFiles`, `currentBranch`, `ghAvailable`
 
-2. Run `senti flow run finalize-commit [--message "<msg>"]`.
+2. Run `senrail flow run finalize-commit [--message "<msg>"]`.
    - The command performs preflight checks, migration hooks, stages implementation changes from the execution worktree, and creates the implementation commit.
    - Flow artifacts remain in the active Flow's configured base-side spec directory. They are not copied into or committed from the execution worktree.
    - The final target-only spec/docs commit is created after worktree cleanup, once the final Flow state and log have been recorded.

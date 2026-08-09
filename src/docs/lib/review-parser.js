@@ -1,5 +1,5 @@
 /**
- * senti/docs/lib/review-parser.js
+ * senrail/docs/lib/review-parser.js
  *
  * Review output parsing for the forge command.
  */

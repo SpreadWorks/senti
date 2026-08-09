@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_PATH = path.resolve(
   __dirname,
-  "../../../src/skills/senti.flow/SKILL.md",
+  "../../../src/skills/senrail.flow/SKILL.md",
 );
 const WORKTREE_MODE_PATH = path.resolve(
   __dirname,

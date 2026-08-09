@@ -18,9 +18,9 @@ describe("deploySkills include resolution", () => {
 
   function setupConfiguredTmpProject() {
     tmp = createTmpDir();
-    fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmp, ".senti", "config.json"),
+      path.join(tmp, ".senrail", "config.json"),
       JSON.stringify({ lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" } }),
     );
     return tmp;
@@ -48,7 +48,7 @@ describe("deploySkills include resolution", () => {
 
     deploySkills(projectDir);
 
-    const flowPath = path.join(projectDir, ".agents", "skills", "senti.flow", "SKILL.md");
+    const flowPath = path.join(projectDir, ".agents", "skills", "senrail.flow", "SKILL.md");
     if (fs.existsSync(flowPath)) {
       const content = fs.readFileSync(flowPath, "utf8");
       // Choice Format partial content should be expanded

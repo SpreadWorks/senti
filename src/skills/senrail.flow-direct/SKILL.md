@@ -1,5 +1,5 @@
 ---
-name: senti.flow-direct
+name: senrail.flow-direct
 description: Apply a validator-owned recovery record through the normal Spec-Driven Development Flow. Use only when the user explicitly requests recovery of an interrupted Flow.
 ---
 
@@ -9,13 +9,13 @@ This is a thin entrypoint into normal Flow recovery. It does not create a
 separate session, repair plan, verification result, completion path, or
 finalize state.
 
-1. Read guarded `senti flow get status` and `senti flow get next-action` for
+1. Read guarded `senrail flow get status` and `senrail flow get next-action` for
    the exact active target.
-2. Run guarded `senti flow run direct`. Supply `--record-id <id>` only when
+2. Run guarded `senrail flow run direct`. Supply `--record-id <id>` only when
    the returned recovery result says that multiple validator records are
    available; never guess an ID.
 3. When the result is `transition-applied`, immediately continue through the
-   ordinary `senti flow get next-action` and normal dispatcher route. The
+   ordinary `senrail flow get next-action` and normal dispatcher route. The
    replacement proof obligation remains required; do not describe the
    transition as a pass or a skipped quality check.
 4. When the result is `unavailable`, report its plain-language message and

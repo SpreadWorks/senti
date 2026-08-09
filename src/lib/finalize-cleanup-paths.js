@@ -1,6 +1,6 @@
 import path from "path";
 
-export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = path.join(".senti", "agent-work");
+export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = path.join(".senrail", "agent-work");
 
 function optionValue(argv, name) {
   const index = argv.indexOf(name);

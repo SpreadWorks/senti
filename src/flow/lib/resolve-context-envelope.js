@@ -15,8 +15,8 @@ import { FlowCompletion } from "./flow-completion.js";
 import { flattenSteps } from "./step-tree.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
-const SKILL_BY_PHASE = { sync: "senti.flow-sync" };
-const DEFAULT_SKILL = "senti.flow";
+const SKILL_BY_PHASE = { sync: "senrail.flow-sync" };
+const DEFAULT_SKILL = "senrail.flow";
 
 function phaseToSkill(phase) {
   return SKILL_BY_PHASE[phase] ?? DEFAULT_SKILL;

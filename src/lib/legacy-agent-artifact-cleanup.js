@@ -1,5 +1,5 @@
 /**
- * One-way cleanup for the agent-host hook that senti previously installed.
+ * One-way cleanup for the agent-host hook that senrail previously installed.
  *
  * This is removal code, not a runtime integration. It deletes only the
  * uniquely named legacy handler and preserves every project-owned hook.
@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const LEGACY_HANDLER_FILE = "senti-flow-final-response-guard.mjs";
+const LEGACY_HANDLER_FILE = "senrail-flow-final-response-guard.mjs";
 const LEGACY_HANDLER_PATH = `.codex/hooks/${LEGACY_HANDLER_FILE}`;
 const LEGACY_CONFIG_PATH = ".codex/hooks.json";
 

@@ -62,7 +62,7 @@ export class RunCompleteTaskCommand extends FlowCommand {
       promoted = completeTaskAndPromoteInState(s, taskId);
     });
     const nextAction = promoted
-      ? `next task ${promoted} is current; run senti flow get next-action`
+      ? `next task ${promoted} is current; run senrail flow get next-action`
       : "no pending tasks remain; continue with integration verification";
 
     return Envelope.ok("run", "complete-task", {

@@ -1,5 +1,5 @@
 /**
- * senti/lib/progress.js
+ * senrail/lib/progress.js
  *
  * Progress bar and logging utility for the build pipeline.
  *

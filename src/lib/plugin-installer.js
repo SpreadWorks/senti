@@ -117,7 +117,7 @@ export class PluginInstaller {
     if (!(installation instanceof PluginInstallation)) {
       throw new Error("PluginInstallation is required");
     }
-    const pluginsRoot = path.join(installation.root, ".senti", "plugins");
+    const pluginsRoot = path.join(installation.root, ".senrail", "plugins");
     fs.mkdirSync(pluginsRoot, { recursive: true });
     const nonce = crypto.randomUUID();
     const destination = path.join(pluginsRoot, installation.pluginId);

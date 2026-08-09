@@ -1,5 +1,5 @@
 /**
- * senti/lib/i18n.js
+ * senrail/lib/i18n.js
  *
  * Internationalization module.
  *
@@ -18,7 +18,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { DEFAULT_LANG, sentiDir, loadConfig } from "./config.js";
+import { DEFAULT_LANG, senrailDir, loadConfig } from "./config.js";
 import { repoRoot } from "./cli.js";
 import { resolvePresetEntriesForSearch } from "./presets.js";
 
@@ -179,7 +179,7 @@ function buildLocaleDirs(root, presetTypes) {
   const dirs = [];
 
   if (root) {
-    const projectLocale = path.join(sentiDir(root), "locale");
+    const projectLocale = path.join(senrailDir(root), "locale");
     if (fs.existsSync(projectLocale)) {
       dirs.push(projectLocale);
     }

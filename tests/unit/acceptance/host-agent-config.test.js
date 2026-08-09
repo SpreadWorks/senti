@@ -35,7 +35,7 @@ test("acceptance fixture inherits the host worktree agent profile and resolves r
   fixtureRoot = createTmpDir("acceptance-fixture-");
   destination = createTmpDir("acceptance-destination-");
 
-  writeJson(hostRoot, ".senti/config.json", baseConfig({
+  writeJson(hostRoot, ".senrail/config.json", baseConfig({
     default: "codex",
     providers: {
       "worktree/codex": {
@@ -44,7 +44,7 @@ test("acceptance fixture inherits the host worktree agent profile and resolves r
       },
     },
   }));
-  writeJson(hostRoot, ".senti/config.local.json", {
+  writeJson(hostRoot, ".senrail/config.local.json", {
     agent: {
       useProfile: "worktree-codex",
       profiles: {
@@ -54,7 +54,7 @@ test("acceptance fixture inherits the host worktree agent profile and resolves r
       },
     },
   });
-  writeJson(fixtureRoot, ".senti/config.json", baseConfig({
+  writeJson(fixtureRoot, ".senrail/config.json", baseConfig({
     default: "claude",
     providers: {
       claude: { command: "claude", args: ["-p", "{{PROMPT}}"] },
@@ -67,7 +67,7 @@ test("acceptance fixture inherits the host worktree agent profile and resolves r
     acceptanceFixtureConfigOverrides({ type: "fixture-type" }, hostRoot),
   );
 
-  const copied = JSON.parse(fs.readFileSync(path.join(destination, ".senti", "config.json"), "utf8"));
+  const copied = JSON.parse(fs.readFileSync(path.join(destination, ".senrail", "config.json"), "utf8"));
   assert.equal(copied.type, "fixture-type");
   assert.equal(copied.agent.useProfile, "worktree-codex");
   assert.equal(copied.agent.providers["worktree/codex"].command, path.join(hostRoot, "tools", "codex"));

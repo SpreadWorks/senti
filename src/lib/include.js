@@ -46,12 +46,12 @@ function resolveRegistryPresetIncludePath(includePath, opts) {
   }
   if (!registered) throw new Error(`Preset include not registered: "${presetKey}"`);
 
-  const projectLocal = path.join(opts.projectRoot, ".senti", "templates", "presets", presetKey, childPath);
+  const projectLocal = path.join(opts.projectRoot, ".senrail", "templates", "presets", presetKey, childPath);
   if (fs.existsSync(projectLocal)) return projectLocal;
   for (const candidate of registryCandidates) {
     if (fs.existsSync(candidate)) return candidate;
   }
-  return path.join(opts.projectRoot, ".senti", "templates", "presets", presetKey, childPath);
+  return path.join(opts.projectRoot, ".senrail", "templates", "presets", presetKey, childPath);
 }
 
 /**

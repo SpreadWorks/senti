@@ -23,15 +23,15 @@ const FINALIZATION_COMMANDS = Object.freeze({
 });
 
 function recoveryCommand(command, state, binding) {
-  if (binding) return binding.guardCommand(`senti flow run ${command}`);
+  if (binding) return binding.guardCommand(`senrail flow run ${command}`);
   const guards = guardFlagsForState(state);
-  return `senti flow run ${command}${guards ? ` ${guards}` : ""}`;
+  return `senrail flow run ${command}${guards ? ` ${guards}` : ""}`;
 }
 
 function refreshCommand(state, binding) {
-  if (binding) return binding.guardCommand("senti flow get next-action");
+  if (binding) return binding.guardCommand("senrail flow get next-action");
   const guards = guardFlagsForState(state);
-  return `senti flow get next-action${guards ? ` ${guards}` : ""}`;
+  return `senrail flow get next-action${guards ? ` ${guards}` : ""}`;
 }
 
 function featureMetadataPaths(state) {
@@ -196,7 +196,7 @@ export class FinalizationOutboxRecovery {
         mainRoot: mainRootFor(this.ctx, this.state),
         baseBranch: this.state.baseBranch,
         featureBranch: this.state.featureBranch,
-        commitMessage: "senti finalize merge recovery inspection",
+        commitMessage: "senrail finalize merge recovery inspection",
         flowArtifactRegistry,
       }).inspect({
         allowFeatureMetadataPaths: featureMetadataPaths(this.state),

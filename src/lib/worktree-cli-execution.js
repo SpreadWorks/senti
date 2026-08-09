@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
+import { PRODUCT } from "./product.js";
 
 class WorktreeCliTarget {
   constructor({ worktreeRoot, executionPath, localCliPath }) {
@@ -90,13 +91,13 @@ function resolveWorktreeCli(executionPath, cwd) {
   return new WorktreeCliTarget({
     worktreeRoot,
     executionPath,
-    localCliPath: path.join(worktreeRoot, "src", "senti.js"),
+    localCliPath: path.join(worktreeRoot, "src", "senrail.js"),
   });
 }
 
 function failClosed(target, argv) {
   process.stderr.write(
-    "senti: worktree-local CLI source is unavailable; refusing to execute a different checkout.\n"
+    "senrail: worktree-local CLI source is unavailable; refusing to execute a different checkout.\n"
     + `Execution target: ${target.executionPath}\n`
     + `Expected worktree source: ${target.localCliPath}\n`
     + `Recovery: restore the worktree source, then run: ${target.recoveryCommand(argv)}\n`,
@@ -110,7 +111,7 @@ function failClosed(target, argv) {
  */
 export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
   const invocation = new WorktreeCliInvocation(argv || []);
-  const executionPath = fs.realpathSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "senti.js"));
+  const executionPath = fs.realpathSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "senrail.js"));
   const target = resolveWorktreeCli(executionPath, cwd);
   if (
     target == null
@@ -123,13 +124,13 @@ export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
     cwd,
     env: {
       ...process.env,
-      SENTI_WORK_ROOT: target.worktreeRoot,
-      SENTI_SOURCE_ROOT: target.worktreeRoot,
+      [PRODUCT.env("WORK_ROOT")]: target.worktreeRoot,
+      [PRODUCT.env("SOURCE_ROOT")]: target.worktreeRoot,
     },
     stdio: "inherit",
   });
   if (result.error) {
-    process.stderr.write(`senti: failed to execute worktree-local CLI ${target.localCliPath}: ${result.error.message}\n`);
+    process.stderr.write(`senrail: failed to execute worktree-local CLI ${target.localCliPath}: ${result.error.message}\n`);
     process.stderr.write(`Recovery: ${target.recoveryCommand(argv)}\n`);
     return 1;
   }

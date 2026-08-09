@@ -22,7 +22,7 @@ const SPEC_DIR = "specs/001-record-proceed";
 const FIXTURE_PATH = "final-regression-fixture.sh";
 
 function setupProject(tmp, scriptBody) {
-  fs.mkdirSync(path.join(tmp, ".senti"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
   writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
   writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);

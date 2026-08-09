@@ -27,7 +27,7 @@ export const DEFAULT_SCAN_POLICY = new ScanPolicy();
 
 const FRESHNESS_EXCLUDED_DIRECTORY_NAMES = new Set([
   ".git",
-  ".senti",
+  ".senrail",
   "node_modules",
   "vendor",
 ]);

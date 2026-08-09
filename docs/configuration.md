@@ -220,9 +220,9 @@ Flow runtime command logs are separate human-readable files. Use `sdd-forge flow
 
 ### Built-In Agent Profiles
 
-`senti setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
+`senrail setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
 
-Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.senti/config.json`. Define the same key locally only when you want to override the package default.
+Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.senrail/config.json`. Define the same key locally only when you want to override the package default.
 
 ```json
 {

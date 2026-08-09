@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "path";
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
+import { PRODUCT } from "../../lib/product.js";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { findStepById } from "./step-tree.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
@@ -121,7 +122,7 @@ export function outboxCommitMarker(idempotencyKey) {
   if (typeof idempotencyKey !== "string" || idempotencyKey === "") {
     throw new Error("finalize commit idempotencyKey is required");
   }
-  return `senti-outbox: ${idempotencyKey}`;
+  return `${PRODUCT.artifactMarker("outbox")}: ${idempotencyKey}`;
 }
 
 export function hasOutboxCommit({ root, ref, idempotencyKey }) {
@@ -156,10 +157,10 @@ function getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot = DEFAULT_F
 }
 
 function isFinalizeManagedMetadataPath(dirtyPath, allowed) {
-  return dirtyPath === ".senti/.active-flow"
+  return dirtyPath === PRODUCT.managedPath(".active-flow")
     || FlowTargetIdentityAuthority.managesRepositoryPath(dirtyPath)
-    || dirtyPath === ".senti/worktree"
-    || dirtyPath.startsWith(".senti/worktree/")
+    || dirtyPath === PRODUCT.managedPath("worktree")
+    || dirtyPath.startsWith(`${PRODUCT.managedPath("worktree")}/`)
     || allowed.deferredPathSet.has(dirtyPath)
     || dirtyPath === allowed.specDirectory
     || dirtyPath.startsWith(`${allowed.specDirectory}/`);
@@ -253,7 +254,7 @@ export function assertFinalizeMergeMetadataMutationSafe({ root, specId, specRoot
   const error = new Error([
     "finalize-merge cannot mutate Flow metadata while external paths are dirty:",
     ...details,
-    "Resolve the listed paths, then retry 'senti flow run finalize-merge'.",
+    "Resolve the listed paths, then retry 'senrail flow run finalize-merge'.",
   ].join("\n"));
   error.code = "FINALIZE_MERGE_EXTERNAL_DIRTY";
   error.preflight = preflight;
@@ -364,7 +365,7 @@ class FinalizeCompletionCommit {
     }
 
     const parent = this.#gitValue(["rev-parse", "HEAD"], "finalize completion parent");
-    const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "senti-finalize-index-"));
+    const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), PRODUCT.temporaryPrefix("finalize-index")));
     const temporaryIndex = path.join(temporaryDirectory, "index");
     const env = { ...process.env, GIT_INDEX_FILE: temporaryIndex };
     let primaryError = null;
@@ -466,7 +467,7 @@ function buildFinalizePreflightError(err) {
     "Help:",
     "- This environment cannot write under .git (lock file creation failed).",
     "- Run finalize in a writable shell or with elevated permissions.",
-    "- Run: senti flow run finalize-commit --help",
+    "- Run: senrail flow run finalize-commit --help",
   ].join("\n");
   const e = new Error(msg);
   e.code = "FINALIZE_PREFLIGHT_FAILED";

@@ -2,7 +2,7 @@
 /**
  * src/check/commands/scan.js
  *
- * senti check scan — scan coverage report.
+ * senrail check scan — scan coverage report.
  *
  * Shows DataSource coverage: scan.include matched files vs DataSource-analyzed files.
  * Reports uncovered files grouped by extension (actionable summary) followed by the file list.
@@ -11,7 +11,7 @@
 import fs from "fs";
 import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
-import { sentiOutputDir } from "../../lib/config.js";
+import { senrailOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { pushSection } from "../../lib/formatter.js";
@@ -23,11 +23,11 @@ import {
 } from "../../lib/file-tree-walker.js";
 
 const DEFAULT_MAX_FILES = 10;
-const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", ".senti"]);
+const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", ".senrail"]);
 
 function printHelp() {
   console.log([
-    "Usage: senti check scan [options]",
+    "Usage: senrail check scan [options]",
     "",
     "Show scan coverage report for the current project.",
     "",
@@ -57,7 +57,7 @@ function groupByExtension(files) {
 
 /**
  * Walk baseDir recursively, collecting files matched by includeMatchers.
- * Skips .git, node_modules, vendor, .senti directories.
+ * Skips .git, node_modules, vendor, .senrail directories.
  * Applies excludeMatchers to relative paths.
  *
  * @param {string} baseDir
@@ -90,14 +90,14 @@ function coveragePercent(coverage) {
  *
  * @param {string} root - work root
  * @param {string} src - source root
- * @param {Object} cfg - senti config
+ * @param {Object} cfg - senrail config
  * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
  * @returns {{ dataSourceCoverage: { total: number, analyzed: number, uncovered: string[], complete: boolean, result: string, limits: string[] } }}
  */
 function computeCoverage(root, src, cfg, { policy = DEFAULT_SCAN_POLICY } = {}) {
-  const outputPath = path.join(sentiOutputDir(root), "analysis.json");
+  const outputPath = path.join(senrailOutputDir(root), "analysis.json");
   if (!fs.existsSync(outputPath)) {
-    throw new Error(`analysis.json not found: ${outputPath}\nRun 'senti docs scan' first.`);
+    throw new Error(`analysis.json not found: ${outputPath}\nRun 'senrail docs scan' first.`);
   }
 
   let analysis;
@@ -230,7 +230,7 @@ async function runCheckScan(rawArgs, container) {
 
   const format = cli.format || "text";
   if (!["text", "json", "md"].includes(format)) {
-    process.stderr.write(`senti check scan: unknown format '${format}'. Use text, json, or md.\n`);
+    process.stderr.write(`senrail check scan: unknown format '${format}'. Use text, json, or md.\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -239,7 +239,7 @@ async function runCheckScan(rawArgs, container) {
 
   const cfg = container.get("config");
   if (!cfg || Object.keys(cfg).length === 0) {
-    process.stderr.write(`senti check scan: config is not available\n`);
+    process.stderr.write(`senrail check scan: config is not available\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -247,7 +247,7 @@ async function runCheckScan(rawArgs, container) {
   try {
     data = computeCoverage(root, src, cfg);
   } catch (err) {
-    process.stderr.write(`senti check scan: ${err.message}\n`);
+    process.stderr.write(`senrail check scan: ${err.message}\n`);
     process.exit(EXIT_ERROR);
   }
 

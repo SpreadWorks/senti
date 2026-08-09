@@ -1,12 +1,12 @@
-# <!-- {{data("cli.project.name")}} -->@spreadworks/senti<!-- {{/data}} -->
+# Senrail
 
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
-[日本語](https://github.com/SpreadWorks/senti/blob/main/docs/ja/README.md) | **English**
+[日本語](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/README.md) | **English**
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/senti.svg)](https://www.npmjs.com/package/senti)
-[![license](https://img.shields.io/npm/l/senti.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/senti.svg)](https://www.npmjs.com/package/senti)
+[![npm version](https://img.shields.io/npm/v/senrail.svg)](https://www.npmjs.com/package/senrail)
+[![license](https://img.shields.io/npm/l/senrail.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/senrail.svg)](https://www.npmjs.com/package/senrail)
 
 > **Alpha:** APIs, command structure, and configuration formats may change without notice.
 
@@ -55,13 +55,13 @@ Documentation is automatically refreshed during the merge phase, so docs and cod
 ### Install
 
 <pre>
-npm install -g <!-- {{data("cli.project.name")}} -->@spreadworks/senti<!-- {{/data}} -->
+npm install -g senrail
 </pre>
 
 ### Setup
 
 <pre>
-<!-- {{data("cli.project.name")}} -->@spreadworks/senti<!-- {{/data}} --> setup
+senrail setup
 </pre>
 
 An interactive wizard configures your project type (preset) and AI agent.
@@ -71,7 +71,7 @@ An interactive wizard configures your project type (preset) and AI agent.
 If you already have source code, generate documentation to get a complete picture of the system. Especially useful for onboarding onto legacy codebases.
 
 <pre>
-<!-- {{data("cli.project.name")}} -->@spreadworks/senti<!-- {{/data}} --> docs build
+senrail docs build
 </pre>
 
 ### Develop with the Spec-Driven Development flow
@@ -80,13 +80,13 @@ If you already have source code, generate documentation to get a complete pictur
 
 | Skill | Phase |
 |---|---|
-| `/senti.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
+| `/senrail.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 **[Codex CLI](https://github.com/openai/codex)** — invoke via `$` prefix:
 
 | Command | Phase |
 |---|---|
-| `$senti.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
+| `$senrail.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 ## Commands
 
@@ -95,11 +95,11 @@ If you already have source code, generate documentation to get a complete pictur
 | `setup` | Register project and generate config |
 | `docs build` | Run the full documentation pipeline |
 
-See `senti help` or the [command reference](docs/cli_commands.md) for the full list.
+See `senrail help` or the [command reference](docs/cli_commands.md) for the full list.
 
 ## Configuration
 
-`setup` generates `.senti/config.json`:
+`setup` generates `.senrail/config.json`:
 
 ```jsonc
 {
@@ -119,13 +119,13 @@ See the [configuration reference](docs/configuration.md) for details.
 <!-- {{data("cli.docs.chapters", {header: "", labels: "Chapter|Summary", ignoreError: true})}} -->
 | Chapter | Summary |
 | --- | --- |
-| [Tool Overview and Architecture](https://github.com/SpreadWorks/senti/blob/main/docs/overview.md) | This chapter introduces sdd-forge, a CLI tool that automates documentation generation from source code analysis and e… |
-| [Technology Stack and Operations](https://github.com/SpreadWorks/senti/blob/main/docs/stack_and_ops.md) | This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the sent… |
-| [Project Structure](https://github.com/SpreadWorks/senti/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sdd-forge project, which is structured around seven … |
-| [CLI Command Reference](https://github.com/SpreadWorks/senti/blob/main/docs/cli_commands.md) | The CLI is organized as command groups that dispatch subcommands from registries, with docs, flow, metrics, spec, and… |
-| [Configuration and Customization](https://github.com/SpreadWorks/senti/blob/main/docs/configuration.md) | sdd-forge is configured through a single project-level JSON file (.sdd-forge/config.json) and optionally extended by … |
-| [Internal Design](https://github.com/SpreadWorks/senti/blob/main/docs/internal_design.md) | This project is organized around three main areas: src/docs for documentation analysis and generation, src/flow for S… |
-| [Preset Creation Guide](https://github.com/SpreadWorks/senti/blob/main/docs/creating_presets.md) |  |
+| [Tool Overview and Architecture](https://github.com/SpreadWorks/senrail/blob/main/docs/overview.md) | This chapter introduces sdd-forge, a CLI tool that automates documentation generation from source code analysis and e… |
+| [Technology Stack and Operations](https://github.com/SpreadWorks/senrail/blob/main/docs/stack_and_ops.md) | This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the sent… |
+| [Project Structure](https://github.com/SpreadWorks/senrail/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sdd-forge project, which is structured around seven … |
+| [CLI Command Reference](https://github.com/SpreadWorks/senrail/blob/main/docs/cli_commands.md) | The CLI is organized as command groups that dispatch subcommands from registries, with docs, flow, metrics, spec, and… |
+| [Configuration and Customization](https://github.com/SpreadWorks/senrail/blob/main/docs/configuration.md) | sdd-forge is configured through a single project-level JSON file (.sdd-forge/config.json) and optionally extended by … |
+| [Internal Design](https://github.com/SpreadWorks/senrail/blob/main/docs/internal_design.md) | This project is organized around three main areas: src/docs for documentation analysis and generation, src/flow for S… |
+| [Preset Creation Guide](https://github.com/SpreadWorks/senrail/blob/main/docs/creating_presets.md) |  |
 <!-- {{/data}} -->
 
 ## License

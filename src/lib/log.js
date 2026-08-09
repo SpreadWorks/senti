@@ -1,14 +1,14 @@
 /**
- * senti/lib/log.js
+ * senrail/lib/log.js
  *
- * Unified JSONL logger for senti.
+ * Unified JSONL logger for senrail.
  *
  * Container-managed service. Construct once via `initContainer` with a
  * pre-resolved log directory and dependencies; retrieve through
  * `container.get("logger")`. No singleton / getInstance().
  *
  * Two-tier output:
- *   - Daily JSONL `<logDir>/senti-YYYY-MM-DD.jsonl` (lightweight metadata)
+ *   - Daily JSONL `<logDir>/senrail-YYYY-MM-DD.jsonl` (lightweight metadata)
  *   - Per-request prompt JSON `<logDir>/prompts/YYYY-MM-DD/<requestId>.json`
  *
  * Three domains exposed on the instance:
@@ -17,7 +17,7 @@
  *   - logger.event(name, fields)
  *
  * When `enabled` is false the methods are no-ops (no I/O, no throws). Flow
- * context (spec, sentiPhase) for agent end events is looked up through the
+ * context (spec, senrailPhase) for agent end events is looked up through the
  * FlowManager passed at construction; metric accumulation is NOT the
  * logger's responsibility (it lives in the agent call path).
  */
@@ -27,6 +27,7 @@ import fs from "fs";
 import path from "path";
 
 import { maskSensitive } from "./log-masking.js";
+import { PRODUCT } from "./product.js";
 
 /** Absolute path of this module file, used to exclude own frames in extractCaller. */
 const SELF_FILE = new URL(import.meta.url).pathname;
@@ -74,7 +75,7 @@ function extractCaller() {
       try {
         file = new URL(file).pathname;
       } catch (err) {
-        process.stderr.write(`[senti] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
+        process.stderr.write(`[senrail] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
       }
     }
     if (path.resolve(file) === path.resolve(SELF_FILE)) continue;
@@ -90,7 +91,7 @@ async function appendJsonlMasked(file, obj, trustedRoots) {
     const masked = maskSensitive(obj, { trustedRoots });
     await fs.promises.appendFile(file, JSON.stringify(masked) + "\n", "utf8");
   } catch (err) {
-    process.stderr.write(`[senti] log write failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] log write failed: ${err.message}\n`);
   }
 }
 
@@ -103,7 +104,7 @@ async function writePromptFileMasked(promptDir, requestId, payload, trustedRoots
     await fs.promises.writeFile(file, JSON.stringify(masked, null, 2) + "\n", "utf8");
     return file;
   } catch (err) {
-    process.stderr.write(`[senti] prompt file write failed: ${err.message}\n`);
+    process.stderr.write(`[senrail] prompt file write failed: ${err.message}\n`);
     return null;
   }
 }
@@ -167,7 +168,7 @@ export class Logger {
 
   #logFiles() {
     return {
-      jsonl: path.join(this.#logDir, `senti-${todayLocal()}.jsonl`),
+      jsonl: path.join(this.#logDir, `${PRODUCT.machineName}-${todayLocal()}.jsonl`),
       promptDir: path.join(this.#logDir, "prompts", todayLocal()),
     };
   }
@@ -202,20 +203,20 @@ export class Logger {
       const ctx = entry.flowContext;
       return {
         specId: ctx?.specId ?? null,
-        sentiPhase: ctx?.sentiPhase ?? null,
+        senrailPhase: ctx?.senrailPhase ?? null,
         taskId: ctx?.taskId ?? null,
       };
     }
     if (!this.#flowManager || this.#resolvingContext) {
-      return { specId: null, sentiPhase: null, taskId: null };
+      return { specId: null, senrailPhase: null, taskId: null };
     }
     this.#resolvingContext = true;
     try {
       const ctx = this.#flowManager.resolveCurrentContext();
-      return { specId: ctx.specId ?? null, sentiPhase: ctx.sentiPhase ?? null, taskId: ctx.taskId ?? null };
+      return { specId: ctx.specId ?? null, senrailPhase: ctx.senrailPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
-      process.stderr.write(`[senti] Logger: flow state read failed: ${err.message}\n`);
-      return { specId: null, sentiPhase: null, taskId: null };
+      process.stderr.write(`[senrail] Logger: flow state read failed: ${err.message}\n`);
+      return { specId: null, senrailPhase: null, taskId: null };
     } finally {
       this.#resolvingContext = false;
     }
@@ -233,7 +234,7 @@ export class Logger {
    * @param {{text?: string, stdout?: string|null, stderr?: string|null, exitCode?: number, error?: string|null}} [entry.response]
    * @param {number} [entry.durationSec]
    * @param {Object} [entry.usage]
-   * @param {{spec?: string|null, sentiPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
+   * @param {{spec?: string|null, senrailPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
    */
   agent(entry) {
     return this.#track(this.#agentImpl(entry));
@@ -254,7 +255,7 @@ export class Logger {
         phase: "start",
         requestId: entry.requestId,
         specId: startCtx.specId,
-        sentiPhase: startCtx.sentiPhase,
+        senrailPhase: startCtx.senrailPhase,
         taskId: startCtx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -277,7 +278,7 @@ export class Logger {
       context: {
         entryCommand: this.#entryCommand,
         specId: ctx.specId,
-        sentiPhase: ctx.sentiPhase,
+        senrailPhase: ctx.senrailPhase,
         taskId: ctx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -324,7 +325,7 @@ export class Logger {
       phase: "end",
       requestId: entry.requestId,
       specId: ctx.specId,
-      sentiPhase: ctx.sentiPhase,
+      senrailPhase: ctx.senrailPhase,
       taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,

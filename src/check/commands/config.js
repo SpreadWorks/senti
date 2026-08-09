@@ -2,7 +2,7 @@
 /**
  * src/check/commands/config.js
  *
- * senti check config — config.json validation report.
+ * senrail check config — config.json validation report.
  *
  * Runs three checks in order:
  *   1. File existence and JSON parse
@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import { parseArgs } from "../../lib/cli.js";
-import { sentiConfigPath, validate } from "../../lib/config.js";
+import { senrailConfigPath, validate } from "../../lib/config.js";
 import { createPresetCatalog } from "../../lib/presets.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
@@ -22,9 +22,9 @@ const MAX_SCHEMA_ERRORS = 50;
 function printHelp() {
   console.log(
     [
-      "Usage: senti check config [options]",
+      "Usage: senrail check config [options]",
       "",
-      "Validate .senti/config.json for required fields, preset existence,",
+      "Validate .senrail/config.json for required fields, preset existence,",
       "and schema consistency.",
       "",
       "Options:",
@@ -42,7 +42,7 @@ function printHelp() {
  * @returns {{ name: string, result: "pass"|"fail", errors: string[] }[]}
  */
 function runChecks(root) {
-  const configPath = sentiConfigPath(root);
+  const configPath = senrailConfigPath(root);
   const checks = [];
 
   // Check 1: file existence + JSON parse
@@ -106,7 +106,7 @@ async function runConfigCheck(rawArgs, container) {
 
   const format = cli.format || "text";
   if (!["text", "json"].includes(format)) {
-    process.stderr.write(`senti check config: unknown format '${format}'. Use text or json.\n`);
+    process.stderr.write(`senrail check config: unknown format '${format}'. Use text or json.\n`);
     process.exit(EXIT_ERROR);
   }
 

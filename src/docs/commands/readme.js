@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * senti/engine/readme.js
+ * senrail/engine/readme.js
  *
  * docs/ 配下の章ファイルから README.md を自動生成する。
  * 既存 README.md の MANUAL ブロックは保持する。
  *
  * Usage:
- *   node senti/engine/readme.js [--dry-run] [--help]
+ *   node senrail/engine/readme.js [--dry-run] [--help]
  */
 
 import fs from "fs";
@@ -70,7 +70,7 @@ async function runReadme(ctx, rawArgs) {
     return;
   }
 
-  const projectLocalDir = path.join(root, ".senti", "templates", lang, "docs");
+  const projectLocalDir = path.join(root, ".senrail", "templates", lang, "docs");
   const docsConfig = config?.docs;
   const fallbackLangs = docsConfig?.languages?.filter((l) => l !== lang) || [];
 
@@ -151,7 +151,7 @@ async function runReadme(ctx, rawArgs) {
       const cfg = container.get("config");
       const agent = ctx.agent;
       if (!agent || !agent.resolve("docs.readme")) {
-        throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senti setup'.");
+        throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
       }
       const analysis = loadFullAnalysis(root) || {};
       const documentStyle = cfg?.docs?.style;

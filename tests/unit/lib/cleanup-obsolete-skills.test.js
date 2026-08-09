@@ -39,64 +39,64 @@ describe("cleanupObsoleteSkills — consolidated flow skill scenario (R10)", () 
   it("removes legacy flow-plan/impl/finalize and preserves unrelated skills", () => {
     tmp = createTmpDir();
     const installed = [
-      "senti.flow-plan",
-      "senti.flow-impl",
-      "senti.flow-finalize",
-      "senti.flow",
-      "senti.flow-auto",
+      "senrail.flow-plan",
+      "senrail.flow-impl",
+      "senrail.flow-finalize",
+      "senrail.flow",
+      "senrail.flow-auto",
     ];
     setupProject(tmp, installed);
 
     const templatesDir = path.join(tmp, "_templates");
     setupActiveTemplates(templatesDir, [
-      "senti.flow",
-      "senti.flow-auto",
-      "senti.flow-resume",
-      "senti.flow-status",
-      "senti.flow-sync",
+      "senrail.flow",
+      "senrail.flow-auto",
+      "senrail.flow-resume",
+      "senrail.flow-status",
+      "senrail.flow-sync",
     ]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
 
     const removed = result.map((r) => r.name).sort();
     assert.deepEqual(removed, [
-      "senti.flow-finalize",
-      "senti.flow-impl",
-      "senti.flow-plan",
+      "senrail.flow-finalize",
+      "senrail.flow-impl",
+      "senrail.flow-plan",
     ]);
 
     for (const base of [".claude", ".agents"]) {
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-plan")));
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-impl")));
-      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senti.flow-finalize")));
-      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")));
-      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senti.flow-auto")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senrail.flow-plan")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senrail.flow-impl")));
+      assert.ok(!fs.existsSync(path.join(tmp, base, "skills", "senrail.flow-finalize")));
+      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senrail.flow")));
+      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "senrail.flow-auto")));
     }
   });
 
   it("dry-run mode reports removals without touching the filesystem", () => {
     tmp = createTmpDir();
-    setupProject(tmp, ["senti.flow-plan", "senti.flow"]);
+    setupProject(tmp, ["senrail.flow-plan", "senrail.flow"]);
     const templatesDir = path.join(tmp, "_templates");
-    setupActiveTemplates(templatesDir, ["senti.flow"]);
+    setupActiveTemplates(templatesDir, ["senrail.flow"]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir], { dryRun: true });
     assert.equal(result.length, 1);
-    assert.equal(result[0].name, "senti.flow-plan");
+    assert.equal(result[0].name, "senrail.flow-plan");
 
-    assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "senti.flow-plan")));
-    assert.ok(fs.existsSync(path.join(tmp, ".agents", "skills", "senti.flow-plan")));
+    assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "senrail.flow-plan")));
+    assert.ok(fs.existsSync(path.join(tmp, ".agents", "skills", "senrail.flow-plan")));
   });
 
-  it("ignores non-senti skills (does not touch third-party skills)", () => {
+  it("ignores non-senrail skills (does not touch third-party skills)", () => {
     tmp = createTmpDir();
-    setupProject(tmp, ["senti.flow-plan", "my-custom-skill"]);
+    setupProject(tmp, ["senrail.flow-plan", "my-custom-skill"]);
     const templatesDir = path.join(tmp, "_templates");
-    setupActiveTemplates(templatesDir, ["senti.flow"]);
+    setupActiveTemplates(templatesDir, ["senrail.flow"]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
     const removed = result.map((r) => r.name);
-    assert.deepEqual(removed, ["senti.flow-plan"]);
+    assert.deepEqual(removed, ["senrail.flow-plan"]);
 
     assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "my-custom-skill")));
   });

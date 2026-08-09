@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
-import { SENTI, writeBaseConfig } from "../../helpers/metrics-token.js";
+import { SENRAIL, writeBaseConfig } from "../../helpers/metrics-token.js";
 
 function paddedSpecJson(padChar, padLen) {
   return JSON.stringify({
@@ -25,7 +25,7 @@ describe("metrics token command", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   function setupProject() {
-    tmp = createTmpDir("senti-metrics-token-");
+    tmp = createTmpDir("senrail-metrics-token-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", {
       state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
@@ -40,7 +40,7 @@ describe("metrics token command", () => {
   }
 
   function setupProjectWithDifficultyData() {
-    tmp = createTmpDir("senti-metrics-token-diff-");
+    tmp = createTmpDir("senrail-metrics-token-diff-");
     writeBaseConfig(tmp);
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("A", 1600));
     writeFile(tmp, "specs/001-alpha/review.md", [
@@ -72,9 +72,9 @@ describe("metrics token command", () => {
 
   it("supports json format and returns aggregated rows", () => {
     setupProject();
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "json"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "json"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     const parsed = JSON.parse(out);
@@ -84,9 +84,9 @@ describe("metrics token command", () => {
 
   it("uses text format by default and prints phase sections", () => {
     setupProject();
-    const out = execFileSync("node", [SENTI, "metrics", "token"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     assert.match(out, /-- draft -+/i);
@@ -96,9 +96,9 @@ describe("metrics token command", () => {
 
   it("supports csv format with expected headers", () => {
     setupProject();
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "csv"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "csv"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     assert.match(
@@ -109,9 +109,9 @@ describe("metrics token command", () => {
 
   it("computes numeric difficulty when required fields exist", () => {
     setupProjectWithDifficultyData();
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "json"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "json"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     const parsed = JSON.parse(out);
@@ -126,9 +126,9 @@ describe("metrics token command", () => {
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
     writeFile(tmp, "specs/001-alpha/review.md", "### [x] 1. one");
     writeJson(tmp, "specs/001-alpha/issue-log.json", { entries: [] });
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "csv"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "csv"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     const lines = out.trim().split("\n");
@@ -138,7 +138,7 @@ describe("metrics token command", () => {
   });
 
   it("treats missing qaCount/testCount/issueLogEntries as zero for calculation", () => {
-    tmp = createTmpDir("senti-metrics-token-zeroable-");
+    tmp = createTmpDir("senrail-metrics-token-zeroable-");
     writeBaseConfig(tmp);
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("B", 1200));
     writeJson(tmp, "specs/001-alpha/flow.json", {
@@ -155,9 +155,9 @@ describe("metrics token command", () => {
         },
       },
     });
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "json"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "json"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     const parsed = JSON.parse(out);
@@ -168,7 +168,7 @@ describe("metrics token command", () => {
   });
 
   it("returns — when requestChars resolves to zero", () => {
-    tmp = createTmpDir("senti-metrics-token-reqzero-");
+    tmp = createTmpDir("senrail-metrics-token-reqzero-");
     writeBaseConfig(tmp);
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
     writeJson(tmp, "specs/001-alpha/flow.json", {
@@ -186,9 +186,9 @@ describe("metrics token command", () => {
         },
       },
     });
-    const out = execFileSync("node", [SENTI, "metrics", "token", "--format", "csv"], {
+    const out = execFileSync("node", [SENRAIL, "metrics", "token", "--format", "csv"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp, SENTI_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
     const lines = out.trim().split("\n");

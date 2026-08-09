@@ -16,16 +16,16 @@ const DEFAULT_PACKAGE = {
 };
 
 export function createMockProject(overrides = {}) {
-  const root = createTmpDir("senti-mock-");
+  const root = createTmpDir("senrail-mock-");
   const cfg = { ...DEFAULT_CONFIG, ...overrides.config };
   const pkg = { ...DEFAULT_PACKAGE, ...overrides.package };
 
-  writeJson(root, ".senti/config.json", cfg);
+  writeJson(root, ".senrail/config.json", cfg);
   writeJson(root, "package.json", pkg);
-  writeFile(root, ".senti/output/.gitkeep");
+  writeFile(root, ".senrail/output/.gitkeep");
 
   if (overrides.analysis) {
-    writeJson(root, ".senti/output/analysis.json", overrides.analysis);
+    writeJson(root, ".senrail/output/analysis.json", overrides.analysis);
   }
 
   if (overrides.docs) {

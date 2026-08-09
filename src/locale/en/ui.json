@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "senti — Setup",
+    "title": "senrail — Setup",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -69,7 +69,7 @@
       "skillsDeployed": "[setup] Skills deployed (.agents/skills/ + .claude/skills/)",
       "summary": "Configuration Summary:",
       "nextSteps": "Next Steps:",
-      "step1": "senti build  — Generate docs (scan → init → data → text)",
+      "step1": "senrail build  — Generate docs (scan → init → data → text)",
       "step2": "Configure test.command for final regression and project test paths for targeted repair-loop regression"
     },
     "prompt": "> "
@@ -91,8 +91,8 @@
   },
   "help": {
     "title": "Commands",
-    "usage": "Usage: senti <command> [options]",
-    "runHelp": "Run \u001b[1msenti <command> --help\u001b[0m for details.",
+    "usage": "Usage: senrail <command> [options]",
+    "runHelp": "Run \u001b[1msenrail <command> --help\u001b[0m for details.",
     "commands": {
       "help": "Show this help",
       "setup": "Register project + generate config (interactive)",
@@ -119,7 +119,7 @@
     },
     "cmdHelp": {
       "enrich": {
-        "usage": "Usage: senti docs enrich [options]",
+        "usage": "Usage: senrail docs enrich [options]",
         "desc": "Enrich analysis.json entries with AI-generated summary, detail, chapter, and role.",
         "options": {
           "agent": "--agent <name>  AI agent to use (default: config defaultAgent)",
@@ -129,7 +129,7 @@
         }
       },
       "scan": {
-        "usage": "Usage: senti docs scan [options]",
+        "usage": "Usage: senrail docs scan [options]",
         "desc": "Analyze source code and generate analysis.json.",
         "options": {
           "reset": "--reset [cats]  Clear entry hashes (all or comma-separated categories)",
@@ -139,7 +139,7 @@
         }
       },
       "init": {
-        "usage": "Usage: senti docs init [options]",
+        "usage": "Usage: senrail docs init [options]",
         "desc": "Copy templates to docs/.",
         "options": {
           "type": "--type <type>            Template type (default: config.json type)",
@@ -149,7 +149,7 @@
         }
       },
       "data": {
-        "usage": "Usage: senti docs data [options]",
+        "usage": "Usage: senrail docs data [options]",
         "desc": "Resolve {{data}} directives with analysis data.",
         "options": {
           "dryRun": "--dry-run   Show changes without writing files",
@@ -158,7 +158,7 @@
         }
       },
       "text": {
-        "usage": "Usage: senti docs text --agent <name> [options]",
+        "usage": "Usage: senrail docs text --agent <name> [options]",
         "desc": "Resolve {{text}} directives with AI.",
         "options": {
           "agent": "--agent <name>      AI agent: claude|codex (required)",
@@ -170,14 +170,14 @@
         }
       },
       "forge": {
-        "usage": "Usage: senti docs forge --prompt \"...\" [options]",
+        "usage": "Usage: senrail docs forge --prompt \"...\" [options]",
         "desc": "Iteratively improve docs with an AI agent.",
         "options": {
           "prompt": "--prompt <text>        Initial prompt",
           "promptFile": "--prompt-file <path>   Initial prompt file",
           "spec": "--spec <path>          Input specification (directory / spec.json / legacy spec.md)",
           "maxRuns": "--max-runs <n>         Iteration count (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: senti review)",
+          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: senrail review)",
           "agent": "--agent <name>         AI agent: codex|claude (default: config.json defaultAgent)",
           "mode": "--mode <mode>          Execution mode: local|assist|agent (default: local)",
           "dryRun": "--dry-run              Skip file writes, review, and agent calls (1 round)",
@@ -188,28 +188,28 @@
         "perFileNote": "When the provider has systemPromptFlag set, the agent is called asynchronously per file.\nConcurrency is configurable via config.json limits.concurrency (default: 5)."
       },
       "review": {
-        "usage": "Usage: senti docs review [<docs-dir>]",
+        "usage": "Usage: senrail docs review [<docs-dir>]",
         "desc": "Validate chapter files in docs/.",
-        "descDetail": "Defaults to ${SENTI_WORK_ROOT}/docs when no argument is given."
+        "descDetail": "Defaults to ${SENRAIL_WORK_ROOT}/docs when no argument is given."
       },
       "changelog": {
-        "usage": "Usage: senti docs changelog [--dry-run] [<output-file>]",
+        "usage": "Usage: senrail docs changelog [--dry-run] [<output-file>]",
         "desc": "Scan specs/ and generate change_log.md.",
-        "descDetail": "Defaults to ${SENTI_SOURCE_ROOT}/docs/change_log.md when no argument is given.",
+        "descDetail": "Defaults to ${SENRAIL_SOURCE_ROOT}/docs/change_log.md when no argument is given.",
         "options": {
           "dryRun": "--dry-run   Print result to stdout without writing file"
         }
       },
       "agents": {
-        "usage": "Usage: senti docs agents [--dry-run]",
+        "usage": "Usage: senrail docs agents [--dry-run]",
         "desc": "Update AGENTS.md by resolving {{data}} directives.",
-        "descDetail": "Resolves agents.senti and agents.project directives (PROJECT is refined by AI).",
+        "descDetail": "Resolves agents.flow and agents.project directives (PROJECT is refined by AI).",
         "options": {
           "dryRun": "--dry-run   Print generated content to stdout without writing"
         }
       },
       "flow": {
-        "usage": "Usage: senti flow start --request \"...\" [options]",
+        "usage": "Usage: senrail flow start --request \"...\" [options]",
         "desc": "Run the Spec-Driven Development flow automatically.",
         "options": {
           "request": "--request <text>   Implementation request (required)",
@@ -219,12 +219,12 @@
           "maxRuns": "--max-runs <n>     docs:forge iteration count",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",
           "noBranch": "--no-branch        Create spec only without creating a branch",
-          "worktree": "--worktree         Create a git worktree for the spec (.senti/worktree/<branch>/)",
+          "worktree": "--worktree         Create a git worktree for the spec (.senrail/worktree/<branch>/)",
           "dryRun": "--dry-run          Run all subcommands in dry-run mode"
         }
       },
       "build": {
-        "usage": "Usage: senti docs build [options]",
+        "usage": "Usage: senrail docs build [options]",
         "desc": "Run the full document generation pipeline:",
         "descDetail": "scan → init → data → text → readme → agents → translate",
         "options": {
@@ -236,7 +236,7 @@
         }
       },
       "readme": {
-        "usage": "Usage: senti docs readme [options]",
+        "usage": "Usage: senrail docs readme [options]",
         "desc": "Auto-generate README.md from docs/ and templates.",
         "options": {
           "lang": "--lang <code>  Template language (default: config.docs.defaultLanguage)",
@@ -246,7 +246,7 @@
         }
       },
       "translate": {
-        "usage": "Usage: senti docs translate [options]",
+        "usage": "Usage: senrail docs translate [options]",
         "desc": "Translate default-language documents to non-default languages.",
         "options": {
           "lang": "--lang <lang>  Translate to specific language only",
@@ -256,7 +256,7 @@
         }
       },
       "setup": {
-        "usage": "Usage: senti setup [options]",
+        "usage": "Usage: senrail setup [options]",
         "desc": "Interactive project setup wizard.",
         "options": {
           "name": "--name <name>               Project name",
@@ -273,8 +273,8 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: senti upgrade [options]",
-        "desc": "Upgrade template-derived files to match the installed senti version.",
+        "usage": "Usage: senrail upgrade [options]",
+        "desc": "Upgrade template-derived files to match the installed senrail version.",
         "descDetail": "Updates skill-derived files and migrates config.json by enabling official preset plugins when required.",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        Skill templates",
@@ -286,7 +286,7 @@
         }
       },
       "presets": {
-        "usage": "Usage: senti presets list",
+        "usage": "Usage: senrail presets list",
         "desc": "Display the preset inheritance tree."
       }
     }
@@ -313,7 +313,7 @@
       "artifact": "test-execute-result.json v2",
       "review": "test-result-review.json",
       "projectRegression": "project regression",
-      "config": ".senti/config.json test.command / test.projectPaths / test.timeout"
+      "config": ".senrail/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

@@ -1,5 +1,5 @@
 /**
- * senti/lib/presets.js
+ * senrail/lib/presets.js
  *
  * Auto-discovers builtin presets and enabled plugin preset contributions.
  * All consumers derive their preset data from this single source.
@@ -181,7 +181,7 @@ export function resolveChain(leafKey, projectRoot, opts = {}) {
  * only the child's chain is kept (parent is already included).
  *
  * @param {string|string[]} types - Single preset name or array of preset names
- * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
+ * @param {string} [projectRoot] - Project root directory for .senrail/presets/ lookup
  * @returns {Object[][]} Array of chains, each chain is root → leaf ordered
  */
 export function resolveMultiChains(types, projectRoot, opts = {}) {
@@ -274,7 +274,7 @@ function dedupeParentChains(chains) {
  * Unlike resolveChain(), this never throws.
  *
  * @param {string} presetKey - Preset key (e.g. "sample-preset", "node-cli")
- * @param {string} [projectRoot] - Project root directory for .senti/presets/ lookup
+ * @param {string} [projectRoot] - Project root directory for .senrail/presets/ lookup
  * @returns {Object[]} Array of preset objects, ordered root → leaf
  */
 export function resolveChainSafe(presetKey, projectRoot, opts = {}) {
@@ -294,7 +294,7 @@ export function resolveChainSafe(presetKey, projectRoot, opts = {}) {
  * layout scaffolding and agent/readme sources. Excluded from reverse-direction
  * warnings in validatePresetChain().
  */
-const SPECIAL_TEMPLATES = new Set(["README.md", "AGENTS.senti.md", "layout.md"]);
+const SPECIAL_TEMPLATES = new Set(["README.md", "flow-agent-instructions.md", "layout.md"]);
 
 /**
  * Upper bounds for validatePresetChain iteration (bounded-resource-usage).
@@ -381,9 +381,9 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
     }
   };
   if (projectRoot) {
-    // init.js uses `<root>/.senti/templates/<lang>/docs` as the project-local
+    // init.js uses `<root>/.senrail/templates/<lang>/docs` as the project-local
     // dir — mirror that path so validator PASS implies build can resolve.
-    push(path.join(projectRoot, ".senti", "templates", lang, "docs"));
+    push(path.join(projectRoot, ".senrail", "templates", lang, "docs"));
   }
   for (const typeKey of typeList) {
     const chain = resolveChainForType(typeKey);
@@ -410,7 +410,7 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
  * stderr without failing — chapters may intentionally exclude a template.
  *
  * @param {string|string[]} types - Preset key(s) to validate.
- * @param {string|undefined} projectRoot - Project root for .senti/ lookups.
+ * @param {string|undefined} projectRoot - Project root for .senrail/ lookups.
  * @param {object} options
  * @param {string[]} options.languages - Languages to validate (from config.docs.languages).
  * @param {Array} [options.configChapters] - Override chapters (from config.chapters).
@@ -462,7 +462,7 @@ function validatePresetChainWithResolver(types, projectRoot, { languages, config
   const effectiveSet = new Set(effectiveChapters);
   const reported = new Set();
   for (const lang of languages) {
-    const dir = path.join(projectRoot, ".senti", "templates", lang, "docs");
+    const dir = path.join(projectRoot, ".senrail", "templates", lang, "docs");
     if (!fs.existsSync(dir)) continue;
     for (const file of fs.readdirSync(dir)) {
       if (!file.endsWith(".md")) continue;

@@ -109,9 +109,9 @@ function makePreparingState(runId, overrides = {}) {
   };
 }
 
-function writePreparingFile(sentiDir, runId, overrides = {}) {
+function writePreparingFile(senrailDir, runId, overrides = {}) {
   const state = makePreparingState(runId, overrides);
-  fs.writeFileSync(join(sentiDir, `.active-flow.${runId}`), JSON.stringify(state, null, 2) + "\n");
+  fs.writeFileSync(join(senrailDir, `.active-flow.${runId}`), JSON.stringify(state, null, 2) + "\n");
   return state;
 }
 
@@ -123,14 +123,14 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> file uses flow.json schema with null fields", () => {
     tmp = createTmpDir();
-    const sentiDir = join(tmp, ".senti");
-    fs.mkdirSync(sentiDir, { recursive: true });
+    const senrailDir = join(tmp, ".senrail");
+    fs.mkdirSync(senrailDir, { recursive: true });
 
     const runId = "test-run-id-abc";
-    writePreparingFile(sentiDir, runId);
+    writePreparingFile(senrailDir, runId);
 
     // Verify file exists and is valid JSON with expected schema
-    const raw = JSON.parse(fs.readFileSync(join(sentiDir, `.active-flow.${runId}`), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(join(senrailDir, `.active-flow.${runId}`), "utf8"));
     assert.equal(raw.runId, runId);
     assert.equal(raw.lifecycle, "preparing");
     assert.equal(raw.specId, null);
@@ -146,13 +146,13 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("preparing state always has autoApprove false", () => {
     tmp = createTmpDir();
-    const sentiDir = join(tmp, ".senti");
-    fs.mkdirSync(sentiDir, { recursive: true });
+    const senrailDir = join(tmp, ".senrail");
+    fs.mkdirSync(senrailDir, { recursive: true });
 
     const runId = "test-auto-approve";
-    writePreparingFile(sentiDir, runId);
+    writePreparingFile(senrailDir, runId);
 
-    const raw = JSON.parse(fs.readFileSync(join(sentiDir, `.active-flow.${runId}`), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(join(senrailDir, `.active-flow.${runId}`), "utf8"));
     assert.equal(raw.autoApprove, false);
   });
 
@@ -160,12 +160,12 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> is deletable after promotion to flow.json", () => {
     tmp = createTmpDir();
-    const sentiDir = join(tmp, ".senti");
-    fs.mkdirSync(sentiDir, { recursive: true });
+    const senrailDir = join(tmp, ".senrail");
+    fs.mkdirSync(senrailDir, { recursive: true });
 
     const runId = "promote-test";
-    const preparingFile = join(sentiDir, `.active-flow.${runId}`);
-    writePreparingFile(sentiDir, runId);
+    const preparingFile = join(senrailDir, `.active-flow.${runId}`);
+    writePreparingFile(senrailDir, runId);
     assert.ok(fs.existsSync(preparingFile));
 
     // Simulate promotion: save flow.json + add to .active-flow + delete preparing file
@@ -186,15 +186,15 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("multiple .active-flow.* files can coexist", () => {
     tmp = createTmpDir();
-    const sentiDir = join(tmp, ".senti");
-    fs.mkdirSync(sentiDir, { recursive: true });
+    const senrailDir = join(tmp, ".senrail");
+    fs.mkdirSync(senrailDir, { recursive: true });
 
     const runId1 = "run-1";
     const runId2 = "run-2";
-    writePreparingFile(sentiDir, runId1);
-    writePreparingFile(sentiDir, runId2);
+    writePreparingFile(senrailDir, runId1);
+    writePreparingFile(senrailDir, runId2);
 
-    const files = fs.readdirSync(sentiDir).filter((f) => f.startsWith(".active-flow."));
+    const files = fs.readdirSync(senrailDir).filter((f) => f.startsWith(".active-flow."));
     assert.equal(files.length, 2);
   });
 });

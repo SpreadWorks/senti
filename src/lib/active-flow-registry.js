@@ -1,7 +1,7 @@
 /**
  * src/lib/active-flow-registry.js
  *
- * Manages `.senti/.active-flow` — the pointer file listing currently
+ * Manages `.senrail/.active-flow` — the pointer file listing currently
  * active Spec-Driven Development flows in this repository. Used by FlowManager.
  *
  * @typedef {Object} ActiveFlowEntry
@@ -11,7 +11,7 @@
 
 import fs from "fs";
 import path from "path";
-import { sentiDir } from "./config.js";
+import { senrailDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
 import { flowStatePath } from "./flow-state-atomic-writer.js";
@@ -28,7 +28,7 @@ const REGISTRY_LOCK_FILE = ".active-flow.lock";
 const VALID_MODES = new Set(["worktree", "branch", "local"]);
 
 function activeFlowPath(mainRoot) {
-  return path.join(sentiDir(mainRoot), ACTIVE_FLOW_FILE);
+  return path.join(senrailDir(mainRoot), ACTIVE_FLOW_FILE);
 }
 
 class ActiveFlowEntry {
@@ -317,7 +317,7 @@ export class ActiveFlowRegistry {
       return error;
     };
     const rootAuthority = new RealDirectoryAuthority(this._mainRoot, { errorFactory: rootErrorFactory });
-    const directoryAuthority = new RealDirectoryAuthority(path.join(this._mainRoot, ".senti"), {
+    const directoryAuthority = new RealDirectoryAuthority(path.join(this._mainRoot, ".senrail"), {
       create: true,
       parentAuthority: rootAuthority,
       errorFactory: rootErrorFactory,
@@ -336,7 +336,7 @@ export class ActiveFlowRegistry {
   }
 
   static lockPathFor(mainRoot) {
-    return path.join(resolveRepositoryLockRoot(mainRoot), ".senti", REGISTRY_LOCK_FILE);
+    return path.join(resolveRepositoryLockRoot(mainRoot), ".senrail", REGISTRY_LOCK_FILE);
   }
 
   /** @returns {ActiveFlowEntry[]} */

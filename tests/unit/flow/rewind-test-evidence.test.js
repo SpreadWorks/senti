@@ -1133,7 +1133,7 @@ describe("public stale test evidence recovery", () => {
         "--expect-run-id",
         "--expect-binding",
       ]);
-      assert.match(entry.help, /Usage: senti flow run rewind-test-evidence/);
+      assert.match(entry.help, /Usage: senrail flow run rewind-test-evidence/);
       assert.match(entry.help, /exact runId, spec, and Issue identity guards are required/);
       assert.match(entry.help, /no step, fingerprint, or allowlist input/);
     });

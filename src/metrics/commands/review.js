@@ -26,7 +26,7 @@ const ATTEMPT_LIMIT_THRESHOLD = 5;
 
 function formatUsage() {
   return [
-    "Usage: senti metrics review [options]",
+    "Usage: senrail metrics review [options]",
     "",
     "Options:",
     "  --format <text|json|csv>   Output format (default: text)",

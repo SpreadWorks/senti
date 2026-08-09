@@ -1,5 +1,5 @@
-   - Step status is automatically managed by `senti flow run review` hooks (pre sets in_progress, post sets done).
-   - Run `senti flow run review` to perform AI-powered code review.
+   - Step status is automatically managed by `senrail flow run review` hooks (pre sets in_progress, post sets done).
+   - Run `senrail flow run review` to perform AI-powered code review.
    - Responsibility boundary: this step records detection output and applies the typed finding-disposition policy. It does not perform repair mutation/audit or gate validation.
    - Downstream ownership: repair steps mutate/audit must-fix findings, and gate steps mechanically validate readiness and matching repair evidence.
    - The review writes `review.md` and `impl-review.json`.
@@ -19,7 +19,7 @@
    - **If verdict is `PASS` or `ADVISORY`**:
      - `impl-triage` and `impl-repair` are marked complete without an interactive repair.
      - Display: "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** Each `senti flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253).
+   - **Retry limit:** Each `senrail flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253).
    - At semantic retry exhaustion, unresolved findings are grouped by fingerprint, recorded in `flow-findings.json` with an explicit deferred disposition, and the review step completes without another repair cycle. `acceptance-review` owns final disposition before final-regression.
    - Non-semantic failures such as tooling, parser, malformed artifact, or schema failures are not deferred. Recover them with changed evidence and a retry reset before re-review.
    - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.

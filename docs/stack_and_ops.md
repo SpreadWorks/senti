@@ -11,7 +11,7 @@
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the programming language, framework, and key tool versions."})}} -->
 
-This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the `senti` package entry point. The analyzed configuration identifies Node.js `18.19.0` or newer as the runtime requirement and uses a specifically pinned `pnpm` version for consistent tooling.
+This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the `senrail` package entry point. The analyzed configuration identifies Node.js `18.19.0` or newer as the runtime requirement and uses a specifically pinned `pnpm` version for consistent tooling.
 <!-- {{/text}} -->
 
 ## Content
@@ -26,7 +26,7 @@ This project is a JavaScript codebase for Node.js, delivered as an ECMAScript mo
 | Runtime | Node.js | `18.19.0` or newer |
 | Module format | ECMAScript modules (ESM) | Configured at the package level |
 | Package manager | pnpm | Specific version pinned in `package.json` |
-| Distribution format | Node.js CLI and library package | Exposes `src/senti.js` as both binary and package entry |
+| Distribution format | Node.js CLI and library package | Exposes `src/senrail.js` as both binary and package entry |
 | Test execution | Repository-local Node runners | Versions not specified in the analysis |
 <!-- {{/text}} -->
 
@@ -43,7 +43,7 @@ For packaging, the manifest publishes the `src/` tree and explicitly excludes pr
 
 <!-- {{text({prompt: "Describe the deployment procedure and flow."})}} -->
 
-The analyzed files do not define a deployment pipeline or release workflow beyond package-level distribution settings. Based on `package.json`, the publish flow is scoped to the `src/` directory, exposes `src/senti.js` as the `senti` executable, and exports the same module as the package root.
+The analyzed files do not define a deployment pipeline or release workflow beyond package-level distribution settings. Based on `package.json`, the publish flow is scoped to the `src/` directory, exposes `src/senrail.js` as the `senrail` executable, and exports the same module as the package root.
 
 The packaged output is controlled by explicitly excluding preset test directories, which keeps test assets out of the published artifact. This indicates that deployment, in the analyzed scope, is centered on preparing and publishing a Node.js package with a controlled file set rather than on a separate application deployment process.
 <!-- {{/text}} -->

@@ -10,9 +10,9 @@ import {
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 function writeProject(root) {
-  const pluginRoot = path.join(root, ".senti", "plugins", "workflow");
+  const pluginRoot = path.join(root, ".senrail", "plugins", "workflow");
   fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senti", "config.json"), `${JSON.stringify({
+  fs.writeFileSync(path.join(root, ".senrail", "config.json"), `${JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -36,7 +36,7 @@ function writeProject(root) {
 }
 
 test("persisted hook policy resumes cleanup when the installed hook predates policy metadata", async () => {
-  const root = createTmpDir("senti-persisted-hook-policy-");
+  const root = createTmpDir("senrail-persisted-hook-policy-");
   try {
     writeProject(root);
 

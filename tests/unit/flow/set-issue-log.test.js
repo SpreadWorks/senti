@@ -13,7 +13,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-const FLOW_CMD = join(process.cwd(), "src/senti.js");
+const FLOW_CMD = join(process.cwd(), "src/senrail.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 // Reason strings must be >= 20 chars (trimmed). Use realistic explanatory text.
@@ -30,7 +30,7 @@ const GUARDRAIL_E = "Always verify scope boundaries explicitly";
 function runSetIssueLog(tmp, args) {
   return execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "issue-log", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 

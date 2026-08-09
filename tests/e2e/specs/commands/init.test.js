@@ -7,12 +7,12 @@ import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { makeFlowManager } from "../../../helpers/flow-setup.js";
 
-const CMD = join(process.cwd(), "src/senti.js");
+const CMD = join(process.cwd(), "src/senrail.js");
 
 function initProject(tmp) {
   execFileSync("git", ["init", tmp], { encoding: "utf8" });
   execFileSync("git", ["-C", tmp, "checkout", "-b", "main"], { encoding: "utf8" });
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "en", type: "sample-node-command",
     docs: { languages: ["en"], defaultLanguage: "en" },
   });
@@ -66,7 +66,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-feature", "--base", "main", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -81,7 +81,7 @@ describe("spec init CLI", () => {
     try {
       execFileSync("node", [CMD, "flow", "prepare"], {
         encoding: "utf8",
-        env: { ...process.env, SENTI_WORK_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
       });
       assert.fail("should throw");
     } catch (err) {
@@ -97,7 +97,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "my-feat", "--base", "main"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -118,7 +118,7 @@ describe("spec init CLI", () => {
     initProject(tmp);
     const result = execFileSync("node", [CMD, "flow", "prepare", "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
     assert.match(result, /--title/);
     assert.match(result, /--no-branch/);
@@ -131,7 +131,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "nb-feat", "--base", "main", "--no-branch"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -154,7 +154,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-so", "--base", "main", "--no-branch", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -168,7 +168,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "wt-feat", "--base", "main", "--worktree"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -176,7 +176,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created worktree/);
     assert.match(envelope.data.output, /created branch/);
     assertRunDerivedSpecIdentity(envelope.data, "wt-feat");
-    const wtPath = join(tmp, ".senti", "worktree", `feature-${envelope.data.specId}`);
+    const wtPath = join(tmp, ".senrail", "worktree", `feature-${envelope.data.specId}`);
     assert.equal(envelope.data.worktreePath, wtPath);
     assert.equal(envelope.data.artifacts.worktree, wtPath);
     assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
@@ -197,7 +197,7 @@ describe("spec init CLI", () => {
 
     const result = execFileSync("node", [CMD, "flow", "prepare", "--title", "test-wt", "--base", "main", "--worktree", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: tmp },
+      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
     });
 
     const envelope = JSON.parse(result);
@@ -207,7 +207,7 @@ describe("spec init CLI", () => {
     assertDryRunSpecIdentity(envelope.data, "test-wt");
     assert.equal(
       envelope.data.artifacts.worktree,
-      join(tmp, ".senti", "worktree", envelope.data.artifacts.branch.replace("/", "-")),
+      join(tmp, ".senrail", "worktree", envelope.data.artifacts.branch.replace("/", "-")),
     );
   });
 
@@ -217,7 +217,7 @@ describe("spec init CLI", () => {
 
     const wtPath = join(tmp, "auto-wt");
     execFileSync("git", ["-C", tmp, "worktree", "add", wtPath, "-b", "wt-auto"], { encoding: "utf8" });
-    writeJson(wtPath, ".senti/config.json", {
+    writeJson(wtPath, ".senrail/config.json", {
       lang: "en", type: "sample-node-command",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
@@ -226,14 +226,14 @@ describe("spec init CLI", () => {
       CMD, "flow", "set", "init", "--request", "prepare from a generic worktree",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+      env: { ...process.env, SENRAIL_WORK_ROOT: wtPath },
     }));
     const prepared = spawnSync("node", [
       CMD, "flow", "prepare", "--title", "auto-feat", "--base", "main",
       "--run-id", initialized.data.runId,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+      env: { ...process.env, SENRAIL_WORK_ROOT: wtPath },
     });
     assert.equal(prepared.status, 0, `stdout:\n${prepared.stdout}\nstderr:\n${prepared.stderr}`);
     const result = prepared.stdout;
@@ -259,7 +259,7 @@ describe("spec init CLI", () => {
 
     const switched = JSON.parse(execFileSync("node", [CMD, "flow", "get", "status", "--details"], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+      env: { ...process.env, SENRAIL_WORK_ROOT: wtPath },
     }));
     assert.equal(switched.data.request, "main authority");
 
@@ -275,7 +275,7 @@ describe("spec init CLI", () => {
     fs.mkdirSync(join(tmp, "specs", secondSpec), { recursive: true });
     fs.writeFileSync(join(tmp, "specs", secondSpec, "flow.json"), `${JSON.stringify(secondState, null, 2)}\n`);
     makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
-    fs.writeFileSync(join(tmp, ".senti", ".current-flow"), `${specId}\n`);
+    fs.writeFileSync(join(tmp, ".senrail", ".current-flow"), `${specId}\n`);
     const positional = JSON.parse(execFileSync("node", [
       CMD, "flow", "get", "status", "run-positional-second",
       "--expect-run-id", "run-positional-second",
@@ -283,7 +283,7 @@ describe("spec init CLI", () => {
       "--expect-spec", secondSpec,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+      env: { ...process.env, SENRAIL_WORK_ROOT: wtPath },
     }));
     assert.equal(positional.data.runId, "run-positional-second");
 
@@ -296,7 +296,7 @@ describe("spec init CLI", () => {
     initProject(tmp);
     const wtPath = join(tmp, "orphan-wt");
     execFileSync("git", ["-C", tmp, "worktree", "add", wtPath, "-b", "wt-orphan"], { encoding: "utf8" });
-    writeJson(wtPath, ".senti/config.json", {
+    writeJson(wtPath, ".senrail/config.json", {
       lang: "en", type: "sample-node-command",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
@@ -304,7 +304,7 @@ describe("spec init CLI", () => {
       CMD, "flow", "prepare", "--title", "orphan-generic", "--base", "main",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENTI_WORK_ROOT: wtPath },
+      env: { ...process.env, SENRAIL_WORK_ROOT: wtPath },
     });
     assert.equal(
       prepareResult.status,
@@ -312,14 +312,14 @@ describe("spec init CLI", () => {
       `stdout:\n${prepareResult.stdout}\nstderr:\n${prepareResult.stderr}`,
     );
     const prepared = JSON.parse(prepareResult.stdout);
-    fs.rmSync(join(tmp, ".senti", ".active-flow"), { force: true });
+    fs.rmSync(join(tmp, ".senrail", ".active-flow"), { force: true });
 
     try {
       execFileSync("node", [
         CMD, "flow", "resume", "--spec", prepared.data.specId,
       ], {
         encoding: "utf8",
-        env: { ...process.env, SENTI_WORK_ROOT: tmp },
+        env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
       });
       assert.fail("unregistered worktree flow must not resume");
     } catch (error) {

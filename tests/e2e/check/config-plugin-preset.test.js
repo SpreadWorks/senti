@@ -6,15 +6,15 @@ import { afterEach, describe, it } from "node:test";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { resolveChain } from "../../../src/lib/presets.js";
 
-const SENTI = path.join(process.cwd(), "src/senti.js");
+const SENRAIL = path.join(process.cwd(), "src/senrail.js");
 
 function runConfigCheck(root) {
-  return spawnSync("node", [SENTI, "check", "config", "--format", "json"], {
+  return spawnSync("node", [SENRAIL, "check", "config", "--format", "json"], {
     encoding: "utf8",
     env: {
       ...process.env,
-      SENTI_WORK_ROOT: root,
-      SENTI_SOURCE_ROOT: root,
+      SENRAIL_WORK_ROOT: root,
+      SENRAIL_SOURCE_ROOT: root,
     },
   });
 }
@@ -25,7 +25,7 @@ describe("check config plugin preset catalog", () => {
 
   it("accepts a plugin preset that the runtime can resolve", () => {
     root = createTmpDir("check-plugin-preset-");
-    writeJson(root, ".senti/config.json", {
+    writeJson(root, ".senrail/config.json", {
       lang: "en",
       type: "plugin-preset",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -38,7 +38,7 @@ describe("check config plugin preset catalog", () => {
         }],
       },
     });
-    writeJson(root, ".senti/plugins/plugin-package/plugin.json", {
+    writeJson(root, ".senrail/plugins/plugin-package/plugin.json", {
       name: "plugin-package",
       type: "preset",
       files: ["plugin.json", "presets/"],
@@ -46,7 +46,7 @@ describe("check config plugin preset catalog", () => {
         presets: [{ key: "plugin-preset", path: "presets/plugin-preset", parent: "base" }],
       },
     });
-    writeJson(root, ".senti/plugins/plugin-package/presets/plugin-preset/preset.json", {
+    writeJson(root, ".senrail/plugins/plugin-package/presets/plugin-preset/preset.json", {
       parent: "base",
       label: "Plugin Preset",
       chapters: [],

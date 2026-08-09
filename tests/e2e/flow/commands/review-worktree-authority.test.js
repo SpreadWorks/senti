@@ -126,7 +126,7 @@ function prepareWorktreeFixture(parent, { currentStepId = "spec-review" } = {}) 
   const root = path.join(parent, "main");
   const executionRoot = path.join(parent, "worktree");
   fs.mkdirSync(root, { recursive: true });
-  writeJson(root, ".senti/config.json", {
+  writeJson(root, ".senrail/config.json", {
     name: "review-authority-fixture",
     lang: "en",
     type: "base",
@@ -374,7 +374,7 @@ describe("worktree review authority", () => {
     assert.equal(plan.result.directive.actionId, "RECOVER_CANONICAL_REVIEW_PASS");
     assert.match(
       plan.result.directive.nextAction,
-      /^senti flow run recover-review-pass --phase spec /,
+      /^senrail flow run recover-review-pass --phase spec /,
     );
     assert.match(plan.result.directive.nextAction, /--expect-run-id 'run-review-authority'/);
     assert.match(plan.result.directive.nextAction, /--expect-spec '496-review-authority'/);

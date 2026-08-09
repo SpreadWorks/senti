@@ -8,7 +8,7 @@ import { makeFlowManager, setupFlowAtStep } from "../../../helpers/flow-setup.js
 import { findInProgressLeaf } from "../../../../src/flow/lib/step-tree.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
-const SENTI = join(process.cwd(), "src/senti.js");
+const SENRAIL = join(process.cwd(), "src/senrail.js");
 
 function initGateProject(tmp, { specId = "001-test" } = {}) {
   initGitRepo(tmp);
@@ -17,7 +17,7 @@ function initGateProject(tmp, { specId = "001-test" } = {}) {
     specId: specId,
     featureBranch: `feature/${specId}`,
   });
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "en", type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
     agent: {
@@ -33,9 +33,9 @@ function initGateProject(tmp, { specId = "001-test" } = {}) {
 }
 
 function runBlockedGate(tmp, args) {
-  const result = spawnSync(process.execPath, [SENTI, "flow", "run", "gate", ...args], {
+  const result = spawnSync(process.execPath, [SENRAIL, "flow", "run", "gate", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
   assert.equal(result.status, 1, result.stderr || result.stdout);
   const envelope = JSON.parse(result.stdout);
@@ -387,11 +387,11 @@ describe("gate CLI", () => {
     // For this CLI test we feed a markdown path directly; phase=task-spec is what
     // the markdown checker is meant for. The CLI accepts --spec for any phase.
     const result = execFileSync("node", [
-      join(process.cwd(), "src/senti.js"),
+      join(process.cwd(), "src/senrail.js"),
       "flow", "run", "gate",
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
-    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
+    ], { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
   });
@@ -432,11 +432,11 @@ describe("gate CLI", () => {
 
     // Pass spec.md path; resolveSpecJsonPath should resolve to spec.json (R5).
     const result = execFileSync("node", [
-      join(process.cwd(), "src/senti.js"),
+      join(process.cwd(), "src/senrail.js"),
       "flow", "run", "gate",
       "--phase", "spec",
       "--spec", join(specDir, "spec.md"),
-    ], { encoding: "utf8", env: { ...process.env, SENTI_WORK_ROOT: tmp } });
+    ], { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.result, "pass");

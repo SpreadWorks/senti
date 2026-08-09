@@ -41,7 +41,7 @@ function buildMetricEntry(phase, { usage, responseChars, model, durationMs, prov
 }
 
 function shouldPersistFinalizeMetricToSidecar(flowManager, context) {
-  if (!context?.specId || !String(context.sentiPhase || "").startsWith("finalize-")) return false;
+  if (!context?.specId || !String(context.senrailPhase || "").startsWith("finalize-")) return false;
   try {
     const state = flowManager.loadReadOnly(context.specId);
     return state?.worktree === true;
@@ -63,7 +63,7 @@ export class AgentInvocationMetric {
   constructor({ flowManager, context, provider, profileKey, usage, responseChars, model, durationMs }) {
     this.flowManager = requireFlowManager(flowManager);
     this.context = Object.freeze({ ...context });
-    this.phase = String(context.sentiPhase);
+    this.phase = String(context.senrailPhase);
     this.options = Object.freeze({
       provider,
       profileKey,
@@ -79,7 +79,7 @@ export class AgentInvocationMetric {
   static capture({ flowManager, ...options }) {
     const manager = requireFlowManager(flowManager);
     const context = manager.resolveCurrentContext();
-    if (!context?.sentiPhase) return null;
+    if (!context?.senrailPhase) return null;
     return new AgentInvocationMetric({ flowManager: manager, context, ...options });
   }
 
@@ -114,7 +114,7 @@ export class DeferredAgentInvocationMetric {
     }
     if (this.#captured) throw new Error("agent invocation metric was already captured");
     if (this.#flushed) throw new Error("agent invocation metric was already flushed");
-    this.#metric = this.#flowManager && this.#context?.sentiPhase
+    this.#metric = this.#flowManager && this.#context?.senrailPhase
       ? new AgentInvocationMetric({
           flowManager: this.#flowManager,
           context: this.#context,
@@ -128,7 +128,7 @@ export class DeferredAgentInvocationMetric {
     if (this.#flushed) throw new Error("agent invocation metric was already flushed");
     this.#flushed = true;
     try {
-      const metric = this.#metric ?? (this.#flowManager && this.#context?.sentiPhase
+      const metric = this.#metric ?? (this.#flowManager && this.#context?.senrailPhase
         ? new AgentInvocationMetric({
             flowManager: this.#flowManager,
             context: this.#context,
@@ -144,7 +144,7 @@ export class DeferredAgentInvocationMetric {
       await metric.persist();
       return true;
     } catch (error) {
-      process.stderr.write(`[senti] agent: metric accumulation failed: ${error.message}\n`);
+      process.stderr.write(`[senrail] agent: metric accumulation failed: ${error.message}\n`);
       return false;
     }
   }
@@ -164,7 +164,7 @@ export async function persistAgentInvocationMetric(options, deferred = null) {
     await metric.persist();
     return true;
   } catch (error) {
-    process.stderr.write(`[senti] agent: metric accumulation failed: ${error.message}\n`);
+    process.stderr.write(`[senrail] agent: metric accumulation failed: ${error.message}\n`);
     return false;
   }
 }

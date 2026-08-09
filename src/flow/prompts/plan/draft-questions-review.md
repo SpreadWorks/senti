@@ -1,5 +1,5 @@
    - Use the resolved numeric maxAttempts from the next-action envelope as this stage's semantic review limit.
-   - Run `senti flow run review --phase draft` once to perform the draft question sanity check.
+   - Run `senrail flow run review --phase draft` once to perform the draft question sanity check.
    - This stage is not a question generator. The draft step owns the full initial question list.
    - The review checks only finite structural defects in pending/approved questions:
      - `qa[]` is empty before any answer exists.

@@ -168,7 +168,7 @@ export class FlowDispatchLease {
     const root = new RealDirectoryAuthority(mainRoot, {
       errorFactory: dispatchLockError,
     });
-    const directory = new RealDirectoryAuthority(path.join(mainRoot, ".senti"), {
+    const directory = new RealDirectoryAuthority(path.join(mainRoot, ".senrail"), {
       create: true,
       parentAuthority: root,
       errorFactory: dispatchLockError,
@@ -371,9 +371,9 @@ export class FlowDispatchWork {
         ].join("\n")
       : "";
     return [
-      "You are a worker owned by the senti Flow CLI dispatcher.",
+      "You are a worker owned by the senrail Flow CLI dispatcher.",
       "Execute exactly one supplied non-terminal Flow action in the current repository.",
-      "Do not invoke a senti.flow skill and do not run `senti flow run dispatch`.",
+      "Do not invoke a senrail.flow skill and do not run `senrail flow run dispatch`.",
       "Do not merely describe the work. Perform the edits and commands required by",
       "the action, including its durable Flow transition or guarded refresh.",
       "Run every command in the foreground and wait for it to finish. Never start",
@@ -385,7 +385,7 @@ export class FlowDispatchWork {
         "This is an already-selected authorization, not permission to infer another choice.",
       ] : []),
       ...(target.binding ? [
-        "Target-sensitive senti commands inherit the CLI-captured Flow binding.",
+        "Target-sensitive senrail commands inherit the CLI-captured Flow binding.",
         "Do not construct or append target identity arguments.",
       ] : []),
       "When the directive includes nextAction, execute that exact CLI-generated",
@@ -525,7 +525,7 @@ export default class RunDispatchCommand extends FlowCommand {
 
   async runDispatcherOwnedRepair(ctx, target, action) {
     if (!(action.directive instanceof RepairEvidenceDirective)) return null;
-    const match = /^senti flow run ([a-z][a-z0-9-]*)(?:\s|$)/.exec(action.directive.nextAction);
+    const match = /^senrail flow run ([a-z][a-z0-9-]*)(?:\s|$)/.exec(action.directive.nextAction);
     const commandName = match?.[1] || null;
     if (!DISPATCHER_OWNED_REPAIR_COMMANDS.has(commandName)) return null;
 

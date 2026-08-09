@@ -14,7 +14,7 @@ import { makeFlowManager } from "../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
 
-const CMD = path.join(process.cwd(), "src/senti.js");
+const CMD = path.join(process.cwd(), "src/senrail.js");
 
 function passingScore() {
   return JSON.stringify({
@@ -33,7 +33,7 @@ function setupProject(tmp, { capturePath } = {}) {
   const stubPath = capturePath
     ? writeCapturingStubAgentScript(tmp, ".stub-agent.js", capturePath, passingScore())
     : writeStubAgentScript(tmp, ".stub-agent.js", passingScore());
-  writeJson(tmp, ".senti/config.json", {
+  writeJson(tmp, ".senrail/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -48,7 +48,7 @@ function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENTI_WORK_ROOT: tmp },
+    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
   });
 }
 

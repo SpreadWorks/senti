@@ -41,13 +41,13 @@ describe("plugin registry local overlay", () => {
       files: ["plugin.json"],
       contributions: {},
     });
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       plugin: {
         sources: [],
         packages: [],
       },
     });
-    writeJson(tmp, ".senti/config.local.json", {
+    writeJson(tmp, ".senrail/config.local.json", {
       plugin: {
         sources: [{ id: "private-source", type: "local", path: pluginRoot }],
         packages: [{ id: "private-plugin", source: "private-source", commit: "a".repeat(40) }],
@@ -56,9 +56,9 @@ describe("plugin registry local overlay", () => {
 
     const installed = installPlugin(tmp, "private-plugin");
     assert.equal(installed.id, "private-plugin");
-    assert.equal(fs.existsSync(path.join(tmp, ".senti", "plugins", "private-plugin", "plugin.json")), true);
+    assert.equal(fs.existsSync(path.join(tmp, ".senrail", "plugins", "private-plugin", "plugin.json")), true);
 
-    const publicConfig = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", "config.json"), "utf8"));
+    const publicConfig = JSON.parse(fs.readFileSync(path.join(tmp, ".senrail", "config.json"), "utf8"));
     assert.deepEqual(publicConfig.plugin.sources, []);
     assert.deepEqual(publicConfig.plugin.packages, []);
 
@@ -70,13 +70,13 @@ describe("plugin registry local overlay", () => {
   it("repairs an existing official preset default remote by materializing the explicit source root", () => {
     tmp = createTmpDir();
     const sourceRoot = writeOfficialPresetSource(tmp, "official-source");
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       plugin: {
         sources: [
           {
             id: "official-presets",
             type: "git",
-            remote: "git@github.com:SpreadWorks/senti-presets.git",
+            remote: "git@github.com:SpreadWorks/senrail-presets.git",
           },
         ],
         packages: [],
@@ -88,17 +88,17 @@ describe("plugin registry local overlay", () => {
       sourceRoot,
     });
 
-    const config = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", "config.json"), "utf8"));
+    const config = JSON.parse(fs.readFileSync(path.join(tmp, ".senrail", "config.json"), "utf8"));
     assert.equal(config.plugin.sources.length, 1);
-    assert.equal(config.plugin.sources[0].remote, "git@github.com:SpreadWorks/senti-presets.git");
+    assert.equal(config.plugin.sources[0].remote, "git@github.com:SpreadWorks/senrail-presets.git");
     assert.equal(config.plugin.packages.length, 1);
     assert.equal(config.plugin.packages[0].id, "official-presets");
-    assert.equal(fs.existsSync(path.join(tmp, ".senti", "plugins", "official-presets", "plugin.json")), true);
+    assert.equal(fs.existsSync(path.join(tmp, ".senrail", "plugins", "official-presets", "plugin.json")), true);
   });
 
   it("does not persist the default official preset source when provider resolution fails", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senti/config.json", {
+    writeJson(tmp, ".senrail/config.json", {
       plugin: {
         sources: [],
         packages: [],
@@ -113,7 +113,7 @@ describe("plugin registry local overlay", () => {
       /plugin source not found/,
     );
 
-    const config = JSON.parse(fs.readFileSync(path.join(tmp, ".senti", "config.json"), "utf8"));
+    const config = JSON.parse(fs.readFileSync(path.join(tmp, ".senrail", "config.json"), "utf8"));
     assert.deepEqual(config.plugin.sources, []);
     assert.deepEqual(config.plugin.packages, []);
   });

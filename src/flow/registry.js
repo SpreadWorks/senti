@@ -231,11 +231,11 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
     }
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
-      process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
+      process.stderr.write(`[senrail] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
       return;
     }
     if (err.message === "no active flow (flow.json not found)") {
-      process.stderr.write(`[senti] step-status update skipped (${stepId}=${status}): no active flow\n`);
+      process.stderr.write(`[senrail] step-status update skipped (${stepId}=${status}): no active flow\n`);
       return;
     }
     throw err;
@@ -252,7 +252,7 @@ function tryAppendIssueLog(fn) {
     fn();
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
-      process.stderr.write(`[senti] issue-log append skipped: ${err.message}\n`);
+      process.stderr.write(`[senrail] issue-log append skipped: ${err.message}\n`);
       return;
     }
     throw err;
@@ -511,7 +511,7 @@ class RegistryLifecycleAdapter {
           { event: "definition:skip-steps" },
         );
       } catch (e) {
-        process.stderr.write(`[senti] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
+        process.stderr.write(`[senrail] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
       }
     }
   }
@@ -623,7 +623,7 @@ class RegistryLifecycleAdapter {
         const outcome = { mergeStrategy: strategy, featureBranchSquashedSha: baseline };
         this.finalizeStateOwner().setMergeOutcome(outcome);
       } catch (err) {
-        process.stderr.write(`[senti] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
+        process.stderr.write(`[senrail] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
       }
       return;
     }
@@ -729,14 +729,14 @@ function pluginCommandName(command) {
 export const FLOW_COMMANDS = {
   park: {
     helpKey: "flow.park",
-    helpPath: "senti flow park --help",
+    helpPath: "senrail flow park --help",
     requiresFlow: false,
     targetGuard: false,
     directParkedAuthority: true,
     command: () => import("./lib/run-park.js"),
     args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
     help: [
-      `Usage: senti flow park ${FLOW_TARGET_GUARD_USAGE}`,
+      `Usage: senrail flow park ${FLOW_TARGET_GUARD_USAGE}`,
       "",
       "Remove one exact managed-worktree flow pointer from the active authority.",
       "The target runId, spec, and Issue identity guards are all required.",
@@ -748,7 +748,7 @@ export const FLOW_COMMANDS = {
   },
   resume: {
     helpKey: "flow.resume",
-    helpPath: "senti flow resume --help",
+    helpPath: "senrail flow resume --help",
     requiresFlow: false,
     directParkedAuthority: "when-parked",
     command: () => import("./lib/run-resume.js"),
@@ -757,13 +757,13 @@ export const FLOW_COMMANDS = {
       options: withTargetGuardOptions(["--spec"]),
     },
     help: [
-      `Usage: senti flow resume [--spec <specId>] [--parked] ${FLOW_TARGET_GUARD_USAGE}`,
+      `Usage: senrail flow resume [--spec <specId>] [--parked] ${FLOW_TARGET_GUARD_USAGE}`,
       "",
       "Show active flow context; --parked restores one exact inactive managed-worktree pointer with no discovery.",
       "When multiple flows are active concurrently, pass --spec to select one.",
       "With --parked, restore one exact managed-worktree pointer from its saved execution root.",
       "Parked resume requires runId, spec, and Issue identity guards and performs no discovery.",
-      "Use `senti flow get status` for current-context status display.",
+      "Use `senrail flow get status` for current-context status display.",
       "",
       "Options:",
       "  --spec <specId>          Select a registered active flow.",
@@ -773,7 +773,7 @@ export const FLOW_COMMANDS = {
   },
   prepare: {
     helpKey: "flow.prepare",
-    helpPath: "senti flow prepare --help",
+    helpPath: "senrail flow prepare --help",
     requiresFlow: false,
     requiresConfig: true,
     runtimeLog: { stepId: "prepare-spec" },
@@ -783,7 +783,7 @@ export const FLOW_COMMANDS = {
       options: withTargetGuardOptions(["--title", "--base", "--issue", "--request", "--run-id"]),
     },
     help: [
-      `Usage: senti flow prepare [options] ${FLOW_TARGET_GUARD_USAGE}`,
+      `Usage: senrail flow prepare [options] ${FLOW_TARGET_GUARD_USAGE}`,
       "",
       "Create branch/worktree and initialize spec directory.",
       "",
@@ -816,7 +816,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-status.js"),
       args: { positional: ["runId"], flags: withTargetGuardFlags(["--details"]), options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get status [runId] [--details] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "Usage: senrail flow get status [runId] [--details] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
         "",
         "Return active flow state for the current execution context.",
         "If no active flow exists, returns { active: false }.",
@@ -826,7 +826,7 @@ export const FLOW_COMMANDS = {
         "  --expect-no-issue        Fail with ACTIVE_FLOW_MISMATCH when the resolved flow belongs to an Issue.",
         "  --expect-spec <spec>     Fail with ACTIVE_FLOW_MISMATCH when the current context is another spec.",
         "  --expect-run-id <runId>  Fail with ACTIVE_FLOW_MISMATCH when the current context is another runId.",
-        "Use `senti flow resume` to discover or recover active flows.",
+        "Use `senrail flow resume` to discover or recover active flows.",
       ].join("\n"),
     },
     "resolve-context": {
@@ -834,7 +834,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-resolve-context.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        `Usage: senti flow get resolve-context ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow get resolve-context ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Resolve worktree/repo paths and active flow for context recovery.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
@@ -845,7 +845,7 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       command: () => import("./lib/get-check.js"),
       args: { positional: ["target"] },
-      help: "Usage: senti flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",
+      help: "Usage: senrail flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",
     },
     prompt: {
       helpKey: "flow.get.prompt",
@@ -853,7 +853,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-prompt.js"),
       args: { positional: ["kind"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get prompt <kind> [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "Usage: senrail flow get prompt <kind> [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
         "",
         "Return a prompt template by kind.",
         "Target-sensitive prompts such as plan.approval validate that the resolved active flow matches the expected target.",
@@ -863,21 +863,21 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.get.qa-count",
       command: () => import("./lib/get-qa-count.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow get qa-count\n\nReturn the number of answered questions in draft phase.",
+      help: "Usage: senrail flow get qa-count\n\nReturn the number of answered questions in draft phase.",
     },
     guardrail: {
       helpKey: "flow.get.guardrail",
       requiresFlow: false,
       command: () => import("./lib/get-guardrail.js"),
       args: { positional: ["phase"], options: ["--format"] },
-      help: `Usage: senti flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_GUARDRAIL_PHASES.join(", ")}. Alias: impl -> task-impl.`,
+      help: `Usage: senrail flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_GUARDRAIL_PHASES.join(", ")}. Alias: impl -> task-impl.`,
     },
     issue: {
       helpKey: "flow.get.issue",
       requiresFlow: false,
       command: () => import("./lib/get-issue.js"),
       args: { positional: ["number"] },
-      help: "Usage: senti flow get issue <number>\n\nGet GitHub issue content as JSON.",
+      help: "Usage: senrail flow get issue <number>\n\nGet GitHub issue content as JSON.",
     },
     "next-action": {
       helpKey: "flow.get.next-action",
@@ -886,7 +886,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-next-action.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
-        "Usage: senti flow get next-action [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
+        "Usage: senrail flow get next-action [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]",
         "",
         "Return the next AI/skill action for the current in_progress step.",
         "Dispatches from static context rules; the response carries an inline",
@@ -899,7 +899,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/get-context.js"),
       args: { positional: ["path"], flags: withTargetGuardFlags(["--raw"]), options: withTargetGuardOptions(["--search"]) },
       help: [
-        "Usage: senti flow get context [path] [--raw] [--search <query>]",
+        "Usage: senrail flow get context [path] [--raw] [--search <query>]",
         "",
         "List mode (no path): filtered analysis entries.",
         "File mode (with path): file content + metric increment.",
@@ -935,7 +935,7 @@ export const FLOW_COMMANDS = {
         options: withTargetGuardOptions(["--format", "--sequence", "--run-id"]),
       },
       help: [
-        `Usage: senti flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Return the selected runtime log block. Raw block text is printed by default.",
         "With --format json, prints an envelope containing the block text and metadata.",
@@ -956,7 +956,7 @@ export const FLOW_COMMANDS = {
       runtimeLog: { stepId: (ctx) => ctx.id },
       command: () => import("./lib/set-step.js"),
       args: { positional: ["id", "status"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow set step <id> <status>\n\nUpdate a workflow step's status.",
+      help: "Usage: senrail flow set step <id> <status>\n\nUpdate a workflow step's status.",
     },
     request: {
       helpKey: "flow.set.request",
@@ -964,7 +964,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-request.js"),
       args: { positional: ["text"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--run-id"]) },
       help: [
-        `Usage: senti flow set request \"<text>\" [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow set request \"<text>\" [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Set the user request field. Works in both active and preparing mode.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
@@ -974,7 +974,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.issue",
       command: () => import("./lib/set-issue.js"),
       args: { positional: ["number"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
+      help: "Usage: senrail flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
     },
     note: {
       helpKey: "flow.set.note",
@@ -982,7 +982,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-note.js"),
       args: { positional: ["text"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--task-id", "--run-id"]) },
       help: [
-        `Usage: senti flow set note \"<text>\" [--task-id <id>] [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow set note \"<text>\" [--task-id <id>] [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Append a note entry to state.notes. Works in both active and preparing mode.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
@@ -992,19 +992,19 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.summary",
       command: () => import("./lib/set-summary.js"),
       args: { positional: ["json"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
+      help: "Usage: senrail flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
     },
     req: {
       helpKey: "flow.set.req",
       command: () => import("./lib/set-req.js"),
       args: { positional: ["reqRef", "status"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
+      help: "Usage: senrail flow set req <reqId|zeroBasedIndex> <status>\n\nUpdate a single requirement's status. Prefer requirement ids like R1; numeric values are 0-based indexes.",
     },
     files: {
       helpKey: "flow.set.files",
       command: () => import("./lib/set-files.js"),
       args: { positional: ["reqId"], rest: "paths", flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: senti flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
+      help: "Usage: senrail flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
     },
     "review-evidence": {
       helpKey: "flow.set.review-evidence",
@@ -1014,7 +1014,7 @@ export const FLOW_COMMANDS = {
         options: withTargetGuardOptions(["--file"]),
       },
       help: [
-        `Usage: senti flow set review-evidence --file <path> ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow set review-evidence --file <path> ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Register one finalized independent review document for the active review target.",
         "The file must be a bounded regular JSON file inside the active spec directory.",
@@ -1027,7 +1027,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-broad.js"),
       args: { positional: ["action"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--step", "--reason"]) },
       help: [
-        "Usage: senti flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
+        "Usage: senrail flow set broad on --step <implement|impl-review|impl-gate> --reason <text>",
         "",
         "Record an audited broad-mode exception for task-decomposed implementation.",
         "The reason must be non-empty. The record stores step, reason, timestamp,",
@@ -1038,26 +1038,26 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.policy",
       command: () => import("./lib/set-policy.js"),
       args: { positional: ["value"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--reason"]) },
-      help: "Usage: senti flow set policy nonblocking --reason <text>\n\nOne-way opt-in that keeps eligible quality results advisory while preserving acceptance disposition.",
+      help: "Usage: senrail flow set policy nonblocking --reason <text>\n\nOne-way opt-in that keeps eligible quality results advisory while preserving acceptance disposition.",
     },
     "nonblocking-decision": {
       helpKey: "flow.set.nonblocking-decision",
       command: () => import("./lib/set-nonblocking-decision.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--choice", "--reason", "--expect-evidence-digest", "--remaining-risk"]) },
-      help: "Usage: senti flow set nonblocking-decision --choice <repair|retry|continue> --reason <text> --expect-evidence-digest <sha256> [--remaining-risk <text>]\n\nBind an agent-owned advisory decision to the active step's latest evidence.",
+      help: "Usage: senrail flow set nonblocking-decision --choice <repair|retry|continue> --reason <text> --expect-evidence-digest <sha256> [--remaining-risk <text>]\n\nBind an agent-owned advisory decision to the active step's latest evidence.",
     },
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
       args: { positional: ["phase", "counter"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--task-id"]) },
-      help: `Usage: senti flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
+      help: `Usage: senrail flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
     },
     approval: {
       helpKey: "flow.set.approval",
       command: () => import("./lib/set-approval.js"),
       args: { flags: withTargetGuardFlags(["--approved"]), options: withTargetGuardOptions(["--notes", "--confirmed-at"]) },
       help: [
-        "Usage: senti flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
+        "Usage: senrail flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
         "",
         "Persist user approval into the active flow's spec.json `user_approval`",
         "field. The renderer reads this field to produce spec.md's",
@@ -1076,7 +1076,7 @@ export const FLOW_COMMANDS = {
       targetNotFoundAsMismatch: true,
       command: () => import("./lib/set-issue-log.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"]) },
-      help: "Usage: senti flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]\n\nRecord an issue-log entry in issue-log.json. When target guards are supplied, append only to the matching flow. Infers taskId from active task unless --task-id is given.",
+      help: "Usage: senrail flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]\n\nRecord an issue-log entry in issue-log.json. When target guards are supplied, append only to the matching flow. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");
@@ -1088,7 +1088,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-init.js"),
       args: { options: ["--issue", "--request"] },
       help: [
-        "Usage: senti flow set init [--issue N] [--request \"<text>\"]",
+        "Usage: senrail flow set init [--issue N] [--request \"<text>\"]",
         "",
         "Initialize a preparing flow state. Creates .active-flow.<runId>",
         "and returns the runId.",
@@ -1103,7 +1103,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-retry.js"),
       args: { positional: ["action", "kind", "phase"], flags: withTargetGuardFlags(["--yes"]), options: withTargetGuardOptions(["--reason"]) },
       help: [
-        "Usage: senti flow set retry reset <gate|review> <phase> --reason <text> --yes",
+        "Usage: senrail flow set retry reset <gate|review> <phase> --reason <text> --yes",
         "",
         "Reset an exhausted retry counter as an audited recovery for <phase>.",
         `  gate   phases: ${RETRY_HELP_GATE_PHASES.join(" | ")}`,
@@ -1117,7 +1117,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-acceptance-decision.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--choice"]) },
       help: [
-        "Usage: senti flow set acceptance-decision --choice <choice>",
+        "Usage: senrail flow set acceptance-decision --choice <choice>",
         "",
         "Resolve a notVerifiable requirement or unresolved deferred-finding risk with an explicit user choice.",
         "Choices: accept_risk_and_continue, abort",
@@ -1130,7 +1130,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/set-auto.js"),
       args: { positional: ["value"], flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--run-id"]) },
       help: [
-        `Usage: senti flow set auto on|off [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow set auto on|off [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Enable or disable autoApprove mode. Writes to flow.json when an",
         "active flow exists; otherwise writes to the matching preparing",
@@ -1147,7 +1147,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-seal-handoff.js"),
       args: { options: FLOW_RUN_RUNTIME_OPTIONS },
       help: [
-        "Usage: senti flow run seal-handoff [--agent-work-dir <path>]",
+        "Usage: senrail flow run seal-handoff [--agent-work-dir <path>]",
         "",
         "Seal the current dispatcher-owned worker artifact payload for validation",
         "and publication by the parent dispatcher. This command does not mutate Flow state.",
@@ -1167,7 +1167,7 @@ export const FLOW_COMMANDS = {
         options: withTargetGuardOptions(["--approve", "--agent-work-dir"]),
       },
       help: [
-        `Usage: senti flow run dispatch ${FLOW_TARGET_GUARD_USAGE} [--approve <token>] [--agent-work-dir <path>]`,
+        `Usage: senrail flow run dispatch ${FLOW_TARGET_GUARD_USAGE} [--approve <token>] [--agent-work-dir <path>]`,
         "",
         "Own the active Flow continuation inside one CLI process. Non-terminal",
         "directives are executed serially through the configured Agent service;",
@@ -1190,7 +1190,7 @@ export const FLOW_COMMANDS = {
         options: withTargetGuardOptions(["--record-id", ...FLOW_RUN_RUNTIME_OPTIONS]),
       },
       help: [
-        `Usage: senti flow run direct [--record-id <id>] [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run direct [--record-id <id>] [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Apply one validator-owned recovery record through the normal Flow transition.",
         "The command owns no separate session, plan, verification, or finalize state.",
@@ -1211,7 +1211,7 @@ export const FLOW_COMMANDS = {
         options: FLOW_RUN_OPTIONS,
       },
       help: [
-        `Usage: senti flow run recover-existing-implementation [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run recover-existing-implementation [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Record an audited transition from a post-acceptance-rewind scenario-validity preflight block to post-implementation test execution. The command requires exact target guards, the latest rewind from acceptance-review, and preflight evidence of implementation-target changes.",
         "",
@@ -1228,7 +1228,7 @@ export const FLOW_COMMANDS = {
         options: [...FLOW_RUN_OPTIONS, "--phase"],
       },
       help: [
-        `Usage: senti flow run recover-review-pass --phase <draft-questions|draft-coverage|spec|test|impl> ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run recover-review-pass --phase <draft-questions|draft-coverage|spec|test|impl> ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Restore a flow-level review projection from one exact canonical PASS.",
         "The command requires exact target guards and verifies the current tree,",
@@ -1249,7 +1249,7 @@ export const FLOW_COMMANDS = {
         options: FLOW_RUN_OPTIONS,
       },
       help: [
-        `Usage: senti flow run recover-task-gate-overview [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run recover-task-gate-overview [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Resume the one incomplete task-gate overview outbox effect for the exact active Flow.",
         "The task identity and idempotency key are read from durable CLI-owned state and are not re-entered by the agent.",
@@ -1267,7 +1267,7 @@ export const FLOW_COMMANDS = {
         options: FLOW_RUN_OPTIONS,
       },
       help: [
-        `Usage: senti flow run preimplementation-bootstrap [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run preimplementation-bootstrap [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Record an audited recovery from a scenario-validity preflight block caused by existing implementation-target changes. Exact target guards, an immutable repair baseline, and the persisted preflight evidence are required; the command skips only scenario-validity and test-review, then resumes implement.",
         "",
@@ -1284,7 +1284,7 @@ export const FLOW_COMMANDS = {
         options: FLOW_RUN_OPTIONS,
       },
       help: [
-        `Usage: senti flow run rewind-test-evidence [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run rewind-test-evidence [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Recover a flow-level impl-gate blocked only by stale test evidence after a materialized implementation repair; exact runId, spec, and Issue identity guards are required, with no step, fingerprint, or allowlist input.",
         "",
@@ -1322,7 +1322,7 @@ export const FLOW_COMMANDS = {
         flags: FLOW_TARGET_GUARD_FLAGS,
       },
       help: [
-        "Usage: senti flow run gate [options]",
+        "Usage: senrail flow run gate [options]",
         "",
         "Run gate check. Resolves target from flow.json if omitted.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
@@ -1391,7 +1391,7 @@ export const FLOW_COMMANDS = {
         options: ["--phase", ...FLOW_RUN_OPTIONS],
       },
       help: [
-        `Usage: senti flow run review [options] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run review [options] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Run AI code review on current changes.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
@@ -1466,7 +1466,7 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS]) },
       help: [
-        `Usage: senti flow run auto-check [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run auto-check [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Evaluate whether the current request qualifies for auto mode.",
         "Input is derived statically from flow state based on phase:",
@@ -1494,7 +1494,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-impl-confirm.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--mode", ...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run impl-confirm [options]",
+        "Usage: senrail flow run impl-confirm [options]",
         "",
         "Check implementation readiness against requirements.",
         "",
@@ -1514,7 +1514,7 @@ export const FLOW_COMMANDS = {
         options: ["--message", ...FLOW_RUN_OPTIONS],
       },
       help: [
-        "Usage: senti flow run finalize-commit [options]",
+        "Usage: senrail flow run finalize-commit [options]",
         "",
         "Commit implementation changes from the execution worktree.",
         "",
@@ -1549,7 +1549,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-merge.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run finalize-merge",
+        "Usage: senrail flow run finalize-merge",
         "",
         "Squash merge or PR creation. On failure, subsequent steps are skipped.",
       ].join("\n"),
@@ -1578,7 +1578,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-sync.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run finalize-sync",
+        "Usage: senrail flow run finalize-sync",
         "",
         "Build docs on main repo after merge and commit.",
       ].join("\n"),
@@ -1609,7 +1609,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize-cleanup.js"),
       args: { flags: withTargetGuardFlags(["--auto-rescue", "--force"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run finalize-cleanup [--auto-rescue | --force]",
+        "Usage: senrail flow run finalize-cleanup [--auto-rescue | --force]",
         "",
         "Clear flow state, remove worktree/branch, write last-finalized-spec pointer.",
         "",
@@ -1647,7 +1647,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-abort.js"),
       args: { flags: withTargetGuardFlags(["--force"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run abort [--force]",
+        "Usage: senrail flow run abort [--force]",
         "",
         "Remove only the selected flow worktree, feature branch, shared spec directory, and active entry.",
         "--force permits removal of a dirty isolated worktree; unrelated base-checkout changes are never removed.",
@@ -1660,7 +1660,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-sync.js"),
       args: { flags: withTargetGuardFlags(["--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run sync [options]",
+        "Usage: senrail flow run sync [options]",
         "",
         "Sync documentation: build -> review -> add -> commit.",
         "",
@@ -1677,7 +1677,7 @@ export const FLOW_COMMANDS = {
         options: ["--reason", "--category", ...FLOW_RUN_OPTIONS],
       },
       help: [
-        `Usage: senti flow run reopen-draft [--reason <text>] [--category <category>] ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run reopen-draft [--reason <text>] [--category <category>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Rewind the flow's draft step to in_progress. The task-addition route",
         "requires at least one done task. Source-discovered spec corrections use:",
@@ -1709,7 +1709,7 @@ export const FLOW_COMMANDS = {
         options: [...FLOW_RUN_OPTIONS],
       },
       help: [
-        `Usage: senti flow run repair-plan-gate ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run repair-plan-gate ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Rewind a failed draft/spec gate or scenario-validity check to its worker-artifact handoff step.",
         "The command freezes the canonical blocking observations in Flow state;",
@@ -1730,7 +1730,7 @@ export const FLOW_COMMANDS = {
         options: [...FLOW_RUN_OPTIONS],
       },
       help: [
-        `Usage: senti flow run repair-test-review ${FLOW_TARGET_GUARD_USAGE}`,
+        `Usage: senrail flow run repair-test-review ${FLOW_TARGET_GUARD_USAGE}`,
         "",
         "Freeze the current canonical rejected test-review findings and test revision,",
         "then rewind test, scenario-validity, and test-review without changing review budgets.",
@@ -1748,7 +1748,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-start-task.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--task-id", ...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run start-task --task-id <id>",
+        "Usage: senrail flow run start-task --task-id <id>",
         "",
         "Manually promote a pending task to currentTaskId and transition",
         "it to in_progress. Useful for recovery or manual ordering when",
@@ -1762,7 +1762,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-complete-task.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--task-id", ...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run complete-task [--task-id <id>]",
+        "Usage: senrail flow run complete-task [--task-id <id>]",
         "",
         "Complete currentTaskId (or --task-id if specified), apply parent",
         "propagation, and auto-promote the next pending task. Useful for",
@@ -1775,7 +1775,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-update-overview.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--json", ...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run update-overview --json '<additions>'",
+        "Usage: senrail flow run update-overview --json '<additions>'",
         "",
         "Append this task's overview contribution to the parent spec.json.",
         "Additions JSON shape:",
@@ -1794,7 +1794,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-lint.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: ["--base", ...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run lint [options]",
+        "Usage: senrail flow run lint [options]",
         "",
         "Check changed files against guardrail lint patterns.",
         "",
@@ -1808,7 +1808,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-test-execute.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run test-execute",
+        "Usage: senrail flow run test-execute",
         "",
         "Execute the project's test runner via AI agent and persist:",
         "  <configured-spec-root>/<spec>/test-execute-result.json (machine-readable summary)",
@@ -1830,7 +1830,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-scenario-validity.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run scenario-validity",
+        "Usage: senrail flow run scenario-validity",
         "",
         "Execute pre-implementation spec-local tests and persist:",
         "  <configured-spec-root>/<spec>/scenario-validity-result.json",
@@ -1852,7 +1852,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-test-result-review.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run test-result-review",
+        "Usage: senrail flow run test-result-review",
         "",
         "Verify test-execute-result.json integrity against raw output and code.",
         "Persists test-result-review.json and test-result-review.md under the configured spec root.",
@@ -1877,7 +1877,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-retro.js"),
       args: { flags: withTargetGuardFlags(["--force", "--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run retro [options]",
+        "Usage: senrail flow run retro [options]",
         "",
         "Aggregate test-execute results per requirement and save retro.json.",
         "Reads test-result-review.json and test-execute-result.json (produced",
@@ -1913,7 +1913,7 @@ export const FLOW_COMMANDS = {
         options: ["--record-category", "--record-evidence", "--remaining-risk", ...FLOW_RUN_OPTIONS],
       },
       help: [
-        "Usage: senti flow run final-regression [--record-and-proceed --record-category <category> --record-evidence <text> --remaining-risk <text>]",
+        "Usage: senrail flow run final-regression [--record-and-proceed --record-category <category> --record-evidence <text> --remaining-risk <text>]",
         "",
         "Run the full project-level regression command after retro and before finalize.",
         "Persists final-regression-result.json and tests/.raw/final-regression-attempt-<N>.log under the configured spec root (zero-padded to at least three digits).",
@@ -1957,7 +1957,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-acceptance-review.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run acceptance-review",
+        "Usage: senrail flow run acceptance-review",
         "",
         "Evaluate original request satisfaction after retro and before final-regression.",
         "Persists acceptance-review.json under the configured spec root and routes pass/non-pass verdicts.",
@@ -1970,7 +1970,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-report.js"),
       args: { flags: withTargetGuardFlags(["--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
-        "Usage: senti flow run report [options]",
+        "Usage: senrail flow run report [options]",
         "",
         "Generate a work report from the current flow state.",
         "",
@@ -2005,10 +2005,10 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       args: { flags: [] },
       help: [
-        "Usage: senti flow report show",
+        "Usage: senrail flow report show",
         "",
         "Stream the most recent finalize Report text to stdout.",
-        "Reads .senti/last-finalized-spec to locate the latest",
+        "Reads .senrail/last-finalized-spec to locate the latest",
         "finalized spec and prints its report.json `text` field.",
         "Exits non-zero if the pointer or report.json is missing.",
       ].join("\n"),

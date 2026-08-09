@@ -210,7 +210,7 @@ describe("WorktreeFlowBindingStore", () => {
       ]);
       assert.equal(stopped.signal, "SIGKILL");
 
-      const directory = path.join(root, ".senti");
+      const directory = path.join(root, ".senrail");
       const tempNames = fs.readdirSync(directory).filter((name) => name.endsWith(".tmp"));
       assert.equal(tempNames.includes(".flow-identity.publication.binding.tmp"), false, phase);
       if (tempNames.length > 0) {
@@ -246,11 +246,11 @@ describe("WorktreeFlowBindingStore", () => {
     const stopped = spawnSync(process.execPath, ["--input-type=module", "-e", script, root]);
     assert.equal(stopped.signal, "SIGKILL");
     assert.equal(
-      fs.existsSync(path.join(root, ".senti", ".flow-identity.publication.json")),
+      fs.existsSync(path.join(root, ".senrail", ".flow-identity.publication.json")),
       true,
     );
     assert.equal(
-      fs.existsSync(path.join(root, ".senti", ".flow-identity.publication.binding.tmp")),
+      fs.existsSync(path.join(root, ".senrail", ".flow-identity.publication.binding.tmp")),
       false,
     );
 

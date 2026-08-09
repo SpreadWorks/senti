@@ -40,7 +40,7 @@
         "flow.test-review"
       ],
       "state": [],
-      "body": "### MUST\n**MUST: AI は `senti flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/senti.flow-auto` 等）でのみ実行する。\n\n### Why\nauto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。\n\n### How to apply\n- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。\n- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。\n- `flow get next-action` の autoUpgrade.available === true でも、AI が `set auto on` を自走実行してはならない（ユーザーが選択肢で `[1]` を選ぶまで待機）。"
+      "body": "### MUST\n**MUST: AI は `senrail flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/senrail.flow-auto` 等）でのみ実行する。\n\n### Why\nauto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。\n\n### How to apply\n- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。\n- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。\n- `flow get next-action` の autoUpgrade.available === true でも、AI が `set auto on` を自走実行してはならない（ユーザーが選択肢で `[1]` を選ぶまで待機）。"
     },
     {
       "id": "thoroughness",
@@ -197,7 +197,7 @@
         "task.task-gate"
       ],
       "state": [],
-      "body": "**MUST: `senti` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `senti` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。"
+      "body": "**MUST: `senrail` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `senrail` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。"
     },
     {
       "id": "post-hook-managed-test-artifacts",

@@ -11,6 +11,7 @@ import {
 import { ReviewDisposition, ReviewEvidence } from "./review-convergence.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
+import { PRODUCT } from "../../lib/product.js";
 
 const PHASE_BY_REVIEW_STEP = Object.freeze({
   "draft-questions-review": "draft-questions",
@@ -39,7 +40,7 @@ class FinalizedFlowReviewArtifact {
     this.treeSha = state.treeSha;
     this.targetStateDigest = state.targetStateDigest;
     const provenance = providerArtifact.provenance || {
-      provider: "senti-review",
+      provider: PRODUCT.provider("review"),
       invocationId: "recovered-finalized-artifact",
       capturedAt: providerArtifact.generatedAt || new Date().toISOString(),
     };

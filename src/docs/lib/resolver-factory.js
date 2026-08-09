@@ -1,5 +1,5 @@
 /**
- * senti/engine/resolvers/index.js
+ * senrail/engine/resolvers/index.js
  *
  * リゾルバファクトリ。
  * type に応じて DataSource モジュールをロードし、リゾルバを返す。
@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { sentiDir } from "../../lib/config.js";
+import { senrailDir } from "../../lib/config.js";
 import { loadDataSources as loadDataSourcesBase } from "./data-source-loader.js";
 import { PRESETS, resolveMultiChains } from "../../lib/presets.js";
 import { createLogger } from "../../lib/progress.js";
@@ -34,7 +34,7 @@ let _overridesRoot = null;
 
 function loadOverridesFor(root) {
   if (_overridesCache && _overridesRoot === root) return _overridesCache;
-  const overridesPath = path.join(sentiDir(root), "overrides.json");
+  const overridesPath = path.join(senrailDir(root), "overrides.json");
   if (fs.existsSync(overridesPath)) {
     _overridesCache = JSON.parse(fs.readFileSync(overridesPath, "utf8"));
   } else {
@@ -101,11 +101,11 @@ function fallbackDataSourceChains(types) {
  * @returns {Promise<{ resolve: (preset: string, source: string, method: string, analysis: Object, labels: string[]) => string|null }>}
  */
 export async function createResolver(type, root, opts) {
-  // Warn about deprecated .senti/data/ directory
+  // Warn about deprecated .senrail/data/ directory
   if (root) {
-    const deprecatedDataDir = path.join(root, ".senti", "data");
+    const deprecatedDataDir = path.join(root, ".senrail", "data");
     if (fs.existsSync(deprecatedDataDir)) {
-      process.stderr.write(`[senti] WARN: .senti/data/ is deprecated. Move DataSources to .senti/presets/<type>/data/ instead.\n`);
+      process.stderr.write(`[senrail] WARN: .senrail/data/ is deprecated. Move DataSources to .senrail/presets/<type>/data/ instead.\n`);
     }
   }
 

@@ -37,10 +37,11 @@ import {
   TestReviewRepairRecord,
 } from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
+import { PRODUCT } from "../../lib/product.js";
 
-export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = "SENTI_FLOW_HANDOFF_REQUEST";
+export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
-export const WORKER_ARTIFACT_HANDOFF_ROOT = path.join(".senti", "handoffs");
+export const WORKER_ARTIFACT_HANDOFF_ROOT = PRODUCT.managedPath("handoffs");
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
@@ -683,7 +684,7 @@ function isWorkerRuntimePath(relativePath) {
   if (segments.includes(".git") || segments.includes(".tmp")) return true;
   for (let index = 0; index < segments.length - 1; index += 1) {
     if (
-      segments[index] === ".senti"
+      segments[index] === ".senrail"
       && WORKER_RUNTIME_DIRECTORIES.has(segments[index + 1])
     ) return true;
   }
@@ -1352,7 +1353,7 @@ export class WorkerArtifactHandoffRequest {
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
-      sealCommand: "senti flow run seal-handoff",
+      sealCommand: "senrail flow run seal-handoff",
       completionOwner: "parent-dispatcher",
     };
   }
@@ -1697,12 +1698,12 @@ function requestFromStored(filePath) {
   const invocationDirectory = path.dirname(actionDirectory);
   const runDirectory = path.dirname(invocationDirectory);
   const handoffRoot = path.dirname(runDirectory);
-  const sentiDirectory = path.dirname(handoffRoot);
-  const executionRoot = path.dirname(sentiDirectory);
+  const senrailDirectory = path.dirname(handoffRoot);
+  const executionRoot = path.dirname(senrailDirectory);
   if (
     path.basename(resolvedRequestPath) !== "request.json"
     || path.basename(handoffRoot) !== "handoffs"
-    || path.basename(sentiDirectory) !== ".senti"
+    || path.basename(senrailDirectory) !== ".senrail"
   ) {
     throw new Error("handoff request path is outside the dedicated execution-root handoff authority");
   }

@@ -64,7 +64,7 @@ describe("getStepInstructions (loader contract)", () => {
         assert.match(content, /worker artifact handoff contract as the complete authority/, key);
         assert.match(content, /exact `payloads\[\]\.payloadPath`/, key);
         assert.match(content, /exact (?:handoff )?`sealCommand` once/, key);
-        assert.doesNotMatch(content, /senti flow set step .* done/, key);
+        assert.doesNotMatch(content, /senrail flow set step .* done/, key);
       }
     });
 
@@ -75,7 +75,7 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Write `spec-triage\.json` only to its exact handoff `payloadPath`/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
-      assert.doesNotMatch(content, /senti flow set step spec-triage done/);
+      assert.doesNotMatch(content, /senrail flow set step spec-triage done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
       assert.match(content, /Do not edit `spec\.json`/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
@@ -92,7 +92,7 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Write `spec-repair\.json` and the complete resulting `spec\.json` only to their exact handoff `payloadPath` values/);
       assert.doesNotMatch(content, /specs\/<spec-id>/);
       assert.doesNotMatch(content, /active Flow's configured spec directory/);
-      assert.doesNotMatch(content, /senti flow set step spec-repair done/);
+      assert.doesNotMatch(content, /senrail flow set step spec-repair done/);
       assert.match(content, /run the exact handoff `sealCommand` once/);
       assert.match(content, /Treat only triage `items\[\]` entries with `decision: "apply"` as the repair input/);
       assert.match(content, /Do not re-triage review findings in this step/);
@@ -131,12 +131,12 @@ describe("getStepInstructions (loader contract)", () => {
     });
 
     it("flow skill source documents runtime log options instead of env prefixes", () => {
-      const content = fs.readFileSync(path.join(PKG_DIR, "skills", "senti.flow", "SKILL.md"), "utf8");
+      const content = fs.readFileSync(path.join(PKG_DIR, "skills", "senrail.flow", "SKILL.md"), "utf8");
       const removedLogOption = `--log-${"file"}`;
       assert.match(content, /--agent-work-dir/);
       assert.match(content, /flow get runtime-log/);
       assert.ok(!content.includes(removedLogOption));
-      assert.doesNotMatch(content, /SENTI_WORK_DIR/);
+      assert.doesNotMatch(content, /SENRAIL_WORK_DIR/);
       assert.doesNotMatch(content, />\s*\S+\s+2>&1/);
     });
   });

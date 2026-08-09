@@ -22,11 +22,11 @@ const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 
 class FlowAbortJournal {
   static pathFor(root, specId) {
-    return path.join(root, ".senti", "recovery", "flow-abort", `${specId}.json`);
+    return path.join(root, ".senrail", "recovery", "flow-abort", `${specId}.json`);
   }
 
   constructor({ root, state, worktreePath, featureSha }) {
-    const directory = path.join(root, ".senti", "recovery", "flow-abort");
+    const directory = path.join(root, ".senrail", "recovery", "flow-abort");
     fs.mkdirSync(directory, { recursive: true });
     this.file = new AtomicJsonFile(FlowAbortJournal.pathFor(root, state.specId));
     this.value = this.file.read(null) || {
