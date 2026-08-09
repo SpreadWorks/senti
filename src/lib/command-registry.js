@@ -406,7 +406,7 @@ const definitions = [
     name: "upgrade",
     entrypoint: { modulePath: "../upgrade.js", invocation: "main" },
     allowInvalidConfig: true,
-    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: senrail upgrade [--dry-run]", options: ["--dry-run", "-h, --help"], localeKey: "ui:help.commands.upgrade" },
+    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: senrail upgrade [--migrate] [--dry-run]", options: ["--migrate", "--dry-run", "-h, --help"], localeKey: "ui:help.commands.upgrade" },
   }),
   new CommandDefinition({
     name: "plugin",

@@ -100,4 +100,41 @@ describe("cleanupObsoleteSkills — consolidated flow skill scenario (R10)", () 
 
     assert.ok(fs.existsSync(path.join(tmp, ".claude", "skills", "my-custom-skill")));
   });
+
+  it("prunes retired namespaces even when an active plugin still declares them", () => {
+    tmp = createTmpDir();
+    setupProject(tmp, ["sdd-forge.flow", "senti.flow", "user.skill"]);
+    const templatesDir = path.join(tmp, "_templates");
+    setupActiveTemplates(templatesDir, ["senrail.flow", "sdd-forge.flow", "senti.flow"]);
+
+    const result = cleanupObsoleteSkills(tmp, [templatesDir]);
+
+    assert.deepEqual(result.map((entry) => entry.name).sort(), ["sdd-forge.flow", "senti.flow"]);
+    for (const base of [".claude", ".agents"]) {
+      assert.equal(fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow")), false);
+      assert.equal(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")), false);
+      assert.ok(fs.existsSync(path.join(tmp, base, "skills", "user.skill")));
+    }
+  });
+
+  it("prunes a retired skill even when its deployed root is a symlink", () => {
+    tmp = createTmpDir();
+    setupProject(tmp, ["senrail.flow"]);
+    const templatesDir = path.join(tmp, "_templates");
+    setupActiveTemplates(templatesDir, ["senrail.flow"]);
+    for (const base of [".claude", ".agents"]) {
+      fs.symlinkSync(
+        "missing-retired-skill",
+        path.join(tmp, base, "skills", "senti.flow"),
+      );
+    }
+
+    const result = cleanupObsoleteSkills(tmp, [templatesDir]);
+
+    assert.deepEqual(result.map((entry) => entry.name), ["senti.flow"]);
+    for (const base of [".claude", ".agents"]) {
+      assert.equal(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")), false);
+      assert.throws(() => fs.lstatSync(path.join(tmp, base, "skills", "senti.flow")), { code: "ENOENT" });
+    }
+  });
 });

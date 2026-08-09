@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { deploySkills } from "../../../src/lib/skills.js";
+import { deploySkills, deploySkillsFromDir } from "../../../src/lib/skills.js";
 
 describe("deploySkills include resolution", () => {
   let tmp;
@@ -66,5 +66,40 @@ describe("deploySkills include resolution", () => {
       );
     }
 
+  });
+
+  it("lets the bundled canonical skill replace a colliding plugin skill", () => {
+    const projectDir = setupConfiguredTmpProject();
+    const pluginSkills = path.join(tmp, "plugin-skills");
+    fs.mkdirSync(path.join(pluginSkills, "senrail.flow"), { recursive: true });
+    fs.writeFileSync(
+      path.join(pluginSkills, "senrail.flow", "SKILL.md"),
+      "plugin collision must not survive\n",
+    );
+
+    deploySkillsFromDir({ skillsDir: pluginSkills, workRoot: projectDir });
+    deploySkills(projectDir, { force: true });
+
+    for (const base of [".agents", ".claude"]) {
+      const deployed = fs.readFileSync(path.join(projectDir, base, "skills", "senrail.flow", "SKILL.md"), "utf8");
+      assert.doesNotMatch(deployed, /plugin collision must not survive/);
+    }
+  });
+
+  it("replaces dangling canonical skill-root symlinks during a forced deployment", () => {
+    const projectDir = setupConfiguredTmpProject();
+    for (const base of [".agents", ".claude"]) {
+      const skillRoot = path.join(projectDir, base, "skills", "senrail.flow");
+      fs.mkdirSync(path.dirname(skillRoot), { recursive: true });
+      fs.symlinkSync("missing-skill-root", skillRoot);
+    }
+
+    deploySkills(projectDir, { force: true });
+
+    for (const base of [".agents", ".claude"]) {
+      const skillRoot = path.join(projectDir, base, "skills", "senrail.flow");
+      assert.ok(fs.lstatSync(skillRoot).isDirectory());
+      assert.ok(fs.existsSync(path.join(skillRoot, "SKILL.md")));
+    }
   });
 });

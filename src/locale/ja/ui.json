@@ -273,14 +273,15 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: senrail upgrade [options]",
+        "usage": "Usage: senrail upgrade [--migrate] [--dry-run]",
         "desc": "テンプレート由来のファイルをインストール済み senrail のバージョンに合わせて更新する。",
-        "descDetail": "skill 由来ファイルを更新し、必要な場合は公式 preset plugin を有効化する config.json migration も実行する。",
+        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .senrail へ明示的に移行してから通常 upgrade を実行する。",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        スキルテンプレート",
           ".claude/skills/*/SKILL.md        .agents/skills/ へのシンボリックリンク"
         ],
         "options": {
+          "migrate": "--migrate    .sdd-forge または .senti を .senrail へ移行してから通常 upgrade を実行",
           "dryRun": "--dry-run    変更内容を表示するだけでファイル書き込みしない",
           "help": "-h, --help   このヘルプを表示"
         }

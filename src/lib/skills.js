@@ -28,6 +28,22 @@ function listSkillDirNames(dir) {
     .sort();
 }
 
+function listDeployedSkillNames(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function lstatOrNull(filePath) {
+  try {
+    return fs.lstatSync(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 /**
  * Resolve the skill source file in the given directory.
  */
@@ -58,9 +74,10 @@ function removeIfSymlink(filePath) {
  * @param {string} args.skillsDir      Absolute path to a skills source directory
  * @param {string} args.workRoot       Project root directory
  * @param {boolean} [args.dryRun=false]
+ * @param {boolean} [args.force=false] overwrite all product-owned targets
  * @returns {{ name: string, status: "updated" | "unchanged" }[]}
  */
-export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
+export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false, force = false }) {
   const skillDirs = listSkillDirNames(skillsDir);
   if (skillDirs.length === 0) return [];
 
@@ -90,6 +107,10 @@ export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
     const pendingTargets = [];
     for (const base of SKILL_TARGET_BASES) {
       const dest = path.join(deployedSkillsDir(workRoot, base), name, "SKILL.md");
+      if (force) {
+        pendingTargets.push(dest);
+        continue;
+      }
       let current = false;
       try {
         const stat = fs.lstatSync(dest);
@@ -107,6 +128,13 @@ export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false }) {
 
     if (!dryRun) {
       for (const dest of pendingTargets) {
+        const skillRoot = path.dirname(dest);
+        const skillRootStat = lstatOrNull(skillRoot);
+        if (skillRootStat?.isSymbolicLink() || (skillRootStat && !skillRootStat.isDirectory())) {
+          fs.rmSync(skillRoot, { recursive: true, force: true });
+        }
+        const targetStat = lstatOrNull(dest);
+        if (targetStat && !targetStat.isFile()) fs.rmSync(dest, { recursive: true, force: true });
         removeIfSymlink(dest);
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.writeFileSync(dest, finalContent, "utf8");
@@ -132,6 +160,7 @@ export function deploySkills(workRoot, opts = {}) {
     skillsDir: MAIN_SKILLS_DIR,
     workRoot,
     dryRun: opts.dryRun,
+    force: opts.force,
   });
 }
 
@@ -155,9 +184,12 @@ export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}
   const obsoleteNamesByBase = new Map();
   for (const base of SKILL_TARGET_BASES) {
     const deployedDir = deployedSkillsDir(workRoot, base);
-    const obsoleteNames = listSkillDirNames(deployedDir)
-      .filter((name) => name.startsWith(PRODUCT.skillNamespace))
-      .filter((name) => !validNames.has(name));
+    const obsoleteNames = listDeployedSkillNames(deployedDir)
+      .filter((name) => {
+        const retired = name.startsWith("sdd-forge.") || name.startsWith("senti.");
+        if (retired) return true;
+        return name.startsWith(PRODUCT.skillNamespace) && !validNames.has(name);
+      });
     if (obsoleteNames.length > 0) {
       obsoleteNamesByBase.set(base, obsoleteNames);
     }

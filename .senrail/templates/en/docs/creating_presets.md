@@ -1,8 +1,8 @@
 # Preset Creation Guide
 
-This document is the procedure guide for creating a new senti preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.senti/presets/<key>/`)**. It is based on the DI (Dependency Injection) container contract introduced in spec 191, and covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
+This document is the procedure guide for creating a new senrail preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.senrail/presets/<key>/`)**. It is based on the DI (Dependency Injection) container contract introduced in spec 191, and covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
 
-The intended reader is a developer or AI who already understands the senti internal architecture (`src/CLAUDE.md` / `src/AGENTS.md`) and needs to build a preset for a new framework or project structure.
+The intended reader is a developer or AI who already understands the senrail internal architecture (`src/CLAUDE.md` / `src/AGENTS.md`) and needs to build a preset for a new framework or project structure.
 
 ---
 
@@ -19,7 +19,7 @@ base → cli → node-cli
 base → api → graphql
 ```
 
-When you list multiple presets in the `type` array of `.senti/config.json`, each preset's inheritance chain is resolved **independently**, and chapters, DataSources, and templates are merged (no parent relationship between presets is required).
+When you list multiple presets in the `type` array of `.senrail/config.json`, each preset's inheritance chain is resolved **independently**, and chapters, DataSources, and templates are merged (no parent relationship between presets is required).
 
 ```json
 { "type": ["spread-commerce", "graphql", "monorepo"] }
@@ -36,7 +36,7 @@ Before starting the implementation, decide where and what kind of preset to crea
 | Condition | Location |
 |---|---|
 | Generic framework/library support (reusable) | `src/presets/<key>/` (built-in) |
-| Specific to one project's directory structure / customization | `.senti/presets/<key>/` (project-local) |
+| Specific to one project's directory structure / customization | `.senrail/presets/<key>/` (project-local) |
 
 **Project-local presets are leaf-only.** The `parent` chain always points to built-in presets.
 
@@ -64,7 +64,7 @@ Before starting the implementation, decide where and what kind of preset to crea
     ├── e2e/                 Full-scan pipeline tests
     ├── acceptance/          Fixture-based acceptance tests
     │   └── test.js
-    └── analyzers.js         Test-only helpers (may import senti internals)
+    └── analyzers.js         Test-only helpers (may import senrail internals)
 ```
 
 For project-local presets, `tests/` is not required.
@@ -130,7 +130,7 @@ A file declaring preset-specific design principles and prohibitions. AI uses it 
 
 ### 4.4 overrides.json (project root, optional)
 
-A single dictionary file placed at `.senti/overrides.json` for the whole project. Use it to manually fix descriptions returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
+A single dictionary file placed at `.senrail/overrides.json` for the whole project. Use it to manually fix descriptions returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
 
 ```json
 {
@@ -145,7 +145,7 @@ A single dictionary file placed at `.senti/overrides.json` for the whole project
 
 ### 5.1 register Factory Form (MUST)
 
-The **default export of every `src/presets/**/data/*.js` and `.senti/presets/**/data/*.js` file must be a factory function of the form `register(container)`**. A direct class default export is not allowed. If a class is exported directly, the loader calls it as a factory and fails with a `new` / constructor error.
+The **default export of every `src/presets/**/data/*.js` and `.senrail/presets/**/data/*.js` file must be a factory function of the form `register(container)`**. A direct class default export is not allowed. If a class is exported directly, the loader calls it as a factory and fails with a `new` / constructor error.
 
 ```javascript
 // NG: exporting a class directly as default is rejected by the loader
@@ -165,7 +165,7 @@ The factory is invoked synchronously, and the returned Source class is registere
 
 ### 5.2 Obtaining Base Classes / Utilities
 
-All senti base classes and utilities must be **obtained through the Container**. At the top of a data source file, only Node.js built-in modules (`fs`, `path`, `url`, `crypto`) may be imported; relative imports into senti internals and bare specifier imports are forbidden.
+All senrail base classes and utilities must be **obtained through the Container**. At the top of a data source file, only Node.js built-in modules (`fs`, `path`, `url`, `crypto`) may be imported; relative imports into senrail internals and bare specifier imports are forbidden.
 
 ```javascript
 import fs from "fs";
@@ -284,11 +284,11 @@ import crypto from "crypto";
 
 **Forbidden:**
 
-1. Relative imports into senti internals (`../../../docs/lib/...`, `../../lib/...`, `../../<sibling-preset>/...`) are forbidden.
-2. Bare specifiers (`senti/api`, `senti/presets/*`, etc.) do not exist (removed in spec 191).
-3. All senti dependencies must be obtained inside the `register(container)` function via `container.get(...)` / `container.getPreset(...)`.
+1. Relative imports into senrail internals (`../../../docs/lib/...`, `../../lib/...`, `../../<sibling-preset>/...`) are forbidden.
+2. Bare specifiers (`senrail/api`, `senrail/presets/*`, etc.) do not exist (removed in spec 191).
+3. All senrail dependencies must be obtained inside the `register(container)` function via `container.get(...)` / `container.getPreset(...)`.
 
-Test-only helpers that need senti internal imports must be isolated in `tests/analyzers.js` (see §13.4).
+Test-only helpers that need senrail internal imports must be isolated in `tests/analyzers.js` (see §13.4).
 
 ---
 
@@ -353,8 +353,8 @@ Data sources rarely touch these directly, but some advanced resolve methods refe
 | `root` | string | Absolute project root path |
 | `mainRoot` | string | Path of the main repo (points to main even from inside a worktree) |
 | `inWorktree` | boolean | Whether executing inside a worktree |
-| `paths` | object | Various paths (srcRoot, sentiDir, outputDir, agentWorkDir, logDir, configPath) |
-| `config` | object | Loaded `.senti/config.json` (null when uninitialized) |
+| `paths` | object | Various paths (srcRoot, managedDir, outputDir, agentWorkDir, logDir, configPath) |
+| `config` | object | Loaded `.senrail/config.json` (null when uninitialized) |
 | `lang` | string | `config.lang` (documentation language) |
 | `i18n` | function | Translation function |
 | `logger` | Logger | Log output |
@@ -374,20 +374,20 @@ Used by a child preset to inherit parent Source / Entry classes.
 
 ## 8. External Preset Compatibility (peerDependencies)
 
-An external preset distributed as an npm package expresses its compatibility with senti **only via `peerDependencies` in `package.json`**. No independent version field is added to the Container API.
+An external preset distributed as an npm package expresses its compatibility with senrail **only via `peerDependencies` in `package.json`**. No independent version field is added to the Container API.
 
 ```json
 {
-  "name": "senti-preset-foo",
+  "name": "senrail-preset-foo",
   "peerDependencies": {
-    "senti": "^0.1.0-alpha"
+    "senrail": "^0.1.0-alpha"
   }
 }
 ```
 
-- peerDependencies declares the minimum senti version required to satisfy **Container key compatibility**.
+- peerDependencies declares the minimum senrail version required to satisfy **Container key compatibility**.
 - The Container grows only additively (existing keys never change), so minor/patch updates do not break existing presets.
-- Do not put senti in `dependencies` (this would install it twice and break resolution).
+- Do not put senrail in `dependencies` (this would install it twice and break resolution).
 
 ---
 
@@ -423,8 +423,8 @@ Upper-level presets like `webapp` use `{{text}}` + `{%block%}`; child presets ov
 
 ### 9.4 Template Resolution Priority (high → low)
 
-1. Project-local `.senti/templates/<lang>/docs/`
-2. Project-local preset `.senti/presets/<key>/templates/<lang>/`
+1. Project-local `.senrail/templates/<lang>/docs/`
+2. Project-local preset `.senrail/presets/<key>/templates/<lang>/`
 3. Leaf preset `src/presets/<leaf>/templates/<lang>/`
 4. Parent presets (up to root)
 
@@ -462,18 +462,18 @@ Build in the order **Templates → DataSources → scan parsers**. Working backw
 
 1. **Create preset.json** — define at minimum `parent` / `scan.include` / `chapters`
 2. **Add `<key>` to `type` in config.json** — put the leaf first
-3. **Validate scan patterns with `senti docs scan --dry-run`**
+3. **Validate scan patterns with `senrail docs scan --dry-run`**
 4. **Place templates** — start with only `{{text}}` to establish the skeleton
-5. **Implement DataSources one at a time** — each as a `register(container)` factory. After each, run `senti docs scan` and check `<category>.entries.length`
+5. **Implement DataSources one at a time** — each as a `register(container)` factory. After each, run `senrail docs scan` and check `<category>.entries.length`
 6. **Swap the relevant template blocks from `{{text}}` to `{{data}}`**
-7. **Run `senti docs build`** and verify the entire pipeline
+7. **Run `senrail docs build`** and verify the entire pipeline
 8. **Add guardrail.json** (polish once build passes)
 9. **For built-in presets, set up `tests/`** and run `npm test` to verify integrity
 
 ### 12.3 Minimal Working Set
 
 ```
-.senti/
+.senrail/
 ├── config.json                    # Add "type": ["mypreset", ...]
 └── presets/mypreset/
     ├── preset.json                # {"parent": "webapp", "scan": {"include": ["src/**/*.js"]}}
@@ -511,10 +511,10 @@ export default function register(container) {
 ### 13.1 Validation Commands
 
 ```bash
-senti docs scan --dry-run         # Per-category entry-count summary
-senti docs scan --stdout          # Print full analysis JSON
-senti docs scan                   # Real run
-senti docs build                  # Full pipeline
+senrail docs scan --dry-run         # Per-category entry-count summary
+senrail docs scan --stdout          # Print full analysis JSON
+senrail docs scan                   # Real run
+senrail docs build                  # Full pipeline
 npm test                              # Integrity tests
 npm test -- --preset <key>            # Per-preset
 node tests/acceptance/run.js <key>    # Per-preset acceptance
@@ -536,7 +536,7 @@ node tests/acceptance/run.js <key>    # Per-preset acceptance
 
 ### 13.4 Test-Only Helpers (`tests/analyzers.js`)
 
-Importing senti internals from `data/*.js` is forbidden (§6). When a unit test needs to verify "the Source's parse produces a specific AST" or a similar internal assertion, place the test-only helper in `tests/analyzers.js` — that file is free to import senti internals. Test files (`tests/unit/*.test.js`) should import only from this helper, keeping the Source body free of internal module dependencies.
+Importing senrail internals from `data/*.js` is forbidden (§6). When a unit test needs to verify "the Source's parse produces a specific AST" or a similar internal assertion, place the test-only helper in `tests/analyzers.js` — that file is free to import senrail internals. Test files (`tests/unit/*.test.js`) should import only from this helper, keeping the Source body free of internal module dependencies.
 
 ---
 
@@ -568,7 +568,7 @@ Chapters declared in `chapters` require a template in the preset itself or an an
 
 ### 14.5 `[init] ERROR:` Is an Informational Message
 
-`senti docs init`'s `[init] ERROR: N files already exist under docs/` is an **informational** notice (about `--force`), not a failure. Judge by exit code.
+`senrail docs init`'s `[init] ERROR: N files already exist under docs/` is an **informational** notice (about `--force`), not a failure. Judge by exit code.
 
 ### 14.6 Common Errors
 
@@ -587,7 +587,7 @@ Chapters declared in `chapters` require a template in the preset itself or an an
 
 ### 15.1 No Project-Specific Values
 
-Do not write project-specific values (project name, host, port, container name, etc.) into `src/presets/`. Keep only generic parsing logic. Externalize project-specific values in `.senti/config.json`.
+Do not write project-specific values (project name, host, port, container name, etc.) into `src/presets/`. Keep only generic parsing logic. Externalize project-specific values in `.senrail/config.json`.
 
 ### 15.2 Tests (MUST)
 
@@ -599,8 +599,8 @@ Provide `tests/unit/` / `tests/e2e/` / `tests/acceptance/test.js` and make each 
 
 - Leaf-only. `parent` must point to a built-in key.
 - `preset.json` may be omitted (inherits defaults from the built-in chain).
-- Files under `.senti/templates/<lang>/docs/` have the highest priority (stronger than preset templates).
-- `package.json` is not needed (the loader uses senti's own resolution context).
+- Files under `.senrail/templates/<lang>/docs/` have the highest priority (stronger than preset templates).
+- `package.json` is not needed (the loader uses senrail's own resolution context).
 
 ---
 
@@ -609,24 +609,24 @@ Provide `tests/unit/` / `tests/e2e/` / `tests/acceptance/test.js` and make each 
 1. [ ] Inspect the target project's directory structure and framework
 2. [ ] Choose the closest parent among existing presets
 3. [ ] Create `<preset-root>/<key>/preset.json`
-4. [ ] Add `<key>` to the head of the `type` array in `.senti/config.json`
-5. [ ] Confirm file collection with `senti docs scan --dry-run`
+4. [ ] Add `<key>` to the head of the `type` array in `.senrail/config.json`
+5. [ ] Confirm file collection with `senrail docs scan --dry-run`
 6. [ ] Place skeleton templates under `templates/<lang>/` (start with `{{text}}` only)
 7. [ ] Implement DataSources one by one as `register(container)` factories
 8. [ ] Obtain dependencies via `container.get(...)` / `container.getPreset(...).dataSources`
-9. [ ] Verify there is no direct class export and no relative import into senti internals
-10. [ ] After each DataSource, run `senti docs scan` and inspect `analysis.json`
+9. [ ] Verify there is no direct class export and no relative import into senrail internals
+10. [ ] After each DataSource, run `senrail docs scan` and inspect `analysis.json`
 11. [ ] If you read `analysis.X`, verify that a scan DataSource in the chain writes `X`
 12. [ ] Gradually replace `{{text}}` with `{{data}}` in templates
-13. [ ] Confirm the whole pipeline passes with `senti docs build`
+13. [ ] Confirm the whole pipeline passes with `senrail docs build`
 14. [ ] For built-in presets, set up `tests/` and ensure `npm test` passes
-15. [ ] For external distribution, declare `senti` under `peerDependencies` in `package.json`
+15. [ ] For external distribution, declare `senrail` under `peerDependencies` in `package.json`
 
 ---
 
 ## 18. Reference Files
 
-senti core:
+senrail core:
 
 | File | Content |
 |---|---|
@@ -642,7 +642,7 @@ senti core:
 
 Project rules:
 
-- `src/CLAUDE.md` / `src/AGENTS.md` — senti internal architecture and MUST rules
+- `src/CLAUDE.md` / `src/AGENTS.md` — senrail internal architecture and MUST rules
 - Project root `CLAUDE.md` — restrictions on writing to `src/`
 
 ## Guardrail Rewrite Rubric

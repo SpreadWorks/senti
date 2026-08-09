@@ -5,7 +5,7 @@ import { loadSpecDrivenDevelopmentTemplate } from "./agents-md.js";
 export const AGENT_CONFIG_FILE_NAMES = ["AGENTS.md", "CLAUDE.md"];
 
 export const AGENTS_FLOW_DIRECTIVE_RE =
-  /<!--\s*\{\{data\("agents\.flow"\)\}\}\s*-->[\s\S]*?<!--\s*\{\{\/data\}\}\s*-->/;
+  /<!--\s*\{\{data\("(?:agents\.flow|(?:(?:[^"]+)\.)?(?:agents\.senti|agents\.sdd|AGENTS\.sdd))"\)\}\}\s*-->[\s\S]*?<!--\s*\{\{\/data\}\}\s*-->/;
 
 export function buildAgentsFlowBlock(lang, options = {}) {
   const specDrivenDevelopmentContent = loadSpecDrivenDevelopmentTemplate(lang, options);

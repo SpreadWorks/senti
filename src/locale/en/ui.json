@@ -273,14 +273,15 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: senrail upgrade [options]",
+        "usage": "Usage: senrail upgrade [--migrate] [--dry-run]",
         "desc": "Upgrade template-derived files to match the installed senrail version.",
-        "descDetail": "Updates skill-derived files and migrates config.json by enabling official preset plugins when required.",
+        "descDetail": "Normal upgrade updates package-managed files only. --migrate explicitly moves a legacy managed directory to .senrail before normal upgrade.",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        Skill templates",
           ".claude/skills/*/SKILL.md        Symlinks to .agents/skills/"
         ],
         "options": {
+          "migrate": "--migrate    Migrate .sdd-forge or .senti to .senrail, then run normal upgrade",
           "dryRun": "--dry-run    Show what would change without writing files",
           "help": "-h, --help   Show this help"
         }

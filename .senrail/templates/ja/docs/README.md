@@ -3,9 +3,9 @@
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/senti.svg)](https://www.npmjs.com/package/senti)
-[![license](https://img.shields.io/npm/l/senti.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/senti.svg)](https://www.npmjs.com/package/senti)
+[![npm version](https://img.shields.io/npm/v/senrail.svg)](https://www.npmjs.com/package/senrail)
+[![license](https://img.shields.io/npm/l/senrail.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/senrail.svg)](https://www.npmjs.com/package/senrail)
 
 > **Alpha版:** API・コマンド体系・設定フォーマットは予告なく変更される可能性があります。
 
@@ -79,13 +79,13 @@ npm install -g <!-- {{data("cli.project.name")}} --><!-- {{/data}} -->
 
 | スキル | フェーズ |
 |---|---|
-| `/senti.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
+| `/senrail.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 **[Codex CLI](https://github.com/openai/codex)** — `$` プレフィックスでツールを呼び出し:
 
 | コマンド | フェーズ |
 |---|---|
-| `$senti.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
+| `$senrail.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 ## コマンド一覧
 
@@ -94,11 +94,11 @@ npm install -g <!-- {{data("cli.project.name")}} --><!-- {{/data}} -->
 | `setup` | プロジェクト登録・設定ファイル生成 |
 | `docs build` | ドキュメント生成パイプラインを一括実行 |
 
-全コマンドの詳細は `senti help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
+全コマンドの詳細は `senrail help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
 
 ## 設定
 
-`setup` で `.senti/config.json` が生成されます。
+`setup` で `.senrail/config.json` が生成されます。
 
 ```jsonc
 {

@@ -40,7 +40,7 @@ describe("help", () => {
   it("prints help output via CLI", () => {
     const result = execFileSync("node", [CMD, ...CMD_ARGS_PREFIX], { encoding: "utf8" });
     assert.match(result, /senrail/);
-    assert.match(result, /Commands/);
+    assert.match(result, /Commands|コマンド一覧/);
   });
 
   it("prints plugin subcommands via CLI", () => {

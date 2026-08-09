@@ -482,15 +482,28 @@ function validateProjectTestPath(entry, index, errors) {
  * @returns {import("./types.js").ProjectConfig}
  */
 export function loadConfig(root, options = {}) {
-  const raw = loadRawConfig(root);
-  const pluginConfig = loadEnabledPluginConfig(root, raw);
+  return loadConfigFromManagedDirectory(managedDir(root), options);
+}
+
+/**
+ * Validate a config boundary at an explicitly supplied managed directory.
+ * Migration uses this to inspect a staged legacy directory without teaching
+ * normal runtime about legacy names.
+ */
+export function loadConfigFromManagedDirectory(directory, options = {}) {
+  const raw = loadRawConfigFromManagedDirectory(directory);
+  const pluginConfig = loadEnabledPluginConfig(directory, raw);
   const merged = mergeDefaults(raw, pluginConfig.defaults);
   return validate(merged, { ...options, schema: mergeConfigSchemas(CONFIG_SCHEMA, pluginConfig.schemas) });
 }
 
 export function loadRawConfig(root) {
-  const raw = loadJsonFile(managedConfigPath(root));
-  const localPath = managedLocalConfigPath(root);
+  return loadRawConfigFromManagedDirectory(managedDir(root));
+}
+
+export function loadRawConfigFromManagedDirectory(directory) {
+  const raw = loadJsonFile(path.join(directory, "config.json"));
+  const localPath = path.join(directory, "config.local.json");
   if (!fs.existsSync(localPath)) return raw;
   const local = loadJsonFile(localPath);
   if (!local || typeof local !== "object" || Array.isArray(local)) {
@@ -499,7 +512,7 @@ export function loadRawConfig(root) {
   return mergeConfigOverlay(raw, local);
 }
 
-function mergeConfigOverlay(base, overlay, segments = []) {
+export function mergeConfigOverlay(base, overlay, segments = []) {
   if (Array.isArray(overlay)) {
     if (segments.join(".") === "plugin.sources" || segments.join(".") === "plugin.packages") {
       return mergeEntriesById(base, overlay);
@@ -530,12 +543,12 @@ function mergeEntriesById(base, overlay) {
   return out;
 }
 
-function loadEnabledPluginConfig(root, raw) {
+function loadEnabledPluginConfig(managedDirectory, raw) {
   const schemas = [];
   const defaults = [];
   for (const pkg of raw?.plugin?.packages || []) {
     if (pkg.enabled === false) continue;
-    const pluginRoot = path.join(managedDir(root), "plugins", pkg.id);
+    const pluginRoot = path.join(managedDirectory, "plugins", pkg.id);
     const manifestPath = path.join(pluginRoot, "plugin.json");
     if (!fs.existsSync(manifestPath)) continue;
     try {

@@ -42,7 +42,7 @@ describe("senrail dispatcher", () => {
   it("routes 'help' to help output", () => {
     const result = execFileSync("node", [SENRAIL, "help"], { encoding: "utf8" });
     assert.match(result, /senrail/);
-    assert.match(result, /Commands/);
+    assert.match(result, /Commands|コマンド一覧/);
   });
 
   it("routes 'docs build' through docs dispatcher", () => {

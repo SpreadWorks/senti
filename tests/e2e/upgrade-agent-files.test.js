@@ -86,6 +86,32 @@ describe("upgrade agent instruction files", () => {
     assert.equal(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"), before);
   });
 
+  for (const marker of [
+    "agents.senti",
+    "agents.sdd",
+    "AGENTS.sdd",
+    "legacy.agents.senti",
+    "legacy.agents.sdd",
+    "legacy.AGENTS.sdd",
+  ]) {
+    it(`replaces the legacy managed ${marker} block while preserving handwritten content`, () => {
+      tmp = createTmpDir("senrail-upgrade-agent-files-legacy-");
+      setupProject(tmp);
+      for (const name of ["AGENTS.md", "CLAUDE.md"]) {
+        writeFile(tmp, name, staleAgentFileContent(marker));
+      }
+
+      runUpgrade(tmp);
+
+      for (const name of ["AGENTS.md", "CLAUDE.md"]) {
+        const content = fs.readFileSync(join(tmp, name), "utf8");
+        assert.match(content, /agents\.flow/);
+        assert.equal(content.includes(`data("${marker}")`), false);
+        assertRefreshed(content);
+      }
+    });
+  }
+
   it("removes the legacy Flow hook while preserving project-owned hooks", () => {
     tmp = createTmpDir("senrail-upgrade-agent-hook-cleanup-");
     setupProject(tmp);

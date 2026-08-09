@@ -21,6 +21,8 @@ const SCANNED_PATHS = [
   "package.json",
   ".gitignore",
   ".gitattributes",
+  ".senrail/templates",
+  ".senrail/presets",
   "AGENTS.md",
   "CLAUDE.md",
   "CHANGELOG.md",
@@ -28,10 +30,17 @@ const SCANNED_PATHS = [
 const ALLOWLIST = new Map([
   ["CHANGELOG.md", "historical release record"],
   ["docs/change_log.md", "historical generated change log"],
+  ["src/lib/upgrade-migration.js", "explicit one-way legacy migration input"],
+  ["src/lib/gitignore.js", "migration-only managed root metadata lines"],
+  ["src/lib/gitattributes.js", "migration-only managed root metadata lines"],
+  ["src/lib/agent-config-files.js", "normal upgrade replaces legacy managed instruction blocks"],
+  ["src/lib/skills.js", "normal upgrade removes retired product skill namespaces"],
+  ["src/locale/en/ui.json", "explicit migration CLI input help"],
+  ["src/locale/ja/ui.json", "explicit migration CLI input help"],
+  ["tests/e2e/upgrade-agent-files.test.js", "legacy managed instruction-block fixture"],
+  ["tests/e2e/upgrade-migration.test.js", "legacy migration input fixtures"],
+  ["tests/unit/lib/cleanup-obsolete-skills.test.js", "retired product skill cleanup fixture"],
 ]);
-const MANAGED_FLOW_BLOCK_OPEN = `<!-- {{data("agents.${OLD_NAME}")}} -->`;
-const MANAGED_FLOW_BLOCK_CLOSE = "<!-- {{/data}} -->";
-
 function filesUnder(relativePath) {
   const absolutePath = path.join(ROOT, relativePath);
   if (!fs.existsSync(absolutePath)) return [];
@@ -48,15 +57,6 @@ function isTextSource(file) {
   return /\.(?:js|json|md|ya?ml)$/.test(file) || ["README.md", "package.json", ".gitignore", ".gitattributes", "AGENTS.md", "CLAUDE.md"].includes(path.basename(file));
 }
 
-function removeManagedFlowBlock(relativePath, content) {
-  if (relativePath !== "AGENTS.md" && relativePath !== "CLAUDE.md") return content;
-  const start = content.indexOf(MANAGED_FLOW_BLOCK_OPEN);
-  if (start === -1) return content;
-  const end = content.indexOf(MANAGED_FLOW_BLOCK_CLOSE, start);
-  if (end === -1) throw new Error(`${relativePath} has an unterminated managed Flow block`);
-  return `${content.slice(0, start)}${content.slice(end + MANAGED_FLOW_BLOCK_CLOSE.length)}`;
-}
-
 function findOldProductHits() {
   const hits = [];
   for (const scanPath of SCANNED_PATHS) {
@@ -65,7 +65,7 @@ function findOldProductHits() {
       if (ALLOWLIST.has(relativePath)) continue;
       if (OLD_PRODUCT_PATTERN.test(relativePath)) hits.push(`${relativePath} (path)`);
       if (!isTextSource(file)) continue;
-      const content = removeManagedFlowBlock(relativePath, fs.readFileSync(file, "utf8"));
+      const content = fs.readFileSync(file, "utf8");
       if (OLD_PRODUCT_PATTERN.test(content)) hits.push(`${relativePath} (content)`);
     }
   }

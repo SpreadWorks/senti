@@ -1,8 +1,8 @@
 # プリセット作成ガイド
 
-このドキュメントは、senti のプリセットを **ビルトイン (`src/presets/<key>/`)** または **プロジェクトローカル (`.senti/presets/<key>/`)** として新規作成する際の手順書である。spec 191 で導入された DI (Dependency Injection) コンテナ契約に基づいて記述しており、AI エージェントが本ドキュメントだけを読んでプリセットを組み立てられるように、仕様・手順・落とし穴・検証コマンドを網羅している。
+このドキュメントは、senrail のプリセットを **ビルトイン (`src/presets/<key>/`)** または **プロジェクトローカル (`.senrail/presets/<key>/`)** として新規作成する際の手順書である。spec 191 で導入された DI (Dependency Injection) コンテナ契約に基づいて記述しており、AI エージェントが本ドキュメントだけを読んでプリセットを組み立てられるように、仕様・手順・落とし穴・検証コマンドを網羅している。
 
-対象読者は、senti 本体のアーキテクチャ (`src/CLAUDE.md` / `src/AGENTS.md`) を把握した上で、新しいフレームワーク・プロジェクト構造に対応するプリセットを作る開発者・AI である。
+対象読者は、senrail 本体のアーキテクチャ (`src/CLAUDE.md` / `src/AGENTS.md`) を把握した上で、新しいフレームワーク・プロジェクト構造に対応するプリセットを作る開発者・AI である。
 
 ---
 
@@ -19,7 +19,7 @@ base → cli → node-cli
 base → api → graphql
 ```
 
-`.senti/config.json` の `type` 配列に複数プリセットを並べると、各プリセットの継承チェーンが **独立に** 解決され、チャプター・DataSource・テンプレートが合成される (プリセット間に parent 関係は不要)。
+`.senrail/config.json` の `type` 配列に複数プリセットを並べると、各プリセットの継承チェーンが **独立に** 解決され、チャプター・DataSource・テンプレートが合成される (プリセット間に parent 関係は不要)。
 
 ```json
 { "type": ["spread-commerce", "graphql", "monorepo"] }
@@ -36,7 +36,7 @@ base → api → graphql
 | 条件 | 配置先 |
 |---|---|
 | 汎用フレームワーク・ライブラリ対応 (再利用される) | `src/presets/<key>/` (ビルトイン) |
-| 特定プロジェクトのディレクトリ構造・カスタマイズに特化 | `.senti/presets/<key>/` (プロジェクトローカル) |
+| 特定プロジェクトのディレクトリ構造・カスタマイズに特化 | `.senrail/presets/<key>/` (プロジェクトローカル) |
 
 **プロジェクトローカルはリーフ専用**。`parent` チェーンは常にビルトインを使用する。
 
@@ -64,7 +64,7 @@ base → api → graphql
     ├── e2e/                 フルスキャンパイプラインテスト
     ├── acceptance/          fixture ベースのアクセプタンステスト
     │   └── test.js
-    └── analyzers.js         テスト専用ヘルパー (senti 内部 import を許可)
+    └── analyzers.js         テスト専用ヘルパー (senrail 内部 import を許可)
 ```
 
 プロジェクトローカルでは `tests/` は必須ではない。
@@ -130,7 +130,7 @@ base → api → graphql
 
 ### 4.4 overrides.json (プロジェクト直下・任意)
 
-`.senti/overrides.json` に置くプロジェクト全体で 1 つの辞書ファイル。DataSource が返すエントリの説明文を手動で確定したい場合に使う (enrich の AI 生成結果より優先される)。
+`.senrail/overrides.json` に置くプロジェクト全体で 1 つの辞書ファイル。DataSource が返すエントリの説明文を手動で確定したい場合に使う (enrich の AI 生成結果より優先される)。
 
 ```json
 {
@@ -145,7 +145,7 @@ base → api → graphql
 
 ### 5.1 register ファクトリ形式 (MUST)
 
-`src/presets/**/data/*.js` および `.senti/presets/**/data/*.js` の **default export は `register(container)` 形式のファクトリ関数** でなければならない。class 直接 export は許可しない。class を直接 export すると loader はファクトリとして呼び出すため、`new X()` エラーで失敗する。
+`src/presets/**/data/*.js` および `.senrail/presets/**/data/*.js` の **default export は `register(container)` 形式のファクトリ関数** でなければならない。class 直接 export は許可しない。class を直接 export すると loader はファクトリとして呼び出すため、`new X()` エラーで失敗する。
 
 ```javascript
 // NG: class を直接 default export する形式は loader に受け付けられない
@@ -165,7 +165,7 @@ export default function register(container) {
 
 ### 5.2 基底クラス・ユーティリティの取得
 
-senti の基底クラス・ユーティリティは **すべて Container 経由で取得** する。データソース実装のファイル先頭では Node.js 組み込みモジュール (`fs`, `path`, `url`, `crypto`) のみ import でき、senti 内部への相対 import・bare specifier import は禁止する。
+senrail の基底クラス・ユーティリティは **すべて Container 経由で取得** する。データソース実装のファイル先頭では Node.js 組み込みモジュール (`fs`, `path`, `url`, `crypto`) のみ import でき、senrail 内部への相対 import・bare specifier import は禁止する。
 
 ```javascript
 import fs from "fs";
@@ -284,11 +284,11 @@ import crypto from "crypto";
 
 **禁止事項:**
 
-1. senti 内部への相対 import (`../../../docs/lib/...`, `../../lib/...`, `../../<sibling-preset>/...`) は禁止。
-2. bare specifier (`senti/api`, `senti/presets/*` 等) は存在しない (spec 191 で削除済み)。
-3. senti のすべての依存は `register(container)` 関数の内部で `container.get(...)` / `container.getPreset(...)` で取得する。
+1. senrail 内部への相対 import (`../../../docs/lib/...`, `../../lib/...`, `../../<sibling-preset>/...`) は禁止。
+2. bare specifier (`senrail/api`, `senrail/presets/*` 等) は存在しない (spec 191 で削除済み)。
+3. senrail のすべての依存は `register(container)` 関数の内部で `container.get(...)` / `container.getPreset(...)` で取得する。
 
-テスト専用ヘルパー (senti 内部 import が必要なもの) は `tests/analyzers.js` に分離する (後述 §13.4)。
+テスト専用ヘルパー (senrail 内部 import が必要なもの) は `tests/analyzers.js` に分離する (後述 §13.4)。
 
 ---
 
@@ -353,8 +353,8 @@ data source 側で通常は触らないが、一部の高度な resolve では�
 | `root` | string | プロジェクトルート絶対パス |
 | `mainRoot` | string | main リポジトリのパス (worktree 配下でも main 側を指す) |
 | `inWorktree` | boolean | worktree 内で実行中か |
-| `paths` | object | 各種パス (srcRoot, sentiDir, outputDir, agentWorkDir, logDir, configPath) |
-| `config` | object | `.senti/config.json` の読み込み結果 (未初期化時は null) |
+| `paths` | object | 各種パス (srcRoot, managedDir, outputDir, agentWorkDir, logDir, configPath) |
+| `config` | object | `.senrail/config.json` の読み込み結果 (未初期化時は null) |
 | `lang` | string | `config.lang` (ドキュメント言語) |
 | `i18n` | function | 翻訳関数 |
 | `logger` | Logger | ログ出力 |
@@ -374,20 +374,20 @@ data source 側で通常は触らないが、一部の高度な resolve では�
 
 ## 8. 外部配布 preset の互換性 (peerDependencies)
 
-npm パッケージとして配布する外部 preset は、`package.json` の `peerDependencies` のみで senti との互換性を表現する。Container API に独立した version フィールドは設けない。
+npm パッケージとして配布する外部 preset は、`package.json` の `peerDependencies` のみで senrail との互換性を表現する。Container API に独立した version フィールドは設けない。
 
 ```json
 {
-  "name": "senti-preset-foo",
+  "name": "senrail-preset-foo",
   "peerDependencies": {
-    "senti": "^0.1.0-alpha"
+    "senrail": "^0.1.0-alpha"
   }
 }
 ```
 
 - peerDependencies は **Container キーの互換性** を表す最小バージョン指定である。
 - Container は追加のみで拡張される (既存キー不変) ため、マイナー/パッチ更新で既存 preset は壊れない。
-- `dependencies` に senti を入れないこと (本体と重複インストールされ解決が壊れる)。
+- `dependencies` に senrail を入れないこと (本体と重複インストールされ解決が壊れる)。
 
 ---
 
@@ -423,8 +423,8 @@ webapp 等の上位プリセットは `{{text}}` + `{%block%}` で定義し、�
 
 ### 9.4 テンプレート解決の優先順位 (高 → 低)
 
-1. プロジェクトローカル `.senti/templates/<lang>/docs/`
-2. プロジェクトローカルプリセット `.senti/presets/<key>/templates/<lang>/`
+1. プロジェクトローカル `.senrail/templates/<lang>/docs/`
+2. プロジェクトローカルプリセット `.senrail/presets/<key>/templates/<lang>/`
 3. リーフプリセット `src/presets/<leaf>/templates/<lang>/`
 4. 親プリセット (root まで)
 
@@ -462,18 +462,18 @@ enrich フェーズは scan が収集したエントリに `summary` / `chapter`
 
 1. **preset.json を作る** — `parent` / `scan.include` / `chapters` を最低限定義
 2. **config.json の `type` に追加** — leaf を配列先頭に
-3. **`senti docs scan --dry-run` で scan パターン検証**
+3. **`senrail docs scan --dry-run` で scan パターン検証**
 4. **テンプレートを配置** — まず `{{text}}` だけで骨格を作る
-5. **DataSource を 1 つずつ実装** — `register(container)` 形式。追加ごとに `senti docs scan` を実行し `<category>.entries.length` を確認
+5. **DataSource を 1 つずつ実装** — `register(container)` 形式。追加ごとに `senrail docs scan` を実行し `<category>.entries.length` を確認
 6. **テンプレートの該当ブロックを `{{data}}` に差し替える**
-7. **`senti docs build` で全パイプライン確認**
+7. **`senrail docs build` で全パイプライン確認**
 8. **guardrail.json を追加** (build が通ってから改善)
 9. **ビルトインプリセットの場合は `tests/` を整備し、`npm test` で整合性を確認**
 
 ### 12.3 最小動作セット
 
 ```
-.senti/
+.senrail/
 ├── config.json                    # "type": ["mypreset", ...] を追加
 └── presets/mypreset/
     ├── preset.json                # {"parent": "webapp", "scan": {"include": ["src/**/*.js"]}}
@@ -511,10 +511,10 @@ export default function register(container) {
 ### 13.1 検証コマンド
 
 ```bash
-senti docs scan --dry-run         # カテゴリ別エントリ件数 summary
-senti docs scan --stdout          # 全 analysis JSON を標準出力
-senti docs scan                   # 本実行
-senti docs build                  # 全パイプライン
+senrail docs scan --dry-run         # カテゴリ別エントリ件数 summary
+senrail docs scan --stdout          # 全 analysis JSON を標準出力
+senrail docs scan                   # 本実行
+senrail docs build                  # 全パイプライン
 npm test                              # 整合性テスト
 npm test -- --preset <key>            # プリセット別
 node tests/acceptance/run.js <key>    # acceptance 個別実行
@@ -536,7 +536,7 @@ node tests/acceptance/run.js <key>    # acceptance 個別実行
 
 ### 13.4 テスト専用ヘルパー (`tests/analyzers.js`)
 
-`data/*.js` では senti 内部への import が禁止されている (§6)。ユニットテストで「Source の parse が特定の AST を返すこと」のような個別検証を書きたい場合、テスト専用ヘルパーを `tests/analyzers.js` に置き、そこからは自由に senti 内部モジュールを import してよい。テストファイル (`tests/unit/*.test.js`) はこのヘルパーだけを import し、Source 本体から内部モジュール依存を切り離す。
+`data/*.js` では senrail 内部への import が禁止されている (§6)。ユニットテストで「Source の parse が特定の AST を返すこと」のような個別検証を書きたい場合、テスト専用ヘルパーを `tests/analyzers.js` に置き、そこからは自由に senrail 内部モジュールを import してよい。テストファイル (`tests/unit/*.test.js`) はこのヘルパーだけを import し、Source 本体から内部モジュール依存を切り離す。
 
 ---
 
@@ -568,7 +568,7 @@ webapp など親プリセット自身の `data/` 内部では、`container.getPr
 
 ### 14.5 `[init] ERROR:` は情報メッセージ
 
-`senti docs init` の `[init] ERROR: N 件のファイルが docs/ に既に存在します` は **failure ではなく情報メッセージ** (`--force` 案内)。exit code で判定する。
+`senrail docs init` の `[init] ERROR: N 件のファイルが docs/ に既に存在します` は **failure ではなく情報メッセージ** (`--force` 案内)。exit code で判定する。
 
 ### 14.6 ありがちなエラー一覧
 
@@ -587,7 +587,7 @@ webapp など親プリセット自身の `data/` 内部では、`container.getPr
 
 ### 15.1 プロジェクト固有情報禁止
 
-`src/presets/` には特定プロジェクトの値 (プロジェクト名・ホスト・ポート・コンテナ名等) を書かない。汎用的な解析ロジックのみ。固有値は `.senti/config.json` で外部化する。
+`src/presets/` には特定プロジェクトの値 (プロジェクト名・ホスト・ポート・コンテナ名等) を書かない。汎用的な解析ロジックのみ。固有値は `.senrail/config.json` で外部化する。
 
 ### 15.2 テスト (MUST)
 
@@ -599,8 +599,8 @@ webapp など親プリセット自身の `data/` 内部では、`container.getPr
 
 - リーフ専用。`parent` はビルトインキーを指す。
 - `preset.json` の省略が可能 (省略時はビルトインのデフォルトを継承)。
-- `.senti/templates/<lang>/docs/` のファイルは最優先 (プリセットテンプレートより強い)。
-- `package.json` は不要 (loader は senti 本体の解決コンテキストを使う)。
+- `.senrail/templates/<lang>/docs/` のファイルは最優先 (プリセットテンプレートより強い)。
+- `package.json` は不要 (loader は senrail 本体の解決コンテキストを使う)。
 
 ---
 
@@ -609,24 +609,24 @@ webapp など親プリセット自身の `data/` 内部では、`container.getPr
 1. [ ] 対象プロジェクトのディレクトリ構造・フレームワークを把握
 2. [ ] 既存プリセットの中で最も近い親を選択
 3. [ ] `<preset-root>/<key>/preset.json` を作成
-4. [ ] `.senti/config.json` の `type` 配列先頭に `<key>` を追加
-5. [ ] `senti docs scan --dry-run` でファイル収集確認
+4. [ ] `.senrail/config.json` の `type` 配列先頭に `<key>` を追加
+5. [ ] `senrail docs scan --dry-run` でファイル収集確認
 6. [ ] `templates/<lang>/` に骨格テンプレート配置 (まず `{{text}}` のみ)
 7. [ ] 必要な DataSource を 1 つずつ `register(container)` 形式で実装
 8. [ ] `container.get(...)` / `container.getPreset(...).dataSources` で依存取得
 9. [ ] class を直接 export していないこと、相対 import がないことを確認
-10. [ ] 各 DataSource 追加後に `senti docs scan` → `analysis.json` 確認
+10. [ ] 各 DataSource 追加後に `senrail docs scan` → `analysis.json` 確認
 11. [ ] `analysis.X` を読むなら `X` を書く scan がチェーン内にあるか確認
 12. [ ] テンプレートの `{{text}}` を段階的に `{{data}}` に差し替え
-13. [ ] `senti docs build` で全パイプライン完走
+13. [ ] `senrail docs build` で全パイプライン完走
 14. [ ] ビルトインなら `tests/` 整備 → `npm test` で整合性 PASS
-15. [ ] 外部配布時は `package.json` の `peerDependencies` に `senti` を宣言
+15. [ ] 外部配布時は `package.json` の `peerDependencies` に `senrail` を宣言
 
 ---
 
 ## 18. 参考ファイル
 
-senti 本体:
+senrail 本体:
 
 | ファイル | 内容 |
 |---|---|
@@ -642,7 +642,7 @@ senti 本体:
 
 プロジェクトルール:
 
-- `src/CLAUDE.md` / `src/AGENTS.md` — senti 内部アーキテクチャと MUST ルール
+- `src/CLAUDE.md` / `src/AGENTS.md` — senrail 内部アーキテクチャと MUST ルール
 - プロジェクトルート `CLAUDE.md` — `src/` への書き込み禁止事項
 
 ## Guardrail Rewrite Rubric

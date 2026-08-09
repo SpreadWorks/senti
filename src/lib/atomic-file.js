@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { RealDirectoryAuthority } from "./process-owned-lock.js";
 
-function fsyncDirectory(directory) {
+export function fsyncDirectory(directory) {
   const descriptor = fs.openSync(directory, "r");
   let primaryError = null;
   try {
@@ -193,6 +193,7 @@ export class AtomicFile {
     let committedToVisibleName = false;
     try {
       this.faultInjector({ phase, filePath: this.filePath });
+      this.commitGuard({ phase, filePath: this.filePath });
       fs.unlinkSync(this.filePath);
       committedToVisibleName = true;
       phase = `before-${this.phaseNamespace}-directory-fsync`;
