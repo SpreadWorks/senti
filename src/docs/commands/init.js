@@ -20,6 +20,7 @@ import { translate } from "../../lib/i18n.js";
 import { loadFullAnalysis, loadAnalysisData } from "../lib/command-context.js";
 import { stripBlockDirectives } from "../lib/directive-parser.js";
 import { container } from "../../lib/container.js";
+import { PRODUCT } from "../../lib/product.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
@@ -195,7 +196,7 @@ async function runInit(ctx, rawArgs) {
   logger.verbose(`type=${type} lang=${lang}`);
 
   // テンプレート解決（ボトムアップ方式）
-  const projectLocalDir = path.join(root, ".senrail", "templates", lang, "docs");
+  const projectLocalDir = path.join(root, PRODUCT.managedPath("templates", lang, "docs"));
   const docsConfig = config?.docs;
   const configLangs = docsConfig?.languages?.filter((l) => l !== lang) || [];
   // Always include "en" as ultimate fallback for presets with English-only templates

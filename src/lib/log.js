@@ -17,7 +17,7 @@
  *   - logger.event(name, fields)
  *
  * When `enabled` is false the methods are no-ops (no I/O, no throws). Flow
- * context (spec, senrailPhase) for agent end events is looked up through the
+ * context (spec, flowPhase) for agent end events is looked up through the
  * FlowManager passed at construction; metric accumulation is NOT the
  * logger's responsibility (it lives in the agent call path).
  */
@@ -203,20 +203,20 @@ export class Logger {
       const ctx = entry.flowContext;
       return {
         specId: ctx?.specId ?? null,
-        senrailPhase: ctx?.senrailPhase ?? null,
+        flowPhase: ctx?.flowPhase ?? null,
         taskId: ctx?.taskId ?? null,
       };
     }
     if (!this.#flowManager || this.#resolvingContext) {
-      return { specId: null, senrailPhase: null, taskId: null };
+      return { specId: null, flowPhase: null, taskId: null };
     }
     this.#resolvingContext = true;
     try {
       const ctx = this.#flowManager.resolveCurrentContext();
-      return { specId: ctx.specId ?? null, senrailPhase: ctx.senrailPhase ?? null, taskId: ctx.taskId ?? null };
+      return { specId: ctx.specId ?? null, flowPhase: ctx.flowPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
       process.stderr.write(`[senrail] Logger: flow state read failed: ${err.message}\n`);
-      return { specId: null, senrailPhase: null, taskId: null };
+      return { specId: null, flowPhase: null, taskId: null };
     } finally {
       this.#resolvingContext = false;
     }
@@ -234,7 +234,7 @@ export class Logger {
    * @param {{text?: string, stdout?: string|null, stderr?: string|null, exitCode?: number, error?: string|null}} [entry.response]
    * @param {number} [entry.durationSec]
    * @param {Object} [entry.usage]
-   * @param {{spec?: string|null, senrailPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
+   * @param {{spec?: string|null, flowPhase?: string|null, taskId?: string|null}|null} [entry.flowContext]
    */
   agent(entry) {
     return this.#track(this.#agentImpl(entry));
@@ -255,7 +255,7 @@ export class Logger {
         phase: "start",
         requestId: entry.requestId,
         specId: startCtx.specId,
-        senrailPhase: startCtx.senrailPhase,
+        flowPhase: startCtx.flowPhase,
         taskId: startCtx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -278,7 +278,7 @@ export class Logger {
       context: {
         entryCommand: this.#entryCommand,
         specId: ctx.specId,
-        senrailPhase: ctx.senrailPhase,
+        flowPhase: ctx.flowPhase,
         taskId: ctx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
@@ -325,7 +325,7 @@ export class Logger {
       phase: "end",
       requestId: entry.requestId,
       specId: ctx.specId,
-      senrailPhase: ctx.senrailPhase,
+      flowPhase: ctx.flowPhase,
       taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,

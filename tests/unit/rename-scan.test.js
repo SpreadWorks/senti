@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const OLD_NAME = "sen" + "ti";
-const OLD_PRODUCT_PATTERN = new RegExp(`(?<![A-Za-z])${OLD_NAME}(?=\\b|[._/-])`, "i");
+const OLD_TITLE_NAME = `S${OLD_NAME.slice(1)}`;
+const OLD_CONSTANT_NAME = OLD_NAME.toUpperCase();
+const OLD_PRODUCT_PATTERN = new RegExp(
+  `(?<![A-Za-z])(?:${OLD_NAME}|${OLD_TITLE_NAME})(?=$|[^a-z]|[A-Z])|(?<![A-Za-z])${OLD_CONSTANT_NAME}(?=$|[^A-Z])`,
+);
 const SCANNED_PATHS = [
   "src",
   "tests",
@@ -68,7 +72,27 @@ function findOldProductHits() {
   return hits;
 }
 
+function containsOldProductName(value) {
+  return OLD_PRODUCT_PATTERN.test(value);
+}
+
 describe("rename scan", () => {
+  it("detects standalone, path, constant, camelCase, and PascalCase legacy identities without word fragments", () => {
+    for (const value of [
+      OLD_NAME,
+      OLD_TITLE_NAME,
+      `${OLD_CONSTANT_NAME}_WORK_ROOT`,
+      `.${OLD_NAME}/config.json`,
+      `${OLD_NAME}Phase`,
+      `${OLD_TITLE_NAME}MigrationEvidence`,
+    ]) {
+      assert.equal(containsOldProductName(value), true, value);
+    }
+    for (const value of [`${OLD_NAME}nel`, `${OLD_CONSTANT_NAME}NEL`, `es${OLD_NAME}al`]) {
+      assert.equal(containsOldProductName(value), false, value);
+    }
+  });
+
   it("covers source, generated docs, metadata, and file paths with a precise legacy allowlist", () => {
     assert.deepEqual(findOldProductHits(), []);
   });

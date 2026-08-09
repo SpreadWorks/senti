@@ -33,6 +33,14 @@ describe("createResolver", () => {
     assert.equal(result.toMarkdown(), "test-pkg");
   });
 
+  it("uses package displayName for generated project headings", async () => {
+    setupTmp("resolver-project-display-name");
+    writeJson(tmp, "package.json", { name: "senrail", displayName: "Senrail", version: "1.0.0" });
+    const resolver = await createResolver("sample-node-command", tmp);
+    const result = resolver.resolve("sample-node-command", "project", "name", {}, [""]);
+    assert.equal(result.toMarkdown(), "Senrail");
+  });
+
   it("resolves project.version", async () => {
     setupTmp("resolver-version");
     writeJson(tmp, "package.json", { name: "pkg", version: "2.5.0" });

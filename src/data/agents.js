@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import { loadSpecDrivenDevelopmentTemplate } from "../lib/agents-md.js";
 import { formatUTCTimestamp } from "../lib/cli.js";
+import { PRODUCT } from "../lib/product.js";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
@@ -126,7 +127,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".senrail", "config.json"));
+      return loadJsonFile(path.join(this._root, PRODUCT.managedPath("config.json")));
     } catch (_) {
       return {};
     }

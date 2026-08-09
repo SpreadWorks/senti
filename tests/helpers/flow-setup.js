@@ -142,9 +142,9 @@ export function setStepDone(state, ...ids) {
  * Write a .senrail/config.json with the given language into tmp.
  */
 export function setupFlowConfig(tmp, lang) {
-  const senrailDir = path.join(tmp, ".senrail");
-  fs.mkdirSync(senrailDir, { recursive: true });
-  fs.writeFileSync(path.join(senrailDir, "config.json"), JSON.stringify({
+  const managedDir = path.join(tmp, ".senrail");
+  fs.mkdirSync(managedDir, { recursive: true });
+  fs.writeFileSync(path.join(managedDir, "config.json"), JSON.stringify({
     lang,
     type: "base",
     docs: { languages: [lang], defaultLanguage: lang },

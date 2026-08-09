@@ -9,7 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { senrailDir } from "../../lib/config.js";
+import { managedDir } from "../../lib/config.js";
 import { loadDataSources as loadDataSourcesBase } from "./data-source-loader.js";
 import { PRESETS, resolveMultiChains } from "../../lib/presets.js";
 import { createLogger } from "../../lib/progress.js";
@@ -34,7 +34,7 @@ let _overridesRoot = null;
 
 function loadOverridesFor(root) {
   if (_overridesCache && _overridesRoot === root) return _overridesCache;
-  const overridesPath = path.join(senrailDir(root), "overrides.json");
+  const overridesPath = path.join(managedDir(root), "overrides.json");
   if (fs.existsSync(overridesPath)) {
     _overridesCache = JSON.parse(fs.readFileSync(overridesPath, "utf8"));
   } else {
@@ -103,7 +103,7 @@ function fallbackDataSourceChains(types) {
 export async function createResolver(type, root, opts) {
   // Warn about deprecated .senrail/data/ directory
   if (root) {
-    const deprecatedDataDir = path.join(root, ".senrail", "data");
+    const deprecatedDataDir = path.join(managedDir(root), "data");
     if (fs.existsSync(deprecatedDataDir)) {
       process.stderr.write(`[senrail] WARN: .senrail/data/ is deprecated. Move DataSources to .senrail/presets/<type>/data/ instead.\n`);
     }

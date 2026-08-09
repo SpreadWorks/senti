@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeSenrailGitignore } from "../../../src/lib/gitignore.js";
+import { normalizeManagedGitignore } from "../../../src/lib/gitignore.js";
 
-describe("normalizeSenrailGitignore", () => {
+describe("normalizeManagedGitignore", () => {
   it("keeps .senrail contents ignored while allowing managed files and directories", () => {
-    const normalized = normalizeSenrailGitignore([
+    const normalized = normalizeManagedGitignore([
       ".senrail/*",
       "!.senrail/config.json",
       "!.senrail/templates/",
@@ -30,7 +30,7 @@ describe("normalizeSenrailGitignore", () => {
   });
 
   it("normalizes a mechanically renamed legacy directory ignore", () => {
-    const normalized = normalizeSenrailGitignore([
+    const normalized = normalizeManagedGitignore([
       ".senrail/",
       "",
       ".tmp/",
@@ -56,6 +56,6 @@ describe("normalizeSenrailGitignore", () => {
       ".tmp/",
     ].join("\n");
 
-    assert.equal(normalizeSenrailGitignore(content, { appendIfMissing: false }), content);
+    assert.equal(normalizeManagedGitignore(content, { appendIfMissing: false }), content);
   });
 });

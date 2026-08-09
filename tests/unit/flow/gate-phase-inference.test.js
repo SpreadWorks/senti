@@ -12,7 +12,7 @@ import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { SetStepStatus } from "../../../src/flow/definition.js";
 import { DefinitionLifecycleTransition } from "../../../src/flow/lib/step-transition-policy.js";
-import { runSenrailUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
+import { runUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
 
 // spec: R3 R8
 it("runs canonical upgrade from the package entrypoint in the consuming project", () => {
@@ -20,7 +20,7 @@ it("runs canonical upgrade from the package entrypoint in the consuming project"
   const consumerRoot = "/consumer/project";
   const packageDir = "/installed/senrail/src";
 
-  runSenrailUpgradeForRecovery(consumerRoot, {
+  runUpgradeForRecovery(consumerRoot, {
     packageDir,
     execFileSyncImpl(...args) {
       calls.push(args);

@@ -149,11 +149,11 @@ class OfflineMigrationWorkspace {
     const directory = path.join(authority.root, authority.relativePath);
     const parent = path.dirname(directory);
     if (allowMissing && authority.dev !== null && !fs.existsSync(directory)) return null;
-    const senrail = new RealDirectoryAuthority(path.join(authority.root, PRODUCT.managedDirName));
-    senrail.ensure();
+    const managedDirectory = new RealDirectoryAuthority(path.join(authority.root, PRODUCT.managedDirName));
+    managedDirectory.ensure();
     const recovery = new RealDirectoryAuthority(path.join(authority.root, PRODUCT.managedDirName, "recovery"), {
       create: true,
-      parentAuthority: senrail,
+      parentAuthority: managedDirectory,
     });
     recovery.ensure();
     new RealDirectoryAuthority(parent, { create: true, parentAuthority: recovery }).ensure();
@@ -972,11 +972,11 @@ class MigrationJournalStore {
   constructor(root, relativePath) {
     const located = withinRoot(path.resolve(root), path.join(root, relativePath));
     this.path = located.resolved;
-    const senrail = new RealDirectoryAuthority(path.join(root, PRODUCT.managedDirName));
-    senrail.ensure();
+    const managedDirectory = new RealDirectoryAuthority(path.join(root, PRODUCT.managedDirName));
+    managedDirectory.ensure();
     this.directoryAuthority = new RealDirectoryAuthority(path.dirname(this.path), {
       create: true,
-      parentAuthority: senrail,
+      parentAuthority: managedDirectory,
     });
     this.directoryAuthority.ensure();
     this.file = new AtomicJsonFile(this.path);

@@ -162,7 +162,7 @@ async function runTranslate(ctx, rawArgs) {
   }
 
   if (docsMode !== "translate") {
-    logger.log(`Output mode is '${docsMode}', not 'translate'. Use 'senrail build' for generate mode.`);
+    logger.log(`Output mode is '${docsMode}', not 'translate'. Use 'senrail docs build' for generate mode.`);
     return;
   }
 
@@ -177,7 +177,7 @@ async function runTranslate(ctx, rawArgs) {
     : docsCfg.languages.filter((l) => l !== defaultLang);
 
   if (!fs.existsSync(docsDir)) {
-    throw new Error("docs/ directory not found. Run 'senrail init' first.");
+    throw new Error("docs/ directory not found. Run 'senrail docs init' first.");
   }
 
   const sourceFiles = getChapterFiles(docsDir, { type: ctx.type, configChapters: ctx.config?.chapters, projectRoot: root });
@@ -235,4 +235,3 @@ export default class DocsTranslateCommand extends Command {
     return runTranslate(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-

@@ -21,6 +21,7 @@ import { processTemplate } from "./text.js";
 import { buildTextSystemPrompt } from "../lib/text-prompts.js";
 import { resolveConcurrency } from "../../lib/config.js";
 import { container } from "../../lib/container.js";
+import { PRODUCT } from "../../lib/product.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 
@@ -70,7 +71,7 @@ async function runReadme(ctx, rawArgs) {
     return;
   }
 
-  const projectLocalDir = path.join(root, ".senrail", "templates", lang, "docs");
+  const projectLocalDir = path.join(root, PRODUCT.managedPath("templates", lang, "docs"));
   const docsConfig = config?.docs;
   const fallbackLangs = docsConfig?.languages?.filter((l) => l !== lang) || [];
 

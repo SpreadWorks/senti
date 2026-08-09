@@ -83,7 +83,7 @@
  */
 
 /**
- * @typedef {Object} SenrailConfig
+ * @typedef {Object} ProjectConfig
  * @property {string} [name]                 - Project name (optional, set by setup wizard)
  * @property {DocsConfig} docs               - Documentation configuration (required)
  * @property {string} lang                   - Operating language for CLI, AGENTS.md, skills, specs

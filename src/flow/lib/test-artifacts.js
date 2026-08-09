@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { execFileSync } from "child_process";
 import { StringDecoder } from "string_decoder";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
@@ -2002,7 +2002,7 @@ function assertIntegrationRegressionAuthority({ root, state, specDir, config = {
       regression.trigger_relevant_changed_files,
       "regression.trigger_relevant_changed_files",
     );
-    const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
+    const analysisPath = path.join(managedOutputDir(root), "analysis.json");
     const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
     const changedFiles = listRegressionChangedFiles({ root, state });
     const current = classifyRegression({ root, state, analysis, config, changedFiles });

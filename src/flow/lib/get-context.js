@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import path from "path";
-import { senrailOutputDir, loadConfig } from "../../lib/config.js";
+import { managedOutputDir, loadConfig } from "../../lib/config.js";
 import { FlowCommand } from "./base-command.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
@@ -417,7 +417,7 @@ function filterEntry(entry) {
  * @returns {{ analysis: Object, entries: Object[] }}
  */
 function loadAnalysisEntries(root) {
-  const outputDir = senrailOutputDir(root);
+  const outputDir = managedOutputDir(root);
   const analysisPath = path.join(outputDir, "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {

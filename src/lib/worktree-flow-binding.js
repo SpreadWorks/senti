@@ -4,28 +4,14 @@ import path from "node:path";
 import { AtomicFile } from "./atomic-file.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
+import { PRODUCT } from "./product.js";
 
-export const WORKTREE_FLOW_BINDING_FILE = path.join(".senrail", "flow-identity.json");
-export const WORKTREE_FLOW_ISSUE_TRANSITION_FILE = path.join(
-  ".senrail",
-  "flow-identity.issue-transaction.json",
-);
-export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_FILE = path.join(
-  ".senrail",
-  ".flow-identity.publication.json",
-);
-export const WORKTREE_FLOW_BINDING_PUBLICATION_INTENT_FILE = path.join(
-  ".senrail",
-  ".flow-identity.publication.intent",
-);
-export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_TEMP_FILE = path.join(
-  ".senrail",
-  ".flow-identity.publication.receipt.tmp",
-);
-export const WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE = path.join(
-  ".senrail",
-  ".flow-identity.publication.binding.tmp",
-);
+export const WORKTREE_FLOW_BINDING_FILE = PRODUCT.managedPath("flow-identity.json");
+export const WORKTREE_FLOW_ISSUE_TRANSITION_FILE = PRODUCT.managedPath("flow-identity.issue-transaction.json");
+export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_FILE = PRODUCT.managedPath(".flow-identity.publication.json");
+export const WORKTREE_FLOW_BINDING_PUBLICATION_INTENT_FILE = PRODUCT.managedPath(".flow-identity.publication.intent");
+export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_TEMP_FILE = PRODUCT.managedPath(".flow-identity.publication.receipt.tmp");
+export const WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE = PRODUCT.managedPath(".flow-identity.publication.binding.tmp");
 
 const BINDING_VERSION = 2;
 const BINDING_KEYS = Object.freeze(["version", "runId", "issue", "specId", "worktreePath"]);

@@ -35,6 +35,7 @@ import { finalRegressionWorktreeFingerprint } from "./test-artifacts.js";
 import GetNextActionCommand from "./get-next-action.js";
 import { FlowDispatchArtifactRegistry } from "./repair-state-identity.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { PRODUCT } from "../../lib/product.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   WorkerArtifactHandoffCoordinator,
@@ -168,7 +169,7 @@ export class FlowDispatchLease {
     const root = new RealDirectoryAuthority(mainRoot, {
       errorFactory: dispatchLockError,
     });
-    const directory = new RealDirectoryAuthority(path.join(mainRoot, ".senrail"), {
+    const directory = new RealDirectoryAuthority(path.join(mainRoot, PRODUCT.managedDirName), {
       create: true,
       parentAuthority: root,
       errorFactory: dispatchLockError,

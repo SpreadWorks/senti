@@ -24,7 +24,7 @@ import fs from "fs";
 import path from "path";
 import { container } from "../../lib/container.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
@@ -293,7 +293,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const spec = readJsonStrict(path.join(specDir, "spec.json"));
       const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
       const testableRequirements = testableRequirementsForSummary(requirements);
-      const analysisPath = path.join(senrailOutputDir(executionRoot), "analysis.json");
+      const analysisPath = path.join(managedOutputDir(executionRoot), "analysis.json");
       if (!fs.existsSync(analysisPath)) {
         throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
       }

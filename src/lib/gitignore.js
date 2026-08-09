@@ -1,6 +1,6 @@
 import { PRODUCT } from "./product.js";
 
-export const SENRAIL_GITIGNORE_LINES = [
+export const MANAGED_GITIGNORE_LINES = [
   `${PRODUCT.managedDirName}/*`,
   `!${PRODUCT.managedPath("config.json")}`,
   `!${PRODUCT.managedPath("templates")}/`,
@@ -9,16 +9,16 @@ export const SENRAIL_GITIGNORE_LINES = [
   `${PRODUCT.managedPath("output")}/acceptance-report-*.json`,
 ];
 
-const MANAGED_SENRAIL_GITIGNORE_LINES = new Set([
-  ...SENRAIL_GITIGNORE_LINES,
+const MANAGED_GITIGNORE_LINE_SET = new Set([
+  ...MANAGED_GITIGNORE_LINES,
   `${PRODUCT.managedDirName}/`,
 ]);
 
-export function hasSenrailGitignore(content) {
+export function hasManagedGitignore(content) {
   return content.split("\n").some((line) => line.trim() === `${PRODUCT.managedDirName}/*`);
 }
 
-export function normalizeSenrailGitignore(content, { appendIfMissing = true } = {}) {
+export function normalizeManagedGitignore(content, { appendIfMissing = true } = {}) {
   const hadFinalNewline = content.endsWith("\n");
   const lines = content.split("\n");
   if (hadFinalNewline) lines.pop();
@@ -28,7 +28,7 @@ export function normalizeSenrailGitignore(content, { appendIfMissing = true } = 
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (MANAGED_SENRAIL_GITIGNORE_LINES.has(trimmed)) {
+    if (MANAGED_GITIGNORE_LINE_SET.has(trimmed)) {
       if (insertAt === -1) insertAt = kept.length;
       continue;
     }
@@ -38,10 +38,10 @@ export function normalizeSenrailGitignore(content, { appendIfMissing = true } = 
   if (insertAt === -1 && !appendIfMissing) return content;
 
   if (insertAt !== -1) {
-    kept.splice(insertAt, 0, ...SENRAIL_GITIGNORE_LINES);
+    kept.splice(insertAt, 0, ...MANAGED_GITIGNORE_LINES);
   } else if (appendIfMissing) {
     if (kept.length > 0 && kept[kept.length - 1] !== "") kept.push("");
-    kept.push(...SENRAIL_GITIGNORE_LINES);
+    kept.push(...MANAGED_GITIGNORE_LINES);
   }
 
   return `${kept.join("\n")}\n`;

@@ -33,7 +33,7 @@ export default function register(container) {
   /** Project / package name. */
   name(_analysis, _labels) {
     const pkg = this._pkg();
-    return new Paragraph(pkg?.name || path.basename(this._root));
+    return new Paragraph(pkg?.displayName || pkg?.name || path.basename(this._root));
   }
 
   /** Project description. */

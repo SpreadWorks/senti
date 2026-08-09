@@ -7,7 +7,7 @@
 
 import fs from "fs";
 import path from "path";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { resolveChaptersOrder } from "./template-merger.js";
 
 /**
@@ -18,7 +18,7 @@ import { resolveChaptersOrder } from "./template-merger.js";
  * @returns {Object|null} パース結果、見つからなければ null
  */
 function loadOutputJson(root, fileName) {
-  const filePath = path.join(senrailOutputDir(root), fileName);
+  const filePath = path.join(managedOutputDir(root), fileName);
   if (!fs.existsSync(filePath)) return null;
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));

@@ -8,6 +8,7 @@ import { PKG_DIR } from "./cli.js";
 import { resolveIncludes } from "./include.js";
 import { stripDataMarkers } from "../docs/lib/directive-parser.js";
 import { loadRules, expandSkillRulesDirectives } from "./skill-rules.js";
+import { PRODUCT } from "./product.js";
 
 /** Canonical path to the bundled main skill source directory. */
 export const MAIN_SKILLS_DIR = path.join(PKG_DIR, "skills");
@@ -135,7 +136,7 @@ export function deploySkills(workRoot, opts = {}) {
 }
 
 /**
- * Remove senrail.* skill directories from .claude/skills/ and .agents/skills/
+ * Remove product-owned skill directories from .claude/skills/ and .agents/skills/
  * that are no longer present in any of the provided skill source directories.
  *
  * Skills found in any of the active skill source directories are kept; all others are removed.
@@ -155,7 +156,7 @@ export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}
   for (const base of SKILL_TARGET_BASES) {
     const deployedDir = deployedSkillsDir(workRoot, base);
     const obsoleteNames = listSkillDirNames(deployedDir)
-      .filter((name) => name.startsWith("senrail."))
+      .filter((name) => name.startsWith(PRODUCT.skillNamespace))
       .filter((name) => !validNames.has(name));
     if (obsoleteNames.length > 0) {
       obsoleteNamesByBase.set(base, obsoleteNames);

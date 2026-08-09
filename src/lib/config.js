@@ -66,22 +66,22 @@ export function loadPackageField(root, field) {
 // .senrail パスヘルパー
 // ---------------------------------------------------------------------------
 
-const SENRAIL_DIR_NAME = PRODUCT.managedDirName;
+const MANAGED_DIR_NAME = PRODUCT.managedDirName;
 
-export function senrailDir(root) {
-  return path.join(root, SENRAIL_DIR_NAME);
+export function managedDir(root) {
+  return path.join(root, MANAGED_DIR_NAME);
 }
 
-export function senrailConfigPath(root) {
-  return path.join(root, SENRAIL_DIR_NAME, "config.json");
+export function managedConfigPath(root) {
+  return path.join(root, MANAGED_DIR_NAME, "config.json");
 }
 
-export function senrailLocalConfigPath(root) {
-  return path.join(root, SENRAIL_DIR_NAME, "config.local.json");
+export function managedLocalConfigPath(root) {
+  return path.join(root, MANAGED_DIR_NAME, "config.local.json");
 }
 
-export function senrailOutputDir(root) {
-  return path.join(root, SENRAIL_DIR_NAME, "output");
+export function managedOutputDir(root) {
+  return path.join(root, MANAGED_DIR_NAME, "output");
 }
 
 /**
@@ -346,7 +346,7 @@ const CONFIG_SCHEMA = {
  * Throws on any validation failure.
  *
  * @param {*} raw - Parsed config object
- * @returns {import("./types.js").SenrailConfig} Validated config
+ * @returns {import("./types.js").ProjectConfig} Validated config
  */
 const MISSING_TYPE_ERROR = "type: required field is missing";
 
@@ -418,7 +418,7 @@ export function validate(raw, options = {}) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
 
-  return /** @type {import("./types.js").SenrailConfig} */ (raw);
+  return /** @type {import("./types.js").ProjectConfig} */ (raw);
 }
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
@@ -479,7 +479,7 @@ function validateProjectTestPath(entry, index, errors) {
  * .senrail/config.json を読み込みバリデーションする。
  *
  * @param {string} root - リポジトリルート
- * @returns {import("./types.js").SenrailConfig}
+ * @returns {import("./types.js").ProjectConfig}
  */
 export function loadConfig(root, options = {}) {
   const raw = loadRawConfig(root);
@@ -489,8 +489,8 @@ export function loadConfig(root, options = {}) {
 }
 
 export function loadRawConfig(root) {
-  const raw = loadJsonFile(senrailConfigPath(root));
-  const localPath = senrailLocalConfigPath(root);
+  const raw = loadJsonFile(managedConfigPath(root));
+  const localPath = managedLocalConfigPath(root);
   if (!fs.existsSync(localPath)) return raw;
   const local = loadJsonFile(localPath);
   if (!local || typeof local !== "object" || Array.isArray(local)) {
@@ -535,7 +535,7 @@ function loadEnabledPluginConfig(root, raw) {
   const defaults = [];
   for (const pkg of raw?.plugin?.packages || []) {
     if (pkg.enabled === false) continue;
-    const pluginRoot = path.join(senrailDir(root), "plugins", pkg.id);
+    const pluginRoot = path.join(managedDir(root), "plugins", pkg.id);
     const manifestPath = path.join(pluginRoot, "plugin.json");
     if (!fs.existsSync(manifestPath)) continue;
     try {

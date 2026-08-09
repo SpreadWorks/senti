@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import path from "path";
-import { senrailDir } from "./config.js";
+import { managedDir } from "./config.js";
 import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
@@ -338,7 +338,7 @@ function isManagedFlowWorktree(root, mainRoot, inWorktree) {
   if (canonicalRoot !== resolvedRoot || canonicalMainRoot !== resolvedMainRoot) {
     throw new Error("managed worktree roots must use canonical real paths");
   }
-  const managedRootPath = path.resolve(senrailDir(canonicalMainRoot), "worktree");
+  const managedRootPath = path.resolve(managedDir(canonicalMainRoot), "worktree");
   let managedRoot;
   try {
     managedRoot = fs.realpathSync(managedRootPath);
@@ -628,17 +628,17 @@ export class FlowManager {
 
   /**
    * Resolve the current flow context for logging / metric accumulation.
-   * Returns { specId, senrailPhase } derived from the active flow.json; both are
+   * Returns { specId, flowPhase } derived from the active flow.json; both are
    * null when no active flow is present (expected outside Spec-Driven Development contexts).
    */
   resolveCurrentContext() {
     const state = this.load();
-    if (!state) return { specId: null, senrailPhase: null, taskId: null };
+    if (!state) return { specId: null, flowPhase: null, taskId: null };
     const specId = state.specId ?? null;
     const inProgress = findInProgressLeaf(state.steps);
-    const senrailPhase = inProgress?.id ?? null;
+    const flowPhase = inProgress?.id ?? null;
     const taskId = state.currentTaskId ?? null;
-    return { specId, senrailPhase, taskId };
+    return { specId, flowPhase, taskId };
   }
 
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────

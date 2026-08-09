@@ -16,7 +16,7 @@ import readline from "readline";
 import { parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { validate } from "./lib/config.js";
-import { DEFAULT_LANG, senrailDir as senrailDirFn } from "./lib/config.js";
+import { DEFAULT_LANG, managedDir as managedDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
 import { listSetupPresetCandidates, resolveMultiChains, resolvePresetCandidateChains, validatePresetCandidateChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
@@ -27,8 +27,8 @@ import {
 import { resolveWorkDir } from "./lib/config.js";
 import { defaultAgentProfiles } from "./lib/agent-defaults.js";
 import { deploySkills } from "./lib/skills.js";
-import { SENRAIL_GITIGNORE_LINES, hasSenrailGitignore, normalizeSenrailGitignore } from "./lib/gitignore.js";
-import { SENRAIL_ANALYSIS_GITATTRIBUTE, normalizeSenrailGitattributes } from "./lib/gitattributes.js";
+import { MANAGED_GITIGNORE_LINES, hasManagedGitignore, normalizeManagedGitignore } from "./lib/gitignore.js";
+import { MANAGED_ANALYSIS_GITATTRIBUTE, normalizeManagedGitattributes } from "./lib/gitattributes.js";
 import { ensureSetupOfficialPresetState, resolveSetupOfficialPresetSource } from "./lib/plugin-registry.js";
 import { ExecutionMode, WritePlan } from "./lib/execution-plan.js";
 import { flowSpecRootFromConfig } from "./lib/flow-workspace.js";
@@ -273,7 +273,7 @@ function restoreConfigFile(configPath, snapshot) {
 // ---------------------------------------------------------------------------
 
 function loadExistingDefaults(workRoot) {
-  const configPath = path.join(senrailDirFn(workRoot), "config.json");
+  const configPath = path.join(managedDirFn(workRoot), "config.json");
   const cfg = readConfigFile(configPath);
   if (!cfg) return null;
   const types = Array.isArray(cfg.type) ? cfg.type : cfg.type ? [cfg.type] : [];
@@ -304,10 +304,10 @@ export const loadSetupDefaults = loadExistingDefaults;
 // ---------------------------------------------------------------------------
 
 function ensureProjectDirs(workRoot) {
-  const senrailDir = path.join(workRoot, ".senrail");
-  const outputDir = path.join(senrailDir, "output");
+  const projectManagedDir = managedDirFn(workRoot);
+  const outputDir = path.join(projectManagedDir, "output");
   const docsDir = path.join(workRoot, "docs");
-  [senrailDir, outputDir, docsDir].forEach((d) =>
+  [projectManagedDir, outputDir, docsDir].forEach((d) =>
     fs.mkdirSync(d, { recursive: true }),
   );
   fs.writeFileSync(path.join(outputDir, ".gitkeep"), "");
@@ -318,7 +318,7 @@ function ensureGitignore(workRoot) {
   const block = [
     ".tmp/",
     "",
-    ...SENRAIL_GITIGNORE_LINES,
+    ...MANAGED_GITIGNORE_LINES,
     "",
     ".agents/*",
     "!.agents/skills*",
@@ -328,11 +328,11 @@ function ensureGitignore(workRoot) {
   ];
   if (fs.existsSync(rootGitignore)) {
     const content = fs.readFileSync(rootGitignore, "utf8");
-    const normalized = normalizeSenrailGitignore(content, { appendIfMissing: false });
+    const normalized = normalizeManagedGitignore(content, { appendIfMissing: false });
     if (normalized !== content) {
       fs.writeFileSync(rootGitignore, normalized, "utf8");
     }
-    if (hasSenrailGitignore(normalized)) return;
+    if (hasManagedGitignore(normalized)) return;
     const prefix = normalized.endsWith("\n") || normalized === "" ? "" : "\n";
     fs.appendFileSync(rootGitignore, `${prefix}${block.join("\n")}\n`);
   } else {
@@ -344,10 +344,10 @@ function ensureGitattributes(workRoot) {
   const gitattributesPath = path.join(workRoot, ".gitattributes");
   if (fs.existsSync(gitattributesPath)) {
     const content = fs.readFileSync(gitattributesPath, "utf8");
-    const normalized = normalizeSenrailGitattributes(content);
+    const normalized = normalizeManagedGitattributes(content);
     if (normalized !== content) fs.writeFileSync(gitattributesPath, normalized, "utf8");
   } else {
-    fs.writeFileSync(gitattributesPath, `${SENRAIL_ANALYSIS_GITATTRIBUTE}\n`);
+    fs.writeFileSync(gitattributesPath, `${MANAGED_ANALYSIS_GITATTRIBUTE}\n`);
   }
 }
 
@@ -390,9 +390,9 @@ function ensureAgentConfigFile(filePath, lang, t, options = {}) {
   const content = fs.readFileSync(filePath, "utf8");
 
   if (AGENTS_FLOW_DIRECTIVE_RE.test(content)) {
-    const senrailBlock = agentContent.match(AGENTS_FLOW_DIRECTIVE_RE)?.[0];
-    if (senrailBlock) {
-      const updated = content.replace(AGENTS_FLOW_DIRECTIVE_RE, senrailBlock);
+    const flowBlock = agentContent.match(AGENTS_FLOW_DIRECTIVE_RE)?.[0];
+    if (flowBlock) {
+      const updated = content.replace(AGENTS_FLOW_DIRECTIVE_RE, flowBlock);
       if (updated !== content) {
         fs.writeFileSync(filePath, updated, "utf8");
         console.log(t("setup.messages.agentFileUpdated", { file: fileName }));
@@ -780,7 +780,7 @@ async function main() {
   const workRoot = resolveProjectRoot(sourcePath, workRootPath, t);
 
   // Build config: merge wizard values into existing config to preserve customizations
-  const configPath = path.join(workRoot, ".senrail", "config.json");
+  const configPath = path.join(managedDirFn(workRoot), "config.json");
   const selectedTypes = settings.additionalTypes.length > 0
     ? [settings.type, ...settings.additionalTypes]
     : [settings.type];

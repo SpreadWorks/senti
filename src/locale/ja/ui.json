@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "senrail — セットアップ",
+    "title": "Senrail — セットアップ",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -69,7 +69,7 @@
       "skillsDeployed": "[setup] Skills を配置しました (.agents/skills/ + .claude/skills/)",
       "summary": "設定サマリ:",
       "nextSteps": "次のステップ:",
-      "step1": "senrail build  — ドキュメント一括生成（scan → init → data → text）",
+      "step1": "senrail docs build  — ドキュメント一括生成（scan → init → data → text）",
       "step2": "final regression 用に test.command、補修ループの targeted regression 用に project test paths を設定してください"
     },
     "prompt": "> "
@@ -177,7 +177,7 @@
           "promptFile": "--prompt-file <path>   開始プロンプトファイル",
           "spec": "--spec <path>          入力仕様書（ディレクトリ / spec.json / 旧 spec.md）",
           "maxRuns": "--max-runs <n>         反復回数 (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: senrail review)",
+          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: senrail docs review)",
           "agent": "--agent <name>         AIエージェント: codex|claude (default: config.json の defaultAgent)",
           "mode": "--mode <mode>          実行モード: local|assist|agent (default: local)",
           "dryRun": "--dry-run              ファイル書き込み・review・agent 呼び出しをスキップ（1 ラウンドで終了）",

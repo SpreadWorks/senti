@@ -14,9 +14,10 @@ import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { flattenSteps } from "./step-tree.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { PRODUCT } from "../../lib/product.js";
 
-const SKILL_BY_PHASE = { sync: "senrail.flow-sync" };
-const DEFAULT_SKILL = "senrail.flow";
+const SKILL_BY_PHASE = { sync: PRODUCT.skill("flow-sync") };
+const DEFAULT_SKILL = PRODUCT.skill("flow");
 
 function phaseToSkill(phase) {
   return SKILL_BY_PHASE[phase] ?? DEFAULT_SKILL;

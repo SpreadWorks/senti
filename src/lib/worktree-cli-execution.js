@@ -91,7 +91,7 @@ function resolveWorktreeCli(executionPath, cwd) {
   return new WorktreeCliTarget({
     worktreeRoot,
     executionPath,
-    localCliPath: path.join(worktreeRoot, "src", "senrail.js"),
+    localCliPath: path.join(worktreeRoot, PRODUCT.entrypoint),
   });
 }
 
@@ -111,7 +111,11 @@ function failClosed(target, argv) {
  */
 export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
   const invocation = new WorktreeCliInvocation(argv || []);
-  const executionPath = fs.realpathSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "senrail.js"));
+  const executionPath = fs.realpathSync(path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../..",
+    PRODUCT.entrypoint,
+  ));
   const target = resolveWorktreeCli(executionPath, cwd);
   if (
     target == null

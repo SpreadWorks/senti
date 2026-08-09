@@ -15,6 +15,7 @@ import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
+import { PRODUCT } from "../../lib/product.js";
 
 import { validatePresetChain } from "../../lib/presets.js";
 import DocsScanCommand from "./scan.js";
@@ -101,7 +102,7 @@ async function runBuild(rawArgs, container) {
     const { createProgress } = await import(pathToFileURL(path.join(PKG_DIR, "lib/progress.js")).href);
     const progress = createProgress(pipelineSteps, {
       verbose: isVerbose,
-      title: "Generating docs with senrail...",
+      title: `Generating docs with ${PRODUCT.displayName}...`,
     });
 
     const logger = container.get("logger");

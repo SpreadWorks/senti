@@ -15,7 +15,7 @@ import path from "path";
 import { resolveDataDirectives } from "../lib/directive-parser.js";
 import { createResolver } from "../lib/resolver-factory.js";
 import { parseArgs } from "../../lib/cli.js";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { createLogger } from "../../lib/progress.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles } from "../lib/command-context.js";
@@ -133,7 +133,7 @@ async function runData(ctx, rawArgs) {
 
   const { root, type, docsDir, t } = ctx;
 
-  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
+  const analysisPath = path.join(managedOutputDir(root), "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {
     throw new Error(`${t("messages:data.analysisNotFound", { path: analysisPath })}\n${t("messages:data.runScanFirst")}`);

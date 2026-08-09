@@ -20,18 +20,28 @@ export class ProductIdentity {
     this.repository = repository;
     this.repositoryOwner = repository.split("/")[0];
     this.entrypoint = entrypoint;
+    this.entrypointBasename = entrypoint.split("/").at(-1);
     this.managedDirName = `.${machineName}`;
-    this.envPrefix = machineName.toUpperCase();
+    this.envPrefix = `${machineName.toUpperCase()}_`;
     this.skillNamespace = `${machineName}.`;
+    this.repositoryUrl = this.githubUrl(repository);
+    this.officialPresetsRepository = this.officialRepository("presets");
+    this.workflowPluginRepository = this.officialRepository("workflow-plugin");
+    this.officialPresetsRepositoryUrl = this.githubUrl(this.officialPresetsRepository);
+    this.workflowPluginRepositoryUrl = this.githubUrl(this.workflowPluginRepository);
     Object.freeze(this);
   }
 
   env(name) {
-    return `${this.envPrefix}_${name}`;
+    return `${this.envPrefix}${name}`;
   }
 
   managedPath(...segments) {
     return [this.managedDirName, ...segments].join("/");
+  }
+
+  skill(name) {
+    return `${this.skillNamespace}${name}`;
   }
 
   artifactMarker(name) {

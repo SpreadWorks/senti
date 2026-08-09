@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { PRODUCT } from "../../lib/product.js";
 import { flowLeafIdsBetween } from "../definition.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
 import { findStepById, flattenSteps } from "./step-tree.js";
@@ -46,7 +47,7 @@ const IMPL_REPAIR_LEDGER_SIZE_LIMIT = 1024 * 1024;
 const CHANGED_PATH_PREVIEW_LIMIT = 20;
 const CHANGED_PATH_GROUP_LIMIT = 20;
 const WORKFLOW_ARTIFACT_PATH_PREFIXES = Object.freeze([
-  ".senrail/",
+  `${PRODUCT.managedDirName}/`,
   ".tmp/",
   "docs/",
 ]);
@@ -1907,7 +1908,7 @@ class MigrationEvidenceInspection {
       const failure = error instanceof Error ? error.message : String(error);
       process.emitWarning(
         `Migration evidence is not current because it is unreadable or invalid: ${failure}`,
-        { code: "SENRAIL_MIGRATION_EVIDENCE_INVALID", type: "SenrailMigrationEvidenceWarning" },
+        { code: "MIGRATION_EVIDENCE_INVALID", type: "MigrationEvidenceWarning" },
       );
       return new MigrationEvidenceInspection({
         current: false,

@@ -7,6 +7,7 @@ import { collectTestCommandSources, selectTestCommandSource } from "../../lib/te
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { PRODUCT } from "../../lib/product.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
 export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
@@ -790,7 +791,7 @@ function isTextLike(filePath) {
 
 function isRegressionConfigPath(filePath) {
   const base = path.posix.basename(filePath);
-  return filePath === ".senrail/config.json" ||
+  return filePath === PRODUCT.managedPath("config.json") ||
     base === "package.json" ||
     base === "composer.json" ||
     base === "Makefile" ||
@@ -798,7 +799,7 @@ function isRegressionConfigPath(filePath) {
 }
 
 function isGeneratedSpecDrivenDevelopmentArtifact(filePath, activeSpec) {
-  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(".senrail/");
+  return filePath.startsWith(`${activeSpec}/`) || filePath.startsWith(`${PRODUCT.managedDirName}/`);
 }
 
 function isDocumentationPath(filePath) {

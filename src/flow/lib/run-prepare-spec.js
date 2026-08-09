@@ -9,7 +9,7 @@ import crypto from "node:crypto";
 import fs from "fs";
 import path from "path";
 import { isInsideWorktree, PKG_DIR } from "../../lib/cli.js";
-import { senrailDir, senrailOutputDir } from "../../lib/config.js";
+import { managedDir, managedOutputDir } from "../../lib/config.js";
 import { PRODUCT } from "../../lib/product.js";
 import { assertOk, runCmd } from "../../lib/process.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
@@ -42,16 +42,16 @@ import {
 } from "./repair-state-identity.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
-const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([".senrail/config.json"]);
+const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([PRODUCT.managedPath("config.json")]);
 const MAX_REQUIRED_WORKTREE_BRANCH_FILES = 16;
 const WORKTREE_FLOW_INTERNAL_IGNORES = Object.freeze([
-  "/.senrail/flow-identity.json",
-  "/.senrail/flow-identity.issue-transaction.json",
-  "/.senrail/.flow-identity.publication.json",
-  "/.senrail/.flow-identity.publication.intent",
-  "/.senrail/.flow-identity.publication.receipt.tmp",
-  "/.senrail/.flow-identity.publication.binding.tmp",
-]);
+  "flow-identity.json",
+  "flow-identity.issue-transaction.json",
+  ".flow-identity.publication.json",
+  ".flow-identity.publication.intent",
+  ".flow-identity.publication.receipt.tmp",
+  ".flow-identity.publication.binding.tmp",
+].map((file) => `/${PRODUCT.managedPath(file)}`));
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const WORKTREE_PREPARE_ATTEMPT_FILE = ".worktree-prepare-attempt.json";
 const WORKTREE_PREPARE_ATTEMPT_VERSION = 2;
@@ -199,13 +199,13 @@ export function buildDraftTemplate() {
 }
 
 function runDocsScanAndValidate(root) {
-  const res = runCmd(process.execPath, [path.join(PKG_DIR, "senrail.js"), "docs", "scan"], {
+  const res = runCmd(process.execPath, [path.join(PKG_DIR, PRODUCT.entrypointBasename), "docs", "scan"], {
     cwd: root,
     timeout: 600000,
     env: { ...process.env, [PRODUCT.env("WORK_ROOT")]: root },
   });
   assertOk(res, "docs scan failed during prepare-spec");
-  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
+  const analysisPath = path.join(managedOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) throw new Error(`analysis.json not found after docs scan: ${analysisPath}`);
   let analysis;
   try {
@@ -241,18 +241,18 @@ function copyPluginRuntimeDirectory(src, dest, counter = { files: 0 }) {
 
 function syncPluginRuntimeToWorktree(root, worktreePath) {
   const config = readProjectConfig(root);
-  const sourceSenrailDir = senrailDir(root);
-  const targetSenrailDir = senrailDir(worktreePath);
-  const localConfigPath = path.join(sourceSenrailDir, "config.local.json");
+  const sourceManagedDir = managedDir(root);
+  const targetManagedDir = managedDir(worktreePath);
+  const localConfigPath = path.join(sourceManagedDir, "config.local.json");
   if (fs.existsSync(localConfigPath)) {
-    fs.mkdirSync(targetSenrailDir, { recursive: true });
-    fs.copyFileSync(localConfigPath, path.join(targetSenrailDir, "config.local.json"));
+    fs.mkdirSync(targetManagedDir, { recursive: true });
+    fs.copyFileSync(localConfigPath, path.join(targetManagedDir, "config.local.json"));
   }
   for (const pkg of config.plugin?.packages || []) {
     if (pkg.enabled === false) continue;
-    const sourcePluginRoot = path.join(sourceSenrailDir, "plugins", pkg.id);
+    const sourcePluginRoot = path.join(sourceManagedDir, "plugins", pkg.id);
     if (!fs.existsSync(sourcePluginRoot)) continue;
-    const targetPluginRoot = path.join(targetSenrailDir, "plugins", pkg.id);
+    const targetPluginRoot = path.join(targetManagedDir, "plugins", pkg.id);
     fs.rmSync(targetPluginRoot, { recursive: true, force: true });
     copyPluginRuntimeDirectory(sourcePluginRoot, targetPluginRoot);
   }
@@ -458,14 +458,14 @@ class WorktreePrepareAttemptRecord {
       }
     }
     const expectedWorktreePath = path.join(
-      senrailDir(value.mainRoot),
+      managedDir(value.mainRoot),
       "worktree",
       value.branchName.replace(/\//g, "-"),
     );
     if (value.worktreePath !== expectedWorktreePath) {
       throw new Error("worktree prepare attempt managed path is invalid");
     }
-    if (value.preparingPath !== path.join(senrailDir(value.mainRoot), `.active-flow.${value.runId}`)) {
+    if (value.preparingPath !== path.join(managedDir(value.mainRoot), `.active-flow.${value.runId}`)) {
       throw new Error("worktree prepare attempt preparing path is invalid");
     }
     const rawExclude = runGitTrim(value.mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
@@ -499,7 +499,7 @@ class WorktreePrepareAttemptRecord {
 
   static create({ mainRoot, runId, issue, request, branchName, worktreePath, specId, expectedOid, processIdentitySource }) {
     const attemptId = crypto.randomUUID();
-    const preparingPath = path.join(senrailDir(mainRoot), `.active-flow.${runId}`);
+    const preparingPath = path.join(managedDir(mainRoot), `.active-flow.${runId}`);
     const rawExclude = runGitTrim(mainRoot, ["rev-parse", "--git-path", "info/exclude"]);
     const excludePath = path.isAbsolute(rawExclude) ? rawExclude : path.resolve(mainRoot, rawExclude);
     const preparingBefore = optionalBytes(preparingPath);
@@ -549,7 +549,7 @@ class WorktreePrepareAttemptRecord {
 class WorktreePrepareAttemptJournal {
   constructor({ mainRoot, processIdentitySource = new ProcessIdentitySource() }) {
     this.mainRoot = fs.realpathSync(mainRoot);
-    this.path = path.join(senrailDir(this.mainRoot), WORKTREE_PREPARE_ATTEMPT_FILE);
+    this.path = path.join(managedDir(this.mainRoot), WORKTREE_PREPARE_ATTEMPT_FILE);
     this.processIdentitySource = processIdentitySource;
   }
 
@@ -751,7 +751,7 @@ class WorktreePrepareAttemptJournal {
       }
     }
     if (worktree) {
-      const bindingPath = path.join(record.worktreePath, ".senrail", "flow-identity.json");
+      const bindingPath = path.join(record.worktreePath, PRODUCT.managedPath("flow-identity.json"));
       const bindingBytes = optionalBytes(bindingPath);
       if (bindingBytes != null) {
         const binding = JSON.parse(bindingBytes.toString("utf8"));
@@ -968,7 +968,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     // Determine where spec files live
     const worktreePath = useWorktree
-      ? path.join(senrailDir(root), "worktree", branchName.replace(/\//g, "-"))
+      ? path.join(managedDir(root), "worktree", branchName.replace(/\//g, "-"))
       : null;
     const executionRoot = useWorktree ? worktreePath : currentExecutionRoot;
     const specLocation = flowManager.specLocation(specId);

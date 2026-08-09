@@ -3,17 +3,18 @@ import fs from "node:fs";
 import path from "node:path";
 import { AtomicFile } from "./atomic-file.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
-import { senrailDir } from "./config.js";
+import { managedDir } from "./config.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import { RepositoryFlowOperationLock, resolveRepositoryLockRoot } from "./repository-maintenance-lock.js";
+import { PRODUCT } from "./product.js";
 
 const AUTHORITY_FILE = ".flow-target-identities";
 const AUTHORITY_LOCK_FILE = ".flow-target-identities.lock";
 const AUTHORITY_REPOSITORY_PATHS = Object.freeze([
-  `.senrail/${AUTHORITY_FILE}`,
-  `.senrail/${AUTHORITY_LOCK_FILE}`,
+  PRODUCT.managedPath(AUTHORITY_FILE),
+  PRODUCT.managedPath(AUTHORITY_LOCK_FILE),
 ]);
 const PREPARING_PREFIX = ".active-flow.";
 const ACTIVE_MODES = new Set(["worktree", "branch", "local"]);
@@ -22,7 +23,7 @@ const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const MAX_RUN_ID_LENGTH = 200;
 
 function authorityPath(mainRoot) {
-  return path.join(senrailDir(mainRoot), AUTHORITY_FILE);
+  return path.join(managedDir(mainRoot), AUTHORITY_FILE);
 }
 
 function authorityRevision(bytes) {
@@ -155,7 +156,7 @@ export class FlowTargetIdentity {
       specId: null,
       lifecycle: "preparing",
       mode: null,
-      stateLocation: `.senrail/${PREPARING_PREFIX}${state?.runId}`,
+      stateLocation: PRODUCT.managedPath(`${PREPARING_PREFIX}${state?.runId}`),
     });
   }
 
@@ -376,7 +377,7 @@ export class FlowTargetIdentityAuthority {
     this._processIdentitySource = processIdentitySource;
     this._faultInjector = faultInjector;
     const rootAuthority = new RealDirectoryAuthority(this._mainRoot);
-    const directoryAuthority = new RealDirectoryAuthority(senrailDir(this._mainRoot), {
+    const directoryAuthority = new RealDirectoryAuthority(managedDir(this._mainRoot), {
       create: true,
       parentAuthority: rootAuthority,
     });

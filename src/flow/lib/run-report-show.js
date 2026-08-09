@@ -16,12 +16,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { Command } from "../../lib/command.js";
 import { loadValidatedTestArtifacts } from "./test-artifacts.js";
+import { PRODUCT } from "../../lib/product.js";
 import {
   DEFAULT_FLOW_SPEC_DIR,
   FlowSpecLocation,
 } from "../../lib/flow-workspace.js";
 
-export const POINTER_REL_PATH = path.join(".senrail", "last-finalized-spec");
+export const POINTER_REL_PATH = PRODUCT.managedPath("last-finalized-spec");
 
 function reportShowError(code, message) {
   const err = new Error(message);

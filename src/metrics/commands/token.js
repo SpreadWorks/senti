@@ -779,7 +779,7 @@ async function runToken(rawArgs, container) {
 
   const root = container.get("mainRoot");
   const specsDir = container.get("flowSpecRoot").resolve(root);
-  const metricsOutputPath = path.join(root, ".senrail", "output", "metrics.json");
+  const metricsOutputPath = path.join(root, PRODUCT.managedPath("output", "metrics.json"));
 
   let specsStat;
   try {

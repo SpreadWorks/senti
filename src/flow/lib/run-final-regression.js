@@ -9,10 +9,11 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { PRODUCT } from "../../lib/product.js";
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadConfig, senrailConfigPath, senrailOutputDir } from "../../lib/config.js";
+import { loadConfig, managedConfigPath, managedOutputDir } from "../../lib/config.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
   FINAL_REGRESSION_RESULT_FILE,
@@ -124,7 +125,7 @@ export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
 const CHILD_PROCESS_RECORD_CODEC = new ChildProcessExecutionRecordCodec();
 
 function configForAuthorityRoot(root, fallback = {}) {
-  return fs.existsSync(senrailConfigPath(root)) ? loadConfig(root) : fallback;
+  return fs.existsSync(managedConfigPath(root)) ? loadConfig(root) : fallback;
 }
 
 class TextFailureClassifier {
@@ -625,7 +626,7 @@ function resolveRealPath(value) {
 }
 
 function readAnalysisIfExists(root) {
-  const analysisPath = path.join(senrailOutputDir(root), "analysis.json");
+  const analysisPath = path.join(managedOutputDir(root), "analysis.json");
   if (!fs.existsSync(analysisPath)) return null;
   return JSON.parse(fs.readFileSync(analysisPath, "utf8"));
 }
@@ -744,7 +745,7 @@ function finalRegressionGeneratedPath(filePath, state) {
   return filePath === `${specDirRelative}/final-regression-result.json`
     || filePath === `${specDirRelative}/issue-log.json`
     || filePath === `${specDirRelative}/flow.json`
-    || filePath === ".senrail/.active-flow"
+    || filePath === PRODUCT.managedPath(".active-flow")
     || FlowTargetIdentityAuthority.managesRepositoryPath(filePath)
     || filePath.startsWith(".tmp/logs/")
     || filePath.startsWith(`${specDirRelative}/tests/.raw/final-regression-attempt-`);

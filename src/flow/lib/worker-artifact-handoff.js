@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicFile } from "../../lib/atomic-file.js";
+import { PRODUCT } from "../../lib/product.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
@@ -37,7 +38,6 @@ import {
   TestReviewRepairRecord,
 } from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
-import { PRODUCT } from "../../lib/product.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
@@ -684,7 +684,7 @@ function isWorkerRuntimePath(relativePath) {
   if (segments.includes(".git") || segments.includes(".tmp")) return true;
   for (let index = 0; index < segments.length - 1; index += 1) {
     if (
-      segments[index] === ".senrail"
+      segments[index] === PRODUCT.managedDirName
       && WORKER_RUNTIME_DIRECTORIES.has(segments[index + 1])
     ) return true;
   }
@@ -1698,12 +1698,12 @@ function requestFromStored(filePath) {
   const invocationDirectory = path.dirname(actionDirectory);
   const runDirectory = path.dirname(invocationDirectory);
   const handoffRoot = path.dirname(runDirectory);
-  const senrailDirectory = path.dirname(handoffRoot);
-  const executionRoot = path.dirname(senrailDirectory);
+  const managedDirectory = path.dirname(handoffRoot);
+  const executionRoot = path.dirname(managedDirectory);
   if (
     path.basename(resolvedRequestPath) !== "request.json"
     || path.basename(handoffRoot) !== "handoffs"
-    || path.basename(senrailDirectory) !== ".senrail"
+    || path.basename(managedDirectory) !== PRODUCT.managedDirName
   ) {
     throw new Error("handoff request path is outside the dedicated execution-root handoff authority");
   }

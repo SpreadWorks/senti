@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import { loadConfig } from "./config.js";
 import { createLogger } from "./progress.js";
 import { loadPluginRegistry, PluginManifest } from "./plugin-registry.js";
+import { PRODUCT } from "./product.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = createLogger("presets");
@@ -383,7 +384,7 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
   if (projectRoot) {
     // init.js uses `<root>/.senrail/templates/<lang>/docs` as the project-local
     // dir — mirror that path so validator PASS implies build can resolve.
-    push(path.join(projectRoot, ".senrail", "templates", lang, "docs"));
+    push(path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs")));
   }
   for (const typeKey of typeList) {
     const chain = resolveChainForType(typeKey);
@@ -462,7 +463,7 @@ function validatePresetChainWithResolver(types, projectRoot, { languages, config
   const effectiveSet = new Set(effectiveChapters);
   const reported = new Set();
   for (const lang of languages) {
-    const dir = path.join(projectRoot, ".senrail", "templates", lang, "docs");
+    const dir = path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs"));
     if (!fs.existsSync(dir)) continue;
     for (const file of fs.readdirSync(dir)) {
       if (!file.endsWith(".md")) continue;

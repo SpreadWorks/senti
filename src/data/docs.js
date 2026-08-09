@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getChapterFiles } from "../docs/lib/command-context.js";
+import { PRODUCT } from "../lib/product.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -143,7 +144,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".senrail", "config.json"));
+      return loadJsonFile(path.join(this._root, PRODUCT.managedPath("config.json")));
     } catch (_) {
       return {};
     }

@@ -18,10 +18,11 @@ import fs from "fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
-import { DEFAULT_LANG, loadConfig, senrailConfigPath, senrailDir } from "./lib/config.js";
+import { DEFAULT_LANG, loadConfig, managedConfigPath, managedDir } from "./lib/config.js";
 import { container } from "./lib/container.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
+import { PRODUCT } from "./lib/product.js";
 import { officialPresetPluginRoot } from "./lib/official-plugins.js";
 import { ensureOfficialPackage, installPlugin, loadPluginRegistry } from "./lib/plugin-registry.js";
 import {
@@ -166,7 +167,7 @@ function normalizeTypeList(types) {
 }
 
 function legacyPresetKeys(root) {
-  const dir = path.join(root, ".senrail", "presets");
+  const dir = path.join(managedDir(root), "presets");
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -224,12 +225,12 @@ function localPresetPluginManifest(keys) {
 }
 
 function migrateLegacyPresetDirectories(root, { dryRun, logger }) {
-  const legacyRoot = path.join(root, ".senrail", "presets");
+  const legacyRoot = path.join(managedDir(root), "presets");
   const keys = legacyPresetKeys(root);
   if (keys.length === 0) return false;
   if (dryRun) return true;
 
-  const sourceRoot = path.join(senrailDir(root), "plugin-sources", "local-presets");
+  const sourceRoot = path.join(managedDir(root), "plugin-sources", "local-presets");
   const sourcePresetRoot = path.join(sourceRoot, "presets");
   const registry = loadPluginRegistry(root);
   fs.rmSync(sourcePresetRoot, { recursive: true, force: true });
@@ -244,16 +245,16 @@ function migrateLegacyPresetDirectories(root, { dryRun, logger }) {
 
   writeJson(path.join(sourceRoot, "plugin.json"), localPresetPluginManifest(keys));
 
-  const config = readJson(senrailConfigPath(root));
+  const config = readJson(managedConfigPath(root));
   if (!config.plugin || typeof config.plugin !== "object") config.plugin = {};
   if (!Array.isArray(config.plugin.sources)) config.plugin.sources = [];
   if (!Array.isArray(config.plugin.packages)) config.plugin.packages = [];
   const changed = ensureSource(config, {
     id: "local-presets",
     type: "local",
-    path: ".senrail/plugin-sources/local-presets",
+    path: PRODUCT.managedPath("plugin-sources", "local-presets"),
   });
-  if (changed) writeJson(senrailConfigPath(root), config);
+  if (changed) writeJson(managedConfigPath(root), config);
   installPlugin(root, "local-presets");
   fs.rmSync(legacyRoot, { recursive: true, force: true });
   logger.log(`[upgrade] migrated legacy presets to local plugin: ${keys.join(", ")}`);
@@ -335,7 +336,7 @@ async function main() {
     config: { changed: false },
   };
 
-  const configPath = senrailConfigPath(root);
+  const configPath = managedConfigPath(root);
   let preConfigChanged = false;
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));

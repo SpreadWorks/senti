@@ -13,7 +13,7 @@ Merge the feature branch as a finalize sub-step.
 3. If the result shows PR route (strategy=pr), note that docs sync will need to be run after the PR is merged:
    ```
    PR マージ後に以下を実行してください:
-   - ドキュメントの同期: senrail build または /senrail.flow-sync
+   - ドキュメントの同期: senrail docs build または /senrail.flow-sync
    ```
 
 4. After success, the dispatcher automatically advances to finalize-sync.

@@ -6,7 +6,7 @@
  *
  *   - No-op behavior when `enabled` is false (R7).
  *   - Daily JSONL and per-request prompt JSON output (R1, R2, R3).
- *   - spec / senrailPhase auto-resolution via the injected FlowManager (R4).
+ *   - spec / flowPhase auto-resolution via the injected FlowManager (R4).
  *   - Logger.git / Logger.event API surface (R9).
  *   - requestId 8-char hex linkage between start/end and prompt files (R12).
  *   - I/O failure tolerance (AC10).
@@ -162,9 +162,9 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     assert.equal(promptJson.response.exitCode, 0);
   });
 
-  it("spec and senrailPhase are resolved via injected flowManager", async () => {
+  it("spec and flowPhase are resolved via injected flowManager", async () => {
     const flowManager = {
-      resolveCurrentContext: () => ({ specId: "153-unified-jsonl-logger", senrailPhase: "gate" }),
+      resolveCurrentContext: () => ({ specId: "153-unified-jsonl-logger", flowPhase: "gate" }),
     };
     const inst = buildLogger(tmpDir, { flowManager });
     await inst.agent({
@@ -180,10 +180,10 @@ describe("Logger.agent — start/end events and JSONL output", () => {
 
     const entries = readJsonl(logFile);
     assert.equal(entries[0].specId, "153-unified-jsonl-logger");
-    assert.equal(entries[0].senrailPhase, "gate");
+    assert.equal(entries[0].flowPhase, "gate");
   });
 
-  it("spec/senrailPhase are null when no flowManager is provided", async () => {
+  it("spec/flowPhase are null when no flowManager is provided", async () => {
     const inst = buildLogger(tmpDir);
     await inst.agent({
       phase: "end",
@@ -197,7 +197,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
     await inst.flush();
     const entries = readJsonl(logFile);
     assert.equal(entries[0].specId, null);
-    assert.equal(entries[0].senrailPhase, null);
+    assert.equal(entries[0].flowPhase, null);
   });
 
   it("requestId links start/end and prompt file name", async () => {
@@ -236,7 +236,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
   it("does not call accumulateAgentMetrics (metric is agent's responsibility)", async () => {
     let called = false;
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186-logger-container-service", senrailPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186-logger-container-service", flowPhase: "test" }),
       accumulateAgentMetrics: () => { called = true; },
     };
     const inst = buildLogger(tmpDir, { flowManager });

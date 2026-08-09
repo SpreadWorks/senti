@@ -10,6 +10,7 @@ import { runCmd, assertOk } from "../../lib/process.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
 import path from "path";
+import { PRODUCT } from "../../lib/product.js";
 
 export class RunSyncCommand extends FlowCommand {
   constructor() {
@@ -57,7 +58,7 @@ export class RunSyncCommand extends FlowCommand {
     }
 
     // Step 3: git add (ignore errors for missing files)
-    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", ".senrail/output/"], { cwd: root });
+    runGit(["add", "docs/", "AGENTS.md", "CLAUDE.md", "README.md", `${PRODUCT.managedPath("output")}/`], { cwd: root });
 
     // Collect changed files
     let changed = [];

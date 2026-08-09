@@ -11,7 +11,7 @@
 
 import fs from "fs";
 import path from "path";
-import { senrailDir } from "./config.js";
+import { managedDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
 import { flowStatePath } from "./flow-state-atomic-writer.js";
@@ -28,7 +28,7 @@ const REGISTRY_LOCK_FILE = ".active-flow.lock";
 const VALID_MODES = new Set(["worktree", "branch", "local"]);
 
 function activeFlowPath(mainRoot) {
-  return path.join(senrailDir(mainRoot), ACTIVE_FLOW_FILE);
+  return path.join(managedDir(mainRoot), ACTIVE_FLOW_FILE);
 }
 
 class ActiveFlowEntry {
@@ -317,7 +317,7 @@ export class ActiveFlowRegistry {
       return error;
     };
     const rootAuthority = new RealDirectoryAuthority(this._mainRoot, { errorFactory: rootErrorFactory });
-    const directoryAuthority = new RealDirectoryAuthority(path.join(this._mainRoot, ".senrail"), {
+    const directoryAuthority = new RealDirectoryAuthority(managedDir(this._mainRoot), {
       create: true,
       parentAuthority: rootAuthority,
       errorFactory: rootErrorFactory,
@@ -336,7 +336,7 @@ export class ActiveFlowRegistry {
   }
 
   static lockPathFor(mainRoot) {
-    return path.join(resolveRepositoryLockRoot(mainRoot), ".senrail", REGISTRY_LOCK_FILE);
+    return path.join(managedDir(resolveRepositoryLockRoot(mainRoot)), REGISTRY_LOCK_FILE);
   }
 
   /** @returns {ActiveFlowEntry[]} */

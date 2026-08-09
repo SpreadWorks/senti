@@ -119,7 +119,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("calls flowManager.accumulateAgentMetrics after a successful call", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186-logger-container-service", senrailPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186-logger-container-service", flowPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -127,14 +127,14 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     await logger.flush();
 
     assert.equal(calls.length, 1, "metric should be accumulated exactly once");
-    assert.equal(calls[0][0], "test", "phase arg should be the current senrailPhase");
+    assert.equal(calls[0][0], "test", "phase arg should be the current flowPhase");
   });
 
   it("runs metric accumulation even when logger is disabled", async () => {
     const disabledLogger = new Logger({ logDir: tmpDir, enabled: false, entryCommand: "test", cwd: tmpDir });
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "186", senrailPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "186", flowPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger: disabledLogger, flowManager });
@@ -145,7 +145,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("defers dispatcher-owned metric persistence until the parent flushes it", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", senrailPhase: "draft" }),
+      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", flowPhase: "draft" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const deferredMetric = new DeferredAgentInvocationMetric();
@@ -168,7 +168,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     const calls = [];
     let phase = "draft";
     const flowManager = {
-      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", senrailPhase: phase }),
+      resolveCurrentContext: () => ({ specId: "501-dispatch-handoff", flowPhase: phase }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const deferredMetric = new DeferredAgentInvocationMetric({ flowManager });
@@ -190,10 +190,10 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     assert.equal(calls[0][1].provider, "test-provider");
   });
 
-  it("skips metric accumulation when senrailPhase is null", async () => {
+  it("skips metric accumulation when flowPhase is null", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: null, senrailPhase: null }),
+      resolveCurrentContext: () => ({ spec: null, flowPhase: null }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -206,7 +206,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("passes a non-negative integer durationMs to accumulateAgentMetrics (spec 191 R1)", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "191-record-phase-duration", senrailPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "191-record-phase-duration", flowPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
@@ -222,7 +222,7 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
   it("durationMs covers all retry attempts when retries occur (spec 191 R1)", async () => {
     const calls = [];
     const flowManager = {
-      resolveCurrentContext: () => ({ spec: "191", senrailPhase: "test" }),
+      resolveCurrentContext: () => ({ spec: "191", flowPhase: "test" }),
       accumulateAgentMetrics: (...args) => { calls.push(args); },
     };
     // Use an explicitly retryable provider failure so every bounded attempt

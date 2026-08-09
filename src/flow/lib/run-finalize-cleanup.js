@@ -259,7 +259,7 @@ function pathExistsStrict(filePath) {
 }
 
 function assertPointerReality(reportRoot, specId) {
-  const pointerPath = path.join(reportRoot, ".senrail", "last-finalized-spec");
+  const pointerPath = path.join(reportRoot, PRODUCT.managedPath("last-finalized-spec"));
   let stat;
   try {
     stat = fs.lstatSync(pointerPath);

@@ -6,7 +6,7 @@
 
 import fs from "fs";
 import path from "path";
-import { loadConfig, senrailDir } from "./config.js";
+import { loadConfig, managedDir } from "./config.js";
 import { resolveChainSafe } from "./presets.js";
 import { patternToRegex } from "../docs/lib/scanner.js";
 import {
@@ -219,7 +219,7 @@ export function loadMergedGuardrails(root) {
   let guardrails = loadPresetGuardrails(presetKey);
 
   // 2. Merge guardrails from project (.senrail/guardrail.json)
-  const projectPath = path.join(senrailDir(root), GUARDRAIL_FILENAME);
+  const projectPath = path.join(managedDir(root), GUARDRAIL_FILENAME);
   if (fs.existsSync(projectPath)) {
     const projectGuardrails = loadGuardrailFile(projectPath);
     guardrails = mergeById(guardrails, projectGuardrails);

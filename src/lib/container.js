@@ -9,7 +9,7 @@
 
 import path from "path";
 import { repoRoot, sourceRoot, isInsideWorktree, getMainRepoPath } from "./cli.js";
-import { loadConfig, loadJsonFile, senrailConfigPath, senrailDir, senrailOutputDir, resolveWorkDir } from "./config.js";
+import { loadConfig, loadJsonFile, managedConfigPath, managedDir, managedOutputDir, resolveWorkDir } from "./config.js";
 import { Logger } from "./log.js";
 import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
@@ -108,11 +108,11 @@ function buildPaths(root, config, opts = {}) {
   return Object.freeze({
     root,
     srcRoot: sourceRoot(),
-    senrailDir: senrailDir(root),
-    outputDir: senrailOutputDir(root),
+    managedDir: managedDir(root),
+    outputDir: managedOutputDir(root),
     agentWorkDir,
     logDir,
-    configPath: senrailConfigPath(root),
+    configPath: managedConfigPath(root),
   });
 }
 

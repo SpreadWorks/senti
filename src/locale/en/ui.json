@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "senrail — Setup",
+    "title": "Senrail — Setup",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -69,7 +69,7 @@
       "skillsDeployed": "[setup] Skills deployed (.agents/skills/ + .claude/skills/)",
       "summary": "Configuration Summary:",
       "nextSteps": "Next Steps:",
-      "step1": "senrail build  — Generate docs (scan → init → data → text)",
+      "step1": "senrail docs build  — Generate docs (scan → init → data → text)",
       "step2": "Configure test.command for final regression and project test paths for targeted repair-loop regression"
     },
     "prompt": "> "
@@ -177,7 +177,7 @@
           "promptFile": "--prompt-file <path>   Initial prompt file",
           "spec": "--spec <path>          Input specification (directory / spec.json / legacy spec.md)",
           "maxRuns": "--max-runs <n>         Iteration count (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: senrail review)",
+          "reviewCmd": "--review-cmd <cmd>     Docs review command (default: senrail docs review)",
           "agent": "--agent <name>         AI agent: codex|claude (default: config.json defaultAgent)",
           "mode": "--mode <mode>          Execution mode: local|assist|agent (default: local)",
           "dryRun": "--dry-run              Skip file writes, review, and agent calls (1 round)",

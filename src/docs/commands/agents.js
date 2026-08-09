@@ -10,7 +10,7 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
 import { createResolver } from "../lib/resolver-factory.js";
@@ -163,7 +163,7 @@ async function runAgents(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(senrailOutputDir(root), "analysis.json") }));
+    throw new Error(t("messages:agents.analysisNotFound", { path: path.join(managedOutputDir(root), "analysis.json") }));
   }
 
   // Load generated docs as context (instead of raw analysis.json)

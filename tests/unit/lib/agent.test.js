@@ -463,7 +463,7 @@ describe("Agent.call() — prompt cache policy", () => {
     const decisions = [];
     const flowManager = {
       resolveCurrentContext() {
-        return { specId, taskId: null, senrailPhase: "impl" };
+        return { specId, taskId: null, flowPhase: "impl" };
       },
       loadActiveFlows() { return [{ specId }]; },
       appendMetric() {},

@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import { parseArgs } from "../../lib/cli.js";
-import { senrailConfigPath, validate } from "../../lib/config.js";
+import { managedConfigPath, validate } from "../../lib/config.js";
 import { createPresetCatalog } from "../../lib/presets.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
@@ -42,7 +42,7 @@ function printHelp() {
  * @returns {{ name: string, result: "pass"|"fail", errors: string[] }[]}
  */
 function runChecks(root) {
-  const configPath = senrailConfigPath(root);
+  const configPath = managedConfigPath(root);
   const checks = [];
 
   // Check 1: file existence + JSON parse

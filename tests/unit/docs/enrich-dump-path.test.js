@@ -46,7 +46,7 @@ describe("enrich failure dump path", () => {
     assert.equal(result, "/project/.tmp");
   });
 
-  it("enrich.js source uses resolveWorkDir for dump path, not senrailOutputDir", () => {
+  it("enrich.js source uses resolveWorkDir for dump path, not managedOutputDir", () => {
     const enrichPath = path.join(process.cwd(), "src/docs/commands/enrich.js");
     const source = fs.readFileSync(enrichPath, "utf8");
 
@@ -58,8 +58,8 @@ describe("enrich failure dump path", () => {
     const dumpLines = source.split("\n").filter((l) => l.includes("enrich-fail-batch"));
     for (const line of dumpLines) {
       assert.ok(
-        !line.includes("senrailOutputDir"),
-        `dump path line should not use senrailOutputDir: ${line.trim()}`,
+        !line.includes("managedOutputDir"),
+        `dump path line should not use managedOutputDir: ${line.trim()}`,
       );
     }
   });

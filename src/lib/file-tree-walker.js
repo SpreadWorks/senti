@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
+import { PRODUCT } from "./product.js";
 
 // "unreadable" represents both directory reads and file metadata reads.
 const LIMIT_KINDS = new Set(["depth", "directory-entries", "files", "unreadable"]);
@@ -27,7 +28,7 @@ export const DEFAULT_SCAN_POLICY = new ScanPolicy();
 
 const FRESHNESS_EXCLUDED_DIRECTORY_NAMES = new Set([
   ".git",
-  ".senrail",
+  PRODUCT.managedDirName,
   "node_modules",
   "vendor",
 ]);

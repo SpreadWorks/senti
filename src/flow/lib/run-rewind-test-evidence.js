@@ -7,6 +7,7 @@ import { isDeepStrictEqual } from "node:util";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
 import { runGit } from "../../lib/git-helpers.js";
+import { PRODUCT } from "../../lib/product.js";
 import { findActiveNode, flowLeafIdsBetween } from "../definition.js";
 import {
   buildRepairFingerprint,
@@ -620,7 +621,7 @@ class MaterialRepairCandidateSet {
         const relPath = normalizeRepoPath(reference, "issue-log repairRef.files[]");
         if (
           relPath.startsWith(specPrefix)
-          || relPath.startsWith(".senrail/")
+          || relPath.startsWith(`${PRODUCT.managedDirName}/`)
           || registry.owns(relPath)
         ) continue;
         const matches = references.get(relPath) || new Map();

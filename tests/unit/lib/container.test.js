@@ -49,7 +49,7 @@ describe("Container", () => {
       const paths = {
         root: "/abs/root",
         srcRoot: "/abs/src",
-        senrailDir: "/abs/root/.senrail",
+        managedDir: "/abs/root/.senrail",
         outputDir: "/abs/root/.senrail/output",
         agentWorkDir: "/abs/root/.tmp",
         logDir: "/abs/root/.tmp/logs",

@@ -1,4 +1,4 @@
-# <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
+# <!-- {{data("cli.project.name")}} -->Senrail<!-- {{/data}} -->
 
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 **日本語** | [English](https://github.com/SpreadWorks/senrail/blob/main/README.md)

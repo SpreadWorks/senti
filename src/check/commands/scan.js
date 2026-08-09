@@ -11,19 +11,20 @@
 import fs from "fs";
 import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
-import { senrailOutputDir } from "../../lib/config.js";
+import { managedOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { pushSection } from "../../lib/formatter.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import { PRODUCT } from "../../lib/product.js";
 import {
   DEFAULT_SCAN_POLICY,
   FileTreeWalker,
 } from "../../lib/file-tree-walker.js";
 
 const DEFAULT_MAX_FILES = 10;
-const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", ".senrail"]);
+const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", PRODUCT.managedDirName]);
 
 function printHelp() {
   console.log([
@@ -95,7 +96,7 @@ function coveragePercent(coverage) {
  * @returns {{ dataSourceCoverage: { total: number, analyzed: number, uncovered: string[], complete: boolean, result: string, limits: string[] } }}
  */
 function computeCoverage(root, src, cfg, { policy = DEFAULT_SCAN_POLICY } = {}) {
-  const outputPath = path.join(senrailOutputDir(root), "analysis.json");
+  const outputPath = path.join(managedOutputDir(root), "analysis.json");
   if (!fs.existsSync(outputPath)) {
     throw new Error(`analysis.json not found: ${outputPath}\nRun 'senrail docs scan' first.`);
   }

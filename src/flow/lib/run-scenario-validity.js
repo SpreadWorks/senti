@@ -10,6 +10,7 @@ import { RepairStateError, resolveRepairBaselineAuthority } from "./repair-state
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
 import { appendIssueLogEntry } from "./set-issue-log.js";
+import { PRODUCT } from "../../lib/product.js";
 import {
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RESULT_FILE,
@@ -122,7 +123,7 @@ export function buildScenarioValidityDiffArgs(baseBranch = "main") {
     "src/",
     "tests/",
     "package.json",
-    ".senrail/config.json",
+    PRODUCT.managedPath("config.json"),
   ];
 }
 
@@ -137,14 +138,14 @@ export function listScenarioValidityPreflightFiles({ root, baselineRef }) {
       return normalized.startsWith("src/")
         || normalized.startsWith("tests/")
         || normalized === "package.json"
-        || normalized === ".senrail/config.json";
+        || normalized === PRODUCT.managedPath("config.json");
     });
   return [...new Set([...diffFiles, ...statusFiles])].filter((filePath) => {
     const normalized = normalizePath(filePath);
     return normalized.startsWith("src/")
       || normalized.startsWith("tests/")
       || normalized === "package.json"
-      || normalized === ".senrail/config.json";
+      || normalized === PRODUCT.managedPath("config.json");
   });
 }
 

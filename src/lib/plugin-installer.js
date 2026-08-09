@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { AtomicFile } from "./atomic-file.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
+import { PRODUCT } from "./product.js";
 
 class PluginConfigUpdate {
   #originalBytes;
@@ -117,7 +118,7 @@ export class PluginInstaller {
     if (!(installation instanceof PluginInstallation)) {
       throw new Error("PluginInstallation is required");
     }
-    const pluginsRoot = path.join(installation.root, ".senrail", "plugins");
+    const pluginsRoot = path.join(installation.root, PRODUCT.managedPath("plugins"));
     fs.mkdirSync(pluginsRoot, { recursive: true });
     const nonce = crypto.randomUUID();
     const destination = path.join(pluginsRoot, installation.pluginId);

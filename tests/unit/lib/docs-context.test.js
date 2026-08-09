@@ -11,7 +11,7 @@ function buildContainer({ root = "/repo", config = {}, lang = "ja" } = {}) {
   c.register("paths", {
     root,
     srcRoot: root,
-    senrailDir: path.join(root, ".senrail"),
+    managedDir: path.join(root, ".senrail"),
     outputDir: path.join(root, ".senrail/output"),
     agentWorkDir: path.join(root, ".tmp"),
     logDir: path.join(root, ".tmp/logs"),

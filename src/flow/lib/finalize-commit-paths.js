@@ -1,16 +1,17 @@
 import path from "node:path";
 import { FlowSpecLocation } from "../../lib/flow-workspace.js";
+import { PRODUCT } from "../../lib/product.js";
 
 export const FINALIZE_DOCUMENTATION_PATHS = Object.freeze([
   "docs",
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
-  ".senrail/output/analysis.json",
+  PRODUCT.managedPath("output", "analysis.json"),
 ]);
 
 export const FINALIZE_PRE_MERGE_DEFERRED_PATHS = Object.freeze([
-  ".senrail/output/analysis.json",
+  PRODUCT.managedPath("output", "analysis.json"),
 ]);
 
 export class FinalizeCommitPathSet {

@@ -6,6 +6,7 @@
  */
 
 import path from "path";
+import { PRODUCT } from "../lib/product.js";
 
 /** Map of language codes to display names. */
 const LANG_NAMES = {
@@ -104,7 +105,7 @@ export default function register(container) {
 
   _loadConfig() {
     try {
-      return loadJsonFile(path.join(this._root, ".senrail", "config.json"));
+      return loadJsonFile(path.join(this._root, PRODUCT.managedPath("config.json")));
     } catch (_) {
       return {};
     }

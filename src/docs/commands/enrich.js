@@ -12,7 +12,7 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { senrailOutputDir, resolveConcurrency } from "../../lib/config.js";
+import { managedOutputDir, resolveConcurrency } from "../../lib/config.js";
 import { resolveWorkDir } from "../../lib/config.js";
 import { minify } from "../lib/minify.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
@@ -390,7 +390,7 @@ function formatBatchError(err, b, batches) {
  * analysis.json をディスクに保存する。
  */
 function saveAnalysis(root, analysis) {
-  const outputDir = senrailOutputDir(root);
+  const outputDir = managedOutputDir(root);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -423,7 +423,7 @@ async function runEnrich(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error("enrich: analysis.json not found. Run 'senrail scan' first.");
+    throw new Error("enrich: analysis.json not found. Run 'senrail docs scan' first.");
   }
 
   // Check for AI agent

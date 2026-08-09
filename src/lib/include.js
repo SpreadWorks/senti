@@ -9,6 +9,7 @@
 import fs from "fs";
 import path from "path";
 import { resolvePresetChains } from "./presets.js";
+import { PRODUCT } from "./product.js";
 
 const INCLUDE_RE = /^<!--\s*include\("([^"]+)"\)\s*-->$/;
 
@@ -46,12 +47,12 @@ function resolveRegistryPresetIncludePath(includePath, opts) {
   }
   if (!registered) throw new Error(`Preset include not registered: "${presetKey}"`);
 
-  const projectLocal = path.join(opts.projectRoot, ".senrail", "templates", "presets", presetKey, childPath);
+  const projectLocal = path.join(opts.projectRoot, PRODUCT.managedPath("templates", "presets", presetKey, childPath));
   if (fs.existsSync(projectLocal)) return projectLocal;
   for (const candidate of registryCandidates) {
     if (fs.existsSync(candidate)) return candidate;
   }
-  return path.join(opts.projectRoot, ".senrail", "templates", "presets", presetKey, childPath);
+  return path.join(opts.projectRoot, PRODUCT.managedPath("templates", "presets", presetKey, childPath));
 }
 
 /**

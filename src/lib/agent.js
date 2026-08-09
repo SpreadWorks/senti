@@ -79,7 +79,7 @@ function normalizedExecutionEnvironment(value) {
 class Agent {
   /**
    * @param {Object} opts
-   * @param {Object} opts.config       - SenrailConfig
+   * @param {Object} opts.config       - ProjectConfig
    * @param {Object} opts.paths        - Container paths ({ root, agentWorkDir, ... })
    * @param {ProviderRegistry} opts.registry
    * @param {Object} opts.logger       - Logger instance
@@ -1007,7 +1007,7 @@ class AgentPromptCache {
   constructor({ root, specId }) {
     this.root = root;
     this.specId = specId;
-    this.filePath = path.join(root, ".senrail", "agent-cache", `${cacheFileName(specId)}.json`);
+    this.filePath = path.join(root, PRODUCT.managedPath("agent-cache", `${cacheFileName(specId)}.json`));
   }
 
   get(key) {
@@ -1065,10 +1065,10 @@ function resolvePromptCacheContext(flowManager) {
 }
 
 async function recordPromptCacheHit({ flowManager, context, provider, profileKey, text }) {
-  if (!flowManager || !context?.senrailPhase) return;
+  if (!flowManager || !context?.flowPhase) return;
   try {
     const metric = {
-      phase: context.senrailPhase,
+      phase: context.flowPhase,
       kind: "agent-cache",
       provider,
       profileKey,

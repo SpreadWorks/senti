@@ -16,7 +16,7 @@ import {
   hasExplicitOption,
 } from "./flow-options.js";
 import { runGit } from "./git-helpers.js";
-import { senrailDir } from "./config.js";
+import { managedDir } from "./config.js";
 import { renameFlowStateStepIds } from "./step-id-rename.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import {
@@ -699,7 +699,7 @@ export class FlowStore {
 
     const dirName = state.featureBranch.replace(/\//g, "-");
     return {
-      worktreePath: path.join(senrailDir(this._root), "worktree", dirName),
+      worktreePath: path.join(managedDir(this._root), "worktree", dirName),
       mainRepoPath: this._root,
     };
   }

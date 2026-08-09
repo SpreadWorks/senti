@@ -11,6 +11,7 @@ import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
+import { PRODUCT } from "../../lib/product.js";
 import { flowStateSpecLocation, relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { IssueLogStore } from "./issue-log-store.js";
 import { RuntimeModuleIdentity } from "./runtime-module-identity.js";
@@ -425,7 +426,7 @@ export function resolveRecoveryEvidenceSource({ kind, canonicalPhase, specDir })
       paths: [
         "src",
         "plugins",
-        ".senrail/config.json",
+        PRODUCT.managedPath("config.json"),
         `${dir}/file-map.json`,
         `${dir}/test-execute-result.json`,
         `${dir}/test-result-review.json`,

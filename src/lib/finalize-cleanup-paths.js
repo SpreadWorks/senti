@@ -1,6 +1,6 @@
-import path from "path";
+import { PRODUCT } from "./product.js";
 
-export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = path.join(".senrail", "agent-work");
+export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = PRODUCT.managedPath("agent-work");
 
 function optionValue(argv, name) {
   const index = argv.indexOf(name);

@@ -22,6 +22,7 @@ import { execFile, execFileSync } from "child_process";
 import { promisify } from "util";
 import { assertOk } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
+import { PRODUCT } from "../../lib/product.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
 import { TaskGateOverviewEffect } from "./task-gate-completion.js";
@@ -250,11 +251,11 @@ class StaleIntegrationTestEvidence {
   }
 }
 
-export function runSenrailUpgradeForRecovery(root, {
+export function runUpgradeForRecovery(root, {
   execFileSyncImpl = execFileSync,
   packageDir = PKG_DIR,
 } = {}) {
-  execFileSyncImpl(process.execPath, [path.join(packageDir, "senrail.js"), "upgrade"], {
+  execFileSyncImpl(process.execPath, [path.join(packageDir, PRODUCT.entrypointBasename), "upgrade"], {
     cwd: root,
     stdio: "inherit",
   });
@@ -301,7 +302,7 @@ export function checkIntegrationTestArtifacts(root, state, level, phase, config 
   });
   const recoveryResult = recovery.resolve({
     runUpgrade() {
-      runSenrailUpgradeForRecovery(executionRoot);
+      runUpgradeForRecovery(executionRoot);
     },
     refreshCurrentFingerprint() {
       return buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state }).hash;

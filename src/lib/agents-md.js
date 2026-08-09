@@ -8,6 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { PRESETS_DIR, resolvePresetEntriesForSearch } from "./presets.js";
+import { PRODUCT } from "./product.js";
 
 /**
  * Spec-Driven Development セクションテンプレートを読み込む。
@@ -19,7 +20,7 @@ import { PRESETS_DIR, resolvePresetEntriesForSearch } from "./presets.js";
 export function loadSpecDrivenDevelopmentTemplate(lang, options = {}) {
   if (options.projectRoot && options.presetTypes) {
     for (const l of [lang, "en"]) {
-      const projectPath = path.join(options.projectRoot, ".senrail", "templates", l, "flow-agent-instructions.md");
+      const projectPath = path.join(options.projectRoot, PRODUCT.managedPath("templates", l, "flow-agent-instructions.md"));
       if (fs.existsSync(projectPath)) return fs.readFileSync(projectPath, "utf8");
     }
     for (const preset of resolvePresetEntriesForSearch(options.presetTypes, options.projectRoot)) {
