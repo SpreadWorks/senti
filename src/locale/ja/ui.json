@@ -275,13 +275,16 @@
       "upgrade": {
         "usage": "Usage: senrail upgrade [--migrate] [--dry-run]",
         "desc": "テンプレート由来のファイルをインストール済み senrail のバージョンに合わせて更新する。",
-        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .senrail へ明示的に移行してから通常 upgrade を実行する。",
+        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .senrail へ移行してから通常 upgrade を実行する。migration 失敗時は通常 upgrade を開始せず、migration 成功後の通常 upgrade 失敗では .senrail を維持する。.senrail が既に存在する場合または legacy 管理ディレクトリがない場合は通常 upgrade も実行しない。writer 安全性の検査には Linux procfs が必要。",
         "updatedFiles": [
-          ".agents/skills/*/SKILL.md        スキルテンプレート",
-          ".claude/skills/*/SKILL.md        .agents/skills/ へのシンボリックリンク"
+          ".agents/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
+          ".claude/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
+          ".senrail/presets/base/*          組み込み base preset copy",
+          "AGENTS.md / CLAUDE.md            Flow 管理 instruction block",
+          ".codex/hooks*                    旧 Senrail hook のみ削除"
         ],
         "options": {
-          "migrate": "--migrate    .sdd-forge または .senti を .senrail へ移行してから通常 upgrade を実行",
+          "migrate": "--migrate    Linux procfs 環境で .sdd-forge または .senti を .senrail へ移行してから通常 upgrade を実行",
           "dryRun": "--dry-run    変更内容を表示するだけでファイル書き込みしない",
           "help": "-h, --help   このヘルプを表示"
         }

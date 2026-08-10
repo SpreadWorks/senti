@@ -275,13 +275,16 @@
       "upgrade": {
         "usage": "Usage: senrail upgrade [--migrate] [--dry-run]",
         "desc": "Upgrade template-derived files to match the installed senrail version.",
-        "descDetail": "Normal upgrade updates package-managed files only. --migrate explicitly moves a legacy managed directory to .senrail before normal upgrade.",
+        "descDetail": "Normal upgrade updates package-managed files only. --migrate moves a legacy managed directory to .senrail before normal upgrade. A migration failure stops before normal upgrade; after migration succeeds, a normal-upgrade failure leaves .senrail in place. Existing .senrail or no legacy directory is a no-op that skips normal upgrade. Writer-safety inspection requires Linux procfs.",
         "updatedFiles": [
-          ".agents/skills/*/SKILL.md        Skill templates",
-          ".claude/skills/*/SKILL.md        Symlinks to .agents/skills/"
+          ".agents/skills/*/SKILL.md        Skill templates and retired skill cleanup",
+          ".claude/skills/*/SKILL.md        Skill templates and retired skill cleanup",
+          ".senrail/presets/base/*          Bundled base preset copies",
+          "AGENTS.md / CLAUDE.md            Managed Flow instruction blocks",
+          ".codex/hooks*                    Legacy Senrail hook removal only"
         ],
         "options": {
-          "migrate": "--migrate    Migrate .sdd-forge or .senti to .senrail, then run normal upgrade",
+          "migrate": "--migrate    On Linux with procfs, migrate .sdd-forge or .senti to .senrail, then run normal upgrade",
           "dryRun": "--dry-run    Show what would change without writing files",
           "help": "-h, --help   Show this help"
         }

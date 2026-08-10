@@ -7,27 +7,34 @@
  */
 
 import crypto from "node:crypto";
+import { isUtf8 } from "node:buffer";
 import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicFile, fsyncDirectory } from "./atomic-file.js";
-import { loadConfigFromManagedDirectory, loadRawConfigFromManagedDirectory } from "./config.js";
+import { loadConfigFromManagedDirectory } from "./config.js";
 import { migrateLegacyManagedGitattributes } from "./gitattributes.js";
 import { migrateLegacyManagedGitignore } from "./gitignore.js";
+import { enabledPluginSkillSourceDirs } from "./plugin-registry.js";
+import { validatePresetChainFromManagedDirectory } from "./presets.js";
+import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
 
 const LEGACY_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti"]);
 const STAGING_PREFIX = "senrail-upgrade-migrate-";
 const JOURNAL_FILE_NAME = "senrail-upgrade-migrate.json";
-const JOURNAL_VERSION = 1;
+const JOURNAL_VERSION = 6;
 const JOURNAL_PHASES = new Set([
   "staged",
   "legacy-backed-up",
   "placed-senti",
   "metadata-updated",
   "final-renamed",
+  "cleanup-source-verified",
 ]);
 const RAW_COPY_ROOTS = new Set(["plugins", "plugin-sources"]);
+const OPEN_ACCESS_MODE_MASK = 0o3;
+const ACTIVE_MIGRATION_OWNER_TOKENS = new Set();
 const MANAGED_TEMPLATE_FIELD_REPLACEMENTS = Object.freeze(new Map([
   // These were public names in generated template guidance. They are not
   // arbitrary camel-case words: each maps to the current container path key.
@@ -77,6 +84,263 @@ function sameDirectoryIdentity(directory, identity, label) {
   return stat.dev === identity.dev && stat.ino === identity.ino;
 }
 
+function isWithinDirectory(directory, candidate) {
+  const relative = path.relative(directory, candidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+class ManagedOpenHandle {
+  constructor({ pid, descriptor, target }) {
+    if (!/^\d+$/.test(pid) || typeof descriptor !== "string" || !path.isAbsolute(target)) {
+      throw new Error("managed open handle identity is invalid");
+    }
+    this.pid = pid;
+    this.descriptor = descriptor;
+    this.target = target;
+    Object.freeze(this);
+  }
+
+  toString() {
+    return `pid=${this.pid} handle=${this.descriptor}`;
+  }
+}
+
+class ManagedOpenHandles {
+  constructor(entries) {
+    this.entries = Object.freeze([...entries]);
+    Object.freeze(this);
+  }
+
+  static inspect(directory, procRoot) {
+    const root = path.resolve(directory);
+    const found = [];
+    const inspectLink = (pid, descriptor, linkPath) => {
+      let target;
+      try {
+        target = fs.readlinkSync(linkPath).replace(/ \(deleted\)$/, "");
+      } catch (_) {
+        return;
+      }
+      if (!path.isAbsolute(target) || !isWithinDirectory(root, path.resolve(target))) return;
+      if (descriptor !== "cwd") {
+        let flags;
+        try {
+          const fdinfo = fs.readFileSync(path.join(procRoot, pid, "fdinfo", descriptor), "utf8");
+          const match = fdinfo.match(/^flags:\s+([0-7]+)$/m);
+          flags = match ? Number.parseInt(match[1], 8) : null;
+        } catch (_) {
+          return;
+        }
+        const writable = flags != null && (flags & OPEN_ACCESS_MODE_MASK) !== fs.constants.O_RDONLY;
+        let directoryHandle = false;
+        try {
+          directoryHandle = fs.statSync(path.resolve(target)).isDirectory();
+        } catch (_) {
+          // The handle target can disappear between procfs inspection calls.
+        }
+        if (!writable && !directoryHandle) return;
+      }
+      found.push(new ManagedOpenHandle({ pid, descriptor, target: path.resolve(target) }));
+    };
+    const inspectMappings = (pid, mapsPath) => {
+      let mappings;
+      try {
+        mappings = fs.readFileSync(mapsPath, "utf8");
+      } catch (_) {
+        return;
+      }
+      for (const line of mappings.split("\n")) {
+        const match = line.match(/^([0-9a-f]+-[0-9a-f]+)\s+([r-][w-][x-][ps])\s+\S+\s+\S+\s+\d+\s+(.+)$/i);
+        if (!match || match[2][1] !== "w" || match[2][3] !== "s") continue;
+        const target = match[3]
+          .replace(/ \(deleted\)$/, "")
+          .replace(/\\([0-7]{3})/g, (_, octal) => String.fromCharCode(Number.parseInt(octal, 8)));
+        if (!path.isAbsolute(target) || !isWithinDirectory(root, path.resolve(target))) continue;
+        found.push(new ManagedOpenHandle({
+          pid,
+          descriptor: `map:${match[1]}`,
+          target: path.resolve(target),
+        }));
+      }
+    };
+    for (const pid of fs.readdirSync(procRoot).filter((entry) => /^\d+$/.test(entry))) {
+      const processRoot = path.join(procRoot, pid);
+      inspectLink(pid, "cwd", path.join(processRoot, "cwd"));
+      inspectMappings(pid, path.join(processRoot, "maps"));
+      let descriptors;
+      try {
+        descriptors = fs.readdirSync(path.join(processRoot, "fd"));
+      } catch (_) {
+        descriptors = [];
+      }
+      for (const descriptor of descriptors) {
+        inspectLink(pid, descriptor, path.join(processRoot, "fd", descriptor));
+      }
+    }
+    return new ManagedOpenHandles(found);
+  }
+
+  get isEmpty() {
+    return this.entries.length === 0;
+  }
+
+  assertEmpty(label) {
+    if (this.isEmpty) return;
+    const detail = this.entries.slice(0, 5).map((entry) => entry.toString()).join(", ");
+    throw new Error(`migration refuses while ${label} has open process handles: ${detail}`);
+  }
+}
+
+export class ManagedOpenHandleInspector {
+  constructor({ platform = process.platform, procRoot = "/proc" } = {}) {
+    if (typeof platform !== "string" || platform === "") {
+      throw new Error("managed open-handle inspector platform is invalid");
+    }
+    if (typeof procRoot !== "string" || !path.isAbsolute(procRoot)) {
+      throw new Error("managed open-handle inspector proc root is invalid");
+    }
+    this.platform = platform;
+    this.procRoot = path.resolve(procRoot);
+    Object.freeze(this);
+  }
+
+  inspect(directory) {
+    if (this.platform !== "linux" || !fs.existsSync(this.procRoot)) {
+      throw new Error(
+        `migration cannot safely inspect managed-directory writers on ${this.platform}; no files were changed`,
+      );
+    }
+    return ManagedOpenHandles.inspect(directory, this.procRoot);
+  }
+
+  assertEmpty(directory, label) {
+    this.inspect(directory).assertEmpty(label);
+  }
+}
+
+class MigrationOwnerAssessment {
+  constructor(status, reason) {
+    if (!new Set(["live", "stale", "unknown"]).has(status) || typeof reason !== "string" || reason === "") {
+      throw new Error("migration process owner assessment is invalid");
+    }
+    this.status = status;
+    this.reason = reason;
+    Object.freeze(this);
+  }
+}
+
+class MigrationProcessIdentitySource {
+  constructor(source = new ProcessIdentitySource()) {
+    if (!(source instanceof ProcessIdentitySource)) throw new Error("migration process identity source is invalid");
+    this.source = source;
+  }
+
+  get pid() {
+    return this.source.pid;
+  }
+
+  createOwner(ownerToken) {
+    if (this.source.platform === "linux") return this.source.createOwner(ownerToken);
+    return new ProcessIdentity({
+      pid: this.source.pid,
+      bootIdentity: `platform:${this.source.platform}`,
+      startFingerprint: "0",
+      ownerToken,
+    });
+  }
+
+  assess(owner) {
+    if (this.source.platform === "linux") return this.source.assess(owner);
+    if (owner.bootIdentity !== `platform:${this.source.platform}`) {
+      return new MigrationOwnerAssessment("stale", "migration owner belongs to another platform identity");
+    }
+    try {
+      process.kill(owner.pid, 0);
+      return new MigrationOwnerAssessment("live", `migration owner pid ${owner.pid} is active`);
+    } catch (error) {
+      if (error.code === "ESRCH") {
+        return new MigrationOwnerAssessment("stale", `migration owner pid ${owner.pid} no longer exists`);
+      }
+      if (error.code === "EPERM") {
+        return new MigrationOwnerAssessment("live", `migration owner pid ${owner.pid} is active`);
+      }
+      return new MigrationOwnerAssessment("unknown", `migration owner state is unavailable: ${error.message}`);
+    }
+  }
+}
+
+class MigrationProcessOwner {
+  constructor({ processIdentity, identitySource }) {
+    this.processIdentity = processIdentity instanceof ProcessIdentity
+      ? processIdentity
+      : new ProcessIdentity(processIdentity ?? {});
+    if (!(identitySource instanceof MigrationProcessIdentitySource)) {
+      throw new Error("migration journal process identity source is invalid");
+    }
+    this.identitySource = identitySource;
+    Object.freeze(this);
+  }
+
+  get pid() {
+    return this.processIdentity.pid;
+  }
+
+  get token() {
+    return this.processIdentity.ownerToken;
+  }
+
+  static current(identitySource) {
+    return new MigrationProcessOwner({
+      processIdentity: identitySource.createOwner(crypto.randomUUID()),
+      identitySource,
+    });
+  }
+
+  static fromJSON(value, identitySource) {
+    const keys = value && typeof value === "object" ? Object.keys(value).sort() : [];
+    if (JSON.stringify(keys) !== JSON.stringify(["bootIdentity", "ownerToken", "pid", "startFingerprint"])) {
+      throw new Error("migration journal process owner is invalid");
+    }
+    return new MigrationProcessOwner({ processIdentity: value, identitySource });
+  }
+
+  activate() {
+    if (this.pid !== this.identitySource.pid || ACTIVE_MIGRATION_OWNER_TOKENS.has(this.token)) {
+      throw new Error("migration journal process owner cannot be activated");
+    }
+    ACTIVE_MIGRATION_OWNER_TOKENS.add(this.token);
+  }
+
+  release() {
+    if (this.pid === this.identitySource.pid) ACTIVE_MIGRATION_OWNER_TOKENS.delete(this.token);
+  }
+
+  assertInactive() {
+    if (this.pid === this.identitySource.pid) {
+      if (ACTIVE_MIGRATION_OWNER_TOKENS.has(this.token)) {
+        throw new Error(`migration journal belongs to an active migration process: pid=${this.pid}`);
+      }
+      return;
+    }
+    const assessment = this.identitySource.assess(this.processIdentity);
+    if (assessment.status === "live") {
+      throw new Error(`migration journal belongs to an active migration process: pid=${this.pid}`);
+    }
+    if (assessment.status === "unknown") {
+      throw new Error(`cannot determine migration journal owner state: ${assessment.reason}`);
+    }
+  }
+
+  toJSON() {
+    return {
+      pid: this.processIdentity.pid,
+      bootIdentity: this.processIdentity.bootIdentity,
+      startFingerprint: this.processIdentity.startFingerprint,
+      ownerToken: this.processIdentity.ownerToken,
+    };
+  }
+}
+
 function removeTree(directory, label) {
   const stat = lstatOrNull(directory);
   if (!stat) return;
@@ -105,9 +369,21 @@ function isRawCopyPath(relative) {
   return RAW_COPY_ROOTS.has(relative.split("/")[0]);
 }
 
+function managedTemplateComponentIndex(relative) {
+  if (relative === "" || isRawCopyPath(relative)) return -1;
+  const components = relative.split("/");
+  if (components[0] === "templates") return 0;
+  if (components[0] !== "presets") return -1;
+  const templateIndex = components.indexOf("templates", 1);
+  return templateIndex > 1 ? templateIndex : -1;
+}
+
 function transformedRelativePath(relative) {
-  if (relative === "" || isRawCopyPath(relative) || !relative.startsWith("templates/")) return relative;
-  return relative.split("/").map(legacyTokenToCanonical).join("/");
+  const templateIndex = managedTemplateComponentIndex(relative);
+  if (templateIndex < 0) return relative;
+  return relative.split("/").map((component, index) => (
+    index > templateIndex ? legacyTokenToCanonical(component) : component
+  )).join("/");
 }
 
 function transformedLinkTarget(target) {
@@ -117,11 +393,7 @@ function transformedLinkTarget(target) {
   }).join("");
 }
 
-function isManagedMarkdown(relative) {
-  return relative.startsWith("templates/") && /\.md$/i.test(relative);
-}
-
-function transformManagedMarkdown(content) {
+function transformManagedTemplate(content) {
   return legacyTokenToCanonical(content);
 }
 
@@ -130,17 +402,45 @@ function hashBytes(bytes) {
 }
 
 function transformedFileBytes(relative, bytes) {
-  return isManagedMarkdown(relative)
-    ? Buffer.from(transformManagedMarkdown(bytes.toString("utf8")), "utf8")
+  return managedTemplateComponentIndex(relative) >= 0 && isUtf8(bytes)
+    ? Buffer.from(transformManagedTemplate(bytes.toString("utf8")), "utf8")
     : bytes;
 }
 
+class MigrationTreePlan {
+  constructor(entries) {
+    if (!Array.isArray(entries)) throw new Error("migration tree plan entries are invalid");
+    this.entries = Object.freeze(entries.map((entry) => Object.freeze({ ...entry })));
+    Object.freeze(this);
+  }
+
+  get size() {
+    return this.entries.length;
+  }
+
+  toDryRunLines() {
+    return this.entries.map((entry) => {
+      const mapping = `${entry.path} -> .senti/${entry.targetPath}`;
+      if (entry.kind === "file" && entry.hash !== entry.transformedHash) {
+        return `stage transformed template file ${mapping}`;
+      }
+      if (entry.kind === "symlink" && entry.target !== entry.transformedTarget) {
+        return `stage symbolic link ${mapping} (${entry.target} -> ${entry.transformedTarget})`;
+      }
+      return `stage ${entry.kind} ${mapping}`;
+    });
+  }
+}
+
 class SourceTreeSnapshot {
+  #targetPaths;
+
   constructor({ rootIdentity, rootMode, entries }) {
     this.rootIdentity = Object.freeze({ ...rootIdentity });
     this.rootMode = rootMode;
     this.entries = Object.freeze(entries.map((entry) => Object.freeze({ ...entry })));
     this.serialized = JSON.stringify({ rootIdentity: this.rootIdentity, rootMode: this.rootMode, entries: this.entries });
+    this.#targetPaths = new Set(this.entries.map((entry) => entry.targetPath));
     Object.freeze(this.entries);
     Object.freeze(this);
   }
@@ -205,14 +505,82 @@ class SourceTreeSnapshot {
     });
   }
 
+  static fromJSON(value) {
+    const keys = value && typeof value === "object" ? Object.keys(value).sort() : [];
+    if (JSON.stringify(keys) !== JSON.stringify(["entries", "rootIdentity", "rootMode"])
+      || !value.rootIdentity || !Array.isArray(value.entries)
+      || !Number.isSafeInteger(value.rootIdentity.dev) || !Number.isSafeInteger(value.rootIdentity.ino)
+      || !Number.isSafeInteger(value.rootMode) || value.rootMode < 0 || value.rootMode > 0o777) {
+      throw new Error("migration journal source snapshot is invalid");
+    }
+    const validPath = (candidate) => typeof candidate === "string"
+      && candidate !== ""
+      && !path.posix.isAbsolute(candidate)
+      && !candidate.split("/").includes("..");
+    for (const entry of value.entries) {
+      const entryKeys = entry && typeof entry === "object" ? Object.keys(entry).sort() : [];
+      const commonValid = validPath(entry?.path) && validPath(entry?.targetPath)
+        && new Set(["directory", "file", "symlink"]).has(entry?.kind);
+      if (!commonValid) throw new Error("migration journal source snapshot entry is invalid");
+      if (entry.kind === "directory") {
+        if (JSON.stringify(entryKeys) !== JSON.stringify(["dev", "ino", "kind", "mode", "path", "targetPath"])
+          || !Number.isSafeInteger(entry.dev) || !Number.isSafeInteger(entry.ino)
+          || !Number.isSafeInteger(entry.mode) || entry.mode < 0 || entry.mode > 0o777) {
+          throw new Error("migration journal source directory snapshot entry is invalid");
+        }
+      } else if (entry.kind === "file") {
+        if (JSON.stringify(entryKeys) !== JSON.stringify(["dev", "hash", "ino", "kind", "mode", "path", "targetPath", "transformedHash"])
+          || !Number.isSafeInteger(entry.dev) || !Number.isSafeInteger(entry.ino)
+          || !Number.isSafeInteger(entry.mode) || entry.mode < 0 || entry.mode > 0o777
+          || !/^[0-9a-f]{64}$/.test(entry.hash) || !/^[0-9a-f]{64}$/.test(entry.transformedHash)) {
+          throw new Error("migration journal source file snapshot entry is invalid");
+        }
+      } else if (JSON.stringify(entryKeys) !== JSON.stringify(["kind", "path", "target", "targetPath", "transformedTarget"])
+        || typeof entry.target !== "string" || typeof entry.transformedTarget !== "string") {
+        throw new Error("migration journal source symbolic-link snapshot entry is invalid");
+      }
+    }
+    return new SourceTreeSnapshot(value);
+  }
+
+  toJSON() {
+    return {
+      rootIdentity: this.rootIdentity,
+      rootMode: this.rootMode,
+      entries: this.entries,
+    };
+  }
+
   get treePlan() {
-    return { entries: this.entries.length, outputs: this.entries.map((entry) => entry.targetPath).sort() };
+    return new MigrationTreePlan(this.entries);
+  }
+
+  get fingerprint() {
+    return hashBytes(this.serialized);
+  }
+
+  hasTargetPath(relative) {
+    return this.#targetPaths.has(relative.split(path.sep).join("/"));
   }
 
   assertUnchanged(root) {
     const current = SourceTreeSnapshot.capture(root);
     if (current.serialized !== this.serialized) {
       throw new Error("legacy managed directory changed while migration staging was in progress");
+    }
+  }
+
+  assertRemainingSubset(root) {
+    const current = SourceTreeSnapshot.capture(root);
+    if (JSON.stringify(current.rootIdentity) !== JSON.stringify(this.rootIdentity)
+      || current.rootMode !== this.rootMode) {
+      throw new Error("legacy managed directory authority changed during cleanup");
+    }
+    const expected = new Map(this.entries.map((entry) => [entry.path, JSON.stringify(entry)]));
+    for (const entry of current.entries) {
+      if (expected.get(entry.path) !== JSON.stringify(entry)) {
+        throw new Error(`legacy managed directory changed during cleanup: ${entry.path}`);
+      }
     }
   }
 
@@ -317,6 +685,16 @@ class RootMetadataFile {
     fs.writeFileSync(path.join(stagingRoot, this.name), this.planned, "utf8");
   }
 
+  stagedContent(stagingRoot) {
+    const stagedPath = path.join(stagingRoot, this.name);
+    assertRegularFile(stagedPath, `staged root metadata ${this.name}`);
+    const content = fs.readFileSync(stagedPath);
+    if (!content.equals(this.planned)) {
+      throw new Error(`staged root metadata changed before migration commit: ${this.name}`);
+    }
+    return content;
+  }
+
   #assertExact(expected) {
     const stat = lstatOrNull(this.filePath);
     if (!expected) {
@@ -355,12 +733,13 @@ class RootMetadataFile {
     return true;
   }
 
-  apply() {
+  apply(stagingRoot) {
+    const staged = this.stagedContent(stagingRoot);
     this.assertOriginal();
     new AtomicFile(this.filePath, {
       phaseNamespace: "upgrade-migration-metadata",
       commitGuard: () => this.assertOriginal(),
-    }).write(this.planned);
+    }).write(staged);
   }
 
   restore() {
@@ -381,7 +760,21 @@ class RootMetadataFile {
 }
 
 class UpgradeMigrationJournal {
-  constructor({ root, sourceName, stagingRelative, sourceIdentity, stagedSentiIdentity, metadata, tempRootCreated, phase = "staged" }) {
+  constructor({
+    root,
+    sourceName,
+    stagingRelative,
+    sourceIdentity,
+    sourceSnapshot,
+    sourceSnapshotFingerprint,
+    stagedSentiIdentity,
+    stagedSnapshotFingerprint,
+    metadata,
+    owner,
+    tempRootCreated,
+    tempRootIdentity,
+    phase = "staged",
+  }) {
     if (!LEGACY_DIRECTORY_NAMES.includes(sourceName)) throw new Error("migration journal source directory is invalid");
     if (!JOURNAL_PHASES.has(phase)) throw new Error(`migration journal phase is invalid: ${phase}`);
     if (!new RegExp(`^\\.tmp/${STAGING_PREFIX}[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).test(stagingRelative)) {
@@ -393,7 +786,27 @@ class UpgradeMigrationJournal {
         throw new Error("migration journal directory identity is invalid");
       }
     }
+    if (!(sourceSnapshot instanceof SourceTreeSnapshot)
+      || JSON.stringify(sourceSnapshot.rootIdentity) !== JSON.stringify(sourceIdentity)
+      || sourceSnapshot.fingerprint !== sourceSnapshotFingerprint) {
+      throw new Error("migration journal source snapshot authority is invalid");
+    }
+    for (const [label, fingerprint] of [
+      ["source", sourceSnapshotFingerprint],
+      ["staged", stagedSnapshotFingerprint],
+    ]) {
+      if (typeof fingerprint !== "string" || !/^[0-9a-f]{64}$/.test(fingerprint)) {
+        throw new Error(`migration journal ${label} snapshot fingerprint is invalid`);
+      }
+    }
     if (typeof tempRootCreated !== "boolean") throw new Error("migration journal temporary-directory state is invalid");
+    if (tempRootCreated !== Boolean(tempRootIdentity)
+      || (tempRootIdentity
+        && (JSON.stringify(Object.keys(tempRootIdentity).sort()) !== JSON.stringify(["dev", "ino"])
+          || !Number.isSafeInteger(tempRootIdentity.dev) || !Number.isSafeInteger(tempRootIdentity.ino)))) {
+      throw new Error("migration journal temporary-directory identity is invalid");
+    }
+    if (!(owner instanceof MigrationProcessOwner)) throw new Error("migration journal process owner is invalid");
     const metadataNames = metadata.map((entry) => entry.name).sort();
     if (JSON.stringify(metadataNames) !== JSON.stringify([".gitattributes", ".gitignore"])) {
       throw new Error("migration journal metadata authority is invalid");
@@ -405,11 +818,18 @@ class UpgradeMigrationJournal {
     this.sourceName = sourceName;
     this.stagingRelative = stagingRelative;
     this.sourceIdentity = sourceIdentity;
+    this.sourceSnapshot = sourceSnapshot;
+    this.sourceSnapshotFingerprint = sourceSnapshotFingerprint;
     this.stagedSentiIdentity = stagedSentiIdentity;
+    this.stagedSnapshotFingerprint = stagedSnapshotFingerprint;
     this.metadata = metadata;
+    this.owner = owner;
     this.tempRootCreated = tempRootCreated;
+    this.tempRootIdentity = tempRootIdentity;
     this.phase = phase;
     this.reservationIdentity = null;
+    this.journalIdentity = null;
+    this.journalHash = null;
   }
 
   get stagingRoot() {
@@ -421,11 +841,49 @@ class UpgradeMigrationJournal {
   }
 
   get backupPath() {
-    return path.join(this.stagingRoot, "legacy-senti-backup");
+    return path.join(this.stagingRoot, "legacy-source-backup");
+  }
+
+  get concurrentWritePath() {
+    return path.join(this.stagingRoot, "concurrent-managed-write");
   }
 
   get journalPath() {
     return path.join(this.root, ".tmp", JOURNAL_FILE_NAME);
+  }
+
+  assertSourceSnapshot(directory) {
+    if (!sameDirectoryIdentity(directory, this.sourceIdentity, "legacy managed directory")) {
+      throw new Error("legacy managed directory identity changed before cleanup");
+    }
+    if (SourceTreeSnapshot.capture(directory).fingerprint !== this.sourceSnapshotFingerprint) {
+      throw new Error(`legacy managed directory changed before cleanup; preserved at ${relativePath(this.root, directory)}`);
+    }
+  }
+
+  assertSourceSnapshotSubset(directory) {
+    this.sourceSnapshot.assertRemainingSubset(directory);
+  }
+
+  assertStagedSnapshot(directory) {
+    if (!sameDirectoryIdentity(directory, this.stagedSentiIdentity, "migrated managed directory")) {
+      throw new Error("migrated managed directory identity changed before commit completed");
+    }
+    if (SourceTreeSnapshot.capture(directory).fingerprint !== this.stagedSnapshotFingerprint) {
+      throw new Error("migrated managed directory changed before commit completed");
+    }
+  }
+
+  preserveConcurrentStagedTree(directory) {
+    if (lstatOrNull(this.concurrentWritePath)) {
+      throw new Error("concurrent managed write backup already exists");
+    }
+    if (!sameDirectoryIdentity(directory, this.stagedSentiIdentity, "changed staged managed directory")) {
+      throw new Error("cannot preserve a changed staged managed directory with different authority");
+    }
+    fs.renameSync(directory, this.concurrentWritePath);
+    fsyncDirectory(path.dirname(directory));
+    fsyncDirectory(this.stagingRoot);
   }
 
   toJSON() {
@@ -435,15 +893,27 @@ class UpgradeMigrationJournal {
       sourceName: this.sourceName,
       stagingRelative: this.stagingRelative,
       sourceIdentity: this.sourceIdentity,
+      sourceSnapshot: this.sourceSnapshot.toJSON(),
+      sourceSnapshotFingerprint: this.sourceSnapshotFingerprint,
       stagedSentiIdentity: this.stagedSentiIdentity,
+      stagedSnapshotFingerprint: this.stagedSnapshotFingerprint,
       metadata: this.metadata.map((entry) => entry.toJSON()),
+      owner: this.owner.toJSON(),
       tempRootCreated: this.tempRootCreated,
+      tempRootIdentity: this.tempRootIdentity,
       phase: this.phase,
     };
   }
 
   write() {
-    new AtomicFile(this.journalPath).write(`${JSON.stringify(this.toJSON(), null, 2)}\n`);
+    const payload = `${JSON.stringify(this.toJSON(), null, 2)}\n`;
+    new AtomicFile(this.journalPath, {
+      phaseNamespace: "migration-journal",
+      commitGuard: () => this.#assertJournalAuthority(),
+    }).write(payload);
+    const stat = assertRegularFile(this.journalPath, "migration journal");
+    this.journalIdentity = { dev: stat.dev, ino: stat.ino };
+    this.journalHash = hashBytes(payload);
   }
 
   publish() {
@@ -484,6 +954,19 @@ class UpgradeMigrationJournal {
       }
     }
     fsyncDirectory(path.dirname(this.journalPath));
+    this.journalIdentity = { ...this.reservationIdentity };
+    this.journalHash = hashBytes(payload);
+  }
+
+  #assertJournalAuthority() {
+    if (!this.journalIdentity || !this.journalHash) {
+      throw new Error("migration journal authority is unavailable");
+    }
+    const stat = assertRegularFile(this.journalPath, "migration journal");
+    if (stat.dev !== this.journalIdentity.dev || stat.ino !== this.journalIdentity.ino
+      || hashBytes(fs.readFileSync(this.journalPath)) !== this.journalHash) {
+      throw new Error("migration journal changed while the migration was active");
+    }
   }
 
   discardReservation() {
@@ -508,10 +991,13 @@ class UpgradeMigrationJournal {
   }
 
   remove() {
-    new AtomicFile(this.journalPath, { phaseNamespace: "migration-journal" }).remove();
+    new AtomicFile(this.journalPath, {
+      phaseNamespace: "migration-journal",
+      commitGuard: () => this.#assertJournalAuthority(),
+    }).remove();
   }
 
-  static read(root) {
+  static read(root, identitySource) {
     const temporaryRoot = path.join(root, ".tmp");
     const temporaryStat = lstatOrNull(temporaryRoot);
     if (!temporaryStat) return null;
@@ -521,13 +1007,19 @@ class UpgradeMigrationJournal {
     if (!stat) return null;
     assertRegularFile(journalPath, "migration journal");
     let raw;
+    let journalBytes;
     try {
-      raw = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+      journalBytes = fs.readFileSync(journalPath);
+      raw = JSON.parse(journalBytes.toString("utf8"));
     } catch (error) {
       throw new Error(`migration journal is invalid: ${error.message}`);
     }
+    const readStat = assertRegularFile(journalPath, "migration journal");
+    if (readStat.dev !== stat.dev || readStat.ino !== stat.ino) {
+      throw new Error("migration journal changed while it was being read");
+    }
     const keys = raw && typeof raw === "object" ? Object.keys(raw).sort() : [];
-    const expectedKeys = ["metadata", "phase", "root", "sourceIdentity", "sourceName", "stagedSentiIdentity", "stagingRelative", "tempRootCreated", "version"];
+    const expectedKeys = ["metadata", "owner", "phase", "root", "sourceIdentity", "sourceName", "sourceSnapshot", "sourceSnapshotFingerprint", "stagedSentiIdentity", "stagedSnapshotFingerprint", "stagingRelative", "tempRootCreated", "tempRootIdentity", "version"];
     if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || raw.version !== JOURNAL_VERSION || path.resolve(raw.root || "") !== path.resolve(root)
       || !Array.isArray(raw.metadata) || !raw.sourceIdentity || !raw.stagedSentiIdentity) {
       throw new Error("migration journal has an unsupported schema");
@@ -537,11 +1029,18 @@ class UpgradeMigrationJournal {
       sourceName: raw.sourceName,
       stagingRelative: raw.stagingRelative,
       sourceIdentity: raw.sourceIdentity,
+      sourceSnapshot: SourceTreeSnapshot.fromJSON(raw.sourceSnapshot),
+      sourceSnapshotFingerprint: raw.sourceSnapshotFingerprint,
       stagedSentiIdentity: raw.stagedSentiIdentity,
+      stagedSnapshotFingerprint: raw.stagedSnapshotFingerprint,
       metadata: raw.metadata.map((entry) => RootMetadataFile.fromJSON(root, entry)),
+      owner: MigrationProcessOwner.fromJSON(raw.owner, identitySource),
       tempRootCreated: raw.tempRootCreated,
+      tempRootIdentity: raw.tempRootIdentity,
       phase: raw.phase,
     });
+    journal.journalIdentity = { dev: readStat.dev, ino: readStat.ino };
+    journal.journalHash = hashBytes(journalBytes);
     for (const entry of journal.metadata) {
       const expected = entry.name === ".gitignore"
         ? Buffer.from(migrateLegacyManagedGitignore(entry.original.toString("utf8")), "utf8")
@@ -683,30 +1182,45 @@ export function collectMigrationConfigWarnings(sourceRoot) {
   return warnings;
 }
 
-export function legacyPluginSkillSourceDirs(sourceRoot) {
+function normalUpgradeValidationError(projectRoot, sourceRoot, config, options = {}) {
   try {
-    const raw = loadRawConfigFromManagedDirectory(sourceRoot);
-    const dirs = new Set();
-    for (const pkg of raw?.plugin?.packages || []) {
-      if (pkg?.enabled === false || typeof pkg?.id !== "string") continue;
-      const manifestPath = path.join(sourceRoot, "plugins", pkg.id, "plugin.json");
-      if (!lstatOrNull(manifestPath)) continue;
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      for (const skill of manifest?.contributions?.skills || []) {
-        if (typeof skill?.path !== "string") continue;
-        const declared = skill.path.endsWith("/SKILL.md")
-          ? path.dirname(path.dirname(skill.path))
-          : path.dirname(skill.path);
-        dirs.add(path.join(sourceRoot, "plugins", pkg.id, declared));
-      }
+    if (config.type) {
+      validatePresetChainFromManagedDirectory(config.type, projectRoot, sourceRoot, {
+        languages: config.docs?.languages || [],
+        configChapters: config.chapters,
+        reportUnlistedTemplates: false,
+        ...options,
+      });
     }
-    return [...dirs];
-  } catch (_) {
-    // A malformed legacy config is still a migratable byte stream. The
-    // following normal upgrade will surface its validation failure, but the
-    // directory migration must not strand that config in the retired path.
-    return [];
+    return null;
+  } catch (error) {
+    return String(error.message || error);
   }
+}
+
+function collectNormalUpgradeValidationErrors(projectRoot, sourceRoot, snapshot, configWarnings) {
+  if (configWarnings.length > 0) return [];
+  const config = loadConfigFromManagedDirectory(sourceRoot);
+  const sourceError = normalUpgradeValidationError(projectRoot, sourceRoot, config);
+  const futureError = normalUpgradeValidationError(projectRoot, sourceRoot, config, {
+    templateExists(candidate) {
+      const relative = path.relative(sourceRoot, candidate);
+      if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+        return fs.existsSync(candidate);
+      }
+      const normalized = relative.split(path.sep).join("/");
+      return isRawCopyPath(normalized)
+        ? fs.existsSync(candidate)
+        : snapshot.hasTargetPath(normalized);
+    },
+  });
+  if (futureError && futureError !== sourceError) {
+    throw new Error([
+      "migration would break a managed template reference; update the configuration or template name before retrying",
+      futureError,
+    ].join("\n"));
+  }
+  return futureError ? [futureError] : [];
 }
 
 function ensureTempRoot(root) {
@@ -714,8 +1228,8 @@ function ensureTempRoot(root) {
   const stat = lstatOrNull(temp);
   const created = !stat;
   if (!stat) fs.mkdirSync(temp, { recursive: true, mode: 0o700 });
-  assertRealDirectory(temp, "migration temporary directory");
-  return { temp, created };
+  const verified = assertRealDirectory(temp, "migration temporary directory");
+  return { temp, created, identity: created ? { dev: verified.dev, ino: verified.ino } : null };
 }
 
 function migrationState(root) {
@@ -733,15 +1247,26 @@ function migrationState(root) {
  * and journal-driven recovery boundaries.
  */
 export class UpgradeDirectoryMigration {
-  constructor(root, { dryRun = false, logger = console } = {}) {
+  constructor(root, {
+    dryRun = false,
+    logger = console,
+    processIdentitySource = new ProcessIdentitySource(),
+    openHandleInspector = new ManagedOpenHandleInspector(),
+  } = {}) {
     this.root = path.resolve(root);
     this.dryRun = dryRun;
     this.logger = logger;
+    this.processIdentitySource = new MigrationProcessIdentitySource(processIdentitySource);
+    if (!(openHandleInspector instanceof ManagedOpenHandleInspector)) {
+      throw new Error("migration managed open-handle inspector is invalid");
+    }
+    this.openHandleInspector = openHandleInspector;
   }
 
   run() {
-    const recovery = UpgradeMigrationJournal.read(this.root);
+    const recovery = UpgradeMigrationJournal.read(this.root, this.processIdentitySource);
     if (recovery) {
+      recovery.owner.assertInactive();
       if (this.dryRun) {
         this.logger.log("[migrate] DRY-RUN: a valid migration journal would be recovered; no files were changed.");
         return { migrated: false, shouldRunUpgrade: false, warnings: [], recovered: true };
@@ -769,6 +1294,7 @@ export class UpgradeDirectoryMigration {
     const sourceName = sources[0];
     const sourceRoot = path.join(this.root, sourceName);
     assertRealDirectory(sourceRoot, "legacy managed directory");
+    this.openHandleInspector.assertEmpty(sourceRoot, "the legacy managed directory");
     if (activeFlowPresent(sourceRoot)) throw new Error("migration refuses while a legacy Flow is active or preparing");
     const busy = findBusyMarkers(sourceRoot);
     if (busy.length > 0) throw new Error(`migration refuses while another process may be writing managed files: ${busy.join(", ")}`);
@@ -776,20 +1302,23 @@ export class UpgradeDirectoryMigration {
     const snapshot = SourceTreeSnapshot.capture(sourceRoot);
     const treePlan = snapshot.treePlan;
     const warnings = collectMigrationConfigWarnings(sourceRoot);
-    const pluginSkillDirs = legacyPluginSkillSourceDirs(sourceRoot);
+    const normalUpgradeErrors = collectNormalUpgradeValidationErrors(this.root, sourceRoot, snapshot, warnings);
+    const pluginSkillDirs = this.dryRun && warnings.length === 0 && normalUpgradeErrors.length === 0
+      ? enabledPluginSkillSourceDirs(this.root, { managedDirectory: sourceRoot })
+      : [];
     const metadata = [
       RootMetadataFile.plan(this.root, ".gitignore", migrateLegacyManagedGitignore),
       RootMetadataFile.plan(this.root, ".gitattributes", migrateLegacyManagedGitattributes),
     ];
     if (this.dryRun) {
-      this.#printDryRunPlan(sourceName, treePlan, metadata, warnings);
+      this.#printDryRunPlan(sourceName, treePlan, metadata, warnings, normalUpgradeErrors);
       return {
         migrated: false,
         shouldRunUpgrade: true,
         warnings,
         sourceName,
         pluginSkillDirs,
-        normalUpgradeExpectedFailure: warnings.length > 0,
+        normalUpgradeExpectedFailure: warnings.length > 0 || normalUpgradeErrors.length > 0,
       };
     }
 
@@ -797,24 +1326,35 @@ export class UpgradeDirectoryMigration {
     const tempRoot = tempState.temp;
     const stagingRoot = path.join(tempRoot, `${STAGING_PREFIX}${crypto.randomUUID()}`);
     let journal = null;
+    let stagingCreated = false;
     let retainStagingForRecovery = false;
     try {
       fs.mkdirSync(stagingRoot, { mode: 0o700 });
+      stagingCreated = true;
       const stagedSenti = path.join(stagingRoot, ".senti");
       fs.mkdirSync(stagedSenti, { mode: 0o700 });
       fs.chmodSync(stagedSenti, snapshot.rootMode);
       copyTree(sourceRoot, stagedSenti);
       snapshot.assertStaged(stagedSenti);
+      const stagedSnapshot = SourceTreeSnapshot.capture(stagedSenti);
       snapshot.assertUnchanged(sourceRoot);
-      for (const entry of metadata) entry.stage(stagingRoot);
+      for (const entry of metadata) {
+        entry.stage(stagingRoot);
+        entry.stagedContent(stagingRoot);
+      }
       const pendingJournal = new UpgradeMigrationJournal({
         root: this.root,
         sourceName,
         stagingRelative: relativePath(this.root, stagingRoot),
         sourceIdentity: directoryIdentity(sourceRoot, "legacy managed directory"),
+        sourceSnapshot: snapshot,
+        sourceSnapshotFingerprint: snapshot.fingerprint,
         stagedSentiIdentity: directoryIdentity(stagedSenti, "migration staged directory"),
+        stagedSnapshotFingerprint: stagedSnapshot.fingerprint,
         metadata,
+        owner: MigrationProcessOwner.current(this.processIdentitySource),
         tempRootCreated: tempState.created,
+        tempRootIdentity: tempState.identity,
       });
       try {
         pendingJournal.publish();
@@ -833,6 +1373,7 @@ export class UpgradeDirectoryMigration {
         }
         throw error;
       }
+      pendingJournal.owner.activate();
       journal = pendingJournal;
       this.#commit(journal, snapshot);
       this.logger.log(`[migrate] migrated ${sourceName} to ${PRODUCT.managedDirName}.`);
@@ -851,23 +1392,35 @@ export class UpgradeDirectoryMigration {
           throw new AggregateError([error, rollbackError], "migration and rollback both failed", { cause: error });
         }
       } else if (!retainStagingForRecovery) {
-        removeTree(stagingRoot, "migration staging directory");
-        if (tempState.created && fs.readdirSync(tempRoot).length === 0) fs.rmdirSync(tempRoot);
+        if (stagingCreated) removeTree(stagingRoot, "migration staging directory");
+        if (tempState.created
+          && sameDirectoryIdentity(tempRoot, tempState.identity, "migration temporary directory")
+          && fs.readdirSync(tempRoot).length === 0) {
+          fs.rmdirSync(tempRoot);
+        }
       }
       throw error;
+    } finally {
+      journal?.owner.release();
     }
   }
 
-  #printDryRunPlan(sourceName, treePlan, metadata, warnings) {
+  #printDryRunPlan(sourceName, treePlan, metadata, warnings, normalUpgradeErrors) {
     this.logger.log(`[migrate] DRY-RUN: ${sourceName} -> .senti -> ${PRODUCT.managedDirName}`);
-    this.logger.log(`[migrate] DRY-RUN: stage ${treePlan.entries} managed entries under .tmp/${STAGING_PREFIX}<id>/.senti`);
+    this.logger.log(`[migrate] DRY-RUN: stage ${treePlan.size} managed entries under .tmp/${STAGING_PREFIX}<id>/.senti`);
+    for (const line of treePlan.toDryRunLines()) this.logger.log(`[migrate] DRY-RUN: ${line}`);
     for (const entry of metadata) {
       const status = entry.original.equals(entry.planned) ? "unchanged" : "replace";
       this.logger.log(`[migrate] DRY-RUN: ${status} ${entry.name}`);
     }
     for (const warning of warnings) this.logger.error(`[migrate] config warning: ${warning}`);
+    for (const error of normalUpgradeErrors) {
+      this.logger.error(`[migrate] normal upgrade validation: ${error}`);
+    }
     if (warnings.length > 0) {
       this.logger.error("[migrate] directory migration is feasible, but the subsequent normal upgrade is expected to fail config validation.");
+    } else if (normalUpgradeErrors.length > 0) {
+      this.logger.error("[migrate] directory migration is feasible, but the subsequent normal upgrade is expected to fail validation.");
     }
     this.logger.log("[migrate] DRY-RUN: no files, directories, journals, or metadata were changed.");
   }
@@ -891,7 +1444,13 @@ export class UpgradeDirectoryMigration {
     }
     fs.renameSync(journal.stagedSentiPath, temporarySenti);
     journal.advance("placed-senti");
-    for (const entry of journal.metadata) entry.apply();
+    try {
+      journal.assertStagedSnapshot(temporarySenti);
+    } catch (error) {
+      journal.preserveConcurrentStagedTree(temporarySenti);
+      throw error;
+    }
+    for (const entry of journal.metadata) entry.apply(journal.stagingRoot);
     journal.advance("metadata-updated");
     fs.renameSync(temporarySenti, canonical);
     journal.advance("final-renamed");
@@ -907,14 +1466,38 @@ export class UpgradeDirectoryMigration {
 
   #completeCleanup(journal) {
     const canonical = path.join(this.root, PRODUCT.managedDirName);
-    if (!sameDirectoryIdentity(canonical, journal.stagedSentiIdentity, "migrated managed directory")) {
-      throw new Error("migrated managed directory identity changed before cleanup");
+    journal.assertStagedSnapshot(canonical);
+    this.openHandleInspector.assertEmpty(canonical, "the migrated managed directory");
+    const source = path.join(this.root, journal.sourceName);
+    const sourceExists = Boolean(lstatOrNull(source));
+    const backupExists = Boolean(lstatOrNull(journal.backupPath));
+    if (sourceExists && backupExists) {
+      throw new Error("legacy managed directory and its cleanup backup both exist");
     }
-    if (journal.sourceName === ".senti") {
-      if (lstatOrNull(journal.backupPath)) removeTree(journal.backupPath, "legacy .senti backup");
-    } else {
-      const source = path.join(this.root, journal.sourceName);
-      if (lstatOrNull(source)) removeTree(source, "legacy .sdd-forge directory");
+    if (journal.sourceName === ".sdd-forge" && sourceExists) {
+      this.openHandleInspector.assertEmpty(source, "the legacy managed directory");
+      if (!sameDirectoryIdentity(source, journal.sourceIdentity, "legacy managed directory")) {
+        throw new Error("legacy managed directory identity changed before cleanup");
+      }
+      fs.renameSync(source, journal.backupPath);
+      fsyncDirectory(this.root);
+      fsyncDirectory(journal.stagingRoot);
+    }
+    if (lstatOrNull(source)) {
+      throw new Error(`legacy managed directory path reappeared during cleanup: ${journal.sourceName}`);
+    }
+    if (lstatOrNull(journal.backupPath)) {
+      this.openHandleInspector.assertEmpty(journal.backupPath, "the legacy managed directory backup");
+      if (journal.phase !== "cleanup-source-verified") {
+        journal.assertSourceSnapshot(journal.backupPath);
+        journal.advance("cleanup-source-verified");
+      } else {
+        journal.assertSourceSnapshotSubset(journal.backupPath);
+      }
+      removeTree(journal.backupPath, `legacy ${journal.sourceName} backup`);
+    }
+    if (lstatOrNull(source)) {
+      throw new Error(`legacy managed directory path reappeared during cleanup: ${journal.sourceName}`);
     }
     removeTree(journal.stagingRoot, "migration staging directory");
     journal.remove();
@@ -935,7 +1518,14 @@ export class UpgradeDirectoryMigration {
       if (!sameDirectoryIdentity(temporary, journal.stagedSentiIdentity, "staged temporary directory")) {
         throw new Error("cannot remove temporary .senti changed by another process");
       }
-      removeTree(temporary, "staged temporary directory");
+      const openHandles = this.openHandleInspector.inspect(temporary);
+      try {
+        openHandles.assertEmpty("the staged temporary managed directory");
+        journal.assertStagedSnapshot(temporary);
+      } catch (_) {
+        journal.preserveConcurrentStagedTree(temporary);
+      }
+      if (lstatOrNull(temporary)) removeTree(temporary, "staged temporary directory");
     }
     for (const entry of journal.metadata) entry.restore();
     if (journal.sourceName === ".senti") {
@@ -951,6 +1541,9 @@ export class UpgradeDirectoryMigration {
         throw new Error("legacy .senti disappeared before rollback");
       }
     }
+    if (lstatOrNull(journal.concurrentWritePath)) {
+      throw new Error(`concurrent managed write was preserved at ${relativePath(this.root, journal.concurrentWritePath)}`);
+    }
     removeTree(journal.stagingRoot, "migration staging directory");
     journal.remove();
     this.#removeCreatedTempRoot(journal);
@@ -958,7 +1551,12 @@ export class UpgradeDirectoryMigration {
 
   #removeCreatedTempRoot(journal) {
     const temp = path.join(this.root, ".tmp");
-    if (journal.tempRootCreated && lstatOrNull(temp) && fs.readdirSync(temp).length === 0) fs.rmdirSync(temp);
+    if (journal.tempRootCreated
+      && lstatOrNull(temp)
+      && sameDirectoryIdentity(temp, journal.tempRootIdentity, "migration temporary directory")
+      && fs.readdirSync(temp).length === 0) {
+      fs.rmdirSync(temp);
+    }
   }
 
   #recover(journal) {

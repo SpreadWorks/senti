@@ -93,12 +93,18 @@ export class PresetCatalog {
   }
 }
 
-function registryPresets(projectRoot, { strict = false, maxEntries, existingPresetCount = 0 } = {}) {
+function registryPresets(projectRoot, {
+  strict = false,
+  maxEntries,
+  existingPresetCount = 0,
+  managedDirectory,
+} = {}) {
   if (!projectRoot) return [];
   try {
     return [...loadPluginRegistry(projectRoot, {
       maxPresetEntries: maxEntries,
       existingPresetCount,
+      managedDirectory,
     }).presets.values()];
   } catch (err) {
     if (err.message.includes("preset registry exceeds")) throw err;
@@ -108,7 +114,7 @@ function registryPresets(projectRoot, { strict = false, maxEntries, existingPres
   }
 }
 
-export function createPresetCatalog(projectRoot, { strict = false, maxEntries } = {}) {
+export function createPresetCatalog(projectRoot, { strict = false, maxEntries, managedDirectory } = {}) {
   const byKey = new Map(CORE_PRESETS.map((preset) => [preset.key, preset]));
   if (maxEntries !== undefined && byKey.size > maxEntries) {
     throw new Error(`preset registry exceeds ${maxEntries} entries`);
@@ -118,6 +124,7 @@ export function createPresetCatalog(projectRoot, { strict = false, maxEntries } 
       strict,
       maxEntries,
       existingPresetCount: byKey.size,
+      managedDirectory,
     })) {
       byKey.set(preset.key, preset);
     }
@@ -372,7 +379,7 @@ function presetHasTemplates(preset) {
  * searches across all type chains for each chapter. Validator PASS ≡ build
  * can resolve the chapter via some chain.
  */
-function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
+function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType, projectTemplatesDirectory) {
   const dirs = [];
   const seen = new Set();
   const push = (d) => {
@@ -384,7 +391,9 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
   if (projectRoot) {
     // init.js uses `<root>/.senrail/templates/<lang>/docs` as the project-local
     // dir — mirror that path so validator PASS implies build can resolve.
-    push(path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs")));
+    push(projectTemplatesDirectory
+      ? path.join(projectTemplatesDirectory, lang, "docs")
+      : path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs")));
   }
   for (const typeKey of typeList) {
     const chain = resolveChainForType(typeKey);
@@ -416,7 +425,13 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType) {
  * @param {string[]} options.languages - Languages to validate (from config.docs.languages).
  * @param {Array} [options.configChapters] - Override chapters (from config.chapters).
  */
-function validatePresetChainWithResolver(types, projectRoot, { languages, configChapters } = {}, resolveChainForType) {
+function validatePresetChainWithResolver(types, projectRoot, {
+  languages,
+  configChapters,
+  projectTemplatesDirectory,
+  templateExists = fs.existsSync,
+  reportUnlistedTemplates = true,
+} = {}, resolveChainForType) {
   if (!languages?.length) return;
   if (languages.length > MAX_LANGUAGES) {
     throw new Error(`validatePresetChain: languages count exceeds MAX_LANGUAGES (${languages.length} > ${MAX_LANGUAGES})`);
@@ -435,9 +450,15 @@ function validatePresetChainWithResolver(types, projectRoot, { languages, config
 
   for (const chapter of effectiveChapters) {
     for (const lang of languages) {
-      const dirs = templateSearchDirs(typeList, projectRoot, lang, resolveChainForType);
+      const dirs = templateSearchDirs(
+        typeList,
+        projectRoot,
+        lang,
+        resolveChainForType,
+        projectTemplatesDirectory,
+      );
       dirs.forEach((d) => searchedPaths.add(d));
-      const found = dirs.some((d) => fs.existsSync(path.join(d, chapter)));
+      const found = dirs.some((d) => templateExists(path.join(d, chapter)));
       if (!found) missing.push({ chapter, lang });
     }
   }
@@ -459,11 +480,13 @@ function validatePresetChainWithResolver(types, projectRoot, { languages, config
   // Reverse direction: warn on project-local templates present but not in
   // effective chapters. Chain templates are intentionally shared and may be
   // excluded by a leaf preset's chapter override — those are not noise-worthy.
-  if (!projectRoot) return;
+  if (!projectRoot || !reportUnlistedTemplates) return;
   const effectiveSet = new Set(effectiveChapters);
   const reported = new Set();
   for (const lang of languages) {
-    const dir = path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs"));
+    const dir = projectTemplatesDirectory
+      ? path.join(projectTemplatesDirectory, lang, "docs")
+      : path.join(projectRoot, PRODUCT.managedPath("templates", lang, "docs"));
     if (!fs.existsSync(dir)) continue;
     for (const file of fs.readdirSync(dir)) {
       if (!file.endsWith(".md")) continue;
@@ -485,6 +508,21 @@ export function validatePresetChain(types, projectRoot, opts = {}) {
     projectRoot,
     opts,
     (type) => resolveChain(type, projectRoot, { maxDepth: MAX_CHAIN_DEPTH }),
+  );
+}
+
+/**
+ * Validate the future normal-upgrade preset boundary while a managed directory
+ * is still staged under an explicit non-canonical path. Normal runtime keeps
+ * using validatePresetChain() and never discovers legacy directory names.
+ */
+export function validatePresetChainFromManagedDirectory(types, projectRoot, managedDirectory, opts = {}) {
+  const catalog = createPresetCatalog(projectRoot, { managedDirectory });
+  return validatePresetChainWithResolver(
+    types,
+    projectRoot,
+    { ...opts, projectTemplatesDirectory: path.join(managedDirectory, "templates") },
+    (type) => catalog.resolveChain(type, { maxDepth: MAX_CHAIN_DEPTH }),
   );
 }
 

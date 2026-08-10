@@ -75,7 +75,7 @@ function removeIfSymlink(filePath) {
  * @param {string} args.workRoot       Project root directory
  * @param {boolean} [args.dryRun=false]
  * @param {boolean} [args.force=false] overwrite all product-owned targets
- * @returns {{ name: string, status: "updated" | "unchanged" }[]}
+ * @returns {{ name: string, status: "updated" | "unchanged", targets: string[] }[]}
  */
 export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false, force = false }) {
   const skillDirs = listSkillDirNames(skillsDir);
@@ -122,7 +122,7 @@ export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false, force
     }
 
     if (pendingTargets.length === 0) {
-      results.push({ name, status: "unchanged" });
+      results.push({ name, status: "unchanged", targets: [] });
       continue;
     }
 
@@ -141,7 +141,7 @@ export function deploySkillsFromDir({ skillsDir, workRoot, dryRun = false, force
       }
     }
 
-    results.push({ name, status: "updated" });
+    results.push({ name, status: "updated", targets: pendingTargets });
   }
 
   return results;
@@ -174,7 +174,7 @@ export function deploySkills(workRoot, opts = {}) {
  * @param {string[]} activeSkillSourceDirs  All active skill source directories (main + experimental)
  * @param {object} [opts]
  * @param {boolean} [opts.dryRun=false]
- * @returns {{ name: string, status: "removed" }[]}
+ * @returns {{ name: string, status: "removed", targets: string[] }[]}
  */
 export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}) {
   const { dryRun = false } = opts;
@@ -205,5 +205,11 @@ export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}
 
   // Report one entry per skill name, even when it was removed from multiple target bases.
   const removedNames = [...new Set([...obsoleteNamesByBase.values()].flat())];
-  return removedNames.map((name) => ({ name, status: "removed" }));
+  return removedNames.map((name) => ({
+    name,
+    status: "removed",
+    targets: [...obsoleteNamesByBase]
+      .filter(([, names]) => names.includes(name))
+      .map(([base]) => path.join(deployedSkillsDir(workRoot, base), name)),
+  }));
 }

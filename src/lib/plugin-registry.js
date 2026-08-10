@@ -4,7 +4,14 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createPluginAgentApi } from "./agent.js";
 import { repoRoot } from "./cli.js";
-import { loadConfig, loadRawConfig, managedConfigPath, managedDir, managedLocalConfigPath } from "./config.js";
+import {
+  loadConfig,
+  loadRawConfig,
+  loadRawConfigFromManagedDirectory,
+  managedConfigPath,
+  managedDir,
+  managedLocalConfigPath,
+} from "./config.js";
 import { PRODUCT } from "./product.js";
 import { Envelope } from "./flow-envelope.js";
 import { EsmModule } from "./esm-module.js";
@@ -485,12 +492,18 @@ export class PluginRuntime {
   constructor(root = repoRoot(), options = {}) {
     this.root = path.resolve(root);
     this.options = Object.freeze({ ...options });
+    this.managedDirectory = options.managedDirectory
+      ? path.resolve(options.managedDirectory)
+      : managedDir(this.root);
   }
 
   loadCatalog() {
     let config;
     try {
-      config = readProjectConfig(this.root);
+      config = this.options.managedDirectory
+        ? loadRawConfigFromManagedDirectory(this.managedDirectory)
+        : readProjectConfig(this.root);
+      ensurePluginConfig(config);
     } catch (_) {
       return new PluginCatalog(this.root, []);
     }
@@ -503,7 +516,7 @@ export class PluginRuntime {
     }
     const manifests = [];
     for (const pkg of enabledPackages) {
-      const pluginRoot = path.join(managedDir(this.root), "plugins", pkg.id);
+      const pluginRoot = path.join(this.managedDirectory, "plugins", pkg.id);
       const manifestPath = path.join(pluginRoot, "plugin.json");
       if (!fs.existsSync(manifestPath)) continue;
       manifests.push(PluginManifest.fromRoot(pluginRoot, pkg.id));
@@ -514,6 +527,24 @@ export class PluginRuntime {
 
 export function loadPluginRegistry(root = repoRoot(), options = {}) {
   return new PluginRuntime(root, options).loadCatalog();
+}
+
+export function enabledPluginSkillSourceDirs(root = repoRoot(), options = {}) {
+  try {
+    const registry = loadPluginRegistry(root, options);
+    const dirs = new Set();
+    for (const manifest of registry.manifests) {
+      for (const skill of manifest.contributions.skills || []) {
+        const declared = skill.path.endsWith("/SKILL.md")
+          ? path.dirname(path.dirname(skill.path))
+          : path.dirname(skill.path);
+        dirs.add(path.join(manifest.root, declared));
+      }
+    }
+    return [...dirs];
+  } catch (_) {
+    return [];
+  }
 }
 
 export function loadPluginConfigDefaults(root = repoRoot()) {

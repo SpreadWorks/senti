@@ -103,6 +103,46 @@ function normalizeLocaleKey(key) {
   return String(key || "").replace(/^ui:/, "");
 }
 
+class StructuredCommandHelp {
+  constructor(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)
+      || typeof value.usage !== "string" || typeof value.desc !== "string") {
+      throw new Error("structured command help requires usage and description text");
+    }
+    this.value = value;
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? new StructuredCommandHelp(value)
+      : null;
+  }
+
+  get summary() {
+    return this.value.desc;
+  }
+
+  get usage() {
+    return this.value.usage;
+  }
+
+  toText() {
+    const lines = [this.value.usage, "", this.value.desc];
+    if (typeof this.value.descDetail === "string" && this.value.descDetail !== "") {
+      lines.push(this.value.descDetail);
+    }
+    if (Array.isArray(this.value.updatedFiles) && this.value.updatedFiles.length > 0) {
+      lines.push("", "Updated files:", ...this.value.updatedFiles.map((file) => `  ${file}`));
+    }
+    const options = this.value.options && typeof this.value.options === "object"
+      ? Object.values(this.value.options).filter((option) => typeof option === "string")
+      : [];
+    if (options.length > 0) lines.push("", "Options:", ...options.map((option) => `  ${option}`));
+    return lines.join("\n");
+  }
+}
+
 function resolveLocaleValue(value, lang) {
   if (!value || typeof value !== "object") return null;
   return value[lang] || value[DEFAULT_LANG] || null;
@@ -115,19 +155,23 @@ function resolveLocalizedText(metadata, lang) {
   const translated = localeKey ? t(localeKey) : null;
   const fallback = i18n(DEFAULT_LANG);
   const fallbackTranslated = localeKey ? fallback(localeKey) : null;
+  const structured = StructuredCommandHelp.from(translated);
+  const fallbackStructured = StructuredCommandHelp.from(fallbackTranslated);
   const summary = locale?.summary
     || locale?.desc
+    || structured?.summary
     || (translated && translated !== localeKey ? translated : null)
     || metadata.summary
     || metadata.desc
     || "";
-  const usage = locale?.usage || metadata.usage || `Usage: senrail ${metadata.name}`;
-  const help = locale?.help || metadata.help || "";
+  const usage = locale?.usage || structured?.usage || metadata.usage || `Usage: senrail ${metadata.name}`;
+  const help = locale?.help || structured?.toText() || metadata.help || "";
   return {
     summary,
     usage,
     help,
-    fallbackSummary: fallbackTranslated && fallbackTranslated !== metadata.localeKey ? fallbackTranslated : metadata.summary,
+    fallbackSummary: fallbackStructured?.summary
+      || (fallbackTranslated && fallbackTranslated !== metadata.localeKey ? fallbackTranslated : metadata.summary),
   };
 }
 
