@@ -149,7 +149,7 @@ function detectBaseBranch(root) {
   try {
     return runGitTrim(root, ["rev-parse", "--abbrev-ref", "HEAD"]).trim();
   } catch (e) {
-    process.stderr.write(`[senrail] failed to detect current branch, falling back to "main": ${e.message}\n`);
+    process.stderr.write(`[sennel] failed to detect current branch, falling back to "main": ${e.message}\n`);
     return "main";
   }
 }
@@ -893,7 +893,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         "run",
         "prepare-spec",
         "TARGET_REQUIRED",
-        "Cannot run bare prepare while another flow is active; run `senrail flow set init` and pass the returned --run-id.",
+        "Cannot run bare prepare while another flow is active; run `sennel flow set init` and pass the returned --run-id.",
         {
           active: {
             runId: ctx.flowState.runId || null,
@@ -1147,7 +1147,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     ];
     const fillAndGateNext = [
       `fill ${specLocation.relativeArtifact("draft.json")}`,
-      `run: senrail flow run gate --phase draft`,
+      `run: sennel flow run gate --phase draft`,
       `start implementation`,
     ];
     const lines = [];

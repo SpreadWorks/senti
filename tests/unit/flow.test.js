@@ -79,7 +79,7 @@ describe("active-flow pointer", () => {
     makeFlowManager(tmp).removeActiveFlow("086-migrate");
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.deepEqual(flows, []);
-    assert.ok(!fs.existsSync(join(tmp, ".senrail", ".active-flow")));
+    assert.ok(!fs.existsSync(join(tmp, ".sennel", ".active-flow")));
   });
 
   it("removeActiveFlow is a no-op when spec ID does not exist", () => {
@@ -93,7 +93,7 @@ describe("active-flow pointer", () => {
   it(".active-flow is stored as valid JSON", () => {
     tmp = createTmpDir();
     makeFlowManager(tmp).addActiveFlow("086-migrate", "local");
-    const raw = fs.readFileSync(join(tmp, ".senrail", ".active-flow"), "utf8");
+    const raw = fs.readFileSync(join(tmp, ".sennel", ".active-flow"), "utf8");
     const parsed = JSON.parse(raw);
     assert.ok(Array.isArray(parsed));
     assert.equal(parsed[0].specId, "086-migrate");
@@ -120,7 +120,7 @@ describe("flow-state (specs-based storage)", () => {
     assert.ok(fs.existsSync(join(tmp, "specs", specId, "flow.json")));
   });
 
-  it("saveFlowState does NOT write to .senrail/flow.json", () => {
+  it("saveFlowState does NOT write to .sennel/flow.json", () => {
     tmp = createTmpDir();
     const state = makeFlowState({
       specId: "001-test",
@@ -129,7 +129,7 @@ describe("flow-state (specs-based storage)", () => {
       featureBranch: "feature/001-test",
     });
     makeFlowManager(tmp).create(state);
-    assert.ok(!fs.existsSync(join(tmp, ".senrail", "flow.json")));
+    assert.ok(!fs.existsSync(join(tmp, ".sennel", "flow.json")));
   });
 
   it("loadFlowState reads from specs/NNN/flow.json via .active-flow", () => {

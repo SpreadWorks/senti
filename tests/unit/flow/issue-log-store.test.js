@@ -8,7 +8,7 @@ import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
 import { ProcessIdentitySource } from "../../../src/lib/process-identity.js";
 
 function makeStore() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-issue-log-store-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-issue-log-store-"));
   const spec = "specs/100/spec.json";
   fs.mkdirSync(path.join(root, "specs/100"), { recursive: true });
   return { root, spec, store: new IssueLogStore({ root, spec }) };
@@ -55,8 +55,8 @@ test("IssueLogStore claims an abandoned writer lock and releases it after append
 
 test("IssueLogStore accepts only bounded spec.json and spec.md authorities", () => {
   for (const specFile of ["spec.json", "spec.md"]) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-issue-log-authority-"));
-    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-issue-log-outside-"));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-issue-log-authority-"));
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-issue-log-outside-"));
     const directory = path.join(root, "specs/100");
     const spec = `specs/100/${specFile}`;
     const target = path.join(directory, specFile);

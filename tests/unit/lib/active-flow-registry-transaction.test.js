@@ -17,7 +17,7 @@ describe("active-flow registry transaction", () => {
 
   it("fails closed when the registry authority is malformed", () => {
     root = createTmpDir("active-flow-malformed-");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     fs.writeFileSync(registryPath, "{malformed\n");
     const before = fs.readFileSync(registryPath);
@@ -32,7 +32,7 @@ describe("active-flow registry transaction", () => {
 
   it("does not retry or rewrite malformed and unknown registry documents", () => {
     root = createTmpDir("active-flow-invalid-document-");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     const originalLstat = fs.lstatSync;
     for (const bytes of [
@@ -59,7 +59,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-concurrent-readers-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-reader", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const expected = [{ specId: "441-reader", mode: "local" }];
     const originalOpen = fs.openSync;
     let nested = null;
@@ -85,7 +85,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-reader-writer-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-old", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const oldDocument = [{ specId: "441-old", mode: "local" }];
     const newDocument = [
       { specId: "441-old", mode: "local" },
@@ -119,8 +119,8 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-reader-replacement-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-old", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
-    const replacementPath = path.join(root, ".senrail", ".active-flow.replacement");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
+    const replacementPath = path.join(root, ".sennel", ".active-flow.replacement");
     const expected = [{ specId: "442-new", mode: "branch" }];
     fs.writeFileSync(replacementPath, `${JSON.stringify(expected, null, 2)}\n`);
     const originalOpen = fs.openSync;
@@ -144,8 +144,8 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-reader-post-replacement-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-old", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
-    const replacementPath = path.join(root, ".senrail", ".active-flow.replacement");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
+    const replacementPath = path.join(root, ".sennel", ".active-flow.replacement");
     const expected = [{ specId: "442-new", mode: "branch" }];
     fs.writeFileSync(replacementPath, `${JSON.stringify(expected, null, 2)}\n`);
     const originalRead = fs.readFileSync;
@@ -170,7 +170,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-reader-unstable-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-stable", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const before = fs.readFileSync(registryPath);
     const originalLstat = fs.lstatSync;
     let targetStats = 0;
@@ -204,7 +204,7 @@ describe("active-flow registry transaction", () => {
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-target", "branch");
     registry.add("442-existing", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const second = new ActiveFlowRegistry({ mainRoot: root });
     const originalRename = fs.renameSync;
     let nestedError = null;
@@ -237,7 +237,7 @@ describe("active-flow registry transaction", () => {
   it("parks one pointer atomically and retains an empty durable authority for the last pointer", () => {
     root = createTmpDir("active-flow-park-transaction-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     registry.add("453-target", "worktree");
     registry.add("454-other", "worktree");
 
@@ -260,7 +260,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-corrupt-lock-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-existing", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const before = fs.readFileSync(registryPath);
     const lockPath = ActiveFlowRegistry.lockPathFor(root);
     fs.writeFileSync(lockPath, "{malformed\n");
@@ -278,7 +278,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-maintenance-process-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-existing", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const before = fs.readFileSync(registryPath);
     const maintenance = new RepositoryMaintenanceLock({ mainRoot: root });
     maintenance.acquire();
@@ -323,10 +323,10 @@ describe("active-flow registry transaction", () => {
         /entry\.spec|spec ID|invalid/i,
         `add ${JSON.stringify(spec)}`,
       );
-      assert.equal(fs.existsSync(path.join(addRoot, ".senrail", ".active-flow")), false);
+      assert.equal(fs.existsSync(path.join(addRoot, ".sennel", ".active-flow")), false);
 
       const loadRoot = path.join(root, `load-${index}`);
-      const registryPath = path.join(loadRoot, ".senrail", ".active-flow");
+      const registryPath = path.join(loadRoot, ".sennel", ".active-flow");
       fs.mkdirSync(path.dirname(registryPath), { recursive: true });
       const bytes = `${JSON.stringify([{ spec, mode: "local" }])}\n`;
       fs.writeFileSync(registryPath, bytes);
@@ -349,7 +349,7 @@ describe("active-flow registry transaction", () => {
     assert.equal(git("add", "tracked").status, 0);
     assert.equal(git("commit", "-qm", "initial").status, 0);
     assert.equal(git("branch", "feature-unrelated").status, 0);
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     const bytes = `${JSON.stringify([{ specId: "feature-*", mode: "branch" }])}\n`;
     fs.writeFileSync(registryPath, bytes);
@@ -365,7 +365,7 @@ describe("active-flow registry transaction", () => {
     root = createTmpDir("active-flow-mode-conflict-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add("441-mode", "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const before = fs.readFileSync(registryPath);
 
     registry.add("441-mode", "local");
@@ -382,7 +382,7 @@ describe("active-flow registry transaction", () => {
     const specId = "441-local";
     const registry = new ActiveFlowRegistry({ mainRoot: root });
     registry.add(specId, "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const before = fs.readFileSync(registryPath);
     const flowPath = path.join(root, "specs", specId, "flow.json");
     fs.mkdirSync(path.dirname(flowPath), { recursive: true });
@@ -411,7 +411,7 @@ describe("active-flow registry transaction", () => {
 
   it("fails closed when worktree or branch Git probes fail", () => {
     root = createTmpDir("active-flow-git-probe-");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     for (const mode of ["worktree", "branch"]) {
       const specId = `441-${mode}`;

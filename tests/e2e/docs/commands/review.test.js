@@ -4,20 +4,20 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "review"];
 const MIN_CONFIG = { lang: "en", type: "sample-node-command", docs: { languages: ["en"], defaultLanguage: "en" } };
 
 function setupTmp() {
   const tmp = createTmpDir();
-  writeJson(tmp, ".senrail/config.json", MIN_CONFIG);
+  writeJson(tmp, ".sennel/config.json", MIN_CONFIG);
   return tmp;
 }
 
 function runReview(tmp) {
   return execFileSync("node", [CMD, ...CMD_ARGS], {
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
   });
 }
 
@@ -25,7 +25,7 @@ function runReviewExpectFail(tmp) {
   try {
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp },
     });
     assert.fail("should have exited non-zero");
   } catch (err) {
@@ -45,7 +45,7 @@ function writeValidChapter(tmp, name, extra) {
 function setupPassingTmp() {
   const tmp = setupTmp();
   writeValidChapter(tmp, "test.md");
-  writeJson(tmp, ".senrail/output/analysis.json", { analyzedAt: "2026-01-01" });
+  writeJson(tmp, ".sennel/output/analysis.json", { analyzedAt: "2026-01-01" });
   writeFile(tmp, "README.md", "# README\n");
   return tmp;
 }
@@ -53,7 +53,7 @@ function setupPassingTmp() {
 function setupConfiglessPassingTmp() {
   const tmp = createTmpDir();
   writeValidChapter(tmp, "test.md");
-  writeJson(tmp, ".senrail/output/analysis.json", { analyzedAt: "2026-01-01" });
+  writeJson(tmp, ".sennel/output/analysis.json", { analyzedAt: "2026-01-01" });
   writeFile(tmp, "README.md", "# README\n");
   return tmp;
 }
@@ -114,7 +114,7 @@ describe("review CLI", () => {
 
     const { stdout } = runReviewExpectFail(tmp);
     assert.match(stdout, /unfilled \{\{data\}\}/);
-    assert.match(stdout, /senrail docs data/);
+    assert.match(stdout, /sennel docs data/);
   });
 
   it("passes when an empty {{data}} directive explicitly ignores unresolved data", () => {
@@ -160,7 +160,7 @@ describe("review CLI", () => {
 
     const { stdout } = runReviewExpectFail(tmp);
     assert.match(stdout, /unfilled \{\{text\}\}/);
-    assert.match(stdout, /senrail docs text/);
+    assert.match(stdout, /sennel docs text/);
   });
 
   // --- WARN → FAIL: analysis.json missing ---
@@ -172,7 +172,7 @@ describe("review CLI", () => {
 
     const { stdout } = runReviewExpectFail(tmp);
     assert.match(stdout, /analysis\.json not found/);
-    assert.match(stdout, /senrail docs scan/);
+    assert.match(stdout, /sennel docs scan/);
   });
 
   // --- WARN → FAIL: README.md missing ---
@@ -180,11 +180,11 @@ describe("review CLI", () => {
   it("fails when README.md is missing", () => {
     tmp = setupTmp();
     writeValidChapter(tmp, "test.md");
-    writeJson(tmp, ".senrail/output/analysis.json", { analyzedAt: "2026-01-01" });
+    writeJson(tmp, ".sennel/output/analysis.json", { analyzedAt: "2026-01-01" });
 
     const { stdout } = runReviewExpectFail(tmp);
     assert.match(stdout, /README\.md not found/);
-    assert.match(stdout, /senrail docs readme/);
+    assert.match(stdout, /sennel docs readme/);
   });
 
   // --- WARN → FAIL: uncovered analysis category ---
@@ -199,7 +199,7 @@ describe("review CLI", () => {
     for (let i = 0; i < 5; i++) lines.push(`More ${i}`);
     writeFile(tmp, "docs/test.md", lines.join("\n"));
 
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       modules: { entries: [{ name: "foo" }, { name: "bar" }] },
       controllers: { entries: [{ name: "UserController" }] },
@@ -222,7 +222,7 @@ describe("review CLI", () => {
     writeFile(tmp, "docs/test.md", lines.join("\n"));
     writeFile(tmp, "README.md", "# README\n");
 
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       modules: [{ name: "foo" }],
     });
@@ -237,7 +237,7 @@ describe("review CLI", () => {
     writeValidChapter(tmp, "test.md");
     writeFile(tmp, "README.md", "# README\n");
 
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       enrichedAt: "2026-01-02",
     });

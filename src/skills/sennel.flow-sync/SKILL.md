@@ -1,5 +1,5 @@
 ---
-name: senrail.flow-sync
+name: sennel.flow-sync
 description: Sync documentation with code. Use for docs generation, review, and commit.
 ---
 
@@ -16,7 +16,7 @@ Sync documentation with the current codebase. Can be invoked from the finalize s
 
 1. Run documentation sync.
    - Display: "Syncing documentation..."
-   - Run `senrail flow run sync`.
+   - Run `sennel flow run sync`.
    - Display the JSON result to the user.
 
 2. Handle errors.
@@ -25,11 +25,11 @@ Sync documentation with the current codebase. Can be invoked from the finalize s
 
 ## Hard Stops
 
-- Do not proceed if `senrail flow run sync` reports an error.
-- **NEVER chain or background `senrail` commands.** Each `senrail` command must be run as a separate, foreground Bash invocation. Do not use `&&`, `||`, `;`, pipes, or `run_in_background`.
+- Do not proceed if `sennel flow run sync` reports an error.
+- **NEVER chain or background `sennel` commands.** Each `sennel` command must be run as a separate, foreground Bash invocation. Do not use `&&`, `||`, `;`, pipes, or `run_in_background`.
 
 ## Commands
 
 ```bash
-senrail flow run sync
+sennel flow run sync
 ```

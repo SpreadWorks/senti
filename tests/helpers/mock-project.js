@@ -16,16 +16,16 @@ const DEFAULT_PACKAGE = {
 };
 
 export function createMockProject(overrides = {}) {
-  const root = createTmpDir("senrail-mock-");
+  const root = createTmpDir("sennel-mock-");
   const cfg = { ...DEFAULT_CONFIG, ...overrides.config };
   const pkg = { ...DEFAULT_PACKAGE, ...overrides.package };
 
-  writeJson(root, ".senrail/config.json", cfg);
+  writeJson(root, ".sennel/config.json", cfg);
   writeJson(root, "package.json", pkg);
-  writeFile(root, ".senrail/output/.gitkeep");
+  writeFile(root, ".sennel/output/.gitkeep");
 
   if (overrides.analysis) {
-    writeJson(root, ".senrail/output/analysis.json", overrides.analysis);
+    writeJson(root, ".sennel/output/analysis.json", overrides.analysis);
   }
 
   if (overrides.docs) {

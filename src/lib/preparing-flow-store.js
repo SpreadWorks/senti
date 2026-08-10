@@ -1,7 +1,7 @@
 /**
  * src/lib/preparing-flow-store.js
  *
- * Manages `.senrail/.active-flow.<runId>` — transient state files
+ * Manages `.sennel/.active-flow.<runId>` — transient state files
  * created during the prepare phase before flow.json exists.
  */
 

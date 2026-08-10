@@ -18,17 +18,17 @@ test("definition lifecycle-owned steps expose their canonical CLI command", () =
     context: { steps: buildInitialNestedSteps() },
   });
 
-  assert.equal(action.executionCommand, "senrail flow run test-execute");
+  assert.equal(action.executionCommand, "sennel flow run test-execute");
 });
 
 test("review steps declare complete phase-aware CLI commands", () => {
   const cases = [
-    ["flow", "draft-questions-review", "senrail flow run review --phase draft"],
-    ["flow", "draft-coverage-review", "senrail flow run review --phase draft"],
-    ["flow", "spec-review", "senrail flow run review --phase spec"],
-    ["flow", "test-review", "senrail flow run review --phase test"],
-    ["flow", "impl-review", "senrail flow run review --phase impl"],
-    ["task", "task-review", "senrail flow run review --phase impl"],
+    ["flow", "draft-questions-review", "sennel flow run review --phase draft"],
+    ["flow", "draft-coverage-review", "sennel flow run review --phase draft"],
+    ["flow", "spec-review", "sennel flow run review --phase spec"],
+    ["flow", "test-review", "sennel flow run review --phase test"],
+    ["flow", "impl-review", "sennel flow run review --phase impl"],
+    ["task", "task-review", "sennel flow run review --phase impl"],
   ];
 
   for (const [scope, stepId, expected] of cases) {
@@ -54,7 +54,7 @@ test("definition lifecycle-owned steps must declare their execution command", ()
 test("execute-step directives preserve CLI-owned executable commands", () => {
   const directive = new ExecuteStepDirective({
     action: "run-test-execute",
-    nextAction: "senrail flow run test-execute --expect-binding 'opaque'",
+    nextAction: "sennel flow run test-execute --expect-binding 'opaque'",
   });
 
   assert.deepEqual(

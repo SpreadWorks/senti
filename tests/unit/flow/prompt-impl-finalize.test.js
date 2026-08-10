@@ -38,7 +38,7 @@ describe("flow get prompt impl.review-mode (reworked)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "impl.review-mode"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -50,7 +50,7 @@ describe("flow get prompt impl.review-mode (reworked)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "impl.review-mode"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     const labels = envelope.data.choices.map((c) => c.label);
@@ -70,7 +70,7 @@ describe("flow get prompt impl.confirmation (reworked)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "impl.confirmation"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -82,7 +82,7 @@ describe("flow get prompt impl.confirmation (reworked)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "impl.confirmation"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     const labels = envelope.data.choices.map((c) => c.label);
@@ -101,7 +101,7 @@ describe("flow get prompt finalize.mode (description added)", () => {
     setupFlowState(tmp);
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "prompt", "finalize.mode"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);

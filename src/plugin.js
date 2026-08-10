@@ -77,7 +77,7 @@ function upgradeSkip(reason) {
 }
 
 function runAutomaticUpgrade(root) {
-  const result = runCmd("senrail", ["upgrade"], {
+  const result = runCmd("sennel", ["upgrade"], {
     cwd: root,
     env: {
       ...process.env,
@@ -202,7 +202,7 @@ export async function main() {
       }
       if (repoCommand === "add") {
         const source = stripFlags(repoRest)[0];
-        if (!source) throw new Error("Usage: senrail plugin source add <git URL|local path>");
+        if (!source) throw new Error("Usage: sennel plugin source add <git URL|local path>");
         output(addPluginRepo(root, source, refArg(repoRest)), false);
         return;
       }
@@ -224,7 +224,7 @@ export async function main() {
     }
     if (command === "install") {
       const id = stripFlags(rest)[0];
-      if (!id) throw new Error("Usage: senrail plugin install <id>");
+      if (!id) throw new Error("Usage: sennel plugin install <id>");
       const result = installPlugin(root, id);
       if (!result?.id) throw new Error(`plugin install failed: ${id}`);
       const upgrade = hasNoUpgrade(rest)
@@ -239,7 +239,7 @@ export async function main() {
     }
     if (command === "enable" || command === "disable") {
       const id = stripFlags(rest)[0];
-      if (!id) throw new Error(`Usage: senrail plugin ${command} <id>`);
+      if (!id) throw new Error(`Usage: sennel plugin ${command} <id>`);
       output(setPluginEnabled(root, id, command === "enable"), false);
       return;
     }

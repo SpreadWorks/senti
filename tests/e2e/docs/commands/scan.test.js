@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "scan"];
 
 describe("scan CLI", () => {
@@ -14,7 +14,7 @@ describe("scan CLI", () => {
 
   it("generates analysis.json with --stdout including modules", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -24,7 +24,7 @@ describe("scan CLI", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
     assert.ok(analysis.analyzedAt);
@@ -34,7 +34,7 @@ describe("scan CLI", () => {
 
   it("does not emit WARN or legacy prefix on stderr for sample-node-command type", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -44,7 +44,7 @@ describe("scan CLI", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
     assert.ok(!proc.stderr.includes("WARN"), `unexpected WARN in stderr: ${proc.stderr}`);
@@ -53,65 +53,65 @@ describe("scan CLI", () => {
 
   it("writes analysis.json with modules to output dir", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
-    fs.mkdirSync(join(tmp, ".senrail/output"), { recursive: true });
+    fs.mkdirSync(join(tmp, ".sennel/output"), { recursive: true });
     writeFile(tmp, "src/main.js", "function main() {}\n");
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     assert.ok(fs.existsSync(outputPath));
     const analysis = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     assert.ok(analysis.analyzedAt);
     assert.ok(analysis.modules, "modules should be in analysis.json");
 
     // summary.json should no longer be generated
-    const summaryPath = join(tmp, ".senrail/output/summary.json");
+    const summaryPath = join(tmp, ".sennel/output/summary.json");
     assert.ok(!fs.existsSync(summaryPath), "summary.json should not be generated");
   });
 
   it("--dry-run outputs summary to stdout without writing file", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
       scan: { include: ["src/**/*.js"], exclude: [] },
     });
     writeFile(tmp, "src/index.js", 'export function hello() { return "hi"; }\n');
-    fs.mkdirSync(join(tmp, ".senrail/output"), { recursive: true });
+    fs.mkdirSync(join(tmp, ".sennel/output"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     const summary = JSON.parse(result);
     // spec 185: --dry-run emits a category-name → entry-count summary, not full analysis
     assert.equal(summary.analyzedAt, undefined);
     assert.equal(summary.modules, 1);
     // File should NOT be written
-    assert.ok(!fs.existsSync(join(tmp, ".senrail/output/analysis.json")));
+    assert.ok(!fs.existsSync(join(tmp, ".sennel/output/analysis.json")));
   });
 
   it("shows help with --help", () => {
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: "/tmp" },
+      env: { ...process.env, SENNEL_WORK_ROOT: "/tmp" },
     });
     assert.match(result, /--stdout/);
   });
 
   it("scans child-preset with parent-child DataSource inheritance", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "child-preset",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -127,7 +127,7 @@ describe("scan CLI", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
     assert.ok(analysis.analyzedAt);
@@ -139,7 +139,7 @@ describe("scan CLI", () => {
 
   it("preserves enrichment for unchanged entries on re-scan", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -150,10 +150,10 @@ describe("scan CLI", () => {
     // 1st scan
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     const first = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     const hash = first.modules.entries[0].hash;
     assert.ok(hash, "scan should produce hash");
@@ -169,7 +169,7 @@ describe("scan CLI", () => {
     // 2nd scan (same source, no changes)
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const second = JSON.parse(fs.readFileSync(outputPath, "utf8"));
@@ -184,7 +184,7 @@ describe("scan CLI", () => {
 
   it("drops enrichment when file content changes", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -195,10 +195,10 @@ describe("scan CLI", () => {
     // 1st scan
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     const first = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     first.modules.entries[0].summary = "Old summary";
     first.modules.entries[0].detail = "Old detail";
@@ -211,7 +211,7 @@ describe("scan CLI", () => {
     // 2nd scan
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const second = JSON.parse(fs.readFileSync(outputPath, "utf8"));
@@ -222,7 +222,7 @@ describe("scan CLI", () => {
 
   it("includes package data from PackageSource at top level", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -234,7 +234,7 @@ describe("scan CLI", () => {
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     const analysis = JSON.parse(result);
     assert.ok(analysis.package, "package should be at top level");

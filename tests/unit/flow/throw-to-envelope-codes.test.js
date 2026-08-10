@@ -8,7 +8,7 @@ import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.js";
 
-const SENRAIL = path.resolve("src/senrail.js");
+const SENNEL = path.resolve("src/sennel.js");
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -29,7 +29,7 @@ function lowAutoCheckResponse() {
 
 function createTmpProject(agentResponse) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "throw-env-"));
-  fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
   execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
@@ -38,7 +38,7 @@ function createTmpProject(agentResponse) {
     ? writeStubAgentScript(tmp, ".stub-agent.js", agentResponse)
     : null;
   fs.writeFileSync(
-    path.join(tmp, ".senrail", "config.json"),
+    path.join(tmp, ".sennel", "config.json"),
     JSON.stringify({
       lang: "ja",
       type: "base",
@@ -67,10 +67,10 @@ function createFlowState(tmp, extra = {}) {
 }
 
 function run(tmp, argv) {
-  return spawnSync("node", [SENRAIL, ...argv], {
+  return spawnSync("node", [SENNEL, ...argv], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
   });
 }
 

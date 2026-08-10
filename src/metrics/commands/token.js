@@ -90,7 +90,7 @@ export class TokenMetricsInputFingerprint {
 
 function formatUsage() {
   return [
-    "Usage: senrail metrics token [options]",
+    "Usage: sennel metrics token [options]",
     "",
     "Options:",
     "  --format <text|json|csv>   Output format (default: text)",
@@ -454,9 +454,9 @@ async function isCacheFresh(metricsOutputPath, inputFingerprint) {
   } catch (err) {
     if (err.code === "ENOENT") {
       // Cache miss on first run is expected; rebuild silently-but-visibly.
-      process.stderr.write(`senrail metrics token: cache miss (first run), rebuilding\n`);
+      process.stderr.write(`sennel metrics token: cache miss (first run), rebuilding\n`);
     } else {
-      process.stderr.write(`senrail metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
+      process.stderr.write(`sennel metrics token: cache read failed (${err.code || err.message}), rebuilding\n`);
     }
     return false;
   }
@@ -464,11 +464,11 @@ async function isCacheFresh(metricsOutputPath, inputFingerprint) {
   try {
     parsed = JSON.parse(text);
   } catch (err) {
-    process.stderr.write(`senrail metrics token: cache parse failed (${err.message}), rebuilding\n`);
+    process.stderr.write(`sennel metrics token: cache parse failed (${err.message}), rebuilding\n`);
     return false;
   }
   if (parsed.version !== CACHE_VERSION) {
-    process.stderr.write(`senrail metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
+    process.stderr.write(`sennel metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
     return false;
   }
   if (typeof parsed?.inputFingerprint !== "string") return false;
@@ -710,7 +710,7 @@ async function buildRows(flowEntries) {
     const { path: filePath, parsed } = entry;
     const date = isoDateFromFinalizedAt(parsed?.state?.finalizedAt);
     if (!date) {
-      process.stderr.write(`senrail metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
+      process.stderr.write(`sennel metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
       continue;
     }
     const specDir = path.dirname(filePath);

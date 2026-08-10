@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * src/senrail.js
+ * src/sennel.js
  *
- * senrail CLI entry point.
+ * sennel CLI entry point.
  * Routes top-level subcommands to dedicated dispatchers:
  *   docs    → src/docs.js
  *   flow    → src/flow.js
@@ -115,10 +115,10 @@ if (definition) {
     if (isHelpRequest(rest)) {
       await renderSharedHelp([subCmd, ...rest]);
     }
-    console.error(`senrail: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: senrail plugin list`);
+    console.error(`sennel: unknown command '${subCmd}' is unavailable. Enable a plugin that contributes this command, or run: sennel plugin list`);
   } catch (err) {
-    console.error(`senrail: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);
+    console.error(`sennel: unknown command '${subCmd}' is unavailable. Plugin command resolution failed: ${err.message}`);
   }
-  console.error("Run: senrail help");
+  console.error("Run: sennel help");
   process.exit(EXIT_ERROR);
 }

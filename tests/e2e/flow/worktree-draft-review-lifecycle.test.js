@@ -32,7 +32,7 @@ import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const GENERATED_AT = "2026-08-04T00:00:00.000Z";
-const SENRAIL_CLI = path.join(process.cwd(), "src/senrail.js");
+const SENNEL_CLI = path.join(process.cwd(), "src/sennel.js");
 
 function writeJson(root, relativePath, value) {
   const file = path.join(root, relativePath);
@@ -153,12 +153,12 @@ function parseGeneratedCommand(command) {
   ));
 }
 
-function invokeSenrail(root, args) {
+function invokeSennel(root, args) {
   try {
-    const output = execFileSync("node", [SENRAIL_CLI, ...args], {
+    const output = execFileSync("node", [SENNEL_CLI, ...args], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: root },
+      env: { ...process.env, SENNEL_WORK_ROOT: root },
     });
     return { exitCode: 0, envelope: JSON.parse(output) };
   } catch (error) {
@@ -167,8 +167,8 @@ function invokeSenrail(root, args) {
   }
 }
 
-function runSenrail(root, args) {
-  const result = invokeSenrail(root, args);
+function runSennel(root, args) {
+  const result = invokeSennel(root, args);
   assert.equal(result.exitCode, 0, JSON.stringify(result.envelope));
   return result.envelope;
 }
@@ -189,7 +189,7 @@ describe("worktree draft review lifecycle", () => {
     const specPath = `specs/${specId}/draft.json`;
     const questions = draftReviewRouteForKey("questions");
     const coverage = draftReviewRouteForKey("coverage");
-    writeJson(mainRoot, ".senrail/config.json", {
+    writeJson(mainRoot, ".sennel/config.json", {
       name: "draft-review-lifecycle",
       lang: "en",
       type: "base",
@@ -449,7 +449,7 @@ describe("worktree draft review lifecycle", () => {
     const specPath = `specs/${specId}/draft.json`;
     const questions = draftReviewRouteForKey("questions");
     const coverage = draftReviewRouteForKey("coverage");
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       name: "draft-gate-recovery-roundtrip",
       lang: "en",
       type: "base",
@@ -471,12 +471,12 @@ describe("worktree draft review lifecycle", () => {
     flowManager.create(state);
     flowManager.addActiveFlow(specId, "local");
 
-    const failedGateInvocation = invokeSenrail(root, ["flow", "run", "gate", "--phase", "draft"]);
+    const failedGateInvocation = invokeSennel(root, ["flow", "run", "gate", "--phase", "draft"]);
     assert.equal(failedGateInvocation.exitCode, 1);
     assert.equal(failedGateInvocation.envelope.errors[0].code, "DRAFT_GATE_REOPEN_REQUIRED");
     assert.match(
       failedGateInvocation.envelope.data.artifacts.recoveryCommand,
-      /^senrail flow run reopen-draft /,
+      /^sennel flow run reopen-draft /,
     );
     const failedState = flowManager.load();
     const failedAttempt = failedState.stepAttempts.at(-1);
@@ -493,13 +493,13 @@ describe("worktree draft review lifecycle", () => {
     assert.equal(failedGateLog.phase, "draft");
     assert.match(failedGateLog.reason, /missing draft review artifact/);
 
-    const nextActionEnvelope = runSenrail(root, ["flow", "get", "next-action"]);
+    const nextActionEnvelope = runSennel(root, ["flow", "get", "next-action"]);
     const recoveryDirective = nextActionEnvelope.data.directive;
     assert.equal(recoveryDirective.kind, "execute_command");
     assert.equal(recoveryDirective.actionId, "RECOVER_EXTERNAL_BLOCK");
     const recoveryArgv = parseGeneratedCommand(recoveryDirective.nextAction);
-    assert.equal(recoveryArgv.shift(), "senrail");
-    const recoveryEnvelope = runSenrail(root, recoveryArgv);
+    assert.equal(recoveryArgv.shift(), "sennel");
+    const recoveryEnvelope = runSennel(root, recoveryArgv);
     assert.equal(recoveryEnvelope.ok, true, JSON.stringify(recoveryEnvelope));
     assert.equal(findStepById(flowManager.load().steps, "draft").status, "in_progress");
     assert.equal(flowManager.load().draftReviewRevisions, undefined);
@@ -573,7 +573,7 @@ describe("worktree draft review lifecycle", () => {
     const specId = "499-worktree-recovery";
     const featureBranch = "feature/499-worktree-recovery";
     const draftPath = writeJson(mainRoot, `specs/${specId}/draft.json`, makeDraft());
-    writeJson(mainRoot, ".senrail/config.json", {
+    writeJson(mainRoot, ".sennel/config.json", {
       name: "draft-gate-worktree-recovery",
       lang: "en",
       type: "base",
@@ -603,15 +603,15 @@ describe("worktree draft review lifecycle", () => {
       worktreePath: executionRoot,
     }));
 
-    const failedGate = invokeSenrail(executionRoot, ["flow", "run", "gate", "--phase", "draft"]);
+    const failedGate = invokeSennel(executionRoot, ["flow", "run", "gate", "--phase", "draft"]);
     assert.equal(failedGate.exitCode, 1);
     assert.equal(failedGate.envelope.errors[0].code, "DRAFT_GATE_REOPEN_REQUIRED");
-    const nextAction = runSenrail(executionRoot, ["flow", "get", "next-action"]);
+    const nextAction = runSennel(executionRoot, ["flow", "get", "next-action"]);
     assert.equal(nextAction.data.directive.actionId, "RECOVER_EXTERNAL_BLOCK");
     const recoveryArgv = parseGeneratedCommand(nextAction.data.directive.nextAction);
-    assert.equal(recoveryArgv.shift(), "senrail");
+    assert.equal(recoveryArgv.shift(), "sennel");
 
-    const recovery = runSenrail(executionRoot, recoveryArgv);
+    const recovery = runSennel(executionRoot, recoveryArgv);
 
     assert.equal(recovery.ok, true, JSON.stringify(recovery));
     const reopened = flowManager.loadReadOnly(specId);

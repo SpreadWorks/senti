@@ -372,10 +372,10 @@ export function recordScenarioValidityRepairEvidence({
 
 function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, rawOutputPath, requirements, command, err }) {
   const rawLines = [
-    "[senrail] scenario-validity error",
+    "[sennel] scenario-validity error",
     `error: ${err?.message || String(err)}`,
-    ...requirements.filter((req) => req.testable !== false).map((req) => `[senrail] requirement ${req.id} result invalid_test`),
-    "[senrail] scenario-validity error end",
+    ...requirements.filter((req) => req.testable !== false).map((req) => `[sennel] requirement ${req.id} result invalid_test`),
+    "[sennel] scenario-validity error end",
   ];
   const range = { start_line: 1, end_line: rawLines.length };
   const summary = requirements
@@ -495,11 +495,11 @@ export default class RunScenarioValidityCommand extends FlowCommand {
     });
     if (!preflight.ok) {
       const range = appendRaw(rawLines, [
-        "[senrail] scenario-validity preflight block",
+        "[sennel] scenario-validity preflight block",
         `command: ${buildScenarioValidityDiffArgs(baselineRef).join(" ")}`,
         `invalid_paths: ${preflight.invalidPaths.join(", ")}`,
-        ...requirements.filter((req) => req.testable !== false).map((req) => `[senrail] requirement ${req.id} result invalid_test`),
-        "[senrail] scenario-validity preflight end",
+        ...requirements.filter((req) => req.testable !== false).map((req) => `[sennel] requirement ${req.id} result invalid_test`),
+        "[sennel] scenario-validity preflight end",
       ]);
       const artifact = {
         version: "1",
@@ -557,16 +557,16 @@ export default class RunScenarioValidityCommand extends FlowCommand {
           stderr: "",
         };
     appendRaw(rawLines, [
-      "[senrail] scenario-validity tests start",
+      "[sennel] scenario-validity tests start",
       `command: ${command}`,
     ]);
     const recordRanges = new Map();
     for (const record of fileRecords) {
       const requirementLabel = record.requirementId || "unscoped";
       recordRanges.set(record, appendRaw(rawLines, [
-        `[senrail] scenario-validity requirement ${requirementLabel} file start command=${record.command}`,
+        `[sennel] scenario-validity requirement ${requirementLabel} file start command=${record.command}`,
         ...processLines(record.process),
-        `[senrail] scenario-validity requirement ${requirementLabel} file end command=${record.command}`,
+        `[sennel] scenario-validity requirement ${requirementLabel} file end command=${record.command}`,
       ]));
     }
     appendRaw(rawLines, [
@@ -574,9 +574,9 @@ export default class RunScenarioValidityCommand extends FlowCommand {
       ...requirements.filter((req) => req.testable !== false).map((req) => {
         const entry = findTestEntriesForReq(testEntries, req.id)[0];
         const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
-        return `[senrail] requirement ${req.id} observed: ${testName}`;
+        return `[sennel] requirement ${req.id} observed: ${testName}`;
       }),
-      "[senrail] scenario-validity tests end",
+      "[sennel] scenario-validity tests end",
     ]);
     const rawText = rawLines.join("\n");
     const range = { start_line: 1, end_line: rawLines.length };

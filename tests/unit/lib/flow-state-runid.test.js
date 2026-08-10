@@ -123,7 +123,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> file uses flow.json schema with null fields", () => {
     tmp = createTmpDir();
-    const managedDir = join(tmp, ".senrail");
+    const managedDir = join(tmp, ".sennel");
     fs.mkdirSync(managedDir, { recursive: true });
 
     const runId = "test-run-id-abc";
@@ -146,7 +146,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("preparing state always has autoApprove false", () => {
     tmp = createTmpDir();
-    const managedDir = join(tmp, ".senrail");
+    const managedDir = join(tmp, ".sennel");
     fs.mkdirSync(managedDir, { recursive: true });
 
     const runId = "test-auto-approve";
@@ -160,7 +160,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it(".active-flow.<runId> is deletable after promotion to flow.json", () => {
     tmp = createTmpDir();
-    const managedDir = join(tmp, ".senrail");
+    const managedDir = join(tmp, ".sennel");
     fs.mkdirSync(managedDir, { recursive: true });
 
     const runId = "promote-test";
@@ -186,7 +186,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
 
   it("multiple .active-flow.* files can coexist", () => {
     tmp = createTmpDir();
-    const managedDir = join(tmp, ".senrail");
+    const managedDir = join(tmp, ".sennel");
     fs.mkdirSync(managedDir, { recursive: true });
 
     const runId1 = "run-1";

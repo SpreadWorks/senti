@@ -268,7 +268,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
       fmtFallback: kwBuilt.fmtFallback,
     });
   } catch (err) {
-    process.stderr.write(`[senrail] context aiSearch agent call failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] context aiSearch agent call failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -280,7 +280,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
     selectedKeywords = Array.isArray(parsed) ? parsed : parsed?.keywords;
     if (!Array.isArray(selectedKeywords)) return fallbackSearch(allEntries, query);
   } catch (err) {
-    process.stderr.write(`[senrail] context aiSearch JSON parse failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] context aiSearch JSON parse failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);
   }
 
@@ -421,7 +421,7 @@ function loadAnalysisEntries(root) {
   const analysisPath = path.join(outputDir, "analysis.json");
 
   if (!fs.existsSync(analysisPath)) {
-    throw new Error("analysis.json not found. Run: senrail docs scan");
+    throw new Error("analysis.json not found. Run: sennel docs scan");
   }
 
   let analysis;

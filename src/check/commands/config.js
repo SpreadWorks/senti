@@ -2,7 +2,7 @@
 /**
  * src/check/commands/config.js
  *
- * senrail check config — config.json validation report.
+ * sennel check config — config.json validation report.
  *
  * Runs three checks in order:
  *   1. File existence and JSON parse
@@ -22,9 +22,9 @@ const MAX_SCHEMA_ERRORS = 50;
 function printHelp() {
   console.log(
     [
-      "Usage: senrail check config [options]",
+      "Usage: sennel check config [options]",
       "",
-      "Validate .senrail/config.json for required fields, preset existence,",
+      "Validate .sennel/config.json for required fields, preset existence,",
       "and schema consistency.",
       "",
       "Options:",
@@ -106,7 +106,7 @@ async function runConfigCheck(rawArgs, container) {
 
   const format = cli.format || "text";
   if (!["text", "json"].includes(format)) {
-    process.stderr.write(`senrail check config: unknown format '${format}'. Use text or json.\n`);
+    process.stderr.write(`sennel check config: unknown format '${format}'. Use text or json.\n`);
     process.exit(EXIT_ERROR);
   }
 

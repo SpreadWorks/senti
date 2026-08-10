@@ -428,7 +428,7 @@ export class FinalizeMergeTransaction {
         if (added) {
           const removed = runGit(["-C", this.mainRoot, "worktree", "remove", "--force", temporaryRoot]);
           if (!removed.ok) {
-            process.stderr.write(`[senrail] warning: unable to remove isolated merge worktree ${temporaryRoot}: ${gitFailureText(removed)}\n`);
+            process.stderr.write(`[sennel] warning: unable to remove isolated merge worktree ${temporaryRoot}: ${gitFailureText(removed)}\n`);
           }
         }
       }

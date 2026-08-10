@@ -1,4 +1,4 @@
-   - Run `senrail flow run final-regression`.
+   - Run `sennel flow run final-regression`.
    - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `impl-review`, `impl-gate`, or `retro`.
    - Outcomes:
      - `recovered`: stale same-flow test evidence was invalidated after an implementation change and the flow returned to `test-execute`; follow the refreshed dispatcher action instead of rerunning final-regression.
@@ -15,7 +15,7 @@
      - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.
      - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.
      - Eligible non-current-diff failures with `recordAndProceed.eligible: true` and `fixAttempts: 0` → choose `fix-and-rerun`, make an in-scope repair attempt, then rerun `final-regression`.
-     - Eligible non-current-diff failures with `recordAndProceed.eligible: true`, `fixAttempts > 0`, and `nextRecommendedAction: "record-and-proceed"` → run `senrail flow run final-regression --record-and-proceed`; the artifact must keep `result: "fail"`.
+     - Eligible non-current-diff failures with `recordAndProceed.eligible: true`, `fixAttempts > 0`, and `nextRecommendedAction: "record-and-proceed"` → run `sennel flow run final-regression --record-and-proceed`; the artifact must keep `result: "fail"`.
      - Explicit `out_of_scope` and `flaky_suspected` record-and-proceed selections require non-empty evidence and remaining risk text.
      - In autoApprove mode, select the recommended action automatically: `fix-and-rerun`, `record-and-proceed`, or `stop`.
      - In manual mode, present `nextRecommendedAction` first and keep record-and-proceed visibly failed; never describe it as pass or skipped.

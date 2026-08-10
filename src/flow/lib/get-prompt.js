@@ -3,7 +3,7 @@
  *
  * Return structured prompt for a flow step.
  * Static kinds return full choices. Hybrid kinds return layout data only.
- * Responds in the language configured in .senrail/config.json (lang field).
+ * Responds in the language configured in .sennel/config.json (lang field).
  *
  * ctx.kind — prompt kind (e.g. "plan.work-environment", "impl.review-mode")
  */

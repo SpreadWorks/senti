@@ -52,7 +52,7 @@ describe("Agent.call() — Logger integration", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-log-"));
-    logFile = path.join(tmpDir, `senrail-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `sennel-${todayLocal()}.jsonl`);
     logger = makeLogger(tmpDir);
   });
 

@@ -30,13 +30,13 @@ test("abort removes only the selected worktree, branch, spec directory, and acti
 
   const specId = "485-abort-target";
   const otherSpecId = "486-other-flow";
-  const worktreePath = path.join(root, ".senrail", "worktree", "feature-485-abort-target");
+  const worktreePath = path.join(root, ".sennel", "worktree", "feature-485-abort-target");
   execFileSync("git", ["worktree", "add", "-q", "-b", `feature/${specId}`, worktreePath, "main"], { cwd: root });
   const excludePath = execFileSync("git", ["rev-parse", "--git-path", "info/exclude"], {
     cwd: worktreePath,
     encoding: "utf8",
   }).trim();
-  fs.appendFileSync(excludePath, "/.senrail/flow-identity.json\n");
+  fs.appendFileSync(excludePath, "/.sennel/flow-identity.json\n");
 
   const manager = new FlowManager({
     root,

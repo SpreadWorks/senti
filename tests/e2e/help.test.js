@@ -5,7 +5,7 @@ import { execFileSync } from "child_process";
 import { buildCoreHelpModel, commands } from "../../src/help.js";
 import { allCommands } from "../../src/lib/command-registry.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS_PREFIX = ["help"];
 
 describe("help", () => {
@@ -39,7 +39,7 @@ describe("help", () => {
 
   it("prints help output via CLI", () => {
     const result = execFileSync("node", [CMD, ...CMD_ARGS_PREFIX], { encoding: "utf8" });
-    assert.match(result, /senrail/);
+    assert.match(result, /sennel/);
     assert.match(result, /Commands|コマンド一覧/);
   });
 
@@ -54,7 +54,7 @@ describe("help", () => {
 
   it("prints plugin command options via CLI", () => {
     const result = execFileSync("node", [CMD, "plugin", "find", "--help"], { encoding: "utf8" });
-    assert.match(result, /Usage: senrail plugin find \[--json\]/);
+    assert.match(result, /Usage: sennel plugin find \[--json\]/);
     assert.match(result, /--json/);
   });
 });

@@ -9,8 +9,8 @@ import {
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 
 function withPluginPresets(presets) {
-  const tmpDir = createTmpDir("senrail-test-cross-chain-");
-  writeJson(tmpDir, ".senrail/config.json", {
+  const tmpDir = createTmpDir("sennel-test-cross-chain-");
+  writeJson(tmpDir, ".sennel/config.json", {
     lang: "en",
     type: presets.map((preset) => preset.key),
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -19,7 +19,7 @@ function withPluginPresets(presets) {
   });
   writeFile(
     tmpDir,
-    ".senrail/plugins/test-presets/plugin.json",
+    ".sennel/plugins/test-presets/plugin.json",
     JSON.stringify({
       name: "test-presets",
       files: ["plugin.json", "presets/"],
@@ -32,14 +32,14 @@ function withPluginPresets(presets) {
     }),
   );
   for (const preset of presets) {
-    writeJson(tmpDir, `.senrail/plugins/test-presets/presets/${preset.key}/preset.json`, {
+    writeJson(tmpDir, `.sennel/plugins/test-presets/presets/${preset.key}/preset.json`, {
       parent: preset.parent ?? "base",
       chapters: preset.chapters,
     });
     for (const chapter of preset.chapters) {
       writeFile(
         tmpDir,
-        `.senrail/plugins/test-presets/presets/${preset.key}/templates/en/${chapter}`,
+        `.sennel/plugins/test-presets/presets/${preset.key}/templates/en/${chapter}`,
         `# ${path.basename(chapter, ".md")}\n`,
       );
     }

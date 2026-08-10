@@ -1,8 +1,8 @@
 # Preset Creation Guide
 
-This document is the procedure guide for creating a new sdd-forge preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.sdd-forge/presets/<key>/`)**. It covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
+This document is the procedure guide for creating a new sennel preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.sennel/presets/<key>/`)**. It covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
 
-The intended reader is a developer or AI who already understands the sdd-forge internal architecture (`src/CLAUDE.md` / `src/AGENTS.md`) and needs to build a preset for a new framework or project structure.
+The intended reader is a developer or AI who already understands the sennel internal architecture (`src/CLAUDE.md` / `src/AGENTS.md`) and needs to build a preset for a new framework or project structure.
 
 ---
 
@@ -19,7 +19,7 @@ base → cli → node-cli
 base → api → graphql
 ```
 
-When you list multiple presets in the `type` array of `.sdd-forge/config.json`, each preset's inheritance chain is resolved **independently**, and chapters, DataSources, and templates are merged (no parent relationship between presets is required).
+When you list multiple presets in the `type` array of `.sennel/config.json`, each preset's inheritance chain is resolved **independently**, and chapters, DataSources, and templates are merged (no parent relationship between presets is required).
 
 ```json
 { "type": ["spread-commerce", "graphql", "monorepo"] }
@@ -36,7 +36,7 @@ Before starting the implementation, decide where and what kind of preset to crea
 | Condition | Location |
 |---|---|
 | Generic framework/library support (reusable) | `src/presets/<key>/` (built-in) |
-| Specific to one project's directory structure / customization | `.sdd-forge/presets/<key>/` (project-local) |
+| Specific to one project's directory structure / customization | `.sennel/presets/<key>/` (project-local) |
 
 **Project-local presets are leaf-only.** The `parent` chain always points to built-in presets (inheritance among project-local presets is not supported).
 
@@ -69,7 +69,7 @@ Before starting the implementation, decide where and what kind of preset to crea
         └── test.js
 ```
 
-For project-local presets (`.sdd-forge/presets/<key>/`), `tests/` is not required.
+For project-local presets (`.sennel/presets/<key>/`), `tests/` is not required.
 
 **Note**: Previously there was a `scan/` directory that held scan parsers separately, but this layout has been abolished. Scan logic now lives inside the `Scannable` DataSource (`match` / `parse`) in `data/<category>.js`.
 
@@ -146,7 +146,7 @@ A file declaring preset-specific design principles and prohibitions. AI uses it 
 
 ### 4.4 overrides.json (project root, optional)
 
-**Placed at `.sdd-forge/overrides.json`, not inside a preset** — a single dictionary file for the whole project. Use it to manually fix the description text returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
+**Placed at `.sennel/overrides.json`, not inside a preset** — a single dictionary file for the whole project. Use it to manually fix the description text returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
 
 ```json
 {
@@ -179,7 +179,7 @@ Not required when creating a preset — it's a file for gradually replacing AI-g
 `match()` picks up files, and `parse()` returns parse results. The scan pipeline writes the returned entries to `analysis[category].entries` and automatically fills common fields (`file` / `hash` / `lines` / `mtime`). Resolve methods (`list()`, etc.) read `analysis` and produce output.
 
 ```javascript
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
+import { DataSource, Scannable, AnalysisEntry } from "sennel/api";
 
 export class ControllerEntry extends AnalysisEntry {
   className = null;
@@ -215,7 +215,7 @@ export default class MyControllersSource extends Scannable(DataSource) {
 Does not have `match()` / `parse()`; implements only resolve methods. **The analysis key it reads must be written by a scan DataSource somewhere in the chain** (do not create one if no such scan exists).
 
 ```javascript
-import { DataSource } from "sdd-forge/api";
+import { DataSource } from "sennel/api";
 
 export default class SchemaSource extends DataSource {
   tables(analysis, labels) {
@@ -250,8 +250,8 @@ Helpers provided by the base class:
 |---|---|
 | `toRows(items, mapper)` | Convert an item array to a row array |
 | `toMarkdownTable(rows, labels)` | Generate a Markdown table string from rows and label arrays (pipe characters are auto-escaped; `null`/`undefined` becomes `—`) |
-| `mergeDesc(items, section, keyField)` | Read descriptions from the given section of `.sdd-forge/overrides.json` and merge them into each item's `summary`, returning a new array |
-| `desc(section, key)` | Look up an individual description from `.sdd-forge/overrides.json` (returns `"—"` when undefined) |
+| `mergeDesc(items, section, keyField)` | Read descriptions from the given section of `.sennel/overrides.json` and merge them into each item's `summary`, returning a new array |
+| `desc(section, key)` | Look up an individual description from `.sennel/overrides.json` (returns `"—"` when undefined) |
 
 ### 5.5 Resolve Method Invocation Rules
 
@@ -264,12 +264,12 @@ A template's `{{data("<preset>.<category>.<method>", {labels: "A|B|C"})}}` calls
 
 ## 6. Import Rules (MUST follow)
 
-sdd-forge exposes its official public API via `package.json` `exports`:
+sennel exposes its official public API via `package.json` `exports`:
 
 ```json
 {
   "exports": {
-    ".": "./src/sdd-forge.js",
+    ".": "./src/sennel.js",
     "./api": "./src/api.js",
     "./presets/*": "./src/presets/*"
   }
@@ -280,20 +280,20 @@ Imports from DataSource files are limited to the following:
 
 ```javascript
 // Base classes
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
+import { DataSource, Scannable, AnalysisEntry } from "sennel/api";
 
 // Preset internal classes (for inheritance)
-import SymfonyControllersSource from "sdd-forge/presets/symfony/data/controllers";
-import { ControllerEntry } from "sdd-forge/presets/webapp/data/controllers";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
+import SymfonyControllersSource from "sennel/presets/symfony/data/controllers";
+import { ControllerEntry } from "sennel/presets/webapp/data/controllers";
+import WebappDataSource from "sennel/presets/webapp/data/webapp-data-source";
 ```
 
 **Critical rules:**
 
-1. **Do not add the `.js` extension.** `sdd-forge/presets/*` is a wildcard subpath export; adding `.js` produces a double-extension `.js.js` and `ENOENT`. `sdd-forge/api` is a static mapping and also requires no extension.
-2. **Do not reference `sdd-forge/src/...` directly** (not part of `exports`).
-3. **Do not reference `sdd-forge/presets/<key>/templates/...`** (non-public).
-4. If a required class is not included in `api.js`, consider adding it to sdd-forge's `src/api.js` (via PR / issue).
+1. **Do not add the `.js` extension.** `sennel/presets/*` is a wildcard subpath export; adding `.js` produces a double-extension `.js.js` and `ENOENT`. `sennel/api` is a static mapping and also requires no extension.
+2. **Do not reference `sennel/src/...` directly** (not part of `exports`).
+3. **Do not reference `sennel/presets/<key>/templates/...`** (non-public).
+4. If a required class is not included in `api.js`, consider adding it to sennel's `src/api.js` (via PR / issue).
 
 ---
 
@@ -313,9 +313,9 @@ import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
 
 Start new preset templates with `{{text}}` blocks to establish structure quickly, then replace only the sections backed by reliable scan output with `{{data}}`.
 This top-down flow is mandatory: Templates first, then DataSources, then scan parsers.
-A preset is selected through the `type` array in `.sdd-forge/config.json`, and each listed preset resolves its own inheritance chain independently.
+A preset is selected through the `type` array in `.sennel/config.json`, and each listed preset resolves its own inheritance chain independently.
 When parent and child define the same DataSource or template name, the child wins.
-Always verify file collection with `sdd-forge docs scan --dry-run`, then validate full generation with `sdd-forge docs build`.
+Always verify file collection with `sennel docs scan --dry-run`, then validate full generation with `sennel docs build`.
 <!-- {{/text}} -->
 ```
 
@@ -356,8 +356,8 @@ This pattern preserves usability for parent-only setups while enabling precise f
 
 ### 7.4 Template Resolution Priority (high → low)
 
-1. Project-local `.sdd-forge/templates/<lang>/docs/`
-2. Project-local preset `.sdd-forge/presets/<key>/templates/<lang>/`
+1. Project-local `.sennel/templates/<lang>/docs/`
+2. Project-local preset `.sennel/presets/<key>/templates/<lang>/`
 3. Leaf preset `src/presets/<leaf>/templates/<lang>/`
 4. Parent presets (up to root)
 
@@ -397,12 +397,12 @@ Build in the order **Templates → DataSources → scan parsers**. Working backw
 
 1. **Create preset.json** — define at minimum `parent` / `scan.include` / `chapters`
 2. **Add `<key>` to `type` in config.json** — without this the preset is not loaded (put the leaf first)
-3. **Validate scan patterns with `sdd-forge docs scan --dry-run`** — confirm files are collected correctly
+3. **Validate scan patterns with `sennel docs scan --dry-run`** — confirm files are collected correctly
 4. **Place templates** — start with only `{{text}}` to establish the skeleton
-5. **Implement DataSources one at a time** — after each, run `sdd-forge docs scan` and check `<category>.entries.length` in `.sdd-forge/output/analysis.json`
+5. **Implement DataSources one at a time** — after each, run `sennel docs scan` and check `<category>.entries.length` in `.sennel/output/analysis.json`
 6. **Swap the relevant template blocks from `{{text}}` to `{{data}}`**
-7. **Run `sdd-forge docs build`** and verify the entire pipeline
-8. **Add guardrail.json** (polish once build passes). During project operation, create `.sdd-forge/overrides.json` if you need to pin descriptions
+7. **Run `sennel docs build`** and verify the entire pipeline
+8. **Add guardrail.json** (polish once build passes). During project operation, create `.sennel/overrides.json` if you need to pin descriptions
 9. **For built-in presets, set up `tests/`** and run `npm test` to verify integrity
 
 ### 10.3 Minimal Working Set
@@ -410,7 +410,7 @@ Build in the order **Templates → DataSources → scan parsers**. Working backw
 The following is enough to make scan succeed (project-local example):
 
 ```
-.sdd-forge/
+.sennel/
 ├── config.json                    # Add "type": ["mypreset", ...]
 └── presets/mypreset/
     ├── preset.json                # {"parent": "webapp", "scan": {"include": ["src/**/*.js"]}}
@@ -420,8 +420,8 @@ The following is enough to make scan succeed (project-local example):
 
 ```javascript
 // data/simple.js
-import { AnalysisEntry } from "sdd-forge/api";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
+import { AnalysisEntry } from "sennel/api";
+import WebappDataSource from "sennel/presets/webapp/data/webapp-data-source";
 
 export class SimpleEntry extends AnalysisEntry {
   name = null;
@@ -453,16 +453,16 @@ export default class SimpleSource extends WebappDataSource {
 # Print a per-category entry-count summary to stdout (does not rewrite analysis.json)
 # Output is a flat JSON object: { categoryName: integerCount, ... }.
 # Categories whose scan DataSource is registered but matched 0 files are reported as 0.
-sdd-forge docs scan --dry-run
+sennel docs scan --dry-run
 
 # Print the full analysis JSON to stdout (does not rewrite analysis.json)
-sdd-forge docs scan --stdout
+sennel docs scan --stdout
 
-# Full run (updates .sdd-forge/output/analysis.json)
-sdd-forge docs scan
+# Full run (updates .sennel/output/analysis.json)
+sennel docs scan
 
 # Run the full pipeline
-sdd-forge docs build
+sennel docs build
 
 # Integrity tests for built-in presets
 npm test
@@ -489,11 +489,11 @@ Use `node --input-type=module --check <file>` to validate (plain `node --check` 
 
 ### 12.2 Import Extensions
 
-Do not append `.js` when importing from `sdd-forge/api` or `sdd-forge/presets/*`.
+Do not append `.js` when importing from `sennel/api` or `sennel/presets/*`.
 
 ### 12.3 Loader Behavior
 
-`src/docs/lib/data-source-loader.js` dynamically imports every `.js` file under `data/`. It registers a DataSource in the sources Map **only when the default export is a class / function**. If you want to keep a side-effect-only helper module under `data/`, omit the default export and the loader will skip it (usually unnecessary since `sdd-forge/api` exists).
+`src/docs/lib/data-source-loader.js` dynamically imports every `.js` file under `data/`. It registers a DataSource in the sources Map **only when the default export is a class / function**. If you want to keep a side-effect-only helper module under `data/`, omit the default export and the loader will skip it (usually unnecessary since `sennel/api` exists).
 
 ### 12.4 Strictness of `chapters`
 
@@ -501,7 +501,7 @@ Chapters declared in `chapters` require a template in the preset itself or an an
 
 ### 12.5 `[init] ERROR:` Is an Informational Message
 
-`sdd-forge docs init`'s `[init] ERROR: N files already exist under docs/` is an **informational** notice (about `--force`), not a failure. Judge by exit code.
+`sennel docs init`'s `[init] ERROR: N files already exist under docs/` is an **informational** notice (about `--force`), not a failure. Judge by exit code.
 
 ### 12.6 Bash Test Scripts
 
@@ -515,7 +515,7 @@ Chapters declared in `chapters` require a template in the preset itself or an an
 | `<category>.entries.length === 0` | `match()` is always false, or `scan.include` has no matching pattern |
 | `Preset not found: <key>` | Not listed in `type` of `config.json` |
 | `[data] UNRESOLVED {{data}} in foo.md: <cat>.<sub>.<method>` | The DataSource does not exist or the resolve method is not defined |
-| `ENOENT` with double-extension `.js.js` | An import path includes `.js` (e.g. `sdd-forge/presets/.../foo.js`) |
+| `ENOENT` with double-extension `.js.js` | An import path includes `.js` (e.g. `sennel/presets/.../foo.js`) |
 
 ---
 
@@ -538,7 +538,7 @@ Chapters declared in `chapters` require a template in the preset itself or an an
 
 ### 13.3 No Project-Specific Values
 
-Do not write project-specific values (project name, host, port, container name, etc.) into `src/presets/`. Keep only generic parsing logic. Externalize project-specific values in `.sdd-forge/config.json`.
+Do not write project-specific values (project name, host, port, container name, etc.) into `src/presets/`. Keep only generic parsing logic. Externalize project-specific values in `.sennel/config.json`.
 
 ---
 
@@ -546,8 +546,8 @@ Do not write project-specific values (project name, host, port, container name, 
 
 - Leaf-only. `parent` must point to a built-in key.
 - `preset.json` may be omitted (inherits defaults from the built-in chain).
-- Files under `.sdd-forge/templates/<lang>/docs/` have the highest priority (stronger than preset templates).
-- Pitfall: a project-local preset does not need its own `package.json`. When sdd-forge dynamically imports a DataSource, its own package resolution context is used, so bare specifiers (`sdd-forge/api`, etc.) resolve correctly.
+- Files under `.sennel/templates/<lang>/docs/` have the highest priority (stronger than preset templates).
+- Pitfall: a project-local preset does not need its own `package.json`. When sennel dynamically imports a DataSource, its own package resolution context is used, so bare specifiers (`sennel/api`, etc.) resolve correctly.
 
 ---
 
@@ -558,24 +558,24 @@ When asked to create a preset, perform the following in order:
 1. [ ] Inspect the target project's directory structure and framework with `ls` / `fd`
 2. [ ] Choose the closest parent among existing presets (read `src/presets/`)
 3. [ ] Create `<preset-root>/<key>/preset.json` (minimum: `parent`, `scan.include`, `chapters`)
-4. [ ] Add `<key>` to the head of the `type` array in `.sdd-forge/config.json`
-5. [ ] Confirm file collection with `sdd-forge docs scan --dry-run`
+4. [ ] Add `<key>` to the head of the `type` array in `.sennel/config.json`
+5. [ ] Confirm file collection with `sennel docs scan --dry-run`
 6. [ ] Place skeleton templates under `templates/<lang>/` (start with `{{text}}` only)
-7. [ ] Implement DataSources one by one (import only from `sdd-forge/api` / `sdd-forge/presets/*`, without extensions)
-8. [ ] After each DataSource, run `sdd-forge docs scan` and check `<category>.entries.length` in `.sdd-forge/output/analysis.json`
+7. [ ] Implement DataSources one by one (import only from `sennel/api` / `sennel/presets/*`, without extensions)
+8. [ ] After each DataSource, run `sennel docs scan` and check `<category>.entries.length` in `.sennel/output/analysis.json`
 9. [ ] Judge `match()` on a `relPath` that uses `/` separators and has no leading `./`
 10. [ ] Return the result of `toMarkdownTable(rows, labels)` (a Markdown string) or `null` from resolve methods. Return `null` when there is no data
 11. [ ] If you read `analysis.X`, verify that a scan DataSource in the chain writes `X`
 12. [ ] Gradually replace `{{text}}` with `{{data}}` in templates
-13. [ ] Confirm the whole pipeline passes with `sdd-forge docs build`
+13. [ ] Confirm the whole pipeline passes with `sennel docs build`
 14. [ ] For built-in presets, set up `tests/` and ensure `npm test` passes
-15. [ ] (Optional) Add `guardrail.json`. If you need to pin descriptions, create `.sdd-forge/overrides.json` at the project root
+15. [ ] (Optional) Add `guardrail.json`. If you need to pin descriptions, create `.sennel/overrides.json` at the project root
 
 ---
 
 ## 16. Reference Files
 
-sdd-forge core:
+sennel core:
 
 | File | Content |
 |---|---|
@@ -593,5 +593,5 @@ sdd-forge core:
 
 Project rules:
 
-- `src/CLAUDE.md` / `src/AGENTS.md` — sdd-forge internal architecture and MUST rules
+- `src/CLAUDE.md` / `src/AGENTS.md` — sennel internal architecture and MUST rules
 - Project root `CLAUDE.md` — restrictions on writing to `src/`

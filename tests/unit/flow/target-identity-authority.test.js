@@ -23,7 +23,7 @@ function activeFlow(manager, specId, issue, mode = "local") {
 }
 
 function preparingPath(root, runId) {
-  return path.join(root, ".senrail", `.active-flow.${runId}`);
+  return path.join(root, ".sennel", `.active-flow.${runId}`);
 }
 
 function activePath(root, specId) {
@@ -316,7 +316,7 @@ describe("flow target identity authority", () => {
         }
       },
     });
-    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
     const initial = treeSnapshot(tmp);
     failIdentityWrite = true;
 

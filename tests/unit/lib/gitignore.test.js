@@ -3,26 +3,26 @@ import assert from "node:assert/strict";
 import { normalizeManagedGitignore } from "../../../src/lib/gitignore.js";
 
 describe("normalizeManagedGitignore", () => {
-  it("keeps .senrail contents ignored while allowing managed files and directories", () => {
+  it("keeps .sennel contents ignored while allowing managed files and directories", () => {
     const normalized = normalizeManagedGitignore([
-      ".senrail/*",
-      "!.senrail/config.json",
-      "!.senrail/templates/",
-      "!.senrail/output/",
-      ".senrail/output/acceptance-report-*.json",
-      ".senrail/",
+      ".sennel/*",
+      "!.sennel/config.json",
+      "!.sennel/templates/",
+      "!.sennel/output/",
+      ".sennel/output/acceptance-report-*.json",
+      ".sennel/",
       "",
       "node_modules",
       "",
     ].join("\n"));
 
     assert.equal(normalized, [
-      ".senrail/*",
-      "!.senrail/config.json",
-      "!.senrail/templates/",
-      "!.senrail/output/",
-      "!.senrail/presets/",
-      ".senrail/output/acceptance-report-*.json",
+      ".sennel/*",
+      "!.sennel/config.json",
+      "!.sennel/templates/",
+      "!.sennel/output/",
+      "!.sennel/presets/",
+      ".sennel/output/acceptance-report-*.json",
       "",
       "node_modules",
       "",
@@ -31,19 +31,19 @@ describe("normalizeManagedGitignore", () => {
 
   it("normalizes a mechanically renamed legacy directory ignore", () => {
     const normalized = normalizeManagedGitignore([
-      ".senrail/",
+      ".sennel/",
       "",
       ".tmp/",
       "",
     ].join("\n"));
 
     assert.equal(normalized, [
-      ".senrail/*",
-      "!.senrail/config.json",
-      "!.senrail/templates/",
-      "!.senrail/output/",
-      "!.senrail/presets/",
-      ".senrail/output/acceptance-report-*.json",
+      ".sennel/*",
+      "!.sennel/config.json",
+      "!.sennel/templates/",
+      "!.sennel/output/",
+      "!.sennel/presets/",
+      ".sennel/output/acceptance-report-*.json",
       "",
       ".tmp/",
       "",

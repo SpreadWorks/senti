@@ -11,7 +11,7 @@ import {
   buildForgeFilePrompt,
 } from "../../../../src/docs/lib/forge-prompts.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS_PREFIX = ["docs", "forge"];
 
 describe("buildForgeSystemPrompt", () => {
@@ -100,12 +100,12 @@ describe("forge CLI validation", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   function makeEnv(t) {
-    return { ...process.env, SENRAIL_WORK_ROOT: t, SENRAIL_SOURCE_ROOT: t };
+    return { ...process.env, SENNEL_WORK_ROOT: t, SENNEL_SOURCE_ROOT: t };
   }
 
   it("rejects invalid --max-runs", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--prompt", "test", "--max-runs", "0"], {
         encoding: "utf8",
@@ -119,7 +119,7 @@ describe("forge CLI validation", () => {
 
   it("rejects invalid --mode", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--prompt", "test", "--mode", "invalid"], {
         encoding: "utf8",
@@ -133,12 +133,12 @@ describe("forge CLI validation", () => {
 
   it("exits with error when no prompt given", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     try {
       execFileSync("node", [CMD, ...CMD_ARGS_PREFIX], {
         encoding: "utf8",
-        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
       });
       assert.fail("should exit non-zero");
     } catch (err) {
@@ -148,18 +148,18 @@ describe("forge CLI validation", () => {
 
   it("shows help with --help", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS_PREFIX, "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /--prompt/);
   });
 
   it("--dry-run skips writes, review, and agent calls", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeFile(tmp, "docs/test.md", "# Test\n\nContent\n");
 
     const result = execFileSync("node", [
@@ -168,7 +168,7 @@ describe("forge CLI validation", () => {
       "--dry-run",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /DRY-RUN/);
     assert.match(result, /DONE \(dry-run\)/);
@@ -178,7 +178,7 @@ describe("forge CLI validation", () => {
 
   it("runs review in local mode and handles pass", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     // Create docs that will pass review
     const lines = ["# Test", ""];
     for (let i = 0; i < 20; i++) lines.push(`Content line ${i}`);
@@ -192,14 +192,14 @@ describe("forge CLI validation", () => {
       "--max-runs", "1",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /DONE/);
   });
 
   it("uses per-file mode when systemPromptFlag is set", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -226,7 +226,7 @@ describe("forge CLI validation", () => {
       "--max-runs", "1",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /per-file mode/);
     assert.match(result, /2 files/);
@@ -235,7 +235,7 @@ describe("forge CLI validation", () => {
 
   it("uses legacy mode when systemPromptFlag is not set", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -260,7 +260,7 @@ describe("forge CLI validation", () => {
       "--max-runs", "1",
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     // Should NOT show per-file mode
     assert.ok(!result.includes("per-file mode"), "should not use per-file mode");

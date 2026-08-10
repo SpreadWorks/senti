@@ -449,7 +449,7 @@ describe("worker artifact handoff", () => {
       });
       assert.ok(request);
       assert.equal(request.executionRoot, value.mainRoot);
-      assert.equal(request.directory.startsWith(path.join(value.mainRoot, ".senrail", "handoffs")), true);
+      assert.equal(request.directory.startsWith(path.join(value.mainRoot, ".sennel", "handoffs")), true);
       fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "local handoff" }));
       seal(request);
 
@@ -670,7 +670,7 @@ describe("worker artifact handoff", () => {
           async call(prompt, options) {
             calls += 1;
             assert.match(prompt, /parent dispatcher alone validates, publishes/i);
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
@@ -678,7 +678,7 @@ describe("worker artifact handoff", () => {
             );
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
             await persistAgentInvocationMetric({
               flowManager: value.flowManager,
@@ -736,7 +736,7 @@ describe("worker artifact handoff", () => {
         nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call(_prompt, options) {
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
@@ -744,7 +744,7 @@ describe("worker artifact handoff", () => {
             );
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
             value.flowManager.accumulateAgentMetrics("draft", {
               provider: "worker-spoof",
@@ -806,7 +806,7 @@ describe("worker artifact handoff", () => {
         nextAction: { async run() { return structuredClone(action); } },
         agent: {
           async call(_prompt, options) {
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
@@ -817,7 +817,7 @@ describe("worker artifact handoff", () => {
             fs.writeFileSync(path.join(wrongSpec, "draft.json"), json({ overwrittenBy: value.specId }));
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
           },
         },
@@ -1345,13 +1345,13 @@ describe("worker artifact handoff", () => {
             calls += 1;
             assert.equal(options.jsonSchema, undefined);
             assert.equal(options.fmtFallback, undefined);
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             const payloadPath = request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath;
             fs.writeFileSync(payloadPath, calls === 1 ? "[]\n" : json({ goal: "retry succeeded" }));
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
             if (calls === 1) {
               firstHandoffDirectory = path.dirname(requestPath);
@@ -1424,12 +1424,12 @@ describe("worker artifact handoff", () => {
             calls += 1;
             workerOptions = options;
             workerPrompt = prompt;
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(request.payloads.find((entry) => entry.logicalName === "spec.json").payloadPath, json(validSpec()));
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
           },
         },
@@ -1478,7 +1478,7 @@ describe("worker artifact handoff", () => {
         agent: {
           async call(_prompt, options) {
             calls += 1;
-            const requestPath = options.executionEnvironment.SENRAIL_FLOW_HANDOFF_REQUEST;
+            const requestPath = options.executionEnvironment.SENNEL_FLOW_HANDOFF_REQUEST;
             const request = JSON.parse(fs.readFileSync(requestPath, "utf8"));
             fs.writeFileSync(
               request.payloads.find((entry) => entry.logicalName === "draft.json").payloadPath,
@@ -1486,7 +1486,7 @@ describe("worker artifact handoff", () => {
             );
             sealWorkerArtifactHandoff({
               requestPath,
-              invocationId: options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID,
+              invocationId: options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID,
             });
             handoffDirectories.push(path.dirname(requestPath));
           },
@@ -1538,8 +1538,8 @@ describe("worker artifact handoff", () => {
     const outside = path.join(value.mainRoot, "outside-handoffs");
     try {
       fs.mkdirSync(outside);
-      fs.mkdirSync(path.join(value.executionRoot, ".senrail"), { recursive: true });
-      fs.symlinkSync(outside, path.join(value.executionRoot, ".senrail", "handoffs"));
+      fs.mkdirSync(path.join(value.executionRoot, ".sennel"), { recursive: true });
+      fs.symlinkSync(outside, path.join(value.executionRoot, ".sennel", "handoffs"));
       assert.throws(
         () => value.coordinator.createRequest({
           ctx: value.ctx,

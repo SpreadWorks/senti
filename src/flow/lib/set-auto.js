@@ -5,7 +5,7 @@
  *
  * Dual-mode operation:
  *   - Active flow (flow.json present): mutate flow.json.
- *   - Preparing flow (.senrail/.active-flow.<runId>, pre-prepare): mutate the
+ *   - Preparing flow (.sennel/.active-flow.<runId>, pre-prepare): mutate the
  *     preparing state so skill prelude B.0.5 can enable auto mode BEFORE
  *     `flow prepare` creates flow.json. `run-prepare-spec` then inherits the
  *     values into the new flow.json.

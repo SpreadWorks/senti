@@ -45,7 +45,7 @@ function withLegacyPresetPluginConfig(data) {
       ...(data.plugin || {}),
       sources: [
         ...sources,
-        { id: "legacy-test-presets", type: "local", path: ".senrail/plugins/legacy-test-presets" },
+        { id: "legacy-test-presets", type: "local", path: ".sennel/plugins/legacy-test-presets" },
       ],
       packages: [
         ...packages,
@@ -76,7 +76,7 @@ function withTestPluginMetadata(data) {
       changed = true;
     }
     if (next.source && !sourceIds.has(next.source)) {
-      sources.push({ id: next.source, type: "local", path: `.senrail/plugins/${next.id}` });
+      sources.push({ id: next.source, type: "local", path: `.sennel/plugins/${next.id}` });
       sourceIds.add(next.source);
       changed = true;
     }
@@ -94,7 +94,7 @@ function withTestPluginMetadata(data) {
 }
 
 function installLegacyPresetFixture(root) {
-  const pluginRoot = ".senrail/plugins/legacy-test-presets";
+  const pluginRoot = ".sennel/plugins/legacy-test-presets";
   const presets = Object.keys(LEGACY_PRESET_FIXTURE);
   mkdirSync(join(root, pluginRoot), { recursive: true });
   writeFileSync(join(root, pluginRoot, "plugin.json"), JSON.stringify({
@@ -215,7 +215,7 @@ function installLegacyPresetFixture(root) {
   }
 }
 
-export function createTmpDir(prefix = "senrail-test-") {
+export function createTmpDir(prefix = "sennel-test-") {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
@@ -227,11 +227,11 @@ export function writeJson(dir, relPath, data) {
   const full = join(dir, relPath);
   mkdirSync(join(full, ".."), { recursive: true });
   let value = data;
-  if (relPath === ".senrail/config.json" && needsLegacyPresetFixture(data)) {
+  if (relPath === ".sennel/config.json" && needsLegacyPresetFixture(data)) {
     value = withLegacyPresetPluginConfig(data);
     installLegacyPresetFixture(dir);
   }
-  if (relPath === ".senrail/config.json") {
+  if (relPath === ".sennel/config.json") {
     value = withTestPluginMetadata(value);
   }
   writeFileSync(full, JSON.stringify(value, null, 2));
@@ -250,7 +250,7 @@ export function writeFile(dir, relPath, content = "") {
  * @param {string} [prefix]
  * @returns {() => string} getter that returns the tmp dir path
  */
-export function useTmpDir(prefix = "senrail-test-") {
+export function useTmpDir(prefix = "sennel-test-") {
   let dir;
   before(() => { dir = createTmpDir(prefix); });
   after(() => { removeTmpDir(dir); });

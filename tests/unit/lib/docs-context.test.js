@@ -11,11 +11,11 @@ function buildContainer({ root = "/repo", config = {}, lang = "ja" } = {}) {
   c.register("paths", {
     root,
     srcRoot: root,
-    managedDir: path.join(root, ".senrail"),
-    outputDir: path.join(root, ".senrail/output"),
+    managedDir: path.join(root, ".sennel"),
+    outputDir: path.join(root, ".sennel/output"),
     agentWorkDir: path.join(root, ".tmp"),
     logDir: path.join(root, ".tmp/logs"),
-    configPath: path.join(root, ".senrail/config.json"),
+    configPath: path.join(root, ".sennel/config.json"),
   });
   c.register("agent", { resolve: () => null, call: async () => "" });
   c.register("i18n", () => (k) => k);

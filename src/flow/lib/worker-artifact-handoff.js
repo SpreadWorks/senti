@@ -1353,7 +1353,7 @@ export class WorkerArtifactHandoffRequest {
       inputRevision: this.inputRevision,
       inputs: this.inputs.map((input) => input.toJSON()),
       contextSnapshot: this.contextSnapshot?.toJSON() ?? null,
-      sealCommand: "senrail flow run seal-handoff",
+      sealCommand: "sennel flow run seal-handoff",
       completionOwner: "parent-dispatcher",
     };
   }

@@ -80,7 +80,7 @@ test("worktree cleanup is followed by one target-spec plus docs completion commi
 
   const specId = "485-shared-finalize";
   const featureBranch = `feature/${specId}`;
-  const worktreePath = path.join(root, ".senrail", "worktree", "feature-485-shared-finalize");
+  const worktreePath = path.join(root, ".sennel", "worktree", "feature-485-shared-finalize");
   git(["worktree", "add", "-q", "-b", featureBranch, worktreePath, "main"]);
   write("src/feature.js", "export const value = 485;\n", worktreePath);
   git(["add", "src/feature.js"], worktreePath);
@@ -90,7 +90,7 @@ test("worktree cleanup is followed by one target-spec plus docs completion commi
   git(["commit", "-q", "-m", "feat: merge shared finalize fixture"]);
 
   const excludePath = git(["rev-parse", "--git-path", "info/exclude"], worktreePath);
-  fs.appendFileSync(excludePath, "/.senrail/flow-identity.json\n");
+  fs.appendFileSync(excludePath, "/.sennel/flow-identity.json\n");
   const state = moveFlowToStep(makeFlowState({
     specId,
     runId: "run-485-shared-finalize",

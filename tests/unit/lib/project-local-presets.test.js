@@ -1,7 +1,7 @@
 /**
  * Unit tests for project-installed plugin preset resolution.
  *
- * Legacy `.senrail/presets/<name>` directories are migration input only. Runtime
+ * Legacy `.sennel/presets/<name>` directories are migration input only. Runtime
  * preset resolution reads builtin base plus enabled plugin preset contributions.
  */
 
@@ -12,25 +12,25 @@ import { resolveChain } from "../../../src/lib/presets.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
 function writePluginPreset(root, { key, parent = "base", label, chapters = [] }) {
-  writeJson(root, ".senrail/config.json", {
+  writeJson(root, ".sennel/config.json", {
     lang: "en",
     type: key,
     docs: { languages: ["en"], defaultLanguage: "en" },
     plugin: { packages: [{ id: "local-presets" }] },
   });
-  writeJson(root, ".senrail/plugins/local-presets/plugin.json", {
+  writeJson(root, ".sennel/plugins/local-presets/plugin.json", {
     name: "local-presets",
     files: ["plugin.json", "presets/"],
     contributions: {
       presets: [{ key, path: `presets/${key}` }],
     },
   });
-  writeJson(root, `.senrail/plugins/local-presets/presets/${key}/preset.json`, {
+  writeJson(root, `.sennel/plugins/local-presets/presets/${key}/preset.json`, {
     parent,
     label,
     chapters,
   });
-  writeFile(root, `.senrail/plugins/local-presets/presets/${key}/data/.keep`, "");
+  writeFile(root, `.sennel/plugins/local-presets/presets/${key}/data/.keep`, "");
 }
 
 describe("project-installed plugin preset resolution: priority", () => {
@@ -47,7 +47,7 @@ describe("project-installed plugin preset resolution: priority", () => {
     const chain = resolveChain("sample-preset", tmp);
     const leaf = chain[chain.length - 1];
     assert.ok(
-      leaf.dir.includes(path.join(tmp, ".senrail", "plugins", "local-presets", "presets", "sample-preset")),
+      leaf.dir.includes(path.join(tmp, ".sennel", "plugins", "local-presets", "presets", "sample-preset")),
       `Expected dir to be from installed plugin, got: ${leaf.dir}`,
     );
     assert.equal(leaf.label, "Project plugin preset");

@@ -1,5 +1,5 @@
 /**
- * Explicit, one-way managed-directory migration for `senrail upgrade --migrate`.
+ * Explicit, one-way managed-directory migration for `sennel upgrade --migrate`.
  *
  * Normal runtime deliberately does not import this module. Legacy names are
  * confined here so opening a current project never creates a compatibility
@@ -20,14 +20,16 @@ import { validatePresetChainFromManagedDirectory } from "./presets.js";
 import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
 
-const LEGACY_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti"]);
-const STAGING_PREFIX = "senrail-upgrade-migrate-";
-const JOURNAL_FILE_NAME = "senrail-upgrade-migrate.json";
-const JOURNAL_VERSION = 6;
+// This is intentionally the complete boundary for retired managed roots.
+// Nothing outside explicit `upgrade --migrate` may interpret these names.
+const LEGACY_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti", ".senrail"]);
+const STAGING_PREFIX = "sennel-upgrade-migrate-";
+const JOURNAL_FILE_NAME = "sennel-upgrade-migrate.json";
+const JOURNAL_VERSION = 7;
 const JOURNAL_PHASES = new Set([
   "staged",
   "legacy-backed-up",
-  "placed-senti",
+  "placed-canonical",
   "metadata-updated",
   "final-renamed",
   "cleanup-source-verified",
@@ -357,12 +359,15 @@ function legacyTokenToCanonical(value) {
     .replace(/(?<![A-Za-z0-9_])sdd-forge(?=$|[^A-Za-z0-9_])/g, PRODUCT.machineName)
     .replace(/(?<![A-Za-z0-9_])sddForge(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.machineName)
     .replace(/(?<![A-Za-z0-9_])senti(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.machineName)
+    .replace(/(?<![A-Za-z0-9_])senrail(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.machineName)
     .replace(/(?<![A-Za-z0-9_])SddForge(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.displayName)
     .replace(/(?<![A-Za-z0-9_])Senti(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.displayName)
+    .replace(/(?<![A-Za-z0-9_])Senrail(?=$|[A-Z]|[^A-Za-z0-9_])/g, PRODUCT.displayName)
     .replace(/(?<![A-Za-z0-9_])SDD_FORGE(?=$|[^A-Za-z0-9_])/g, PRODUCT.machineName.toUpperCase())
     // An underscore is a word character here, intentionally preserving
     // project-owned SENTI_* environment variable names.
-    .replace(/(?<![A-Za-z0-9_])SENTI(?=$|[^A-Za-z0-9_])/g, PRODUCT.machineName.toUpperCase());
+    .replace(/(?<![A-Za-z0-9_])SENTI(?=$|[^A-Za-z0-9_])/g, PRODUCT.machineName.toUpperCase())
+    .replace(/(?<![A-Za-z0-9_])SENRAIL(?=$|[^A-Za-z0-9_])/g, PRODUCT.machineName.toUpperCase());
 }
 
 function isRawCopyPath(relative) {
@@ -388,7 +393,7 @@ function transformedRelativePath(relative) {
 
 function transformedLinkTarget(target) {
   return target.split(/([/\\])/).map((component) => {
-    if (component === ".sdd-forge" || component === ".senti") return PRODUCT.managedDirName;
+    if (LEGACY_DIRECTORY_NAMES.includes(component)) return PRODUCT.managedDirName;
     return component;
   }).join("");
 }
@@ -420,7 +425,7 @@ class MigrationTreePlan {
 
   toDryRunLines() {
     return this.entries.map((entry) => {
-      const mapping = `${entry.path} -> .senti/${entry.targetPath}`;
+      const mapping = `${entry.path} -> ${PRODUCT.managedDirName}/${entry.targetPath}`;
       if (entry.kind === "file" && entry.hash !== entry.transformedHash) {
         return `stage transformed template file ${mapping}`;
       }
@@ -714,6 +719,10 @@ class RootMetadataFile {
     return this.#assertExact(this.existed ? this.original : null);
   }
 
+  assertPlanned() {
+    return this.#assertExact(this.planned);
+  }
+
   #assertRestorable() {
     const stat = lstatOrNull(this.filePath);
     if (this.existed) {
@@ -767,7 +776,7 @@ class UpgradeMigrationJournal {
     sourceIdentity,
     sourceSnapshot,
     sourceSnapshotFingerprint,
-    stagedSentiIdentity,
+    stagedManagedIdentity,
     stagedSnapshotFingerprint,
     metadata,
     owner,
@@ -780,7 +789,7 @@ class UpgradeMigrationJournal {
     if (!new RegExp(`^\\.tmp/${STAGING_PREFIX}[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).test(stagingRelative)) {
       throw new Error("migration journal staging path is invalid");
     }
-    for (const identity of [sourceIdentity, stagedSentiIdentity]) {
+    for (const identity of [sourceIdentity, stagedManagedIdentity]) {
       if (!identity || JSON.stringify(Object.keys(identity).sort()) !== JSON.stringify(["dev", "ino"])
         || !Number.isSafeInteger(identity.dev) || !Number.isSafeInteger(identity.ino)) {
         throw new Error("migration journal directory identity is invalid");
@@ -820,7 +829,7 @@ class UpgradeMigrationJournal {
     this.sourceIdentity = sourceIdentity;
     this.sourceSnapshot = sourceSnapshot;
     this.sourceSnapshotFingerprint = sourceSnapshotFingerprint;
-    this.stagedSentiIdentity = stagedSentiIdentity;
+    this.stagedManagedIdentity = stagedManagedIdentity;
     this.stagedSnapshotFingerprint = stagedSnapshotFingerprint;
     this.metadata = metadata;
     this.owner = owner;
@@ -836,8 +845,8 @@ class UpgradeMigrationJournal {
     return path.join(this.root, this.stagingRelative);
   }
 
-  get stagedSentiPath() {
-    return path.join(this.stagingRoot, ".senti");
+  get stagedManagedPath() {
+    return path.join(this.stagingRoot, "managed-directory");
   }
 
   get backupPath() {
@@ -866,7 +875,7 @@ class UpgradeMigrationJournal {
   }
 
   assertStagedSnapshot(directory) {
-    if (!sameDirectoryIdentity(directory, this.stagedSentiIdentity, "migrated managed directory")) {
+    if (!sameDirectoryIdentity(directory, this.stagedManagedIdentity, "migrated managed directory")) {
       throw new Error("migrated managed directory identity changed before commit completed");
     }
     if (SourceTreeSnapshot.capture(directory).fingerprint !== this.stagedSnapshotFingerprint) {
@@ -878,7 +887,7 @@ class UpgradeMigrationJournal {
     if (lstatOrNull(this.concurrentWritePath)) {
       throw new Error("concurrent managed write backup already exists");
     }
-    if (!sameDirectoryIdentity(directory, this.stagedSentiIdentity, "changed staged managed directory")) {
+    if (!sameDirectoryIdentity(directory, this.stagedManagedIdentity, "changed staged managed directory")) {
       throw new Error("cannot preserve a changed staged managed directory with different authority");
     }
     fs.renameSync(directory, this.concurrentWritePath);
@@ -895,7 +904,7 @@ class UpgradeMigrationJournal {
       sourceIdentity: this.sourceIdentity,
       sourceSnapshot: this.sourceSnapshot.toJSON(),
       sourceSnapshotFingerprint: this.sourceSnapshotFingerprint,
-      stagedSentiIdentity: this.stagedSentiIdentity,
+      stagedManagedIdentity: this.stagedManagedIdentity,
       stagedSnapshotFingerprint: this.stagedSnapshotFingerprint,
       metadata: this.metadata.map((entry) => entry.toJSON()),
       owner: this.owner.toJSON(),
@@ -1019,9 +1028,9 @@ class UpgradeMigrationJournal {
       throw new Error("migration journal changed while it was being read");
     }
     const keys = raw && typeof raw === "object" ? Object.keys(raw).sort() : [];
-    const expectedKeys = ["metadata", "owner", "phase", "root", "sourceIdentity", "sourceName", "sourceSnapshot", "sourceSnapshotFingerprint", "stagedSentiIdentity", "stagedSnapshotFingerprint", "stagingRelative", "tempRootCreated", "tempRootIdentity", "version"];
+    const expectedKeys = ["metadata", "owner", "phase", "root", "sourceIdentity", "sourceName", "sourceSnapshot", "sourceSnapshotFingerprint", "stagedManagedIdentity", "stagedSnapshotFingerprint", "stagingRelative", "tempRootCreated", "tempRootIdentity", "version"];
     if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || raw.version !== JOURNAL_VERSION || path.resolve(raw.root || "") !== path.resolve(root)
-      || !Array.isArray(raw.metadata) || !raw.sourceIdentity || !raw.stagedSentiIdentity) {
+      || !Array.isArray(raw.metadata) || !raw.sourceIdentity || !raw.stagedManagedIdentity) {
       throw new Error("migration journal has an unsupported schema");
     }
     const journal = new UpgradeMigrationJournal({
@@ -1031,7 +1040,7 @@ class UpgradeMigrationJournal {
       sourceIdentity: raw.sourceIdentity,
       sourceSnapshot: SourceTreeSnapshot.fromJSON(raw.sourceSnapshot),
       sourceSnapshotFingerprint: raw.sourceSnapshotFingerprint,
-      stagedSentiIdentity: raw.stagedSentiIdentity,
+      stagedManagedIdentity: raw.stagedManagedIdentity,
       stagedSnapshotFingerprint: raw.stagedSnapshotFingerprint,
       metadata: raw.metadata.map((entry) => RootMetadataFile.fromJSON(root, entry)),
       owner: MigrationProcessOwner.fromJSON(raw.owner, identitySource),
@@ -1048,6 +1057,108 @@ class UpgradeMigrationJournal {
       if (!expected.equals(entry.planned)) throw new Error("migration journal metadata plan is invalid");
     }
     return journal;
+  }
+}
+
+// The previous Senrail migration journal has a deliberately separate reader.
+// It is never converted to the Sennel format: a malformed or unsupported old
+// journal is an authority boundary and must remain byte-for-byte untouched.
+const OLD_JOURNAL_FILE_NAME = "senrail-upgrade-migrate.json";
+const OLD_STAGING_PREFIX = "senrail-upgrade-migrate-";
+const OLD_JOURNAL_PHASES = new Set([
+  "staged", "legacy-backed-up", "placed-senti", "metadata-updated", "final-renamed", "cleanup-source-verified",
+]);
+
+function oldMetadataPlan(name, original) {
+  const lines = original.toString("utf8").split("\n");
+  const legacyRoots = [".sdd-forge", ".senti"];
+  if (name === ".gitattributes") {
+    const kept = lines.filter((line) => !legacyRoots.some((root) => line.trim() === `${root}/output/analysis.json merge=ours`));
+    const body = kept.at(-1) === "" ? kept.slice(0, -1) : kept;
+    body.push(".senrail/output/analysis.json merge=ours");
+    return Buffer.from(`${body.join("\n")}\n`, "utf8");
+  }
+  const oldLines = new Set(legacyRoots.flatMap((root) => [
+    `${root}/*`, `!${root}/config.json`, `!${root}/templates/`, `!${root}/output/`, `!${root}/presets/`,
+    `${root}/output/acceptance-report-*.json`, `${root}/`,
+  ]));
+  const kept = lines.filter((line) => !oldLines.has(line.trim()));
+  const body = kept.at(-1) === "" ? kept.slice(0, -1) : kept;
+  body.push(
+    ".senrail/*", "!.senrail/config.json", "!.senrail/templates/", "!.senrail/output/", "!.senrail/presets/",
+    ".senrail/output/acceptance-report-*.json",
+  );
+  return Buffer.from(`${body.join("\n")}\n`, "utf8");
+}
+
+class LegacySenrailMigrationJournal {
+  constructor({ root, raw, bytes, identity, owner, sourceSnapshot, metadata }) {
+    this.root = path.resolve(root);
+    this.raw = raw;
+    this.bytes = bytes;
+    this.identity = identity;
+    this.owner = owner;
+    this.sourceSnapshot = sourceSnapshot;
+    this.metadata = metadata;
+    Object.freeze(this);
+  }
+
+  get sourcePath() { return path.join(this.root, this.raw.sourceName); }
+  get stagingRoot() { return path.join(this.root, this.raw.stagingRelative); }
+  get stagedPath() { return path.join(this.stagingRoot, ".senti"); }
+  get backupPath() { return path.join(this.stagingRoot, "legacy-source-backup"); }
+  get canonicalPath() { return path.join(this.root, ".senrail"); }
+  get journalPath() { return path.join(this.root, ".tmp", OLD_JOURNAL_FILE_NAME); }
+
+  static read(root, identitySource) {
+    const journalPath = path.join(root, ".tmp", OLD_JOURNAL_FILE_NAME);
+    const stat = lstatOrNull(journalPath);
+    if (!stat) return null;
+    assertRegularFile(journalPath, "old migration journal");
+    const bytes = fs.readFileSync(journalPath);
+    let raw;
+    try { raw = JSON.parse(bytes.toString("utf8")); } catch (error) {
+      throw new Error(`old migration journal is invalid: ${error.message}`);
+    }
+    const readStat = assertRegularFile(journalPath, "old migration journal");
+    if (readStat.dev !== stat.dev || readStat.ino !== stat.ino) throw new Error("old migration journal changed while it was being read");
+    const expectedKeys = ["metadata", "owner", "phase", "root", "sourceIdentity", "sourceName", "sourceSnapshot", "sourceSnapshotFingerprint", "stagedSentiIdentity", "stagedSnapshotFingerprint", "stagingRelative", "tempRootCreated", "tempRootIdentity", "version"];
+    if (JSON.stringify(Object.keys(raw || {}).sort()) !== JSON.stringify(expectedKeys)
+      || raw.version !== 6 || path.resolve(raw.root || "") !== path.resolve(root)
+      || ![".sdd-forge", ".senti"].includes(raw.sourceName) || !OLD_JOURNAL_PHASES.has(raw.phase)
+      || !new RegExp(`^\\.tmp/${OLD_STAGING_PREFIX}[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).test(raw.stagingRelative)
+      || !Array.isArray(raw.metadata)) throw new Error("old migration journal has an unsupported schema");
+    const sourceSnapshot = SourceTreeSnapshot.fromJSON(raw.sourceSnapshot);
+    if (JSON.stringify(sourceSnapshot.rootIdentity) !== JSON.stringify(raw.sourceIdentity)
+      || sourceSnapshot.fingerprint !== raw.sourceSnapshotFingerprint) throw new Error("old migration journal source snapshot authority is invalid");
+    const metadata = raw.metadata.map((entry) => RootMetadataFile.fromJSON(root, entry));
+    if (JSON.stringify(metadata.map((entry) => entry.name).sort()) !== JSON.stringify([".gitattributes", ".gitignore"])) {
+      throw new Error("old migration journal metadata authority is invalid");
+    }
+    for (const entry of metadata) {
+      if (!oldMetadataPlan(entry.name, entry.original).equals(entry.planned)) {
+        throw new Error("old migration journal metadata plan is invalid");
+      }
+    }
+    const stagedIdentity = raw.stagedSentiIdentity;
+    if (!stagedIdentity || !Number.isSafeInteger(stagedIdentity.dev) || !Number.isSafeInteger(stagedIdentity.ino)) {
+      throw new Error("old migration journal staged identity is invalid");
+    }
+    return new LegacySenrailMigrationJournal({
+      root, raw, bytes, identity: { dev: readStat.dev, ino: readStat.ino },
+      owner: MigrationProcessOwner.fromJSON(raw.owner, identitySource), sourceSnapshot, metadata,
+    });
+  }
+
+  assertJournalAuthority() {
+    const stat = assertRegularFile(this.journalPath, "old migration journal");
+    if (stat.dev !== this.identity.dev || stat.ino !== this.identity.ino || !fs.readFileSync(this.journalPath).equals(this.bytes)) {
+      throw new Error("old migration journal changed during recovery");
+    }
+  }
+
+  removeJournal() {
+    new AtomicFile(this.journalPath, { phaseNamespace: "old-migration-journal", commitGuard: () => this.assertJournalAuthority() }).remove();
   }
 }
 
@@ -1264,6 +1375,20 @@ export class UpgradeDirectoryMigration {
   }
 
   run() {
+    const oldRecovery = LegacySenrailMigrationJournal.read(this.root, this.processIdentitySource);
+    if (oldRecovery) {
+      oldRecovery.owner.assertInactive();
+      if (this.dryRun) {
+        this.logger.log("[migrate] DRY-RUN: a valid old Senrail migration journal would be recovered; no files were changed.");
+        return { migrated: false, shouldRunUpgrade: false, warnings: [], recovered: true };
+      }
+      this.#recoverOldSenrailJournal(oldRecovery);
+      this.logger.log("[migrate] recovered an old Senrail migration journal without converting it.");
+      // Recovery can leave a completed old `.senrail` migration.  Re-enter
+      // through the normal preflight so it receives the same collision and
+      // writer checks as every other legacy source.
+      return this.run();
+    }
     const recovery = UpgradeMigrationJournal.read(this.root, this.processIdentitySource);
     if (recovery) {
       recovery.owner.assertInactive();
@@ -1289,7 +1414,9 @@ export class UpgradeDirectoryMigration {
       this.logger.log("[migrate] no legacy managed directory was found; no migration or normal upgrade was run.");
       return { migrated: false, shouldRunUpgrade: false, warnings: [] };
     }
-    if (sources.length !== 1) throw new Error("migration refuses to merge .sdd-forge and .senti automatically");
+    if (sources.length !== 1) {
+      throw new Error(`migration refuses to merge legacy managed directories automatically: ${sources.join(", ")}`);
+    }
 
     const sourceName = sources[0];
     const sourceRoot = path.join(this.root, sourceName);
@@ -1331,12 +1458,12 @@ export class UpgradeDirectoryMigration {
     try {
       fs.mkdirSync(stagingRoot, { mode: 0o700 });
       stagingCreated = true;
-      const stagedSenti = path.join(stagingRoot, ".senti");
-      fs.mkdirSync(stagedSenti, { mode: 0o700 });
-      fs.chmodSync(stagedSenti, snapshot.rootMode);
-      copyTree(sourceRoot, stagedSenti);
-      snapshot.assertStaged(stagedSenti);
-      const stagedSnapshot = SourceTreeSnapshot.capture(stagedSenti);
+      const stagedManaged = path.join(stagingRoot, "managed-directory");
+      fs.mkdirSync(stagedManaged, { mode: 0o700 });
+      fs.chmodSync(stagedManaged, snapshot.rootMode);
+      copyTree(sourceRoot, stagedManaged);
+      snapshot.assertStaged(stagedManaged);
+      const stagedSnapshot = SourceTreeSnapshot.capture(stagedManaged);
       snapshot.assertUnchanged(sourceRoot);
       for (const entry of metadata) {
         entry.stage(stagingRoot);
@@ -1349,7 +1476,7 @@ export class UpgradeDirectoryMigration {
         sourceIdentity: directoryIdentity(sourceRoot, "legacy managed directory"),
         sourceSnapshot: snapshot,
         sourceSnapshotFingerprint: snapshot.fingerprint,
-        stagedSentiIdentity: directoryIdentity(stagedSenti, "migration staged directory"),
+        stagedManagedIdentity: directoryIdentity(stagedManaged, "migration staged directory"),
         stagedSnapshotFingerprint: stagedSnapshot.fingerprint,
         metadata,
         owner: MigrationProcessOwner.current(this.processIdentitySource),
@@ -1381,7 +1508,9 @@ export class UpgradeDirectoryMigration {
       return { migrated: true, shouldRunUpgrade: true, warnings, pluginSkillDirs };
     } catch (error) {
       if (journal) {
-        if (this.#finalRenameVisible(journal)) {
+        const canonicalVisible = lstatOrNull(path.join(this.root, PRODUCT.managedDirName));
+        if (this.#finalRenameVisible(journal)
+          || (journal.phase === "final-renamed" && canonicalVisible?.isDirectory() && !canonicalVisible.isSymbolicLink())) {
           // The final state is authoritative. Leave its journal for the next
           // --migrate invocation to complete cleanup safely.
           throw error;
@@ -1406,8 +1535,8 @@ export class UpgradeDirectoryMigration {
   }
 
   #printDryRunPlan(sourceName, treePlan, metadata, warnings, normalUpgradeErrors) {
-    this.logger.log(`[migrate] DRY-RUN: ${sourceName} -> .senti -> ${PRODUCT.managedDirName}`);
-    this.logger.log(`[migrate] DRY-RUN: stage ${treePlan.size} managed entries under .tmp/${STAGING_PREFIX}<id>/.senti`);
+    this.logger.log(`[migrate] DRY-RUN: ${sourceName} -> ${PRODUCT.managedDirName}`);
+    this.logger.log(`[migrate] DRY-RUN: stage ${treePlan.size} managed entries under .tmp/${STAGING_PREFIX}<id>/managed-directory`);
     for (const line of treePlan.toDryRunLines()) this.logger.log(`[migrate] DRY-RUN: ${line}`);
     for (const entry of metadata) {
       const status = entry.original.equals(entry.planned) ? "unchanged" : "replace";
@@ -1427,9 +1556,8 @@ export class UpgradeDirectoryMigration {
 
   #commit(journal, snapshot) {
     const sourceRoot = path.join(this.root, journal.sourceName);
-    const temporarySenti = path.join(this.root, ".senti");
     const canonical = path.join(this.root, PRODUCT.managedDirName);
-    if (lstatOrNull(canonical) || (journal.sourceName !== ".senti" && lstatOrNull(temporarySenti))) {
+    if (lstatOrNull(canonical) || lstatOrNull(journal.backupPath)) {
       throw new Error("migration destination appeared after preflight");
     }
     if (!sameDirectoryIdentity(sourceRoot, journal.sourceIdentity, "legacy managed directory")) {
@@ -1438,50 +1566,47 @@ export class UpgradeDirectoryMigration {
     snapshot.assertUnchanged(sourceRoot);
     for (const entry of journal.metadata) entry.assertOriginal();
 
-    if (journal.sourceName === ".senti") {
-      fs.renameSync(sourceRoot, journal.backupPath);
-      journal.advance("legacy-backed-up");
-    }
-    fs.renameSync(journal.stagedSentiPath, temporarySenti);
-    journal.advance("placed-senti");
-    try {
-      journal.assertStagedSnapshot(temporarySenti);
-    } catch (error) {
-      journal.preserveConcurrentStagedTree(temporarySenti);
-      throw error;
-    }
+    // Keep the pre-existing root only in the private staging directory.  A
+    // migration never materializes a retired product path as an intermediate.
+    fs.renameSync(sourceRoot, journal.backupPath);
+    journal.advance("legacy-backed-up");
     for (const entry of journal.metadata) entry.apply(journal.stagingRoot);
     journal.advance("metadata-updated");
-    fs.renameSync(temporarySenti, canonical);
+    fs.renameSync(journal.stagedManagedPath, canonical);
     journal.advance("final-renamed");
     this.#completeCleanup(journal);
   }
 
   #finalRenameVisible(journal) {
     const canonical = path.join(this.root, PRODUCT.managedDirName);
-    const temporary = path.join(this.root, ".senti");
     const stat = lstatOrNull(canonical);
-    return Boolean(stat && stat.isDirectory() && !stat.isSymbolicLink() && !lstatOrNull(temporary));
+    if (!stat || !stat.isDirectory() || stat.isSymbolicLink() || lstatOrNull(path.join(this.root, journal.sourceName))) return false;
+    try {
+      journal.assertStagedSnapshot(canonical);
+      for (const entry of journal.metadata) entry.assertPlanned();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   #completeCleanup(journal) {
     const canonical = path.join(this.root, PRODUCT.managedDirName);
-    journal.assertStagedSnapshot(canonical);
+    try {
+      journal.assertStagedSnapshot(canonical);
+    } catch (error) {
+      // A writer that races with the final canonical tree is data we must not
+      // discard. Preserve it under the journal authority, then let rollback
+      // restore the legacy source on the next recovery attempt.
+      journal.preserveConcurrentStagedTree(canonical);
+      throw error;
+    }
     this.openHandleInspector.assertEmpty(canonical, "the migrated managed directory");
     const source = path.join(this.root, journal.sourceName);
     const sourceExists = Boolean(lstatOrNull(source));
     const backupExists = Boolean(lstatOrNull(journal.backupPath));
     if (sourceExists && backupExists) {
       throw new Error("legacy managed directory and its cleanup backup both exist");
-    }
-    if (journal.sourceName === ".sdd-forge" && sourceExists) {
-      this.openHandleInspector.assertEmpty(source, "the legacy managed directory");
-      if (!sameDirectoryIdentity(source, journal.sourceIdentity, "legacy managed directory")) {
-        throw new Error("legacy managed directory identity changed before cleanup");
-      }
-      fs.renameSync(source, journal.backupPath);
-      fsyncDirectory(this.root);
-      fsyncDirectory(journal.stagingRoot);
     }
     if (lstatOrNull(source)) {
       throw new Error(`legacy managed directory path reappeared during cleanup: ${journal.sourceName}`);
@@ -1508,38 +1633,31 @@ export class UpgradeDirectoryMigration {
     if (this.#finalRenameVisible(journal)) {
       throw new Error("cannot roll back after the final rename; cleanup recovery is required");
     }
-    const temporary = path.join(this.root, ".senti");
-    const backupExists = journal.sourceName === ".senti" && Boolean(lstatOrNull(journal.backupPath));
-    const originalSentiStillInPlace = journal.sourceName === ".senti"
-      && !backupExists
-      && Boolean(lstatOrNull(temporary))
-      && sameDirectoryIdentity(temporary, journal.sourceIdentity, "legacy .senti directory");
-    if (lstatOrNull(temporary) && !originalSentiStillInPlace) {
-      if (!sameDirectoryIdentity(temporary, journal.stagedSentiIdentity, "staged temporary directory")) {
-        throw new Error("cannot remove temporary .senti changed by another process");
+    const canonical = path.join(this.root, PRODUCT.managedDirName);
+    const backupExists = Boolean(lstatOrNull(journal.backupPath));
+    if (lstatOrNull(canonical)) {
+      if (!sameDirectoryIdentity(canonical, journal.stagedManagedIdentity, "staged canonical directory")) {
+        throw new Error("cannot remove canonical directory changed by another process");
       }
-      const openHandles = this.openHandleInspector.inspect(temporary);
+      const openHandles = this.openHandleInspector.inspect(canonical);
       try {
-        openHandles.assertEmpty("the staged temporary managed directory");
-        journal.assertStagedSnapshot(temporary);
+        openHandles.assertEmpty("the staged canonical managed directory");
+        journal.assertStagedSnapshot(canonical);
       } catch (_) {
-        journal.preserveConcurrentStagedTree(temporary);
+        journal.preserveConcurrentStagedTree(canonical);
       }
-      if (lstatOrNull(temporary)) removeTree(temporary, "staged temporary directory");
+      if (lstatOrNull(canonical)) removeTree(canonical, "staged canonical directory");
     }
     for (const entry of journal.metadata) entry.restore();
-    if (journal.sourceName === ".senti") {
-      const source = path.join(this.root, ".senti");
-      const backup = journal.backupPath;
-      if (backupExists) {
-        if (lstatOrNull(source)) throw new Error("cannot restore legacy .senti because its original path is occupied");
-        if (!sameDirectoryIdentity(backup, journal.sourceIdentity, "legacy .senti backup")) {
-          throw new Error("cannot restore legacy .senti backup changed by another process");
-        }
-        fs.renameSync(backup, source);
-      } else if (!lstatOrNull(source)) {
-        throw new Error("legacy .senti disappeared before rollback");
+    const source = path.join(this.root, journal.sourceName);
+    if (backupExists) {
+      if (lstatOrNull(source)) throw new Error(`cannot restore legacy directory because its original path is occupied: ${journal.sourceName}`);
+      if (!sameDirectoryIdentity(journal.backupPath, journal.sourceIdentity, "legacy managed directory backup")) {
+        throw new Error("cannot restore legacy managed directory backup changed by another process");
       }
+      fs.renameSync(journal.backupPath, source);
+    } else if (!lstatOrNull(source)) {
+      throw new Error("legacy managed directory disappeared before rollback");
     }
     if (lstatOrNull(journal.concurrentWritePath)) {
       throw new Error(`concurrent managed write was preserved at ${relativePath(this.root, journal.concurrentWritePath)}`);
@@ -1564,10 +1682,84 @@ export class UpgradeDirectoryMigration {
       this.#completeCleanup(journal);
       return "cleanup";
     }
-    if (journal.phase === "final-renamed") {
-      throw new Error("migration journal says final rename completed, but canonical directory is not safely present");
-    }
     this.#rollback(journal);
     return "rollback";
+  }
+
+  #recoverOldSenrailJournal(journal) {
+    const canonical = journal.canonicalPath;
+    // v6 staged the converted directory under stagingRoot until it placed it
+    // at the root as `.senti`.  The latter location is authoritative for the
+    // placed-senti and metadata-updated phases; treating it as stagingRoot
+    // would leave it in place and make the backup restore collide.
+    const temporary = ["placed-senti", "metadata-updated"].includes(journal.raw.phase)
+      ? path.join(this.root, ".senti")
+      : journal.stagedPath;
+    const backup = journal.backupPath;
+    const source = journal.sourcePath;
+    const stagedIdentity = journal.raw.stagedSentiIdentity;
+    const assertOldStaged = (directory) => {
+      if (!sameDirectoryIdentity(directory, stagedIdentity, "old staged managed directory")) {
+        throw new Error("old migration staged directory identity changed");
+      }
+      if (SourceTreeSnapshot.capture(directory).fingerprint !== journal.raw.stagedSnapshotFingerprint) {
+        throw new Error("old migration staged directory changed");
+      }
+    };
+    const assertOldSource = (directory) => {
+      if (!sameDirectoryIdentity(directory, journal.raw.sourceIdentity, "old legacy managed directory")) {
+        throw new Error("old migration legacy directory identity changed");
+      }
+      if (SourceTreeSnapshot.capture(directory).fingerprint !== journal.raw.sourceSnapshotFingerprint) {
+        throw new Error("old migration legacy directory changed");
+      }
+    };
+    if (lstatOrNull(canonical)) {
+      assertRealDirectory(canonical, "old migration canonical directory");
+      assertOldStaged(canonical);
+      if (lstatOrNull(source) && lstatOrNull(backup)) throw new Error("old migration has both source and backup during cleanup");
+      if (lstatOrNull(source)) {
+        this.openHandleInspector.assertEmpty(source, "the old legacy managed directory");
+        assertOldSource(source);
+        fs.renameSync(source, backup);
+      }
+      if (lstatOrNull(backup)) {
+        this.openHandleInspector.assertEmpty(backup, "the old legacy managed directory backup");
+        if (journal.raw.phase === "cleanup-source-verified") {
+          journal.sourceSnapshot.assertRemainingSubset(backup);
+        } else {
+          assertOldSource(backup);
+        }
+        removeTree(backup, "old migration legacy backup");
+      }
+      if (lstatOrNull(source)) throw new Error("old migration source reappeared during cleanup");
+      removeTree(journal.stagingRoot, "old migration staging directory");
+      journal.removeJournal();
+      return;
+    }
+    if (journal.raw.phase === "final-renamed") {
+      throw new Error("old migration journal says final rename completed, but .senrail is not safely present");
+    }
+    if (lstatOrNull(temporary)) {
+      // For a `.senti` source in the earliest phase this is the original
+      // source, not a staged tree, and therefore must not be removed.
+      const originalStillInPlace = journal.raw.phase === "staged" && journal.raw.sourceName === ".senti"
+        && sameDirectoryIdentity(temporary, journal.raw.sourceIdentity, "old legacy .senti directory");
+      if (!originalStillInPlace) {
+        assertOldStaged(temporary);
+        this.openHandleInspector.assertEmpty(temporary, "the old staged managed directory");
+        removeTree(temporary, "old staged managed directory");
+      }
+    }
+    for (const entry of journal.metadata) entry.restore();
+    if (lstatOrNull(backup)) {
+      if (lstatOrNull(source)) throw new Error("cannot restore old legacy directory because its path is occupied");
+      assertOldSource(backup);
+      fs.renameSync(backup, source);
+    } else if (!lstatOrNull(source)) {
+      throw new Error("old migration legacy source disappeared before rollback");
+    }
+    removeTree(journal.stagingRoot, "old migration staging directory");
+    journal.removeJournal();
   }
 }

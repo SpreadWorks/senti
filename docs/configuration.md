@@ -8,7 +8,7 @@
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the types of config files, range of configurable items, and customization points."})}} -->
 
-sdd-forge is configured through a single project-level JSON file (`.sdd-forge/config.json`) and optionally extended by project-local preset definitions. Configurable items span documentation output languages and style, agent provider selection and execution parameters, scan scope, flow and Git integration, and logging, with additional customization available through preset overrides and environment variables.
+sennel is configured through a single project-level JSON file (`.sennel/config.json`) and optionally extended by project-local preset definitions. Configurable items span documentation output languages and style, agent provider selection and execution parameters, scan scope, flow and Git integration, and logging, with additional customization available through preset overrides and environment variables.
 <!-- {{/text}} -->
 
 ## Content
@@ -19,9 +19,9 @@ sdd-forge is configured through a single project-level JSON file (`.sdd-forge/co
 
 | File | Location | Role |
 |------|----------|------|
-| `config.json` | `.sdd-forge/config.json` | Primary project configuration — defines language, preset type, docs settings, agent providers, scan patterns, and flow options. Required for all `sdd-forge` commands. |
+| `config.json` | `.sennel/config.json` | Primary project configuration — defines language, preset type, docs settings, agent providers, scan patterns, and flow options. Required for all `sennel` commands. |
 | `preset.json` (built-in) | `src/presets/<key>/preset.json` | Built-in preset manifests bundled with the npm package. Auto-discovered at startup and define chapter structure, scan defaults, and template associations. |
-| `preset.json` (project-local) | `.sdd-forge/presets/<key>/preset.json` | Project-local preset overrides. When present, takes precedence over the built-in preset of the same key. Supports the same schema as built-in presets and may declare a `parent` for inheritance. |
+| `preset.json` (project-local) | `.sennel/presets/<key>/preset.json` | Project-local preset overrides. When present, takes precedence over the built-in preset of the same key. Supports the same schema as built-in presets and may declare a `parent` for inheritance. |
 | `package.json` | Project root | Loaded selectively via `loadPackageField()` to read arbitrary project metadata into documentation generation context. |
 <!-- {{/text}} -->
 
@@ -56,7 +56,7 @@ sdd-forge is configured through a single project-level JSON file (`.sdd-forge/co
 | `agent.providers[key].systemPromptFlag` | No | string | — | CLI flag used to pass a system prompt (e.g., `"--system-prompt"`). |
 | `agent.providers[key].jsonOutputFlag` | No | string | — | CLI flag that requests JSON-formatted output from the agent. |
 | `agent.profiles` | No | object | — | Named profiles mapping command prefixes to provider keys, enabling per-command agent selection. |
-| `agent.useProfile` | No | string | — | Name of the profile to activate; overridden by the `SDD_FORGE_PROFILE` environment variable. |
+| `agent.useProfile` | No | string | — | Name of the profile to activate; overridden by the `SENNEL_PROFILE` environment variable. |
 | `flow.merge` | No | `"squash"` \| `"ff-only"` \| `"merge"` | `"squash"` | Git merge strategy applied when closing a flow. |
 | `flow.push.remote` | No | string | `"origin"` | Git remote used for push operations during flow finalization. |
 | `flow.commands.context.search.mode` | No | `"ngram"` \| `"ai"` | — | Search mode used when retrieving flow context. |
@@ -113,7 +113,7 @@ You can define custom agent providers or override built-in ones under `agent.pro
 
 **Agent Profiles**
 
-Profiles map command prefixes to provider keys, allowing different agent providers to be used for different sdd-forge operations. Activate a profile with `agent.useProfile` or the `SDD_FORGE_PROFILE` environment variable.
+Profiles map command prefixes to provider keys, allowing different agent providers to be used for different sennel operations. Activate a profile with `agent.useProfile` or the `SENNEL_PROFILE` environment variable.
 
 ```json
 {
@@ -163,7 +163,7 @@ Set `docs.languages` to an array of language codes and configure `docs.mode` to 
 
 **Project-Local Presets**
 
-Place a `preset.json` (and optional templates) under `.sdd-forge/presets/<key>/` to override or extend any built-in preset. The project-local definition takes precedence over the same-named built-in preset. Declare a `parent` field to inherit from an existing preset.
+Place a `preset.json` (and optional templates) under `.sennel/presets/<key>/` to override or extend any built-in preset. The project-local definition takes precedence over the same-named built-in preset. Declare a `parent` field to inherit from an existing preset.
 
 ```json
 {
@@ -191,7 +191,7 @@ Restrict or expand which files are analysed by configuring `scan.include` and `s
 
 **Flow and Git Integration**
 
-Configure how sdd-forge interacts with Git during flow finalization.
+Configure how sennel interacts with Git during flow finalization.
 
 ```json
 {
@@ -206,7 +206,7 @@ Configure how sdd-forge interacts with Git during flow finalization.
 
 Enable JSONL logging to record agent prompts and responses. Logs are written as daily `.jsonl` files and per-request JSON files under the configured directory.
 
-Flow runtime command logs are separate human-readable files. Use `sdd-forge flow run <action> --agent-work-dir .tmp --log-file .tmp/<name>.log` when an operator-readable log path is needed.
+Flow runtime command logs are separate human-readable files. Use `sennel flow run <action> --agent-work-dir .tmp --log-file .tmp/<name>.log` when an operator-readable log path is needed.
 
 ```json
 {
@@ -220,9 +220,9 @@ Flow runtime command logs are separate human-readable files. Use `sdd-forge flow
 
 ### Built-In Agent Profiles
 
-`senrail setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
+`sennel setup` stores the selected agent family in `agent.default` as `claude` or `codex`, and stores the routing intent in `agent.useProfile`. Built-in profile names are `claude-only`, `codex-only`, `claude-main`, and `codex-main`.
 
-Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.senrail/config.json`. Define the same key locally only when you want to override the package default.
+Built-in `agent.profiles` and `agent.providers` are resolved from the package at runtime. They do not need to be copied into `.sennel/config.json`. Define the same key locally only when you want to override the package default.
 
 ```json
 {
@@ -250,9 +250,9 @@ Built-in `agent.profiles` and `agent.providers` are resolved from the package at
 
 | Variable | Purpose |
 |----------|---------|
-| `SDD_FORGE_WORK_ROOT` | Overrides the automatically detected work root (normally the Git repository root). When set, all file resolution is anchored to this path instead of the result of `git rev-parse --show-toplevel`. |
-| `SDD_FORGE_SOURCE_ROOT` | Overrides the source root used for scanning and documentation generation. When set, takes precedence over the value derived from `SDD_FORGE_WORK_ROOT` or the Git root. |
-| `SDD_FORGE_PROFILE` | Specifies the active agent profile name. Takes priority over the `agent.useProfile` field in `config.json`, allowing the profile to be switched per invocation without modifying the config file. |
+| `SENNEL_WORK_ROOT` | Overrides the automatically detected work root (normally the Git repository root). When set, all file resolution is anchored to this path instead of the result of `git rev-parse --show-toplevel`. |
+| `SENNEL_SOURCE_ROOT` | Overrides the source root used for scanning and documentation generation. When set, takes precedence over the value derived from `SENNEL_WORK_ROOT` or the Git root. |
+| `SENNEL_PROFILE` | Specifies the active agent profile name. Takes priority over the `agent.useProfile` field in `config.json`, allowing the profile to be switched per invocation without modifying the config file. |
 <!-- {{/text}} -->
 
 ---

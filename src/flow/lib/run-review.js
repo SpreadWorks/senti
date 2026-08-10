@@ -660,7 +660,7 @@ export function checkReviewRetryBelowMax(
   const envelope = Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
       `review retry limit exhausted: ${count}/${max} REJECTED attempts recorded for phase "${persistedPhase}".`,
-      "Resume after changed evidence with `senrail flow set retry reset review <phase> --reason <text> --yes`.",
+      "Resume after changed evidence with `sennel flow set retry reset review <phase> --reason <text> --yes`.",
     ],
     failure.toEnvelopeData());
   const attempt = recordReviewOutcome(ctx, null, persistedPhase, count, reviewExternalBlock(failure));

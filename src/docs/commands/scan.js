@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * senrail/docs/commands/scan.js
+ * sennel/docs/commands/scan.js
  *
  * DataSource ベースのスキャンパイプライン。
  * include/exclude glob パターンでファイルを一括収集し、

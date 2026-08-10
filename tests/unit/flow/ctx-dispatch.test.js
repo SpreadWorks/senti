@@ -126,8 +126,8 @@ describe("registry structure", () => {
       "--expect-run-id",
     ];
 
-    assert.equal(park.helpPath, "senrail flow park --help");
-    assert.equal(resume.helpPath, "senrail flow resume --help");
+    assert.equal(park.helpPath, "sennel flow park --help");
+    assert.equal(resume.helpPath, "sennel flow resume --help");
     assert.equal(park.requiresFlow, false);
     assert.equal(park.targetGuard, false);
     assert.equal(park.directParkedAuthority, true);
@@ -184,11 +184,11 @@ describe("execute(ctx) signature", () => {
 });
 
 describe("review.js worktree fix", () => {
-  it("run/review.js should not override SENRAIL_WORK_ROOT", () => {
+  it("run/review.js should not override SENNEL_WORK_ROOT", () => {
     const content = fs.readFileSync(path.join(FLOW_DIR, "lib/run-review.js"), "utf8");
     assert.ok(
-      !content.includes("SENRAIL_WORK_ROOT"),
-      "run/review.js must not override SENRAIL_WORK_ROOT",
+      !content.includes("SENNEL_WORK_ROOT"),
+      "run/review.js must not override SENNEL_WORK_ROOT",
     );
   });
 });

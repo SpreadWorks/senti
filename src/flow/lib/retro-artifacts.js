@@ -12,7 +12,7 @@ function readJsonIfExists(filePath, sourceLabel) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (err) {
-    throw new Error(`[senrail] ${sourceLabel}: failed to parse ${filePath}: ${err.message}`);
+    throw new Error(`[sennel] ${sourceLabel}: failed to parse ${filePath}: ${err.message}`);
   }
 }
 

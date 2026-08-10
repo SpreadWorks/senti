@@ -10,7 +10,7 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/
 
 const FRESHNESS_EXCLUDED_DIRECTORIES = [
   ".git/objects",
-  ".senrail/output",
+  ".sennel/output",
   "node_modules/example",
   "src/node_modules/example",
   "vendor/example",
@@ -33,7 +33,7 @@ describe("bounded scan and freshness results", () => {
     tmp = createTmpDir();
     const src = path.join(tmp, "src");
     for (const file of ["a.js", "b.js", "c.js"]) writeFile(src, file, "export {};\n");
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       files: { entries: [{ file: "a.js" }, { file: "b.js" }] },
     });
 

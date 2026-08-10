@@ -11,7 +11,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 test("public retry recovery uses the runtime gate evaluator identity", async (context) => {
   const diagnosticPath = path.join(
     os.tmpdir(),
-    `senrail-runtime-evaluator-${process.pid}-${crypto.randomUUID()}.jsonl`,
+    `sennel-runtime-evaluator-${process.pid}-${crypto.randomUUID()}.jsonl`,
   );
   context.diagnostic(`runtime evaluator JSONL: ${diagnosticPath}`);
   await runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot: repoRoot });

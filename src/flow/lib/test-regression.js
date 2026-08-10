@@ -28,7 +28,7 @@ export const CHILD_PROCESS_RESULT_KINDS = Object.freeze([
 ]);
 const MAX_BUFFER_ERROR_CODES = new Set(["ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "ENOBUFS"]);
 const ASSERTION_EVIDENCE_PATTERN = /\bERR_ASSERTION\b|\bAssertionError\b|\bassert(?:ion)?(?:\s+(?:failed|failure|detail))\b/i;
-const CHILD_PROCESS_RECORD_PREFIX = "[senrail] child process execution record ";
+const CHILD_PROCESS_RECORD_PREFIX = "[sennel] child process execution record ";
 export const REGRESSION_COMMAND_CHECKED_SOURCES = Object.freeze([
   "test.command",
   "package.json:scripts.test",

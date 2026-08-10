@@ -2,11 +2,11 @@ Clean up flow state and worktree as the final finalize sub-step.
 
 ## Required Sequence
 
-1. Run `senrail flow run finalize-cleanup`.
+1. Run `sennel flow run finalize-cleanup`.
    - Updates `finalize-cleanup` to `done` on the main repo flow.json.
    - Stages and commits the final flow.json snapshot.
    - On commit success: removes the worktree directory and deletes the feature branch.
-   - Writes `.senrail/last-finalized-spec`.
+   - Writes `.sennel/last-finalized-spec`.
    - Returns an envelope whose `data.report` contains `{ path, text }` of the finalize Report.
    - The cleanup command itself displays the finalize Report in a non-stdout `Finalize Report` block when `data.report.text` is present. Stdout remains the JSON envelope.
 
@@ -31,9 +31,9 @@ Clean up flow state and worktree as the final finalize sub-step.
 
    **MUST: This choice is presented to the user every time, even when `autoApprove: true`.** Silent loss of feature-branch commits violates the spec goal; this is an explicit exception to the autoApprove auto-select rule. Do not auto-pick `[3]` to keep the flow moving.
 
-   - If `[1]` cherry-pick: run `senrail flow run finalize-cleanup --auto-rescue`. On `CHERRY_PICK_CONFLICT`, the worktree and branch are retained — propose archiving the branch (`git branch <archive> <featureBranch>`) and resolving manually before re-running.
+   - If `[1]` cherry-pick: run `sennel flow run finalize-cleanup --auto-rescue`. On `CHERRY_PICK_CONFLICT`, the worktree and branch are retained — propose archiving the branch (`git branch <archive> <featureBranch>`) and resolving manually before re-running.
    - If `[2]` abort: STOP and return control to the user. The flow remains active.
-   - If `[3]` force-continue: explicitly confirm the destructive action with the user, then run `senrail flow run finalize-cleanup --force`. The dropped commit list is persisted to `issue-log.json`.
+   - If `[3]` force-continue: explicitly confirm the destructive action with the user, then run `sennel flow run finalize-cleanup --force`. The dropped commit list is persisted to `issue-log.json`.
 
 3. **If the envelope returns `SQUASH_BASELINE_MISSING` or `SQUASH_BASELINE_DIVERGED`:**
    The recorded squash baseline is unavailable or no longer an ancestor of the feature branch (history rewrite). Read `errors[0].messages` and surface the manual recovery steps to the user. Do not pass `--force` automatically — propose archiving the branch and walking through the recovery procedure.
@@ -44,4 +44,4 @@ Clean up flow state and worktree as the final finalize sub-step.
    - If `data.report` is `null`, the envelope's `errors` array contains a `level: warn` entry with `code: REPORT_MISSING`. Surface that warning's message to the user — do not fabricate Report contents.
    - When the envelope contains a `level: warn` entry with `code: FORCED_ORPHAN_DROP`, surface the warning text plus the dropped commit list so the user understands what was lost.
 
-5. **After cleanup**, the worktree directory has been removed. The next `senrail` command runs from the main repository (the shell's previous worktree cwd is no longer valid).
+5. **After cleanup**, the worktree directory has been removed. The next `sennel` command runs from the main repository (the shell's previous worktree cwd is no longer valid).

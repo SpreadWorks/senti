@@ -1855,7 +1855,7 @@ function formatRetryHistory(root, specPath, limit, phase) {
   try {
     log = loadIssueLog(root, specPath);
   } catch (err) {
-    process.stderr.write(`[senrail] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
     return "";
   }
   const gateEntries = (log.entries || [])
@@ -1873,7 +1873,7 @@ export function warnGateRetryBudget(ctx, phase) {
   const max = resolveRetryMax(ctx, phase);
   const remaining = Math.max(0, max - used);
   process.stderr.write(
-    `[senrail] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
+    `[sennel] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
   );
 }
 
@@ -3193,7 +3193,7 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
     "Modify the spec or implementation before retrying.",
   ];
   process.stderr.write(
-    `[senrail] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
+    `[sennel] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
   );
   appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
@@ -4660,7 +4660,7 @@ export class GateFailureRecovery {
 
 const DRAFT_GATE_REOPEN_RECOVERY = new GateFailureRecovery({
   failureCode: "DRAFT_GATE_REOPEN_REQUIRED",
-  recoveryCommand: "senrail flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
+  recoveryCommand: "sennel flow run reopen-draft --reason draft-gate-canonical-evidence-recovery",
   recoveryHint: "Run the supplied reopen-draft command to invalidate obsolete draft review evidence, then continue the normal Flow.",
 });
 
@@ -5203,7 +5203,7 @@ export class RunGateCommand extends FlowCommand {
       ctx.flowState = flowManager.load();
       for (const transition of committed) {
         process.stderr.write(
-          `[senrail] gate: stale in_progress step "${transition.stepId}" ` +
+          `[sennel] gate: stale in_progress step "${transition.stepId}" ` +
             `transitioned to done (committed phase=${phase})\n`,
         );
       }
@@ -5783,7 +5783,7 @@ export class RunGateCommand extends FlowCommand {
       if (unrecorded.length === 0) return [];
       return [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
     } catch (err) {
-      process.stderr.write(`[senrail] file-map reconciliation skipped: ${err.message}\n`);
+      process.stderr.write(`[sennel] file-map reconciliation skipped: ${err.message}\n`);
       return [];
     }
   }

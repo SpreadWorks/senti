@@ -67,7 +67,7 @@ describe("set step impl-repair completion", () => {
     writeJson(tmp, "specs/001-test/test-execute-result.json", {
       repairFingerprint: previousFingerprint.hash,
     });
-    writeJson(tmp, ".senrail/config.json", { enabled: true });
+    writeJson(tmp, ".sennel/config.json", { enabled: true });
     writeFile(tmp, "src/repair-target.js", "export const value = 'after';\n");
 
     const state = {
@@ -296,7 +296,7 @@ describe("set step impl-repair completion", () => {
     const issueLogPath = path.join(specDir, "issue-log.json");
     const issueLog = { entries: [{
       normalizedFindingId: GATE_FINDING_ID,
-      repairRef: { files: [".senrail/config.json"] },
+      repairRef: { files: [".sennel/config.json"] },
       step: "impl-repair",
       reason: "stale repair proof fixture",
       timestamp: new Date().toISOString(),

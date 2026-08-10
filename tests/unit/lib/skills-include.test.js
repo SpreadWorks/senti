@@ -18,9 +18,9 @@ describe("deploySkills include resolution", () => {
 
   function setupConfiguredTmpProject() {
     tmp = createTmpDir();
-    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
     fs.writeFileSync(
-      path.join(tmp, ".senrail", "config.json"),
+      path.join(tmp, ".sennel", "config.json"),
       JSON.stringify({ lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" } }),
     );
     return tmp;
@@ -48,7 +48,7 @@ describe("deploySkills include resolution", () => {
 
     deploySkills(projectDir);
 
-    const flowPath = path.join(projectDir, ".agents", "skills", "senrail.flow", "SKILL.md");
+    const flowPath = path.join(projectDir, ".agents", "skills", "sennel.flow", "SKILL.md");
     if (fs.existsSync(flowPath)) {
       const content = fs.readFileSync(flowPath, "utf8");
       // Choice Format partial content should be expanded
@@ -71,9 +71,9 @@ describe("deploySkills include resolution", () => {
   it("lets the bundled canonical skill replace a colliding plugin skill", () => {
     const projectDir = setupConfiguredTmpProject();
     const pluginSkills = path.join(tmp, "plugin-skills");
-    fs.mkdirSync(path.join(pluginSkills, "senrail.flow"), { recursive: true });
+    fs.mkdirSync(path.join(pluginSkills, "sennel.flow"), { recursive: true });
     fs.writeFileSync(
-      path.join(pluginSkills, "senrail.flow", "SKILL.md"),
+      path.join(pluginSkills, "sennel.flow", "SKILL.md"),
       "plugin collision must not survive\n",
     );
 
@@ -81,7 +81,7 @@ describe("deploySkills include resolution", () => {
     deploySkills(projectDir, { force: true });
 
     for (const base of [".agents", ".claude"]) {
-      const deployed = fs.readFileSync(path.join(projectDir, base, "skills", "senrail.flow", "SKILL.md"), "utf8");
+      const deployed = fs.readFileSync(path.join(projectDir, base, "skills", "sennel.flow", "SKILL.md"), "utf8");
       assert.doesNotMatch(deployed, /plugin collision must not survive/);
     }
   });
@@ -89,7 +89,7 @@ describe("deploySkills include resolution", () => {
   it("replaces dangling canonical skill-root symlinks during a forced deployment", () => {
     const projectDir = setupConfiguredTmpProject();
     for (const base of [".agents", ".claude"]) {
-      const skillRoot = path.join(projectDir, base, "skills", "senrail.flow");
+      const skillRoot = path.join(projectDir, base, "skills", "sennel.flow");
       fs.mkdirSync(path.dirname(skillRoot), { recursive: true });
       fs.symlinkSync("missing-skill-root", skillRoot);
     }
@@ -97,7 +97,7 @@ describe("deploySkills include resolution", () => {
     deploySkills(projectDir, { force: true });
 
     for (const base of [".agents", ".claude"]) {
-      const skillRoot = path.join(projectDir, base, "skills", "senrail.flow");
+      const skillRoot = path.join(projectDir, base, "skills", "sennel.flow");
       assert.ok(fs.lstatSync(skillRoot).isDirectory());
       assert.ok(fs.existsSync(path.join(skillRoot, "SKILL.md")));
     }

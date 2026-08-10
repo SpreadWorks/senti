@@ -186,7 +186,7 @@ async function runAgents(ctx, rawArgs) {
   if (projectContent) {
     const agent = container.get("agent");
     if (!agent.resolve("docs.agents")) {
-      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
+      throw new Error("No default agent configured. Set 'agent.default' in config.json or run 'sennel setup'.");
     }
 
     logger.log(t("messages:agents.refining"));

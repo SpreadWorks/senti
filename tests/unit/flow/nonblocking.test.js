@@ -396,7 +396,7 @@ describe("nonblocking flow policy", () => {
         remainingRisk: "Review findings remain visible in the final report.", expectEvidenceDigest: "b".repeat(64),
       }), (error) => (
         /evidence changed/.test(error.message)
-        && error.continuation?.nextAction.includes("senrail flow get next-action")
+        && error.continuation?.nextAction.includes("sennel flow get next-action")
       ));
       const recorded = recordNonBlockingDecision({
         root, flowManager: manager, choice: "continue", reason: "The request is implemented.",
@@ -558,7 +558,7 @@ describe("nonblocking flow policy", () => {
       ));
       assert.throws(() => new NextActionPlanner().build({ root, flowState: state }), (error) => (
         error.code === "NONBLOCKING_EVIDENCE_UNAVAILABLE"
-        && error.continuation?.nextAction.includes("senrail flow get next-action")
+        && error.continuation?.nextAction.includes("sennel flow get next-action")
       ));
     } finally {
       removeTmpDir(root);

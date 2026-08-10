@@ -5,15 +5,15 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "readme"];
 
 function makeEnv(tmp) {
-  return { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp };
+  return { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp };
 }
 
 function setupProject(tmp, pkg = { name: "test-project" }) {
-  writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+  writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
   writeJson(tmp, "package.json", pkg);
 }
 
@@ -44,7 +44,7 @@ describe("readme CLI", () => {
 
   it("skips when type is not set", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     const result = runReadme();
     assert.match(result, /type.*not set|type.*設定されていません/);
   });
@@ -89,18 +89,18 @@ describe("readme CLI", () => {
   it("uses chapter links relative to a localized README on every generation", () => {
     tmp = createTmpDir();
     setupProject(tmp, { name: "localized-readme" });
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en", "ja"], defaultLanguage: "en" },
     });
-    writeFile(tmp, ".senrail/templates/en/docs/README.md", [
+    writeFile(tmp, ".sennel/templates/en/docs/README.md", [
       "# English README",
       "",
       '<!-- {{data("base.docs.chapters", {labels: "Chapter|Summary"})}} -->',
       "<!-- {{/data}} -->",
     ].join("\n"));
-    writeFile(tmp, ".senrail/templates/ja/docs/README.md", [
+    writeFile(tmp, ".sennel/templates/ja/docs/README.md", [
       "# 日本語 README",
       "",
       '<!-- {{data("base.docs.chapters", {labels: "章|概要"})}} -->',

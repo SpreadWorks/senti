@@ -18,11 +18,11 @@ function buildContainer({ root = "/repo", config = {}, flowState = null } = {}) 
   c.register("paths", {
     root,
     srcRoot: root,
-    managedDir: path.join(root, ".senrail"),
-    outputDir: path.join(root, ".senrail/output"),
+    managedDir: path.join(root, ".sennel"),
+    outputDir: path.join(root, ".sennel/output"),
     agentWorkDir: path.join(root, ".tmp"),
     logDir: path.join(root, ".tmp/logs"),
-    configPath: path.join(root, ".senrail/config.json"),
+    configPath: path.join(root, ".sennel/config.json"),
   });
   c.register("inWorktree", false);
   c.register("mainRoot", root);
@@ -62,7 +62,7 @@ describe("resolveFlowContext", () => {
   it("binds route-less worktree mutations to the identity without reading shared registry", (t) => {
     const mainRoot = createTmpDir("flow-context-bound-route-");
     t.after(() => removeTmpDir(mainRoot));
-    const worktree = path.join(mainRoot, ".senrail", "worktree", "feature-440-bound-route");
+    const worktree = path.join(mainRoot, ".sennel", "worktree", "feature-440-bound-route");
     fs.mkdirSync(worktree, { recursive: true });
     const targetSpecId = "440-bound-route";
     const foreignSpecId = "441-foreign-route";
@@ -92,7 +92,7 @@ describe("resolveFlowContext", () => {
       worktreePath: worktree,
     }));
 
-    const registryPath = path.join(mainRoot, ".senrail", ".active-flow");
+    const registryPath = path.join(mainRoot, ".sennel", ".active-flow");
     fs.mkdirSync(path.dirname(registryPath), { recursive: true });
     fs.writeFileSync(registryPath, `${JSON.stringify({
       entries: [{ specId: targetSpecId, mode: "worktree", generation: "foreign-schema" }],

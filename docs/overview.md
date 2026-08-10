@@ -8,7 +8,7 @@
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the tool's purpose, the problem it solves, and its primary use cases."})}} -->
 
-This chapter introduces sdd-forge, a CLI tool that automates documentation generation from source code analysis and enforces a Spec-Driven Development (SDD) workflow. It describes the tool's purpose—eliminating documentation drift and ungoverned AI implementation—along with its internal architecture and primary use cases for teams working with AI coding agents.
+This chapter introduces sennel, a CLI tool that automates documentation generation from source code analysis and enforces a Spec-Driven Development (SDD) workflow. It describes the tool's purpose—eliminating documentation drift and ungoverned AI implementation—along with its internal architecture and primary use cases for teams working with AI coding agents.
 <!-- {{/text}} -->
 
 ## Content
@@ -17,9 +17,9 @@ This chapter introduces sdd-forge, a CLI tool that automates documentation gener
 
 <!-- {{text({prompt: "Describe the problem this CLI tool solves and its target users. Derive the purpose from package.json and README."})}} -->
 
-Engineering teams using AI coding agents face two persistent problems: documentation that drifts out of sync with evolving source code, and AI agents that implement features without validated specifications. sdd-forge addresses both by providing a pipeline that automatically regenerates structured documentation from live source analysis, and a three-phase SDD workflow that gates implementation behind programmatic spec validation. The tool targets software development teams—particularly those using Claude Code, Codex CLI, or similar AI agents—who need always-current documentation and a disciplined process for feature development.
+Engineering teams using AI coding agents face two persistent problems: documentation that drifts out of sync with evolving source code, and AI agents that implement features without validated specifications. sennel addresses both by providing a pipeline that automatically regenerates structured documentation from live source analysis, and a three-phase SDD workflow that gates implementation behind programmatic spec validation. The tool targets software development teams—particularly those using Claude Code, Codex CLI, or similar AI agents—who need always-current documentation and a disciplined process for feature development.
 
-The package is distributed as a Node.js CLI (`sdd-forge`) and requires no external npm dependencies, relying solely on Node.js built-in modules. It is configured per project via `.sdd-forge/config.json` and supports over 35 built-in presets covering technology stacks such as Node.js CLI tools, Next.js, Laravel, Hono, Drizzle ORM, Cloudflare Workers, and more.
+The package is distributed as a Node.js CLI (`sennel`) and requires no external npm dependencies, relying solely on Node.js built-in modules. It is configured per project via `.sennel/config.json` and supports over 35 built-in presets covering technology stacks such as Node.js CLI tools, Next.js, Laravel, Hono, Drizzle ORM, Cloudflare Workers, and more.
 <!-- {{/text}} -->
 
 ### Architecture Overview
@@ -28,7 +28,7 @@ The package is distributed as a Node.js CLI (`sdd-forge`) and requires no extern
 
 ```mermaid
 flowchart TD
-    A["src/sdd-forge.js\nEntry Point"] --> B{Namespace Dispatch}
+    A["src/sennel.js\nEntry Point"] --> B{Namespace Dispatch}
 
     B --> C["src/docs.js"]
     B --> D["src/flow.js"]
@@ -58,7 +58,7 @@ flowchart TD
 | Concept | Description |
 |---|---|
 | **Preset** | A named bundle of scan patterns, chapter templates, and DataSource classes (e.g., `node-cli`, `laravel`). Presets form a single-inheritance chain via the `parent` field in `preset.json`. |
-| **Analysis** | A structured JSON snapshot (`.sdd-forge/output/analysis.json`) produced by `docs scan`, containing file metadata, classes, methods, imports, exports, and configuration values extracted from source code. |
+| **Analysis** | A structured JSON snapshot (`.sennel/output/analysis.json`) produced by `docs scan`, containing file metadata, classes, methods, imports, exports, and configuration values extracted from source code. |
 | **DataSource** | A class that reads `analysis.json` and returns structured data for insertion into a documentation template via `{{data(...)}}` directives. |
 | **Directive** | A special comment in a markdown template: `{{data(...)}}` for structured data tables and `{{text(...)}}` for AI-generated prose. Both are replaced in-place during the pipeline. |
 | **Pipeline** | The ordered documentation generation sequence: `scan → enrich → init → data → text → readme → agents → [translate]`. Each stage is also executable individually. |
@@ -73,23 +73,23 @@ flowchart TD
 
 <!-- {{text({prompt: "Describe the typical steps from installation to first output in step format. Derive the steps from help output and command definitions in the source code."})}} -->
 
-1. **Install the package globally** — Run `npm install -g sdd-forge` to make the `sdd-forge` command available in your terminal.
+1. **Install the package globally** — Run `npm install -g sennel` to make the `sennel` command available in your terminal.
 
-2. **Run the interactive setup wizard** — In your project root, run `sdd-forge setup`. The wizard prompts for your project's type (preset, e.g., `node-cli`), documentation output languages, default language, and AI agent provider. It writes `.sdd-forge/config.json` and creates the initial skill files.
+2. **Run the interactive setup wizard** — In your project root, run `sennel setup`. The wizard prompts for your project's type (preset, e.g., `node-cli`), documentation output languages, default language, and AI agent provider. It writes `.sennel/config.json` and creates the initial skill files.
 
-3. **Scan source code** — Run `sdd-forge docs scan`. The scanner traverses source files defined by the preset's scan patterns and produces `.sdd-forge/output/analysis.json` with structured metadata.
+3. **Scan source code** — Run `sennel docs scan`. The scanner traverses source files defined by the preset's scan patterns and produces `.sennel/output/analysis.json` with structured metadata.
 
-4. **Enrich the analysis** — Run `sdd-forge docs enrich`. The AI agent adds summaries, chapter assignments, and role annotations to the entries in `analysis.json`.
+4. **Enrich the analysis** — Run `sennel docs enrich`. The AI agent adds summaries, chapter assignments, and role annotations to the entries in `analysis.json`.
 
-5. **Initialize chapter templates** — Run `sdd-forge docs init`. The preset's template inheritance chain is resolved and chapter files are written to `docs/`.
+5. **Initialize chapter templates** — Run `sennel docs init`. The preset's template inheritance chain is resolved and chapter files are written to `docs/`.
 
-6. **Populate structured data** — Run `sdd-forge docs data`. Each `{{data(...)}}` directive in `docs/*.md` is replaced with a generated table from the corresponding DataSource.
+6. **Populate structured data** — Run `sennel docs data`. Each `{{data(...)}}` directive in `docs/*.md` is replaced with a generated table from the corresponding DataSource.
 
-7. **Generate AI prose** — Run `sdd-forge docs text`. Each `{{text(...)}}` directive is replaced with AI-generated content based on the directive's prompt and the current analysis.
+7. **Generate AI prose** — Run `sennel docs text`. Each `{{text(...)}}` directive is replaced with AI-generated content based on the directive's prompt and the current analysis.
 
-8. **Build README and agent context** — Run `sdd-forge docs readme` and `sdd-forge docs agents` to produce `README.md` and `AGENTS.md`.
+8. **Build README and agent context** — Run `sennel docs readme` and `sennel docs agents` to produce `README.md` and `AGENTS.md`.
 
-9. **Run the full pipeline at once** — Use `sdd-forge docs build` as a shortcut to execute steps 3–8 in a single command.
+9. **Run the full pipeline at once** — Use `sennel docs build` as a shortcut to execute steps 3–8 in a single command.
 <!-- {{/text}} -->
 
 # System Overview
@@ -99,7 +99,7 @@ flowchart TD
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this project."})}} -->
 
-sdd-forge is a CLI tool that automates documentation generation from source code analysis and provides a Spec-Driven Development workflow for teams building with AI coding agents. It keeps project documentation synchronized with the codebase and enforces specification validation before implementation begins.
+sennel is a CLI tool that automates documentation generation from source code analysis and provides a Spec-Driven Development workflow for teams building with AI coding agents. It keeps project documentation synchronized with the codebase and enforces specification validation before implementation begins.
 <!-- {{/text}} -->
 
 
@@ -110,7 +110,7 @@ sdd-forge is a CLI tool that automates documentation generation from source code
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the project's architecture and whether it integrates with external systems."})}} -->
 
-This chapter describes the internal component architecture of sdd-forge, showing how the CLI dispatcher, documentation pipeline, SDD flow engine, preset system, and shared libraries relate to one another. The tool integrates with external AI agent providers (Claude CLI, Codex CLI, or custom commands) and optionally with Git and the GitHub CLI for branch management and pull request workflows.
+This chapter describes the internal component architecture of sennel, showing how the CLI dispatcher, documentation pipeline, SDD flow engine, preset system, and shared libraries relate to one another. The tool integrates with external AI agent providers (Claude CLI, Codex CLI, or custom commands) and optionally with Git and the GitHub CLI for branch management and pull request workflows.
 <!-- {{/text}} -->
 
 ## Content
@@ -120,7 +120,7 @@ This chapter describes the internal component architecture of sdd-forge, showing
 
 ```mermaid
 flowchart TD
-    Entry["src/sdd-forge.js\nCLI Entry"] --> Dispatch{Namespace Dispatch}
+    Entry["src/sennel.js\nCLI Entry"] --> Dispatch{Namespace Dispatch}
 
     Dispatch --> DocsSrc["src/docs.js"]
     Dispatch --> FlowSrc["src/flow.js"]
@@ -129,7 +129,7 @@ flowchart TD
 
     DocsSrc --> Pipeline["docs/commands/*.js\nPipeline Stages"]
     Pipeline --> Scanner["scan → analysis.json"]
-    Scanner --> AnalysisDB[("analysis.json\n.sdd-forge/output/")]
+    Scanner --> AnalysisDB[("analysis.json\n.sennel/output/")]
     AnalysisDB --> Enrich["enrich"]
     Enrich -->|AI call| AgentLib["src/lib/agent.js"]
     AgentLib --> AI(["AI Agent\nClaude / Codex / Custom"])
@@ -148,7 +148,7 @@ flowchart TD
     RunActions --> GitLib["src/lib/git-helpers.js"]
     GitLib --> Git(["git / gh CLI"])
 
-    Config[("config.json\n.sdd-forge/")] --> DocsSrc
+    Config[("config.json\n.sennel/")] --> DocsSrc
     Config --> FlowSrc
     Config --> AgentLib
 ```
@@ -159,11 +159,11 @@ flowchart TD
 
 | Component | Location | Responsibility | Input | Output |
 |---|---|---|---|---|
-| **CLI Entry** | `src/sdd-forge.js` | Parse the top-level command and dispatch to namespace handlers or independent commands | Raw CLI arguments | Delegated command invocation |
+| **CLI Entry** | `src/sennel.js` | Parse the top-level command and dispatch to namespace handlers or independent commands | Raw CLI arguments | Delegated command invocation |
 | **Docs Dispatcher** | `src/docs.js` | Route `docs <subcmd>` to the corresponding pipeline stage handler | `docs` subcommand + args | Pipeline stage execution |
 | **Flow Dispatcher** | `src/flow.js` | Route `flow <subcmd>` to registry-defined handlers with hook support | `flow` subcommand + args | Registry-resolved command execution |
 | **Flow Registry** | `src/flow/registry.js` | Single declarative source of truth for all flow subcommands; manages lazy imports, argument schemas, and pre/post hooks | Command name lookup | Resolved handler, hooks, and argument spec |
-| **Scanner** | `src/docs/commands/scan.js` | Traverse source files, invoke language parsers, and write analysis metadata | Source files (via scan patterns in preset) | `.sdd-forge/output/analysis.json` |
+| **Scanner** | `src/docs/commands/scan.js` | Traverse source files, invoke language parsers, and write analysis metadata | Source files (via scan patterns in preset) | `.sennel/output/analysis.json` |
 | **Enricher** | `src/docs/commands/enrich.js` | Invoke AI agent to add summaries, chapter assignments, and role metadata to analysis entries | `analysis.json` | Enriched `analysis.json` |
 | **Template Init** | `src/docs/commands/init.js` | Resolve preset parent chain, merge `{%block%}` overrides, and write chapter files | Preset templates, parent chain | `docs/*.md` chapter files |
 | **Data Stage** | `src/docs/commands/data.js` | Execute `{{data(...)}}` directives by calling DataSource classes with analysis data | `docs/*.md`, `analysis.json`, DataSources | Updated `docs/*.md` with data tables |
@@ -171,7 +171,7 @@ flowchart TD
 | **Readme Builder** | `src/docs/commands/readme.js` | Assemble `README.md` from chapter summaries, navigation links, and project metadata | `docs/*.md`, `config.json` | `README.md` |
 | **Agents Builder** | `src/docs/commands/agents.js` | Generate the AI agent context file from project metadata, structure, and docs | `package.json`, `config.json`, `docs/` | `AGENTS.md` |
 | **Preset System** | `src/presets/`, `src/lib/presets.js` | Auto-discover built-in and project-local presets; resolve inheritance chains; expose templates and DataSources | `config.json` `type` field | Resolved preset object with full parent chain |
-| **Config Loader** | `src/lib/config.js` | Load, parse, and validate `.sdd-forge/config.json`; expose path helper utilities | `.sdd-forge/config.json` | Validated config object |
+| **Config Loader** | `src/lib/config.js` | Load, parse, and validate `.sennel/config.json`; expose path helper utilities | `.sennel/config.json` | Validated config object |
 | **Agent Spawner** | `src/lib/agent.js` | Spawn AI agent subprocesses for enrichment, prose generation, and code review | Provider config, system prompt, user prompt | Parsed JSON response string |
 | **Flow State** | `src/lib/flow-state.js` | Read and write `flow.json`; manage step statuses, phases, requirements, and metrics | `specs/<NNN>/flow.json` | Typed flow state object |
 | **Language Parsers** | `src/docs/lib/lang/*.js` | Parse, minify, and extract structural metadata from source files per language (JS, PHP, etc.) | Raw source file content | Structured analysis entries |
@@ -195,7 +195,7 @@ flowchart TD
 
 <!-- {{text({prompt: "Describe the configuration differences across environments (local/staging/production)."})}} -->
 
-sdd-forge is a local developer CLI tool and does not have built-in environment tiers (local, staging, production). All configuration is stored in a single `.sdd-forge/config.json` file at the project root.
+sennel is a local developer CLI tool and does not have built-in environment tiers (local, staging, production). All configuration is stored in a single `.sennel/config.json` file at the project root.
 
 Differences across runtime contexts are managed through the following configuration fields:
 

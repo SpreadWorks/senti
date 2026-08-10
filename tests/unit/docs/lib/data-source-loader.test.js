@@ -14,7 +14,7 @@ describe("loadDataSources (fail-fast on broken DataSource modules)", () => {
   let brokenDir;
 
   before(() => {
-    validDir = makeTmpDir("senrail-loader-valid-");
+    validDir = makeTmpDir("sennel-loader-valid-");
     fs.writeFileSync(
       path.join(validDir, "good.js"),
       `export default function register() {
@@ -24,7 +24,7 @@ describe("loadDataSources (fail-fast on broken DataSource modules)", () => {
        }\n`,
     );
 
-    brokenDir = makeTmpDir("senrail-loader-broken-");
+    brokenDir = makeTmpDir("sennel-loader-broken-");
     fs.writeFileSync(
       path.join(brokenDir, "good.js"),
       `export default function register() {
@@ -66,7 +66,7 @@ describe("loadDataSources (fail-fast on broken DataSource modules)", () => {
   });
 
   it("returns an empty map when the directory does not exist", async () => {
-    const missing = path.join(os.tmpdir(), `senrail-loader-missing-${Date.now()}`);
+    const missing = path.join(os.tmpdir(), `sennel-loader-missing-${Date.now()}`);
     const sources = await loadDataSources(missing);
     assert.equal(sources.size, 0);
   });

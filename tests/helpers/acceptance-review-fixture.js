@@ -161,7 +161,7 @@ export class AcceptanceReviewFixture {
     const existingSpec = fs.existsSync(existingSpecPath)
       ? JSON.parse(fs.readFileSync(existingSpecPath, "utf8"))
       : {};
-    writeJson(this.root, ".senrail/config.json", {
+    writeJson(this.root, ".sennel/config.json", {
       name: "acceptance-review-fixture",
       lang: "en",
       type: "base",
@@ -385,7 +385,7 @@ export class AcceptanceReviewFixture {
     }
     if (noTests) {
       this.#writeFileIfMissing(this.finalRegressionRaw, [
-        "[senrail] final regression skipped",
+        "[sennel] final regression skipped",
         "reason: skipped_by_project_policy",
         "",
       ].join("\n"));

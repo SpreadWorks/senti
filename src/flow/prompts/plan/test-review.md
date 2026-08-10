@@ -1,4 +1,4 @@
-   - Run `senrail flow run review --phase test` after `scenario-validity` has passed.
+   - Run `sennel flow run review --phase test` after `scenario-validity` has passed.
    - Phase split: `plan/test` writes tests only, `plan/scenario-validity` performs pre-implementation runtime validity, this `plan/test-review` step performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local verification, and `impl/final-regression` runs the full project regression.
    - The review writes a requirement-to-test coverage artifact and performs static review of actual test code.
    - The `test-review` step is static anti-pattern review. Runtime pre-implementation validity belongs to `scenario-validity`.
@@ -19,7 +19,7 @@
      - `TOOLING_ERROR` is not a test-quality failure and does not complete `test-review` by itself.
      - Follow the single `reviewAction` returned by next-action/status. Do not infer a retry from process exit status.
      - For `retry_review`, fix the tooling boundary and rerun only while `remainingToolingAttempts` permits it.
-     - For `register_alternative_evidence`, place a finalized version-1 audit document inside the active spec directory and run `senrail flow set review-evidence --file <path>` with the normal target guards.
+     - For `register_alternative_evidence`, place a finalized version-1 audit document inside the active spec directory and run `sennel flow set review-evidence --file <path>` with the normal target guards.
      - For `move_to_acceptance`, keep the canonical handoff and continue normal lifecycle ordering; acceptance owns final finding disposition.
      - For `stop_as_blocker`, stop and report the persisted blocker. Completion overrides do not substitute for canonical review evidence.
    - `test-review` uses a command-owned guarded repair transition between separate review invocations. It freezes the canonical blocking findings and source test revision, republishes a changed spec-test tree through the normal handoff, then requires `scenario-validity` before a fresh `test-review`. The rerun regenerates `test-coverage.json` from the published canonical tests.

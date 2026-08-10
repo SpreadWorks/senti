@@ -6,10 +6,10 @@ import { deployPresetCopies } from "../../../src/lib/preset-deploy.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 test("deployPresetCopies writes bundled base artifacts under the canonical managed directory", () => {
-  const root = createTmpDir("senrail-preset-deploy-");
+  const root = createTmpDir("sennel-preset-deploy-");
   try {
     const copied = deployPresetCopies(root);
-    const destination = path.join(root, ".senrail", "presets", "base");
+    const destination = path.join(root, ".sennel", "presets", "base");
 
     assert.deepEqual(copied.sort(), [
       path.join(destination, "guardrail-rewrite-rubric.md"),

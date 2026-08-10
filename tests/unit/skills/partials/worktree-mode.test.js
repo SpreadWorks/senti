@@ -30,7 +30,7 @@ describe("skills/partials/worktree-mode.md — Edit/Write absolute path guard", 
     assert.match(
       text,
       /resolve-context/,
-      "partial must reference `senrail flow get resolve-context` as the source of worktreePath",
+      "partial must reference `sennel flow get resolve-context` as the source of worktreePath",
     );
   });
 

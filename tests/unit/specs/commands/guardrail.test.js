@@ -6,7 +6,7 @@ import { spawnSync } from "child_process";
 import { setupFlowAtStep } from "../../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
-const SENRAIL = join(process.cwd(), "src/senrail.js");
+const SENNEL = join(process.cwd(), "src/sennel.js");
 
 // Dynamically import gate functions for unit tests
 const { buildGuardrailPrompt, parseGuardrailArticleEvaluation, IMPL_DIFF_SCOPE_LINES } = await import(
@@ -52,13 +52,13 @@ describe("gate guardrail integration", () => {
     initGitRepo(tmp);
     commitAll(tmp, "init");
     setupFlowAtStep(tmp, "spec-gate");
-    writeJson(tmp, ".senrail/config.json", config || {
+    writeJson(tmp, ".sennel/config.json", config || {
       lang: "en", type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "spec.json", validSpec);
     if (guardrails) {
-      writeJson(tmp, ".senrail/guardrail.json", { guardrails });
+      writeJson(tmp, ".sennel/guardrail.json", { guardrails });
     }
     return tmp;
   }
@@ -70,13 +70,13 @@ describe("gate guardrail integration", () => {
     // errors out unless --phase is passed. The helper centralizes the flag so
     // callers cannot accidentally pass a conflicting --phase via extraArgs.
     return spawnSync("node", [
-      SENRAIL, "flow", "run", "gate",
+      SENNEL, "flow", "run", "gate",
       "--phase", phase,
       "--spec", join(dir, "spec.json"),
       ...extraArgs,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: dir },
+      env: { ...process.env, SENNEL_WORK_ROOT: dir },
     });
   }
 

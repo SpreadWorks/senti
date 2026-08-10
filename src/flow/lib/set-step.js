@@ -648,7 +648,7 @@ export default class SetStepCommand extends FlowCommand {
           }
         } catch (err) {
           process.stderr.write(
-            `[senrail] set-step auto-upgrade re-eval: ${err.message}\n`,
+            `[sennel] set-step auto-upgrade re-eval: ${err.message}\n`,
           );
         }
       }

@@ -1,7 +1,7 @@
 /**
  * spec 202 — integration tests for gate-impl wiring.
  *
- * Invokes the real `senrail` CLI as a subprocess against a throwaway git
+ * Invokes the real `sennel` CLI as a subprocess against a throwaway git
  * repo fixture, verifying:
  *   R1: PASS wiring (mechanical test-change check admits multi-line +)
  *   R2: FAIL wiring (mechanical check rejects deletions / single-line +)
@@ -28,7 +28,7 @@ import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
 import { writeIntegrationGateTrustArtifacts } from "../../helpers/integration-gate-artifacts.js";
 import { captureRepairBaseline } from "../../../src/flow/lib/repair-state-identity.js";
 
-const CMD = path.join(process.cwd(), "src/senrail.js");
+const CMD = path.join(process.cwd(), "src/sennel.js");
 const SPEC_ID = "001-test";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 const SPEC_MARKDOWN_PATH = `specs/${SPEC_ID}/spec.md`;
@@ -102,7 +102,7 @@ function setupFixture(tmp, {
       { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
     ], stubResponse);
   if (stubScriptBody) writeFile(tmp, path.relative(tmp, stubPath), stubScriptBody);
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -167,7 +167,7 @@ function setupFixture(tmp, {
   writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
 
   // Active flow pointer — format is `[{ specId: <specId>, mode }]`.
-  writeJson(tmp, ".senrail/.active-flow", [
+  writeJson(tmp, ".sennel/.active-flow", [
     { specId: SPEC_ID, mode: "local" },
   ]);
 
@@ -197,7 +197,7 @@ function runGate(tmp, extraArgs = [], phase = "task-impl") {
     [CMD, "flow", "run", "gate", "--phase", phase, ...extraArgs],
     {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     },
   );
 }

@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "agents"];
 
 describe("agents CLI", () => {
@@ -14,14 +14,14 @@ describe("agents CLI", () => {
 
   it("creates AGENTS.md from template when missing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
-    writeJson(tmp, ".senrail/output/analysis.json", { analyzedAt: "2026-01-01" });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/output/analysis.json", { analyzedAt: "2026-01-01" });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
 
     assert.ok(!fs.existsSync(join(tmp, "AGENTS.md")), "AGENTS.md should not exist before");
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.ok(fs.existsSync(join(tmp, "AGENTS.md")), "AGENTS.md should be created");
     const content = fs.readFileSync(join(tmp, "AGENTS.md"), "utf8");
@@ -30,7 +30,7 @@ describe("agents CLI", () => {
 
   it("exits non-zero when analysis.json is missing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeFile(tmp, "AGENTS.md", [
       '<!-- {{data("base.agents.flow")}} -->',
       '<!-- {{/data}} -->',
@@ -39,7 +39,7 @@ describe("agents CLI", () => {
     try {
       execFileSync("node", [CMD, ...CMD_ARGS], {
         encoding: "utf8",
-        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
       });
       assert.fail("should exit non-zero");
     } catch (err) {
@@ -49,8 +49,8 @@ describe("agents CLI", () => {
 
   it("exits non-zero when no agent configured (for project directive)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 5 } },
     });
@@ -65,7 +65,7 @@ describe("agents CLI", () => {
     try {
       execFileSync("node", [CMD, ...CMD_ARGS], {
         encoding: "utf8",
-        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
       });
       assert.fail("should exit non-zero");
     } catch (err) {
@@ -79,8 +79,8 @@ describe("agents CLI", () => {
 
   it("resolves the flow directive when no project directive exists", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 5 } },
     });
@@ -94,12 +94,12 @@ describe("agents CLI", () => {
     // No project directive = no AI needed = should succeed without agent
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const content = fs.readFileSync(join(tmp, "AGENTS.md"), "utf8");
     // Spec-Driven Development template should be resolved
-    assert.match(content, /## Senrail Flow/);
+    assert.match(content, /## Sennel Flow/);
     // Custom content should remain
     assert.match(content, /Custom content below/);
     // Directive tags should still be present

@@ -82,12 +82,12 @@ graph TD
 
 <!-- {{text({prompt: "代表的なコマンドを実行した際のモジュール間のデータ・制御フローを番号付きステップで説明してください。エントリポイントから最終出力までの流れを含めること。", mode: "deep"})}} -->
 
-1. `sdd-forge docs scan` 実行時、`src/docs/commands/scan.js` が引数と docs コンテキストを解決し、include/exclude ルールで対象ソースを収集します。
+1. `sennel docs scan` 実行時、`src/docs/commands/scan.js` が引数と docs コンテキストを解決し、include/exclude ルールで対象ソースを収集します。
 2. 同コマンドは DataSource 群を読み込み、各ファイルをカテゴリごとに解析してエントリを作成し、既存 `analysis.json` の ID・ハッシュ情報を再利用します。
-3. 解析結果は `.sdd-forge/analysis.json` に保存され、以降の `docs enrich`・`docs data`・`docs readme` が同一データを参照します。
-4. `sdd-forge docs data` では `src/docs/commands/data.js` が `directive-parser` と resolver を使い、`{{data(...)}}` ブロックを各 DataSource 出力で置換します。
-5. `sdd-forge docs readme`/`docs translate` はテンプレート解決後に必要な AI 呼び出しを行い、README や多言語 docs を更新します。
-6. `sdd-forge check scan` では `src/check/commands/scan.js` が走査対象と `analysis.json` を比較し、未解析ファイル一覧・拡張子別件数・カバレッジ率を最終出力します。
+3. 解析結果は `.sennel/analysis.json` に保存され、以降の `docs enrich`・`docs data`・`docs readme` が同一データを参照します。
+4. `sennel docs data` では `src/docs/commands/data.js` が `directive-parser` と resolver を使い、`{{data(...)}}` ブロックを各 DataSource 出力で置換します。
+5. `sennel docs readme`/`docs translate` はテンプレート解決後に必要な AI 呼び出しを行い、README や多言語 docs を更新します。
+6. `sennel check scan` では `src/check/commands/scan.js` が走査対象と `analysis.json` を比較し、未解析ファイル一覧・拡張子別件数・カバレッジ率を最終出力します。
 <!-- {{/text}} -->
 
 ### 拡張ポイント

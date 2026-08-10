@@ -37,7 +37,7 @@ function setupProject(root, { pluginId = "sample-plugin", sourceId = "sample-sou
   });
   writeFile(sourceRoot, "lib/version.txt", "new plugin\n");
 
-  writeJson(root, ".senrail/config.json", {
+  writeJson(root, ".sennel/config.json", {
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -50,23 +50,23 @@ function setupProject(root, { pluginId = "sample-plugin", sourceId = "sample-sou
       }],
     },
   });
-  writeJson(root, ".senrail/config.local.json", {
+  writeJson(root, ".sennel/config.local.json", {
     plugin: { sources: [], packages: [], config: { marker: "private" } },
   });
-  writeJson(root, `.senrail/plugins/${pluginId}/plugin.json`, {
+  writeJson(root, `.sennel/plugins/${pluginId}/plugin.json`, {
     name: pluginId,
     type: "mixed",
     files: ["plugin.json", "lib/"],
     contributions: {},
   });
-  writeFile(root, `.senrail/plugins/${pluginId}/lib/version.txt`, "old plugin\n");
+  writeFile(root, `.sennel/plugins/${pluginId}/lib/version.txt`, "old plugin\n");
 
   return {
-    publicConfig: path.join(root, ".senrail", "config.json"),
-    localConfig: path.join(root, ".senrail", "config.local.json"),
+    publicConfig: path.join(root, ".sennel", "config.json"),
+    localConfig: path.join(root, ".sennel", "config.local.json"),
     sourceRoot,
-    installedRoot: path.join(root, ".senrail", "plugins", pluginId),
-    pluginsRoot: path.join(root, ".senrail", "plugins"),
+    installedRoot: path.join(root, ".sennel", "plugins", pluginId),
+    pluginsRoot: path.join(root, ".sennel", "plugins"),
   };
 }
 
@@ -195,13 +195,13 @@ describe("plugin install transaction", () => {
       pluginId: "official-presets",
       sourceId: "official-presets",
     });
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
       plugin: { sources: [], packages: [] },
     });
-    writeJson(root, ".senrail/config.local.json", {
+    writeJson(root, ".sennel/config.local.json", {
       plugin: {
         sources: [],
         packages: [{

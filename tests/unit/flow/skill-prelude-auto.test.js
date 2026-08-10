@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-const SKILL_PATH = path.join(process.cwd(), "src/skills/senrail.flow/SKILL.md");
+const SKILL_PATH = path.join(process.cwd(), "src/skills/sennel.flow/SKILL.md");
 const CORE_PRINCIPLE_PATH = path.join(
   process.cwd(),
   "src/skills/partials/core-principle.md",
@@ -17,7 +17,7 @@ function readCorePrinciple() {
   return fs.readFileSync(CORE_PRINCIPLE_PATH, "utf8");
 }
 
-describe("senrail.flow skill prelude auto flow", () => {
+describe("sennel.flow skill prelude auto flow", () => {
   it("uses the auto prompt as an intent confirmation with Goal and Scope", () => {
     const text = readSkill();
 
@@ -47,7 +47,7 @@ describe("senrail.flow skill prelude auto flow", () => {
     const text = readSkill();
 
     assert.match(text, /B\.0\.5 auto default when preflight auto was accepted/);
-    assert.match(text, /Worktree: `senrail flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
+    assert.match(text, /Worktree: `sennel flow prepare --title "\.\.\." --base <branch> --worktree --run-id <runId>`/);
   });
 
   it("allows parallel flow prelude only through an explicit preparing runId", () => {
@@ -59,8 +59,8 @@ describe("senrail.flow skill prelude auto flow", () => {
     assert.match(entry, /parallel flows are allowed/);
     assert.match(entry, /explicit preparing `runId`/);
     assert.match(prelude, /may be run even when another flow is active/);
-    assert.match(prelude, /Before `prepare`, run `senrail flow get status <runId> --expect-run-id <runId>`/);
-    assert.match(prelude, /Never run bare `senrail flow prepare` while an unrelated flow is active/);
+    assert.match(prelude, /Before `prepare`, run `sennel flow get status <runId> --expect-run-id <runId>`/);
+    assert.match(prelude, /Never run bare `sennel flow prepare` while an unrelated flow is active/);
     assert.doesNotMatch(prelude, /Concurrent flow prelude is out of scope/);
     assert.doesNotMatch(entry, /must not be blocked by unrelated active flows/);
   });
@@ -70,9 +70,9 @@ describe("senrail.flow skill prelude auto flow", () => {
     const prepare = text.slice(text.indexOf("B.4. **Prepare spec"), text.indexOf("Proceed to **C. Dispatcher loop**"));
 
     assert.match(prepare, /After a successful prepare, immediately verify the promoted target/);
-    assert.match(prepare, /senrail flow get status <runId> --expect-run-id <runId> --expect-issue <n> --expect-spec <spec>/);
-    assert.match(prepare, /senrail flow get status <runId> --expect-run-id <runId> --expect-issue <n>/);
-    assert.match(prepare, /senrail flow get status <runId> --expect-run-id <runId> --expect-spec <spec>/);
+    assert.match(prepare, /sennel flow get status <runId> --expect-run-id <runId> --expect-issue <n> --expect-spec <spec>/);
+    assert.match(prepare, /sennel flow get status <runId> --expect-run-id <runId> --expect-issue <n>/);
+    assert.match(prepare, /sennel flow get status <runId> --expect-run-id <runId> --expect-spec <spec>/);
     assert.match(prepare, /branch \/ worktree/);
     assert.match(prepare, /ACTIVE_FLOW_MISMATCH/);
   });
@@ -82,11 +82,11 @@ describe("senrail.flow skill prelude auto flow", () => {
     const dispatcher = text.slice(text.indexOf("### C. Dispatcher loop"), text.indexOf("## Post-flow"));
 
     assert.match(text, /CLI-returned opaque binding tokens/);
-    assert.match(dispatcher, /senrail flow get next-action --expect-binding <token>/);
-    assert.match(dispatcher, /senrail flow set auto on --expect-binding <token>/);
-    assert.match(dispatcher, /senrail flow set auto off --expect-binding <token>/);
+    assert.match(dispatcher, /sennel flow get next-action --expect-binding <token>/);
+    assert.match(dispatcher, /sennel flow set auto on --expect-binding <token>/);
+    assert.match(dispatcher, /sennel flow set auto off --expect-binding <token>/);
     assert.match(dispatcher, /cannot accept the\s+CLI-generated binding, STOP/s);
-    assert.match(dispatcher, /senrail flow get status <targetRunId> --expect-binding <token>/);
+    assert.match(dispatcher, /sennel flow get status <targetRunId> --expect-binding <token>/);
     assert.match(text, /Reference forms below omit `--expect-binding <token>`/);
     assert.doesNotMatch(text, /targetGuardArgs/);
     assert.match(text, /Do not proceed past a step whose `requires_approval` is `true`/);

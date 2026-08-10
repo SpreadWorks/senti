@@ -5,31 +5,31 @@ import { PRODUCT, ProductIdentity } from "../../src/lib/product.js";
 
 describe("ProductIdentity", () => {
   it("owns canonical product namespaces", () => {
-    assert.equal(PRODUCT.displayName, "Senrail");
-    assert.equal(PRODUCT.machineName, "senrail");
-    assert.equal(PRODUCT.packageName, "senrail");
-    assert.equal(PRODUCT.repository, "SpreadWorks/senrail");
-    assert.equal(PRODUCT.entrypoint, "src/senrail.js");
-    assert.equal(PRODUCT.entrypointBasename, "senrail.js");
-    assert.equal(PRODUCT.managedDirName, ".senrail");
-    assert.equal(PRODUCT.envPrefix, "SENRAIL_");
-    assert.equal(PRODUCT.skillNamespace, "senrail.");
-    assert.equal(PRODUCT.repositoryUrl, "https://github.com/SpreadWorks/senrail.git");
-    assert.equal(PRODUCT.officialPresetsRepository, "SpreadWorks/senrail-presets");
-    assert.equal(PRODUCT.workflowPluginRepository, "SpreadWorks/senrail-workflow-plugin");
-    assert.equal(PRODUCT.officialPresetsRepositoryUrl, "https://github.com/SpreadWorks/senrail-presets.git");
-    assert.equal(PRODUCT.workflowPluginRepositoryUrl, "https://github.com/SpreadWorks/senrail-workflow-plugin.git");
+    assert.equal(PRODUCT.displayName, "Sennel");
+    assert.equal(PRODUCT.machineName, "sennel");
+    assert.equal(PRODUCT.packageName, "sennel");
+    assert.equal(PRODUCT.repository, "SpreadWorks/sennel");
+    assert.equal(PRODUCT.entrypoint, "src/sennel.js");
+    assert.equal(PRODUCT.entrypointBasename, "sennel.js");
+    assert.equal(PRODUCT.managedDirName, ".sennel");
+    assert.equal(PRODUCT.envPrefix, "SENNEL_");
+    assert.equal(PRODUCT.skillNamespace, "sennel.");
+    assert.equal(PRODUCT.repositoryUrl, "https://github.com/SpreadWorks/sennel.git");
+    assert.equal(PRODUCT.officialPresetsRepository, "SpreadWorks/sennel-presets");
+    assert.equal(PRODUCT.workflowPluginRepository, "SpreadWorks/sennel-workflow-plugin");
+    assert.equal(PRODUCT.officialPresetsRepositoryUrl, "https://github.com/SpreadWorks/sennel-presets.git");
+    assert.equal(PRODUCT.workflowPluginRepositoryUrl, "https://github.com/SpreadWorks/sennel-workflow-plugin.git");
   });
 
   it("derives product-owned protocol, environment, and Git namespaces", () => {
-    assert.equal(PRODUCT.env("WORK_ROOT"), "SENRAIL_WORK_ROOT");
-    assert.equal(PRODUCT.managedPath("output", "analysis.json"), ".senrail/output/analysis.json");
-    assert.equal(PRODUCT.skill("flow"), "senrail.flow");
-    assert.equal(PRODUCT.artifactMarker("outbox"), "senrail-outbox");
-    assert.equal(PRODUCT.protocol("migration-reservation", "v1"), "senrail-migration-reservation-v1");
-    assert.equal(PRODUCT.hashSalt("token-metrics-input", "v1"), "senrail-token-metrics-input-v1\0");
-    assert.equal(PRODUCT.temporaryPrefix("repair-git"), "senrail-repair-git-");
-    assert.equal(PRODUCT.flowBaselineRef("run-1"), "refs/senrail/flows/run-1/baseline");
+    assert.equal(PRODUCT.env("WORK_ROOT"), "SENNEL_WORK_ROOT");
+    assert.equal(PRODUCT.managedPath("output", "analysis.json"), ".sennel/output/analysis.json");
+    assert.equal(PRODUCT.skill("flow"), "sennel.flow");
+    assert.equal(PRODUCT.artifactMarker("outbox"), "sennel-outbox");
+    assert.equal(PRODUCT.protocol("migration-reservation", "v1"), "sennel-migration-reservation-v1");
+    assert.equal(PRODUCT.hashSalt("token-metrics-input", "v1"), "sennel-token-metrics-input-v1\0");
+    assert.equal(PRODUCT.temporaryPrefix("repair-git"), "sennel-repair-git-");
+    assert.equal(PRODUCT.flowBaselineRef("run-1"), "refs/sennel/flows/run-1/baseline");
     assert.equal(PRODUCT.githubUrl(PRODUCT.officialRepository("presets")), PRODUCT.officialPresetsRepositoryUrl);
     assert.equal(PRODUCT.githubUrl(PRODUCT.officialRepository("workflow-plugin")), PRODUCT.workflowPluginRepositoryUrl);
     assert.ok(PRODUCT instanceof ProductIdentity);
@@ -49,8 +49,8 @@ describe("ProductIdentity", () => {
     assert.equal(packageJson.repository.url, PRODUCT.repositoryUrl);
     assert.match(readme, new RegExp(`^# ${PRODUCT.displayName}$`, "m"));
     assert.ok(japaneseReadme.startsWith(`# <!-- {{data("cli.project.name")}} -->${PRODUCT.displayName}<!-- {{/data}} -->\n`));
-    assert.doesNotMatch(readme, /@spreadworks\/senrail/i);
-    assert.doesNotMatch(japaneseReadme, /@spreadworks\/senrail/i);
+    assert.doesNotMatch(readme, /@spreadworks\/sennel/i);
+    assert.doesNotMatch(japaneseReadme, /@spreadworks\/sennel/i);
     assert.match(englishUi.setup.title, new RegExp(`^${PRODUCT.displayName}\\b`));
     assert.match(japaneseUi.setup.title, new RegExp(`^${PRODUCT.displayName}\\b`));
   });

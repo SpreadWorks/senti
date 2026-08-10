@@ -1,5 +1,5 @@
 /**
- * senrail/docs/lib/scanner.js
+ * sennel/docs/lib/scanner.js
  *
  * 汎用ソースコード解析ユーティリティ。
  * ファイル探索・言語別パーサなど、DataSource の scan() で使われる共通機能を提供する。

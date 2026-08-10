@@ -78,9 +78,9 @@ export class ProductIdentity {
 }
 
 export const PRODUCT = new ProductIdentity({
-  displayName: "Senrail",
-  machineName: "senrail",
-  packageName: "senrail",
-  repository: "SpreadWorks/senrail",
-  entrypoint: "src/senrail.js",
+  displayName: "Sennel",
+  machineName: "sennel",
+  packageName: "sennel",
+  repository: "SpreadWorks/sennel",
+  entrypoint: "src/sennel.js",
 });

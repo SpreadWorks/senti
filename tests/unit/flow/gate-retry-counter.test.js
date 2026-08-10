@@ -10,7 +10,7 @@ import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
 // spec 201: retry counter plumbing (P2-R1, P2-R4)
 // -----------------------------------------------------------------------------
 
-const SENRAIL_CMD = path.join(process.cwd(), "src/senrail.js");
+const SENNEL_CMD = path.join(process.cwd(), "src/sennel.js");
 
 describe("VALID_METRIC_COUNTERS includes gateRetry (P2-R1)", () => {
   it("exports gateRetry as a valid counter name", async () => {
@@ -33,8 +33,8 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
 
     const out = execFileSync(
       "node",
-      [SENRAIL_CMD, "flow", "set", "metric", "task-impl", "gateRetry"],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+      [SENNEL_CMD, "flow", "set", "metric", "task-impl", "gateRetry"],
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
     const res = JSON.parse(out);
     assert.equal(res.ok, true);
@@ -56,8 +56,8 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
     for (let i = 0; i < 3; i++) {
       execFileSync(
         "node",
-        [SENRAIL_CMD, "flow", "set", "metric", "task-impl", "gateRetry"],
-        { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: tmp } },
+        [SENNEL_CMD, "flow", "set", "metric", "task-impl", "gateRetry"],
+        { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
       );
     }
     const flow = JSON.parse(

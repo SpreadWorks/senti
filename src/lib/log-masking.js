@@ -1,5 +1,5 @@
 /**
- * senrail/lib/log-masking.js
+ * sennel/lib/log-masking.js
  *
  * Sensitive information masking for Logger output (spec 192).
  *
@@ -49,7 +49,7 @@ const PATTERNS = [
  *   - `opts.trustedRoots` — explicit array from the caller (Logger passes
  *     its own logDir and cwd).
  *   - `opts.workRoot` — legacy alias for a single root.
- *   - `SENRAIL_WORK_ROOT` environment variable.
+ *   - `SENNEL_WORK_ROOT` environment variable.
  */
 function resolveTrustedRoots(opts) {
   const roots = [];

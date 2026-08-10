@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "scan"];
 
 describe("incremental scan by hash", () => {
@@ -14,7 +14,7 @@ describe("incremental scan by hash", () => {
 
   function setupProject(files = {}) {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -29,9 +29,9 @@ describe("incremental scan by hash", () => {
   function runScan() {
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     return JSON.parse(fs.readFileSync(outputPath, "utf8"));
   }
 
@@ -39,7 +39,7 @@ describe("incremental scan by hash", () => {
     const entry = analysis.modules.entries[index];
     Object.assign(entry, enrichment);
     analysis.enrichedAt = "2026-01-01T00:00:00.000Z";
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     fs.writeFileSync(outputPath, JSON.stringify(analysis) + "\n");
   }
 
@@ -54,7 +54,7 @@ describe("incremental scan by hash", () => {
 
     // Enrich both entries
     enrichEntry(first, 0, { summary: "func a", detail: "returns a", chapter: "overview", role: "lib" });
-    const enriched = JSON.parse(fs.readFileSync(join(tmp, ".senrail/output/analysis.json"), "utf8"));
+    const enriched = JSON.parse(fs.readFileSync(join(tmp, ".sennel/output/analysis.json"), "utf8"));
     enrichEntry(enriched, 1, { summary: "func b", detail: "returns b", chapter: "cli_commands", role: "lib" });
 
     // 2nd scan (no changes)
@@ -81,7 +81,7 @@ describe("incremental scan by hash", () => {
       first.modules.entries[i].chapter = "overview";
     }
     first.enrichedAt = "2026-01-01T00:00:00.000Z";
-    fs.writeFileSync(join(tmp, ".senrail/output/analysis.json"), JSON.stringify(first) + "\n");
+    fs.writeFileSync(join(tmp, ".sennel/output/analysis.json"), JSON.stringify(first) + "\n");
 
     // Change only a.js
     writeFile(tmp, "src/a.js", 'export function a() { return "changed"; }\n');

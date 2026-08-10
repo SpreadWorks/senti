@@ -3,9 +3,9 @@
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/senrail.svg)](https://www.npmjs.com/package/senrail)
-[![license](https://img.shields.io/npm/l/senrail.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/senrail.svg)](https://www.npmjs.com/package/senrail)
+[![npm version](https://img.shields.io/npm/v/sennel.svg)](https://www.npmjs.com/package/sennel)
+[![license](https://img.shields.io/npm/l/sennel.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/sennel.svg)](https://www.npmjs.com/package/sennel)
 
 > **Alpha:** APIs, command structure, and configuration formats may change without notice.
 
@@ -79,13 +79,13 @@ If you already have source code, generate documentation to get a complete pictur
 
 | Skill | Phase |
 |---|---|
-| `/senrail.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
+| `/sennel.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 **[Codex CLI](https://github.com/openai/codex)** — invoke via `$` prefix:
 
 | Command | Phase |
 |---|---|
-| `$senrail.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
+| `$sennel.flow` | full Spec-Driven Development flow (plan, implement, finalize) |
 
 ## Commands
 
@@ -94,11 +94,11 @@ If you already have source code, generate documentation to get a complete pictur
 | `setup` | Register project and generate config |
 | `docs build` | Run the full documentation pipeline |
 
-See `senrail help` or the [command reference](docs/cli_commands.md) for the full list.
+See `sennel help` or the [command reference](docs/cli_commands.md) for the full list.
 
 ## Configuration
 
-`setup` generates `.senrail/config.json`:
+`setup` generates `.sennel/config.json`:
 
 ```jsonc
 {

@@ -1677,8 +1677,8 @@ export function validateTestExecuteResultEvidence(result, {
     if (regression.raw_output_lines.end_line > rawLines.length) {
       throw new Error("regression.raw_output_lines is outside raw output");
     }
-    const startMarker = `[senrail] project regression start command=${regression.command} mode=${regression.mode}`;
-    const endMarker = `[senrail] project regression end result=${regression.result}`;
+    const startMarker = `[sennel] project regression start command=${regression.command} mode=${regression.mode}`;
+    const endMarker = `[sennel] project regression end result=${regression.result}`;
     if (!rawOutputText.includes(startMarker) || !rawOutputText.includes(endMarker)) {
       throw new Error("raw output missing project regression start/end markers matching artifact command/result");
     }

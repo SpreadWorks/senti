@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * senrail/engine/readme.js
+ * sennel/engine/readme.js
  *
  * docs/ 配下の章ファイルから README.md を自動生成する。
  * 既存 README.md の MANUAL ブロックは保持する。
  *
  * Usage:
- *   node senrail/engine/readme.js [--dry-run] [--help]
+ *   node sennel/engine/readme.js [--dry-run] [--help]
  */
 
 import fs from "fs";
@@ -152,7 +152,7 @@ async function runReadme(ctx, rawArgs) {
       const cfg = container.get("config");
       const agent = ctx.agent;
       if (!agent || !agent.resolve("docs.readme")) {
-        throw new Error("No agent configured. Set 'agent.default' in config.json or run 'senrail setup'.");
+        throw new Error("No agent configured. Set 'agent.default' in config.json or run 'sennel setup'.");
       }
       const analysis = loadFullAnalysis(root) || {};
       const documentStyle = cfg?.docs?.style;

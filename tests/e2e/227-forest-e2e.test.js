@@ -7,14 +7,14 @@ import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp
 import { initGitRepo, commitAll, checkoutNewBranch } from "../helpers/git-repo.js";
 import { setupFlowAtStep } from "../helpers/flow-setup.js";
 
-const CMD = path.join(process.cwd(), "src/senrail.js");
+const CMD = path.join(process.cwd(), "src/sennel.js");
 const SPEC_ID = "001-forest-e2e";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 
 function run(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
   });
 }
 
@@ -48,7 +48,7 @@ function flowTask(id, status = "pending") {
 }
 
 function setupForestFixture(tmp, { step = "implement", tasks = [flowTask("T-1"), flowTask("T-2")] } = {}) {
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },

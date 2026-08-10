@@ -22,7 +22,7 @@ src/
 ├─ check/commands/scan.js            # CLI command that reports analysis coverage and uncovered files
 ├─ docs/
 │  ├─ commands/                      # Docs pipeline commands (scan, enrich, init, data, readme, agents, translate)
-│  │  ├─ scan.js                     # Builds and writes .sdd-forge/analysis.json from source files
+│  │  ├─ scan.js                     # Builds and writes .sennel/analysis.json from source files
 │  │  ├─ enrich.js                   # Adds AI-generated summary/detail/chapter metadata in batches
 │  │  ├─ data.js                     # Resolves {{data}} directives and updates chapter files
 │  │  ├─ init.js                     # Initializes docs chapters from preset/template resolution
@@ -100,11 +100,11 @@ graph TD
 
 1. The command entry parses CLI flags and resolves runtime context (`root`, `srcRoot`, config, type) through docs context/container wiring.
 2. Include/exclude scan rules are derived from config or preset chains, then source files are collected by `collectFiles` with glob matching and metadata (`hash`, `lines`, `mtime`).
-3. Existing `.sdd-forge/analysis.json` is loaded when available to build indexes for stable entry IDs and hash-based reuse.
+3. Existing `.sennel/analysis.json` is loaded when available to build indexes for stable entry IDs and hash-based reuse.
 4. DataSource implementations are loaded from preset chain `data/` directories, and each source parses matched files into category entries.
 5. For unchanged files, previous entries are reused; for changed files or changed DataSource hashes, entries are rebuilt and marked for re-parse.
 6. Category summaries are produced via analysis-entry helpers, and metadata keys (such as timestamps) are updated in the aggregate analysis object.
-7. The final analysis payload is written to `.sdd-forge/analysis.json` (or printed in stdout mode), with deterministic ordering and localized logging.
+7. The final analysis payload is written to `.sennel/analysis.json` (or printed in stdout mode), with deterministic ordering and localized logging.
 8. Downstream commands (`enrich`, `data`, `readme`, `translate`) consume this artifact to generate chapter content, fill directives, and produce final docs outputs.
 <!-- {{/text}} -->
 

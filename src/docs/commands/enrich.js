@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * senrail/docs/commands/enrich.js
+ * sennel/docs/commands/enrich.js
  *
  * AI で analysis.json の各エントリーに summary/detail/chapter/role を付与する。
  * scan 後に実行し、enriched analysis.json を生成する。
@@ -423,7 +423,7 @@ async function runEnrich(ctx, rawArgs) {
   // Load analysis
   const analysis = loadFullAnalysis(root);
   if (!analysis) {
-    throw new Error("enrich: analysis.json not found. Run 'senrail docs scan' first.");
+    throw new Error("enrich: analysis.json not found. Run 'sennel docs scan' first.");
   }
 
   // Check for AI agent
@@ -539,7 +539,7 @@ async function runEnrich(ctx, rawArgs) {
 
     const enrichment = parseEnrichResponse(response);
     if (!enrichment) {
-      // Dump failed response for debugging (to workDir, not .senrail/output/)
+      // Dump failed response for debugging (to workDir, not .sennel/output/)
       const dumpDir = resolveWorkDir(root, config);
       fs.mkdirSync(dumpDir, { recursive: true });
       const dumpPath = path.join(dumpDir, `enrich-fail-batch${batchIdx + 1}.txt`);

@@ -140,7 +140,7 @@ function specDirFor(spec) {
 
 function recoveryCommandFor(input) {
   const reason = String(input.reason || "").replace(/"/g, '\\"');
-  return `senrail flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
+  return `sennel flow set retry reset ${input.kind} ${input.phase} --reason "${reason}" --yes`;
 }
 
 function sha256ForFiles(root, relPaths, runtimeFingerprints = []) {

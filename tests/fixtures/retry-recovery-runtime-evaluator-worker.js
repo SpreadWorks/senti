@@ -126,7 +126,7 @@ function makeFlowState(buildInitialSteps) {
 }
 
 async function loadRuntime(runtimeRoot, projectRoot) {
-  process.env.SENRAIL_WORK_ROOT = projectRoot;
+  process.env.SENNEL_WORK_ROOT = projectRoot;
   const [
     containerModule,
     { coreCommandRegistry },
@@ -200,14 +200,14 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
   let operationError = null;
   try {
     trace.phase(phase, "started");
-    projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-runtime-evaluator-project-"));
-    runtimeV1Root = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-runtime-evaluator-v1-"));
-    runtimeV2Root = fs.mkdtempSync(path.join(os.tmpdir(), "senrail-runtime-evaluator-v2-"));
+    projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-runtime-evaluator-project-"));
+    runtimeV1Root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-runtime-evaluator-v1-"));
+    runtimeV2Root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-runtime-evaluator-v2-"));
     fs.cpSync(path.join(sourceRoot, "src"), path.join(runtimeV1Root, "src"), { recursive: true });
     fs.cpSync(path.join(sourceRoot, "src"), path.join(runtimeV2Root, "src"), { recursive: true });
     for (const runtimeRoot of [runtimeV1Root, runtimeV2Root]) {
       writeFile(runtimeRoot, "package.json", `${JSON.stringify({
-        name: "senrail-runtime-evaluator-fixture",
+        name: "sennel-runtime-evaluator-fixture",
         version: "0.0.0",
         type: "module",
       }, null, 2)}\n`);
@@ -217,7 +217,7 @@ export async function runRuntimeEvaluatorScenario({ diagnosticPath, sourceRoot }
       "\n// runtime evaluator fixture revision 2\n",
     );
 
-    writeFile(projectRoot, ".senrail/config.json", `${JSON.stringify({
+    writeFile(projectRoot, ".sennel/config.json", `${JSON.stringify({
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },

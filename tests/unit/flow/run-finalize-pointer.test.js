@@ -2,7 +2,7 @@
  * tests/unit/flow/run-finalize-pointer.test.js
  *
  * Covers AC4 of spec 211: finalize cleanup writes the latest finalized spec
- * ID to `.senrail/last-finalized-spec` in the main repo.
+ * ID to `.sennel/last-finalized-spec` in the main repo.
  */
 
 import { describe, it, afterEach } from "node:test";
@@ -16,32 +16,32 @@ describe("flow finalize — last-finalized-spec pointer (AC4)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("writes pointer with trailing newline under .senrail/", () => {
-    tmp = createTmpDir("senrail-finalize-ptr-");
+  it("writes pointer with trailing newline under .sennel/", () => {
+    tmp = createTmpDir("sennel-finalize-ptr-");
     const specId = "042-example-feature";
 
     writeLastFinalizedPointer(tmp, specId);
 
-    const pointerPath = path.join(tmp, ".senrail", "last-finalized-spec");
+    const pointerPath = path.join(tmp, ".sennel", "last-finalized-spec");
     assert.ok(fs.existsSync(pointerPath));
     assert.equal(fs.readFileSync(pointerPath, "utf8"), specId + "\n");
   });
 
-  it("creates .senrail/ when missing", () => {
-    tmp = createTmpDir("senrail-finalize-ptr-mkdir-");
-    assert.ok(!fs.existsSync(path.join(tmp, ".senrail")));
+  it("creates .sennel/ when missing", () => {
+    tmp = createTmpDir("sennel-finalize-ptr-mkdir-");
+    assert.ok(!fs.existsSync(path.join(tmp, ".sennel")));
 
     writeLastFinalizedPointer(tmp, "001-x");
 
-    assert.ok(fs.existsSync(path.join(tmp, ".senrail", "last-finalized-spec")));
+    assert.ok(fs.existsSync(path.join(tmp, ".sennel", "last-finalized-spec")));
   });
 
   it("overwrites previous pointer on subsequent finalize runs", () => {
-    tmp = createTmpDir("senrail-finalize-ptr-overwrite-");
+    tmp = createTmpDir("sennel-finalize-ptr-overwrite-");
     writeLastFinalizedPointer(tmp, "001-old");
     writeLastFinalizedPointer(tmp, "002-new");
 
-    const pointerPath = path.join(tmp, ".senrail", "last-finalized-spec");
+    const pointerPath = path.join(tmp, ".sennel", "last-finalized-spec");
     assert.equal(
       fs.readFileSync(pointerPath, "utf8"),
       "002-new\n",
@@ -49,9 +49,9 @@ describe("flow finalize — last-finalized-spec pointer (AC4)", () => {
   });
 
   it("is a no-op when targetRoot or specId is missing", () => {
-    tmp = createTmpDir("senrail-finalize-ptr-noop-");
+    tmp = createTmpDir("sennel-finalize-ptr-noop-");
     writeLastFinalizedPointer("", "001");
     writeLastFinalizedPointer(tmp, "");
-    assert.ok(!fs.existsSync(path.join(tmp, ".senrail", "last-finalized-spec")));
+    assert.ok(!fs.existsSync(path.join(tmp, ".sennel", "last-finalized-spec")));
   });
 });

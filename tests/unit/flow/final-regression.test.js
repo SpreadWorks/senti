@@ -26,7 +26,7 @@ function attemptLogPath(index) {
 }
 
 function setupProject(tmp, scriptBody, extraFlowState = {}) {
-  fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
   writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
   writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);
@@ -107,7 +107,7 @@ describe("flow run final-regression", () => {
   it("uses the authority root final regression timeout over a stale context config", async () => {
     tmp = createTmpDir("final-regression-authority-timeout-");
     const ctx = setupProject(tmp, "sleep 2\nprintf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
-    writeFile(tmp, ".senrail/config.json", JSON.stringify({
+    writeFile(tmp, ".sennel/config.json", JSON.stringify({
       lang: "en",
       type: "node-cli",
       docs: { languages: ["en"], defaultLanguage: "en" },

@@ -46,9 +46,9 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
     const fixtureDir = getAcceptanceFixtureDir("base");
     const badTmp = copyFixture(fixtureDir, { type: "base" });
 
-    const outputDir = path.join(badTmp, ".senrail", "output");
+    const outputDir = path.join(badTmp, ".sennel", "output");
     fs.rmSync(outputDir, { recursive: true });
-    fs.writeFileSync(path.join(badTmp, ".senrail", "output"), "not-a-dir");
+    fs.writeFileSync(path.join(badTmp, ".sennel", "output"), "not-a-dir");
 
     try {
       const result = await runPipeline(badTmp);
@@ -71,7 +71,7 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
 describe("acceptance report: JSON output", { timeout: 300000 }, () => {
   let tmp;
 
-  it("report JSON is written to .senrail/output/acceptance-report.json", async () => {
+  it("report JSON is written to .sennel/output/acceptance-report.json", async () => {
     const fixtureDir = getAcceptanceFixtureDir("base");
     tmp = copyFixture(fixtureDir, { type: "base" });
 
@@ -86,7 +86,7 @@ describe("acceptance report: JSON output", { timeout: 300000 }, () => {
       quality: null,
     };
 
-    const reportPath = path.join(tmp, ".senrail", "output", "acceptance-report.json");
+    const reportPath = path.join(tmp, ".sennel", "output", "acceptance-report.json");
     writeReport(reportPath, report);
 
     assert.ok(fs.existsSync(reportPath), "report JSON should be written");

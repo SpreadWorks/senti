@@ -1,3 +1,3 @@
    - This step exists for `notVerifiable` requirement judgments or unresolved deferred-finding risk.
    - `accept_risk_and_continue` and `abort` require an explicit user choice. Never infer either choice from `autoApprove`, a default, or missing input.
-   - Record the decision with `senrail flow set acceptance-decision --choice <accept_risk_and_continue|abort>`.
+   - Record the decision with `sennel flow set acceptance-decision --choice <accept_risk_and_continue|abort>`.

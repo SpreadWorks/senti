@@ -1,14 +1,14 @@
 /**
- * senrail/lib/log.js
+ * sennel/lib/log.js
  *
- * Unified JSONL logger for senrail.
+ * Unified JSONL logger for sennel.
  *
  * Container-managed service. Construct once via `initContainer` with a
  * pre-resolved log directory and dependencies; retrieve through
  * `container.get("logger")`. No singleton / getInstance().
  *
  * Two-tier output:
- *   - Daily JSONL `<logDir>/senrail-YYYY-MM-DD.jsonl` (lightweight metadata)
+ *   - Daily JSONL `<logDir>/sennel-YYYY-MM-DD.jsonl` (lightweight metadata)
  *   - Per-request prompt JSON `<logDir>/prompts/YYYY-MM-DD/<requestId>.json`
  *
  * Three domains exposed on the instance:
@@ -75,7 +75,7 @@ function extractCaller() {
       try {
         file = new URL(file).pathname;
       } catch (err) {
-        process.stderr.write(`[senrail] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
+        process.stderr.write(`[sennel] extractCaller: URL parse failed for ${file}: ${err.message}\n`);
       }
     }
     if (path.resolve(file) === path.resolve(SELF_FILE)) continue;
@@ -91,7 +91,7 @@ async function appendJsonlMasked(file, obj, trustedRoots) {
     const masked = maskSensitive(obj, { trustedRoots });
     await fs.promises.appendFile(file, JSON.stringify(masked) + "\n", "utf8");
   } catch (err) {
-    process.stderr.write(`[senrail] log write failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] log write failed: ${err.message}\n`);
   }
 }
 
@@ -104,7 +104,7 @@ async function writePromptFileMasked(promptDir, requestId, payload, trustedRoots
     await fs.promises.writeFile(file, JSON.stringify(masked, null, 2) + "\n", "utf8");
     return file;
   } catch (err) {
-    process.stderr.write(`[senrail] prompt file write failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] prompt file write failed: ${err.message}\n`);
     return null;
   }
 }
@@ -215,7 +215,7 @@ export class Logger {
       const ctx = this.#flowManager.resolveCurrentContext();
       return { specId: ctx.specId ?? null, flowPhase: ctx.flowPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
-      process.stderr.write(`[senrail] Logger: flow state read failed: ${err.message}\n`);
+      process.stderr.write(`[sennel] Logger: flow state read failed: ${err.message}\n`);
       return { specId: null, flowPhase: null, taskId: null };
     } finally {
       this.#resolvingContext = false;

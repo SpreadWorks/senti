@@ -21,7 +21,7 @@ describe("npm pack contents", () => {
 
   it("includes src/ directory files", () => {
     assert.ok(packOutput, "pack output required");
-    assert.match(packOutput, /src\/senrail\.js/);
+    assert.match(packOutput, /src\/sennel\.js/);
     assert.match(packOutput, /src\/lib\/i18n\.js/);
   });
 
@@ -35,9 +35,9 @@ describe("npm pack contents", () => {
     assert.doesNotMatch(packOutput, /\btests\//);
   });
 
-  it("does NOT include .senrail/", () => {
+  it("does NOT include .sennel/", () => {
     assert.ok(packOutput, "pack output required");
-    assert.doesNotMatch(packOutput, /\.senrail\//);
+    assert.doesNotMatch(packOutput, /\.sennel\//);
   });
 
   it("does NOT include top-level specs/ directory", () => {

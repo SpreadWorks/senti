@@ -175,7 +175,7 @@ function collectImplementationSubjects({
   if (!cwd || !baseBranch || !featureBranch || boundedLimit === 0) return [];
   const res = runGit(["-C", cwd, "log", `--max-count=${boundedLimit}`, "--format=%s", `${baseBranch}..${featureBranch}`]);
   if (!res.ok) {
-    process.stderr.write(`[senrail] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
+    process.stderr.write(`[sennel] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
     return [];
   }
   return String(res.stdout || "")
@@ -258,7 +258,7 @@ function runMerge(ctx) {
     const spec = loadSpec(state, artifactRoot);
     const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
     const title = buildPrTitle(spec, fallbackTitle);
-    const marker = idempotencyKey ? `<!-- senrail:${idempotencyKey} -->` : null;
+    const marker = idempotencyKey ? `<!-- sennel:${idempotencyKey} -->` : null;
     const body = [buildPrBody(state, spec), marker].filter(Boolean).join("\n\n");
 
     if (idempotencyKey) {
@@ -294,7 +294,7 @@ function runMerge(ctx) {
   try {
     spec = loadSpec(state, artifactRoot);
   } catch (err) {
-    process.stderr.write(`[senrail] warning: failed to load spec for squash commit message: ${err.message}\n`);
+    process.stderr.write(`[sennel] warning: failed to load spec for squash commit message: ${err.message}\n`);
   }
 
   if (worktree && mainRepoPath) {

@@ -3,7 +3,7 @@
  *
  * AI agent service. Built once at Container init time and accessed via
  * `container.get("agent")`. The class encapsulates:
- *   - profile resolution (SENRAIL_PROFILE > config.agent.useProfile > default profile > default)
+ *   - profile resolution (SENNEL_PROFILE > config.agent.useProfile > default profile > default)
  *   - prompt building (system prompt, JSON output flag, workDir flag injection)
  *   - argv-size based stdin fallback (config-driven threshold)
  *   - spawn-based asynchronous invocation (no blocking on stdin EOF)
@@ -96,7 +96,7 @@ class Agent {
 
   /**
    * Resolve a profile for the given commandId.
-   * Priority: SENRAIL_PROFILE env > config.agent.useProfile > default profile > default.
+   * Priority: SENNEL_PROFILE env > config.agent.useProfile > default profile > default.
    * Returns null when no profile is configured.
    */
   resolve(commandId, options = {}) {
@@ -1082,7 +1082,7 @@ async function recordPromptCacheHit({ flowManager, context, provider, profileKey
     }
     flowManager.appendMetric(metric, { specId: context.specId, taskId: context.taskId ?? null });
   } catch (err) {
-    process.stderr.write(`[senrail] agent: cache-hit metric failed: ${err.message}\n`);
+    process.stderr.write(`[sennel] agent: cache-hit metric failed: ${err.message}\n`);
   }
 }
 
@@ -1097,7 +1097,7 @@ function formatSpawnError(err, { command, env, providerKey, profileKey, commandI
     `provider=${providerKey || "unknown"}`,
     `profile=${profileKey || "unknown"}`,
     `commandId=${commandId || "unknown"}`,
-    "guidance=add the target CLI to the PATH of the environment that starts senrail, or configure the provider command as an absolute path",
+    "guidance=add the target CLI to the PATH of the environment that starts sennel, or configure the provider command as an absolute path",
   ].join(" | "));
 
   diagnostic.name = err.name || "Error";
@@ -1203,7 +1203,7 @@ class AgentResolutionAttempt {
       `selected=${this.selectedProfileKey || "none"}`,
       `lookup=${this.lookupKey || "none"}`,
       "reason=no provider resolved",
-      "Set 'agent.default' in config.json or run 'senrail setup'.",
+      "Set 'agent.default' in config.json or run 'sennel setup'.",
     ].join(" ");
   }
 }
@@ -1356,7 +1356,7 @@ function tryParseProvider(provider, stdout) {
   try {
     return provider.parse(stdout);
   } catch (err) {
-    process.stderr.write(`[senrail] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
+    process.stderr.write(`[sennel] agent output parse failed (${provider.constructor.name}): ${err.message}\n`);
     return null;
   }
 }
@@ -1364,7 +1364,7 @@ function tryParseProvider(provider, stdout) {
 function reportMissingJsonSchemaProfileFields({ commandId, profileKey, missing }) {
   if (!missing || missing.length === 0) return;
   process.stderr.write(
-    `[senrail] agent: jsonSchema requested but resolved profile is missing ${missing.join(", ")} ` +
+    `[sennel] agent: jsonSchema requested but resolved profile is missing ${missing.join(", ")} ` +
     `(commandId=${commandId || "unknown"}, profile=${profileKey || "unknown"})\n`,
   );
 }

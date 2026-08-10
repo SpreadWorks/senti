@@ -57,7 +57,7 @@ function passProjection(phase, generatedAt, sourceDraftRevision = null) {
 }
 
 function prepareRecoveryFixture(root, { phase, activeStepId }) {
-  writeJson(root, ".senrail/config.json", {
+  writeJson(root, ".sennel/config.json", {
     name: "review-pass-recovery",
     lang: "en",
     type: "base",

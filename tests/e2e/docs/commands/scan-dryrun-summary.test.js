@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "scan"];
 
 function baseConfig(extra = {}) {
@@ -24,13 +24,13 @@ describe("scan --dry-run summary output (spec 185)", () => {
 
   it("AC1+AC3: --dry-run outputs summary JSON (no analyzedAt) and skips file write", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", baseConfig());
+    writeJson(tmp, ".sennel/config.json", baseConfig());
     writeFile(tmp, "src/index.js", 'export function hello() { return "hi"; }\n');
-    fs.mkdirSync(join(tmp, ".senrail/output"), { recursive: true });
+    fs.mkdirSync(join(tmp, ".sennel/output"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const summary = JSON.parse(result);
@@ -50,7 +50,7 @@ describe("scan --dry-run summary output (spec 185)", () => {
     assert.equal(summary.modules, 1, "modules count should be 1");
 
     assert.ok(
-      !fs.existsSync(join(tmp, ".senrail/output/analysis.json")),
+      !fs.existsSync(join(tmp, ".sennel/output/analysis.json")),
       "analysis.json must NOT be written when --dry-run is used",
     );
   });
@@ -58,13 +58,13 @@ describe("scan --dry-run summary output (spec 185)", () => {
   it("AC2: --dry-run includes registered scan DataSources with zero matches as 0", () => {
     tmp = createTmpDir();
     // Use a glob that matches no files; modules DataSource is still loaded from preset chain
-    writeJson(tmp, ".senrail/config.json", baseConfig({
+    writeJson(tmp, ".sennel/config.json", baseConfig({
       scan: { include: ["nonexistent/**/*.js"], exclude: [] },
     }));
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const summary = JSON.parse(result);
@@ -77,12 +77,12 @@ describe("scan --dry-run summary output (spec 185)", () => {
 
   it("AC4: --stdout outputs full analysis JSON (regression of legacy contract)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", baseConfig());
+    writeJson(tmp, ".sennel/config.json", baseConfig());
     writeFile(tmp, "src/index.js", 'export function hello() { return "hi"; }\n');
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const analysis = JSON.parse(result);
@@ -94,13 +94,13 @@ describe("scan --dry-run summary output (spec 185)", () => {
 
   it("AC5: --stdout takes precedence over --dry-run when both are specified", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", baseConfig());
+    writeJson(tmp, ".sennel/config.json", baseConfig());
     writeFile(tmp, "src/index.js", 'export function hello() { return "hi"; }\n');
-    fs.mkdirSync(join(tmp, ".senrail/output"), { recursive: true });
+    fs.mkdirSync(join(tmp, ".sennel/output"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--stdout", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const analysis = JSON.parse(result);
@@ -108,25 +108,25 @@ describe("scan --dry-run summary output (spec 185)", () => {
     assert.ok(analysis.modules?.entries, "combined flags must produce full structure");
 
     assert.ok(
-      !fs.existsSync(join(tmp, ".senrail/output/analysis.json")),
+      !fs.existsSync(join(tmp, ".sennel/output/analysis.json")),
       "analysis.json still must NOT be written",
     );
   });
 
   it("AC9: exit code is 0 on successful --dry-run and --stdout", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", baseConfig());
+    writeJson(tmp, ".sennel/config.json", baseConfig());
     writeFile(tmp, "src/index.js", 'export function hello() { return "hi"; }\n');
 
     const dry = spawnSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(dry.status, 0, `--dry-run exit code: stderr=${dry.stderr}`);
 
     const stdout = spawnSync("node", [CMD, ...CMD_ARGS, "--stdout"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(stdout.status, 0, `--stdout exit code: stderr=${stdout.stderr}`);
   });

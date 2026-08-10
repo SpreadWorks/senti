@@ -7,9 +7,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const cliPath = path.join(repoRoot, "src/senrail.js");
+const cliPath = path.join(repoRoot, "src/sennel.js");
 const fixtureRoot = path.join(repoRoot, ".tmp", "issue-440-command-identity");
-const bindingFile = path.join(".senrail", "flow-identity.json");
+const bindingFile = path.join(".sennel", "flow-identity.json");
 const roots = [];
 
 function git(root, args) {
@@ -22,8 +22,8 @@ function createProject() {
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const root = fs.mkdtempSync(path.join(fixtureRoot, "project-"));
   roots.push(root);
-  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify({
+  fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel", "config.json"), JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -33,11 +33,11 @@ function createProject() {
     version: "0.0.0",
     type: "module",
   }, null, 2));
-  fs.writeFileSync(path.join(root, ".gitignore"), ".senrail/*\n!.senrail/config.json\n");
+  fs.writeFileSync(path.join(root, ".gitignore"), ".sennel/*\n!.sennel/config.json\n");
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
-  git(root, ["add", ".senrail/config.json", ".gitignore", "package.json"]);
+  git(root, ["add", ".sennel/config.json", ".gitignore", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
   return root;
 }
@@ -46,7 +46,7 @@ function runFlow(root, args) {
   const result = spawnSync("node", [cliPath, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
   });
   const stdout = result.stdout.trim();
   return { ...result, envelope: stdout.startsWith("{") ? JSON.parse(stdout) : null };
@@ -107,9 +107,9 @@ function snapshotTarget(flow) {
   const mainHead = path.resolve(flow.root, git(flow.root, ["rev-parse", "--git-path", "HEAD"]));
   const worktreeHead = path.resolve(flow.worktreePath, git(flow.worktreePath, ["rev-parse", "--git-path", "HEAD"]));
   const files = [
-    path.join(flow.root, ".senrail", ".active-flow"),
-    path.join(flow.root, ".senrail", ".flow-target-identities"),
-    path.join(flow.root, ".senrail", ".current-flow"),
+    path.join(flow.root, ".sennel", ".active-flow"),
+    path.join(flow.root, ".sennel", ".flow-target-identities"),
+    path.join(flow.root, ".sennel", ".current-flow"),
     mainHead,
     worktreeHead,
     path.join(flow.worktreePath, bindingFile),
@@ -131,7 +131,7 @@ function snapshotTarget(flow) {
 function snapshotPendingTransition(flow) {
   const markerPath = path.join(
     flow.worktreePath,
-    ".senrail",
+    ".sennel",
     "flow-identity.issue-transaction.json",
   );
   const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"));
@@ -180,8 +180,8 @@ describe("worktree command identity", () => {
     for (const issue of [440, null]) {
       const root = createProject();
       const flow = prepareWorktree(root, { issue, title: `first-command-${issue ?? "no-issue"}` });
-      fs.rmSync(path.join(root, ".senrail", ".active-flow"));
-      fs.writeFileSync(path.join(root, ".senrail", ".current-flow"), "999-unrelated\n");
+      fs.rmSync(path.join(root, ".sennel", ".active-flow"));
+      fs.writeFileSync(path.join(root, ".sennel", ".current-flow"), "999-unrelated\n");
 
       expectSuccess(runFlow(flow.worktreePath, [
         "set", "request", "first command succeeded", "--run-id", flow.runId, ...targetArgs(flow),
@@ -202,7 +202,7 @@ describe("worktree command identity", () => {
     for (const issue of [440, null]) {
       const root = createProject();
       const flow = prepareWorktree(root, { issue, title: `mismatch-${issue ?? "no-issue"}` });
-      fs.writeFileSync(path.join(root, ".senrail", ".current-flow"), "999-unrelated\n");
+      fs.writeFileSync(path.join(root, ".sennel", ".current-flow"), "999-unrelated\n");
       const cases = issue == null ? [
         ["--expect-run-id", "wrong-run", "--expect-no-issue", "--expect-spec", flow.specId],
         ["--expect-run-id", flow.runId, "--expect-issue", "440", "--expect-spec", flow.specId],
@@ -346,7 +346,7 @@ describe("worktree command identity", () => {
     const root = createProject();
     const first = prepareWorktree(root, { issue: 440, title: "isolated-first" });
     const second = prepareWorktree(root, { issue: null, title: "isolated-second" });
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
     fs.writeFileSync(registryPath, JSON.stringify(registry.reverse(), null, 2));
 
@@ -355,7 +355,7 @@ describe("worktree command identity", () => {
       ["matching", first.specId],
       ["other", second.specId],
     ]) {
-      const currentPath = path.join(root, ".senrail", ".current-flow");
+      const currentPath = path.join(root, ".sennel", ".current-flow");
       if (current == null) fs.rmSync(currentPath, { force: true });
       else fs.writeFileSync(currentPath, `${current}\n`);
       expectSuccess(runFlow(first.worktreePath, [
@@ -384,7 +384,7 @@ describe("worktree command identity", () => {
         issue,
         title: `no-issue-${name}-${index}`,
       }));
-      fs.rmSync(path.join(root, ".senrail", ".current-flow"), { force: true });
+      fs.rmSync(path.join(root, ".sennel", ".current-flow"), { force: true });
 
       const result = runFlow(root, ["get", "status", "--expect-no-issue"]);
       if (expectedMatchCount === 1) {
@@ -440,7 +440,7 @@ describe("worktree command identity", () => {
   it("does not resume an unregistered worktree flow", () => {
     const root = createProject();
     const flow = prepareWorktree(root, { issue: 440, title: "resume-active-only" });
-    fs.rmSync(path.join(root, ".senrail", ".active-flow"));
+    fs.rmSync(path.join(root, ".sennel", ".active-flow"));
 
     const resumed = runFlow(root, ["resume", "--spec", flow.specId]);
 

@@ -254,7 +254,7 @@ export function assertFinalizeMergeMetadataMutationSafe({ root, specId, specRoot
   const error = new Error([
     "finalize-merge cannot mutate Flow metadata while external paths are dirty:",
     ...details,
-    "Resolve the listed paths, then retry 'senrail flow run finalize-merge'.",
+    "Resolve the listed paths, then retry 'sennel flow run finalize-merge'.",
   ].join("\n"));
   error.code = "FINALIZE_MERGE_EXTERNAL_DIRTY";
   error.preflight = preflight;
@@ -467,7 +467,7 @@ function buildFinalizePreflightError(err) {
     "Help:",
     "- This environment cannot write under .git (lock file creation failed).",
     "- Run finalize in a writable shell or with elevated permissions.",
-    "- Run: senrail flow run finalize-commit --help",
+    "- Run: sennel flow run finalize-commit --help",
   ].join("\n");
   const e = new Error(msg);
   e.code = "FINALIZE_PREFLIGHT_FAILED";

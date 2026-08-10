@@ -10,10 +10,10 @@ function readTemplate(lang) {
 }
 
 describe("flow-agent-instructions start policy", () => {
-  it("uses the role-based template name and does not ship an AGENTS.senrail template", () => {
+  it("uses the role-based template name and does not ship an AGENTS.sennel template", () => {
     for (const lang of ["en", "ja"]) {
       assert.equal(fs.existsSync(path.join(TEMPLATE_DIR, lang, "flow-agent-instructions.md")), true);
-      assert.equal(fs.existsSync(path.join(TEMPLATE_DIR, lang, "AGENTS.senrail.md")), false);
+      assert.equal(fs.existsSync(path.join(TEMPLATE_DIR, lang, "AGENTS.sennel.md")), false);
     }
   });
 

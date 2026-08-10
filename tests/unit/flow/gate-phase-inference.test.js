@@ -18,7 +18,7 @@ import { runUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
 it("runs canonical upgrade from the package entrypoint in the consuming project", () => {
   const calls = [];
   const consumerRoot = "/consumer/project";
-  const packageDir = "/installed/senrail/src";
+  const packageDir = "/installed/sennel/src";
 
   runUpgradeForRecovery(consumerRoot, {
     packageDir,
@@ -29,7 +29,7 @@ it("runs canonical upgrade from the package entrypoint in the consuming project"
 
   assert.deepEqual(calls, [[
     process.execPath,
-    [path.join(packageDir, "senrail.js"), "upgrade"],
+    [path.join(packageDir, "sennel.js"), "upgrade"],
     {
       cwd: consumerRoot,
       stdio: "inherit",

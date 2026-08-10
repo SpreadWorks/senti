@@ -502,7 +502,7 @@ export class FlowStore {
       content = readBoundedFlowStateContent(p);
       state = JSON.parse(content.toString("utf8"));
     } catch (err) {
-      process.stderr.write(`[senrail] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
+      process.stderr.write(`[sennel] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
     return bindCurrentFlowState(state, content, p, this._mainRoot, this._specRoot, specId);

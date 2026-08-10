@@ -2,7 +2,7 @@
  * src/lib/agent-defaults.js
  *
  * Built-in agent providers and profiles resolved at runtime. The content is
- * generic: model tiers plus senrail command ids only — no project/environment-
+ * generic: model tiers plus sennel command ids only — no project/environment-
  * specific values (no hostnames, ports, etc.), so it is safe to ship in the
  * package per the src/ project-info rule.
  *

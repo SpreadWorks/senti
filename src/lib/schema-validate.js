@@ -1,5 +1,5 @@
 /**
- * senrail/lib/schema-validate.js
+ * sennel/lib/schema-validate.js
  *
  * Generic JSON Schema subset validator.
  * Supports: type, required, properties, additionalProperties, enum,

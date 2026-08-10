@@ -20,13 +20,13 @@ class TestFixtureResponseSource extends AcceptanceReviewResponseSource {
 }
 
 test("production acceptance response source does not read fixture environment variables", () => {
-  const previous = process.env.SENRAIL_ACCEPTANCE_REVIEW_ARTIFACT;
-  process.env.SENRAIL_ACCEPTANCE_REVIEW_ARTIFACT = "/tmp/untrusted-acceptance-fixture.json";
+  const previous = process.env.SENNEL_ACCEPTANCE_REVIEW_ARTIFACT;
+  process.env.SENNEL_ACCEPTANCE_REVIEW_ARTIFACT = "/tmp/untrusted-acceptance-fixture.json";
   try {
     assert.equal(new AcceptanceReviewResponseSource().load({ marker: "test-context" }), null);
   } finally {
-    if (previous === undefined) delete process.env.SENRAIL_ACCEPTANCE_REVIEW_ARTIFACT;
-    else process.env.SENRAIL_ACCEPTANCE_REVIEW_ARTIFACT = previous;
+    if (previous === undefined) delete process.env.SENNEL_ACCEPTANCE_REVIEW_ARTIFACT;
+    else process.env.SENNEL_ACCEPTANCE_REVIEW_ARTIFACT = previous;
   }
 });
 

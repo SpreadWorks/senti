@@ -6,9 +6,9 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const cliPath = path.join(repoRoot, "src/senrail.js");
+const cliPath = path.join(repoRoot, "src/sennel.js");
 const fixtureRoot = path.join(repoRoot, ".tmp", "issue-440-binding-contract");
-const bindingRelativePath = path.join(".senrail", "flow-identity.json");
+const bindingRelativePath = path.join(".sennel", "flow-identity.json");
 const roots = [];
 
 function git(root, args) {
@@ -20,8 +20,8 @@ function createProject() {
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const root = fs.mkdtempSync(path.join(fixtureRoot, "project-"));
   roots.push(root);
-  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify({
+  fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel", "config.json"), JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -34,7 +34,7 @@ function createProject() {
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
-  git(root, ["add", ".senrail/config.json", "package.json"]);
+  git(root, ["add", ".sennel/config.json", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
   return root;
 }
@@ -43,7 +43,7 @@ function runFlow(root, args) {
   const result = spawnSync("node", [cliPath, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
   });
   const stdout = result.stdout.trim();
   return { ...result, envelope: stdout.startsWith("{") ? JSON.parse(stdout) : null };
@@ -105,7 +105,7 @@ describe("worktree flow identity binding contract", () => {
       JSON.stringify({ ...valid, version: 1 }),
     ];
 
-    fs.writeFileSync(path.join(root, ".senrail", ".current-flow"), "999-unrelated\n");
+    fs.writeFileSync(path.join(root, ".sennel", ".current-flow"), "999-unrelated\n");
     for (const content of invalid) {
       fs.writeFileSync(bindingPath, content);
       const result = runFlow(flow.worktreePath, [
@@ -122,7 +122,7 @@ describe("worktree flow identity binding contract", () => {
     }
   });
 
-  it("rejects a symlink SENRAIL_WORK_ROOT alias outside the managed boundary", () => {
+  it("rejects a symlink SENNEL_WORK_ROOT alias outside the managed boundary", () => {
     const root = createProject();
     const flow = prepareWorktree(root, 440);
     const alias = path.join(root, "worktree-alias");

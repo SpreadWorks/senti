@@ -1,7 +1,7 @@
 /**
  * src/docs/commands/build.js
  *
- * senrail docs build — full documentation generation pipeline.
+ * sennel docs build — full documentation generation pipeline.
  * Orchestrates scan → enrich → init → data → text → readme → agents → [translate]
  * by invoking each pipeline step's Command class via the unified Command contract
  * (`cmd.run(container, input)`).
@@ -42,7 +42,7 @@ async function dirExists(p) {
 function validateBuildArgs(rawArgs) {
   for (const a of rawArgs) {
     if (a.startsWith("-") && !VALID_BUILD_FLAGS.has(a)) {
-      process.stderr.write(`senrail docs build: unknown option '${a}'\n`);
+      process.stderr.write(`sennel docs build: unknown option '${a}'\n`);
       process.exit(EXIT_ERROR);
     }
   }

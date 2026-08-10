@@ -1,5 +1,5 @@
    - This is a command-owned validation step. Do not edit `draft.json`, another spec directory, or any canonical Flow artifact from this step.
-   - `senrail flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
+   - `sennel flow run gate --phase draft` (step status is automatically managed by hooks: pre sets draft-gate to in_progress, post sets done on PASS)
    - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), decisionMap shape, qa[] lifecycle shape, approval + guardrail AI compliance.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`.
    - The draft gate is strict. Do not acknowledge exceptions in draft.json. On FAIL, refresh next-action and follow the guarded repair transition back to `draft-refine`; that step receives the exact persisted observations and owns mutation through worker-artifact handoff.

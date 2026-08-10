@@ -14,7 +14,7 @@ function git(args) {
 }
 
 function initRepo() {
-  tmp = createTmpDir("senrail-upgrade-paths-");
+  tmp = createTmpDir("sennel-upgrade-paths-");
   git(["init"]);
   git(["config", "user.email", "test@example.com"]);
   git(["config", "user.name", "Test User"]);

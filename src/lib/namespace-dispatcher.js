@@ -23,8 +23,8 @@ export class NamespaceDispatcher {
 
     const command = this.definition.find([name]);
     if (!command?.command) {
-      process.stderr.write(`senrail ${this.namespace}: unknown command '${name}'\n`);
-      process.stderr.write(`Run: senrail ${this.namespace} --help\n`);
+      process.stderr.write(`sennel ${this.namespace}: unknown command '${name}'\n`);
+      process.stderr.write(`Run: sennel ${this.namespace} --help\n`);
       process.exit(EXIT_ERROR);
     }
 

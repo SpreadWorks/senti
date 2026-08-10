@@ -15,7 +15,7 @@ describe("createResolver", () => {
 
   function setupTmp(name) {
     tmp = createTmpDir(name);
-    fs.mkdirSync(path.join(tmp, ".senrail"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
     return tmp;
   }
 
@@ -35,10 +35,10 @@ describe("createResolver", () => {
 
   it("uses package displayName for generated project headings", async () => {
     setupTmp("resolver-project-display-name");
-    writeJson(tmp, "package.json", { name: "senrail", displayName: "Senrail", version: "1.0.0" });
+    writeJson(tmp, "package.json", { name: "sennel", displayName: "Sennel", version: "1.0.0" });
     const resolver = await createResolver("sample-node-command", tmp);
     const result = resolver.resolve("sample-node-command", "project", "name", {}, [""]);
-    assert.equal(result.toMarkdown(), "Senrail");
+    assert.equal(result.toMarkdown(), "Sennel");
   });
 
   it("resolves project.version", async () => {
@@ -82,7 +82,7 @@ describe("createResolver", () => {
 
   it("loads overrides.json when present", async () => {
     setupTmp("resolver-overrides");
-    writeJson(tmp, ".senrail/overrides.json", {
+    writeJson(tmp, ".sennel/overrides.json", {
       project: { summary: "Custom override" },
     });
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
@@ -133,11 +133,11 @@ describe("createResolver", () => {
     assert.equal(resolver.resolve("base", "project", "name", {}, [""]).toMarkdown(), "base-pkg");
   });
 
-  it("loads project-specific DataSources from .senrail/data/", async () => {
+  it("loads project-specific DataSources from .sennel/data/", async () => {
     setupTmp("resolver-projds");
     writeJson(tmp, "package.json", { name: "projds", version: "1.0.0" });
     // Project data dir exists but is empty — should not break
-    fs.mkdirSync(path.join(tmp, ".senrail", "data"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel", "data"), { recursive: true });
     const resolver = await createResolver("sample-node-command", tmp);
     assert.equal(resolver.resolve("sample-node-command", "project", "name", {}, [""]).toMarkdown(), "projds");
   });

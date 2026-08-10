@@ -606,7 +606,7 @@ function repoRelative(root, absolutePath) {
 }
 
 function writeFinalRegressionProgressLine(message) {
-  process.stderr.write(`[senrail] final-regression ${message}\n`);
+  process.stderr.write(`[sennel] final-regression ${message}\n`);
 }
 
 function appendRaw(lines, sectionLines) {
@@ -1518,7 +1518,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     if (resultStatus === "skipped") {
       const start = rawLines.length + 1;
       rawLines.push(
-        `[senrail] final regression skipped`,
+        `[sennel] final regression skipped`,
         `command: ${commandText || "<unresolved>"}`,
         ...(commandSource ? [`commandSource: ${commandSource}`] : []),
         `result: skipped`,
@@ -1529,14 +1529,14 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       range = { start, end: rawLines.length };
     } else {
       range = appendRaw(rawLines, [
-        `[senrail] final regression start command=${commandText || "<unresolved>"}`,
+        `[sennel] final regression start command=${commandText || "<unresolved>"}`,
         `command: ${commandText || "<unresolved>"}`,
         ...(commandSource ? [`commandSource: ${commandSource}`] : []),
         ...processOutputLines(result),
         ...(childRecordError ? [`childRecordError: ${childRecordError.message}`] : []),
         `result: ${resultStatus}`,
         ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
-        `[senrail] final regression end result=${resultStatus}`,
+        `[sennel] final regression end result=${resultStatus}`,
       ]);
     }
     const manifestStreams = resultStatus === "skipped"
@@ -1544,7 +1544,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       : streamEvidence || { stdout: captureStream(result.stdout), stderr: captureStream(result.stderr) };
     if (manifestStreams) {
       rawLines.push(
-        "[senrail] final regression execution evidence",
+        "[sennel] final regression execution evidence",
         `evidence.command: ${commandText || "<unresolved>"}`,
         `evidence.result: ${resultStatus}`,
         `evidence.testCount: ${testCount}`,

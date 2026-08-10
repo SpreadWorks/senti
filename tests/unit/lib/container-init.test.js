@@ -13,8 +13,8 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   beforeEach(() => {
     tmp = createTmpDir();
     savedEnv = { ...process.env };
-    process.env.SENRAIL_WORK_ROOT = tmp;
-    delete process.env.SENRAIL_SOURCE_ROOT;
+    process.env.SENNEL_WORK_ROOT = tmp;
+    delete process.env.SENNEL_SOURCE_ROOT;
     container.reset();
   });
 
@@ -24,19 +24,19 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     process.env = savedEnv;
   });
 
-  it("registers null for config when .senrail/config.json is missing", () => {
+  it("registers null for config when .sennel/config.json is missing", () => {
     initContainer();
     assert.strictEqual(container.get("config"), null);
   });
 
-  it("registers the loaded config object when .senrail/config.json exists", () => {
-    mkdirSync(join(tmp, ".senrail"), { recursive: true });
+  it("registers the loaded config object when .sennel/config.json exists", () => {
+    mkdirSync(join(tmp, ".sennel"), { recursive: true });
     const validConfig = {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
     };
-    writeJson(tmp, ".senrail/config.json", validConfig);
+    writeJson(tmp, ".sennel/config.json", validConfig);
     initContainer();
     const got = container.get("config");
     assert.notStrictEqual(got, null);
@@ -70,8 +70,8 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   });
 
   it("uses agentWorkDirOverride for agent work dir and default log dir", () => {
-    mkdirSync(join(tmp, ".senrail"), { recursive: true });
-    writeJson(tmp, ".senrail/config.json", {
+    mkdirSync(join(tmp, ".sennel"), { recursive: true });
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -86,7 +86,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
   });
 
   it("CLI entrypoint pre-scans flow run --agent-work-dir before initContainer", () => {
-    const source = readFileSync(join(process.cwd(), "src/senrail.js"), "utf8");
+    const source = readFileSync(join(process.cwd(), "src/sennel.js"), "utf8");
     assert.match(source, /let agentWorkDirOverride = null/, "entrypoint must have early flow-run scanner state");
     assert.match(source, /agentWorkDirOverride,/, "initContainer must receive the override");
     assert.match(source, /subCmd\s*===\s*"flow"\s*&&\s*rest\[0\]\s*===\s*"run"/, "scanner must be scoped to flow run");
@@ -97,7 +97,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     git("init", "--quiet");
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "Test User");
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -105,10 +105,10 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     });
     git("add", ".");
     git("commit", "--quiet", "-m", "fixture");
-    const worktree = join(tmp, ".senrail", "worktree", "feature-demo");
+    const worktree = join(tmp, ".sennel", "worktree", "feature-demo");
     git("worktree", "add", "--quiet", "-b", "feature/demo", worktree);
 
-    process.env.SENRAIL_WORK_ROOT = worktree;
+    process.env.SENNEL_WORK_ROOT = worktree;
     container.reset();
     initContainer({
       entryCommand: "flow run finalize-cleanup",
@@ -133,7 +133,7 @@ describe("initContainer — config registration contract (R1, #175)", () => {
 
     assert.equal(stderr, "");
     assert.equal(
-      existsSync(join(tmp, ".senrail", "agent-work", "logs")),
+      existsSync(join(tmp, ".sennel", "agent-work", "logs")),
       true,
     );
   });

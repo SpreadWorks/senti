@@ -176,7 +176,7 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
   }, null, 2));
   writeFile(tmp, "specs/demo/upgrade-result.json", JSON.stringify({
     version: 1,
-    command: "senrail upgrade",
+    command: "sennel upgrade",
     dryRun: false,
     exitCode: 0,
     result: "success-updated",

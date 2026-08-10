@@ -26,7 +26,7 @@ const REPAIR_ACTION = {
     phase: "test",
     instruction: "Repair the persisted test-review findings.",
     reason: "The review is rejected and semantic retries remain.",
-    nextAction: "senrail flow run repair-test-review --expect-run-id 'run-dispatch'",
+    nextAction: "sennel flow run repair-test-review --expect-run-id 'run-dispatch'",
   },
 };
 
@@ -89,7 +89,7 @@ const ACCEPTANCE_HANDOFF = {
       choices: [{
         actionId: "ACCEPT_RISK",
         label: "Accept the bounded risk",
-        nextAction: "senrail flow set acceptance-decision accepted",
+        nextAction: "sennel flow set acceptance-decision accepted",
         impact: { retains: [], changes: ["acceptance disposition"], deletes: [] },
       }, {
         actionId: "KEEP_STRICT_FLOW",
@@ -121,7 +121,7 @@ const COMPLETED_ACTION = {
 
 function context(state, overrides = {}) {
   return {
-    root: "/tmp/senrail-flow-dispatch-fixture",
+    root: "/tmp/sennel-flow-dispatch-fixture",
     specId: "481-flow-dispatch",
     expectRunId: "run-dispatch",
     expectSpec: "specs/481-flow-dispatch/spec.json",
@@ -170,7 +170,7 @@ describe("Flow continuation dispatcher", () => {
         active += 1;
         maxActive = Math.max(maxActive, active);
         assert.equal(options.retryCount, 0);
-        assert.equal(options.executionWorkDir, "/tmp/senrail-flow-dispatch-fixture");
+        assert.equal(options.executionWorkDir, "/tmp/sennel-flow-dispatch-fixture");
         assert.equal(options.waitForProcessTree, true);
         await new Promise((resolve) => setImmediate(resolve));
         if (calls === 2) {
@@ -289,7 +289,7 @@ describe("Flow continuation dispatcher", () => {
       agent: {
         async call(_prompt, options) {
           calls += 1;
-          const invocation = JSON.parse(options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION);
+          const invocation = JSON.parse(options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION);
           assert.equal(invocation.authorization.source, "explicit");
           assert.equal(invocation.authorization.approved, true);
           assert.equal(invocation.authorization.actionDigest, invocation.action.digest);
@@ -307,7 +307,7 @@ describe("Flow continuation dispatcher", () => {
       agent: {
         async call(_prompt, options) {
           calls += 1;
-          const invocation = JSON.parse(options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION);
+          const invocation = JSON.parse(options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION);
           assert.equal(invocation.authorization.source, "explicit");
           assert.equal(invocation.authorization.actionDigest, invocation.action.digest);
           current.value = COMPLETED_ACTION;
@@ -607,12 +607,12 @@ describe("Flow continuation dispatcher", () => {
     const callsByInvocation = new Map();
     const agent = {
       async call(_prompt, options) {
-        const invocationId = options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION_ID;
+        const invocationId = options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION_ID;
         invocationIds.push(invocationId);
         invocationContracts.push(JSON.parse(
-          options.executionEnvironment.SENRAIL_FLOW_DISPATCH_INVOCATION,
+          options.executionEnvironment.SENNEL_FLOW_DISPATCH_INVOCATION,
         ));
-        bindingValues.push(options.executionEnvironment.SENRAIL_FLOW_TARGET_BINDING);
+        bindingValues.push(options.executionEnvironment.SENNEL_FLOW_TARGET_BINDING);
         const invocationCallCount = (callsByInvocation.get(invocationId) || 0) + 1;
         callsByInvocation.set(invocationId, invocationCallCount);
         state.repositoryRevision = `invocation-r${invocationIds.length}`;

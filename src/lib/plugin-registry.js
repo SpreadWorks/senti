@@ -336,7 +336,7 @@ export class PluginManifest {
     const skills = this.contributions.skills || [];
     if (!Array.isArray(skills)) throw new Error("plugin skills contribution must be an array");
     for (const skill of skills) {
-      assertId(String(skill.name).replace(/^senrail\./, ""), "skill name");
+      assertId(String(skill.name).replace(/^sennel\./, ""), "skill name");
       if (!isUnderFileAllowlist(skill.path, this.files)) throw new Error(`contribution path outside files allowlist: ${skill.path}`);
     }
     const config = this.contributions.config;
@@ -561,7 +561,7 @@ export function loadPluginConfigDefaults(root = repoRoot()) {
 }
 
 export function discoverCorePresets() {
-  const { PRESETS_DIR } = globalThis.__senrailPresetModule || {};
+  const { PRESETS_DIR } = globalThis.__sennelPresetModule || {};
   if (!PRESETS_DIR) return [];
   return [];
 }
@@ -616,12 +616,12 @@ function assertManagedGitCachePath(root, dest, source) {
   }
   if (fs.existsSync(stateDir)) {
     if (fs.lstatSync(stateDir).isSymbolicLink()) {
-      throw new Error(`unsafe plugin source cache path: .senrail is a symlink`);
+      throw new Error(`unsafe plugin source cache path: .sennel is a symlink`);
     }
     const realRoot = fs.realpathSync(rootPath);
     const realStateDir = fs.realpathSync(stateDir);
     if (!isUnderPath(realStateDir, realRoot)) {
-      throw new Error(`unsafe plugin source cache path: .senrail escapes project root`);
+      throw new Error(`unsafe plugin source cache path: .sennel escapes project root`);
     }
   }
   if (fs.existsSync(base) && fs.lstatSync(base).isSymbolicLink()) {
@@ -1113,7 +1113,7 @@ export function setPluginEnabled(root, id, enabled) {
   if (!entry) {
     const merged = readProjectConfig(root);
     if (merged.plugin.packages.find((pkg) => pkg.id === id)) {
-      throw new Error(`plugin package ${id} is provided by .senrail/config.local.json; edit the local overlay to enable or disable it`);
+      throw new Error(`plugin package ${id} is provided by .sennel/config.local.json; edit the local overlay to enable or disable it`);
     }
     throw new Error(`plugin not installed: ${id}`);
   }
@@ -1305,7 +1305,7 @@ function buildPluginContext({
 }) {
   const rootConfig = readProjectConfig(root);
   const pluginConfig = pluginConfigFor(root, pluginId);
-  const coreAgent = globalThis.__senrailPluginAgent || {
+  const coreAgent = globalThis.__sennelPluginAgent || {
     resolve() {
       return false;
     },

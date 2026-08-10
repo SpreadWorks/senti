@@ -42,7 +42,7 @@ function transaction(root, options = {}) {
     mainRoot: root,
     baseBranch: "main",
     featureBranch: "feature/finalize-merge",
-    commitMessage: "feat: isolated integration\n\nsenrail-outbox: test-finalize-merge",
+    commitMessage: "feat: isolated integration\n\nsennel-outbox: test-finalize-merge",
     idempotencyKey: "test-finalize-merge",
     ...options,
   });
@@ -65,7 +65,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("integrates in an isolated worktree while the base branch is checked out elsewhere", () => {
-    root = createTmpDir("senrail-finalize-merge-transaction-");
+    root = createTmpDir("sennel-finalize-merge-transaction-");
     ({ baseWorktree } = createFixture(root));
     const beforeFeatureHead = git(root, ["rev-parse", "HEAD"]);
 
@@ -76,11 +76,11 @@ describe("FinalizeMergeTransaction", () => {
     assert.equal(git(root, ["rev-parse", "HEAD"]), beforeFeatureHead, "feature worktree remains untouched");
     assert.equal(git(baseWorktree, ["branch", "--show-current"]), "main");
     assert.equal(fs.readFileSync(path.join(baseWorktree, "feature.txt"), "utf8"), "feature change\n");
-    assert.match(git(baseWorktree, ["log", "-1", "--format=%B"]), /senrail-outbox: test-finalize-merge/);
+    assert.match(git(baseWorktree, ["log", "-1", "--format=%B"]), /sennel-outbox: test-finalize-merge/);
   });
 
   it("reports a dirty base worktree without changing the base ref", () => {
-    root = createTmpDir("senrail-finalize-merge-target-dirty-");
+    root = createTmpDir("sennel-finalize-merge-target-dirty-");
     ({ baseWorktree } = createFixture(root));
     fs.writeFileSync(path.join(baseWorktree, "local-only.txt"), "do not overwrite\n");
     const before = git(root, ["rev-parse", "main"]);
@@ -95,7 +95,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("rejects an external dirty feature file without changing the base ref", () => {
-    root = createTmpDir("senrail-finalize-merge-feature-dirty-");
+    root = createTmpDir("sennel-finalize-merge-feature-dirty-");
     ({ baseWorktree } = createFixture(root));
     fs.writeFileSync(path.join(root, "uncommitted.txt"), "do not merge\n");
     const before = git(root, ["rev-parse", "main"]);
@@ -109,7 +109,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("permits only the Flow-owned pending metadata required by the outbox", () => {
-    root = createTmpDir("senrail-finalize-merge-flow-metadata-");
+    root = createTmpDir("sennel-finalize-merge-flow-metadata-");
     ({ baseWorktree } = createFixture(root));
     fs.mkdirSync(path.join(root, "specs", "001-test"), { recursive: true });
     fs.writeFileSync(path.join(root, "specs", "001-test", "flow.json"), "{\"outbox\":[]}\n");
@@ -123,7 +123,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("uses the Flow artifact registry without ignoring unknown files in the spec directory", () => {
-    root = createTmpDir("senrail-finalize-merge-artifact-ownership-");
+    root = createTmpDir("sennel-finalize-merge-artifact-ownership-");
     ({ baseWorktree } = createFixture(root));
     const specPath = "specs/001-test/spec.json";
     fs.mkdirSync(path.join(root, "specs", "001-test"), { recursive: true });
@@ -150,7 +150,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("moves a branch-mode caller to the published base only after the isolated merge", () => {
-    root = createTmpDir("senrail-finalize-merge-branch-transition-");
+    root = createTmpDir("sennel-finalize-merge-branch-transition-");
     ({ baseWorktree } = createFixture(root, { withBaseWorktree: false }));
 
     const result = transaction(root, { promoteFeatureWorktreeToBase: true }).execute();
@@ -161,7 +161,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("reports only a graph-proven content conflict as a merge conflict", () => {
-    root = createTmpDir("senrail-finalize-merge-conflict-");
+    root = createTmpDir("sennel-finalize-merge-conflict-");
     ({ baseWorktree } = createFixture(root, { conflict: true }));
     const before = git(root, ["rev-parse", "main"]);
 
@@ -174,7 +174,7 @@ describe("FinalizeMergeTransaction", () => {
   });
 
   it("resumes an already published merge without creating a second commit", () => {
-    root = createTmpDir("senrail-finalize-merge-resume-");
+    root = createTmpDir("sennel-finalize-merge-resume-");
     ({ baseWorktree } = createFixture(root));
     const first = transaction(root).execute();
     const commitCount = git(root, ["rev-list", "--count", "main"]);

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * senrail/engine/populate.js
+ * sennel/engine/populate.js
  *
  * ディレクティブベースのテンプレートエンジン。
  * analysis.json を読み、テンプレート内の {{data}} ディレクティブを解決してレンダリングする。
  * {{text}} はスキップしてログ出力する（後続タスクで LLM 連携を実装予定）。
  *
  * Usage:
- *   node senrail/engine/populate.js [--dry-run] [--stdout]
+ *   node sennel/engine/populate.js [--dry-run] [--stdout]
  */
 
 import fs from "fs";

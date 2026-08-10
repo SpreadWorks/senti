@@ -20,7 +20,7 @@ const DOCS_COMMANDS = [
   "text",
   "translate",
 ];
-const FLAT_DOCS_COMMAND = new RegExp(`\\bsenrail (?:${DOCS_COMMANDS.join("|")})(?=[\\s\x60'\"]|$)`);
+const FLAT_DOCS_COMMAND = new RegExp(`\\bsennel (?:${DOCS_COMMANDS.join("|")})(?=[\\s\x60'\"]|$)`);
 
 function javascriptJsonAndMarkdownFiles(directory) {
   const files = [];

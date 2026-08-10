@@ -86,7 +86,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("onError marks finalize-sync and finalize-cleanup as skipped", async () => {
-    tmp = createTmpDir("senrail-finalize-merge-retry-");
+    tmp = createTmpDir("sennel-finalize-merge-retry-");
     initGitRepo(tmp);
     setupFlow(tmp);
     commitAll(tmp, "test: initial flow state");
@@ -110,7 +110,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("pre hook resets skipped finalize-sync/cleanup back to pending before retry", async () => {
-    tmp = createTmpDir("senrail-finalize-merge-retry-reset-");
+    tmp = createTmpDir("sennel-finalize-merge-retry-reset-");
     initGitRepo(tmp);
     const state = setupFlow(tmp);
     commitAll(tmp, "test: initial flow state");
@@ -137,7 +137,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("post hook on retry success normalizes finalize-merge to done and resets skipped downstream", async () => {
-    tmp = createTmpDir("senrail-finalize-merge-retry-post-");
+    tmp = createTmpDir("sennel-finalize-merge-retry-post-");
     const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
@@ -163,7 +163,7 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   });
 
   it("post hook does nothing on failed status (no normalization)", async () => {
-    tmp = createTmpDir("senrail-finalize-merge-retry-fail-");
+    tmp = createTmpDir("sennel-finalize-merge-retry-fail-");
     const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     const specId = specIdFromState(state);

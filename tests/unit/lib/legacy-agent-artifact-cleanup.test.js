@@ -9,7 +9,7 @@ import {
 } from "../../../src/lib/legacy-agent-artifact-cleanup.js";
 
 function temporaryRoot() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "senrail-legacy-agent-artifact-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "sennel-legacy-agent-artifact-"));
 }
 
 function writeJson(file, value) {
@@ -25,7 +25,7 @@ describe("legacy agent-host artifact cleanup", () => {
 
   it("removes only the legacy Flow handler and preserves project-owned hooks", () => {
     root = temporaryRoot();
-    const handler = path.join(root, ".codex/hooks/senrail-flow-final-response-guard.mjs");
+    const handler = path.join(root, ".codex/hooks/sennel-flow-final-response-guard.mjs");
     const config = path.join(root, ".codex/hooks.json");
     fs.mkdirSync(path.dirname(handler), { recursive: true });
     fs.writeFileSync(handler, "legacy handler\n");
@@ -34,7 +34,7 @@ describe("legacy agent-host artifact cleanup", () => {
       hooks: {
         Stop: [
           { hooks: [{ type: "command", command: "node project-stop.mjs" }] },
-          { hooks: [{ type: "command", command: "node .codex/hooks/senrail-flow-final-response-guard.mjs" }] },
+          { hooks: [{ type: "command", command: "node .codex/hooks/sennel-flow-final-response-guard.mjs" }] },
         ],
       },
     });
@@ -63,7 +63,7 @@ describe("legacy agent-host artifact cleanup", () => {
         Stop: [{
           hooks: [{
             type: "command",
-            command: "node .codex/hooks/senrail-flow-final-response-guard.mjs",
+            command: "node .codex/hooks/sennel-flow-final-response-guard.mjs",
           }],
         }],
       },
@@ -77,7 +77,7 @@ describe("legacy agent-host artifact cleanup", () => {
 
   it("reports cleanup in dry-run without changing files", () => {
     root = temporaryRoot();
-    const handler = path.join(root, ".codex/hooks/senrail-flow-final-response-guard.mjs");
+    const handler = path.join(root, ".codex/hooks/sennel-flow-final-response-guard.mjs");
     const config = path.join(root, ".codex/hooks.json");
     fs.mkdirSync(path.dirname(handler), { recursive: true });
     fs.writeFileSync(handler, "legacy handler\n");
@@ -86,7 +86,7 @@ describe("legacy agent-host artifact cleanup", () => {
         Stop: [{
           hooks: [{
             type: "command",
-            command: "node .codex/hooks/senrail-flow-final-response-guard.mjs",
+            command: "node .codex/hooks/sennel-flow-final-response-guard.mjs",
           }],
         }],
       },

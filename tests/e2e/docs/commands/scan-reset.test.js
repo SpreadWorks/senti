@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "scan"];
 
 /**
@@ -14,7 +14,7 @@ const CMD_ARGS = ["docs", "scan"];
  */
 function setupEnrichedProject() {
   const tmp = createTmpDir();
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "sample-node-command",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -26,10 +26,10 @@ function setupEnrichedProject() {
   // Run scan to generate analysis.json
   execFileSync("node", [CMD, ...CMD_ARGS], {
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
   });
 
-  const outputPath = join(tmp, ".senrail/output/analysis.json");
+  const outputPath = join(tmp, ".sennel/output/analysis.json");
   const analysis = JSON.parse(fs.readFileSync(outputPath, "utf8"));
 
   // Simulate enrichment
@@ -52,11 +52,11 @@ describe("scan --reset", () => {
 
   it("resets hash to null for all categories when no category specified", () => {
     ({ tmp } = setupEnrichedProject());
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
 
@@ -69,7 +69,7 @@ describe("scan --reset", () => {
   it("resets hash only for specified category", () => {
     // Use child-preset to get multiple categories
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "child-preset",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -89,10 +89,10 @@ describe("scan --reset", () => {
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     const before = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     const categories = Object.keys(before).filter(k => before[k]?.entries);
     assert.ok(categories.length >= 2, "should have at least 2 categories");
@@ -104,7 +104,7 @@ describe("scan --reset", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset", targetCat], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
 
@@ -119,7 +119,7 @@ describe("scan --reset", () => {
 
   it("resets hash for multiple comma-separated categories", () => {
     ({ tmp } = setupEnrichedProject());
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
 
     // Add a second category manually to test comma separation
     const analysis = JSON.parse(fs.readFileSync(outputPath, "utf8"));
@@ -131,7 +131,7 @@ describe("scan --reset", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset", "modules,extras"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
 
@@ -144,11 +144,11 @@ describe("scan --reset", () => {
 
   it("preserves enrich fields when resetting hash", () => {
     ({ tmp } = setupEnrichedProject());
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
 
     spawnSync("node", [CMD, ...CMD_ARGS, "--reset"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const after = JSON.parse(fs.readFileSync(outputPath, "utf8"));
@@ -168,7 +168,7 @@ describe("scan --reset", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset", "nonexistent"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
     assert.match(proc.stderr, /nonexistent/, "stderr should mention the unknown category");
@@ -176,7 +176,7 @@ describe("scan --reset", () => {
 
   it("exits 0 with message when analysis.json does not exist", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -184,7 +184,7 @@ describe("scan --reset", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
     assert.match(proc.stderr, /analysis\.json|nothing to reset/i, "stderr should indicate no analysis.json");
@@ -192,14 +192,14 @@ describe("scan --reset", () => {
 
   it("re-scan after reset re-parses entries", () => {
     ({ tmp } = setupEnrichedProject());
-    const outputPath = join(tmp, ".senrail/output/analysis.json");
+    const outputPath = join(tmp, ".sennel/output/analysis.json");
     const before = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     const originalHash = before.modules.entries[0].hash;
 
     // Reset
     spawnSync("node", [CMD, ...CMD_ARGS, "--reset"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     // Verify hash is null
@@ -209,7 +209,7 @@ describe("scan --reset", () => {
     // Re-scan
     execFileSync("node", [CMD, ...CMD_ARGS], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     // Hash should be restored (re-parsed)
@@ -224,7 +224,7 @@ describe("scan --reset", () => {
 
     const proc = spawnSync("node", [CMD, ...CMD_ARGS, "--reset"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.equal(proc.status, 0);
     assert.match(proc.stderr, /modules/, "stderr should mention category name");

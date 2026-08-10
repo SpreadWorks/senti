@@ -14,7 +14,7 @@ const MANAGED_GITIGNORE_LINE_SET = new Set([
   `${PRODUCT.managedDirName}/`,
 ]);
 
-const LEGACY_MANAGED_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti"]);
+const LEGACY_MANAGED_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti", ".senrail"]);
 
 function managedLinesFor(directoryName) {
   return [

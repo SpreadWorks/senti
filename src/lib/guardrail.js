@@ -218,7 +218,7 @@ export function loadMergedGuardrails(root) {
   // 1. Collect guardrails from preset chain
   let guardrails = loadPresetGuardrails(presetKey);
 
-  // 2. Merge guardrails from project (.senrail/guardrail.json)
+  // 2. Merge guardrails from project (.sennel/guardrail.json)
   const projectPath = path.join(managedDir(root), GUARDRAIL_FILENAME);
   if (fs.existsSync(projectPath)) {
     const projectGuardrails = loadGuardrailFile(projectPath);

@@ -32,15 +32,15 @@ const FIXTURE_PRESETS = [
 ];
 
 function withPluginPresets(fn) {
-  const tmp = createTmpDir("senrail-test-plugin-presets-");
+  const tmp = createTmpDir("sennel-test-plugin-presets-");
   try {
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "en",
       type: FIXTURE_PRESETS.map((preset) => preset.key),
       docs: { languages: ["en"], defaultLanguage: "en" },
       plugin: { packages: [{ id: "test-presets" }] },
     });
-    writeJson(tmp, ".senrail/plugins/test-presets/plugin.json", {
+    writeJson(tmp, ".sennel/plugins/test-presets/plugin.json", {
       name: "test-presets",
       files: ["plugin.json", "presets/"],
       contributions: {
@@ -51,7 +51,7 @@ function withPluginPresets(fn) {
       },
     });
     for (const preset of FIXTURE_PRESETS) {
-      writeJson(tmp, `.senrail/plugins/test-presets/presets/${preset.key}/preset.json`, {
+      writeJson(tmp, `.sennel/plugins/test-presets/presets/${preset.key}/preset.json`, {
         parent: preset.parent,
         chapters: [],
       });

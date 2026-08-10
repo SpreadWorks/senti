@@ -15,5 +15,5 @@
      - `testable: false` requirements are excluded from aggregation entirely.
      - The legacy `partial` status is no longer produced.
    - **Output:** `<configured-spec-root>/<specId>/retro.json` (schema = `src/flow/schemas/retro.schema.json`).
-   - **Invocation:** run `senrail flow run retro` (the runner is responsible for reading artifacts and writing `retro.json`). The mainline run unconditionally overwrites the existing file.
+   - **Invocation:** run `sennel flow run retro` (the runner is responsible for reading artifacts and writing `retro.json`). The mainline run unconditionally overwrites the existing file.
    - **On complete:** the registry post-hook marks this step done automatically. The next mainline step is `final-regression`.

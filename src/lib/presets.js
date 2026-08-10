@@ -1,5 +1,5 @@
 /**
- * senrail/lib/presets.js
+ * sennel/lib/presets.js
  *
  * Auto-discovers builtin presets and enabled plugin preset contributions.
  * All consumers derive their preset data from this single source.
@@ -189,7 +189,7 @@ export function resolveChain(leafKey, projectRoot, opts = {}) {
  * only the child's chain is kept (parent is already included).
  *
  * @param {string|string[]} types - Single preset name or array of preset names
- * @param {string} [projectRoot] - Project root directory for .senrail/presets/ lookup
+ * @param {string} [projectRoot] - Project root directory for .sennel/presets/ lookup
  * @returns {Object[][]} Array of chains, each chain is root → leaf ordered
  */
 export function resolveMultiChains(types, projectRoot, opts = {}) {
@@ -282,7 +282,7 @@ function dedupeParentChains(chains) {
  * Unlike resolveChain(), this never throws.
  *
  * @param {string} presetKey - Preset key (e.g. "sample-preset", "node-cli")
- * @param {string} [projectRoot] - Project root directory for .senrail/presets/ lookup
+ * @param {string} [projectRoot] - Project root directory for .sennel/presets/ lookup
  * @returns {Object[]} Array of preset objects, ordered root → leaf
  */
 export function resolveChainSafe(presetKey, projectRoot, opts = {}) {
@@ -389,7 +389,7 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType, pr
     }
   };
   if (projectRoot) {
-    // init.js uses `<root>/.senrail/templates/<lang>/docs` as the project-local
+    // init.js uses `<root>/.sennel/templates/<lang>/docs` as the project-local
     // dir — mirror that path so validator PASS implies build can resolve.
     push(projectTemplatesDirectory
       ? path.join(projectTemplatesDirectory, lang, "docs")
@@ -420,7 +420,7 @@ function templateSearchDirs(typeList, projectRoot, lang, resolveChainForType, pr
  * stderr without failing — chapters may intentionally exclude a template.
  *
  * @param {string|string[]} types - Preset key(s) to validate.
- * @param {string|undefined} projectRoot - Project root for .senrail/ lookups.
+ * @param {string|undefined} projectRoot - Project root for .sennel/ lookups.
  * @param {object} options
  * @param {string[]} options.languages - Languages to validate (from config.docs.languages).
  * @param {Array} [options.configChapters] - Override chapters (from config.chapters).

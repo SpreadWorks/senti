@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * senrail/upgrade.js
+ * sennel/upgrade.js
  *
  * Upgrade skill-derived files (skills, AGENTS.md Spec-Driven Development section) to match
- * the currently installed senrail version.
+ * the currently installed sennel version.
  *
  * Safe to run repeatedly — only overwrites skill-managed content. config.json
  * is validated but never rewritten by a normal upgrade. context.json is
@@ -11,7 +11,7 @@
  * mode so normal runtime has no compatibility behavior.
  *
  * Usage:
- *   senrail upgrade [--migrate] [--dry-run]
+ *   sennel upgrade [--migrate] [--dry-run]
  */
 
 import fs from "node:fs";
@@ -146,7 +146,7 @@ function previewNormalUpgrade(root, migration, logger) {
   try {
     const cleanup = removeLegacyAgentArtifacts(root, { dryRun: true });
     if (cleanup.removedHandler) {
-      logger.log("[upgrade] DRY-RUN: remove .codex/hooks/senrail-flow-final-response-guard.mjs");
+      logger.log("[upgrade] DRY-RUN: remove .codex/hooks/sennel-flow-final-response-guard.mjs");
     }
     if (cleanup.updatedConfig) {
       const action = cleanup.removedConfig ? "remove" : "update";
@@ -183,7 +183,7 @@ async function runNormalUpgrade(cli) {
   const root = repoRoot();
   const activeFlow = resolveActiveUpgradeFlow(root);
   const logger = createUpgradeLogger();
-  const command = ["senrail", "upgrade", ...process.argv.slice(2)].join(" ");
+  const command = ["sennel", "upgrade", ...process.argv.slice(2)].join(" ");
   const dryRun = cli.dryRun;
 
   const summary = {

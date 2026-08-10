@@ -40,7 +40,7 @@ describe("flow get resolve-context (extended fields)", () => {
   function runResolveContext(dir, args = []) {
     return execFileSync(
       "node", [FLOW_CMD, "get", "resolve-context", ...args],
-      { encoding: "utf8", env: { ...process.env, SENRAIL_WORK_ROOT: dir } },
+      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: dir } },
     );
   }
 

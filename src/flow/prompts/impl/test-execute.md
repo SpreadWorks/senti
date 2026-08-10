@@ -2,11 +2,11 @@
    - **Project regression responsibilities:** `test-execute` owns four cases:
      - `spec-local`: always run spec-local requirement tests and write per-requirement evidence.
      - `targeted`: run targeted project regression only when changed files are configured by `test.projectPaths`.
-     - `explicit-full`: run full project regression only when `.senrail/config.json` explicitly sets `test.testExecuteRegression: "full"`.
+     - `explicit-full`: run full project regression only when `.sennel/config.json` explicitly sets `test.testExecuteRegression: "full"`.
      - `deferred final-regression`: record deferred full regression evidence when full regression is not explicitly enabled here; `impl/final-regression` owns the default full project regression point.
    - **Downstream artifact use:** `test-result-review`, `impl-review`, `impl-gate`, and `retro` read `test-execute-result.json` and `tests/.raw/test-execution.log` from the active Flow's configured spec directory; they MUST NOT re-run tests.
    - **Test command discovery:** Determine the test runner from the project's declarative configuration in this priority order:
-     1. `.senrail/config.json` top-level `test.command`
+     1. `.sennel/config.json` top-level `test.command`
      2. `package.json` `scripts.test`, executed as argv `["npm","test","--"]`
      3. `composer.json` `scripts.test`, executed as argv `["composer","run-script","test","--"]`
      4. `Makefile` target `test`, executed as argv `["make","test"]`

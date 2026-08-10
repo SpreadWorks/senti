@@ -2,7 +2,7 @@
 /**
  * src/spec.js
  *
- * Spec dispatcher. Routes `senrail spec <command>` to individual command
+ * Spec dispatcher. Routes `sennel spec <command>` to individual command
  * implementations under src/spec/commands/.
  */
 

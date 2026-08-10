@@ -8,7 +8,7 @@ function fallbackContinuation(state, error, binding = null) {
   if (error?.continuation) return FlowContinuation.fromStored(error.continuation);
   return new FlowContinuation({
     actionId: "REFRESH_NONBLOCKING_FLOW",
-    nextAction: guardedCommand("senrail flow get next-action", state || {}, binding),
+    nextAction: guardedCommand("sennel flow get next-action", state || {}, binding),
     instruction: "Refresh the guarded normal Flow action before retrying the nonblocking operation.",
     reason: error?.message || "The nonblocking operation did not complete.",
   });

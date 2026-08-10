@@ -11,7 +11,7 @@ import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { AUTO_CHECK_SCHEMA } from "../../../src/flow/lib/run-auto-check.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 
-const CMD = path.join(process.cwd(), "src/senrail.js");
+const CMD = path.join(process.cwd(), "src/sennel.js");
 
 function stubResponse({
   specBuildability = 2,
@@ -37,7 +37,7 @@ function stubResponse({
 
 function setupProject(tmp, { aiResponse } = {}) {
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", aiResponse ?? stubResponse());
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -68,7 +68,7 @@ function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
   });
 }
 

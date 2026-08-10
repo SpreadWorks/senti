@@ -643,7 +643,7 @@ export class RepairStateMigration {
 
 export class RepairStateMigratedError extends Error {
   constructor() {
-    super("legacy repair fingerprint state was migrated safely; rerun senrail flow get next-action and regenerate test evidence");
+    super("legacy repair fingerprint state was migrated safely; rerun sennel flow get next-action and regenerate test evidence");
     this.name = "RepairStateMigratedError";
     this.code = "REPAIR_STATE_MIGRATED";
   }

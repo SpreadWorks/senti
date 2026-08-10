@@ -285,7 +285,7 @@ describe("Agent.call() — basic invocation", () => {
   it("rejects too many execution environment variables before spawning", () => {
     const agent = makeAgent({ command: "echo", args: ["{{PROMPT}}"] });
     const executionEnvironment = Object.fromEntries(
-      Array.from({ length: 65 }, (_, index) => [`SENRAIL_TEST_${index}`, "value"]),
+      Array.from({ length: 65 }, (_, index) => [`SENNEL_TEST_${index}`, "value"]),
     );
 
     assert.throws(
@@ -300,7 +300,7 @@ describe("Agent.call() — basic invocation", () => {
     assert.throws(
       () => agent._buildInvocationForTest("work", {
         commandId: "test",
-        executionEnvironment: { SENRAIL_TEST_VALUE: "x".repeat(64 * 1024) },
+        executionEnvironment: { SENNEL_TEST_VALUE: "x".repeat(64 * 1024) },
       }),
       /must not exceed 65536 bytes/,
     );
@@ -615,7 +615,7 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
     assert.equal(resolved.timeoutMs, 900000);
   });
 
-  it("throws when SENRAIL_PROFILE references an undefined profile", () => {
+  it("throws when SENNEL_PROFILE references an undefined profile", () => {
     const cfg = { agent: { default: "claude/opus", useProfile: "missing" } };
     const agent = makeAgent(null, { config: cfg });
     assert.throws(() => agent.resolve());

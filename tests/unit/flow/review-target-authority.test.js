@@ -36,7 +36,7 @@ describe("ReviewTargetAuthority", () => {
     const artifactRoot = path.join(temporaryRoot, "main");
     const executionRoot = path.join(temporaryRoot, "worktree");
     fs.mkdirSync(artifactRoot, { recursive: true });
-    writeJson(artifactRoot, ".senrail/config.json", {
+    writeJson(artifactRoot, ".sennel/config.json", {
       name: "review-target-authority-fixture",
       lang: "en",
       type: "base",
@@ -108,7 +108,7 @@ describe("ReviewTargetAuthority", () => {
 
   it("does not let the dispatcher lease change the review target identity", () => {
     temporaryRoot = createTmpDir("review-target-dispatch-lock-");
-    writeJson(temporaryRoot, ".senrail/config.json", {
+    writeJson(temporaryRoot, ".sennel/config.json", {
       name: "review-target-dispatch-lock-fixture",
       lang: "en",
       type: "base",
@@ -139,7 +139,7 @@ describe("ReviewTargetAuthority", () => {
     const beforeTree = authority.resolveTreeSha();
     const beforeState = authority.captureTargetStateForPhase("test");
 
-    writeJson(temporaryRoot, ".senrail/.flow-dispatch-deadbeef.lock", {
+    writeJson(temporaryRoot, ".sennel/.flow-dispatch-deadbeef.lock", {
       pid: process.pid,
       kind: "flow-dispatch",
     });

@@ -17,7 +17,7 @@ describe("FlowWorkspace configured artifact authority", () => {
   afterEach(() => root && removeTmpDir(root));
 
   it("stores flow state by specId under the configured repository-relative root", () => {
-    root = createTmpDir("senrail-flow-workspace-");
+    root = createTmpDir("sennel-flow-workspace-");
     const specRoot = new FlowSpecRoot("flow-artifacts/specs");
     const manager = new FlowManager({
       root,
@@ -46,7 +46,7 @@ describe("FlowWorkspace configured artifact authority", () => {
   });
 
   it("fails closed when an active flow is absent from a newly configured root", () => {
-    root = createTmpDir("senrail-flow-root-change-");
+    root = createTmpDir("sennel-flow-root-change-");
     const state = makeFlowState({ specId: "485-root-change" });
     const original = new FlowManager({
       root,
@@ -56,7 +56,7 @@ describe("FlowWorkspace configured artifact authority", () => {
     });
     original.create(state);
     original.addActiveFlow(state.specId, "local");
-    const registryPath = path.join(root, ".senrail", ".active-flow");
+    const registryPath = path.join(root, ".sennel", ".active-flow");
     const registryBefore = fs.readFileSync(registryPath);
     const changed = new FlowManager({
       root,
@@ -88,7 +88,7 @@ describe("FlowWorkspace configured artifact authority", () => {
   });
 
   it("keeps canonical and execution Version authorities explicit in a worktree", () => {
-    root = createTmpDir("senrail-flow-version-workspace-");
+    root = createTmpDir("sennel-flow-version-workspace-");
     const executionRoot = path.join(root, "worktree");
     fs.mkdirSync(executionRoot);
     const workspace = new FlowWorkspace({ repositoryRoot: root, executionRoot, specRoot: "specs" });
@@ -112,7 +112,7 @@ describe("FlowWorkspace configured artifact authority", () => {
   });
 
   it("rejects repository and execution roots reached through symlink ancestors", () => {
-    root = createTmpDir("senrail-flow-version-symlink-root-");
+    root = createTmpDir("sennel-flow-version-symlink-root-");
     const real = path.join(root, "real");
     const linked = path.join(root, "linked");
     fs.mkdirSync(real);

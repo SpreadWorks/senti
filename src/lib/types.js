@@ -1,5 +1,5 @@
 /**
- * senrail/lib/types.js
+ * sennel/lib/types.js
  *
  * JSDoc 型定義。
  */

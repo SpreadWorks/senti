@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * senrail/engine/init.js
+ * sennel/engine/init.js
  *
  * テンプレート継承チェーンをもとにテンプレートをマージし docs/ に出力する。
  *
  * Usage:
- *   node senrail/engine/init.js [--type php-mvc] [--force]
+ *   node sennel/engine/init.js [--type php-mvc] [--force]
  */
 
 import fs from "fs";

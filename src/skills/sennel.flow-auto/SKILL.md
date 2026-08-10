@@ -1,5 +1,5 @@
 ---
-name: senrail.flow-auto
+name: sennel.flow-auto
 description: Toggle autoApprove mode for the current Spec-Driven Development flow. Use "on" to enable (default) or "off" to disable.
 ---
 
@@ -7,7 +7,7 @@ description: Toggle autoApprove mode for the current Spec-Driven Development flo
 
 Toggle autoApprove mode for the current Spec-Driven Development flow.
 
-**Usage:** `/senrail.flow-auto [on|off]`
+**Usage:** `/sennel.flow-auto [on|off]`
 - No argument → treated as `on`
 - `on` → enable autoApprove and continue the flow automatically
 - `off` → disable autoApprove
@@ -18,7 +18,7 @@ Toggle autoApprove mode for the current Spec-Driven Development flow.
 ### If argument is `off`
 
 1. Disable autoApprove.
-   - Run `senrail flow set auto off`.
+   - Run `sennel flow set auto off`.
    - If it fails (e.g. no active flow), display the error message and STOP.
 
 2. Confirm.
@@ -27,22 +27,22 @@ Toggle autoApprove mode for the current Spec-Driven Development flow.
 ### If argument is `on` or no argument
 
 1. Check flow state.
-   - Run `senrail flow get status`.
-   - If `data.active` is `false` (or the command fails), display: "No active flow. Start a flow first with `/senrail.flow`." and STOP.
+   - Run `sennel flow get status`.
+   - If `data.active` is `false` (or the command fails), display: "No active flow. Start a flow first with `/sennel.flow`." and STOP.
 
 2. Verify requirements exist.
    - Check the status response for `request` and `issue` fields.
-   - If BOTH `request` is null AND `issue` is null, display: "No request or issue is set. Set one with `senrail flow set request \"...\"` or `senrail flow set issue <number>` before enabling auto mode." and STOP.
+   - If BOTH `request` is null AND `issue` is null, display: "No request or issue is set. Set one with `sennel flow set request \"...\"` or `sennel flow set issue <number>` before enabling auto mode." and STOP.
 
 3. Enable autoApprove.
-   - Run `senrail flow set auto on`.
+   - Run `sennel flow set auto on`.
    - If it fails (`ok: false` or command error), display the error message and STOP.
    - All command failures in this procedure should display the error content and STOP (never swallow errors).
 
 4. Resume the flow.
    - If all steps in the status response are `done` → display "All steps are already complete." and STOP.
-   - Otherwise, invoke `/senrail.flow` using the Skill tool. The consolidated flow skill inspects flow state and resumes from the correct step automatically.
+   - Otherwise, invoke `/sennel.flow` using the Skill tool. The consolidated flow skill inspects flow state and resumes from the correct step automatically.
 
 ### If argument is anything else
 
-- Display: "Unknown argument: '<argument>'. Usage: /senrail.flow-auto [on|off]" and STOP.
+- Display: "Unknown argument: '<argument>'. Usage: /sennel.flow-auto [on|off]" and STOP.

@@ -255,8 +255,8 @@ export class TaskGateOverviewRecovery {
     }
     const entry = entries[0];
     const command = this.binding
-      ? this.binding.guardCommand("senrail flow run recover-task-gate-overview")
-      : "senrail flow run recover-task-gate-overview";
+      ? this.binding.guardCommand("sennel flow run recover-task-gate-overview")
+      : "sennel flow run recover-task-gate-overview";
     return {
       directive: new ExecuteCommandDirective({
         actionId: "RECOVER_TASK_GATE_OVERVIEW",

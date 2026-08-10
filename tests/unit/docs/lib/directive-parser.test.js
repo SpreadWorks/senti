@@ -65,7 +65,7 @@ describe("parseDirectives", () => {
 
   it("parses inline {{data}} directive", () => {
     const text =
-      '# <!-- {{data("base.project.name")}} -->senrail<!-- {{/data}} -->';
+      '# <!-- {{data("base.project.name")}} -->sennel<!-- {{/data}} -->';
     const result = parseDirectives(text);
     assert.equal(result.length, 1);
     const d = result[0];

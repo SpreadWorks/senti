@@ -17,13 +17,13 @@ import { findStepById } from "../../../../src/flow/lib/step-tree.js";
 import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-artifacts.js";
 import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
 
-const SENRAIL = path.resolve("src/senrail.js");
+const SENNEL = path.resolve("src/sennel.js");
 
 function invoke(root, args) {
-  const result = spawnSync(process.execPath, [SENRAIL, "flow", ...args], {
+  const result = spawnSync(process.execPath, [SENNEL, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root, SENRAIL_SOURCE_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
   });
   let envelope;
   try {
@@ -43,12 +43,12 @@ function guards(state) {
 }
 
 test("nonblocking policy keeps normal Flow ownership", () => {
-  const root = createTmpDir("senrail-nonblocking-policy-e2e-");
+  const root = createTmpDir("sennel-nonblocking-policy-e2e-");
   try {
     const specId = "477-nonblocking-e2e";
     const spec = `specs/${specId}/spec.json`;
     const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -107,7 +107,7 @@ test("nonblocking policy keeps normal Flow ownership", () => {
 });
 
 test("nonblocking test-review continuation creates an acceptance disposition handoff", () => {
-  const root = createTmpDir("senrail-nonblocking-test-review-e2e-");
+  const root = createTmpDir("sennel-nonblocking-test-review-e2e-");
   try {
     const specId = "477-test-review-nonblocking-e2e";
     const spec = `specs/${specId}/spec.json`;
@@ -122,7 +122,7 @@ test("nonblocking test-review continuation creates an acceptance disposition han
         title: "Missing acceptance behavior test",
       }],
     }, null, 2) + "\n";
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -189,7 +189,7 @@ test("nonblocking test-review continuation creates an acceptance disposition han
 });
 
 test("strict semantic exhaustion completes its acceptance handoff without advisory activation", () => {
-  const root = createTmpDir("senrail-strict-review-exhaustion-e2e-");
+  const root = createTmpDir("sennel-strict-review-exhaustion-e2e-");
   try {
     const specId = "481-strict-review-exhaustion-e2e";
     const spec = `specs/${specId}/spec.json`;
@@ -201,7 +201,7 @@ test("strict semantic exhaustion completes its acceptance handoff without adviso
       category: "semantic",
       title: "Missing acceptance behavior test",
     };
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
@@ -299,11 +299,11 @@ test("strict semantic exhaustion completes its acceptance handoff without adviso
 });
 
 test("scenario-validity block records refreshed evidence after nonblocking activation", () => {
-  const root = createTmpDir("senrail-nonblocking-scenario-validity-e2e-");
+  const root = createTmpDir("sennel-nonblocking-scenario-validity-e2e-");
   try {
     const specId = "477-scenario-validity-nonblocking-e2e";
     const spec = `specs/${specId}/spec.json`;
-    writeJson(root, ".senrail/config.json", {
+    writeJson(root, ".sennel/config.json", {
       lang: "en",
       type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },

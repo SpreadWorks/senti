@@ -1,5 +1,5 @@
 /**
- * senrail/docs/lib/command-context.js
+ * sennel/docs/lib/command-context.js
  *
  * docs コマンドから共通利用される analysis / chapters / text ヘルパー群。
  * CLI コンテキスト解決は src/docs/lib/docs-context.js の resolveDocsContext() を参照。
@@ -11,7 +11,7 @@ import { managedOutputDir } from "../../lib/config.js";
 import { resolveChaptersOrder } from "./template-merger.js";
 
 /**
- * .senrail/output/ 配下の JSON ファイルを読み込む。
+ * .sennel/output/ 配下の JSON ファイルを読み込む。
  *
  * @param {string} root - プロジェクトルート
  * @param {string} fileName - ファイル名（例: "analysis.json"）
@@ -56,7 +56,7 @@ export function loadFullAnalysis(root) {
  * @param {Object} [options]
  * @param {string} [options.type] - プロジェクトタイプ（例: "cli/node-cli"）
  * @param {string[]} [options.configChapters] - config.json の chapters 配列（最優先）
- * @param {string} [options.projectRoot] - プロジェクトルート（.senrail/presets/ 検索用）
+ * @param {string} [options.projectRoot] - プロジェクトルート（.sennel/presets/ 検索用）
  * @returns {string[]} ファイル名の配列（順序付き）
  */
 export function getChapterFiles(docsDir, options) {

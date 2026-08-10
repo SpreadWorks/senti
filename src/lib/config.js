@@ -1,5 +1,5 @@
 /**
- * senrail/lib/config.js
+ * sennel/lib/config.js
  *
  * JSON / package.json 読み込みユーティリティ + Spec-Driven Development 設定管理。
  */
@@ -63,7 +63,7 @@ export function loadPackageField(root, field) {
 }
 
 // ---------------------------------------------------------------------------
-// .senrail パスヘルパー
+// .sennel パスヘルパー
 // ---------------------------------------------------------------------------
 
 const MANAGED_DIR_NAME = PRODUCT.managedDirName;
@@ -104,7 +104,7 @@ export function resolveWorkDir(root, cfg, opts = {}) {
 }
 
 /**
- * .senrail/config.json から lang を読み込む。
+ * .sennel/config.json から lang を読み込む。
  * ファイルが存在しないかパースに失敗した場合は "en" を返す。
  * ヘルプ表示など、バリデーション前に言語が必要な場面で使用する。
  *
@@ -476,7 +476,7 @@ function validateProjectTestPath(entry, index, errors) {
 // ---------------------------------------------------------------------------
 
 /**
- * .senrail/config.json を読み込みバリデーションする。
+ * .sennel/config.json を読み込みバリデーションする。
  *
  * @param {string} root - リポジトリルート
  * @returns {import("./types.js").ProjectConfig}

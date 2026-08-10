@@ -88,7 +88,7 @@ export function executeFiles(files, { spawn = spawnSync, write = writeSync, root
       if (firstNumericFailure === null && Number.isInteger(execution.exitCode) && execution.exitCode !== 0) {
         firstNumericFailure = execution.exitCode;
       }
-      write(2, `\n[senrail] test suite process result\n${execution.diagnosticLines().join("\n")}\n`);
+      write(2, `\n[sennel] test suite process result\n${execution.diagnosticLines().join("\n")}\n`);
     }
   }
   write(1, `\n${formatExecutionSummary(counts, incompleteCategories)}\n`);

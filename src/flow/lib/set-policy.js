@@ -7,7 +7,7 @@ import { flowTargetBindingForContext } from "./guarded-command.js";
 
 export default class SetPolicyCommand extends FlowCommand {
   execute(ctx) {
-    if (ctx.value !== "nonblocking") throw new Error("usage: senrail flow set policy nonblocking --reason <text>");
+    if (ctx.value !== "nonblocking") throw new Error("usage: sennel flow set policy nonblocking --reason <text>");
     const binding = flowTargetBindingForContext(ctx);
     try {
       return activateNonBlockingPolicy({ root: ctx.root, flowManager: ctx.flowManager, reason: ctx.reason, binding });

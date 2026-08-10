@@ -139,10 +139,10 @@ export function setStepDone(state, ...ids) {
 }
 
 /**
- * Write a .senrail/config.json with the given language into tmp.
+ * Write a .sennel/config.json with the given language into tmp.
  */
 export function setupFlowConfig(tmp, lang) {
-  const managedDir = path.join(tmp, ".senrail");
+  const managedDir = path.join(tmp, ".sennel");
   fs.mkdirSync(managedDir, { recursive: true });
   fs.writeFileSync(path.join(managedDir, "config.json"), JSON.stringify({
     lang,

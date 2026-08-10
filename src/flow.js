@@ -21,7 +21,7 @@ const group = args[0];
 const rest = args.slice(1);
 const flowDefinition = coreCommandRegistry.find(["flow"]);
 const flowCommandSuggestionByGroup = {
-  status: "senrail flow get status",
+  status: "sennel flow get status",
 };
 
 if (!group || group === "-h" || group === "--help") {
@@ -33,7 +33,7 @@ if (!group || group === "-h" || group === "--help") {
 async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
   const resolvedEntry = entry?.helpPath
     ? entry
-    : { ...entry, helpPath: helpPathOverride || `senrail flow ${envelopeType} ${envelopeKey} --help` };
+    : { ...entry, helpPath: helpPathOverride || `sennel flow ${envelopeType} ${envelopeKey} --help` };
   const directParkedInvocation = resolvedEntry.directParkedAuthority === true
     || (resolvedEntry.directParkedAuthority === "when-parked" && argv.includes("--parked"));
   const runtimeLog = !directParkedInvocation
@@ -97,12 +97,12 @@ async function dispatchFlow() {
   // Group commands: get / set / run
   const commands = flowDefinition.find([group]);
   if (!commands || commands.command || commands.subcommands.size === 0) {
-    console.error(`senrail flow: unknown command '${group}'`);
+    console.error(`sennel flow: unknown command '${group}'`);
     const suggestion = flowCommandSuggestionByGroup[group];
     if (suggestion) {
       console.error(`Did you mean: ${suggestion}`);
     }
-    console.error("Run: senrail flow --help");
+    console.error("Run: sennel flow --help");
     process.exit(EXIT_ERROR);
   }
 
@@ -117,8 +117,8 @@ async function dispatchFlow() {
 
   const entry = commands.find([cmd]);
   if (!entry?.command) {
-    console.error(`senrail flow ${group}: unknown key '${cmd}'`);
-    console.error(`Run: senrail flow ${group} --help`);
+    console.error(`sennel flow ${group}: unknown key '${cmd}'`);
+    console.error(`Run: sennel flow ${group} --help`);
     process.exit(EXIT_ERROR);
   }
 

@@ -98,7 +98,7 @@ describe("draft review advisory routing", () => {
       fs.writeFileSync(draftPath, `${JSON.stringify({ goal: "Review the finalized draft." }, null, 2)}\n`);
       execFileSync("git", ["init", "-q", "-b", "main"], { cwd: root });
       execFileSync("git", ["config", "user.email", "tests@example.invalid"], { cwd: root });
-      execFileSync("git", ["config", "user.name", "Senrail tests"], { cwd: root });
+      execFileSync("git", ["config", "user.name", "Sennel tests"], { cwd: root });
       execFileSync("git", ["add", "."], { cwd: root });
       execFileSync("git", ["commit", "-q", "-m", "baseline"], { cwd: root });
       const flowState = moveFlowToStep(makeFlowState({ specId: "demo" }), "draft-questions-review");

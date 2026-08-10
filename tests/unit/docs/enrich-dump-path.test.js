@@ -1,7 +1,7 @@
 /**
  * tests/unit/docs/enrich-dump-path.test.js
  *
- * Verify that enrich failure dumps go to agent.workDir, not .senrail/output/.
+ * Verify that enrich failure dumps go to agent.workDir, not .sennel/output/.
  */
 
 import { describe, it } from "node:test";
@@ -11,17 +11,17 @@ import path from "path";
 import { resolveWorkDir } from "../../../src/lib/config.js";
 
 describe("enrich failure dump path", () => {
-  it("resolveWorkDir ignores SENRAIL_WORK_DIR and uses config.agent.workDir", () => {
+  it("resolveWorkDir ignores SENNEL_WORK_DIR and uses config.agent.workDir", () => {
     const root = "/project";
     const config = { agent: { workDir: ".tmp" } };
-    const prev = process.env.SENRAIL_WORK_DIR;
-    process.env.SENRAIL_WORK_DIR = ".sandbox-work";
+    const prev = process.env.SENNEL_WORK_DIR;
+    process.env.SENNEL_WORK_DIR = ".sandbox-work";
     try {
       const result = resolveWorkDir(root, config);
       assert.equal(result, "/project/.tmp");
     } finally {
-      if (prev == null) delete process.env.SENRAIL_WORK_DIR;
-      else process.env.SENRAIL_WORK_DIR = prev;
+      if (prev == null) delete process.env.SENNEL_WORK_DIR;
+      else process.env.SENNEL_WORK_DIR = prev;
     }
   });
 

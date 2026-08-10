@@ -34,7 +34,7 @@ describe("metrics token content-addressed cache", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("rebuilds when flow content changes but finalizedAt stays the same", () => {
-    tmp = createTmpDir("senrail-metrics-cache-fingerprint-");
+    tmp = createTmpDir("sennel-metrics-cache-fingerprint-");
     writeBaseConfig(tmp);
     const flowPath = "specs/001-alpha/flow.json";
     writeJson(tmp, flowPath, flowWithInput(100));
@@ -46,7 +46,7 @@ describe("metrics token content-addressed cache", () => {
   });
 
   it("rebuilds when a same-finalizedAt flow is added", () => {
-    tmp = createTmpDir("senrail-metrics-cache-add-");
+    tmp = createTmpDir("sennel-metrics-cache-add-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", flowWithInput(100));
     assert.equal(draftInput(runTokenJson(tmp)), 100);
@@ -57,7 +57,7 @@ describe("metrics token content-addressed cache", () => {
   });
 
   it("rebuilds when a same-finalizedAt flow is deleted", () => {
-    tmp = createTmpDir("senrail-metrics-cache-delete-");
+    tmp = createTmpDir("sennel-metrics-cache-delete-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", flowWithInput(100));
     writeJson(tmp, "specs/002-beta/flow.json", flowWithInput(200));
@@ -69,7 +69,7 @@ describe("metrics token content-addressed cache", () => {
   });
 
   it("reuses the cache when the input set and contents are unchanged", () => {
-    tmp = createTmpDir("senrail-metrics-cache-hit-");
+    tmp = createTmpDir("sennel-metrics-cache-hit-");
     writeBaseConfig(tmp);
     writeJson(tmp, "specs/001-alpha/flow.json", flowWithInput(100));
     runTokenJson(tmp);

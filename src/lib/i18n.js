@@ -1,5 +1,5 @@
 /**
- * senrail/lib/i18n.js
+ * sennel/lib/i18n.js
  *
  * Internationalization module.
  *

@@ -3,10 +3,10 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { writeJson } from "./tmp-dir.js";
 
-export const SENRAIL = join(process.cwd(), "src/senrail.js");
+export const SENNEL = join(process.cwd(), "src/sennel.js");
 
 export function writeBaseConfig(tmp) {
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -14,9 +14,9 @@ export function writeBaseConfig(tmp) {
 }
 
 export function runToken(tmp, args = []) {
-  return execFileSync("node", [SENRAIL, "metrics", "token", ...args], {
+  return execFileSync("node", [SENNEL, "metrics", "token", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     cwd: tmp,
   });
 }
@@ -26,21 +26,21 @@ export function runTokenJson(tmp) {
 }
 
 export function runTokenCapture(tmp, args = ["--format", "json"]) {
-  const res = spawnSync("node", [SENRAIL, "metrics", "token", ...args], {
+  const res = spawnSync("node", [SENNEL, "metrics", "token", ...args], {
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     cwd: tmp,
   });
   return { stdout: res.stdout ?? "", stderr: res.stderr ?? "", status: res.status };
 }
 
 export function readTokenCache(tmp) {
-  return JSON.parse(readFileSync(join(tmp, ".senrail/output/metrics.json"), "utf8"));
+  return JSON.parse(readFileSync(join(tmp, ".sennel/output/metrics.json"), "utf8"));
 }
 
 export function writeTokenCache(tmp, cache) {
   writeFileSync(
-    join(tmp, ".senrail/output/metrics.json"),
+    join(tmp, ".sennel/output/metrics.json"),
     `${JSON.stringify(cache, null, 2)}\n`,
     "utf8",
   );

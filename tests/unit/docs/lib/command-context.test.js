@@ -14,14 +14,14 @@ describe("loadAnalysisData", () => {
 
   it("returns null when no analysis files exist", () => {
     tmp = createTmpDir("analysis");
-    fs.mkdirSync(path.join(tmp, ".senrail", "output"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel", "output"), { recursive: true });
     assert.equal(loadAnalysisData(tmp), null);
     removeTmpDir(tmp);
   });
 
   it("returns analysis.json data", () => {
     tmp = createTmpDir("analysis");
-    writeJson(tmp, ".senrail/output/analysis.json", { source: "analysis" });
+    writeJson(tmp, ".sennel/output/analysis.json", { source: "analysis" });
     const data = loadAnalysisData(tmp);
     assert.equal(data.source, "analysis");
     removeTmpDir(tmp);
@@ -33,7 +33,7 @@ describe("loadFullAnalysis", () => {
 
   it("returns analysis.json data", () => {
     tmp = createTmpDir("full-analysis");
-    writeJson(tmp, ".senrail/output/analysis.json", { source: "analysis" });
+    writeJson(tmp, ".sennel/output/analysis.json", { source: "analysis" });
     const data = loadFullAnalysis(tmp);
     assert.equal(data.source, "analysis");
     removeTmpDir(tmp);
@@ -41,7 +41,7 @@ describe("loadFullAnalysis", () => {
 
   it("returns null when analysis.json missing", () => {
     tmp = createTmpDir("full-analysis");
-    fs.mkdirSync(path.join(tmp, ".senrail", "output"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, ".sennel", "output"), { recursive: true });
     assert.equal(loadFullAnalysis(tmp), null);
     removeTmpDir(tmp);
   });

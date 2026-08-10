@@ -1,8 +1,8 @@
 # プリセット作成ガイド
 
-このドキュメントは、sdd-forge のプリセットを**ビルトイン（`src/presets/<key>/`）**または**プロジェクトローカル（`.sdd-forge/presets/<key>/`）**として新規作成する際の手順書である。AI エージェントが本ドキュメントだけを読んでプリセットを最後まで組み立てられるように、仕様・手順・落とし穴・検証コマンドを網羅している。
+このドキュメントは、sennel のプリセットを**ビルトイン（`src/presets/<key>/`）**または**プロジェクトローカル（`.sennel/presets/<key>/`）**として新規作成する際の手順書である。AI エージェントが本ドキュメントだけを読んでプリセットを最後まで組み立てられるように、仕様・手順・落とし穴・検証コマンドを網羅している。
 
-対象読者は、sdd-forge 本体のアーキテクチャ（`src/CLAUDE.md` / `src/AGENTS.md`）を把握した上で、新しいフレームワーク・プロジェクト構造に対応するプリセットを作る開発者・AI である。
+対象読者は、sennel 本体のアーキテクチャ（`src/CLAUDE.md` / `src/AGENTS.md`）を把握した上で、新しいフレームワーク・プロジェクト構造に対応するプリセットを作る開発者・AI である。
 
 ---
 
@@ -19,7 +19,7 @@ base → cli → node-cli
 base → api → graphql
 ```
 
-`.sdd-forge/config.json` の `type` 配列に複数プリセットを並べると、各プリセットの継承チェーンが**独立に**解決され、チャプター・DataSource・テンプレートが合成される（プリセット間に parent 関係は不要）。
+`.sennel/config.json` の `type` 配列に複数プリセットを並べると、各プリセットの継承チェーンが**独立に**解決され、チャプター・DataSource・テンプレートが合成される（プリセット間に parent 関係は不要）。
 
 ```json
 { "type": ["spread-commerce", "graphql", "monorepo"] }
@@ -36,7 +36,7 @@ base → api → graphql
 | 条件 | 配置先 |
 |---|---|
 | 汎用フレームワーク・ライブラリ対応（再利用される） | `src/presets/<key>/`（ビルトイン） |
-| 特定プロジェクトのディレクトリ構造・カスタマイズに特化 | `.sdd-forge/presets/<key>/`（プロジェクトローカル） |
+| 特定プロジェクトのディレクトリ構造・カスタマイズに特化 | `.sennel/presets/<key>/`（プロジェクトローカル） |
 
 **プロジェクトローカルはリーフ専用**。`parent` チェーンは常にビルトインを使用する（プロジェクトローカル同士の継承は非対応）。
 
@@ -69,7 +69,7 @@ base → api → graphql
         └── test.js
 ```
 
-プロジェクトローカル（`.sdd-forge/presets/<key>/`）では `tests/` は必須ではない。
+プロジェクトローカル（`.sennel/presets/<key>/`）では `tests/` は必須ではない。
 
 **注意**: 以前は `scan/` ディレクトリに scan パーサーを分離する構成だったが、現行では廃止されている。scan ロジックは `data/<category>.js` の `Scannable` DataSource（`match` / `parse` / `scan` メソッド）に統合する。
 
@@ -146,7 +146,7 @@ base → api → graphql
 
 ### 4.4 overrides.json（プロジェクト直下・任意）
 
-**プリセット配下ではなく `.sdd-forge/overrides.json` に置く**、プロジェクト全体で 1 つの辞書ファイル。DataSource が返すエントリの説明文を手動で確定したい場合に使う（enrich の AI 生成結果より優先される）。
+**プリセット配下ではなく `.sennel/overrides.json` に置く**、プロジェクト全体で 1 つの辞書ファイル。DataSource が返すエントリの説明文を手動で確定したい場合に使う（enrich の AI 生成結果より優先される）。
 
 ```json
 {
@@ -179,7 +179,7 @@ base → api → graphql
 `match()` でファイルを拾い、`parse()` で解析結果を返す。scan パイプラインが戻り値を `analysis[category].entries` に書き、共通フィールド（`file` / `hash` / `lines` / `mtime`）を自動付与する。resolve メソッド（`list()` 等）で `analysis` を読んで出力する。
 
 ```javascript
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
+import { DataSource, Scannable, AnalysisEntry } from "sennel/api";
 
 export class ControllerEntry extends AnalysisEntry {
   className = null;
@@ -215,7 +215,7 @@ export default class MyControllersSource extends Scannable(DataSource) {
 `match()` / `parse()` を持たず、resolve メソッドのみ実装する。**読む analysis キーを書く scan DataSource がチェーン内に必ず存在する必要がある**（存在しないなら作ってはならない）。
 
 ```javascript
-import { DataSource } from "sdd-forge/api";
+import { DataSource } from "sennel/api";
 
 export default class SchemaSource extends DataSource {
   tables(analysis, labels) {
@@ -250,8 +250,8 @@ export default class SchemaSource extends DataSource {
 |---|---|
 | `toRows(items, mapper)` | items 配列を行配列に変換 |
 | `toMarkdownTable(rows, labels)` | 行配列と見出し配列から Markdown テーブル文字列を生成（パイプ文字は自動エスケープ、`null`/`undefined` は `—` になる） |
-| `mergeDesc(items, section, keyField)` | `.sdd-forge/overrides.json` の該当セクションから説明文を読み、item の `summary` にマージした新配列を返す |
-| `desc(section, key)` | `.sdd-forge/overrides.json` から個別に説明文を取得（未定義時は `"—"`） |
+| `mergeDesc(items, section, keyField)` | `.sennel/overrides.json` の該当セクションから説明文を読み、item の `summary` にマージした新配列を返す |
+| `desc(section, key)` | `.sennel/overrides.json` から個別に説明文を取得（未定義時は `"—"`） |
 
 ### 5.5 resolve メソッドの呼び出し規約
 
@@ -264,12 +264,12 @@ export default class SchemaSource extends DataSource {
 
 ## 6. import ルール（厳守）
 
-sdd-forge は `package.json` の `exports` で公式公開ルートを提供している:
+sennel は `package.json` の `exports` で公式公開ルートを提供している:
 
 ```json
 {
   "exports": {
-    ".": "./src/sdd-forge.js",
+    ".": "./src/sennel.js",
     "./api": "./src/api.js",
     "./presets/*": "./src/presets/*"
   }
@@ -280,20 +280,20 @@ DataSource ファイルからの import は以下のみ:
 
 ```javascript
 // 基底クラス
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
+import { DataSource, Scannable, AnalysisEntry } from "sennel/api";
 
 // preset 内部クラス（継承用）
-import SymfonyControllersSource from "sdd-forge/presets/symfony/data/controllers";
-import { ControllerEntry } from "sdd-forge/presets/webapp/data/controllers";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
+import SymfonyControllersSource from "sennel/presets/symfony/data/controllers";
+import { ControllerEntry } from "sennel/presets/webapp/data/controllers";
+import WebappDataSource from "sennel/presets/webapp/data/webapp-data-source";
 ```
 
 **重要ルール:**
 
-1. **`.js` 拡張子を付けない**。`sdd-forge/presets/*` は wildcard subpath exports で、`.js` を付けると二重拡張子 `.js.js` で `ENOENT` になる。`sdd-forge/api` も静的マッピングのため拡張子不要。
-2. **`sdd-forge/src/...` を直接参照しない**（exports に含まれない）。
-3. **`sdd-forge/presets/<key>/templates/...` を参照しない**（非公開）。
-4. api.js に必要なクラスが含まれていない場合は、sdd-forge 本体の `src/api.js` への追加を検討する（prs / issue 経由）。
+1. **`.js` 拡張子を付けない**。`sennel/presets/*` は wildcard subpath exports で、`.js` を付けると二重拡張子 `.js.js` で `ENOENT` になる。`sennel/api` も静的マッピングのため拡張子不要。
+2. **`sennel/src/...` を直接参照しない**（exports に含まれない）。
+3. **`sennel/presets/<key>/templates/...` を参照しない**（非公開）。
+4. api.js に必要なクラスが含まれていない場合は、sennel 本体の `src/api.js` への追加を検討する（prs / issue 経由）。
 
 ---
 
@@ -313,9 +313,9 @@ import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
 
 プリセットは、フレームワーク固有の scan 設定・DataSource・テンプレートをまとめた構成です。
 `preset.json` の `parent` による単一継承で、親の設定を子で上書きできます。
-作成時は、ビルトイン（`src/presets/<key>/`）かプロジェクトローカル（`.sdd-forge/presets/<key>/`）かを先に判断します。
+作成時は、ビルトイン（`src/presets/<key>/`）かプロジェクトローカル（`.sennel/presets/<key>/`）かを先に判断します。
 実装はテンプレートから先に作り、次に DataSource、最後に scan パーサーを実装します。
-検証は `sdd-forge docs scan --dry-run`、`sdd-forge docs scan`、`sdd-forge docs build` の順で実行します。
+検証は `sennel docs scan --dry-run`、`sennel docs scan`、`sennel docs build` の順で実行します。
 <!-- {{/text}} -->
 ```
 
@@ -357,8 +357,8 @@ webapp 等の上位プリセットは `{{text}}` + `{%block%}` で定義し、�
 
 ### 7.4 テンプレート解決の優先順位（高→低）
 
-1. プロジェクトローカル `.sdd-forge/templates/<lang>/docs/`
-2. プロジェクトローカルプリセット `.sdd-forge/presets/<key>/templates/<lang>/`
+1. プロジェクトローカル `.sennel/templates/<lang>/docs/`
+2. プロジェクトローカルプリセット `.sennel/presets/<key>/templates/<lang>/`
 3. リーフプリセット `src/presets/<leaf>/templates/<lang>/`
 4. 親プリセット（root まで）
 
@@ -398,12 +398,12 @@ enrich フェーズは scan が収集したエントリに `summary` / `chapter`
 
 1. **preset.json を作る** — `parent` / `scan.include` / `chapters` を最低限定義
 2. **config.json の `type` に追加** — これをやらないとロードされない（leaf を配列先頭に）
-3. **`sdd-forge docs scan --dry-run` で scan パターン検証** — ファイルが正しく収集されるか
+3. **`sennel docs scan --dry-run` で scan パターン検証** — ファイルが正しく収集されるか
 4. **テンプレートを配置** — まず `{{text}}` だけで骨格を作る
-5. **DataSource を 1 つずつ実装** — 書くたびに `sdd-forge docs scan` を実行し、`.sdd-forge/output/analysis.json` の `<category>.entries.length` が期待通りか確認
+5. **DataSource を 1 つずつ実装** — 書くたびに `sennel docs scan` を実行し、`.sennel/output/analysis.json` の `<category>.entries.length` が期待通りか確認
 6. **テンプレートの該当ブロックを `{{data}}` に差し替える**
-7. **`sdd-forge docs build` で全パイプライン確認**
-8. **guardrail.json を追加**（build が通ってから改善）。プロジェクト運用中に必要になれば `.sdd-forge/overrides.json` で説明文を確定化
+7. **`sennel docs build` で全パイプライン確認**
+8. **guardrail.json を追加**（build が通ってから改善）。プロジェクト運用中に必要になれば `.sennel/overrides.json` で説明文を確定化
 9. **ビルトインプリセットの場合は `tests/` を整備し、`npm test` で整合性を確認**
 
 ### 10.3 最小動作セット
@@ -411,7 +411,7 @@ enrich フェーズは scan が収集したエントリに `summary` / `chapter`
 以下を揃えれば scan は通る（プロジェクトローカル想定）:
 
 ```
-.sdd-forge/
+.sennel/
 ├── config.json                    # "type": ["mypreset", ...] を追加
 └── presets/mypreset/
     ├── preset.json                # {"parent": "webapp", "scan": {"include": ["src/**/*.js"]}}
@@ -421,8 +421,8 @@ enrich フェーズは scan が収集したエントリに `summary` / `chapter`
 
 ```javascript
 // data/simple.js
-import { AnalysisEntry } from "sdd-forge/api";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
+import { AnalysisEntry } from "sennel/api";
+import WebappDataSource from "sennel/presets/webapp/data/webapp-data-source";
 
 export class SimpleEntry extends AnalysisEntry {
   name = null;
@@ -454,16 +454,16 @@ export default class SimpleSource extends WebappDataSource {
 # カテゴリ別エントリ件数の summary を標準出力に出す（analysis.json を書き換えない）
 # 出力は単層 JSON: { カテゴリ名: 整数件数, ... }
 # scan DataSource が登録済みかつマッチ 0 件のカテゴリも値 0 で含まれる
-sdd-forge docs scan --dry-run
+sennel docs scan --dry-run
 
 # 全 analysis JSON を標準出力に出す（analysis.json を書き換えない）
-sdd-forge docs scan --stdout
+sennel docs scan --stdout
 
-# 本実行（.sdd-forge/output/analysis.json を更新）
-sdd-forge docs scan
+# 本実行（.sennel/output/analysis.json を更新）
+sennel docs scan
 
 # 全パイプライン
-sdd-forge docs build
+sennel docs build
 
 # ビルトインプリセットの整合性テスト
 npm test
@@ -490,11 +490,11 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 
 ### 12.2 import 拡張子
 
-`sdd-forge/api` / `sdd-forge/presets/*` は**拡張子 `.js` を付けない**。
+`sennel/api` / `sennel/presets/*` は**拡張子 `.js` を付けない**。
 
 ### 12.3 loader のルール
 
-`src/docs/lib/data-source-loader.js` は `data/` 配下の `.js` を全て動的 import する。**default export がクラス/関数のときだけ** sources Map に登録される。副作用のあるヘルパーを置きたい場合は default export を持たないようにすれば loader から無視される（通常は `sdd-forge/api` があるので不要）。
+`src/docs/lib/data-source-loader.js` は `data/` 配下の `.js` を全て動的 import する。**default export がクラス/関数のときだけ** sources Map に登録される。副作用のあるヘルパーを置きたい場合は default export を持たないようにすれば loader から無視される（通常は `sennel/api` があるので不要）。
 
 ### 12.4 `chapters` の厳格性
 
@@ -502,7 +502,7 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 
 ### 12.5 `[init] ERROR:` は情報メッセージ
 
-`sdd-forge docs init` の `[init] ERROR: N 件のファイルが docs/ に既に存在します` は **failure ではなく情報メッセージ**（`--force` 案内）。exit code で判定すること。
+`sennel docs init` の `[init] ERROR: N 件のファイルが docs/ に既に存在します` は **failure ではなく情報メッセージ**（`--force` 案内）。exit code で判定すること。
 
 ### 12.6 bash テストスクリプト
 
@@ -516,7 +516,7 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 | `<category>.entries.length === 0` | `match()` が常に false、または `scan.include` に対応パターンがない |
 | `Preset not found: <key>` | `config.json` の `type` に未記載 |
 | `[data] UNRESOLVED {{data}} in foo.md: <cat>.<sub>.<method>` | DataSource が存在しない、または resolve メソッド未定義 |
-| 二重拡張子 `.js.js` ENOENT | import 文で `sdd-forge/presets/.../foo.js` のように `.js` を付けた |
+| 二重拡張子 `.js.js` ENOENT | import 文で `sennel/presets/.../foo.js` のように `.js` を付けた |
 
 ---
 
@@ -539,7 +539,7 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 
 ### 13.3 プロジェクト固有情報禁止
 
-`src/presets/` には特定プロジェクトの値（プロジェクト名・ホスト・ポート・コンテナ名等）を書かない。汎用的な解析ロジックのみ。固有値は `.sdd-forge/config.json` で外部化する。
+`src/presets/` には特定プロジェクトの値（プロジェクト名・ホスト・ポート・コンテナ名等）を書かない。汎用的な解析ロジックのみ。固有値は `.sennel/config.json` で外部化する。
 
 ---
 
@@ -547,8 +547,8 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 
 - リーフ専用。`parent` はビルトインキーを指す。
 - `preset.json` の省略が可能（省略時はビルトインのデフォルトを継承）。
-- `.sdd-forge/templates/<lang>/docs/` のファイルは最優先（プリセットテンプレートより強い）。
-- 落とし穴: プロジェクトローカルに `package.json` は不要。sdd-forge が DataSource を動的 import した時点で sdd-forge 自身のパッケージ解決コンテキストが使われるため、bare specifier (`sdd-forge/api` 等) が解決できる。
+- `.sennel/templates/<lang>/docs/` のファイルは最優先（プリセットテンプレートより強い）。
+- 落とし穴: プロジェクトローカルに `package.json` は不要。sennel が DataSource を動的 import した時点で sennel 自身のパッケージ解決コンテキストが使われるため、bare specifier (`sennel/api` 等) が解決できる。
 
 ---
 
@@ -559,24 +559,24 @@ ESM 検証は `node --input-type=module --check <file>`（`node --check` 単体�
 1. [ ] 対象プロジェクトのディレクトリ構造・フレームワークを `ls` / `fd` で把握
 2. [ ] 既存プリセットの中で最も近い親を選択（`src/presets/` を読む）
 3. [ ] `<preset-root>/<key>/preset.json` を作成（`parent`, `scan.include`, `chapters` 最小セット）
-4. [ ] `.sdd-forge/config.json` の `type` 配列先頭に `<key>` を追加
-5. [ ] `sdd-forge docs scan --dry-run` でファイル収集確認
+4. [ ] `.sennel/config.json` の `type` 配列先頭に `<key>` を追加
+5. [ ] `sennel docs scan --dry-run` でファイル収集確認
 6. [ ] `templates/<lang>/` に骨格テンプレート配置（まず `{{text}}` のみ）
-7. [ ] 必要な DataSource を 1 つずつ実装（`sdd-forge/api` / `sdd-forge/presets/*` のみ import、拡張子なし）
-8. [ ] 各 DataSource 追加後に `sdd-forge docs scan` 実行 → `.sdd-forge/output/analysis.json` の `<category>.entries.length` を確認
+7. [ ] 必要な DataSource を 1 つずつ実装（`sennel/api` / `sennel/presets/*` のみ import、拡張子なし）
+8. [ ] 各 DataSource 追加後に `sennel docs scan` 実行 → `.sennel/output/analysis.json` の `<category>.entries.length` を確認
 9. [ ] `match()` の `relPath` は `/` 区切り・`./` なしで判定
 10. [ ] resolve メソッドは `toMarkdownTable(rows, labels)` の戻り値（Markdown 文字列）か `null` を返す。データ無しは必ず `null`
 11. [ ] `analysis.X` を読むなら `X` を書く scan がチェーン内にあるか確認
 12. [ ] テンプレートの `{{text}}` を段階的に `{{data}}` に差し替え
-13. [ ] `sdd-forge docs build` で全パイプライン完走を確認
+13. [ ] `sennel docs build` で全パイプライン完走を確認
 14. [ ] ビルトインなら `tests/` 整備 → `npm test` で整合性 PASS
-15. [ ] （任意）`guardrail.json` を追加。説明文の確定化が必要なら `.sdd-forge/overrides.json` をプロジェクト直下に作成
+15. [ ] （任意）`guardrail.json` を追加。説明文の確定化が必要なら `.sennel/overrides.json` をプロジェクト直下に作成
 
 ---
 
 ## 16. 参考ファイル
 
-sdd-forge 本体:
+sennel 本体:
 
 | ファイル | 内容 |
 |---|---|
@@ -594,5 +594,5 @@ sdd-forge 本体:
 
 プロジェクトルール:
 
-- `src/CLAUDE.md` / `src/AGENTS.md` — sdd-forge 内部アーキテクチャと MUST ルール
+- `src/CLAUDE.md` / `src/AGENTS.md` — sennel 内部アーキテクチャと MUST ルール
 - プロジェクトルート `CLAUDE.md` — `src/` への書き込み禁止事項

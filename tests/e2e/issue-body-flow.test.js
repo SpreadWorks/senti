@@ -11,7 +11,7 @@ import {
   stubAgentConfig,
 } from "../helpers/stub-agent.js";
 
-const CMD = path.join(process.cwd(), "src/senrail.js");
+const CMD = path.join(process.cwd(), "src/sennel.js");
 
 function passingScore() {
   return JSON.stringify({
@@ -39,7 +39,7 @@ function setupProject(tmp, { capturePath, stubGhBody } = {}) {
   const stubPath = capturePath
     ? writeCapturingStubAgentScript(tmp, ".stub-agent.js", capturePath, passingScore())
     : writeStubAgentScript(tmp, ".stub-agent.js", passingScore());
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -53,7 +53,7 @@ function setupProject(tmp, { capturePath, stubGhBody } = {}) {
 }
 
 function runCli(tmp, args, { extraPath } = {}) {
-  const env = { ...process.env, SENRAIL_WORK_ROOT: tmp };
+  const env = { ...process.env, SENNEL_WORK_ROOT: tmp };
   if (extraPath) {
     env.PATH = `${extraPath}:${env.PATH}`;
   }
@@ -89,7 +89,7 @@ JSON
     const runId = JSON.parse(initRes.stdout.trim()).data.runId;
     assert.ok(runId);
 
-    const preparingStatePath = path.join(tmp, ".senrail", `.active-flow.${runId}`);
+    const preparingStatePath = path.join(tmp, ".sennel", `.active-flow.${runId}`);
     assert.ok(fs.existsSync(preparingStatePath), "preparing state file should exist");
     const preparing = JSON.parse(fs.readFileSync(preparingStatePath, "utf8"));
     assert.ok(preparing.issueBody, "preparing state should have issueBody");
@@ -132,7 +132,7 @@ exit 1
     ], { extraPath: ghBin });
     assert.equal(initRes.status, 0, `init should succeed despite gh failure: ${initRes.stderr}`);
     const runId = JSON.parse(initRes.stdout.trim()).data.runId;
-    const preparing = JSON.parse(fs.readFileSync(path.join(tmp, ".senrail", `.active-flow.${runId}`), "utf8"));
+    const preparing = JSON.parse(fs.readFileSync(path.join(tmp, ".sennel", `.active-flow.${runId}`), "utf8"));
     assert.ok(!preparing.issueBody, "issueBody should NOT be set when gh fails");
     // warning should be present on stderr
     assert.match(initRes.stderr, /warn:/);

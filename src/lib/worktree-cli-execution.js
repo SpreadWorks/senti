@@ -97,7 +97,7 @@ function resolveWorktreeCli(executionPath, cwd) {
 
 function failClosed(target, argv) {
   process.stderr.write(
-    "senrail: worktree-local CLI source is unavailable; refusing to execute a different checkout.\n"
+    "sennel: worktree-local CLI source is unavailable; refusing to execute a different checkout.\n"
     + `Execution target: ${target.executionPath}\n`
     + `Expected worktree source: ${target.localCliPath}\n`
     + `Recovery: restore the worktree source, then run: ${target.recoveryCommand(argv)}\n`,
@@ -134,7 +134,7 @@ export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
     stdio: "inherit",
   });
   if (result.error) {
-    process.stderr.write(`senrail: failed to execute worktree-local CLI ${target.localCliPath}: ${result.error.message}\n`);
+    process.stderr.write(`sennel: failed to execute worktree-local CLI ${target.localCliPath}: ${result.error.message}\n`);
     process.stderr.write(`Recovery: ${target.recoveryCommand(argv)}\n`);
     return 1;
   }

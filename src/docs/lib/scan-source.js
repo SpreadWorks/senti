@@ -48,7 +48,7 @@ export const Scannable = (Base) =>
      * Whether this DataSource handles a file.
      * Override in subclasses.
      *
-     * @param {string} relPath - Path relative to the scan root (SENRAIL_SOURCE_ROOT).
+     * @param {string} relPath - Path relative to the scan root (SENNEL_SOURCE_ROOT).
      *   Separator is always `/` (POSIX style); never converted to `\` on Windows.
      *   No leading `./` (e.g. `src/controllers/UserController.php`).
      * @returns {boolean} true if this DataSource should process the file.

@@ -13,7 +13,7 @@ import {
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const cliPath = path.join(repoRoot, "src/senrail.js");
+const cliPath = path.join(repoRoot, "src/sennel.js");
 const fixtureRoot = path.join(repoRoot, ".tmp", "issue-497-draft-promotion");
 const roots = [];
 
@@ -27,8 +27,8 @@ function createProject() {
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const root = fs.mkdtempSync(path.join(fixtureRoot, "project-"));
   roots.push(root);
-  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail", "config.json"), JSON.stringify({
+  fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel", "config.json"), JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -38,11 +38,11 @@ function createProject() {
     version: "0.0.0",
     type: "module",
   }, null, 2));
-  fs.writeFileSync(path.join(root, ".gitignore"), ".senrail/*\n!.senrail/config.json\n");
+  fs.writeFileSync(path.join(root, ".gitignore"), ".sennel/*\n!.sennel/config.json\n");
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
-  git(root, ["add", ".senrail/config.json", ".gitignore", "package.json"]);
+  git(root, ["add", ".sennel/config.json", ".gitignore", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
   return root;
 }
@@ -51,7 +51,7 @@ function runFlow(root, args) {
   const result = spawnSync("node", [cliPath, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
   });
   const stdout = result.stdout.trim();
   return { ...result, envelope: stdout.startsWith("{") ? JSON.parse(stdout) : null };

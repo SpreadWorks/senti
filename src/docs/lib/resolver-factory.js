@@ -1,5 +1,5 @@
 /**
- * senrail/engine/resolvers/index.js
+ * sennel/engine/resolvers/index.js
  *
  * リゾルバファクトリ。
  * type に応じて DataSource モジュールをロードし、リゾルバを返す。
@@ -101,11 +101,11 @@ function fallbackDataSourceChains(types) {
  * @returns {Promise<{ resolve: (preset: string, source: string, method: string, analysis: Object, labels: string[]) => string|null }>}
  */
 export async function createResolver(type, root, opts) {
-  // Warn about deprecated .senrail/data/ directory
+  // Warn about deprecated .sennel/data/ directory
   if (root) {
     const deprecatedDataDir = path.join(managedDir(root), "data");
     if (fs.existsSync(deprecatedDataDir)) {
-      process.stderr.write(`[senrail] WARN: .senrail/data/ is deprecated. Move DataSources to .senrail/presets/<type>/data/ instead.\n`);
+      process.stderr.write(`[sennel] WARN: .sennel/data/ is deprecated. Move DataSources to .sennel/presets/<type>/data/ instead.\n`);
     }
   }
 

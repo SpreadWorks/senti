@@ -89,23 +89,23 @@ describe("parseArgs", () => {
 });
 
 describe("repoRoot", () => {
-  const origWorkRoot = process.env.SENRAIL_WORK_ROOT;
+  const origWorkRoot = process.env.SENNEL_WORK_ROOT;
 
   afterEach(() => {
     if (origWorkRoot !== undefined) {
-      process.env.SENRAIL_WORK_ROOT = origWorkRoot;
+      process.env.SENNEL_WORK_ROOT = origWorkRoot;
     } else {
-      delete process.env.SENRAIL_WORK_ROOT;
+      delete process.env.SENNEL_WORK_ROOT;
     }
   });
 
-  it("returns SENRAIL_WORK_ROOT when set", () => {
-    process.env.SENRAIL_WORK_ROOT = "/tmp/test-root";
+  it("returns SENNEL_WORK_ROOT when set", () => {
+    process.env.SENNEL_WORK_ROOT = "/tmp/test-root";
     assert.equal(repoRoot(), "/tmp/test-root");
   });
 
-  it("returns a string when SENRAIL_WORK_ROOT is not set", () => {
-    delete process.env.SENRAIL_WORK_ROOT;
+  it("returns a string when SENNEL_WORK_ROOT is not set", () => {
+    delete process.env.SENNEL_WORK_ROOT;
     const result = repoRoot();
     assert.equal(typeof result, "string");
     assert.ok(result.length > 0);
@@ -113,30 +113,30 @@ describe("repoRoot", () => {
 });
 
 describe("sourceRoot", () => {
-  const origSourceRoot = process.env.SENRAIL_SOURCE_ROOT;
-  const origWorkRoot = process.env.SENRAIL_WORK_ROOT;
+  const origSourceRoot = process.env.SENNEL_SOURCE_ROOT;
+  const origWorkRoot = process.env.SENNEL_WORK_ROOT;
 
   afterEach(() => {
     if (origSourceRoot !== undefined) {
-      process.env.SENRAIL_SOURCE_ROOT = origSourceRoot;
+      process.env.SENNEL_SOURCE_ROOT = origSourceRoot;
     } else {
-      delete process.env.SENRAIL_SOURCE_ROOT;
+      delete process.env.SENNEL_SOURCE_ROOT;
     }
     if (origWorkRoot !== undefined) {
-      process.env.SENRAIL_WORK_ROOT = origWorkRoot;
+      process.env.SENNEL_WORK_ROOT = origWorkRoot;
     } else {
-      delete process.env.SENRAIL_WORK_ROOT;
+      delete process.env.SENNEL_WORK_ROOT;
     }
   });
 
-  it("returns SENRAIL_SOURCE_ROOT when set", () => {
-    process.env.SENRAIL_SOURCE_ROOT = "/tmp/src-root";
+  it("returns SENNEL_SOURCE_ROOT when set", () => {
+    process.env.SENNEL_SOURCE_ROOT = "/tmp/src-root";
     assert.equal(sourceRoot(), "/tmp/src-root");
   });
 
-  it("falls back to repoRoot when SENRAIL_SOURCE_ROOT is not set", () => {
-    delete process.env.SENRAIL_SOURCE_ROOT;
-    process.env.SENRAIL_WORK_ROOT = "/tmp/work";
+  it("falls back to repoRoot when SENNEL_SOURCE_ROOT is not set", () => {
+    delete process.env.SENNEL_SOURCE_ROOT;
+    process.env.SENNEL_WORK_ROOT = "/tmp/work";
     assert.equal(sourceRoot(), "/tmp/work");
   });
 });

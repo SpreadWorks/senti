@@ -3,15 +3,15 @@ import { test } from "node:test";
 import { buildScenarioValidityDiffArgs } from "../../../src/flow/lib/run-scenario-validity.js";
 
 test("scenario-validity diff accepts an immutable repair baseline", () => {
-  assert.deepEqual(buildScenarioValidityDiffArgs("refs/senrail/flows/run-id/baseline"), [
+  assert.deepEqual(buildScenarioValidityDiffArgs("refs/sennel/flows/run-id/baseline"), [
     "diff",
     "--name-only",
-    "refs/senrail/flows/run-id/baseline",
+    "refs/sennel/flows/run-id/baseline",
     "--",
     "src/",
     "tests/",
     "package.json",
-    ".senrail/config.json",
+    ".sennel/config.json",
   ]);
 });
 

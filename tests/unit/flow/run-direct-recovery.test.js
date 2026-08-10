@@ -21,7 +21,7 @@ test("flow run direct reports normal recovery availability without creating a se
     issue: 656,
   });
   const result = execFileSync(process.execPath, [
-    path.resolve("src/senrail.js"),
+    path.resolve("src/sennel.js"),
     "flow", "run", "direct",
     "--expect-run-id", state.runId,
     "--expect-issue", String(state.issue),
@@ -29,7 +29,7 @@ test("flow run direct reports normal recovery availability without creating a se
   ], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root, SENRAIL_SOURCE_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
   });
   const envelope = JSON.parse(result);
 

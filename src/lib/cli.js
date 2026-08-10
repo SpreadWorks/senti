@@ -11,14 +11,14 @@ import { runCmd, assertOk } from "./process.js";
 import { PRODUCT } from "./product.js";
 
 /**
- * senrail パッケージの src/ ディレクトリの絶対パス。
+ * sennel パッケージの src/ ディレクトリの絶対パス。
  * lib/ から1階層上が src/ であることを利用して解決する。
  */
 export const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * 作業ルートを返す。
- * SENRAIL_WORK_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
+ * SENNEL_WORK_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
  * それ以外は git rev-parse でリポジトリルートを取得し、失敗時は process.cwd() を返す。
  *
  * @returns {string} 作業ルートの絶対パス
@@ -36,7 +36,7 @@ export function repoRoot() {
 
 /**
  * ソースルートを返す。
- * SENRAIL_SOURCE_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
+ * SENNEL_SOURCE_ROOT 環境変数が設定されている場合はそれを使用する（プロジェクトモード）。
  * それ以外は repoRoot() と同じ値を返す。
  *
  * @returns {string} ソースルートの絶対パス
@@ -135,7 +135,7 @@ export function getMainRepoPath(root) {
 }
 
 /**
- * senrail パッケージのバージョン文字列を返す。
+ * sennel パッケージのバージョン文字列を返す。
  * package.json の読み込みに失敗した場合は "?" を返す。
  *
  * @returns {string}

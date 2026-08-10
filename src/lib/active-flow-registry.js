@@ -1,7 +1,7 @@
 /**
  * src/lib/active-flow-registry.js
  *
- * Manages `.senrail/.active-flow` — the pointer file listing currently
+ * Manages `.sennel/.active-flow` — the pointer file listing currently
  * active Spec-Driven Development flows in this repository. Used by FlowManager.
  *
  * @typedef {Object} ActiveFlowEntry

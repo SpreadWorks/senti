@@ -330,7 +330,7 @@ describe("governed test-review repair", () => {
       });
       assert.equal(plan.result.directive.kind, "repair_evidence");
       assert.equal(plan.result.directive.actionId, "REPAIR_TEST_REVIEW");
-      assert.match(plan.result.directive.nextAction, /^senrail flow run repair-test-review /);
+      assert.match(plan.result.directive.nextAction, /^sennel flow run repair-test-review /);
 
       const result = repair(value);
       const state = value.flowManager.load();

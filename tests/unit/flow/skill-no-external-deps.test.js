@@ -13,9 +13,9 @@ import path from "path";
 
 const SKILL_SOURCES_DIR = path.join(process.cwd(), "src/skills");
 const SKILL_NAMES = [
-  "senrail.flow",
-  "senrail.flow-status",
-  "senrail.flow-sync",
+  "sennel.flow",
+  "sennel.flow-status",
+  "sennel.flow-sync",
 ];
 
 // Lines containing these patterns are allowed exceptions

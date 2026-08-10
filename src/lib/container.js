@@ -2,7 +2,7 @@
  * src/lib/container.js
  *
  * Dependency container for CLI-wide initialized services (config, logger, paths,
- * agent, i18n, flowManager, etc.). Built once in src/senrail.js and
+ * agent, i18n, flowManager, etc.). Built once in src/sennel.js and
  * referenced by all dispatchers and commands via the module-level `container`
  * export.
  */
@@ -117,7 +117,7 @@ function buildPaths(root, config, opts = {}) {
 }
 
 /**
- * Initialize the module-level container. Called once from src/senrail.js.
+ * Initialize the module-level container. Called once from src/sennel.js.
  * Subsequent dispatchers and commands import `container` directly.
  *
  * Best-effort initialization: if config is absent (setup not run yet, help-only
@@ -135,7 +135,7 @@ function buildPaths(root, config, opts = {}) {
  *   migration commands can repair config that strict validation rejects.
  */
 export function initContainer(opts = {}) {
-  // Idempotent: if already initialized (e.g. by senrail.js before a
+  // Idempotent: if already initialized (e.g. by sennel.js before a
   // dispatcher was imported), do not re-run initialization. This lets
   // each dispatcher safely call initContainer() at its top to support
   // standalone execution (direct `node src/flow.js` invocation in tests)
@@ -154,7 +154,7 @@ export function initContainer(opts = {}) {
         config = null;
         configLoaded = false;
       } else {
-      process.stderr.write(`[senrail] config load failed: ${err?.message}\n`);
+      process.stderr.write(`[sennel] config load failed: ${err?.message}\n`);
       throw err;
       }
     }
@@ -168,7 +168,7 @@ export function initContainer(opts = {}) {
       mainConfig = loadConfig(mainRoot, { allowMissingType: true });
     } catch (err) {
       // A linked worktree can be a standalone project fixture. Its common
-      // repository is not required to carry Senrail configuration; use the
+      // repository is not required to carry Sennel configuration; use the
       // worktree configuration unless a readable main configuration exists.
       if (err?.code !== "ERR_MISSING_FILE") throw err;
     }
@@ -208,13 +208,13 @@ export function initContainer(opts = {}) {
   const registry = new ProviderRegistry(config?.agent?.providers || {});
   const agent = new Agent({ config, paths, registry, logger, flowManager });
   container.register("agent", agent);
-  globalThis.__senrailPluginAgent = agent;
+  globalThis.__sennelPluginAgent = agent;
   container.register("i18n", translate());
   container.register("lang", config?.lang);
 
   // Base classes and utilities exposed to presets. Presets access these via
   // container.get("base.DataSource") etc. so they never need to import from
-  // senrail internal paths directly.
+  // sennel internal paths directly.
   container.register("base.DataSource", DataSource);
   container.register("base.Scannable", Scannable);
   container.register("base.AnalysisEntry", AnalysisEntry);

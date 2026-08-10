@@ -6,7 +6,7 @@ import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../../helpers/git-repo.js";
 
-const SENRAIL = path.join(process.cwd(), "src/senrail.js");
+const SENNEL = path.join(process.cwd(), "src/sennel.js");
 
 function config(command) {
   return {
@@ -23,11 +23,11 @@ function config(command) {
 }
 
 function setupProject(command) {
-  const root = createTmpDir("senrail-post-worktree-e2e-");
-  writeJson(root, ".senrail/config.json", config(command));
+  const root = createTmpDir("sennel-post-worktree-e2e-");
+  writeJson(root, ".sennel/config.json", config(command));
   writeJson(root, "package.json", { name: "post-worktree-e2e", version: "1.0.0", type: "module" });
   writeFile(root, "src/index.js", "export const value = 1;\n");
-  writeFile(root, ".senrail/output/.gitkeep", "");
+  writeFile(root, ".sennel/output/.gitkeep", "");
   initGitRepo(root);
   commitAll(root, "initial");
   return root;
@@ -35,7 +35,7 @@ function setupProject(command) {
 
 function runPrepare(root, title = "post-worktree", extraArgs = []) {
   const output = execFileSync("node", [
-    SENRAIL,
+    SENNEL,
     "flow",
     "prepare",
     "--title",
@@ -47,7 +47,7 @@ function runPrepare(root, title = "post-worktree", extraArgs = []) {
   ], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
   });
   return JSON.parse(output);
 }
@@ -86,10 +86,10 @@ describe("flow prepare PostWorktree hook", () => {
 
   it("mirrors ignored plugin runtime into worktree before plugin prepare hooks are discovered", () => {
     tmp = setupProject("");
-    writeFile(tmp, ".gitignore", ".senrail/*\n!.senrail/config.json\n!.senrail/output/\n");
-    writeJson(tmp, ".senrail/config.local.json", {
+    writeFile(tmp, ".gitignore", ".sennel/*\n!.sennel/config.json\n!.sennel/output/\n");
+    writeJson(tmp, ".sennel/config.local.json", {
       plugin: {
-        sources: [{ id: "workflow-src", type: "local", path: ".senrail/plugins/workflow" }],
+        sources: [{ id: "workflow-src", type: "local", path: ".sennel/plugins/workflow" }],
         packages: [{
           id: "workflow",
           source: "workflow-src",
@@ -97,7 +97,7 @@ describe("flow prepare PostWorktree hook", () => {
         }],
       },
     });
-    writeJson(tmp, ".senrail/plugins/workflow/plugin.json", {
+    writeJson(tmp, ".sennel/plugins/workflow/plugin.json", {
       name: "workflow",
       files: ["plugin.json", "hooks/", "config.defaults.json"],
       contributions: {
@@ -105,14 +105,14 @@ describe("flow prepare PostWorktree hook", () => {
         config: { defaults: "config.defaults.json" },
       },
     });
-    writeJson(tmp, ".senrail/plugins/workflow/config.defaults.json", {
+    writeJson(tmp, ".sennel/plugins/workflow/config.defaults.json", {
       plugin: {
         config: {
           workflow: { flowIntegration: "enable" },
         },
       },
     });
-    writeFile(tmp, ".senrail/plugins/workflow/hooks/prepare.js", `
+    writeFile(tmp, ".sennel/plugins/workflow/hooks/prepare.js", `
 export default function register(api) {
   return class PrepareHook extends api.FlowCommandHook {
     static command = "prepare";
@@ -137,8 +137,8 @@ export default function register(api) {
     const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
     const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8"));
 
-    assert.equal(fs.existsSync(path.join(worktreePath, ".senrail", "config.local.json")), true);
-    assert.equal(fs.existsSync(path.join(worktreePath, ".senrail", "plugins", "workflow", "hooks", "prepare.js")), true);
+    assert.equal(fs.existsSync(path.join(worktreePath, ".sennel", "config.local.json")), true);
+    assert.equal(fs.existsSync(path.join(worktreePath, ".sennel", "plugins", "workflow", "hooks", "prepare.js")), true);
     assert.ok(flow.plugins.flowCommandHooks.some((hook) => hook.pluginId === "workflow" && hook.command === "prepare"));
     assert.deepEqual(artifact, {
       issue: 123,

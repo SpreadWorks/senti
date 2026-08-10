@@ -14,7 +14,7 @@ import { RepositoryMaintenanceLock } from "../../../src/lib/repository-maintenan
 import { applyMigration } from "../../../src/scripts/rename-phase-steps.js";
 
 const SCRIPT = path.resolve("src/scripts/rename-phase-steps.js");
-const JOURNAL = path.join(".senrail", "migrations", "rename-phase-steps.json");
+const JOURNAL = path.join(".sennel", "migrations", "rename-phase-steps.json");
 
 function initRepository(root) {
   execFileSync("git", ["init", "--quiet", root]);
@@ -52,7 +52,7 @@ function authorityContent(kind, specId) {
 function runCli(root) {
   return spawnSync(process.execPath, [SCRIPT, "--apply"], {
     cwd: root,
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
     encoding: "utf8",
   });
 }
@@ -440,7 +440,7 @@ describe("rename-phase-steps migration transaction", () => {
     const generation = interrupted.targets.find((target) => target.plannedGeneration)?.plannedGeneration;
     assert.equal(generation.reserved, false);
     const tempPath = path.join(root, generation.relativeTempPath);
-    assert.match(fs.readFileSync(tempPath, "utf8"), /senrail-migration-reservation-v1/);
+    assert.match(fs.readFileSync(tempPath, "utf8"), /sennel-migration-reservation-v1/);
 
     const recovered = OfflineMigrationTransaction.recover({
       root,
@@ -679,9 +679,9 @@ describe("rename-phase-steps migration transaction", () => {
     roots.push(root, external);
     initRepository(root);
     seedSpec(root, "441-journal-directory", { issue: false, review: false });
-    fs.mkdirSync(path.join(root, ".senrail"));
+    fs.mkdirSync(path.join(root, ".sennel"));
     fs.writeFileSync(path.join(external, "sentinel"), "unchanged");
-    fs.symlinkSync(external, path.join(root, ".senrail", "migrations"), "dir");
+    fs.symlinkSync(external, path.join(root, ".sennel", "migrations"), "dir");
     commitAll(root);
 
     assert.throws(() => applyMigration(root), /real directory|authority/i);

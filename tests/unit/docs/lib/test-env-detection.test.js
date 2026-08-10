@@ -12,7 +12,7 @@ describe("scan scripts extraction", () => {
 
     const tmp = createTmpDir();
     try {
-      writeJson(tmp, ".senrail/config.json", {
+      writeJson(tmp, ".sennel/config.json", {
         lang: "en",
         type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
@@ -25,10 +25,10 @@ describe("scan scripts extraction", () => {
       });
       writeFile(tmp, "src/index.js", 'export function hello() {}\n');
 
-      const CMD = join(process.cwd(), "src/senrail.js");
+      const CMD = join(process.cwd(), "src/sennel.js");
       const result = execFileSync("node", [CMD, "docs", "scan", "--stdout"], {
         encoding: "utf8",
-        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
       });
       const analysis = JSON.parse(result);
 
@@ -47,7 +47,7 @@ describe("scan scripts extraction", () => {
 
     const tmp = createTmpDir();
     try {
-      writeJson(tmp, ".senrail/config.json", {
+      writeJson(tmp, ".sennel/config.json", {
         lang: "en",
         type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
@@ -58,10 +58,10 @@ describe("scan scripts extraction", () => {
       });
       writeFile(tmp, "src/index.js", 'export function hello() {}\n');
 
-      const CMD = join(process.cwd(), "src/senrail.js");
+      const CMD = join(process.cwd(), "src/sennel.js");
       const result = execFileSync("node", [CMD, "docs", "scan", "--stdout"], {
         encoding: "utf8",
-        env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+        env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
       });
       const analysis = JSON.parse(result);
 

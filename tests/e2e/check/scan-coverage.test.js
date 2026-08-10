@@ -4,15 +4,15 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 
-const SENRAIL = path.join(process.cwd(), "src/senrail.js");
+const SENNEL = path.join(process.cwd(), "src/sennel.js");
 
 function runScan(root) {
-  return spawnSync("node", [SENRAIL, "check", "scan", "--format", "json", "--list"], {
+  return spawnSync("node", [SENNEL, "check", "scan", "--format", "json", "--list"], {
     encoding: "utf8",
     env: {
       ...process.env,
-      SENRAIL_WORK_ROOT: root,
-      SENRAIL_SOURCE_ROOT: path.join(root, "src"),
+      SENNEL_WORK_ROOT: root,
+      SENNEL_SOURCE_ROOT: path.join(root, "src"),
     },
   });
 }
@@ -25,13 +25,13 @@ describe("check scan coverage", () => {
     tmp = createTmpDir();
     const files = Array.from({ length: 216 }, (_, index) => `lib/file-${index}.js`);
     for (const file of files) writeFile(tmp, `src/${file}`, "export {};\n");
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "en",
       type: "base",
       scan: { include: ["**/*.js"], exclude: [] },
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       files: { entries: files.slice(0, 215).map((file) => ({ file })) },
     });
 

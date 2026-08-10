@@ -10,14 +10,14 @@ describe("EsmModule", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("loads ESM syntax from a package-less .js module", async () => {
-    tmp = createTmpDir("senrail-esm-module-");
+    tmp = createTmpDir("sennel-esm-module-");
     writeFile(tmp, "module.js", "export default 42;\n");
     const loaded = await new EsmModule(path.join(tmp, "module.js")).import();
     assert.equal(loaded.default, 42);
   });
 
   it("resolves relative imports from a package-less module", async () => {
-    tmp = createTmpDir("senrail-esm-module-");
+    tmp = createTmpDir("sennel-esm-module-");
     writeFile(tmp, "value.mjs", "export const value = 42;\n");
     writeFile(tmp, "module.js", "import { value } from './value.mjs'; export default value;\n");
     const loaded = await new EsmModule(path.join(tmp, "module.js")).import();
@@ -25,7 +25,7 @@ describe("EsmModule", () => {
   });
 
   it("preserves file import.meta.url inside a module package scope", async () => {
-    tmp = createTmpDir("senrail-esm-module-");
+    tmp = createTmpDir("sennel-esm-module-");
     writeJson(tmp, "package.json", { type: "module" });
     const modulePath = path.join(tmp, "module.js");
     writeFile(tmp, "module.js", "export default import.meta.url;\n");

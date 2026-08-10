@@ -22,8 +22,8 @@ describe("final-regression terminal replay guard", () => {
 
   it("does not execute the project command for unchanged non-retryable evidence", async () => {
     root = createTmpDir("final-regression-terminal-replay-");
-    invocationFile = path.join(os.tmpdir(), `senrail-final-regression-${process.pid}-${Date.now()}.log`);
-    fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
+    invocationFile = path.join(os.tmpdir(), `sennel-final-regression-${process.pid}-${Date.now()}.log`);
+    fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
     writeFile(root, "specs/001-test/spec.md", "# Spec\n");
     writeFile(root, "final-regression-fixture.sh", [
       `printf '%s\\n' invoked >> ${JSON.stringify(invocationFile)}`,
@@ -67,8 +67,8 @@ describe("final-regression terminal replay guard", () => {
 
   it("executes again when non-retryable final-regression input changes", async () => {
     root = createTmpDir("final-regression-terminal-changed-");
-    invocationFile = path.join(os.tmpdir(), `senrail-final-regression-changed-${process.pid}-${Date.now()}.log`);
-    fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
+    invocationFile = path.join(os.tmpdir(), `sennel-final-regression-changed-${process.pid}-${Date.now()}.log`);
+    fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
     writeFile(root, "specs/001-test/spec.md", "# Spec\n");
     const scriptPath = "final-regression-fixture.sh";
     const script = [

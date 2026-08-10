@@ -14,7 +14,7 @@ describe("globFilesSync", () => {
   });
 
   function fixture() {
-    root = mkdtempSync(join(tmpdir(), "senrail-test-glob-"));
+    root = mkdtempSync(join(tmpdir(), "sennel-test-glob-"));
     mkdirSync(join(root, "nested"), { recursive: true });
     writeFileSync(join(root, "top.test.js"), "");
     writeFileSync(join(root, "top.txt"), "");

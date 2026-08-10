@@ -1,10 +1,10 @@
-   - `senrail flow run gate` (step status is automatically managed by hooks: pre sets spec-gate to in_progress, post sets done on PASS)
+   - `sennel flow run gate` (step status is automatically managed by hooks: pre sets spec-gate to in_progress, post sets done on PASS)
    - This is a command-owned validation step. Do not edit `spec.json`, another spec directory, or any canonical Flow artifact from this step.
    - If FAIL (`data.result === "fail"`): show every row in `data.artifacts.reasons` (one per violation on FAIL article entries) and every entry in `data.artifacts.issues`. **The gate evaluates `spec.json` (the single source of truth), not `spec.md`.**
    - Treat this as a readiness gate, not a design review. On FAIL, refresh next-action and follow the guarded repair transition back to `spec`; that step receives the exact persisted observations and owns mutation through worker-artifact handoff. Do not broaden scope or perform direct repair here.
    - Fix only schema/static issues, spec-triage / spec-repair audit issues, and explicit guardrail article violations through that guarded repair route.
    - Do not use gate FAIL as a reason to search for new design gaps, broaden scope, or add unrelated requirements. Codebase-context design gaps belong to `spec-review` / `spec-triage` / `spec-repair`.
-   - **task-spec phase**: when `data.artifacts.phase === "task-spec"`, the evaluated artifact is `<configured-spec-root>/<specId>/tasks/<id>.md`. Derive `<id>` from the file basename (without `.md`) and edit only that entry in `spec.json.tasks[<id>]`, then run `senrail spec render` and re-run the gate.
+   - **task-spec phase**: when `data.artifacts.phase === "task-spec"`, the evaluated artifact is `<configured-spec-root>/<specId>/tasks/<id>.md`. Derive `<id>` from the file basename (without `.md`) and edit only that entry in `spec.json.tasks[<id>]`, then run `sennel spec render` and re-run the gate.
    - At semantic retry exhaustion, unresolved gate findings are recorded in `flow-findings.json`, the gate step completes as deferred, and `acceptance-review` owns final disposition before final-regression.
    - Non-semantic failures such as schema, malformed artifact, failed command, no-progress guard, or missing mechanical evidence are not deferred. Follow the next-action recovery route; never repair them by directly editing canonical artifacts from this step.
    - Do not proceed until PASS (`data.result === "pass"`).

@@ -1,5 +1,5 @@
 /**
- * senrail/docs/lib/forge-prompts.js
+ * sennel/docs/lib/forge-prompts.js
  *
  * Prompt construction for the forge command.
  * Static text (role, rules) is loaded from prompts.json via i18n.

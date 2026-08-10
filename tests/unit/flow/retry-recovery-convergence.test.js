@@ -621,7 +621,7 @@ describe("retry recovery authority convergence", () => {
 
       assertSnapshot(before);
       assert.equal(fs.existsSync(path.join(fixture.specDir, ".retry-recovery.lock")), false, scenario);
-      assert.equal(fs.existsSync(path.join(root, ".senrail", ".repository-flow-operation.lock")), false, scenario);
+      assert.equal(fs.existsSync(path.join(root, ".sennel", ".repository-flow-operation.lock")), false, scenario);
 
       fs.writeFileSync(fixture.flowPath, originalFlow);
       fs.rmSync(fixture.publicPath, { force: true });
@@ -706,7 +706,7 @@ describe("retry recovery authority convergence", () => {
 
       assertSnapshot(before);
       assert.equal(fs.existsSync(path.join(fixture.specDir, ".retry-recovery.lock")), false);
-      assert.equal(fs.existsSync(path.join(root, ".senrail", ".repository-flow-operation.lock")), false);
+      assert.equal(fs.existsSync(path.join(root, ".sennel", ".repository-flow-operation.lock")), false);
     });
   }
 

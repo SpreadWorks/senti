@@ -3,8 +3,8 @@
  *
  * Facade for Spec-Driven Development flow state management. Owns:
  *   - FlowStore             : configured spec-root flow.json I/O + mutations
- *   - ActiveFlowRegistry    : .senrail/.active-flow pointer
- *   - PreparingFlowStore    : .senrail/.active-flow.<runId> transient state
+ *   - ActiveFlowRegistry    : .sennel/.active-flow pointer
+ *   - PreparingFlowStore    : .sennel/.active-flow.<runId> transient state
  *
  * Constructed once per CLI process by `container.js` with paths already
  * resolved by Container — no `workRoot` argument is needed on any method.

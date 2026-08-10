@@ -5,12 +5,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const OLD_NAME = "sen" + "ti";
-const OLD_TITLE_NAME = `S${OLD_NAME.slice(1)}`;
-const OLD_CONSTANT_NAME = OLD_NAME.toUpperCase();
-const OLD_PRODUCT_PATTERN = new RegExp(
-  `(?<![A-Za-z])(?:${OLD_NAME}|${OLD_TITLE_NAME})(?=$|[^a-z]|[A-Z])|(?<![A-Za-z])${OLD_CONSTANT_NAME}(?=$|[^A-Z])`,
-);
+const LEGACY_IDENTITIES = [
+  { lower: "sdd" + "-" + "forge", camel: "sdd" + "Forge", pascal: "Sdd" + "Forge", constant: "SDD" + "_FORGE" },
+  { lower: "sen" + "ti", camel: "sen" + "ti", pascal: "Sen" + "ti", constant: "SEN" + "TI" },
+  { lower: "sen" + "rail", camel: "sen" + "rail", pascal: "Sen" + "rail", constant: "SEN" + "RAIL" },
+];
+const OLD_PRODUCT_PATTERN = new RegExp(LEGACY_IDENTITIES.map(({ lower, camel, pascal, constant }) => (
+  `(?<![A-Za-z0-9_])(?:${lower}|${camel}|${pascal})(?=$|[^a-z0-9_]|[A-Z])|(?<![A-Za-z0-9_])${constant}(?=$|[^A-Z])`
+)).join("|"));
 const SCANNED_PATHS = [
   "src",
   "tests",
@@ -21,16 +23,17 @@ const SCANNED_PATHS = [
   "package.json",
   ".gitignore",
   ".gitattributes",
-  ".senrail/templates",
-  ".senrail/presets",
+  ".sennel/templates",
+  ".sennel/presets",
   "AGENTS.md",
   "CLAUDE.md",
   "CHANGELOG.md",
 ];
 const ALLOWLIST = new Map([
+  ["tests/unit/rename-scan.test.js", "the detector must name the retired identities it tests"],
   ["CHANGELOG.md", "historical release record"],
   ["docs/change_log.md", "historical generated change log"],
-  ["src/lib/upgrade-migration.js", "explicit one-way legacy migration input"],
+  ["src/lib/upgrade-migration.js", "explicit one-way legacy migration input and old-journal recovery"],
   ["src/lib/gitignore.js", "migration-only managed root metadata lines"],
   ["src/lib/gitattributes.js", "migration-only managed root metadata lines"],
   ["src/lib/agent-config-files.js", "normal upgrade replaces legacy managed instruction blocks"],
@@ -77,19 +80,16 @@ function containsOldProductName(value) {
 }
 
 describe("rename scan", () => {
-  it("detects standalone, path, constant, camelCase, and PascalCase legacy identities without word fragments", () => {
-    for (const value of [
-      OLD_NAME,
-      OLD_TITLE_NAME,
-      `${OLD_CONSTANT_NAME}_WORK_ROOT`,
-      `.${OLD_NAME}/config.json`,
-      `${OLD_NAME}Phase`,
-      `${OLD_TITLE_NAME}MigrationEvidence`,
-    ]) {
-      assert.equal(containsOldProductName(value), true, value);
-    }
-    for (const value of [`${OLD_NAME}nel`, `${OLD_CONSTANT_NAME}NEL`, `es${OLD_NAME}al`]) {
-      assert.equal(containsOldProductName(value), false, value);
+  it("detects retired SDD Forge, Senti, and Senrail dots, hyphens, underscores, camel/Pascal names, runtime paths, URLs, env vars, and skills", () => {
+    for (const { lower, camel, pascal, constant } of LEGACY_IDENTITIES) {
+      for (const value of [
+        lower, `.${lower}/config.json`, `${lower}/flow`, `${lower}.flow`,
+        `https://github.com/SpreadWorks/${lower}.git`, `${constant}_WORK_ROOT`,
+        `${camel}Phase`, `${pascal}MigrationEvidence`,
+      ]) assert.equal(containsOldProductName(value), true, value);
+      for (const value of [`x${lower}`, `${lower}nel`, `${constant}NEL`, `x${camel}`]) {
+        assert.equal(containsOldProductName(value), false, value);
+      }
     }
   });
 

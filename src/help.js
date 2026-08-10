@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * senrail/help.js
+ * sennel/help.js
  *
  * Shared help renderer. Core command help is derived from command metadata,
  * and plugin command help is normalized into the same renderer input shape.
@@ -164,7 +164,7 @@ function resolveLocalizedText(metadata, lang) {
     || metadata.summary
     || metadata.desc
     || "";
-  const usage = locale?.usage || structured?.usage || metadata.usage || `Usage: senrail ${metadata.name}`;
+  const usage = locale?.usage || structured?.usage || metadata.usage || `Usage: sennel ${metadata.name}`;
   const help = locale?.help || structured?.toText() || metadata.help || "";
   return {
     summary,
@@ -201,7 +201,7 @@ function metadataFromEntry(name, entry, parent = null, inheritedSection = null) 
     name: fullName,
     section: entry?.section || inheritedSection || (parent ? titleCase(parent) : titleCase(name)),
     summary: entry?.summary || entry?.desc || fullName,
-    usage: entry?.help?.split(/\r?\n/, 1)[0] || `Usage: senrail ${fullName}`,
+    usage: entry?.help?.split(/\r?\n/, 1)[0] || `Usage: sennel ${fullName}`,
     help: entry?.help || "",
     args: entry?.args || {},
     options: entry?.args?.flags || [],
@@ -241,7 +241,7 @@ function renderTopLevel(model, plugins, lang) {
   const maxName = Math.max(...commands.map((command) => (command.fullName || command.name).length), 4);
   const lines = [
     "",
-    `  senrail v${getPackageVersion()} - ${t("help.title")}`,
+    `  sennel v${getPackageVersion()} - ${t("help.title")}`,
     "",
     `  ${t("help.usage")}`,
     "",
@@ -302,7 +302,7 @@ export function normalizePluginHelpMetadata(command, { lang = DEFAULT_LANG } = {
     name: command.name,
     section: "Plugins",
     summary: localized.desc || command.desc || command.description || command.summary || "",
-    usage: localized.help || command.help || `Usage: senrail ${command.name}`,
+    usage: localized.help || command.help || `Usage: sennel ${command.name}`,
     args: command.args || {},
     options: command.options || command.args?.flags || [],
     experimental: Boolean(command.experimental),
@@ -315,7 +315,7 @@ export function normalizePluginHelpMetadata(command, { lang = DEFAULT_LANG } = {
         name: sub.name,
         section: "Plugins",
         summary: subLocalized.desc || sub.desc || sub.description || sub.summary || "",
-        usage: subLocalized.help || sub.help || `Usage: senrail ${command.name} ${sub.name}`,
+        usage: subLocalized.help || sub.help || `Usage: sennel ${command.name} ${sub.name}`,
         args: sub.args || {},
         options: sub.options || sub.args?.flags || [],
         experimental: Boolean(sub.experimental),

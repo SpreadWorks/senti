@@ -90,7 +90,7 @@ test("external dirtiness prevents finalize-merge outbox mutation", async () => {
       root,
       specId,
     }),
-    /src\/external\.js[\s\S]*senrail flow run finalize-merge/,
+    /src\/external\.js[\s\S]*sennel flow run finalize-merge/,
   );
   assert.deepEqual(manager.load().outbox, before.outbox);
   assert.deepEqual(manager.load().steps, before.steps);
@@ -98,8 +98,8 @@ test("external dirtiness prevents finalize-merge outbox mutation", async () => {
 
 test("Flow-owned analysis output remains deferred without blocking finalize-merge", async () => {
   const { manager, state, specId } = setupFixture();
-  fs.mkdirSync(path.join(root, ".senrail", "output"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail", "output", "analysis.json"), "{\"entries\":[]}\n");
+  fs.mkdirSync(path.join(root, ".sennel", "output"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel", "output", "analysis.json"), "{\"entries\":[]}\n");
 
   await FLOW_COMMANDS.run["finalize-merge"].pre({
     flowManager: manager,
@@ -111,9 +111,9 @@ test("Flow-owned analysis output remains deferred without blocking finalize-merg
   const entry = new FlowOutbox(manager.load().outbox)
     .find(finalizationOutboxIdentity(manager.load(), "finalize-merge"));
   assert.equal(entry?.status, "pending");
-  assert.equal(fs.existsSync(path.join(root, ".senrail", "output", "analysis.json")), true);
+  assert.equal(fs.existsSync(path.join(root, ".sennel", "output", "analysis.json")), true);
   assert.match(
     git("-C", root, "status", "--porcelain", "--untracked-files=all"),
-    /\.senrail\/output\/analysis\.json/,
+    /\.sennel\/output\/analysis\.json/,
   );
 });

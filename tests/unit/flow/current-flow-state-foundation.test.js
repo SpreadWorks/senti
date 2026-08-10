@@ -285,7 +285,7 @@ describe("Current Flow state foundation", () => {
       maxAttempts: 4,
       sideEffects: null,
       failurePolicy: { kind: "retry", targetNodeId: null },
-      executionCommand: "senrail flow run review --phase impl",
+      executionCommand: "sennel flow run review --phase impl",
       artifactAuthority: { sourceScopes: ["same_task", "flow"], selection: "latest_upstream" },
     });
     const acceptancePolicy = withBoth.definition.actionFor("acceptance-review", withBoth.root).failurePolicy;

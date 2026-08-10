@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "init"];
 
 describe("init CLI", () => {
@@ -14,16 +14,16 @@ describe("init CLI", () => {
 
   it("creates docs/ from template", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -34,16 +34,16 @@ describe("init CLI", () => {
 
   it("--dry-run shows files without writing", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-node-command", "--dry-run"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /DRY-RUN/);
     // docs/ should NOT have chapter files
@@ -56,31 +56,31 @@ describe("init CLI", () => {
 
   it("shows help with --help", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
+    writeJson(tmp, ".sennel/config.json", { lang: "ja", type: "sample-node-command", docs: { languages: ["ja"], defaultLanguage: "ja" } });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--help"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
     assert.match(result, /--type/);
   });
 
   it("falls back to ja templates when en templates are missing (multi-lang)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "en",
       type: "sample-preset",
       docs: { languages: ["en", "ja"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-preset", "--force"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -91,20 +91,20 @@ describe("init CLI", () => {
 
   it("generates all sample-preset chapters with single lang en (en templates exist)", () => {
     tmp = createTmpDir();
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "en",
       type: "sample-preset",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
 
     execFileSync("node", [CMD, ...CMD_ARGS, "--type", "sample-preset", "--force"], {
       encoding: "utf8",
-      env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
     });
 
     const docsDir = join(tmp, "docs");
@@ -116,7 +116,7 @@ describe("init CLI", () => {
   it("uses config.chapters to skip AI filtering and generate only specified chapters", () => {
     tmp = createTmpDir();
     const promptCapture = join(tmp, "prompt.txt");
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       type: "sample-node-command",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -136,7 +136,7 @@ describe("init CLI", () => {
       },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
@@ -145,8 +145,8 @@ describe("init CLI", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        SENRAIL_WORK_ROOT: tmp,
-        SENRAIL_SOURCE_ROOT: tmp,
+        SENNEL_WORK_ROOT: tmp,
+        SENNEL_SOURCE_ROOT: tmp,
         PROMPT_CAPTURE: promptCapture,
       },
     });
@@ -161,7 +161,7 @@ describe("init CLI", () => {
   it("passes docs.style.purpose to AI chapter-selection prompt", () => {
     tmp = createTmpDir();
     const promptCapture = join(tmp, "prompt.txt");
-    writeJson(tmp, ".senrail/config.json", {
+    writeJson(tmp, ".sennel/config.json", {
       lang: "ja",
       docs: { languages: ["ja"], defaultLanguage: "ja", style: { purpose: "user-guide", tone: "polite" } },
       type: "sample-node-command",
@@ -180,7 +180,7 @@ describe("init CLI", () => {
       },
     });
     writeJson(tmp, "package.json", { name: "test-proj" });
-    writeJson(tmp, ".senrail/output/analysis.json", {
+    writeJson(tmp, ".sennel/output/analysis.json", {
       analyzedAt: "2026-01-01",
       files: { summary: { total: 1 } },
     });
@@ -189,8 +189,8 @@ describe("init CLI", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        SENRAIL_WORK_ROOT: tmp,
-        SENRAIL_SOURCE_ROOT: tmp,
+        SENNEL_WORK_ROOT: tmp,
+        SENNEL_SOURCE_ROOT: tmp,
         PROMPT_CAPTURE: promptCapture,
       },
     });

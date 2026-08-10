@@ -1,12 +1,12 @@
-# <!-- {{data("cli.project.name")}} -->Senrail<!-- {{/data}} -->
+# <!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} -->
 
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
-**日本語** | [English](https://github.com/SpreadWorks/senrail/blob/main/README.md)
+**日本語** | [English](https://github.com/SpreadWorks/sennel/blob/main/README.md)
 <!-- {{/data}} -->
 
-[![npm version](https://img.shields.io/npm/v/senrail.svg)](https://www.npmjs.com/package/senrail)
-[![license](https://img.shields.io/npm/l/senrail.svg)](https://opensource.org/licenses/MIT)
-[![downloads](https://img.shields.io/npm/dm/senrail.svg)](https://www.npmjs.com/package/senrail)
+[![npm version](https://img.shields.io/npm/v/sennel.svg)](https://www.npmjs.com/package/sennel)
+[![license](https://img.shields.io/npm/l/sennel.svg)](https://opensource.org/licenses/MIT)
+[![downloads](https://img.shields.io/npm/dm/sennel.svg)](https://www.npmjs.com/package/sennel)
 
 > **Alpha版:** API・コマンド体系・設定フォーマットは予告なく変更される可能性があります。
 
@@ -55,13 +55,13 @@ Spec-Driven Development フローの終了処理でドキュメントが自動�
 ### インストール
 
 <pre>
-npm install -g <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
+npm install -g <!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} -->
 </pre>
 
 ### セットアップ
 
 <pre>
-<!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} --> setup
+<!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} --> setup
 </pre>
 
 対話形式でプロジェクトタイプ（プリセット）と AI エージェントを設定します。
@@ -71,7 +71,7 @@ npm install -g <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
 既にソースコードがあるプロジェクトでは、ドキュメントを生成してシステムの全体像を把握できます。レガシーシステムの保守・引き継ぎにも有効です。
 
 <pre>
-<!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} --> docs build
+<!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} --> docs build
 </pre>
 
 ### Spec-Driven Development フローで開発する
@@ -80,13 +80,13 @@ npm install -g <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
 
 | スキル | フェーズ |
 |---|---|
-| `/senrail.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
+| `/sennel.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 **[Codex CLI](https://github.com/openai/codex)** — `$` プレフィックスでツールを呼び出し:
 
 | コマンド | フェーズ |
 |---|---|
-| `$senrail.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
+| `$sennel.flow` | full Spec-Driven Development flow（計画、実装、finalize） |
 
 ## コマンド一覧
 
@@ -95,11 +95,11 @@ npm install -g <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
 | `setup` | プロジェクト登録・設定ファイル生成 |
 | `docs build` | ドキュメント生成パイプラインを一括実行 |
 
-全コマンドの詳細は `senrail help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
+全コマンドの詳細は `sennel help` または[コマンドリファレンス](docs/cli_commands.md)を参照してください。
 
 ## 設定
 
-`setup` で `.senrail/config.json` が生成されます。
+`setup` で `.sennel/config.json` が生成されます。
 
 ```jsonc
 {
@@ -119,13 +119,13 @@ npm install -g <!-- {{data("cli.project.name")}} -->senrail<!-- {{/data}} -->
 <!-- {{data("cli.docs.chapters", {header: "", labels: "章|概要", ignoreError: true})}} -->
 | 章 | 概要 |
 | --- | --- |
-| [ツール概要とアーキテクチャ](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/overview.md) | sdd-forge は、ソースコードの静的解析と AI を組み合わせてドキュメントを自動生成する CLI ツールです。 |
-| [技術スタックと運用](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/stack_and_ops.md) | 本プロジェクトは Node.js（18.0.0 以上）上で動作する ES Modules ベースの CLI ツールであり、外部依存パッケージを持たず Node.js ビルトインモジュールのみを使用しています。 |
-| [プロジェクト構成](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/project_structure.md) | 本章では、sdd-forge パッケージのディレクトリ構成と各領域の役割を説明します。 |
-| [CLI コマンドリファレンス](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/cli_commands.md) | sdd-forge は docs・flow の 2 つの名前空間ディスパッチャーと setup・upgrade・presets・help の独立コマンドを合わせた 40 以上のサブコマンドを提供します。 |
-| [設定とカスタマイズ](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/configuration.md) | sdd-forge は .sdd-forge/config.json を唯一の設定ファイルとして読み込み、ドキュメント出力言語・プロジェクトタイプ・エージェント動作・SDD フロー設定など幅広い項目を一括管理します。 |
-| [内部設計](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/internal_design.md) | このプロジェクトは、src/check・src/docs・src/flow・src/lib の各層に責務を分離し、CLI コマンド層から共通ライブラリ層へ依存する一方向の構成で実装されています。 |
-| [プリセット作成ガイド](https://github.com/SpreadWorks/senrail/blob/main/docs/ja/creating_presets.md) |  |
+| [ツール概要とアーキテクチャ](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/overview.md) | sennel は、ソースコードの静的解析と AI を組み合わせてドキュメントを自動生成する CLI ツールです。 |
+| [技術スタックと運用](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/stack_and_ops.md) | 本プロジェクトは Node.js（18.0.0 以上）上で動作する ES Modules ベースの CLI ツールであり、外部依存パッケージを持たず Node.js ビルトインモジュールのみを使用しています。 |
+| [プロジェクト構成](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/project_structure.md) | 本章では、sennel パッケージのディレクトリ構成と各領域の役割を説明します。 |
+| [CLI コマンドリファレンス](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/cli_commands.md) | sennel は docs・flow の 2 つの名前空間ディスパッチャーと setup・upgrade・presets・help の独立コマンドを合わせた 40 以上のサブコマンドを提供します。 |
+| [設定とカスタマイズ](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/configuration.md) | sennel は .sennel/config.json を唯一の設定ファイルとして読み込み、ドキュメント出力言語・プロジェクトタイプ・エージェント動作・SDD フロー設定など幅広い項目を一括管理します。 |
+| [内部設計](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/internal_design.md) | このプロジェクトは、src/check・src/docs・src/flow・src/lib の各層に責務を分離し、CLI コマンド層から共通ライブラリ層へ依存する一方向の構成で実装されています。 |
+| [プリセット作成ガイド](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/creating_presets.md) |  |
 <!-- {{/data}} -->
 
 ## License

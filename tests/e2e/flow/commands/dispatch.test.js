@@ -19,7 +19,7 @@ import { findStepById, flattenSteps } from "../../../../src/flow/lib/step-tree.j
 import { FlowTargetBinding } from "../../../../src/lib/flow-target-guard.js";
 import { captureRepairBaseline } from "../../../../src/flow/lib/repair-state-identity.js";
 
-const SENRAIL = path.resolve("src/senrail.js");
+const SENNEL = path.resolve("src/sennel.js");
 
 function specPath(state) {
   return `specs/${state.specId}/spec.json`;
@@ -45,8 +45,8 @@ function installWorker(root, { delayMs = 75 } = {}) {
     'fs.rmSync(lockFile,{force:true});',
     'process.stdout.write("premature normal worker response");',
   ].join("\n"));
-  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail/config.json"), `${JSON.stringify({
+  fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel/config.json"), `${JSON.stringify({
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -74,24 +74,24 @@ function installReviewRecoveryWorker(root, state) {
     'import path from "node:path";',
     'import {spawnSync} from "node:child_process";',
     "const prompt=process.argv[2]||'';",
-    "if(!prompt.includes('You are a worker owned by the senrail Flow CLI dispatcher.')){",
+    "if(!prompt.includes('You are a worker owned by the sennel Flow CLI dispatcher.')){",
     "  process.stdout.write(JSON.stringify({blockingFindings:[],advisoryFindings:[]}));",
     "  process.exit(0);",
     "}",
-    "const invocation=JSON.parse(process.env.SENRAIL_FLOW_DISPATCH_INVOCATION);",
+    "const invocation=JSON.parse(process.env.SENNEL_FLOW_DISPATCH_INVOCATION);",
     `const countFile=${JSON.stringify(count)};`,
     "const previous=fs.existsSync(countFile)?Number(fs.readFileSync(countFile,'utf8')):0;",
     "const current=previous+1;",
     "fs.writeFileSync(countFile,String(current));",
     "function runGuarded(commandName,extraArgs=[]){",
     "  const nextAction=invocation.action.directive.nextAction;",
-    "  const command=nextAction.match(new RegExp(`^senrail flow run ${commandName}(?: --phase test)? --expect-binding '([^']+)' --expect-no-issue$`));",
+    "  const command=nextAction.match(new RegExp(`^sennel flow run ${commandName}(?: --phase test)? --expect-binding '([^']+)' --expect-no-issue$`));",
     "  if(!command){",
     "    process.stderr.write(`missing ${commandName} command in guarded invocation: ${nextAction}`);",
     "    process.exit(1);",
     "  }",
     "  const result=spawnSync(process.execPath,[",
-    `    ${JSON.stringify(SENRAIL)},'flow','run',commandName,...extraArgs,`,
+    `    ${JSON.stringify(SENNEL)},'flow','run',commandName,...extraArgs,`,
     "    '--expect-binding',command[1],'--expect-no-issue'",
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(result.status!==0){",
@@ -101,7 +101,7 @@ function installReviewRecoveryWorker(root, state) {
     "  return command[0];",
     "}",
     "if(current===1){",
-    "  const requestPath=process.env.SENRAIL_FLOW_HANDOFF_REQUEST;",
+    "  const requestPath=process.env.SENNEL_FLOW_HANDOFF_REQUEST;",
     "  if(!requestPath){process.stderr.write('missing test repair handoff request');process.exit(1);}",
     "  const request=JSON.parse(fs.readFileSync(requestPath,'utf8'));",
     "  const payload=request.payloads.find((entry)=>entry.logicalName==='spec-tests');",
@@ -116,7 +116,7 @@ function installReviewRecoveryWorker(root, state) {
     "    '',",
     "  ].join('\\n'));",
     "  const sealed=spawnSync(process.execPath,[",
-    `    ${JSON.stringify(SENRAIL)},'flow','run','seal-handoff'`,
+    `    ${JSON.stringify(SENNEL)},'flow','run','seal-handoff'`,
     "  ],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(sealed.status!==0){process.stderr.write(sealed.stderr||sealed.stdout);process.exit(sealed.status||1);}",
     "}",
@@ -127,7 +127,7 @@ function installReviewRecoveryWorker(root, state) {
     "}",
     "process.stdout.write('worker report only');",
   ].join("\n"));
-  fs.writeFileSync(path.join(root, ".senrail/config.json"), `${JSON.stringify({
+  fs.writeFileSync(path.join(root, ".sennel/config.json"), `${JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -171,28 +171,28 @@ function installAuthorizationWorker(root) {
   fs.writeFileSync(worker, [
     'import fs from "node:fs";',
     'import {spawnSync} from "node:child_process";',
-    `const senrail=${JSON.stringify(SENRAIL)};`,
+    `const sennel=${JSON.stringify(SENNEL)};`,
     `const invocationFile=${JSON.stringify(invocationFile)};`,
-    "const invocation=JSON.parse(process.env.SENRAIL_FLOW_DISPATCH_INVOCATION||'null');",
+    "const invocation=JSON.parse(process.env.SENNEL_FLOW_DISPATCH_INVOCATION||'null');",
     "if(invocation?.authorization?.source!=='autoApprove'||invocation.authorization.choiceId!=='1'){",
     "  process.stderr.write('missing autoApprove choice id=1 authorization');",
     "  process.exit(11);",
     "}",
-    "const binding=process.env.SENRAIL_FLOW_TARGET_BINDING;",
+    "const binding=process.env.SENNEL_FLOW_TARGET_BINDING;",
     "if(!binding){process.stderr.write('missing target binding');process.exit(12);}",
     "fs.writeFileSync(invocationFile,JSON.stringify(invocation,null,2));",
     "for(const args of [",
     "  ['flow','set','approval','--approved','--expect-binding',binding],",
     "  ['flow','set','step','approval','done','--expect-binding',binding],",
     "]){",
-    "  const result=spawnSync(process.execPath,[senrail,...args],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
+    "  const result=spawnSync(process.execPath,[sennel,...args],{cwd:process.cwd(),encoding:'utf8',env:process.env});",
     "  if(result.status!==0){process.stderr.write(result.stderr||result.stdout);process.exit(result.status||13);}",
     "}",
     "process.stderr.write('intentional stop after durable approval transition');",
     "process.exit(17);",
   ].join("\n"));
-  fs.mkdirSync(path.join(root, ".senrail"), { recursive: true });
-  fs.writeFileSync(path.join(root, ".senrail/config.json"), `${JSON.stringify({
+  fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+  fs.writeFileSync(path.join(root, ".sennel/config.json"), `${JSON.stringify({
     lang: "en",
     type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -213,7 +213,7 @@ function installAuthorizationWorker(root) {
 
 function dispatchArgs(state, extra = []) {
   return [
-    SENRAIL,
+    SENNEL,
     "flow",
     "run",
     "dispatch",
@@ -235,7 +235,7 @@ function dispatchBinding(root, state) {
 
 function dispatchBindingArgs(binding, extra = []) {
   return [
-    SENRAIL,
+    SENNEL,
     "flow",
     "run",
     "dispatch",
@@ -250,7 +250,7 @@ function invocationOptions(root) {
     cwd: root,
     encoding: "utf8",
     timeout: 30_000,
-    env: { ...process.env, SENRAIL_WORK_ROOT: root },
+    env: { ...process.env, SENNEL_WORK_ROOT: root },
   };
 }
 
@@ -317,7 +317,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("does not accept normal worker responses as completion or overlap worker processes", () => {
-    root = createTmpDir("senrail-flow-dispatch-stalled-");
+    root = createTmpDir("sennel-flow-dispatch-stalled-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "implement");
 
@@ -336,7 +336,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("executes a non-terminal action when the dispatch target is supplied only by an opaque binding", () => {
-    root = createTmpDir("senrail-flow-dispatch-binding-only-");
+    root = createTmpDir("sennel-flow-dispatch-binding-only-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "implement");
     const binding = dispatchBinding(root, state);
@@ -350,7 +350,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("rejects a concurrent dispatcher while the first worker is still running", async () => {
-    root = createTmpDir("senrail-flow-dispatch-concurrent-");
+    root = createTmpDir("sennel-flow-dispatch-concurrent-");
     const worker = installWorker(root, { delayMs: 300 });
     const state = setupFlowAtStep(root, "implement");
     ensureGitRepository(root);
@@ -374,7 +374,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("does not automatically reclaim a lease whose dispatcher owner exited", () => {
-    root = createTmpDir("senrail-flow-dispatch-stale-");
+    root = createTmpDir("sennel-flow-dispatch-stale-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "draft");
     const dispatchModule = pathToFileURL(path.resolve("src/flow/lib/run-dispatch.js")).href;
@@ -404,7 +404,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("continues a rejected review through changed evidence and guarded re-review", () => {
-    root = createTmpDir("senrail-flow-dispatch-review-recovery-");
+    root = createTmpDir("sennel-flow-dispatch-review-recovery-");
     const state = setupFlowAtStep(root, "test-review", {
       specId: "dispatch-test-review-repair",
       runId: "run-dispatch-test-review-repair",
@@ -540,7 +540,7 @@ describe("flow dispatch CLI", () => {
       state: repairState,
     }).hash, targetStateDigest);
     const repairPlan = spawnSync(process.execPath, [
-      SENRAIL,
+      SENNEL,
       "flow",
       "get",
       "next-action",
@@ -552,7 +552,7 @@ describe("flow dispatch CLI", () => {
     assert.equal(repairPlan.status, 0, repairPlan.stderr || repairPlan.stdout);
     assert.equal(JSON.parse(repairPlan.stdout).data.directive.actionId, "REPAIR_TEST_REVIEW");
     const bypass = spawnSync(process.execPath, [
-      SENRAIL,
+      SENNEL,
       "flow",
       "set",
       "step",
@@ -566,7 +566,7 @@ describe("flow dispatch CLI", () => {
     assert.notEqual(bypass.status, 0);
     assert.equal(JSON.parse(bypass.stdout).errors[0].code, "FLOW_STEP_TRANSITION_INVALID");
     const afterBypassPlan = spawnSync(process.execPath, [
-      SENRAIL,
+      SENNEL,
       "flow",
       "get",
       "next-action",
@@ -590,7 +590,7 @@ describe("flow dispatch CLI", () => {
     assert.equal(Number(fs.readFileSync(path.join(root, ".tmp", "review-recovery-count.txt"), "utf8")) >= 6, true);
     assert.match(
       fs.readFileSync(worker.nextActionFile, "utf8"),
-      /^senrail flow run review --phase test --expect-binding '[^']+' --expect-no-issue$/,
+      /^sennel flow run review --phase test --expect-binding '[^']+' --expect-no-issue$/,
     );
     assert.match(fs.readFileSync(path.join(testsDir, "recovery.test.mjs"), "utf8"), /repaired evidence/);
     const review = JSON.parse(fs.readFileSync(path.join(specDir, "test-review.json"), "utf8"));
@@ -615,7 +615,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("returns an approval boundary without starting a worker", () => {
-    root = createTmpDir("senrail-flow-dispatch-approval-");
+    root = createTmpDir("sennel-flow-dispatch-approval-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "approval");
 
@@ -628,7 +628,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("hands choice id=1 authorization to the worker and advances the approval step in autoApprove mode", () => {
-    root = createTmpDir("senrail-flow-dispatch-auto-approval-");
+    root = createTmpDir("sennel-flow-dispatch-auto-approval-");
     const state = setupFlowAtStep(root, "approval", { autoApprove: true });
     setupApprovalSpec(root, state);
     const worker = installAuthorizationWorker(root);
@@ -649,7 +649,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("rejects an explicit approval token after the repository fingerprint changes", () => {
-    root = createTmpDir("senrail-flow-dispatch-stale-approval-");
+    root = createTmpDir("sennel-flow-dispatch-stale-approval-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "approval");
     initGitRepo(root);
@@ -668,7 +668,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("rejects an explicit approval token after the persisted next action changes", () => {
-    root = createTmpDir("senrail-flow-dispatch-changed-action-");
+    root = createTmpDir("sennel-flow-dispatch-changed-action-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "approval");
 
@@ -688,7 +688,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("keeps risk-bearing acceptance decisions manual when autoApprove is enabled", () => {
-    root = createTmpDir("senrail-flow-dispatch-manual-exception-");
+    root = createTmpDir("sennel-flow-dispatch-manual-exception-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "acceptance-decision", { autoApprove: true });
 
@@ -700,7 +700,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("returns completed without starting a worker", () => {
-    root = createTmpDir("senrail-flow-dispatch-completed-");
+    root = createTmpDir("sennel-flow-dispatch-completed-");
     const worker = installWorker(root);
     const state = makeFlowState();
     for (const step of flattenSteps(state.steps)) step.status = "done";
@@ -714,7 +714,7 @@ describe("flow dispatch CLI", () => {
   });
 
   it("returns an initial target mismatch without starting a worker", () => {
-    root = createTmpDir("senrail-flow-dispatch-target-mismatch-");
+    root = createTmpDir("sennel-flow-dispatch-target-mismatch-");
     const worker = installWorker(root);
     const state = setupFlowAtStep(root, "draft");
 

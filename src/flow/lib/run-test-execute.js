@@ -77,7 +77,7 @@ function recordPrerequisiteIssue(root, executionRoot, state, err) {
     commandSource: err.commandSource || null,
     commandCandidates: Array.isArray(err.commandCandidates) ? err.commandCandidates : [],
     changedFileCount,
-    trigger: "senrail flow run test-execute",
+    trigger: "sennel flow run test-execute",
     resolution: "fix the prerequisite failure and rerun test-execute",
     taskId: null,
     timestamp: new Date().toISOString(),
@@ -173,8 +173,8 @@ function requirementSummaryResult(reqId, specLocal, failedIds) {
 function requirementRawResultLine(req, specLocal, failedIds) {
   const result = requirementSummaryResult(req.id, specLocal, failedIds);
   return result === "not_applicable"
-    ? `[senrail] requirement ${req.id} result not_applicable reason ${NO_TESTS_DECLARED_REASON}`
-    : `[senrail] requirement ${req.id} result ${result}`;
+    ? `[sennel] requirement ${req.id} result not_applicable reason ${NO_TESTS_DECLARED_REASON}`
+    : `[sennel] requirement ${req.id} result ${result}`;
 }
 
 function buildSummary({ root, specDir, testableRequirements, specLocal, range, failedIds = null }) {
@@ -312,12 +312,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
       }
       const specLocalFailedIds = failedRequirementIdsFromSpecLocal(specLocal, testableRequirements);
       const specRange = appendRaw(rawLines, [
-        "[senrail] spec-local tests start",
+        "[sennel] spec-local tests start",
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
         ...testableRequirements
           .map((req) => requirementRawResultLine(req, specLocal, specLocalFailedIds)),
-        "[senrail] spec-local tests end",
+        "[sennel] spec-local tests end",
       ]);
       const summary = buildSummary({
         root,
@@ -354,12 +354,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
         }
         const regressionResult = processPassed(result) ? "pass" : "fail";
         const range = appendRaw(rawLines, [
-          `[senrail] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
+          `[sennel] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
           `command: ${command.toString()}`,
           `mode: ${regressionPlan.classification.mode}`,
           ...processOutputLines(result),
           `result: ${regressionResult}`,
-          `[senrail] project regression end result=${regressionResult}`,
+          `[sennel] project regression end result=${regressionResult}`,
         ]);
         regression = buildRequiredRegression({ root: executionRoot, classification: regressionPlan.classification, rootCommand, command, result, range });
       }

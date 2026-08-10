@@ -4,6 +4,7 @@ export const MANAGED_ANALYSIS_GITATTRIBUTE = `${PRODUCT.managedPath("output", "a
 const LEGACY_MANAGED_ANALYSIS_GITATTRIBUTES = new Set([
   ".sdd-forge/output/analysis.json merge=ours",
   ".senti/output/analysis.json merge=ours",
+  ".senrail/output/analysis.json merge=ours",
 ]);
 
 export function normalizeManagedGitattributes(content, { appendIfMissing = true } = {}) {

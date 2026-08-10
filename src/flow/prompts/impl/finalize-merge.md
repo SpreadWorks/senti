@@ -2,7 +2,7 @@ Merge the feature branch as a finalize sub-step.
 
 ## Required Sequence
 
-1. Run `senrail flow run finalize-merge`.
+1. Run `sennel flow run finalize-merge`.
    - Merge strategy is auto-detected: `commands.gh=enable` AND `gh` available → PR, else squash merge.
    - Display the JSON result to the user.
 
@@ -13,7 +13,7 @@ Merge the feature branch as a finalize sub-step.
 3. If the result shows PR route (strategy=pr), note that docs sync will need to be run after the PR is merged:
    ```
    PR マージ後に以下を実行してください:
-   - ドキュメントの同期: senrail docs build または /senrail.flow-sync
+   - ドキュメントの同期: sennel docs build または /sennel.flow-sync
    ```
 
 4. After success, the dispatcher automatically advances to finalize-sync.

@@ -5,7 +5,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../helpers/tmp-dir.js";
 
-const CMD = join(process.cwd(), "src/senrail.js");
+const CMD = join(process.cwd(), "src/sennel.js");
 
 function staleAgentFileContent(dataSource = "agents.flow") {
   return [
@@ -14,7 +14,7 @@ function staleAgentFileContent(dataSource = "agents.flow") {
     `<!-- {{data("${dataSource}")}} -->`,
     '## Spec-Driven Development (Spec-Driven Development)',
     '',
-    '- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/senrail.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**',
+    '- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、内容を判定して「直接修正」か「Spec-Driven Development フロー (`/sennel.flow`)」のどちらで進めるかを AskUserQuestion で 2 択提示すること。確認なしにコードを変更してはならない。**',
     '  - **判定が迷う場合は flow を Recommended にする**',
     '<!-- {{/data}} -->',
     '',
@@ -29,7 +29,7 @@ function staleAgentFileContent(dataSource = "agents.flow") {
 }
 
 function setupProject(tmp) {
-  writeJson(tmp, ".senrail/config.json", {
+  writeJson(tmp, ".sennel/config.json", {
     lang: "ja",
     type: "base",
     docs: { languages: ["ja"], defaultLanguage: "ja" },
@@ -43,7 +43,7 @@ function runUpgrade(tmp, args = []) {
   return execFileSync("node", [CMD, "upgrade", ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENRAIL_WORK_ROOT: tmp, SENRAIL_SOURCE_ROOT: tmp },
+    env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
   });
 }
 
@@ -61,7 +61,7 @@ describe("upgrade agent instruction files", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("refreshes agents.flow blocks in AGENTS.md and CLAUDE.md", () => {
-    tmp = createTmpDir("senrail-upgrade-agent-files-");
+    tmp = createTmpDir("sennel-upgrade-agent-files-");
     setupProject(tmp);
 
     const output = runUpgrade(tmp);
@@ -71,11 +71,11 @@ describe("upgrade agent instruction files", () => {
     assertRefreshed(fs.readFileSync(join(tmp, "AGENTS.md"), "utf8"));
     assertRefreshed(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"));
     assert.equal(fs.existsSync(join(tmp, ".codex/hooks.json")), false);
-    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs")), false);
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/sennel-flow-final-response-guard.mjs")), false);
   });
 
   it("reports pending agent file refreshes in dry-run without writing", () => {
-    tmp = createTmpDir("senrail-upgrade-agent-files-dry-");
+    tmp = createTmpDir("sennel-upgrade-agent-files-dry-");
     setupProject(tmp);
     const before = fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8");
 
@@ -95,7 +95,7 @@ describe("upgrade agent instruction files", () => {
     "legacy.AGENTS.sdd",
   ]) {
     it(`replaces the legacy managed ${marker} block while preserving handwritten content`, () => {
-      tmp = createTmpDir("senrail-upgrade-agent-files-legacy-");
+      tmp = createTmpDir("sennel-upgrade-agent-files-legacy-");
       setupProject(tmp);
       for (const name of ["AGENTS.md", "CLAUDE.md"]) {
         writeFile(tmp, name, staleAgentFileContent(marker));
@@ -113,17 +113,17 @@ describe("upgrade agent instruction files", () => {
   }
 
   it("removes the legacy Flow hook while preserving project-owned hooks", () => {
-    tmp = createTmpDir("senrail-upgrade-agent-hook-cleanup-");
+    tmp = createTmpDir("sennel-upgrade-agent-hook-cleanup-");
     setupProject(tmp);
     writeJson(tmp, ".codex/hooks.json", {
       hooks: {
         Stop: [
           { hooks: [{ type: "command", command: "node project-stop.mjs" }] },
-          { hooks: [{ type: "command", command: "node .codex/hooks/senrail-flow-final-response-guard.mjs" }] },
+          { hooks: [{ type: "command", command: "node .codex/hooks/sennel-flow-final-response-guard.mjs" }] },
         ],
       },
     });
-    writeFile(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs", "legacy\n");
+    writeFile(tmp, ".codex/hooks/sennel-flow-final-response-guard.mjs", "legacy\n");
 
     const output = runUpgrade(tmp);
 
@@ -133,7 +133,7 @@ describe("upgrade agent instruction files", () => {
         Stop: [{ hooks: [{ type: "command", command: "node project-stop.mjs" }] }],
       },
     });
-    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/senrail-flow-final-response-guard.mjs")), false);
+    assert.equal(fs.existsSync(join(tmp, ".codex/hooks/sennel-flow-final-response-guard.mjs")), false);
   });
 
 });

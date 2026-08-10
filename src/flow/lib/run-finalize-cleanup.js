@@ -1072,7 +1072,7 @@ function composeFinalizePluginLifecycle(pre, post) {
 
 /**
  * Plugin side effects are outside the finalize-cleanup transaction boundary.
- * A pre hook may inspect state and veto cleanup, but senrail does not snapshot or
+ * A pre hook may inspect state and veto cleanup, but sennel does not snapshot or
  * restore files or external systems changed by the plugin. Plugins that choose
  * to mutate state own idempotency, retry, recovery, and cleanup for that work.
  */
@@ -1163,7 +1163,7 @@ function appendForcedFinalizeAudit(root, state, authorization, { operationOwnerT
   appendIssueLog(root, relativeFlowSpecFile(state), {
     step: "finalize-cleanup",
     reason: "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
-    trigger: "senrail flow run finalize-cleanup --force",
+    trigger: "sennel flow run finalize-cleanup --force",
     resolution: droppedCommits.length > 0
       ? `dropped ${authorization.droppedCount} commit(s); top sha=${droppedCommits[0]?.sha?.slice(0, 12) || "n/a"}`
       : authorization.diverged
@@ -1605,7 +1605,7 @@ class AutoRescueCleanupStore {
   constructor(identity) {
     this.identity = identity;
     const token = crypto.createHash("sha256").update(JSON.stringify(identity)).digest("hex");
-    this.directory = path.join(identity.mainRepoPath, ".git", "senrail", "recovery", "auto-rescue");
+    this.directory = path.join(identity.mainRepoPath, ".git", "sennel", "recovery", "auto-rescue");
     ensureRealDirectory(this.directory);
     this.path = path.join(this.directory, `${token}.json`);
     this.file = new AtomicJsonFile(this.path);
@@ -2586,7 +2586,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
           appendIssueLog(mainRepoPath, relativeFlowSpecFile(state), {
             step: "finalize-cleanup",
             reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
-            trigger: "senrail flow run finalize-cleanup --auto-rescue",
+            trigger: "sennel flow run finalize-cleanup --auto-rescue",
             resolution: rescue.abortFailure
               ? "cherry-pick abort failed; durable temporary-worktree cleanup authority retained for retry"
               : "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
@@ -3079,7 +3079,7 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
   if (syncWarning) {
     env.addWarning(
       "FINALIZE_SYNC_FAILED",
-      `Documentation sync did not complete: ${syncWarning.message}. Run 'senrail flow run sync' after inspecting the recorded diagnostics.`,
+      `Documentation sync did not complete: ${syncWarning.message}. Run 'sennel flow run sync' after inspecting the recorded diagnostics.`,
     );
   }
   if (state.worktree && mainRepoPath) {

@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 
-const FLOW_CMD = join(process.cwd(), "src/senrail.js");
+const FLOW_CMD = join(process.cwd(), "src/sennel.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 describe("removed flow run commands", () => {

@@ -249,7 +249,7 @@ function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) 
     recoveryReason: "semantic_findings",
     classification: "semantic_findings",
     changedEvidence: null,
-    recoveryCommand: `senrail flow run gate --phase ${phase}`,
+    recoveryCommand: `sennel flow run gate --phase ${phase}`,
     reason: "semantic_findings",
   });
 }
@@ -287,7 +287,7 @@ function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
   if (!plan) return null;
   return new ExecuteCommandDirective({
     actionId: "RECOVER_PREIMPLEMENTATION_BOOTSTRAP",
-    nextAction: guardedCommand("senrail flow run preimplementation-bootstrap", state, binding),
+    nextAction: guardedCommand("sennel flow run preimplementation-bootstrap", state, binding),
     instruction: "Use the persisted scenario-validity preflight evidence to enter implementation without reclassifying existing implementation-target changes as test design.",
     reason: `scenario-validity detected ${plan.invalidPaths.length} existing implementation-target change(s) against the immutable Flow baseline`,
   });
@@ -303,7 +303,7 @@ function buildScenarioTestRepairDirective(ctx, state, target, binding) {
     phase: "test",
     instruction: "Run the guarded scenario-test repair transition. It freezes the command-owned blocking classifications and rewinds to the test worker handoff; do not edit canonical spec tests directly.",
     reason: source.reason,
-    nextAction: guardedCommand("senrail flow run repair-plan-gate", state, binding),
+    nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
   });
 }
 
@@ -325,7 +325,7 @@ function buildTestReviewRepairDirective(ctx, state, target, binding, reviewOpera
     phase: "test",
     instruction: "Run the guarded test-review repair transition. It freezes the canonical blocking findings and source test revision, then rewinds through the dispatcher-owned test handoff; do not edit canonical tests or review artifacts directly.",
     reason: source.reason,
-    nextAction: guardedCommand("senrail flow run repair-test-review", state, binding),
+    nextAction: guardedCommand("sennel flow run repair-test-review", state, binding),
   });
 }
 
@@ -341,7 +341,7 @@ function buildCanonicalReviewPassRecoveryDirective(ctx, state, binding) {
     return new ExecuteCommandDirective({
       actionId: "RECOVER_CANONICAL_REVIEW_PASS",
       nextAction: guardedCommand(
-        `senrail flow run recover-review-pass --phase ${route.phase}`,
+        `sennel flow run recover-review-pass --phase ${route.phase}`,
         state,
         binding,
       ),

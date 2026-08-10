@@ -2,7 +2,7 @@
 /**
  * src/presets-cmd.js
  *
- * `senrail presets list` — display the preset inheritance tree.
+ * `sennel presets list` — display the preset inheritance tree.
  * Uses parent field for hierarchy display.
  */
 
@@ -22,7 +22,7 @@ export async function main() {
     try {
       printTree();
     } catch (err) {
-      console.error(`senrail presets: ${err.message}`);
+      console.error(`sennel presets: ${err.message}`);
       process.exit(EXIT_ERROR);
     }
   } else if (subCmd === "-h" || subCmd === "--help") {
@@ -32,14 +32,14 @@ export async function main() {
     try {
       lang = loadLang(repoRoot());
     } catch (err) {
-      process.stderr.write(`[senrail presets] lang load failed, falling back to en: ${err?.message}\n`);
+      process.stderr.write(`[sennel presets] lang load failed, falling back to en: ${err?.message}\n`);
       lang = "en";
     }
     const tu = createI18n(lang);
     const h = tu.raw("help.cmdHelp.presets");
     console.log([h.usage, "", `  ${h.desc}`].join("\n"));
   } else {
-    console.error(`senrail presets: unknown command '${subCmd}'`);
+    console.error(`sennel presets: unknown command '${subCmd}'`);
     process.exit(EXIT_ERROR);
   }
 }

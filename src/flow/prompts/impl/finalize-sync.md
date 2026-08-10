@@ -2,8 +2,8 @@ Build and commit documentation as a finalize sub-step. Runs on the main repo aft
 
 ## Required Sequence
 
-1. Run `senrail flow run finalize-sync`.
-   - Runs `senrail docs build` on the main repo (or the current repo in branch mode).
+1. Run `sennel flow run finalize-sync`.
+   - Runs `sennel docs build` on the main repo (or the current repo in branch mode).
    - Stages and commits documentation changes.
    - Display the JSON result to the user.
    - If the result includes diffSummary, show the list of changed docs files.

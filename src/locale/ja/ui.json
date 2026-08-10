@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "Senrail — セットアップ",
+    "title": "Sennel — セットアップ",
     "separator": "========================",
     "questions": {
       "uiLang": "Select your preferred language for UI messages:",
@@ -69,7 +69,7 @@
       "skillsDeployed": "[setup] Skills を配置しました (.agents/skills/ + .claude/skills/)",
       "summary": "設定サマリ:",
       "nextSteps": "次のステップ:",
-      "step1": "senrail docs build  — ドキュメント一括生成（scan → init → data → text）",
+      "step1": "sennel docs build  — ドキュメント一括生成（scan → init → data → text）",
       "step2": "final regression 用に test.command、補修ループの targeted regression 用に project test paths を設定してください"
     },
     "prompt": "> "
@@ -91,8 +91,8 @@
   },
   "help": {
     "title": "コマンド一覧",
-    "usage": "Usage: senrail <command> [options]",
-    "runHelp": "Run \u001b[1msenrail <command> --help\u001b[0m for details.",
+    "usage": "Usage: sennel <command> [options]",
+    "runHelp": "Run \u001b[1msennel <command> --help\u001b[0m for details.",
     "commands": {
       "help": "このヘルプを表示",
       "setup": "プロジェクト登録 + 設定生成（対話式）",
@@ -119,7 +119,7 @@
     },
     "cmdHelp": {
       "enrich": {
-        "usage": "Usage: senrail docs enrich [options]",
+        "usage": "Usage: sennel docs enrich [options]",
         "desc": "AI で analysis.json の各エントリーに summary/detail/chapter/role を付与する。",
         "options": {
           "agent": "--agent <name>  使用する AI エージェント（デフォルト: config の defaultAgent）",
@@ -129,7 +129,7 @@
         }
       },
       "scan": {
-        "usage": "Usage: senrail docs scan [options]",
+        "usage": "Usage: sennel docs scan [options]",
         "desc": "ソースコードを解析し analysis.json を生成する。",
         "options": {
           "reset": "--reset [cats]  エントリの hash をクリア（全体またはカンマ区切りカテゴリ指定）",
@@ -139,7 +139,7 @@
         }
       },
       "init": {
-        "usage": "Usage: senrail docs init [options]",
+        "usage": "Usage: sennel docs init [options]",
         "desc": "テンプレートを docs/ にコピーする。",
         "options": {
           "type": "--type <type>            テンプレートタイプ (default: config.json type)",
@@ -149,7 +149,7 @@
         }
       },
       "data": {
-        "usage": "Usage: senrail docs data [options]",
+        "usage": "Usage: sennel docs data [options]",
         "desc": "{{data}} ディレクティブを解析データで解決する。",
         "options": {
           "dryRun": "--dry-run   変更内容を表示するだけでファイル書き込みしない",
@@ -158,7 +158,7 @@
         }
       },
       "text": {
-        "usage": "Usage: senrail docs text --agent <name> [options]",
+        "usage": "Usage: sennel docs text --agent <name> [options]",
         "desc": "{{text}} ディレクティブを AI で解決する。",
         "options": {
           "agent": "--agent <name>      AIエージェント: claude|codex (必須)",
@@ -170,14 +170,14 @@
         }
       },
       "forge": {
-        "usage": "Usage: senrail docs forge --prompt \"...\" [options]",
+        "usage": "Usage: sennel docs forge --prompt \"...\" [options]",
         "desc": "docs を AI エージェントで反復改善する。",
         "options": {
           "prompt": "--prompt <text>        開始プロンプト",
           "promptFile": "--prompt-file <path>   開始プロンプトファイル",
           "spec": "--spec <path>          入力仕様書（ディレクトリ / spec.json / 旧 spec.md）",
           "maxRuns": "--max-runs <n>         反復回数 (default: 3)",
-          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: senrail docs review)",
+          "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: sennel docs review)",
           "agent": "--agent <name>         AIエージェント: codex|claude (default: config.json の defaultAgent)",
           "mode": "--mode <mode>          実行モード: local|assist|agent (default: local)",
           "dryRun": "--dry-run              ファイル書き込み・review・agent 呼び出しをスキップ（1 ラウンドで終了）",
@@ -188,20 +188,20 @@
         "perFileNote": "provider に systemPromptFlag が設定されている場合、ファイルごとに非同期で agent を呼び出します。\n同時実行数は config.json の limits.concurrency で設定可能（default: 5）。"
       },
       "review": {
-        "usage": "Usage: senrail docs review [<docs-dir>]",
+        "usage": "Usage: sennel docs review [<docs-dir>]",
         "desc": "docs/ 配下の章ファイルを検証する。",
-        "descDetail": "引数なしの場合は ${SENRAIL_WORK_ROOT}/docs を対象とする。"
+        "descDetail": "引数なしの場合は ${SENNEL_WORK_ROOT}/docs を対象とする。"
       },
       "changelog": {
-        "usage": "Usage: senrail docs changelog [--dry-run] [<output-file>]",
+        "usage": "Usage: sennel docs changelog [--dry-run] [<output-file>]",
         "desc": "specs/ を走査して change_log.md を生成する。",
-        "descDetail": "引数なしの場合は ${SENRAIL_SOURCE_ROOT}/docs/change_log.md に出力する。",
+        "descDetail": "引数なしの場合は ${SENNEL_SOURCE_ROOT}/docs/change_log.md に出力する。",
         "options": {
           "dryRun": "--dry-run   ファイル書き込みせず結果を stdout に出力する"
         }
       },
       "agents": {
-        "usage": "Usage: senrail docs agents [--dry-run]",
+        "usage": "Usage: sennel docs agents [--dry-run]",
         "desc": "AGENTS.md の {{data}} ディレクティブを解決して更新する。",
         "descDetail": "agents.flow / agents.project ディレクティブを解決する（PROJECT は AI で精査）。",
         "options": {
@@ -209,7 +209,7 @@
         }
       },
       "flow": {
-        "usage": "Usage: senrail flow start --request \"...\" [options]",
+        "usage": "Usage: sennel flow start --request \"...\" [options]",
         "desc": "Spec-Driven Development フローを自動実行する。",
         "options": {
           "request": "--request <text>   実装要求（必須）",
@@ -219,12 +219,12 @@
           "maxRuns": "--max-runs <n>     docs:forge 反復回数",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",
           "noBranch": "--no-branch        ブランチを作成せず spec のみ作成する",
-          "worktree": "--worktree         git worktree を作成して spec を配置する (.senrail/worktree/<branch>/)",
+          "worktree": "--worktree         git worktree を作成して spec を配置する (.sennel/worktree/<branch>/)",
           "dryRun": "--dry-run          全サブコマンドを dry-run モードで実行する"
         }
       },
       "build": {
-        "usage": "Usage: senrail docs build [options]",
+        "usage": "Usage: sennel docs build [options]",
         "desc": "ドキュメント生成パイプラインを一括実行する:",
         "descDetail": "scan → init → data → text → readme → agents → translate",
         "options": {
@@ -236,7 +236,7 @@
         }
       },
       "readme": {
-        "usage": "Usage: senrail docs readme [options]",
+        "usage": "Usage: sennel docs readme [options]",
         "desc": "docs/ とテンプレートから README.md を自動生成する。",
         "options": {
           "lang": "--lang <code>  テンプレート言語を指定 (default: config.docs.defaultLanguage)",
@@ -246,7 +246,7 @@
         }
       },
       "translate": {
-        "usage": "Usage: senrail docs translate [options]",
+        "usage": "Usage: sennel docs translate [options]",
         "desc": "デフォルト言語のドキュメントを他言語に翻訳する。",
         "options": {
           "lang": "--lang <lang>  特定の言語のみ翻訳",
@@ -256,7 +256,7 @@
         }
       },
       "setup": {
-        "usage": "Usage: senrail setup [options]",
+        "usage": "Usage: sennel setup [options]",
         "desc": "インタラクティブなプロジェクトセットアップウィザード。",
         "options": {
           "name": "--name <name>               プロジェクト名",
@@ -273,24 +273,24 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: senrail upgrade [--migrate] [--dry-run]",
-        "desc": "テンプレート由来のファイルをインストール済み senrail のバージョンに合わせて更新する。",
-        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .senrail へ移行してから通常 upgrade を実行する。migration 失敗時は通常 upgrade を開始せず、migration 成功後の通常 upgrade 失敗では .senrail を維持する。.senrail が既に存在する場合または legacy 管理ディレクトリがない場合は通常 upgrade も実行しない。writer 安全性の検査には Linux procfs が必要。",
+        "usage": "Usage: sennel upgrade [--migrate] [--dry-run]",
+        "desc": "テンプレート由来のファイルをインストール済み sennel のバージョンに合わせて更新する。",
+        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .sennel へ移行してから通常 upgrade を実行する。migration 失敗時は通常 upgrade を開始せず、migration 成功後の通常 upgrade 失敗では .sennel を維持する。.sennel が既に存在する場合または legacy 管理ディレクトリがない場合は通常 upgrade も実行しない。writer 安全性の検査には Linux procfs が必要。",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
           ".claude/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
-          ".senrail/presets/base/*          組み込み base preset copy",
+          ".sennel/presets/base/*          組み込み base preset copy",
           "AGENTS.md / CLAUDE.md            Flow 管理 instruction block",
-          ".codex/hooks*                    旧 Senrail hook のみ削除"
+          ".codex/hooks*                    旧 Sennel hook のみ削除"
         ],
         "options": {
-          "migrate": "--migrate    Linux procfs 環境で .sdd-forge または .senti を .senrail へ移行してから通常 upgrade を実行",
+          "migrate": "--migrate    Linux procfs 環境で .sdd-forge、.senti、または .senrail を .sennel へ移行してから通常 upgrade を実行",
           "dryRun": "--dry-run    変更内容を表示するだけでファイル書き込みしない",
           "help": "-h, --help   このヘルプを表示"
         }
       },
       "presets": {
-        "usage": "Usage: senrail presets list",
+        "usage": "Usage: sennel presets list",
         "desc": "プリセット継承ツリーを表示する。"
       }
     }
@@ -317,7 +317,7 @@
       "artifact": "test-execute-result.json v2",
       "review": "test-result-review.json",
       "projectRegression": "project regression",
-      "config": ".senrail/config.json test.command / test.projectPaths / test.timeout"
+      "config": ".sennel/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

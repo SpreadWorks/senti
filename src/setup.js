@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * senrail/setup/setup.js
+ * sennel/setup/setup.js
  *
  * Interactive setup wizard.
- * Registers a project and generates .senrail/config.json.
+ * Registers a project and generates .sennel/config.json.
  *
  * Usage:
- *   senrail setup
- *   senrail setup --name myapp --path /path/to/src --type webapp/cakephp2
+ *   sennel setup
+ *   sennel setup --name myapp --path /path/to/src --type webapp/cakephp2
  */
 
 import fs from "fs";
@@ -226,7 +226,7 @@ export function buildSetupAgentHelpText() {
   return [
     "agent.default stores the selected family alias: claude or codex.",
     `agent.useProfile stores one built-in profile name: ${profileNames}.`,
-    "Built-in agent.profiles and agent.providers are resolved by senrail at runtime.",
+    "Built-in agent.profiles and agent.providers are resolved by sennel at runtime.",
     "Override a built-in profile/provider by defining the same key in config.json.",
     'Example "agent.profiles": { "codex-main": { "docs.readme": "my-codex" } }',
     'Example "agent.providers": { "my-codex": { "command": "codex", "args": ["exec", "{{PROMPT}}"] } }',

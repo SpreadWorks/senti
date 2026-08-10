@@ -2,7 +2,7 @@
 /**
  * src/check/commands/scan.js
  *
- * senrail check scan — scan coverage report.
+ * sennel check scan — scan coverage report.
  *
  * Shows DataSource coverage: scan.include matched files vs DataSource-analyzed files.
  * Reports uncovered files grouped by extension (actionable summary) followed by the file list.
@@ -28,7 +28,7 @@ const SKIPPED_DIRECTORY_NAMES = new Set([".git", "node_modules", "vendor", PRODU
 
 function printHelp() {
   console.log([
-    "Usage: senrail check scan [options]",
+    "Usage: sennel check scan [options]",
     "",
     "Show scan coverage report for the current project.",
     "",
@@ -58,7 +58,7 @@ function groupByExtension(files) {
 
 /**
  * Walk baseDir recursively, collecting files matched by includeMatchers.
- * Skips .git, node_modules, vendor, .senrail directories.
+ * Skips .git, node_modules, vendor, .sennel directories.
  * Applies excludeMatchers to relative paths.
  *
  * @param {string} baseDir
@@ -91,14 +91,14 @@ function coveragePercent(coverage) {
  *
  * @param {string} root - work root
  * @param {string} src - source root
- * @param {Object} cfg - senrail config
+ * @param {Object} cfg - sennel config
  * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
  * @returns {{ dataSourceCoverage: { total: number, analyzed: number, uncovered: string[], complete: boolean, result: string, limits: string[] } }}
  */
 function computeCoverage(root, src, cfg, { policy = DEFAULT_SCAN_POLICY } = {}) {
   const outputPath = path.join(managedOutputDir(root), "analysis.json");
   if (!fs.existsSync(outputPath)) {
-    throw new Error(`analysis.json not found: ${outputPath}\nRun 'senrail docs scan' first.`);
+    throw new Error(`analysis.json not found: ${outputPath}\nRun 'sennel docs scan' first.`);
   }
 
   let analysis;
@@ -231,7 +231,7 @@ async function runCheckScan(rawArgs, container) {
 
   const format = cli.format || "text";
   if (!["text", "json", "md"].includes(format)) {
-    process.stderr.write(`senrail check scan: unknown format '${format}'. Use text, json, or md.\n`);
+    process.stderr.write(`sennel check scan: unknown format '${format}'. Use text, json, or md.\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -240,7 +240,7 @@ async function runCheckScan(rawArgs, container) {
 
   const cfg = container.get("config");
   if (!cfg || Object.keys(cfg).length === 0) {
-    process.stderr.write(`senrail check scan: config is not available\n`);
+    process.stderr.write(`sennel check scan: config is not available\n`);
     process.exit(EXIT_ERROR);
   }
 
@@ -248,7 +248,7 @@ async function runCheckScan(rawArgs, container) {
   try {
     data = computeCoverage(root, src, cfg);
   } catch (err) {
-    process.stderr.write(`senrail check scan: ${err.message}\n`);
+    process.stderr.write(`sennel check scan: ${err.message}\n`);
     process.exit(EXIT_ERROR);
   }
 

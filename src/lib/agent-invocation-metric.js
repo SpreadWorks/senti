@@ -144,7 +144,7 @@ export class DeferredAgentInvocationMetric {
       await metric.persist();
       return true;
     } catch (error) {
-      process.stderr.write(`[senrail] agent: metric accumulation failed: ${error.message}\n`);
+      process.stderr.write(`[sennel] agent: metric accumulation failed: ${error.message}\n`);
       return false;
     }
   }
@@ -164,7 +164,7 @@ export async function persistAgentInvocationMetric(options, deferred = null) {
     await metric.persist();
     return true;
   } catch (error) {
-    process.stderr.write(`[senrail] agent: metric accumulation failed: ${error.message}\n`);
+    process.stderr.write(`[sennel] agent: metric accumulation failed: ${error.message}\n`);
     return false;
   }
 }

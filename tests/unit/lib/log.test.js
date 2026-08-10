@@ -72,7 +72,7 @@ describe("Logger.agent — start/end events and JSONL output", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-agent-"));
-    logFile = path.join(tmpDir, `senrail-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `sennel-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -261,7 +261,7 @@ describe("Logger.git and Logger.event — API surface", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-git-"));
-    logFile = path.join(tmpDir, `senrail-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `sennel-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -302,7 +302,7 @@ describe("Logger — caller frame extraction", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-caller-"));
-    logFile = path.join(tmpDir, `senrail-${todayLocal()}.jsonl`);
+    logFile = path.join(tmpDir, `sennel-${todayLocal()}.jsonl`);
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -342,7 +342,7 @@ describe("Logger — I/O failure tolerance", () => {
 describe("Logger — sensitive information masking", () => {
   let tmpDir;
   let logFile;
-  const savedWorkRoot = process.env.SENRAIL_WORK_ROOT;
+  const savedWorkRoot = process.env.SENNEL_WORK_ROOT;
 
   // Synthetic fake tokens assembled at runtime so the source does not
   // contain recognizable secret literals (guardrail: No Hardcoded Secrets).
@@ -360,13 +360,13 @@ describe("Logger — sensitive information masking", () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-mask-"));
-    logFile = path.join(tmpDir, `senrail-${todayLocal()}.jsonl`);
-    process.env.SENRAIL_WORK_ROOT = tmpDir;
+    logFile = path.join(tmpDir, `sennel-${todayLocal()}.jsonl`);
+    process.env.SENNEL_WORK_ROOT = tmpDir;
   });
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
-    if (savedWorkRoot === undefined) delete process.env.SENRAIL_WORK_ROOT;
-    else process.env.SENRAIL_WORK_ROOT = savedWorkRoot;
+    if (savedWorkRoot === undefined) delete process.env.SENNEL_WORK_ROOT;
+    else process.env.SENNEL_WORK_ROOT = savedWorkRoot;
   });
 
   /** Run an action on a fresh Logger, flush, and return the first JSONL entry. */
@@ -422,14 +422,14 @@ describe("Logger — sensitive information masking", () => {
     assert.ok(!entry.note.includes(FAKE.aws), `AWS key should be masked: ${entry.note}`);
   });
 
-  it("masks absolute paths outside SENRAIL_WORK_ROOT", async () => {
+  it("masks absolute paths outside SENNEL_WORK_ROOT", async () => {
     const entry = await writeAndReadEntry((inst) =>
       inst.event("extpath", { file: "/home/otheruser/.ssh/id_rsa" })
     );
     assert.ok(!entry.file.includes("/home/otheruser/.ssh/id_rsa"), `external path should be masked: ${entry.file}`);
   });
 
-  it("does NOT mask paths inside SENRAIL_WORK_ROOT", async () => {
+  it("does NOT mask paths inside SENNEL_WORK_ROOT", async () => {
     const insidePath = path.join(tmpDir, "specs", "foo.md");
     const entry = await writeAndReadEntry((inst) =>
       inst.event("intpath", { file: insidePath })

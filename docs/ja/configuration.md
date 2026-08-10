@@ -8,7 +8,7 @@
 
 <!-- {{text({prompt: "この章の概要を1〜2文で記述してください。設定ファイルの種類・設定可能な項目の範囲・カスタマイズポイントを踏まえること。"})}} -->
 
-sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして読み込み、ドキュメント出力言語・プロジェクトタイプ・エージェント動作・SDD フロー設定など幅広い項目を一括管理します。バリデーションにより必須フィールドの欠落や不正値を起動時に検出し、ドキュメントスタイル・並行実行数・フローのマージ戦略などをカスタマイズできます。
+sennel は `.sennel/config.json` を唯一の設定ファイルとして読み込み、ドキュメント出力言語・プロジェクトタイプ・エージェント動作・SDD フロー設定など幅広い項目を一括管理します。バリデーションにより必須フィールドの欠落や不正値を起動時に検出し、ドキュメントスタイル・並行実行数・フローのマージ戦略などをカスタマイズできます。
 <!-- {{/text}} -->
 
 ## 内容
@@ -19,10 +19,10 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 
 | ファイルパス | 役割 |
 |---|---|
-| `.sdd-forge/config.json` | プロジェクトの主設定ファイル。`loadConfig()` が読み込み、`validateConfig()` によりスキーマ検証を行います |
+| `.sennel/config.json` | プロジェクトの主設定ファイル。`loadConfig()` が読み込み、`validateConfig()` によりスキーマ検証を行います |
 | `package.json` | `loadPackageField()` により、プロジェクトルートの `package.json` から特定フィールドを補助的に参照します |
 
-設定ファイルの配置ディレクトリは `sddDir()` が返す `.sdd-forge/` です。出力結果は `.sdd-forge/output/`、データキャッシュは `.sdd-forge/data/` に格納されます。
+設定ファイルの配置ディレクトリは `sddDir()` が返す `.sennel/` です。出力結果は `.sennel/output/`、データキャッシュは `.sennel/data/` に格納されます。
 <!-- {{/text}} -->
 
 ### 設定項目リファレンス
@@ -182,9 +182,9 @@ sdd-forge は `.sdd-forge/config.json` を唯一の設定ファイルとして�
 
 ### built-in エージェント profile
 
-`senrail setup` は選択した agent family を `agent.default` に `claude` または `codex` として保存し、routing intent を `agent.useProfile` に保存します。built-in profile 名は `claude-only`, `codex-only`, `claude-main`, `codex-main` です。
+`sennel setup` は選択した agent family を `agent.default` に `claude` または `codex` として保存し、routing intent を `agent.useProfile` に保存します。built-in profile 名は `claude-only`, `codex-only`, `claude-main`, `codex-main` です。
 
-built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.senrail/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
+built-in の `agent.profiles` と `agent.providers` は package から実行時に解決されます。`.sennel/config.json` へコピーする必要はありません。package default を上書きしたい場合だけ、同じ key を local config に定義します。
 
 ```json
 {
@@ -210,7 +210,7 @@ built-in の `agent.profiles` と `agent.providers` は package から実行時�
 
 <!-- {{text({prompt: "ツールが参照する環境変数の一覧と用途を表形式で記述してください。ソースコードの process.env 参照から抽出すること。", mode: "deep"})}} -->
 
-提供された解析データの対象ファイル（`src/lib/config.js`・`src/lib/types.js`）には、`process.env` を直接参照する処理は含まれていません。設定値はすべて `.sdd-forge/config.json` から読み込まれ、環境変数によるオーバーライドはこれらのファイルの責務外となっています。
+提供された解析データの対象ファイル（`src/lib/config.js`・`src/lib/types.js`）には、`process.env` を直接参照する処理は含まれていません。設定値はすべて `.sennel/config.json` から読み込まれ、環境変数によるオーバーライドはこれらのファイルの責務外となっています。
 <!-- {{/text}} -->
 
 ---

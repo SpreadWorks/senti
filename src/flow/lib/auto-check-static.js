@@ -1,7 +1,7 @@
 /**
  * src/flow/lib/auto-check-static.js
  *
- * Static pre-gates for `senrail flow run auto-check`.
+ * Static pre-gates for `sennel flow run auto-check`.
  * Runs before the AI scoring step — if any gate hits, auto mode is rejected
  * without spending an AI call. See spec 208 R2 / R14 and spec 225 R1.
  *

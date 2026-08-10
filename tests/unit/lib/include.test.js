@@ -72,7 +72,7 @@ describe("resolveIncludes", () => {
 
   it("rejects unregistered @presets/<preset>/ path before project-local template lookup", () => {
     tmp = createTmpDir();
-    const projectLocal = path.join(tmp, ".senrail", "templates", "presets", "unregistered-preset", "templates");
+    const projectLocal = path.join(tmp, ".sennel", "templates", "presets", "unregistered-preset", "templates");
     fs.mkdirSync(projectLocal, { recursive: true });
     fs.writeFileSync(path.join(projectLocal, "fragment.md"), "should not resolve");
 

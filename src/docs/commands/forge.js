@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * senrail/forge/forge.js
+ * sennel/forge/forge.js
  *
  * Prompt 起点で docs 改善を反復する。
  * 1) AI に generated docs(01..10) を更新させる
@@ -40,7 +40,7 @@ import {
 
 const DEFAULT_WAIT_LOG_SEC = 1;
 const DEFAULT_MAX_RUNS = 3;
-const DEFAULT_REVIEW_CMD = "senrail docs review";
+const DEFAULT_REVIEW_CMD = "sennel docs review";
 const DEFAULT_MODE = "local";
 
 function getTargetFiles(root, type, configChapters) {

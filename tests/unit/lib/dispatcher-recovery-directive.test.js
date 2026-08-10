@@ -29,7 +29,7 @@ it("keeps a guarded mechanical recovery successful after an external-blocked att
           terminal: false,
           requiresUserAction: false,
           actionId: "RECOVER_CANONICAL_REVIEW_PASS",
-          nextAction: "senrail flow run recover-review-pass --phase spec",
+          nextAction: "sennel flow run recover-review-pass --phase spec",
           instruction: "Recover the exact canonical PASS projection.",
           reason: "The prior mutable projection was overwritten.",
         },

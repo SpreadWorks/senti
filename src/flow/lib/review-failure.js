@@ -38,13 +38,13 @@ function cleanReason(value, fallback) {
 }
 
 function retryResetCommand(phase) {
-  return `senrail flow set retry reset review ${phase} --reason <text> --yes`;
+  return `sennel flow set retry reset review ${phase} --reason <text> --yes`;
 }
 
 function retryReviewCommand(phase) {
   return phase === "impl"
-    ? "senrail flow run review"
-    : `senrail flow run review --phase ${phase}`;
+    ? "sennel flow run review"
+    : `sennel flow run review --phase ${phase}`;
 }
 
 export function reviewPhaseForStepId(stepId) {

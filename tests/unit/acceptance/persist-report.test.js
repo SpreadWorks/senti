@@ -14,21 +14,21 @@ import { persistReport } from "../../acceptance/lib/test-template.js";
 describe("persistReport", () => {
   let tmp;
 
-  it("writes report to .senrail/output/acceptance-report-{preset}.json", () => {
+  it("writes report to .sennel/output/acceptance-report-{preset}.json", () => {
     tmp = createTmpDir("persist-test-");
     const report = { preset: "child-preset", timestamp: "2026-03-28T00:00:00.000Z" };
 
     persistReport(tmp, report);
 
-    const outPath = path.join(tmp, ".senrail", "output", "acceptance-report-child-preset.json");
+    const outPath = path.join(tmp, ".sennel", "output", "acceptance-report-child-preset.json");
     assert.ok(fs.existsSync(outPath), "report file should exist");
     const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
     assert.deepEqual(written, report);
   });
 
-  it("creates .senrail/output/ directory if it does not exist", () => {
+  it("creates .sennel/output/ directory if it does not exist", () => {
     tmp = createTmpDir("persist-test-");
-    const outDir = path.join(tmp, ".senrail", "output");
+    const outDir = path.join(tmp, ".sennel", "output");
     assert.ok(!fs.existsSync(outDir), "output dir should not exist before");
 
     persistReport(tmp, { preset: "base" });
@@ -40,7 +40,7 @@ describe("persistReport", () => {
     tmp = createTmpDir("persist-test-");
     const oldReport = { preset: "sample-node-command", timestamp: "2026-03-27T00:00:00.000Z" };
     const newReport = { preset: "sample-node-command", timestamp: "2026-03-28T00:00:00.000Z" };
-    const outPath = path.join(tmp, ".senrail", "output", "acceptance-report-sample-node-command.json");
+    const outPath = path.join(tmp, ".sennel", "output", "acceptance-report-sample-node-command.json");
 
     persistReport(tmp, oldReport);
     persistReport(tmp, newReport);
@@ -54,7 +54,7 @@ describe("persistReport", () => {
 
     persistReport(tmp, { preset: "sample-preset" });
 
-    const outPath = path.join(tmp, ".senrail", "output", "acceptance-report-sample-preset.json");
+    const outPath = path.join(tmp, ".sennel", "output", "acceptance-report-sample-preset.json");
     assert.ok(fs.existsSync(outPath), "file should use preset name as suffix");
   });
 

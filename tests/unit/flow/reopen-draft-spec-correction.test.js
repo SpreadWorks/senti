@@ -592,7 +592,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
       git(tmp, ["init", "-q"]);
       const { files, state: originalState } = setupFlow(tmp, { tasks, currentTaskId });
       git(tmp, ["add", "."]);
-      git(tmp, ["-c", "user.name=Senrail Test", "-c", "user.email=senrail@example.invalid", "commit", "-qm", "fixture"]);
+      git(tmp, ["-c", "user.name=Sennel Test", "-c", "user.email=sennel@example.invalid", "commit", "-qm", "fixture"]);
       fs.writeFileSync(files.source, "export const partial = 'dirty implementation must survive';\n");
       const before = snapshot(files);
       const sourceStatus = git(tmp, ["status", "--short", "--", "src"]);
@@ -811,7 +811,7 @@ describe("guarded single-state reopen for source-discovered spec corrections", (
 
   it("uses the dispatcher-resolved base artifact authority without reloading by path", async () => {
     tmp = createTmpDir("reopen-dispatch-authority-");
-    const worktree = path.join(tmp, ".senrail", "worktree", `feature-${SPEC_ID}`);
+    const worktree = path.join(tmp, ".sennel", "worktree", `feature-${SPEC_ID}`);
     const { files } = setupFlow(worktree, { mainRoot: tmp, inWorktree: true });
     const mainFiles = fixturePaths(tmp);
     writeJson(mainFiles.spec, { marker: "main spec" });
