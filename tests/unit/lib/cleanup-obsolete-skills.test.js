@@ -103,16 +103,17 @@ describe("cleanupObsoleteSkills — consolidated flow skill scenario (R10)", () 
 
   it("prunes retired namespaces even when an active plugin still declares them", () => {
     tmp = createTmpDir();
-    setupProject(tmp, ["sdd-forge.flow", "senti.flow", "user.skill"]);
+    setupProject(tmp, ["sdd-forge.flow", "senti.flow", "senrail.flow", "user.skill"]);
     const templatesDir = path.join(tmp, "_templates");
-    setupActiveTemplates(templatesDir, ["sennel.flow", "sdd-forge.flow", "senti.flow"]);
+    setupActiveTemplates(templatesDir, ["sennel.flow", "sdd-forge.flow", "senti.flow", "senrail.flow"]);
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
 
-    assert.deepEqual(result.map((entry) => entry.name).sort(), ["sdd-forge.flow", "senti.flow"]);
+    assert.deepEqual(result.map((entry) => entry.name).sort(), ["sdd-forge.flow", "senrail.flow", "senti.flow"]);
     for (const base of [".claude", ".agents"]) {
       assert.equal(fs.existsSync(path.join(tmp, base, "skills", "sdd-forge.flow")), false);
       assert.equal(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")), false);
+      assert.equal(fs.existsSync(path.join(tmp, base, "skills", "senrail.flow")), false);
       assert.ok(fs.existsSync(path.join(tmp, base, "skills", "user.skill")));
     }
   });
@@ -122,19 +123,24 @@ describe("cleanupObsoleteSkills — consolidated flow skill scenario (R10)", () 
     setupProject(tmp, ["sennel.flow"]);
     const templatesDir = path.join(tmp, "_templates");
     setupActiveTemplates(templatesDir, ["sennel.flow"]);
+    const retiredSkills = ["senti.flow", "senrail.flow"];
     for (const base of [".claude", ".agents"]) {
-      fs.symlinkSync(
-        "missing-retired-skill",
-        path.join(tmp, base, "skills", "senti.flow"),
-      );
+      for (const retiredSkill of retiredSkills) {
+        fs.symlinkSync(
+          "missing-retired-skill",
+          path.join(tmp, base, "skills", retiredSkill),
+        );
+      }
     }
 
     const result = cleanupObsoleteSkills(tmp, [templatesDir]);
 
-    assert.deepEqual(result.map((entry) => entry.name), ["senti.flow"]);
+    assert.deepEqual(result.map((entry) => entry.name).sort(), [...retiredSkills].sort());
     for (const base of [".claude", ".agents"]) {
-      assert.equal(fs.existsSync(path.join(tmp, base, "skills", "senti.flow")), false);
-      assert.throws(() => fs.lstatSync(path.join(tmp, base, "skills", "senti.flow")), { code: "ENOENT" });
+      for (const retiredSkill of retiredSkills) {
+        assert.equal(fs.existsSync(path.join(tmp, base, "skills", retiredSkill)), false);
+        assert.throws(() => fs.lstatSync(path.join(tmp, base, "skills", retiredSkill)), { code: "ENOENT" });
+      }
     }
   });
 });

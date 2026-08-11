@@ -86,6 +86,23 @@ describe("upgrade agent instruction files", () => {
     assert.equal(fs.readFileSync(join(tmp, "CLAUDE.md"), "utf8"), before);
   });
 
+  it("removes retired Senrail skills while preserving user-defined skills", () => {
+    tmp = createTmpDir("sennel-upgrade-retired-skills-");
+    setupProject(tmp);
+    for (const base of [".agents", ".claude"]) {
+      writeFile(tmp, `${base}/skills/senrail.flow/SKILL.md`, "---\nname: senrail.flow\n---\n");
+      writeFile(tmp, `${base}/skills/user.skill/SKILL.md`, "---\nname: user.skill\n---\n");
+    }
+
+    const output = runUpgrade(tmp);
+
+    assert.match(output, /senrail\.flow/);
+    for (const base of [".agents", ".claude"]) {
+      assert.equal(fs.existsSync(join(tmp, base, "skills", "senrail.flow")), false);
+      assert.equal(fs.existsSync(join(tmp, base, "skills", "user.skill", "SKILL.md")), true);
+    }
+  });
+
   for (const marker of [
     "agents.senti",
     "agents.sdd",

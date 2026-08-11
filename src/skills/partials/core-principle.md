@@ -50,7 +50,7 @@ The following user-facing choices are explicit exceptions to the auto-select rul
 <!-- {{data("base.skills.rule", {id: "commit-split-strategy"})}} -->
 <!-- {{/data}} -->
 
-<!-- {{data("base.skills.rule", {id: "no-chain-sddforge"})}} -->
+<!-- {{data("base.skills.rule", {id: "no-chain-product-cli"})}} -->
 <!-- {{/data}} -->
 
 **Flow runtime log rule (MANDATORY):**

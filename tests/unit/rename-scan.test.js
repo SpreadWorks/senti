@@ -6,12 +6,19 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const LEGACY_IDENTITIES = [
-  { lower: "sdd" + "-" + "forge", camel: "sdd" + "Forge", pascal: "Sdd" + "Forge", constant: "SDD" + "_FORGE" },
-  { lower: "sen" + "ti", camel: "sen" + "ti", pascal: "Sen" + "ti", constant: "SEN" + "TI" },
-  { lower: "sen" + "rail", camel: "sen" + "rail", pascal: "Sen" + "rail", constant: "SEN" + "RAIL" },
+  {
+    lower: "sdd" + "-" + "forge",
+    variants: ["sdd" + "." + "forge", "sdd" + "_" + "forge", "sdd" + "forge", "SDD" + " " + "Forge"],
+    camel: "sdd" + "Forge",
+    pascal: "Sdd" + "Forge",
+    constant: "SDD" + "_FORGE",
+  },
+  { lower: "sen" + "ti", variants: [], camel: "sen" + "ti", pascal: "Sen" + "ti", constant: "SEN" + "TI" },
+  { lower: "sen" + "rail", variants: [], camel: "sen" + "rail", pascal: "Sen" + "rail", constant: "SEN" + "RAIL" },
 ];
-const OLD_PRODUCT_PATTERN = new RegExp(LEGACY_IDENTITIES.map(({ lower, camel, pascal, constant }) => (
-  `(?<![A-Za-z0-9_])(?:${lower}|${camel}|${pascal})(?=$|[^a-z0-9_]|[A-Z])|(?<![A-Za-z0-9_])${constant}(?=$|[^A-Z])`
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const OLD_PRODUCT_PATTERN = new RegExp(LEGACY_IDENTITIES.map(({ lower, variants, camel, pascal, constant }) => (
+  `(?<![A-Za-z0-9_])(?:${[lower, ...variants, camel, pascal].map(escapeRegex).join("|")})(?=$|[^a-z0-9_]|[A-Z])|(?<![A-Za-z0-9_])${escapeRegex(constant)}(?=$|[^A-Z])`
 )).join("|"));
 const SCANNED_PATHS = [
   "src",
@@ -19,6 +26,8 @@ const SCANNED_PATHS = [
   "docs",
   ".codex",
   ".github",
+  ".agents",
+  ".claude",
   "README.md",
   "package.json",
   ".gitignore",
@@ -81,9 +90,9 @@ function containsOldProductName(value) {
 
 describe("rename scan", () => {
   it("detects retired SDD Forge, Senti, and Senrail dots, hyphens, underscores, camel/Pascal names, runtime paths, URLs, env vars, and skills", () => {
-    for (const { lower, camel, pascal, constant } of LEGACY_IDENTITIES) {
+    for (const { lower, variants, camel, pascal, constant } of LEGACY_IDENTITIES) {
       for (const value of [
-        lower, `.${lower}/config.json`, `${lower}/flow`, `${lower}.flow`,
+        lower, ...variants, `.${lower}/config.json`, `${lower}/flow`, `${lower}.flow`,
         `https://github.com/SpreadWorks/${lower}.git`, `${constant}_WORK_ROOT`,
         `${camel}Phase`, `${pascal}MigrationEvidence`,
       ]) assert.equal(containsOldProductName(value), true, value);

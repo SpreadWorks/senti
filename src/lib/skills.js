@@ -16,6 +16,9 @@ export const MAIN_SKILLS_DIR = path.join(PKG_DIR, "skills");
 /** Directories under workRoot where skills are deployed. */
 const SKILL_TARGET_BASES = [".agents", ".claude"];
 
+/** Product-owned namespaces retired by explicit one-way upgrade cleanup. */
+const RETIRED_SKILL_NAMESPACES = Object.freeze(["sdd-forge.", "senti.", "senrail."]);
+
 function deployedSkillsDir(workRoot, base) {
   return path.join(workRoot, base, "skills");
 }
@@ -186,7 +189,7 @@ export function cleanupObsoleteSkills(workRoot, activeSkillSourceDirs, opts = {}
     const deployedDir = deployedSkillsDir(workRoot, base);
     const obsoleteNames = listDeployedSkillNames(deployedDir)
       .filter((name) => {
-        const retired = name.startsWith("sdd-forge.") || name.startsWith("senti.");
+        const retired = RETIRED_SKILL_NAMESPACES.some((namespace) => name.startsWith(namespace));
         if (retired) return true;
         return name.startsWith(PRODUCT.skillNamespace) && !validNames.has(name);
       });
