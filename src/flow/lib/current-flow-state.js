@@ -13,6 +13,7 @@ import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { ArtifactAuthoritySlot, AuthoritativeSpecRecord, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowVersionIdentityStore, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRecord, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
 export const CURRENT_FLOW_SCHEMA_REVISION = 2;
 // `version` is the result-generation version persisted in flow.json.  It is
@@ -42,6 +43,19 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "rewind",
   "recover_attempt",
 ]);
+
+function resolvedArtifact(logicalKey) {
+  return FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey);
+}
+
+function descriptorFor(location, logicalKey, mediaType) {
+  const artifact = resolvedArtifact(logicalKey);
+  return FlowArtifactDescriptor.fromFile({ location, ...artifact.publication({ mediaType }) });
+}
+
+function publicationFor(logicalKey, mediaType) {
+  return resolvedArtifact(logicalKey).publication({ mediaType });
+}
 const TERMINAL_NODE_STATUSES = new Set(["done", "skipped", "failed"]);
 const AUTHORITATIVE_NODE_STATUSES = new Set(["done", "skipped"]);
 const EXECUTABLE_NODE_STATUSES = new Set(["pending", "invalidated"]);
@@ -2932,10 +2946,10 @@ export class CurrentFlowVersionStore {
       this.identityStore.create(this.identity);
       const created = this.#store().create(state);
       const artifacts = [
-        FlowArtifactDescriptor.fromFile({ location: this.location, authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "flow-state", authority: "repository-metadata" }), relativePath: "flow.json", mediaType: "application/json", retention: "permanent" }),
+        descriptorFor(this.location, "flow.state", "application/json"),
         FlowArtifactDescriptor.fromFile({ location: this.location, authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "flow-version-identity", authority: "repository-metadata" }), relativePath: "flow-version.json", mediaType: "application/json", retention: "permanent" }),
-        FlowArtifactDescriptor.fromFile({ location: this.location, authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "activity-ledger", authority: "canonical-flow-artifacts" }), relativePath: "activities.jsonl", mediaType: "application/x-ndjson", retention: "permanent" }),
-        FlowArtifactDescriptor.fromFile({ location: this.location, authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "spec-record", authority: "repository-metadata" }), relativePath: "spec.json", mediaType: "application/json", retention: "permanent" }),
+        descriptorFor(this.location, "flow.activities", "application/x-ndjson"),
+        descriptorFor(this.location, "spec.record", "application/json"),
       ];
       this.catalogStore.initialize(new FlowArtifactCatalog({ artifacts }));
       return created;
@@ -2952,21 +2966,21 @@ export class CurrentFlowVersionStore {
   }
   load() {
     return this.catalogStore.read({
-      relativePaths: ["flow.json", "flow-version.json"],
+      relativePaths: [resolvedArtifact("flow.state").relativePath, "flow-version.json"],
       read: () => { this.#assertPersistedIdentity(); return this.#store().load(); },
     });
   }
   loadSnapshot() {
     return this.catalogStore.read({
-      relativePaths: ["flow.json", "flow-version.json"],
+      relativePaths: [resolvedArtifact("flow.state").relativePath, "flow-version.json"],
       read: () => { this.#assertPersistedIdentity(); return this.#store().loadSnapshot(); },
     });
   }
   apply(input) {
     return this.catalogStore.publishManySystem({
       artifacts: [
-        { relativePath: "flow.json", authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "flow-state", authority: "repository-metadata" }), mediaType: "application/json", retention: "permanent" },
-        { relativePath: "activities.jsonl", authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "activity-ledger", authority: "canonical-flow-artifacts" }), mediaType: "application/x-ndjson", retention: "permanent" },
+        publicationFor("flow.state", "application/json"),
+        publicationFor("flow.activities", "application/x-ndjson"),
       ],
       precondition: () => this.#assertPersistedIdentity(),
       write: () => this.#store().apply(input),

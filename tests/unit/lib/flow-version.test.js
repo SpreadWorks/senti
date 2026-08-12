@@ -40,6 +40,7 @@ import {
   CurrentFlowStateAdoptionBoundary,
   CurrentFlowVersionMigrationOutputBuilder,
   CurrentFlowVersionSemanticValidator,
+  FlowActivityJournal,
   FlowActivity,
 } from "../../../src/flow/lib/current-flow-state.js";
 import {
@@ -49,6 +50,7 @@ import {
 import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
 import { ReviewEvidenceStore } from "../../../src/flow/lib/review-evidence-store.js";
 import { ReviewDisposition, ReviewEvidence, ReviewProvenance } from "../../../src/flow/lib/review-convergence.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 
 const roots = [];
 function temporaryRoot() {
@@ -155,6 +157,20 @@ function startActivity(state) {
   });
 }
 
+function updateAttemptActivity(state) {
+  const node = state.findNode(state.current.at(-1));
+  return new FlowActivity({
+    id: "activity-2", nodeId: node.id, nodeKey: node.key, attemptId: state.attempt.id, sequence: state.attempt.sequence,
+    confirmationOrder: state.confirmationOrder + 1, type: "attempt_updated",
+    transition: new ActivityTransition({ operation: "update_attempt", path: state.current, task: null, attempt: state.attempt, status: null }),
+    result: null,
+    timing: { startedAt: "2026-08-08T00:00:02.000Z", finishedAt: "2026-08-08T00:00:03.000Z", durationMs: 1000 },
+    failure: null, provider: "test", model: "test", effort: "test",
+    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
+    references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+  });
+}
+
 afterEach(() => {
   while (roots.length > 0) fs.rmSync(roots.pop(), { recursive: true, force: true });
 });
@@ -177,16 +193,18 @@ describe("Flow Version identity, schema, and consumer paths", () => {
     assert.equal(store.load().schemaRevision, FLOW_VERSION_RECORD_SCHEMA_REVISION);
   });
 
-  it("provides one complete consumer API without embedding Version 1", () => {
+  it("resolves the Flow state through its logical artifact key", () => {
+    assert.equal(canonicalLocation().relativeArtifact("flow.state"), "specs/508-flow-version/001/flow.json");
+  });
+
+  it("resolves every Version reader through an explicit artifact logical key", () => {
     const location = canonicalLocation({ version: 1004 });
     assert.equal(new FlowVersion(1).pathSegment, "001");
     assert.equal(location.relativeDirectory, "specs/508-flow-version/1004");
-    assert.equal(location.consumers.validator("result.json").endsWith(path.join("phases", "validation", "result.json")), true);
-    assert.equal(location.consumers.review("evidence.json").endsWith(path.join("phases", "review", "evidence", "evidence.json")), true);
-    assert.equal(location.consumers.gate("impl", "result.json").endsWith(path.join("phases", "gate-impl", "result.json")), true);
-    assert.equal(location.consumers.report().endsWith(path.join("artifacts", "report.json")), true);
-    assert.equal(location.consumers.resume().endsWith(path.join(".runtime", "resume", "resume.json")), true);
-    assert.equal(location.consumers.finalize().endsWith(path.join(".runtime", "finalize", "finalize.json")), true);
+    assert.equal(location.artifact("task.review", { taskId: "T-1" }).endsWith(path.join("steps", "impl", "T-1", "review", "result.json")), true);
+    assert.equal(location.reviewEvidencePath({ taskId: "T-1", digest: "evidence" }).endsWith(path.join("steps", "impl", "T-1", "review", "evidence", "evidence.json")), true);
+    assert.throws(() => location.artifact("review.evidence", { ownerPath: "impl/T-1/review", digest: "evidence" }), /typed registry/);
+    assert.equal(location.reportFile.endsWith(path.join("artifacts", "report.json")), true);
     assert.throws(() => location.resolve("../flow.json"));
   });
 
@@ -221,16 +239,32 @@ describe("Flow Version filesystem authority", () => {
 
 describe("Flow artifact catalog authority slots", () => {
   it("allows distinct collection members but rejects the same logical member", () => {
-    const first = descriptor({ file: "phases/review/evidence/a.json", kind: "review-evidence", memberId: "evidence-a" });
-    const second = descriptor({ file: "phases/review/evidence/b.json", kind: "review-evidence", memberId: "evidence-b" });
+    const reviewDescriptor = (digest) => {
+      const artifact = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest });
+      return new FlowArtifactDescriptor({
+        logicalKey: artifact.logicalKey, authoritySlot: artifact.authoritySlotFor("impl-review"),
+        relativePath: artifact.relativePath, hash: hash(digest), size: digest.length,
+        mediaType: "application/json", retention: "permanent",
+      });
+    };
+    const first = reviewDescriptor("evidence-a");
+    const second = reviewDescriptor("evidence-b");
     assert.equal(new FlowArtifactCatalog({ artifacts: [first, second] }).artifacts.length, 2);
     assert.throws(() => new FlowArtifactCatalog({ artifacts: [
       first,
-      descriptor({ file: "phases/review/evidence/c.json", kind: "review-evidence", memberId: "evidence-a" }),
-    ] }), /duplicate artifact authority slot/);
+      reviewDescriptor("evidence-a"),
+    ] }), /duplicate artifact path/);
     assert.throws(() => new ArtifactAuthoritySlot({
       kind: "review-evidence", authority: "canonical-flow-artifacts", cardinality: "collection", publicationStep: "impl-review",
     }), /requires a memberId/);
+    const typed = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: "evidence-a" });
+    assert.throws(() => new FlowArtifactDescriptor({
+      logicalKey: typed.logicalKey,
+      authoritySlot: ArtifactAuthoritySlot.collectionMember({
+        kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: typed.memberId, publicationStep: "spec-review",
+      }),
+      relativePath: typed.relativePath, hash: hash("a"), size: 1, mediaType: "application/json", retention: "permanent",
+    }), /derived from its typed owner and digest/);
     assert.throws(() => ArtifactAuthoritySlot.singleton({ kind: "result", authority: "arbitrary" }), /invalid artifact authority/);
   });
 
@@ -240,17 +274,17 @@ describe("Flow artifact catalog authority slots", () => {
     fs.mkdirSync(path.dirname(location.artifactPath("a.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("a.json"), "a");
     saveCatalog(location, [FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("result"), relativePath: "artifacts/a.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("result"), relativePath: "artifacts/legacy/a.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
     const store = new FlowArtifactCatalogStore({ location });
     assert.throws(() => store.publish({
-      relativePath: "artifacts/a.json", authoritySlot: singleton("result"),
+      relativePath: "artifacts/legacy/a.json", authoritySlot: singleton("result"),
       publicationClaim: artifactPublicationClaimForStep("branch"),
       mediaType: "application/json", retention: "permanent", write: () => {},
     }), /claim authority mismatch/);
     assert.throws(() => store.publish({
-      relativePath: "artifacts/a.json",
+      relativePath: "artifacts/legacy/a.json",
       authoritySlot: ArtifactAuthoritySlot.singleton({
         kind: "result", authority: "canonical-flow-artifacts", publicationStep: "impl-review",
       }),
@@ -265,7 +299,7 @@ describe("Flow artifact catalog authority slots", () => {
       producer: "worker", stepId: "impl-review", authority: "canonical-flow-artifacts",
     }), /only be issued/);
     assert.throws(() => store.publishSystem({
-      relativePath: "phases/review/evidence/bypass.json",
+      relativePath: "steps/impl/review/evidence/bypass.json",
       authoritySlot: ArtifactAuthoritySlot.collectionMember({
         kind: "review-evidence", authority: "canonical-flow-artifacts",
         memberId: "bypass", publicationStep: "system",
@@ -286,8 +320,8 @@ describe("Flow artifact catalog authority slots", () => {
           mediaType: "application/x-ndjson", retention: "permanent",
         }),
         FlowArtifactDescriptor.fromFile({
-          location, authoritySlot: singleton("result"), relativePath: "artifacts/result.json",
-          mediaType: "application/json", retention: "permanent",
+          location, authoritySlot: singleton("result"), relativePath: "artifacts/legacy/result.json",
+          mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
           activityId: associatedId === null ? null : new FlowActivityId(associatedId),
         }),
       ];
@@ -319,13 +353,31 @@ describe("Flow artifact catalog authority slots", () => {
     assert.equal(fs.existsSync(location.directory), false);
   });
 
+  it("rejects uncontracted artifacts outside migration materialization", () => {
+    const location = canonicalLocation();
+    const file = location.resolve("artifacts/uncontracted.json");
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, "uncontracted");
+    assert.throws(() => FlowArtifactDescriptor.fromFile({
+      location, authoritySlot: singleton("uncontracted"), relativePath: "artifacts/uncontracted.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
+    }), /outside catalog-managed storage/);
+    const migrationOnly = location.resolve("artifacts/legacy/uncontracted.json");
+    fs.mkdirSync(path.dirname(migrationOnly), { recursive: true });
+    fs.writeFileSync(migrationOnly, "migration-only");
+    assert.throws(() => FlowArtifactDescriptor.fromFile({
+      location, authoritySlot: singleton("uncontracted"), relativePath: "artifacts/legacy/uncontracted.json",
+      mediaType: "application/json", retention: "permanent",
+    }), /uniquely classified/);
+  });
+
   it("preserves corrupt lock errors instead of reporting BUSY", () => {
     const location = canonicalLocation();
     fs.mkdirSync(path.dirname(location.artifactPath("a.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("a.json"), "a");
     saveCatalog(location, [FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("a"), relativePath: "artifacts/a.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("a"), relativePath: "artifacts/legacy/a.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
     fs.writeFileSync(location.resolve(".artifact-catalog.lock"), "corrupt");
     assert.throws(() => new FlowArtifactCatalogStore({ location }).load(), (error) => (
@@ -338,13 +390,13 @@ describe("Flow artifact catalog authority slots", () => {
     fs.mkdirSync(path.dirname(location.artifactPath("a.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("a.json"), "a");
     saveCatalog(location, [FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("a"), relativePath: "artifacts/a.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("a"), relativePath: "artifacts/legacy/a.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
     const first = new FlowArtifactCatalogStore({ location });
     const second = new FlowArtifactCatalogStore({ location });
     first.publishSystem({
-      relativePath: "artifacts/a.json", authoritySlot: singleton("a"),
+      relativePath: "artifacts/legacy/a.json", authoritySlot: singleton("a"),
       mediaType: "application/json", retention: "permanent",
       write: () => {
         assert.throws(() => second.load(), (error) => (
@@ -363,14 +415,14 @@ describe("Flow artifact catalog authority slots", () => {
       fs.writeFileSync(location.artifactPath("a.json"), "a-before");
       fs.writeFileSync(location.artifactPath("b.json"), "b-before");
       const descriptors = [
-        FlowArtifactDescriptor.fromFile({ location, authoritySlot: singleton("a"), relativePath: "artifacts/a.json", mediaType: "application/json", retention: "permanent" }),
-        FlowArtifactDescriptor.fromFile({ location, authoritySlot: singleton("b"), relativePath: "artifacts/b.json", mediaType: "application/json", retention: "permanent" }),
+        FlowArtifactDescriptor.fromFile({ location, authoritySlot: singleton("a"), relativePath: "artifacts/legacy/a.json", mediaType: "application/json", retention: "permanent", migrationMaterialization: true }),
+        FlowArtifactDescriptor.fromFile({ location, authoritySlot: singleton("b"), relativePath: "artifacts/legacy/b.json", mediaType: "application/json", retention: "permanent", migrationMaterialization: true }),
       ];
       saveCatalog(location, descriptors);
       const catalogBefore = fs.readFileSync(location.catalogFile);
       const store = new FlowArtifactCatalogStore({ location });
       assert.throws(() => store.publishSystem({
-        relativePath: "artifacts/a.json", authoritySlot: singleton("a"),
+        relativePath: "artifacts/legacy/a.json", authoritySlot: singleton("a"),
         mediaType: "application/json", retention: "permanent",
         write: () => {
           fs.writeFileSync(location.artifactPath("a.json"), "a-after");
@@ -396,13 +448,13 @@ describe("Flow artifact catalog authority slots", () => {
     fs.mkdirSync(path.dirname(location.artifactPath("base.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("base.json"), "base");
     saveCatalog(location, [FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("base"), relativePath: "artifacts/base.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("base"), relativePath: "artifacts/legacy/base.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
     const store = new FlowArtifactCatalogStore({ location });
     assert.throws(() => store.publishSystem({
-      relativePath: "artifacts/new/deep/result.json", authoritySlot: singleton("new"),
-      mediaType: "application/json", retention: "permanent",
+      relativePath: "artifacts/legacy/new/deep/result.json", authoritySlot: singleton("new"),
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
       write: () => {
         fs.mkdirSync(path.dirname(location.artifactPath("new/deep/result.json")), { recursive: true });
         fs.writeFileSync(location.artifactPath("new/deep/result.json"), "new");
@@ -418,13 +470,13 @@ describe("Flow artifact catalog authority slots", () => {
     fs.writeFileSync(location.artifactPath("source.json"), "source");
     fs.linkSync(location.artifactPath("source.json"), location.artifactPath("linked.json"));
     assert.throws(() => FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("source"), relativePath: "artifacts/source.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("source"), relativePath: "artifacts/legacy/source.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     }), /hard linked/);
     fs.unlinkSync(location.artifactPath("linked.json"));
     const source = FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("source"), relativePath: "artifacts/source.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("source"), relativePath: "artifacts/legacy/source.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     });
     fs.mkdirSync(location.resolve(".sennel"));
     fs.writeFileSync(location.resolve(".sennel/arbitrary.json"), "rogue");
@@ -436,8 +488,8 @@ describe("Flow artifact catalog authority slots", () => {
     fs.mkdirSync(path.dirname(location.artifactPath("a.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("a.json"), "a");
     saveCatalog(location, [FlowArtifactDescriptor.fromFile({
-      location, authoritySlot: singleton("a"), relativePath: "artifacts/a.json",
-      mediaType: "application/json", retention: "permanent",
+      location, authoritySlot: singleton("a"), relativePath: "artifacts/legacy/a.json",
+      mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
     const store = new FlowArtifactCatalogStore({ location });
     for (const invalid of [".runtime/x.json", "artifact-catalog.json", ".artifact-catalog.lock", "artifacts/missing.json"]) {
@@ -446,7 +498,7 @@ describe("Flow artifact catalog authority slots", () => {
       }), /managed artifact path|does not exist|not cataloged/);
     }
     store.unpublishSystem({
-      relativePath: "artifacts/a.json",
+      relativePath: "artifacts/legacy/a.json",
       write: () => fs.unlinkSync(location.artifactPath("a.json")),
     });
     assert.equal(store.load().artifacts.length, 0);
@@ -466,14 +518,14 @@ describe("Flow Version migration classification", () => {
 
   it("keeps source generation and aggregate output contracts unambiguous", () => {
     const mapping = (operation, outputKey = null) => new FlowVersionMigrationMappingRule({
-      match: "exact", source: "input.json", targetPath: "artifacts/output.json",
+      match: "exact", source: "input.json", targetPath: "artifacts/legacy/output.json",
       role: "artifact", operation, outputKey, mediaType: "application/json",
       authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent",
     });
     assert.throws(() => mapping("generate", "generated-output"), /cannot generate/);
     assert.throws(() => mapping("copy", "copy-output"), /only valid for transform/);
     assert.throws(() => new FlowVersionMigrationArtifact({
-      role: "artifact", sourcePath: "input.json", targetPath: "artifacts/output.json",
+      role: "artifact", sourcePath: "input.json", targetPath: "artifacts/legacy/output.json",
       operation: "copy", outputKey: "copy-output", sourceHash: "a".repeat(64), size: 1,
       mediaType: "application/json", authoritySlot: ArtifactAuthoritySlot.collectionMember({
         kind: "artifact", authority: "canonical-flow-artifacts", memberId: "copy-member", publicationStep: "system",
@@ -495,7 +547,7 @@ describe("Flow Version migration classification", () => {
     fs.mkdirSync(source);
     for (const file of ["flow.json", "spec.json", "one.json", "two.json"]) fs.writeFileSync(path.join(source, file), "{}");
     const transform = (sourcePath, mediaType) => new FlowVersionMigrationMappingRule({
-      match: "exact", source: sourcePath, targetPath: "artifacts/aggregate.json",
+      match: "exact", source: sourcePath, targetPath: "artifacts/legacy/aggregate.json",
       role: "artifact", operation: "transform", outputKey: "aggregate-output", mediaType,
       authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent",
     });
@@ -524,10 +576,10 @@ describe("Flow Version migration classification", () => {
     assert.equal(fs.existsSync(materialized.location.resolve(".runtime/resume/state.json")), false);
     assert.equal(materialized.catalog.artifacts.some((artifact) => artifact.relativePath.includes("state.json")), false);
 
-    fs.mkdirSync(path.join(source, "phases", "review"), { recursive: true });
-    fs.writeFileSync(path.join(source, "phases", "review", ".retry-recovery.transaction.json"), "{}");
+    fs.mkdirSync(path.join(source, "unsupported-layout", "review"), { recursive: true });
+    fs.writeFileSync(path.join(source, "unsupported-layout", "review", "result.json"), "{}");
     const blocked = new FlowVersionMigrationClassifier({ target: canonicalLocation() }).inspect(source);
-    assert.equal(blocked.classification.blockers.some((blocker) => blocker.code === "ACTIVE_TRANSACTION_MARKER"), true);
+    assert.equal(blocked.classification.blockers.some((blocker) => blocker.code === "UNKNOWN_VISIBLE_ARTIFACT" && blocker.path === "unsupported-layout/review/result.json"), true);
   });
 
   it("binds materialization to the complete inventory and preserves a foreign target race", () => {
@@ -578,17 +630,17 @@ describe("Flow Version migration classification", () => {
       semanticValidator: semanticValidator(), outputBuilder: migrationOutputBuilder(),
     }).inspect(source);
     const authority = inspect([
-      rule("one.json", "artifacts/one.json", "singleton"),
-      rule("two.json", "artifacts/two.json", "singleton"),
+      rule("one.json", "artifacts/legacy/one.json", "singleton"),
+      rule("two.json", "artifacts/legacy/two.json", "singleton"),
     ]);
     assert.equal(authority.classification.blockers.some((blocker) => blocker.code === "DUPLICATE_AUTHORITY_SLOT"), true);
     const portable = inspect([
-      rule("one.json", "artifacts/Caf\u00e9.json"),
-      rule("two.json", "artifacts/Cafe\u0301.json"),
+      rule("one.json", "artifacts/legacy/Caf\u00e9.json"),
+      rule("two.json", "artifacts/legacy/Cafe\u0301.json"),
     ]);
     assert.equal(portable.classification.blockers.some((blocker) => blocker.code === "PORTABLE_TARGET_COLLISION"), true);
   });
-  it("classifies a tracked representative legacy Spec and emits a coherent fixture", () => {
+  it("blocks a tracked legacy Spec whose review evidence lacks an owner mapping", () => {
     const target = canonicalLocation({ specId: "484-flow-authority-boundaries" });
     const source = path.resolve("specs/484-flow-authority-boundaries");
     const definition = buildCurrentFlowDefinition();
@@ -597,38 +649,8 @@ describe("Flow Version migration classification", () => {
       semanticValidator: semanticValidator(definition), outputBuilder: migrationOutputBuilder(),
     }).inspect(source);
     assert.equal(inspection.classification.value, "legacy");
-    const mapped = new Map(inspection.artifacts.map((artifact) => [artifact.sourcePath, artifact.targetPath]));
-    assert.equal(mapped.get("draft-coverage-repair.json"), "artifacts/legacy/draft-coverage-repair.json");
-    assert.equal(mapped.get("plugin-artifacts/workflow/prepare.json"), "artifacts/legacy/plugin-artifacts/workflow/prepare.json");
-    assert.equal(mapped.get("review-evidence/098e20e2f7292411a95e1cf4db4c4fd1cc3bbb7e24599205f76a8e5d724b88b1.json")?.startsWith("phases/review/evidence/"), true);
-    const plan = inspection.plan();
-    const boundary = new CurrentFlowStateAdoptionBoundary({ definition });
-    const fixture = plan.outputFixture({
-      identity: identity({ specId: "484-flow-authority-boundaries" }),
-      state: boundary.createFresh(),
-      spec: specRecord("484-flow-authority-boundaries"),
-    });
-    const exported = fixture.toJSON();
-    assert.equal(exported.catalogPaths.includes("flow-version.json"), true);
-    assert.equal(exported.catalogPaths.includes("activities.jsonl"), true);
-    assert.equal(exported.catalogPaths.includes("flow.json"), true);
-    assert.equal(exported.catalogPaths.includes("spec.json"), true);
-    assert.equal(plan.writes.includes(target.relativePath("flow-version.json")), true);
-    assert.equal(inspection.artifacts.every((artifact) => (
-      new Set(["copy", "transform", "exclude-runtime"]).has(artifact.operation.toJSON())
-      && /^[a-f0-9]{64}$/.test(artifact.sourceHash)
-      && artifact.size >= 0
-      && artifact.mediaType.length > 0
-      && artifact.retention.length > 0
-    )), true);
-    const materialized = fixture.materialize();
-    const store = new FlowArtifactCatalogStore({ location: materialized.location });
-    assert.doesNotThrow(() => store.require());
-    assert.equal(store.read({ relativePaths: exported.catalogPaths, read: (catalog) => catalog.hash }), materialized.catalog.hash);
-    exported.state.version = 9;
-    exported.spec.id = "mutated";
-    assert.equal(fixture.toJSON().state.version, 1);
-    assert.equal(fixture.toJSON().spec.id, "484-flow-authority-boundaries");
+    assert.equal(inspection.classification.migratable, false);
+    assert.equal(inspection.classification.blockers.some((blocker) => blocker.path?.startsWith("review-evidence/")), true);
   });
 
   it("derives fresh, versioned, and conflict states from the filesystem", () => {
@@ -714,7 +736,7 @@ describe("Flow Version migration classification", () => {
     fs.writeFileSync(path.join(source, "artifacts", "legacy", "x.json"), "nested");
     const inspection = new FlowVersionMigrationClassifier({
       target, sourcePolicy: new FlowVersionMigrationSourcePolicy({ rules: [
-        new FlowVersionMigrationMappingRule({ match: "exact", source: "x.json", targetPath: "artifacts/legacy/x.json", role: "artifact", operation: "copy", mediaType: "application/json", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
+        new FlowVersionMigrationMappingRule({ match: "exact", source: "x.json", targetPath: "artifacts/legacy/legacy/x.json", role: "artifact", operation: "copy", mediaType: "application/json", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
       ] }),
     }).inspect(source);
     assert.equal(inspection.classification.blockers.some((blocker) => blocker.code === "PORTABLE_TARGET_COLLISION"), true);
@@ -727,7 +749,7 @@ describe("Flow Version migration classification", () => {
     fs.writeFileSync(path.join(source, "artifacts", "legacy", "container", "child.json"), "child");
     const ancestorConflict = new FlowVersionMigrationClassifier({
       target, sourcePolicy: new FlowVersionMigrationSourcePolicy({ rules: [
-        new FlowVersionMigrationMappingRule({ match: "exact", source: "container", targetPath: "artifacts/legacy/container", role: "artifact", operation: "copy", mediaType: "application/octet-stream", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
+        new FlowVersionMigrationMappingRule({ match: "exact", source: "container", targetPath: "artifacts/legacy/legacy/container", role: "artifact", operation: "copy", mediaType: "application/octet-stream", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
       ] }),
     }).inspect(source);
     assert.equal(ancestorConflict.classification.blockers.some((blocker) => blocker.code === "PORTABLE_TARGET_COLLISION"), true);
@@ -753,9 +775,23 @@ describe("Flow Version migration classification", () => {
 
   it("enforces migration source, role, and namespace invariants", () => {
     assert.throws(() => new FlowVersionMigrationArtifact({
-      role: "flow-state", sourcePath: "flow.json", targetPath: "artifacts/flow.json",
+      role: "spec-record", sourcePath: "flow.json", targetPath: "flow.json",
       operation: "copy", sourceHash: "a".repeat(64), size: 1,
       mediaType: "application/json", authoritySlot: singleton("flow-state", "repository-metadata"), retention: "permanent",
+    }), /does not match its role/);
+    assert.throws(() => new FlowVersionMigrationArtifact({
+      role: "artifact", sourcePath: "input.json", targetPath: "artifacts/uncontracted.json",
+      operation: "copy", sourceHash: "a".repeat(64), size: 1, mediaType: "application/json",
+      authoritySlot: ArtifactAuthoritySlot.collectionMember({
+        kind: "artifact", authority: "canonical-flow-artifacts", memberId: "uncontracted", publicationStep: "system",
+      }), retention: "permanent",
+    }), /canonical artifact contract/);
+    assert.throws(() => new FlowVersionMigrationArtifact({
+      role: "review-evidence", sourcePath: "input.json", targetPath: "steps/draft/result.json",
+      operation: "copy", sourceHash: "a".repeat(64), size: 1, mediaType: "application/json",
+      authoritySlot: ArtifactAuthoritySlot.singleton({
+        kind: "draft", authority: "canonical-flow-artifacts", publicationStep: "system",
+      }), retention: "permanent",
     }), /does not match its role/);
     const target = canonicalLocation();
     const source = path.join(temporaryRoot(), "legacy");
@@ -825,6 +861,17 @@ describe("Current Flow Version storage", () => {
 });
 
 describe("Version collection writers", () => {
+  it("excludes declared transient step logs from catalog verification", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const flow = boundary.openVersionStore({ location, identity: identity() });
+    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const rawLog = location.resolve("steps/scenario-validity/output.log");
+    fs.mkdirSync(path.dirname(rawLog), { recursive: true });
+    fs.writeFileSync(rawLog, "transient");
+    assert.doesNotThrow(() => flow.catalog());
+  });
+
   it("stores two review evidence members without pretending their digests are Activity IDs", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
@@ -839,22 +886,26 @@ describe("Version collection writers", () => {
     assert.equal(review.contains(first), true);
     assert.equal(review.contains(second), true);
     const members = flow.catalog().artifacts.filter((artifact) => artifact.kind === "review-evidence");
-    assert.deepEqual(members.map((artifact) => artifact.memberId).sort(), [first.identity.evidenceDigest, second.identity.evidenceDigest].sort());
+    assert.equal(members.every((artifact) => artifact.logicalKey === "review.evidence"), true);
+    assert.deepEqual(members.map((artifact) => artifact.memberId).sort(), [
+      FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: first.identity.evidenceDigest }).memberId,
+      FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: second.identity.evidenceDigest }).memberId,
+    ].sort());
     assert.deepEqual(members.map((artifact) => artifact.activityId), [null, null]);
     assert.equal(typeof flow.regenerateCatalog, "undefined");
 
     const store = new FlowArtifactCatalogStore({ location });
     assert.throws(() => store.publish({
-      relativePath: "phases/review/evidence/duplicate.json",
+      relativePath: "steps/impl-review/evidence/duplicate.json",
       authoritySlot: ArtifactAuthoritySlot.collectionMember({
-        kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: first.identity.evidenceDigest,
+        kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: first.identity.evidenceDigest }).memberId,
         publicationStep: "impl-review",
       }),
       publicationClaim: claim,
       mediaType: "application/json", retention: "permanent",
-      write: () => fs.writeFileSync(location.reviewEvidencePath("duplicate.json"), "{}"),
-    }), /duplicate artifact authority slot/);
-    assert.equal(fs.existsSync(location.reviewEvidencePath("duplicate.json")), false);
+      write: () => fs.writeFileSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: "duplicate" }), "{}"),
+    }), /derived from its typed owner and digest/);
+    assert.equal(fs.existsSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: "duplicate" })), false);
   });
 
   it("serializes Issue-log publication through the same catalog authority", () => {
@@ -865,6 +916,88 @@ describe("Version collection writers", () => {
     const issueLog = IssueLogStore.forVersion({ location });
     issueLog.append({ kind: "test" }, "issue-entry-1");
     assert.equal(issueLog.read().document.entries.length, 1);
-    assert.equal(flow.catalog().resolve("issue-log.json").kind, "issue-log");
+    assert.equal(flow.catalog().resolve("issue-log.json").logicalKey, "issue.log");
+  });
+
+  it("publishes same-digest evidence under distinct typed review owners without catalog collision", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const flow = boundary.openVersionStore({ location, identity: identity() });
+    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const catalog = new FlowArtifactCatalogStore({ location });
+    const impl = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: "same-digest" });
+    const spec = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "spec-review", digest: "same-digest" });
+    const publish = (artifact, updater) => catalog.publish({
+      ...artifact.publication({ updater, mediaType: "application/json" }),
+      publicationClaim: artifactPublicationClaimForStep(updater),
+      write: () => {
+        const target = location.resolve(artifact.relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, "{}\n");
+      },
+    });
+    publish(impl, "impl-review");
+    publish(spec, "spec-review");
+    publish(impl, "impl-review");
+    const before = flow.catalog().resolve(impl.relativePath);
+    assert.throws(() => catalog.publish({
+      ...impl.publication({ updater: "impl-review", mediaType: "application/json" }),
+      publicationClaim: artifactPublicationClaimForStep("impl-review"),
+      write: () => fs.writeFileSync(location.resolve(impl.relativePath), "changed\n"),
+    }), /immutable artifact publication/);
+    assert.equal(fs.readFileSync(location.resolve(impl.relativePath), "utf8"), "{}\n");
+    assert.equal(flow.catalog().resolve(impl.relativePath).hash, before.hash);
+    assert.throws(() => catalog.publish({
+      logicalKey: impl.logicalKey, relativePath: impl.relativePath,
+      authoritySlot: ArtifactAuthoritySlot.collectionMember({
+        kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: "forged-member", publicationStep: "impl-review",
+      }),
+      publicationClaim: artifactPublicationClaimForStep("impl-review"),
+      mediaType: "application/json", retention: "permanent",
+      write: () => fs.writeFileSync(location.resolve(impl.relativePath), "forged\n"),
+    }), /derived from its typed owner and digest/);
+    assert.equal(fs.readFileSync(location.resolve(impl.relativePath), "utf8"), "{}\n");
+    assert.equal(flow.catalog().resolve(impl.relativePath).hash, before.hash);
+    const members = flow.catalog().artifacts.filter((entry) => entry.logicalKey === "review.evidence");
+    assert.equal(members.length, 2);
+    assert.notEqual(impl.relativePath, spec.relativePath);
+    assert.notEqual(impl.memberId, spec.memberId);
+    assert.equal(members.filter((entry) => entry.relativePath === impl.relativePath).length, 1);
+  });
+
+  it("publishes and reads the issue snapshot through its logical contract", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const flow = boundary.openVersionStore({ location, identity: identity() });
+    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const catalog = new FlowArtifactCatalogStore({ location });
+    catalog.writeIssueSnapshot("# Issue");
+    assert.equal(catalog.read({ relativePaths: ["issue.md"], read: (value) => value.resolve("issue.md").logicalKey }), "issue.snapshot");
+    assert.equal(catalog.readIssueSnapshot(), "# Issue\n");
+  });
+
+  it("preserves logicalKey and replaces activityId with the latest updater activity", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const flow = boundary.openVersionStore({ location, identity: identity() });
+    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    flow.apply({ activity: startActivity(flow.load()) });
+    flow.apply({ activity: updateAttemptActivity(flow.load()) });
+    const catalog = new FlowArtifactCatalogStore({ location });
+    const artifact = location.artifact("report");
+    const publish = (activityId, content) => catalog.publish({
+      logicalKey: "report", relativePath: "artifacts/report.json",
+      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "report", authority: "canonical-flow-artifacts", publicationStep: "report" }),
+      publicationClaim: artifactPublicationClaimForStep("report"),
+      mediaType: "application/json", retention: "permanent", activityId: new FlowActivityId(activityId),
+      write: () => { fs.mkdirSync(path.dirname(artifact), { recursive: true }); fs.writeFileSync(artifact, content); },
+    });
+    publish("activity-1", "one");
+    publish("activity-2", "two");
+    const descriptor = catalog.require().resolve("artifacts/report.json");
+    assert.equal(descriptor.logicalKey, "report");
+    assert.equal(descriptor.activityId, "activity-2");
+    assert.equal(flow.loadSnapshot().state.confirmationOrder, 2);
+    assert.deepEqual(new FlowActivityJournal(location.activitiesFile).read().map((activity) => activity.id), ["activity-1", "activity-2"]);
   });
 });

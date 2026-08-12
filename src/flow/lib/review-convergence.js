@@ -17,7 +17,7 @@ const REVIEW_TOOLING_STAGES = new Set([
   "projection",
   "result_recording",
 ]);
-const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
+export const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
   "draft-questions": "draft-questions-review",
   "draft-coverage": "draft-coverage-review",
   spec: "spec-review",

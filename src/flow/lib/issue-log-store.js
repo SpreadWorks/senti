@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
-import { ArtifactAuthoritySlot, FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import {
@@ -33,6 +34,10 @@ function waitForWriter() {
 
 function revisionOf(document) {
   return crypto.createHash("sha256").update(JSON.stringify(document.toJSON())).digest("hex");
+}
+
+function issueLogPublication() {
+  return FLOW_ARTIFACT_CONTRACTS.resolve("issue.log").publication({ mediaType: "application/json" });
 }
 
 function fsyncDirectory(directory) {
@@ -128,7 +133,7 @@ export class IssueLogStore {
       ...options,
       root: location.directory,
       mainRoot: location.repositoryRoot,
-      spec: "spec.json",
+      spec: FLOW_ARTIFACT_CONTRACTS.resolve("spec.record").relativePath,
       versionLocation: location,
     });
   }
@@ -163,7 +168,12 @@ export class IssueLogStore {
       throw new Error(`issue-log spec authority is outside the project root: ${this.spec}`);
     }
     this.directory = path.dirname(resolvedSpec);
-    this.filePath = path.join(this.directory, "issue-log.json");
+    this.relativeFilePath = versionLocation instanceof FlowVersionLocation
+      ? FLOW_ARTIFACT_CONTRACTS.resolve("issue.log").relativePath
+      : "issue-log.json";
+    this.filePath = versionLocation instanceof FlowVersionLocation
+      ? versionLocation.artifact("issue.log")
+      : path.join(this.directory, this.relativeFilePath);
     const directoryAuthority = new RealDirectoryAuthority(this.directory, {
       errorFactory: (status, message, data) => issueLogError(status, message, data),
     });
@@ -284,7 +294,7 @@ export class IssueLogStore {
     if (!this.catalogStore) return read();
     return this.catalogStore.read({
       read: (catalog) => {
-        if (fs.existsSync(this.filePath)) catalog.resolve("issue-log.json");
+        if (fs.existsSync(this.filePath)) catalog.resolve(this.relativeFilePath);
         return read();
       },
     });
@@ -293,10 +303,7 @@ export class IssueLogStore {
   #write(document) {
     if (!this.catalogStore) return this.file.write(document);
     return this.catalogStore.publishSystem({
-      relativePath: "issue-log.json",
-      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "issue-log", authority: "repository-metadata" }),
-      mediaType: "application/json",
-      retention: "permanent",
+      ...issueLogPublication(),
       write: () => this.file.write(document),
     }).result;
   }
@@ -304,10 +311,7 @@ export class IssueLogStore {
   #writeExact(bytes, mode) {
     if (!this.catalogStore) return writeExactIssueLog(this.filePath, bytes, mode);
     return this.catalogStore.publishSystem({
-      relativePath: "issue-log.json",
-      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "issue-log", authority: "repository-metadata" }),
-      mediaType: "application/json",
-      retention: "permanent",
+      ...issueLogPublication(),
       write: () => writeExactIssueLog(this.filePath, bytes, mode),
     }).result;
   }
@@ -319,7 +323,7 @@ export class IssueLogStore {
       return;
     }
     return this.catalogStore.unpublishSystem({
-      relativePath: "issue-log.json",
+      relativePath: this.relativeFilePath,
       write: () => {
         fs.unlinkSync(this.filePath);
         fsyncDirectory(this.directory);

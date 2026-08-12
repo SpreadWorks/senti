@@ -10,10 +10,12 @@ import {
   ReviewProvenance,
   applyReviewEvidenceTransition,
   resolveReviewPermittedOperation,
+  REVIEW_NODE_ID_BY_PHASE,
 } from "./review-convergence.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
-import { ArtifactAuthoritySlot, FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
 import { ArtifactPublicationClaim } from "./flow-artifact-authority.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
 function isInside(parent, child) {
   const relative = path.relative(parent, child);
@@ -200,12 +202,14 @@ export class ReviewEvidenceStore {
     if (location instanceof FlowVersionLocation) {
       this.root = location.directory;
       this.specDir = location.directory;
-      this.evidenceDir = location.reviewEvidenceDirectory;
+      this.location = location;
+      this.evidenceDir = null;
       this.catalogStore = new FlowArtifactCatalogStore({ location });
       this.publicationClaim = publicationClaim;
     } else {
       this.root = fs.realpathSync(path.resolve(root));
       this.specDir = fs.realpathSync(path.resolve(specDir));
+      this.location = null;
       this.evidenceDir = path.join(this.specDir, "review-evidence");
       this.catalogStore = null;
       this.publicationClaim = null;
@@ -216,9 +220,9 @@ export class ReviewEvidenceStore {
     Object.freeze(this);
   }
 
-  ensureEvidenceDirectory() {
-    if (fs.existsSync(this.evidenceDir)) {
-      const stat = fs.lstatSync(this.evidenceDir);
+  ensureEvidenceDirectory(directory) {
+    if (fs.existsSync(directory)) {
+      const stat = fs.lstatSync(directory);
       if (!stat.isDirectory() || stat.isSymbolicLink()) {
         throw reviewEvidenceError(
           "REVIEW_EVIDENCE_PATH_INVALID",
@@ -226,9 +230,9 @@ export class ReviewEvidenceStore {
         );
       }
     } else {
-      fs.mkdirSync(this.evidenceDir, { recursive: true });
+      fs.mkdirSync(directory, { recursive: true });
     }
-    if (!isInside(this.specDir, fs.realpathSync(this.evidenceDir))) {
+    if (!isInside(this.specDir, fs.realpathSync(directory))) {
       throw reviewEvidenceError(
         "REVIEW_EVIDENCE_PATH_OUTSIDE_SPEC",
         "canonical review evidence directory must stay inside the active spec directory",
@@ -238,7 +242,8 @@ export class ReviewEvidenceStore {
 
   contains(evidence) {
     if (!(evidence instanceof ReviewEvidence)) throw new Error("ReviewEvidence is required");
-    const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
+    const artifactPath = this.#artifactPath(evidence);
+    const artifact = this.location === null ? null : this.#resolvedArtifact(evidence);
     const contains = () => {
     let stat;
     try {
@@ -254,7 +259,7 @@ export class ReviewEvidenceStore {
     if (!this.catalogStore) return contains();
     return this.catalogStore.read({
       read: (catalog) => {
-        if (fs.existsSync(artifactPath)) catalog.resolve(path.relative(this.root, artifactPath).split(path.sep).join("/"));
+        if (fs.existsSync(artifactPath)) catalog.resolve(artifact.relativePath);
         return contains();
       },
     });
@@ -266,21 +271,17 @@ export class ReviewEvidenceStore {
     if (bytes.length > MAX_REVIEW_EVIDENCE_BYTES) {
       throw reviewEvidenceError("REVIEW_EVIDENCE_TOO_LARGE", "canonical review evidence is too large");
     }
-    this.ensureEvidenceDirectory();
-    const artifactPath = path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
+    const artifactPath = this.#artifactPath(evidence);
+    const artifact = this.location === null ? null : this.#resolvedArtifact(evidence);
+    this.ensureEvidenceDirectory(path.dirname(artifactPath));
     try {
       if (this.catalogStore) {
         this.catalogStore.publish({
-          relativePath: path.relative(this.root, artifactPath).split(path.sep).join("/"),
-          authoritySlot: ArtifactAuthoritySlot.collectionMember({
-            kind: "review-evidence",
-            authority: "canonical-flow-artifacts",
-            memberId: evidence.identity.evidenceDigest,
-            publicationStep: evidence.taskId == null ? `${evidence.phase}-review` : "task-review",
+          ...artifact.publication({
+            updater: evidence.taskId == null ? REVIEW_NODE_ID_BY_PHASE[evidence.phase] : "task-review",
+            mediaType: "application/json",
           }),
           publicationClaim: this.publicationClaim,
-          mediaType: "application/json",
-          retention: "permanent",
           write: () => fs.writeFileSync(artifactPath, bytes, { flag: "wx", mode: 0o600 }),
         });
       } else {
@@ -305,6 +306,18 @@ export class ReviewEvidenceStore {
       );
     }
     return new ReviewEvidenceWrite({ path: artifactPath, created: false });
+  }
+
+  #artifactPath(evidence) {
+    if (this.location === null) return path.join(this.evidenceDir, `${evidence.identity.evidenceDigest}.json`);
+    return this.location.resolve(this.#resolvedArtifact(evidence).relativePath);
+  }
+
+  #resolvedArtifact(evidence) {
+    return FLOW_ARTIFACT_CONTRACTS.reviewEvidence({
+      ...(evidence.taskId == null ? { reviewStep: REVIEW_NODE_ID_BY_PHASE[evidence.phase] } : { taskId: evidence.taskId }),
+      digest: evidence.identity.evidenceDigest,
+    });
   }
 }
 
