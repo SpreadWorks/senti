@@ -42,10 +42,6 @@ class WorktreeCliInvocation {
     this.argv = Object.freeze([...argv]);
     Object.freeze(this);
   }
-
-  get requiresRecoveryAuthority() {
-    return false;
-  }
 }
 
 function gitWorktreeRoot(cwd) {
@@ -110,7 +106,7 @@ function failClosed(target, argv) {
  * from a different checkout. Returns null when normal dispatch should proceed.
  */
 export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
-  const invocation = new WorktreeCliInvocation(argv || []);
+  new WorktreeCliInvocation(argv || []);
   const executionPath = fs.realpathSync(path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
     "../..",
@@ -120,7 +116,6 @@ export function executeWorktreeLocalCli({ argv, cwd = process.cwd() } = {}) {
   if (
     target == null
     || target.usesLocalSource
-    || invocation.requiresRecoveryAuthority
   ) return null;
   if (!isFile(target.localCliPath)) return failClosed(target, argv);
 

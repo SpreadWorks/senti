@@ -94,20 +94,4 @@ describe("FlowState persistence invariants", () => {
     }
   });
 
-  it("rejects removed direct recovery state before it becomes a normal Flow route", () => {
-    const root = createTmpDir("flow-state-removed-direct-");
-    try {
-      const fm = manager(root);
-      const legacy = { ...state(), directFlowSession: { phase: "COMPLETED_DIRECT" } };
-      const specDir = path.join(root, "specs", SPEC_ID);
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "flow.json"), `${JSON.stringify(legacy, null, 2)}\n`);
-      assert.throws(
-        () => fm.load(SPEC_ID),
-        (error) => error.code === "FLOW_STATE_SCHEMA_UNSUPPORTED" && /removed direct recovery state/.test(error.message),
-      );
-    } finally {
-      removeTmpDir(root);
-    }
-  });
 });

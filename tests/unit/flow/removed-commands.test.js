@@ -1,7 +1,7 @@
 /**
  * tests/unit/flow/removed-commands.test.js
  *
- * Verify that flow run merge and flow run cleanup are removed.
+ * Verify that retired flow commands are rejected.
  */
 
 import { describe, it } from "node:test";
@@ -43,13 +43,23 @@ describe("removed flow run commands", () => {
     }
   });
 
+  it("flow run direct returns unknown action error", () => {
+    try {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "direct"], { encoding: "utf8" });
+      assert.fail("should exit non-zero");
+    } catch (err) {
+      const out = `${err.stdout || ""}${err.stderr || ""}`;
+      assert.match(out, /unknown (action|key)/i);
+    }
+  });
+
   it("flow get direct returns unknown action error", () => {
-      try {
-        execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "direct"], { encoding: "utf8" });
-        assert.fail("should exit non-zero");
-      } catch (err) {
-        const out = `${err.stdout || ""}${err.stderr || ""}`;
-        assert.match(out, /unknown (action|key)/i);
-      }
+    try {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "direct"], { encoding: "utf8" });
+      assert.fail("should exit non-zero");
+    } catch (err) {
+      const out = `${err.stdout || ""}${err.stderr || ""}`;
+      assert.match(out, /unknown (action|key)/i);
+    }
   });
 });

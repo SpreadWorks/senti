@@ -61,7 +61,7 @@ Run bare `sennel flow get status` first. This is a display and branch-decision c
 - Evaluate target mismatch before autoApprove or `requires_approval` for existing-flow continuation; neither can bypass `ACTIVE_FLOW_MISMATCH`.
 
 - If the user's latest request explicitly invokes Spec-Driven Development flow, explicitly requests starting the flow, or provides an Issue/spec target as part of a flow-start instruction → go to **B. Prelude**.
-- If the user explicitly requests recovery of an interrupted active Flow → follow `sennel.flow-direct` for the exact target.
+- If the user explicitly requests recovery of an interrupted active Flow → first verify the exact target with `sennel flow get status <runId> --expect-run-id <runId>` plus every known `--expect-issue <n>` and `--expect-spec <spec>` guard. Then continue through **C. Dispatcher loop** with `sennel flow run dispatch` carrying those same exact target guards. Do not use a separate recovery command or bypass the returned next-action route.
 - If the user's latest request is to continue the current active flow and `active: true` → go to **C. Dispatcher loop**.
 - If `active: false` and there is no explicit flow-start request → tell the user there is no active flow and stop. Do not start the flow, and do not present a mandatory startup choice for ordinary requests.
 

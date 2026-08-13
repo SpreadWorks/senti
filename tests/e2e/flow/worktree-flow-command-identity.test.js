@@ -545,7 +545,6 @@ describe("worktree command identity", () => {
       "set.step",
       "set.issue-log",
       "run.dispatch",
-      "run.direct",
       "run.finalize-cleanup",
       "run.abort",
       "run.repair-plan-gate",

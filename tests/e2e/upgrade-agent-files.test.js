@@ -103,6 +103,20 @@ describe("upgrade agent instruction files", () => {
     }
   });
 
+  it("removes the retired flow-direct skill while preserving the normal Flow skill", () => {
+    tmp = createTmpDir("sennel-upgrade-retired-flow-direct-");
+    setupProject(tmp);
+    for (const base of [".agents", ".claude"]) {
+      writeFile(tmp, `${base}/skills/sennel.flow-direct/SKILL.md`, "---\nname: sennel.flow-direct\n---\n");
+    }
+
+    runUpgrade(tmp);
+    for (const base of [".agents", ".claude"]) {
+      assert.equal(fs.existsSync(join(tmp, base, "skills", "sennel.flow-direct")), false);
+      assert.equal(fs.existsSync(join(tmp, base, "skills", "sennel.flow", "SKILL.md")), true);
+    }
+  });
+
   for (const marker of [
     "agents.senti",
     "agents.sdd",

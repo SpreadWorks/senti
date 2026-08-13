@@ -1,9 +1,6 @@
 import { buildInitialNestedSteps } from "../flow/definition.js";
 import { FlowOutbox } from "../flow/lib/flow-outbox.js";
 import { FlowStateRevision } from "./flow-state-atomic-writer.js";
-import { RecoveryFailureLedger } from "../flow/lib/recovery-contract.js";
-import { RecoveryDecisionLedger } from "../flow/lib/recovery-decision.js";
-import { UserResolutionLedger } from "../flow/lib/recovery-composition.js";
 import { FlowSpecId } from "./flow-spec-id.js";
 import { isLocatedFlowState } from "./flow-workspace.js";
 import {
@@ -149,20 +146,7 @@ export class FlowState {
       revision === null || revision instanceof FlowStateRevision,
       "flow state revision must be a FlowStateRevision or null",
     );
-    const outbox = new FlowOutbox(value.outbox || []);
-    const recoveryFailures = new RecoveryFailureLedger(value.recoveryFailureRecords || []);
-    const recoveryDecisions = new RecoveryDecisionLedger({
-      failureLedger: recoveryFailures,
-      decisions: value.recoveryDecisions || [],
-    });
-    new UserResolutionLedger({
-      failureLedger: recoveryFailures,
-      resolutions: value.recoveryUserResolutions || [],
-    });
-    recoveryDecisions.assertConsistent({
-      failureLedger: recoveryFailures,
-      outboxIdempotencyKeys: new Set(outbox.entries.map((entry) => entry.idempotencyKey)),
-    });
+    new FlowOutbox(value.outbox || []);
     if (value.draftArtifactRevision != null) {
       // A finalized revision is historical state. Commands that use it as an
       // authority assert its Flow binding at the promotion/review boundary.

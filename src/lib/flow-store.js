@@ -55,15 +55,6 @@ import {
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
 const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
 const MAX_FLOW_STATE_READ_BYTES = 5 * 1024 * 1024;
-const REMOVED_DIRECT_STATE_FIELDS = Object.freeze([
-  "directFlowSession",
-  "directResolutionPlan",
-  "directIntegrationReceipt",
-  "directCompletionReceipt",
-  "directAbortReceipt",
-  "directAbortHistory",
-  "directReconcileEvidence",
-]);
 const FLOW_STATE_REVISIONS = new WeakMap();
 const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
   DRAFT_REVIEW_ROUTES.flatMap((route) => [
@@ -92,13 +83,6 @@ function assertFlowStateSchema(state, sourcePath) {
   const displayPath = sourcePath ?? "<unknown>";
   if (!state || typeof state !== "object") {
     throw schemaUnsupported(`flow-store: invalid flow state (not an object): ${displayPath}`);
-  }
-  const removedFields = REMOVED_DIRECT_STATE_FIELDS.filter((field) => Object.hasOwn(state, field));
-  if (removedFields.length > 0) {
-    throw schemaUnsupported(
-      `flow-store: removed direct recovery state rejected: ${displayPath}. `
-      + `Fields: ${removedFields.join(", ")}.`,
-    );
   }
   if (typeof state.runId !== "string" || state.runId.trim() === "") {
     throw schemaUnsupported(`flow-store: flow.json without a current runId rejected. Path: ${displayPath}.`);

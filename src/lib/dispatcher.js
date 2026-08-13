@@ -166,11 +166,8 @@ function runtimeLogAllowed(entry, hookCtx) {
   );
 }
 
-function removesManagedWorktree(envelopeKey, hookCtx) {
-  return FinalizeCleanupRoute.fromDispatch({
-    envelopeKey,
-    action: hookCtx?.action,
-  }).removesManagedWorktree;
+function removesManagedWorktree(envelopeKey) {
+  return FinalizeCleanupRoute.fromDispatch({ envelopeKey }).removesManagedWorktree;
 }
 
 function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
@@ -180,7 +177,7 @@ function runtimeLogRoot({ envelopeKey, hookCtx, container }) {
     return mainRepoPath || fallbackRoot;
   }
   if (
-    !removesManagedWorktree(envelopeKey, hookCtx)
+    !removesManagedWorktree(envelopeKey)
     || !hookCtx?.flowManager
     || !hookCtx?.flowState?.worktree
   ) {

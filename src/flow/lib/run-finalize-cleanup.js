@@ -2817,11 +2817,6 @@ class SharedFinalizeCleanupJournal {
   }
 }
 
-export function readPersistedFinalizeCleanupJournal(state) {
-  const journal = SharedFinalizeCleanupJournal.open(state);
-  return journal.value == null ? null : structuredClone(journal.value);
-}
-
 function resolveFeatureSha(root, featureBranch) {
   const result = runGit(["-C", root, "rev-parse", `refs/heads/${featureBranch}`]);
   if (!result.ok || !GIT_OBJECT_ID.test(result.stdout.trim())) {
@@ -2886,14 +2881,6 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
   const gitRoot = mainRepoPath || ctx.root;
   const stateOwner = FinalizeFlowStateOwner.forMainContext({ ...ctx, specId });
   const journal = SharedFinalizeCleanupJournal.open(state);
-  if (journal.value == null && ctx.requirePersistedJournal === true) {
-    return Envelope.fail(
-      "run",
-      "finalize-cleanup",
-      "FINALIZE_TEARDOWN_JOURNAL_MISSING",
-      "The selected durable finalize journal is no longer present. No cleanup transaction was created.",
-    );
-  }
   if (journal.value == null) {
     stateOwner.flowManager.assertFlowStateWritable(specId, {
       operationOwnerToken: ctx.repositoryOperationOwnerToken,

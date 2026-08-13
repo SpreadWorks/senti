@@ -2,24 +2,12 @@ import { PRODUCT } from "./product.js";
 
 export const FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR = PRODUCT.managedPath("agent-work");
 
-function optionValue(argv, name) {
-  const index = argv.indexOf(name);
-  if (index >= 0) return argv[index + 1] ?? null;
-  const prefix = `${name}=`;
-  const entry = argv.find((arg) => arg.startsWith(prefix));
-  return entry == null ? null : entry.slice(prefix.length);
-}
-
 export class FinalizeCleanupRoute {
-  constructor({ command = null, action = null } = {}) {
+  constructor({ command = null } = {}) {
     if (command != null && typeof command !== "string") {
       throw new Error("finalize cleanup route command must be a string");
     }
-    if (action != null && typeof action !== "string") {
-      throw new Error("finalize cleanup route action must be a string");
-    }
     this.command = command;
-    this.action = action;
     Object.freeze(this);
   }
 
@@ -30,14 +18,11 @@ export class FinalizeCleanupRoute {
     if (argv[0] !== "flow" || argv[1] !== "run") {
       return new FinalizeCleanupRoute();
     }
-    return new FinalizeCleanupRoute({
-      command: argv[2] ?? null,
-      action: optionValue(argv.slice(3), "--action"),
-    });
+    return new FinalizeCleanupRoute({ command: argv[2] ?? null });
   }
 
-  static fromDispatch({ envelopeKey = null, action = null } = {}) {
-    return new FinalizeCleanupRoute({ command: envelopeKey, action });
+  static fromDispatch({ envelopeKey = null } = {}) {
+    return new FinalizeCleanupRoute({ command: envelopeKey });
   }
 
   get removesManagedWorktree() {
