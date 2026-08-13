@@ -437,7 +437,7 @@ describe("worktree command identity", () => {
     }
   });
 
-  it("does not resume an unregistered worktree flow", () => {
+  it("does not resume an unregistered worktree flow from any execution root", () => {
     const root = createProject();
     const flow = prepareWorktree(root, { issue: 440, title: "resume-active-only" });
     fs.rmSync(path.join(root, ".sennel", ".active-flow"));
@@ -447,6 +447,15 @@ describe("worktree command identity", () => {
     assert.notEqual(resumed.status, 0);
     assert.equal(resumed.envelope?.errors?.[0]?.code, "FLOW_TARGET_AUTHORITY_CORRUPT");
     assert.equal(resumed.envelope?.data?.specId, flow.specId);
+
+    for (const args of [[], ["--spec", flow.specId]]) {
+      const fromBoundWorktree = runFlow(flow.worktreePath, ["resume", ...args]);
+      assert.notEqual(fromBoundWorktree.status, 0);
+      assert.match(
+        `${fromBoundWorktree.stdout}\n${fromBoundWorktree.stderr}`,
+        /active flow|target identity/i,
+      );
+    }
   });
 
   it("validates positional and expected status run IDs independently", () => {

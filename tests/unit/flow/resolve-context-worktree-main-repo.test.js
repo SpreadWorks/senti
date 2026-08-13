@@ -62,6 +62,7 @@ function prepareWorktreeCommandCtx() {
   const { mainRoot, worktreePath } = setupMainAndWorktree();
   const state = writeFlowState(mainRoot);
   const flowManager = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true });
+  flowManager.addActiveFlow(state.specId, "worktree");
   const ctx = {
     root: worktreePath,
     mainRoot,

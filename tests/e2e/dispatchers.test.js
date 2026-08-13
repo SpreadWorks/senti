@@ -85,17 +85,12 @@ describe("sennel dispatcher", () => {
     }
   });
 
-  it("routes exact worktree park and parked resume help", () => {
-    const park = execFileSync("node", [SENNEL, "flow", "park", "--help"], { encoding: "utf8" });
-    assert.match(park, /flow park/);
-    assert.match(park, /--expect-run-id/);
-    assert.match(park, /--expect-spec/);
-    assert.match(park, /--expect-issue|--expect-no-issue/);
-
+  it("exposes registered-active-flow resume help without parked recovery", () => {
     const resume = execFileSync("node", [SENNEL, "flow", "resume", "--help"], { encoding: "utf8" });
-    assert.match(resume, /--parked/);
+    assert.match(resume, /registered active flow/i);
+    assert.match(resume, /--spec/);
     assert.match(resume, /--expect-run-id/);
-    assert.match(resume, /no discovery/i);
+    assert.doesNotMatch(resume, /parked|park/i);
   });
 
   it("shows docs subcommand list when 'docs' has no args", () => {

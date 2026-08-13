@@ -28,5 +28,4 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 
 - This skill is read-only. It does not modify any files or state.
 - Normal resume only reads flows registered in `.sennel/.active-flow`.
-- Restoring a deliberately parked flow is a separate, exact-identity operation through `sennel flow resume --parked`.
 - After running this skill, the user should invoke the appropriate flow skill to continue.

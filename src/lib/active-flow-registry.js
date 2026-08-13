@@ -399,25 +399,6 @@ export class ActiveFlowRegistry {
   }
 
   /**
-   * Remove only the selected active pointer while retaining a durable JSON
-   * authority even when the resulting document is empty. Parked flow recovery
-   * relies on the atomic replace boundary rather than the normal last-entry
-   * unlink used by finalization cleanup.
-   */
-  park(specId, options = {}) {
-    ActiveFlowEntry.assertValidSpecId(specId);
-    return this.#withMutationLock(() => {
-      const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
-      if (!snapshot.document.remove(specId)) {
-        const error = new Error(`active flow pointer is absent for ${specId}`);
-        error.code = "ACTIVE_FLOW_REGISTRY_TARGET_ABSENT";
-        throw error;
-      }
-      return this.#write(snapshot.document, snapshot.revision);
-    }, options);
-  }
-
-  /**
    * Remove stale entries from .active-flow.
    * @returns {ActiveFlowEntry[]} cleaned active flows
    */

@@ -18,6 +18,7 @@ describe("flow dispatcher routing", () => {
     assert.match(result, /get/);
     assert.match(result, /set/);
     assert.match(result, /run/);
+    assert.doesNotMatch(result, /park/i);
   });
 
   it("exits non-zero with no subcommand", () => {
@@ -47,6 +48,26 @@ describe("flow dispatcher routing", () => {
     } catch (err) {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
       assert.match(out, /unknown command/i);
+    }
+  });
+
+  it("rejects removed park command", () => {
+    try {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "park"], { encoding: "utf8" });
+      assert.fail("should exit non-zero");
+    } catch (err) {
+      const out = `${err.stdout || ""}${err.stderr || ""}`;
+      assert.match(out, /unknown command/i);
+    }
+  });
+
+  it("rejects removed --parked resume argument", () => {
+    try {
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "resume", "--parked"], { encoding: "utf8" });
+      assert.fail("should exit non-zero");
+    } catch (err) {
+      const out = `${err.stdout || ""}${err.stderr || ""}`;
+      assert.match(out, /unknown option: --parked/i);
     }
   });
 });

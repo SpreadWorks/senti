@@ -62,7 +62,6 @@ describe("registry structure", () => {
       FLOW_COMMANDS.set["acceptance-decision"],
       FLOW_COMMANDS.set.auto,
       FLOW_COMMANDS.run["auto-check"],
-      FLOW_COMMANDS.park,
       FLOW_COMMANDS.resume,
       FLOW_COMMANDS.prepare,
       FLOW_COMMANDS.run.sync,
@@ -116,8 +115,7 @@ describe("registry structure", () => {
     assert.equal(FLOW_COMMANDS.set.auto.requiresFlow, false);
   });
 
-  it("park and parked resume expose the exact guarded recovery contract", () => {
-    const park = FLOW_COMMANDS.park;
+  it("resume exposes only the registered-active-flow selection contract", () => {
     const resume = FLOW_COMMANDS.resume;
     const exactGuards = [
       "--expect-issue",
@@ -126,22 +124,17 @@ describe("registry structure", () => {
       "--expect-run-id",
     ];
 
-    assert.equal(park.helpPath, "sennel flow park --help");
     assert.equal(resume.helpPath, "sennel flow resume --help");
-    assert.equal(park.requiresFlow, false);
-    assert.equal(park.targetGuard, false);
-    assert.equal(park.directParkedAuthority, true);
-    assert.equal(resume.directParkedAuthority, "when-parked");
-    assert.equal(resume.args.flags.includes("--parked"), true);
-    for (const entry of [park, resume]) {
-      const declared = [...entry.args.flags, ...entry.args.options];
-      for (const guard of exactGuards) {
-        assert.equal(declared.includes(guard), true, `${entry.helpKey} must accept ${guard}`);
-        assert.match(entry.help, new RegExp(guard));
-      }
+    assert.equal(resume.requiresFlow, false);
+    assert.equal(resume.args.flags.includes("--parked"), false);
+    const declared = [...resume.args.flags, ...resume.args.options];
+    for (const guard of exactGuards) {
+      assert.equal(declared.includes(guard), true, `${resume.helpKey} must accept ${guard}`);
+      assert.match(resume.help, new RegExp(guard));
     }
-    assert.match(park.help, /managed-worktree|managed worktree/i);
-    assert.match(resume.help, /no discovery/i);
+    assert.ok(resume.args.options.includes("--spec"));
+    assert.match(resume.help, /registered active flow/i);
+    assert.doesNotMatch(resume.help, /parked|park/i);
   });
 });
 

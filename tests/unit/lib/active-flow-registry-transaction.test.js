@@ -234,28 +234,6 @@ describe("active-flow registry transaction", () => {
     ]);
   });
 
-  it("parks one pointer atomically and retains an empty durable authority for the last pointer", () => {
-    root = createTmpDir("active-flow-park-transaction-");
-    const registry = new ActiveFlowRegistry({ mainRoot: root });
-    const registryPath = path.join(root, ".sennel", ".active-flow");
-    registry.add("453-target", "worktree");
-    registry.add("454-other", "worktree");
-
-    registry.park("453-target");
-    assert.deepEqual(registry.load(), [
-      { specId: "454-other", mode: "worktree" },
-    ]);
-
-    registry.park("454-other");
-    assert.equal(fs.existsSync(registryPath), true);
-    assert.equal(fs.readFileSync(registryPath, "utf8"), "[]\n");
-    assert.throws(
-      () => registry.park("454-other"),
-      (error) => error.code === "ACTIVE_FLOW_REGISTRY_TARGET_ABSENT",
-    );
-    assert.equal(fs.readFileSync(registryPath, "utf8"), "[]\n");
-  });
-
   it("fails closed for a corrupt registry lock without registry mutation", () => {
     root = createTmpDir("active-flow-corrupt-lock-");
     const registry = new ActiveFlowRegistry({ mainRoot: root });

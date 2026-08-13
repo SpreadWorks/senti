@@ -58,7 +58,7 @@ describe("CommandDefinition registry", () => {
     const definition = coreCommandRegistry.find(["flow", "resume"]);
     assert.equal(definition.help, FLOW_COMMANDS.resume.help);
     assert.equal(definition.metadata(["flow"]).help, FLOW_COMMANDS.resume.help);
-    assert.match(definition.help, /no discovery/i);
+    assert.match(definition.help, /registered active flow/i);
   });
 });
 
