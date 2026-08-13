@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
-import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { FlowArtifactCatalogStore, FlowArtifactPublicationContext, FlowVersionLocation } from "../../lib/flow-version.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
@@ -198,11 +198,11 @@ export class IssueLogStore {
     return this.#readFresh();
   }
 
-  append(entry, idempotencyKey) {
+  append(entry, idempotencyKey, publicationContext = null) {
     return this.#withLock(() => {
       const snapshot = this.#readFresh();
       const result = snapshot.document.append(entry, idempotencyKey);
-      if (result.appended) this.#write(snapshot.document.toJSON());
+      if (result.appended) this.#write(snapshot.document.toJSON(), publicationContext);
       return {
         ...result,
         total: snapshot.document.entries.length,
@@ -211,7 +211,7 @@ export class IssueLogStore {
     });
   }
 
-  appendMany(entries) {
+  appendMany(entries, publicationContext = null) {
     if (!Array.isArray(entries)) throw new Error("issue-log appendMany entries must be an array");
     return this.#withLock(() => {
       const snapshot = this.#readFresh();
@@ -220,12 +220,12 @@ export class IssueLogStore {
         const result = snapshot.document.append(item.entry, item.idempotencyKey);
         if (result.appended) appended.push(result.entry);
       }
-      if (appended.length > 0) this.#write(snapshot.document.toJSON());
+      if (appended.length > 0) this.#write(snapshot.document.toJSON(), publicationContext);
       return { appended, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
 
-  mutate(expectedRevision, mutator) {
+  mutate(expectedRevision, mutator, publicationContext = null) {
     requireAuthorityString(expectedRevision, "issue-log expectedRevision");
     if (typeof mutator !== "function") throw new Error("issue-log mutator is required");
     return this.#withLock(() => {
@@ -234,21 +234,21 @@ export class IssueLogStore {
         throw issueLogError("revision-conflict", "issue-log changed before the requested mutation");
       }
       const result = mutator(snapshot.document);
-      this.#write(snapshot.document.toJSON());
+      this.#write(snapshot.document.toJSON(), publicationContext);
       return { result, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
 
-  compensate(idempotencyKey) {
+  compensate(idempotencyKey, publicationContext = null) {
     return this.#withLock(() => {
       const snapshot = this.#readFresh();
       const removed = snapshot.document.remove(idempotencyKey);
-      if (removed) this.#write(snapshot.document.toJSON());
+      if (removed) this.#write(snapshot.document.toJSON(), publicationContext);
       return { removed, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
     });
   }
 
-  restoreOwnedMutation({ idempotencyKeys, before }) {
+  restoreOwnedMutation({ idempotencyKeys, before }, publicationContext = null) {
     if (!Array.isArray(idempotencyKeys)) throw new Error("issue-log restore IDs must be an array");
     if (
       before == null
@@ -271,7 +271,7 @@ export class IssueLogStore {
       }
       if (revisionOf(snapshot.document) === revisionOf(beforeDocument)) {
         if (before.exists) {
-          this.#writeExact(beforeBytes, before.mode);
+          this.#writeExact(beforeBytes, before.mode, publicationContext);
         } else {
           try {
             this.#removeFile();
@@ -281,7 +281,7 @@ export class IssueLogStore {
           }
         }
       } else if (removed) {
-        this.#write(snapshot.document.toJSON());
+        this.#write(snapshot.document.toJSON(), publicationContext);
       }
       return { removed, exact: revisionOf(snapshot.document) === revisionOf(beforeDocument) };
     });
@@ -300,16 +300,36 @@ export class IssueLogStore {
     });
   }
 
-  #write(document) {
+  #write(document, publicationContext = null) {
     if (!this.catalogStore) return this.file.write(document);
+    if (publicationContext !== null) {
+      if (!(publicationContext instanceof FlowArtifactPublicationContext)) {
+        throw new Error("Version issue-log write requires a FlowArtifactPublicationContext");
+      }
+      const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("issue.log");
+      return this.catalogStore.publish({
+        ...publicationContext.publication(artifact, { mediaType: "application/json" }),
+        write: () => this.file.write(document),
+      }).result;
+    }
     return this.catalogStore.publishSystem({
       ...issueLogPublication(),
       write: () => this.file.write(document),
     }).result;
   }
 
-  #writeExact(bytes, mode) {
+  #writeExact(bytes, mode, publicationContext = null) {
     if (!this.catalogStore) return writeExactIssueLog(this.filePath, bytes, mode);
+    if (publicationContext !== null) {
+      if (!(publicationContext instanceof FlowArtifactPublicationContext)) {
+        throw new Error("Version issue-log exact write requires a FlowArtifactPublicationContext");
+      }
+      const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("issue.log");
+      return this.catalogStore.publish({
+        ...publicationContext.publication(artifact, { mediaType: "application/json" }),
+        write: () => writeExactIssueLog(this.filePath, bytes, mode),
+      }).result;
+    }
     return this.catalogStore.publishSystem({
       ...issueLogPublication(),
       write: () => writeExactIssueLog(this.filePath, bytes, mode),

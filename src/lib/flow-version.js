@@ -6,7 +6,7 @@ import { AtomicFile } from "./atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
 import { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
-import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactReviewEvidence } from "./flow-artifact-contract.js";
+import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactReviewEvidence, FlowArtifactUpdater } from "./flow-artifact-contract.js";
 
 export { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
 export { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
@@ -27,6 +27,10 @@ const STEP_OWNED_ARTIFACT_KINDS = new Set(["review-evidence"]);
 const MIGRATION_CATALOG_INITIALIZATION = Symbol("migration-catalog-initialization");
 const CATALOG_LOCK_RETRY_ATTEMPTS = 3;
 const CATALOG_LOCK_RETRY_MS = 10;
+const FLOW_STATE_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.state").relativePath;
+const FLOW_ACTIVITIES_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities").relativePath;
+const SPEC_RECORD_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("spec.record").relativePath;
+const ARTIFACT_CATALOG_RELATIVE_PATH = FLOW_ARTIFACT_CONTRACTS.resolve("artifact.catalog").relativePath;
 
 function text(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -132,14 +136,13 @@ function managedFiles(location, current = location.directory, result = []) {
     const rel = path.relative(location.directory, absolute).split(path.sep).join("/");
     if (entry.isSymbolicLink()) throw new Error(`Version storage must not contain symbolic links: ${rel}`);
     if (entry.isDirectory()) {
-      if (rel === ".runtime") continue;
       managedFiles(location, absolute, result);
       continue;
     }
     if (!entry.isFile()) throw new Error(`Version storage contains an unsupported entry: ${rel}`);
     const stat = fs.lstatSync(absolute);
     if (stat.nlink !== 1) throw new Error(`Version storage artifact must not be hard linked: ${rel}`);
-    if (rel === "artifact-catalog.json" || VERSION_TRANSIENT_FILES.has(rel) || knownNoncatalogedPath(rel)) continue;
+    if (rel === ARTIFACT_CATALOG_RELATIVE_PATH || VERSION_TRANSIENT_FILES.has(rel) || knownNoncatalogedPath(rel)) continue;
     if (!catalogManagedPath(rel)) throw new Error(`Version storage contains an unclassified artifact: ${rel}`);
     result.push(rel);
   }
@@ -158,7 +161,7 @@ class VersionTreeSnapshot {
       const absolute = path.join(directory, entry.name);
       const relative = path.relative(this.location.directory, absolute).split(path.sep).join("/");
       if (entry.isSymbolicLink()) throw new Error(`Version storage must not contain symbolic links: ${relative}`);
-      if (VERSION_TRANSIENT_FILES.has(relative) || knownNoncatalogedPath(relative) || relative === ".runtime" || relative.startsWith(".runtime/")) continue;
+      if (VERSION_TRANSIENT_FILES.has(relative) || knownNoncatalogedPath(relative)) continue;
       if (entry.isDirectory()) {
         this.directories.add(relative);
         this.#capture(absolute);
@@ -185,15 +188,15 @@ class VersionTreeSnapshot {
   restore() {
     const files = [];
     const directories = [];
-    const collect = (directory) => {
+    const collect = (directory, preserveDirectories = false) => {
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         const absolute = path.join(directory, entry.name);
         const relative = path.relative(this.location.directory, absolute).split(path.sep).join("/");
         if (VERSION_TRANSIENT_FILES.has(relative) || knownNoncatalogedPath(relative)) continue;
-        if (relative === ".runtime" && entry.isDirectory() && !entry.isSymbolicLink()) continue;
         if (entry.isDirectory() && !entry.isSymbolicLink()) {
-          collect(absolute);
-          directories.push(absolute);
+          const preserve = preserveDirectories || relative === ".runtime";
+          collect(absolute, preserve);
+          if (!preserve) directories.push(absolute);
         } else {
           files.push(absolute);
         }
@@ -245,6 +248,32 @@ export class FlowRunId extends IdentityValue {
 export class FlowActivityId extends IdentityValue {
   constructor(value) { super(value, "flowActivityId"); }
   static from(value) { return value instanceof FlowActivityId ? value : new FlowActivityId(value); }
+}
+
+/** Binds a canonical artifact mutation to the Flow Activity that authorized it. */
+export class FlowArtifactPublicationContext {
+  constructor({ updater, activityId, publicationClaim } = {}) {
+    this.updater = updater instanceof FlowArtifactUpdater ? updater : new FlowArtifactUpdater(updater);
+    this.activityId = FlowActivityId.from(activityId);
+    if (!(publicationClaim instanceof ArtifactPublicationClaim)) {
+      throw new Error("artifact publication context requires an ArtifactPublicationClaim");
+    }
+    this.publicationClaim = publicationClaim;
+    Object.freeze(this);
+  }
+  publication(artifact, { mediaType } = {}) {
+    if (!artifact || typeof artifact.publication !== "function") {
+      throw new Error("artifact publication context requires a resolved artifact");
+    }
+    return Object.freeze({
+      ...artifact.publication({
+        updater: this.updater.toString(),
+        activityId: this.activityId,
+        mediaType,
+      }),
+      publicationClaim: this.publicationClaim,
+    });
+  }
 }
 
 export class FlowVersion {
@@ -466,7 +495,7 @@ export class FlowVersionLocation {
   get issueLogFile() { return this.artifact("issue.log"); }
   get issueSnapshotFile() { return this.artifact("issue.snapshot"); }
   get reportFile() { return this.artifact("report"); }
-  reviewEvidencePath({ reviewStep = "impl-review", taskId = null, digest } = {}) {
+  reviewEvidencePath({ reviewStep = null, taskId = null, digest } = {}) {
     return this.resolve(FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep, taskId, digest }).relativePath);
   }
 }
@@ -523,18 +552,13 @@ export class FlowArtifactDescriptor {
         }
       }
     }
-    if (contract !== null && !contract.canonicalPath.matches(this.relativePath)) {
+    if (contract !== null && !contract.matchesCanonicalPath(this.relativePath)) {
       throw new Error(`artifact path does not match logical contract ${contract.logicalKey}`);
     }
-    if (contract !== null && (
-      contract.authoritySlot.kind !== this.slot.kind
-      || contract.authoritySlot.authority.toString() !== this.slot.authority.toString()
-      || contract.authoritySlot.cardinality.toString() !== this.slot.cardinality.toString()
-      || !contract.ownership.updaters.includes(this.slot.publicationStep)
-    )) throw new Error(`artifact authority slot does not match logical contract ${contract.logicalKey}`);
     if (contract?.logicalKey.toString() === "review.evidence") {
       FlowArtifactReviewEvidence.fromCanonicalPath(contract, this.relativePath).assertAuthoritySlot(this.slot);
     }
+    if (contract !== null) contract.assertAuthoritySlot(this.relativePath, this.slot);
     this.logicalKey = contract?.logicalKey.toString() ?? (transitionalIdentity ? "transition.flow-version-identity" : null);
     this.migrationMaterialization = migrationMaterialization === true;
     if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error("artifact hash must be a lowercase SHA-256 digest");
@@ -564,7 +588,11 @@ export class FlowArtifactDescriptor {
     if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("artifact must be a regular non-symlink file");
     if (stat.nlink !== 1) throw new Error("artifact must not be hard linked");
     const bytes = fs.readFileSync(filePath);
-    return new FlowArtifactDescriptor({ logicalKey, authoritySlot, relativePath: safePath, hash: sha256(bytes), size: bytes.length, mediaType, retention, activityId: activityId?.toString() ?? null, migrationMaterialization });
+    const descriptor = new FlowArtifactDescriptor({ logicalKey, authoritySlot, relativePath: safePath, hash: sha256(bytes), size: bytes.length, mediaType, retention, activityId: activityId?.toString() ?? null, migrationMaterialization });
+    if (descriptor.logicalKey !== null && !descriptor.logicalKey.startsWith("transition.")) {
+      FLOW_ARTIFACT_CONTRACTS.require(descriptor.logicalKey).assertContentPublication(null, bytes);
+    }
+    return descriptor;
   }
   verify(location) {
     const actual = FlowArtifactDescriptor.fromFile({
@@ -582,6 +610,84 @@ export class FlowArtifactDescriptor {
       mediaType: this.mediaType, ...this.slot.toJSON(), retention: this.retention, activityId: this.activityId,
       migrationMaterialization: this.migrationMaterialization,
     };
+  }
+}
+
+/** Catalog-side view of the Activity fields that establish artifact updater provenance. */
+export class FlowArtifactActivityAssociation {
+  constructor({ id, nodeId, nodeKey, confirmationOrder } = {}) {
+    this.id = identifier(id, "cataloged Flow Activity id");
+    this.nodeId = nodeId == null ? null : text(nodeId, "cataloged Flow Activity nodeId");
+    this.nodeKey = nodeKey == null ? null : identifier(nodeKey, "cataloged Flow Activity nodeKey");
+    if ((this.nodeId === null) !== (this.nodeKey === null)) throw new Error("cataloged Flow Activity node identity must be complete");
+    if (!Number.isSafeInteger(confirmationOrder) || confirmationOrder < 1) {
+      throw new Error("cataloged Flow Activity confirmationOrder must be a positive safe integer");
+    }
+    this.confirmationOrder = confirmationOrder;
+    Object.freeze(this);
+  }
+  get updaterStep() {
+    return this.nodeId === null ? null : FlowArtifactUpdater.fromActivityNodeId(this.nodeId).toString();
+  }
+  assertRelatedArtifact(artifact) {
+    if (!(artifact instanceof FlowArtifactDescriptor)) throw new Error("FlowArtifactDescriptor is required for an Activity association");
+    if (artifact.activityId !== this.id) throw new Error("artifact Activity association id does not match the descriptor");
+    if (artifact.logicalKey === null || artifact.logicalKey.startsWith("transition.")) return this;
+    if (this.updaterStep === null) throw new Error(`cataloged artifact related Activity has no node identity: ${artifact.relativePath}`);
+    if (artifact.slot.publicationStep !== this.updaterStep) {
+      throw new Error(`cataloged artifact updater does not match its related Activity node: ${artifact.relativePath}`);
+    }
+    if (this.updaterStep.startsWith("task-")) {
+      const taskPath = artifact.relativePath.match(/^steps\/impl\/([^/]+)\/(?:impl|review|gate)(?:\/|$)/);
+      if (taskPath === null) throw new Error(`task-scoped updater Activity is not bound to a task artifact: ${artifact.relativePath}`);
+      const taskId = taskPath[1];
+      const taskLeaf = this.updaterStep.slice("task-".length);
+      if (this.nodeId !== `${taskId}/${this.updaterStep}` && this.nodeId !== `${taskId}-${taskLeaf}`) {
+        throw new Error(`cataloged task artifact owner does not match its related Activity node: ${artifact.relativePath}`);
+      }
+    }
+    return this;
+  }
+  assertLaterThan(previous) {
+    if (!(previous instanceof FlowArtifactActivityAssociation)) throw new Error("previous Flow Activity association is required");
+    if (this.confirmationOrder <= previous.confirmationOrder) {
+      throw new Error("artifact Activity association must advance to the latest updater Activity");
+    }
+    return this;
+  }
+  toJSON() { return { id: this.id, nodeId: this.nodeId, nodeKey: this.nodeKey, confirmationOrder: this.confirmationOrder }; }
+}
+
+export class FlowArtifactActivityIndex {
+  constructor(activities = []) {
+    if (!Array.isArray(activities) || activities.some((activity) => !(activity instanceof FlowArtifactActivityAssociation))) {
+      throw new Error("artifact Activity index requires typed associations");
+    }
+    this.byId = new Map();
+    let order = 0;
+    for (const activity of activities) {
+      if (this.byId.has(activity.id)) throw new Error(`activities.jsonl contains duplicate Activity id: ${activity.id}`);
+      if (activity.confirmationOrder !== order + 1) throw new Error("activities.jsonl confirmationOrder must be contiguous");
+      this.byId.set(activity.id, activity);
+      order = activity.confirmationOrder;
+    }
+    Object.freeze(this);
+  }
+  static fromFile(file) {
+    const activities = [];
+    const lines = fs.readFileSync(file, "utf8").split("\n").filter((line) => line.trim() !== "");
+    for (const line of lines) {
+      let value;
+      try { value = JSON.parse(line); } catch (error) { throw new Error(`activities.jsonl contains malformed JSON: ${error.message}`); }
+      activities.push(new FlowArtifactActivityAssociation(value));
+    }
+    return new FlowArtifactActivityIndex(activities);
+  }
+  require(activityId) {
+    const id = identifier(activityId, "artifact activityId");
+    const activity = this.byId.get(id);
+    if (!activity) throw new Error(`cataloged artifact references a missing Activity: ${id}`);
+    return activity;
   }
 }
 
@@ -614,6 +720,14 @@ export class FlowArtifactCatalog {
     if (!result) throw new Error(`artifact is not cataloged: ${file}`);
     return result;
   }
+  relatedActivity(file, location) {
+    if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required to resolve an artifact Activity");
+    location.requireScope("canonical");
+    location.assertAuthority(FLOW_ACTIVITIES_RELATIVE_PATH, { mustExist: true });
+    const artifact = this.resolve(file);
+    if (artifact.activityId === null) return null;
+    return FlowArtifactActivityIndex.fromFile(location.activitiesFile).require(artifact.activityId).assertRelatedArtifact(artifact);
+  }
   verify(location) {
     if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required to verify an artifact catalog");
     location.requireScope("canonical");
@@ -621,21 +735,13 @@ export class FlowArtifactCatalog {
     const cataloged = new Set(this.artifacts.map((artifact) => artifact.relativePath));
     for (const file of actual) if (!cataloged.has(file)) throw new Error(`catalog-managed artifact is missing from the catalog: ${file}`);
     for (const artifact of this.artifacts) artifact.verify(location);
-    const ledger = this.artifacts.find((artifact) => artifact.relativePath === "activities.jsonl");
+    const ledger = this.artifacts.find((artifact) => artifact.relativePath === FLOW_ACTIVITIES_RELATIVE_PATH);
     const associated = this.artifacts.filter((artifact) => artifact.activityId !== null);
     if (ledger || associated.length > 0) {
-      if (!ledger) throw new Error("cataloged Activity associations require activities.jsonl");
-      const activityIds = new Set();
-      const lines = fs.readFileSync(location.activitiesFile, "utf8").split("\n").filter((line) => line.trim() !== "");
-      for (const line of lines) {
-        let activity;
-        try { activity = JSON.parse(line); } catch (error) { throw new Error(`activities.jsonl contains malformed JSON: ${error.message}`); }
-        const activityId = identifier(activity?.id, "cataloged Flow Activity id");
-        if (activityIds.has(activityId)) throw new Error(`activities.jsonl contains duplicate Activity id: ${activityId}`);
-        activityIds.add(activityId);
-      }
+      if (!ledger) throw new Error(`cataloged Activity associations require ${FLOW_ACTIVITIES_RELATIVE_PATH}`);
+      const activityIndex = FlowArtifactActivityIndex.fromFile(location.activitiesFile);
       for (const artifact of associated) {
-        if (!activityIds.has(artifact.activityId)) throw new Error(`cataloged artifact references a missing Activity: ${artifact.activityId}`);
+        activityIndex.require(artifact.activityId).assertRelatedArtifact(artifact);
       }
     }
     return this;
@@ -696,6 +802,13 @@ export class FlowArtifactCatalogStore {
       return read(catalog);
     });
   }
+  relatedActivity(file) {
+    const artifactPath = relativePath(file, "artifact relativePath");
+    return this.read({
+      relativePaths: [artifactPath, FLOW_ACTIVITIES_RELATIVE_PATH],
+      read: (catalog) => catalog.relatedActivity(artifactPath, this.location),
+    });
+  }
   publish({ logicalKey = null, relativePath: file, authoritySlot, publicationClaim, mediaType, retention, activityId = null, precondition = null, write } = {}) {
     return this.publishMany({
       artifacts: [{ logicalKey, relativePath: file, authoritySlot, mediaType, retention, activityId }], publicationClaim, precondition, write,
@@ -715,13 +828,27 @@ export class FlowArtifactCatalogStore {
   publishMany({ artifacts, publicationClaim, precondition = null, write } = {}) {
     return this.#publishMany({ artifacts, publicationClaim, precondition, write }, false);
   }
-  writeIssueSnapshot(text) {
+  writeIssueSnapshot(text, publicationContext = null) {
     if (typeof text !== "string") throw new Error("issue snapshot text must be a string");
     const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("issue.snapshot");
+    const write = () => new AtomicFile(this.location.issueSnapshotFile, { phaseNamespace: "issue-snapshot" })
+      .write(Buffer.from(text.endsWith("\n") ? text : `${text}\n`, "utf8"));
+    if (publicationContext !== null) {
+      if (!(publicationContext instanceof FlowArtifactPublicationContext)) {
+        throw new Error("issue snapshot update requires a FlowArtifactPublicationContext");
+      }
+      return this.publish({
+        ...publicationContext.publication(artifact, { mediaType: "text/markdown" }),
+        write,
+      });
+    }
     return this.publishSystem({
-      logicalKey: artifact.logicalKey, relativePath: artifact.relativePath, authoritySlot: artifact.authoritySlot(),
-      mediaType: "text/markdown", retention: artifact.contract.retention.toString(),
-      write: () => new AtomicFile(this.location.issueSnapshotFile, { phaseNamespace: "issue-snapshot" }).write(Buffer.from(text.endsWith("\n") ? text : `${text}\n`, "utf8")),
+      logicalKey: artifact.logicalKey,
+      relativePath: artifact.relativePath,
+      authoritySlot: artifact.authoritySlot(),
+      mediaType: "text/markdown",
+      retention: artifact.contract.retention.toString(),
+      write,
     });
   }
   readIssueSnapshot() {
@@ -736,30 +863,86 @@ export class FlowArtifactCatalogStore {
     if (system) this.#assertSystemSlots(artifacts.map((artifact) => artifact.authoritySlot));
     else {
       if (!(publicationClaim instanceof ArtifactPublicationClaim)) throw new Error("catalog publication requires an ArtifactPublicationClaim");
-      for (const artifact of artifacts) publicationClaim.assertSlot(artifact.authoritySlot);
+      for (const artifact of artifacts) {
+        const contract = artifact.logicalKey === null ? null : FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey);
+        if (contract?.logicalKey.toString() === "review.evidence") {
+          FlowArtifactReviewEvidence.fromCanonicalPath(contract, artifact.relativePath).assertAuthoritySlot(artifact.authoritySlot);
+        }
+        contract?.assertAuthoritySlot(artifact.relativePath, artifact.authoritySlot);
+        publicationClaim.assertSlot(artifact.authoritySlot, { contractBound: contract !== null });
+      }
     }
     if (precondition !== null && typeof precondition !== "function") throw new Error("catalog publication precondition must be a function");
     return this.#withPublicationLock(() => {
       const paths = new Set(artifacts.map((artifact) => relativePath(artifact.relativePath, "artifact relativePath")));
       for (const file of paths) this.location.assertAuthority(file);
-      this.location.assertAuthority("artifact-catalog.json");
+      this.location.assertAuthority(ARTIFACT_CATALOG_RELATIVE_PATH);
       const snapshot = new VersionTreeSnapshot(this.location);
       const previous = this.#requireUnlocked();
       try {
         precondition?.(previous);
+        for (const artifact of artifacts) {
+          if (artifact.logicalKey === null) continue;
+          FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey).assertPublicationRole({
+            exists: previous.artifacts.some((entry) => entry.relativePath === artifact.relativePath),
+            publicationStep: artifact.authoritySlot.publicationStep,
+          });
+        }
+        const contentPublications = artifacts.flatMap((artifact) => {
+          const contract = artifact.logicalKey === null ? null : FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey);
+          return contract?.contentContract == null ? [] : [{ artifact, contract }];
+        });
+        const previousContent = new Map();
+        for (const { artifact } of contentPublications) {
+          const prior = previous.artifacts.find((entry) => entry.relativePath === artifact.relativePath);
+          previousContent.set(artifact.relativePath, prior === undefined ? null : fs.readFileSync(this.location.resolve(artifact.relativePath)));
+        }
         const result = write();
         snapshot.assertOnlyDeclaredChanges(paths);
-        const descriptors = artifacts.map((artifact) => FlowArtifactDescriptor.fromFile({
-          location: this.location,
-          ...artifact,
-          migrationMaterialization: previous.artifacts.find((entry) => entry.relativePath === artifact.relativePath)?.migrationMaterialization === true,
-        }));
+        for (const { artifact, contract } of contentPublications) {
+          contract.assertContentPublication(
+            previousContent.get(artifact.relativePath) ?? null,
+            fs.readFileSync(this.location.resolve(artifact.relativePath)),
+          );
+        }
+        const descriptors = artifacts.map((artifact) => {
+          const prior = previous.artifacts.find((entry) => entry.relativePath === artifact.relativePath);
+          const activityId = artifact.activityId ?? (
+            prior?.activityId == null ? null : new FlowActivityId(prior.activityId)
+          );
+          return FlowArtifactDescriptor.fromFile({
+            location: this.location,
+            ...artifact,
+            activityId,
+            migrationMaterialization: prior?.migrationMaterialization === true,
+          });
+        });
         for (const descriptor of descriptors) {
           if (descriptor.logicalKey === null) continue;
-          FLOW_ARTIFACT_CONTRACTS.require(descriptor.logicalKey).mutationPolicy.assertPublication(
-            previous.artifacts.find((entry) => entry.relativePath === descriptor.relativePath),
-            descriptor,
-          );
+          const contract = FLOW_ARTIFACT_CONTRACTS.require(descriptor.logicalKey);
+          const prior = previous.artifacts.find((entry) => entry.relativePath === descriptor.relativePath);
+          contract.mutationPolicy.assertPublication(prior, descriptor);
+          const changed = prior !== undefined && (prior.hash !== descriptor.hash || prior.size !== descriptor.size);
+          if (contract.cataloged && changed && descriptor.activityId === null) {
+            throw new Error(`artifact content update requires its updater Activity: ${descriptor.relativePath}`);
+          }
+        }
+        const associated = descriptors.filter((descriptor) => descriptor.activityId !== null);
+        if (associated.length > 0) {
+          const activityIndex = FlowArtifactActivityIndex.fromFile(this.location.activitiesFile);
+          for (const descriptor of associated) {
+            const nextActivity = activityIndex.require(descriptor.activityId).assertRelatedArtifact(descriptor);
+            const prior = previous.artifacts.find((entry) => entry.relativePath === descriptor.relativePath);
+            if (prior?.activityId) {
+              if (prior.activityId === descriptor.activityId) {
+                if (prior.hash !== descriptor.hash || prior.size !== descriptor.size) {
+                  throw new Error("artifact content update must reference a new updater Activity");
+                }
+              } else {
+                nextActivity.assertLaterThan(activityIndex.require(prior.activityId));
+              }
+            }
+          }
         }
         const catalog = new FlowArtifactCatalog({
           artifacts: [...previous.artifacts.filter((artifact) => !paths.has(artifact.relativePath)), ...descriptors],
@@ -776,7 +959,7 @@ export class FlowArtifactCatalogStore {
     if (typeof write !== "function") throw new Error("catalog unpublication requires a write function");
     if (!system && !(publicationClaim instanceof ArtifactPublicationClaim)) throw new Error("catalog unpublication requires an ArtifactPublicationClaim");
     const safePath = relativePath(file, "artifact relativePath");
-    if (!catalogManagedPath(safePath) || safePath === "artifact-catalog.json" || VERSION_TRANSIENT_FILES.has(safePath)) {
+    if (!catalogManagedPath(safePath) || safePath === ARTIFACT_CATALOG_RELATIVE_PATH || VERSION_TRANSIENT_FILES.has(safePath)) {
       throw new Error(`catalog unpublication requires a managed artifact path: ${safePath}`);
     }
     return this.#withPublicationLock(() => {
@@ -1089,7 +1272,7 @@ function migrationBlocker(code, sourcePath, message) {
 
 const BUILTIN_MIGRATION_SOURCE_POLICY = new FlowVersionMigrationSourcePolicy({ rules: [
   new FlowVersionMigrationMappingRule({ match: "exact", source: "flow.json", targetPath: "flow.json", role: "flow-state", operation: "transform", outputKey: "current-flow-state", mediaType: "application/json", authority: "repository-metadata", cardinality: "singleton", retention: "permanent" }),
-  new FlowVersionMigrationMappingRule({ match: "exact", source: "activities.jsonl", targetPath: "activities.jsonl", role: "activity-ledger", operation: "copy", mediaType: "application/x-ndjson", authority: "canonical-flow-artifacts", cardinality: "singleton", retention: "permanent" }),
+  new FlowVersionMigrationMappingRule({ match: "exact", source: "activities.jsonl", targetPath: FLOW_ACTIVITIES_RELATIVE_PATH, role: "activity-ledger", operation: "copy", mediaType: "application/x-ndjson", authority: "canonical-flow-artifacts", cardinality: "singleton", retention: "permanent" }),
   new FlowVersionMigrationMappingRule({ match: "exact", source: "spec.json", targetPath: "spec.json", role: "spec-record", operation: "transform", outputKey: "authoritative-spec-record", mediaType: "application/json", authority: "repository-metadata", cardinality: "singleton", retention: "permanent" }),
   new FlowVersionMigrationMappingRule({ match: "exact", source: "issue-log.json", targetPath: "issue-log.json", role: "issue-log", operation: "copy", mediaType: "application/json", authority: "canonical-flow-artifacts", cardinality: "singleton", retention: "permanent" }),
   new FlowVersionMigrationMappingRule({ match: "namespace", source: ".runtime", role: "runtime", operation: "exclude-runtime", mediaType: "application/octet-stream", authority: "execution-checkout", cardinality: "collection", retention: "transient" }),
@@ -1100,7 +1283,7 @@ function classifyMigrationArtifact(sourcePath, sourcePolicy) {
   if (sourcePath === "manifest.md" || sourcePath === "manifest.json") {
     throw migrationBlocker("FORBIDDEN_MANIFEST", sourcePath, `forbidden legacy migration artifact: ${sourcePath}`);
   }
-  if (sourcePath === "flow-version.json" || sourcePath === "artifact-catalog.json") {
+  if (sourcePath === "flow-version.json" || sourcePath === ARTIFACT_CATALOG_RELATIVE_PATH) {
     throw migrationBlocker("RESERVED_VERSION_ARTIFACT", sourcePath, `legacy source contains reserved Version artifact: ${sourcePath}`);
   }
   const sourceName = path.posix.basename(sourcePath);
@@ -1298,7 +1481,7 @@ export class FlowVersionMigrationClassifier {
       this.target.assertAuthority(null, { mustExist: true });
       if (!fs.lstatSync(this.target.directory).isDirectory()) throw new Error("Version target is not a directory");
       const catalog = new FlowArtifactCatalogStore({ location: this.target }).require();
-      for (const required of ["flow.json", "flow-version.json", "activities.jsonl", "spec.json"]) catalog.resolve(required);
+      for (const required of [FLOW_STATE_RELATIVE_PATH, "flow-version.json", FLOW_ACTIVITIES_RELATIVE_PATH, SPEC_RECORD_RELATIVE_PATH]) catalog.resolve(required);
       const identity = new FlowVersionIdentityStore({ location: this.target }).load();
       if (identity === null) throw new Error("Version identity is missing");
       const spec = new AuthoritativeSpecRecord(JSON.parse(fs.readFileSync(this.target.specFile, "utf8")));
@@ -1420,9 +1603,9 @@ export class FlowVersionMigrationPlan {
         kind: "flow-version-identity", authority: "repository-metadata", publicationStep: "system",
       }), retention: "permanent", cataloged: true,
     })];
-    if (!targets.has("activities.jsonl")) {
+    if (!targets.has(FLOW_ACTIVITIES_RELATIVE_PATH)) {
       generated.push(new FlowVersionGeneratedArtifact({
-        role: "activity-ledger", targetPath: "activities.jsonl",
+        role: "activity-ledger", targetPath: FLOW_ACTIVITIES_RELATIVE_PATH,
         outputKey: "activity-ledger",
         mediaType: "application/x-ndjson",
         authoritySlot: ArtifactAuthoritySlot.singleton({
@@ -1445,7 +1628,7 @@ export class FlowVersionMigrationPlan {
     this.writes = Object.freeze([...new Set([
       ...this.artifacts.filter((artifact) => artifact.targetPath !== null).map((artifact) => classification.target.relativePath(artifact.targetPath)),
       ...this.generatedArtifacts.map((artifact) => classification.target.relativePath(artifact.targetPath)),
-      classification.target.relativePath("artifact-catalog.json"),
+      classification.target.relativePath(ARTIFACT_CATALOG_RELATIVE_PATH),
     ])].sort(codeUnitOrder));
     Object.freeze(this);
   }

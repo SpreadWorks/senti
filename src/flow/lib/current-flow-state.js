@@ -12,8 +12,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
-import { ArtifactAuthoritySlot, AuthoritativeSpecRecord, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowVersionIdentityStore, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRecord, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
-import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
+import { ArtifactAuthoritySlot, AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowVersionIdentityStore, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRecord, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
+import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
+import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
 
 export const CURRENT_FLOW_SCHEMA_REVISION = 2;
 // `version` is the result-generation version persisted in flow.json.  It is
@@ -53,8 +54,8 @@ function descriptorFor(location, logicalKey, mediaType) {
   return FlowArtifactDescriptor.fromFile({ location, ...artifact.publication({ mediaType }) });
 }
 
-function publicationFor(logicalKey, mediaType) {
-  return resolvedArtifact(logicalKey).publication({ mediaType });
+function publicationFor(logicalKey, mediaType, { updater = null, activityId = null } = {}) {
+  return resolvedArtifact(logicalKey).publication({ mediaType, updater, activityId });
 }
 const TERMINAL_NODE_STATUSES = new Set(["done", "skipped", "failed"]);
 const AUTHORITATIVE_NODE_STATUSES = new Set(["done", "skipped"]);
@@ -2977,11 +2978,15 @@ export class CurrentFlowVersionStore {
     });
   }
   apply(input) {
-    return this.catalogStore.publishManySystem({
+    const activity = FlowActivity.canonical(input?.activity);
+    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+    const activityId = FlowActivityId.from(activity.id);
+    return this.catalogStore.publishMany({
       artifacts: [
-        publicationFor("flow.state", "application/json"),
-        publicationFor("flow.activities", "application/x-ndjson"),
+        publicationFor("flow.state", "application/json", { updater, activityId }),
+        publicationFor("flow.activities", "application/x-ndjson", { updater, activityId }),
       ],
+      publicationClaim: artifactPublicationClaimForStep(updater),
       precondition: () => this.#assertPersistedIdentity(),
       write: () => this.#store().apply(input),
     }).result;

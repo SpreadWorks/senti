@@ -11,8 +11,10 @@ import {
   AuthoritativeSpecRecord,
   FLOW_VERSION_RECORD_SCHEMA_REVISION,
   FlowArtifactCatalog,
+  FlowArtifactActivityAssociation,
   FlowArtifactCatalogStore,
   FlowArtifactDescriptor,
+  FlowArtifactPublicationContext,
   FlowActivityId,
   FlowId,
   FlowRunId,
@@ -33,6 +35,10 @@ import {
   FlowVersionRecord,
 } from "../../../src/lib/flow-version.js";
 import { buildCurrentFlowDefinition } from "../../../src/flow/definition.js";
+
+const REVIEW_DIGEST_A = "a".repeat(64);
+const REVIEW_DIGEST_B = "b".repeat(64);
+const REVIEW_DIGEST_C = "c".repeat(64);
 import {
   ActivityTransition,
   CurrentAttempt,
@@ -122,6 +128,23 @@ function descriptor({ file, kind, authority = "canonical-flow-artifacts", member
 function saveCatalog(location, descriptors) {
   return new FlowArtifactCatalogStore({ location }).initialize(new FlowArtifactCatalog({ artifacts: descriptors }));
 }
+function appendCatalogActivity(location, { id, nodeId, confirmationOrder }) {
+  const ledger = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities");
+  return new FlowArtifactCatalogStore({ location }).publish({
+    ...ledger.publication({
+      updater: nodeId,
+      activityId: new FlowActivityId(id),
+      mediaType: "application/x-ndjson",
+    }),
+    publicationClaim: artifactPublicationClaimForStep(nodeId),
+    write: () => fs.appendFileSync(location.activitiesFile, `${JSON.stringify({
+      id,
+      nodeId,
+      nodeKey: `test.${nodeId}`,
+      confirmationOrder,
+    })}\n`),
+  });
+}
 function evidence(sequence) {
   return new ReviewEvidence({
     version: 1,
@@ -202,8 +225,9 @@ describe("Flow Version identity, schema, and consumer paths", () => {
     assert.equal(new FlowVersion(1).pathSegment, "001");
     assert.equal(location.relativeDirectory, "specs/508-flow-version/1004");
     assert.equal(location.artifact("task.review", { taskId: "T-1" }).endsWith(path.join("steps", "impl", "T-1", "review", "result.json")), true);
-    assert.equal(location.reviewEvidencePath({ taskId: "T-1", digest: "evidence" }).endsWith(path.join("steps", "impl", "T-1", "review", "evidence", "evidence.json")), true);
-    assert.throws(() => location.artifact("review.evidence", { ownerPath: "impl/T-1/review", digest: "evidence" }), /typed registry/);
+    assert.equal(location.reviewEvidencePath({ taskId: "T-1", digest: REVIEW_DIGEST_A }).endsWith(path.join("steps", "impl", "T-1", "review", "evidence", `${REVIEW_DIGEST_A}.json`)), true);
+    assert.throws(() => location.reviewEvidencePath({ digest: REVIEW_DIGEST_A }), /review step/);
+    assert.throws(() => location.artifact("review.evidence", { ownerPath: "impl/T-1/review", digest: REVIEW_DIGEST_A }), /typed registry/);
     assert.equal(location.reportFile.endsWith(path.join("artifacts", "report.json")), true);
     assert.throws(() => location.resolve("../flow.json"));
   });
@@ -247,17 +271,17 @@ describe("Flow artifact catalog authority slots", () => {
         mediaType: "application/json", retention: "permanent",
       });
     };
-    const first = reviewDescriptor("evidence-a");
-    const second = reviewDescriptor("evidence-b");
+    const first = reviewDescriptor(REVIEW_DIGEST_A);
+    const second = reviewDescriptor(REVIEW_DIGEST_B);
     assert.equal(new FlowArtifactCatalog({ artifacts: [first, second] }).artifacts.length, 2);
     assert.throws(() => new FlowArtifactCatalog({ artifacts: [
       first,
-      reviewDescriptor("evidence-a"),
+      reviewDescriptor(REVIEW_DIGEST_A),
     ] }), /duplicate artifact path/);
     assert.throws(() => new ArtifactAuthoritySlot({
       kind: "review-evidence", authority: "canonical-flow-artifacts", cardinality: "collection", publicationStep: "impl-review",
     }), /requires a memberId/);
-    const typed = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: "evidence-a" });
+    const typed = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: REVIEW_DIGEST_A });
     assert.throws(() => new FlowArtifactDescriptor({
       logicalKey: typed.logicalKey,
       authoritySlot: ArtifactAuthoritySlot.collectionMember({
@@ -332,15 +356,33 @@ describe("Flow artifact catalog authority slots", () => {
       new FlowArtifactCatalogStore({ location: value.location }).initialize(value.catalog);
     }, /malformed JSON/);
     assert.throws(() => {
-      const value = setup('{"id":"activity-1"}\n{"id":"activity-1"}\n');
+      const value = setup('{"id":"activity-1","confirmationOrder":1}\n{"id":"activity-1","confirmationOrder":2}\n');
       new FlowArtifactCatalogStore({ location: value.location }).initialize(value.catalog);
     }, /duplicate Activity id/);
     assert.throws(() => {
-      const value = setup('{"id":"activity-1"}\n', "activity-missing");
+      const value = setup('{"id":"activity-1","confirmationOrder":1}\n', "activity-missing");
       new FlowArtifactCatalogStore({ location: value.location }).initialize(value.catalog);
     }, /references a missing Activity/);
-    const valid = setup('{"id":"activity-1"}\n', "activity-1");
+    const valid = setup('{"id":"activity-1","confirmationOrder":1}\n', "activity-1");
     assert.doesNotThrow(() => new FlowArtifactCatalogStore({ location: valid.location }).initialize(valid.catalog));
+
+    const taskReview = FLOW_ARTIFACT_CONTRACTS.resolve("task.review", { taskId: "T-1" });
+    const taskDescriptor = new FlowArtifactDescriptor({
+      logicalKey: taskReview.logicalKey,
+      authoritySlot: taskReview.authoritySlotFor("task-review"),
+      relativePath: taskReview.relativePath,
+      hash: "a".repeat(64),
+      size: 1,
+      mediaType: "application/json",
+      retention: "permanent",
+      activityId: "activity-task-review",
+    });
+    assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
+      id: "activity-task-review", nodeId: "T-1/task-review", nodeKey: "impl.T-1.review", confirmationOrder: 1,
+    }).assertRelatedArtifact(taskDescriptor));
+    assert.throws(() => new FlowArtifactActivityAssociation({
+      id: "activity-task-review", nodeId: "T-2/task-review", nodeKey: "impl.T-2.review", confirmationOrder: 1,
+    }).assertRelatedArtifact(taskDescriptor), /task artifact owner/);
   });
 
   it("does not create a missing Version root on authoritative reads", () => {
@@ -480,6 +522,10 @@ describe("Flow artifact catalog authority slots", () => {
     });
     fs.mkdirSync(location.resolve(".sennel"));
     fs.writeFileSync(location.resolve(".sennel/arbitrary.json"), "rogue");
+    assert.throws(() => saveCatalog(location, [source]), /unclassified artifact/);
+    fs.rmSync(location.resolve(".sennel"), { recursive: true });
+    fs.mkdirSync(location.resolve(".runtime/unknown"), { recursive: true });
+    fs.writeFileSync(location.resolve(".runtime/unknown/arbitrary.json"), "rogue");
     assert.throws(() => saveCatalog(location, [source]), /unclassified artifact/);
   });
 
@@ -867,8 +913,16 @@ describe("Version collection writers", () => {
     const flow = boundary.openVersionStore({ location, identity: identity() });
     flow.create(boundary.createFresh(), { specRecord: specRecord() });
     const rawLog = location.resolve("steps/scenario-validity/output.log");
+    const runtimeTransaction = location.resolve(".runtime/retry-recovery/transaction.json");
     fs.mkdirSync(path.dirname(rawLog), { recursive: true });
+    fs.mkdirSync(path.dirname(runtimeTransaction), { recursive: true });
     fs.writeFileSync(rawLog, "transient");
+    fs.writeFileSync(runtimeTransaction, "transient");
+    assert.doesNotThrow(() => flow.catalog());
+    fs.unlinkSync(rawLog);
+    fs.unlinkSync(runtimeTransaction);
+    assert.doesNotThrow(() => flow.load());
+    assert.doesNotThrow(() => flow.loadSnapshot());
     assert.doesNotThrow(() => flow.catalog());
   });
 
@@ -896,16 +950,16 @@ describe("Version collection writers", () => {
 
     const store = new FlowArtifactCatalogStore({ location });
     assert.throws(() => store.publish({
-      relativePath: "steps/impl-review/evidence/duplicate.json",
+      relativePath: FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C }).relativePath,
       authoritySlot: ArtifactAuthoritySlot.collectionMember({
         kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: first.identity.evidenceDigest }).memberId,
         publicationStep: "impl-review",
       }),
       publicationClaim: claim,
       mediaType: "application/json", retention: "permanent",
-      write: () => fs.writeFileSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: "duplicate" }), "{}"),
+      write: () => fs.writeFileSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C }), "{}"),
     }), /derived from its typed owner and digest/);
-    assert.equal(fs.existsSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: "duplicate" })), false);
+    assert.equal(fs.existsSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C })), false);
   });
 
   it("serializes Issue-log publication through the same catalog authority", () => {
@@ -915,7 +969,14 @@ describe("Version collection writers", () => {
     flow.create(boundary.createFresh(), { specRecord: specRecord() });
     const issueLog = IssueLogStore.forVersion({ location });
     issueLog.append({ kind: "test" }, "issue-entry-1");
-    assert.equal(issueLog.read().document.entries.length, 1);
+    assert.throws(() => issueLog.append({ kind: "test" }, "issue-entry-2"), /requires its updater Activity/);
+    appendCatalogActivity(location, { id: "activity-test-execute-issue", nodeId: "test-execute", confirmationOrder: 1 });
+    issueLog.append({ kind: "test" }, "issue-entry-2", new FlowArtifactPublicationContext({
+      updater: "test-execute",
+      activityId: "activity-test-execute-issue",
+      publicationClaim: artifactPublicationClaimForStep("test-execute"),
+    }));
+    assert.equal(issueLog.read().document.entries.length, 2);
     assert.equal(flow.catalog().resolve("issue-log.json").logicalKey, "issue.log");
   });
 
@@ -925,8 +986,8 @@ describe("Version collection writers", () => {
     const flow = boundary.openVersionStore({ location, identity: identity() });
     flow.create(boundary.createFresh(), { specRecord: specRecord() });
     const catalog = new FlowArtifactCatalogStore({ location });
-    const impl = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: "same-digest" });
-    const spec = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "spec-review", digest: "same-digest" });
+    const impl = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: REVIEW_DIGEST_A });
+    const spec = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "spec-review", digest: REVIEW_DIGEST_A });
     const publish = (artifact, updater) => catalog.publish({
       ...artifact.publication({ updater, mediaType: "application/json" }),
       publicationClaim: artifactPublicationClaimForStep(updater),
@@ -976,28 +1037,113 @@ describe("Version collection writers", () => {
     assert.equal(catalog.readIssueSnapshot(), "# Issue\n");
   });
 
-  it("preserves logicalKey and replaces activityId with the latest updater activity", () => {
+  it("enforces append-only attempt history at the catalog publication boundary", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
     const flow = boundary.openVersionStore({ location, identity: identity() });
     flow.create(boundary.createFresh(), { specRecord: specRecord() });
-    flow.apply({ activity: startActivity(flow.load()) });
-    flow.apply({ activity: updateAttemptActivity(flow.load()) });
     const catalog = new FlowArtifactCatalogStore({ location });
-    const artifact = location.artifact("report");
+    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("test.execute");
+    const publish = (attempts, activityId = null) => catalog.publish({
+      ...artifact.publication({ updater: "test-execute", mediaType: "application/json", activityId }),
+      publicationClaim: artifactPublicationClaimForStep("test-execute"),
+      write: () => {
+        const target = location.resolve(artifact.relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, `${JSON.stringify({ attempts })}\n`);
+      },
+    });
+    publish([{ attempt: 1, verdict: "failed" }]);
+    assert.throws(
+      () => publish([{ attempt: 1, verdict: "failed" }, { attempt: 2, verdict: "passed" }]),
+      /requires its updater Activity/,
+    );
+    appendCatalogActivity(location, { id: "activity-test-execute-1", nodeId: "test-execute", confirmationOrder: 1 });
+    publish(
+      [{ attempt: 1, verdict: "failed" }, { attempt: 2, verdict: "passed" }],
+      new FlowActivityId("activity-test-execute-1"),
+    );
+    const content = artifact.contract.contentContract.parse(fs.readFileSync(location.resolve(artifact.relativePath)));
+    assert.equal(content.current.attempt.value, 2);
+    assert.equal(content.current.payload.verdict, "passed");
+    assert.throws(() => publish([{ attempt: 1, verdict: "rewritten" }, { attempt: 2, verdict: "passed" }]), /preserve its prior prefix/);
+    assert.throws(() => publish([{ attempt: 1, verdict: "failed" }]), /append-only/);
+    assert.deepEqual(JSON.parse(fs.readFileSync(location.resolve(artifact.relativePath), "utf8")), {
+      attempts: [{ attempt: 1, verdict: "failed" }, { attempt: 2, verdict: "passed" }],
+    });
+  });
+
+  it("distinguishes first-publication producers from later updaters", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const flow = boundary.openVersionStore({ location, identity: identity() });
+    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const catalog = new FlowArtifactCatalogStore({ location });
+    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("draft");
+    const publish = (updater, content, activityId = null) => catalog.publish({
+      ...artifact.publication({ updater, mediaType: "application/json", activityId }),
+      publicationClaim: artifactPublicationClaimForStep(updater),
+      write: () => {
+        const target = location.resolve(artifact.relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+      },
+    });
+    assert.throws(() => publish("draft-refine", "refined-before-draft"), /producer is not authorized/);
+    publish("draft", "initial");
+    assert.throws(() => publish("draft-refine", "refined"), /requires its updater Activity/);
+    appendCatalogActivity(location, { id: "activity-draft-refine-1", nodeId: "draft-refine", confirmationOrder: 1 });
+    publish("draft-refine", "refined", new FlowActivityId("activity-draft-refine-1"));
+    assert.equal(fs.readFileSync(location.resolve(artifact.relativePath), "utf8"), "refined");
+  });
+
+  it("preserves logicalKey and replaces activityId with the latest updater activity", () => {
+    const location = canonicalLocation();
+    fs.mkdirSync(location.directory, { recursive: true });
+    fs.writeFileSync(location.activitiesFile, [
+      { id: "activity-1", nodeId: "report", nodeKey: "impl.report", confirmationOrder: 1 },
+      { id: "activity-2", nodeId: "report", nodeKey: "impl.report", confirmationOrder: 2 },
+      { id: "activity-3", nodeId: "impl-review", nodeKey: "impl.impl-review", confirmationOrder: 3 },
+    ].map((entry) => JSON.stringify(entry)).join("\n") + "\n");
+    const ledger = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities");
+    const catalog = new FlowArtifactCatalogStore({ location });
+    catalog.initialize(new FlowArtifactCatalog({ artifacts: [FlowArtifactDescriptor.fromFile({
+      location, ...ledger.publication({ mediaType: "application/x-ndjson" }),
+    })] }));
+    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("report");
     const publish = (activityId, content) => catalog.publish({
-      logicalKey: "report", relativePath: "artifacts/report.json",
-      authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "report", authority: "canonical-flow-artifacts", publicationStep: "report" }),
+      ...artifact.publication({ updater: "report", mediaType: "application/json", activityId: new FlowActivityId(activityId) }),
       publicationClaim: artifactPublicationClaimForStep("report"),
-      mediaType: "application/json", retention: "permanent", activityId: new FlowActivityId(activityId),
-      write: () => { fs.mkdirSync(path.dirname(artifact), { recursive: true }); fs.writeFileSync(artifact, content); },
+      write: () => {
+        const target = location.resolve(artifact.relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+      },
     });
     publish("activity-1", "one");
     publish("activity-2", "two");
-    const descriptor = catalog.require().resolve("artifacts/report.json");
+    const descriptor = catalog.require().resolve(artifact.relativePath);
     assert.equal(descriptor.logicalKey, "report");
     assert.equal(descriptor.activityId, "activity-2");
-    assert.equal(flow.loadSnapshot().state.confirmationOrder, 2);
-    assert.deepEqual(new FlowActivityJournal(location.activitiesFile).read().map((activity) => activity.id), ["activity-1", "activity-2"]);
+    assert.equal(catalog.relatedActivity(artifact.relativePath).updaterStep, "report");
+    catalog.publish({
+      ...artifact.publication({ updater: "report", mediaType: "application/json" }),
+      publicationClaim: artifactPublicationClaimForStep("report"),
+      write: () => fs.writeFileSync(location.resolve(artifact.relativePath), "two"),
+    });
+    assert.equal(catalog.require().resolve(artifact.relativePath).activityId, "activity-2");
+    assert.throws(() => catalog.publish({
+      ...artifact.publication({ updater: "report", mediaType: "application/json" }),
+      publicationClaim: artifactPublicationClaimForStep("report"),
+      write: () => fs.writeFileSync(location.resolve(artifact.relativePath), "changed-without-activity"),
+    }), /must reference a new updater Activity/);
+    assert.throws(() => publish("activity-2", "changed-without-activity"), /must reference a new updater Activity/);
+    assert.equal(fs.readFileSync(location.resolve(artifact.relativePath), "utf8"), "two");
+    assert.throws(() => publish("activity-1", "stale"), /advance to the latest updater Activity/);
+    assert.equal(fs.readFileSync(location.resolve(artifact.relativePath), "utf8"), "two");
+    assert.equal(catalog.require().resolve(artifact.relativePath).activityId, "activity-2");
+    assert.throws(() => publish("activity-3", "unrelated"), /updater does not match its related Activity node/);
+    assert.equal(fs.readFileSync(location.resolve(artifact.relativePath), "utf8"), "two");
+    assert.equal(catalog.require().resolve(artifact.relativePath).activityId, "activity-2");
   });
 });

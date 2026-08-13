@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "node:crypto";
 import { execFile } from "child_process";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
@@ -229,6 +230,15 @@ export class ProcessStreamCapture {
       truncated: this.truncated,
       content: this.content,
       ...(this.rawOutputPath ? { rawOutputPath: this.rawOutputPath } : {}),
+    };
+  }
+
+  toEvidenceJSON() {
+    return {
+      originalByteLength: this.originalByteLength,
+      capturedByteLength: this.capturedByteLength,
+      truncated: this.truncated,
+      sha256: crypto.createHash("sha256").update(this.content).digest("hex"),
     };
   }
 }
@@ -476,6 +486,23 @@ export class ChildProcessExecutionRecord {
       spawnError: this.spawnError,
       stdout: this.stdout.toJSON(),
       stderr: this.stderr.toJSON(),
+      ...(this.rawOutputPath ? { rawOutputPath: this.rawOutputPath } : {}),
+    };
+  }
+
+  toArtifactJSON() {
+    return {
+      kind: this.kind,
+      command: [...this.command],
+      started: this.started,
+      completed: this.completed,
+      exitCode: this.exitCode,
+      signal: this.signal,
+      errorCode: this.errorCode,
+      timedOut: this.timedOut,
+      spawnError: this.spawnError,
+      stdout: this.stdout.toEvidenceJSON(),
+      stderr: this.stderr.toEvidenceJSON(),
       ...(this.rawOutputPath ? { rawOutputPath: this.rawOutputPath } : {}),
     };
   }

@@ -1,6 +1,11 @@
 import path from "node:path";
 import crypto from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
+import {
+  FLOW_ARTIFACT_AUTHORITY_MATRIX,
+  WORKER_ARTIFACT_HANDOFF_STEPS,
+} from "../flow/lib/flow-artifact-authority.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const ROOT_ARTIFACT_KEYS = new Set([
@@ -10,7 +15,9 @@ const RETENTIONS = new Set(["permanent", "transient"]);
 const PLACEMENT_CATEGORIES = new Set(["root-authority", "step-owner", "step-shared", "independent-deliverable", "transient"]);
 const MUTATION_POLICIES = new Set(["replaceable", "immutable"]);
 const SWITCH_TARGET_ACTIONS = new Set(["switch", "new", "remove"]);
-const AUTHORITY_ACTORS = new Set(["system", "branch", "prepare-spec", "draft", "draft-questions-review", "draft-questions-triage", "draft-questions-repair", "draft-refine", "draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair", "draft-gate", "spec", "spec-review", "spec-triage", "spec-repair", "spec-gate", "approval", "test", "scenario-validity", "test-review", "implement", "test-execute", "test-result-review", "impl-review", "impl-triage", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision", "final-regression", "report", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup", "task-impl", "task-review", "task-gate"]);
+const INVENTORY_EXCLUSION_CATEGORIES = new Set(["user-deliverable", "historical-temporary"]);
+const AUTHORITY_ACTORS = new Set(["system", ...FLOW_ARTIFACT_AUTHORITY_MATRIX.map((entry) => entry.stepId)]);
+export const FINAL_REGRESSION_MAX_ATTEMPTS = 10_000;
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -46,6 +53,24 @@ function authorityActor(value, field) {
   const actor = identifier(value, field);
   if (!AUTHORITY_ACTORS.has(actor)) throw new Error(`${field} must name an authority step or system actor`);
   return actor;
+}
+
+/** Normalizes static and task-local Activity node identities to artifact authority actors. */
+export class FlowArtifactUpdater {
+  constructor(value) {
+    this.value = authorityActor(value, "artifact updater");
+    Object.freeze(this);
+  }
+  static fromActivityNodeId(value) {
+    const nodeId = requiredText(value, "Flow Activity nodeId");
+    if (AUTHORITY_ACTORS.has(nodeId)) return new FlowArtifactUpdater(nodeId);
+    const leaf = nodeId.split("/").at(-1);
+    if (AUTHORITY_ACTORS.has(leaf)) return new FlowArtifactUpdater(leaf);
+    const taskStep = nodeId.match(/^.+-(impl|review|gate)$/)?.[1] ?? null;
+    if (taskStep !== null) return new FlowArtifactUpdater(`task-${taskStep}`);
+    throw new Error(`Flow Activity nodeId has no artifact updater actor: ${nodeId}`);
+  }
+  toString() { return this.value; }
 }
 
 function immutableData(value, seen = new WeakSet()) {
@@ -139,7 +164,7 @@ export class FlowArtifactPlacement {
 
 export class FlowArtifactAttempt {
   constructor(value) {
-    if (!Number.isSafeInteger(value) || value < 1 || value > 999) throw new Error("artifact attempt must be a positive three-digit safe integer");
+    if (!Number.isSafeInteger(value) || value < 1) throw new Error("artifact attempt must be a positive safe integer");
     this.value = value;
     Object.freeze(this);
   }
@@ -168,7 +193,32 @@ export class FlowArtifactAttemptHistory {
     this.current = attempts.at(-1) ?? null;
     Object.freeze(this);
   }
+  static fromJSON(value) {
+    if (value === null || typeof value !== "object" || Array.isArray(value) || !Array.isArray(value.attempts)) {
+      throw new Error("artifact attempt history must contain an attempts array");
+    }
+    for (const duplicate of ["current", "latest", "currentJudgment", "latestResult", "verdict", "result"]) {
+      if (Object.hasOwn(value, duplicate)) throw new Error(`artifact attempt history must derive ${duplicate} from its last attempt`);
+    }
+    return new FlowArtifactAttemptHistory(value.attempts.map((entry) => {
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new Error("artifact attempt history entries must be objects");
+      }
+      const { attempt, ...payload } = entry;
+      return new FlowArtifactAttemptRecord({ attempt, payload });
+    }));
+  }
   append(record) { return new FlowArtifactAttemptHistory([...this.attempts, record]); }
+  assertExtends(previous) {
+    if (!(previous instanceof FlowArtifactAttemptHistory)) throw new Error("previous artifact attempt history is required");
+    if (this.attempts.length < previous.attempts.length) throw new Error("artifact attempt history must be append-only");
+    for (let index = 0; index < previous.attempts.length; index += 1) {
+      if (!isDeepStrictEqual(this.attempts[index].toJSON(), previous.attempts[index].toJSON())) {
+        throw new Error("artifact attempt history must preserve its prior prefix");
+      }
+    }
+    return this;
+  }
   toJSON() { return { attempts: this.attempts.map((record) => record.toJSON()) }; }
 }
 
@@ -181,6 +231,30 @@ export class FlowArtifactAttemptRecord {
     Object.freeze(this);
   }
   toJSON() { return { attempt: this.attempt.value, ...this.payload }; }
+}
+
+export class FlowArtifactContentContract {
+  parse() { throw new Error("artifact content contract must implement parse"); }
+  assertPublication() { throw new Error("artifact content contract must implement assertPublication"); }
+}
+
+/** Parses and compares the durable JSON shape shared by retried result artifacts. */
+export class FlowArtifactAttemptHistoryContent extends FlowArtifactContentContract {
+  constructor() { super(); Object.freeze(this); }
+  parse(bytes) {
+    if (!Buffer.isBuffer(bytes)) throw new Error("artifact attempt history content must be a Buffer");
+    let value;
+    try { value = JSON.parse(bytes.toString("utf8")); } catch (error) {
+      throw new Error(`artifact attempt history must be valid JSON: ${error.message}`);
+    }
+    return FlowArtifactAttemptHistory.fromJSON(value);
+  }
+  assertPublication(previousBytes, nextBytes) {
+    const next = this.parse(nextBytes);
+    if (next.current === null) throw new Error("artifact attempt history must contain at least one attempt");
+    if (previousBytes !== null) next.assertExtends(this.parse(previousBytes));
+    return next;
+  }
 }
 
 export class FlowArtifactLegacyTarget {
@@ -226,6 +300,18 @@ export class FlowArtifactSwitchTarget {
 
 export class FlowArtifactNoArtifactClassification {
   constructor(stepId, reason) { this.stepId = identifier(stepId, "no-artifact step"); this.reason = requiredText(reason, "no-artifact reason"); Object.freeze(this); }
+}
+
+/** Repository-specific tracked files proven not to be current normal-Flow switch targets. */
+export class FlowArtifactInventoryExclusion {
+  constructor({ relativePath, category, reason } = {}) {
+    this.relativePath = safeRelativePath(relativePath, "artifact inventory exclusion path");
+    this.category = identifier(category, "artifact inventory exclusion category");
+    if (!INVENTORY_EXCLUSION_CATEGORIES.has(this.category)) throw new Error("artifact inventory exclusion category is invalid");
+    this.reason = requiredText(reason, "artifact inventory exclusion reason");
+    Object.freeze(this);
+  }
+  toString() { return this.relativePath; }
 }
 
 export class FlowArtifactCanonicalPath {
@@ -325,19 +411,142 @@ export class FlowArtifactKnownFile {
   toString() { return this.legacyPath?.toString() ?? this.legacyPattern?.toString() ?? this.canonicalPath.toString(); }
 }
 
-function legacyPatternSample(pattern) {
-  return pattern.path.resolve(Object.fromEntries(pattern.path.parameters.map((parameter) => [
-    parameter,
-    parameter.endsWith("Path") ? "sample/path" : "sample",
-  ])));
+const pathCharacterSet = (characters) => Object.freeze({ kind: "set", values: Object.freeze(new Set(characters)) });
+const PATH_PATTERN_ALNUM = pathCharacterSet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+const PATH_PATTERN_IDENTIFIER = pathCharacterSet([...PATH_PATTERN_ALNUM.values, ".", "_", "-"]);
+const PATH_PATTERN_NON_SLASH = Object.freeze({ kind: "non-slash" });
+
+class FlowArtifactPathAutomaton {
+  constructor(canonicalPath) {
+    if (!(canonicalPath instanceof FlowArtifactCanonicalPath)) {
+      throw new Error("artifact path automaton requires a FlowArtifactCanonicalPath");
+    }
+    this.transitions = new Map();
+    this.nextState = 1;
+    let current = 0;
+    const segments = canonicalPath.toString().split("/");
+    for (const [index, segment] of segments.entries()) {
+      if (index > 0) current = this.#literal(current, "/");
+      const wholePathParameter = segment.match(/^:\{([A-Za-z0-9][A-Za-z0-9._-]*Path)\}$/);
+      if (wholePathParameter) {
+        current = this.#pathParameter(current);
+        continue;
+      }
+      const parameterPattern = /:\{([A-Za-z0-9][A-Za-z0-9._-]*)\}/g;
+      let cursor = 0;
+      let match;
+      while ((match = parameterPattern.exec(segment)) !== null) {
+        for (const character of segment.slice(cursor, match.index)) current = this.#literal(current, character);
+        current = this.#identifierParameter(current);
+        cursor = match.index + match[0].length;
+      }
+      for (const character of segment.slice(cursor)) current = this.#literal(current, character);
+    }
+    this.accepting = current;
+    Object.freeze(this);
+  }
+
+  #state() { return this.nextState++; }
+  #add(from, characters, to) {
+    const entries = this.transitions.get(from) ?? [];
+    entries.push(Object.freeze({ characters, to }));
+    this.transitions.set(from, entries);
+  }
+  #literal(from, character) {
+    const to = this.#state();
+    this.#add(from, pathCharacterSet([character]), to);
+    return to;
+  }
+  #identifierParameter(from) {
+    const body = this.#state();
+    const next = this.#state();
+    this.#add(from, PATH_PATTERN_ALNUM, body);
+    this.#add(body, PATH_PATTERN_IDENTIFIER, body);
+    this.#add(body, null, next);
+    return next;
+  }
+  #pathParameter(from) {
+    const segment = this.#state();
+    const next = this.#state();
+    this.#add(from, PATH_PATTERN_NON_SLASH, segment);
+    this.#add(segment, PATH_PATTERN_NON_SLASH, segment);
+    this.#add(segment, pathCharacterSet(["/"]), from);
+    this.#add(segment, null, next);
+    return next;
+  }
+  epsilonClosure(states) {
+    const closure = new Set(states);
+    const pending = [...states];
+    while (pending.length > 0) {
+      const state = pending.pop();
+      for (const transition of this.transitions.get(state) ?? []) {
+        if (transition.characters !== null || closure.has(transition.to)) continue;
+        closure.add(transition.to);
+        pending.push(transition.to);
+      }
+    }
+    return closure;
+  }
+  consumingTransitions(states) {
+    return [...this.epsilonClosure(states)].flatMap((state) => (
+      (this.transitions.get(state) ?? []).filter((transition) => transition.characters !== null)
+    ));
+  }
+}
+
+function characterSetsOverlap(left, right) {
+  if (left.kind === "non-slash" && right.kind === "non-slash") return true;
+  if (left.kind === "non-slash" || right.kind === "non-slash") {
+    const set = left.kind === "set" ? left.values : right.values;
+    return [...set].some((character) => character !== "/");
+  }
+  const smaller = left.values.size <= right.values.size ? left.values : right.values;
+  const larger = smaller === left.values ? right.values : left.values;
+  return [...smaller].some((character) => larger.has(character));
+}
+
+function canonicalPathsOverlap(left, right) {
+  const leftAutomaton = new FlowArtifactPathAutomaton(left);
+  const rightAutomaton = new FlowArtifactPathAutomaton(right);
+  const pending = [[leftAutomaton.epsilonClosure([0]), rightAutomaton.epsilonClosure([0])]];
+  const visited = new Set();
+  while (pending.length > 0) {
+    const [leftStates, rightStates] = pending.pop();
+    const key = `${[...leftStates].sort((a, b) => a - b).join(",")}|${[...rightStates].sort((a, b) => a - b).join(",")}`;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    if (leftStates.has(leftAutomaton.accepting) && rightStates.has(rightAutomaton.accepting)) return true;
+    for (const leftTransition of leftAutomaton.consumingTransitions(leftStates)) {
+      for (const rightTransition of rightAutomaton.consumingTransitions(rightStates)) {
+        if (!characterSetsOverlap(leftTransition.characters, rightTransition.characters)) continue;
+        pending.push([
+          leftAutomaton.epsilonClosure([leftTransition.to]),
+          rightAutomaton.epsilonClosure([rightTransition.to]),
+        ]);
+      }
+    }
+  }
+  return false;
+}
+
+function patternIsEntirelyExcluded(pattern, excludedPrefixes) {
+  const literalPrefix = pattern.path.toString().split(/:\{[A-Za-z0-9][A-Za-z0-9._-]*\}/, 1)[0];
+  return excludedPrefixes.some((excluded) => (
+    literalPrefix.startsWith(excluded)
+    || (excluded.endsWith("/") && literalPrefix === excluded.slice(0, -1))
+  ));
 }
 
 function legacyEntriesOverlap(left, right) {
-  const leftPath = left instanceof FlowArtifactLegacyPattern ? legacyPatternSample(left) : left.toString();
-  const rightPath = right instanceof FlowArtifactLegacyPattern ? legacyPatternSample(right) : right.toString();
-  const leftMatches = left instanceof FlowArtifactLegacyPattern ? left.matches(rightPath) : leftPath === rightPath;
-  const rightMatches = right instanceof FlowArtifactLegacyPattern ? right.matches(leftPath) : rightPath === leftPath;
-  return leftMatches || rightMatches;
+  const leftPattern = left instanceof FlowArtifactLegacyPattern;
+  const rightPattern = right instanceof FlowArtifactLegacyPattern;
+  if (!leftPattern && !rightPattern) return left.toString() === right.toString();
+  if (!leftPattern) return right.matches(left.toString());
+  if (!rightPattern) return left.matches(right.toString());
+  if (!canonicalPathsOverlap(left.path, right.path)) return false;
+  if (patternIsEntirelyExcluded(right, left.excludedPrefixes)) return false;
+  if (patternIsEntirelyExcluded(left, right.excludedPrefixes)) return false;
+  return true;
 }
 
 function patternInventoryIdentity(pattern) {
@@ -363,15 +572,76 @@ function targetInventoryEntryIdentities(target) {
   ];
 }
 
+const STEP_OWNER_MINT = Symbol("FlowArtifactStepOwner");
+const REVIEW_STEP_IDS = new Set([
+  "draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review",
+]);
+
+/** Binds an executable Flow step identity to its canonical steps/ directory. */
 export class FlowArtifactStepOwner {
-  static reviewStep(stepId) {
-    const allowed = new Set(["draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review"]);
-    if (!allowed.has(stepId)) throw new Error(`invalid review artifact owner: ${stepId}`);
-    return new FlowArtifactStepOwner(stepId);
+  static #directoryFor(stepId) {
+    if (stepId === "implement") return "impl";
+    if (stepId === "retro") return "impl/retro";
+    const implLeaf = stepId.match(/^impl-(review|triage|repair|gate)$/)?.[1] ?? null;
+    return implLeaf === null ? stepId : path.posix.join("impl", implLeaf);
   }
-  static taskReview(taskId) { return new FlowArtifactStepOwner(path.posix.join("impl", identifier(taskId, "taskId"), "review")); }
-  constructor(value) { this.value = safeRelativePath(value, "artifact step owner"); Object.freeze(this); }
-  toString() { return this.value; }
+  static forStep(stepId) {
+    const actor = authorityActor(stepId, "artifact owner step");
+    if (actor === "system" || actor.startsWith("task-")) {
+      throw new Error(`artifact owner must be a concrete non-task Flow step: ${actor}`);
+    }
+    return new FlowArtifactStepOwner({
+      publicationStep: actor,
+      directoryPath: FlowArtifactStepOwner.#directoryFor(actor),
+    }, STEP_OWNER_MINT);
+  }
+  static reviewStep(stepId) {
+    const actor = identifier(stepId, "review step");
+    if (!REVIEW_STEP_IDS.has(actor)) throw new Error(`invalid review artifact owner: ${actor}`);
+    return FlowArtifactStepOwner.forStep(actor);
+  }
+  static reviewDirectory(directoryPath) {
+    const ownerPath = safeRelativePath(directoryPath, "review artifact owner directory");
+    const stepId = [...REVIEW_STEP_IDS].find((candidate) => (
+      FlowArtifactStepOwner.#directoryFor(candidate) === ownerPath
+    ));
+    if (stepId === undefined) throw new Error(`invalid review artifact owner directory: ${ownerPath}`);
+    return FlowArtifactStepOwner.reviewStep(stepId);
+  }
+  static taskCollection(segment) {
+    const ownerSegment = identifier(segment, "task artifact owner segment");
+    if (!new Set(["impl", "review", "gate"]).has(ownerSegment)) throw new Error("task artifact owner segment is invalid");
+    return new FlowArtifactStepOwner({
+      publicationStep: `task-${ownerSegment}`,
+      directoryPath: path.posix.join("impl", ":{taskId}", ownerSegment),
+    }, STEP_OWNER_MINT);
+  }
+  static taskReview(taskId) {
+    return new FlowArtifactStepOwner({
+      publicationStep: "task-review",
+      directoryPath: path.posix.join("impl", identifier(taskId, "taskId"), "review"),
+    }, STEP_OWNER_MINT);
+  }
+  static reviewCollection() {
+    return new FlowArtifactStepOwner({ publicationStep: null, directoryPath: ":{ownerPath}" }, STEP_OWNER_MINT);
+  }
+  constructor({ publicationStep, directoryPath } = {}, mint = null) {
+    if (mint !== STEP_OWNER_MINT) throw new Error("Flow artifact step owners must be created by a typed owner factory");
+    this.publicationStep = publicationStep === null ? null : authorityActor(publicationStep, "artifact owner publication step");
+    this.directoryPath = new FlowArtifactCanonicalPath(safeRelativePath(directoryPath, "artifact step owner directory"));
+    Object.freeze(this);
+  }
+  assertOwns(canonicalPath) {
+    const artifactPath = canonicalPath instanceof FlowArtifactCanonicalPath
+      ? canonicalPath.toString()
+      : new FlowArtifactCanonicalPath(canonicalPath).toString();
+    const prefix = `steps/${this.directoryPath}/`;
+    if (!artifactPath.startsWith(prefix)) {
+      throw new Error(`step owner ${this.directoryPath} does not own artifact path: ${artifactPath}`);
+    }
+    return artifactPath;
+  }
+  toString() { return this.directoryPath.toString(); }
 }
 
 /** Typed task-local directory resolution; task specifications remain in spec.json.tasks[]. */
@@ -415,12 +685,20 @@ export class FlowArtifactAuthoritySlot {
 }
 
 export class FlowArtifactContract {
-  constructor({ logicalKey, canonicalPath, placement, mutationPolicy = "replaceable", retention, ownership, authoritySlot, cataloged = true } = {}) {
+  constructor({ logicalKey, canonicalPath, placement, stepOwner = null, mutationPolicy = "replaceable", contentContract = null, retention, ownership, authoritySlot, cataloged = true } = {}) {
     this.logicalKey = logicalKey instanceof FlowArtifactLogicalKey ? logicalKey : new FlowArtifactLogicalKey(logicalKey);
     this.canonicalPath = canonicalPath instanceof FlowArtifactCanonicalPath ? canonicalPath : new FlowArtifactCanonicalPath(canonicalPath);
     this.retention = retention instanceof FlowArtifactRetention ? retention : new FlowArtifactRetention(retention);
     this.placement = placement instanceof FlowArtifactPlacement ? placement : new FlowArtifactPlacement(placement);
+    if (stepOwner !== null && !(stepOwner instanceof FlowArtifactStepOwner)) {
+      throw new Error("artifact step owner must be a FlowArtifactStepOwner");
+    }
+    this.stepOwner = stepOwner;
     this.mutationPolicy = mutationPolicy instanceof FlowArtifactMutationPolicy ? mutationPolicy : new FlowArtifactMutationPolicy(mutationPolicy);
+    if (contentContract !== null && !(contentContract instanceof FlowArtifactContentContract)) {
+      throw new Error("artifact content contract must be a typed content contract");
+    }
+    this.contentContract = contentContract;
     this.ownership = ownership instanceof FlowArtifactOwnership ? ownership : new FlowArtifactOwnership(ownership);
     if (!(authoritySlot instanceof FlowArtifactAuthoritySlot)) throw new Error("artifact contract requires a FlowArtifactAuthoritySlot");
     this.authoritySlot = authoritySlot;
@@ -430,6 +708,12 @@ export class FlowArtifactContract {
       logicalKey: this.logicalKey.toString(), canonicalPath: this.canonicalPath,
       retention: this.retention, cataloged: this.cataloged,
     });
+    if (this.placement.toString() === "step-owner") {
+      if (this.stepOwner === null) throw new Error("step owner placement requires classified ownership");
+      this.stepOwner.assertOwns(this.canonicalPath);
+    } else if (this.stepOwner !== null) {
+      throw new Error(`${this.placement} placement must not declare a step owner`);
+    }
     if (!this.ownership.updaters.includes(this.authoritySlot.publicationStep)
       && !this.ownership.producers.includes(this.authoritySlot.publicationStep)) {
       throw new Error("artifact authority publication step must be a declared producer or updater");
@@ -443,17 +727,95 @@ export class FlowArtifactContract {
     if (this.logicalKey.toString() === "final.regression.raw-log") {
       const attempt = parameters?.attempt;
       const resolvedAttempt = attempt instanceof FlowArtifactAttempt ? attempt.toString() : attempt;
-      if (typeof resolvedAttempt !== "string" || !/^(?:00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$/.test(resolvedAttempt)) {
-        throw new Error("final regression raw log attempt must be a typed or three-digit positive attempt");
+      const numericAttempt = typeof resolvedAttempt === "string" && /^\d+$/.test(resolvedAttempt)
+        ? Number.parseInt(resolvedAttempt, 10)
+        : null;
+      if (numericAttempt === null || numericAttempt < 1 || numericAttempt > FINAL_REGRESSION_MAX_ATTEMPTS
+        || String(numericAttempt).padStart(3, "0") !== resolvedAttempt) {
+        throw new Error("final regression raw log attempt must be a typed or canonically padded attempt between 1 and 10000");
       }
       return new ResolvedFlowArtifact(this, this.canonicalPath.resolve({ attempt: resolvedAttempt }));
     }
+    if (this.logicalKey.toString() === "tests.source") {
+      const testPath = safeRelativePath(parameters?.testPath, "test source path");
+      if (testPath === ".raw" || testPath.startsWith(".raw/")) {
+        throw new Error("test source path must not use the diagnostic .raw namespace");
+      }
+      return new ResolvedFlowArtifact(this, this.canonicalPath.resolve({ testPath }));
+    }
+    if (this.logicalKey.toString() === "plugin.lifecycle.artifact") {
+      const pluginArtifactPath = safeRelativePath(parameters?.pluginArtifactPath, "plugin lifecycle artifact path");
+      if (pluginArtifactPath === "workflow/ideas.json") {
+        throw new Error("plugin lifecycle artifacts must not duplicate the canonical ideas artifact");
+      }
+      return new ResolvedFlowArtifact(this, this.canonicalPath.resolve({ pluginArtifactPath }));
+    }
     return new ResolvedFlowArtifact(this, this.canonicalPath.resolve(parameters));
+  }
+  matchesCanonicalPath(relativePath) {
+    const candidate = safeRelativePath(relativePath, "artifact canonical path");
+    const key = this.logicalKey.toString();
+    if (key === "final.regression.raw-log") {
+      const match = candidate.match(/^steps\/final-regression\/attempt-(\d+)\.log$/);
+      if (match === null) return false;
+      const attempt = Number.parseInt(match[1], 10);
+      return attempt >= 1
+        && attempt <= FINAL_REGRESSION_MAX_ATTEMPTS
+        && String(attempt).padStart(3, "0") === match[1];
+    }
+    if (key === "review.evidence") {
+      const match = candidate.match(/^steps\/(.+)\/evidence\/([a-f0-9]{64})\.json$/);
+      if (match === null) return false;
+      const taskOwner = match[1].match(/^impl\/([A-Za-z0-9][A-Za-z0-9._-]*)\/review$/);
+      try {
+        if (taskOwner !== null) FlowArtifactStepOwner.taskReview(taskOwner[1]);
+        else FlowArtifactStepOwner.reviewDirectory(match[1]);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    if (key === "tests.source" && (candidate === "artifacts/tests/.raw" || candidate.startsWith("artifacts/tests/.raw/"))) return false;
+    if (key === "plugin.lifecycle.artifact" && candidate === "artifacts/plugin-artifacts/workflow/ideas.json") return false;
+    return this.canonicalPath.matches(candidate);
   }
   authoritySlotFor(updater, memberId = null) {
     const actor = identifier(updater, "artifact updater");
     if (!this.ownership.updaters.includes(actor)) throw new Error(`artifact updater is not authorized: ${actor}`);
     return new FlowArtifactAuthoritySlot({ kind: this.authoritySlot.kind, authority: this.authoritySlot.authority, cardinality: this.authoritySlot.cardinality, publicationStep: actor }).resolve(memberId);
+  }
+  memberIdForPath(relativePath) {
+    const candidate = safeRelativePath(relativePath, "artifact authority path");
+    if (!this.matchesCanonicalPath(candidate)) throw new Error(`artifact authority path does not match logical contract ${this.logicalKey}`);
+    return this.authoritySlot.cardinality.value === "collection"
+      ? crypto.createHash("sha256").update(candidate).digest("hex")
+      : null;
+  }
+  authoritySlotForPath(relativePath, updater = this.authoritySlot.publicationStep) {
+    return this.authoritySlotFor(updater, this.memberIdForPath(relativePath));
+  }
+  assertAuthoritySlot(relativePath, slot) {
+    if (!(slot instanceof ArtifactAuthoritySlot)) throw new Error("artifact contract requires an ArtifactAuthoritySlot");
+    const expected = this.authoritySlotForPath(relativePath, slot.publicationStep);
+    if (slot.kind !== expected.kind || slot.authority.toString() !== expected.authority.toString()
+      || slot.cardinality.toString() !== expected.cardinality.toString() || slot.memberId !== expected.memberId
+      || slot.publicationStep !== expected.publicationStep) {
+      throw new Error(`artifact authority slot does not match logical contract ${this.logicalKey}`);
+    }
+    return slot;
+  }
+  assertPublicationRole({ exists, publicationStep } = {}) {
+    if (typeof exists !== "boolean") throw new Error("artifact publication existence must be boolean");
+    const actor = authorityActor(publicationStep, "artifact publication step");
+    const allowed = exists ? this.ownership.updaters : this.ownership.producers;
+    if (!allowed.includes(actor)) {
+      throw new Error(`artifact ${exists ? "updater" : "producer"} is not authorized: ${actor}`);
+    }
+    return actor;
+  }
+  assertContentPublication(previousBytes, nextBytes) {
+    if (!Buffer.isBuffer(nextBytes)) throw new Error("artifact publication content must be a Buffer");
+    return this.contentContract?.assertPublication(previousBytes, nextBytes) ?? null;
   }
 }
 
@@ -465,13 +827,13 @@ export class ResolvedFlowArtifact {
     this.relativePath = safeRelativePath(relativePath, "resolved artifact path");
     Object.freeze(this);
   }
-  authoritySlot(memberId = null) { return this.contract.authoritySlot.resolve(memberId); }
-  authoritySlotFor(updater, memberId = null) { return this.contract.authoritySlotFor(updater, memberId); }
-  publication({ mediaType, updater = null, memberId = null, activityId = null } = {}) {
+  authoritySlot() { return this.contract.authoritySlotForPath(this.relativePath); }
+  authoritySlotFor(updater) { return this.contract.authoritySlotForPath(this.relativePath, updater); }
+  publication({ mediaType, updater = null, activityId = null } = {}) {
     return Object.freeze({
       logicalKey: this.logicalKey,
       relativePath: this.relativePath,
-      authoritySlot: updater === null ? this.authoritySlot(memberId) : this.authoritySlotFor(updater, memberId),
+      authoritySlot: updater === null ? this.authoritySlot() : this.authoritySlotFor(updater),
       mediaType: requiredText(mediaType, "artifact media type"),
       retention: this.contract.retention.toString(),
       activityId,
@@ -483,32 +845,36 @@ export class ResolvedFlowArtifact {
 export class FlowArtifactReviewEvidence {
   constructor(contract, { owner, digest } = {}) {
     if (!(owner instanceof FlowArtifactStepOwner)) throw new Error("review evidence requires a typed review owner");
-    const evidenceDigest = identifier(digest, "review evidence digest");
+    const evidenceDigest = requiredText(digest, "review evidence digest");
+    if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) throw new Error("review evidence digest must be a lowercase SHA-256 digest");
     if (!(contract instanceof FlowArtifactContract)) throw new Error("review evidence requires a FlowArtifactContract");
     this.contract = contract;
     this.logicalKey = contract.logicalKey.toString();
     this.relativePath = contract.canonicalPath.resolve({ ownerPath: owner.toString(), digest: evidenceDigest });
     this.owner = owner;
     this.digest = evidenceDigest;
-    this.memberId = crypto.createHash("sha256").update(`${owner.toString()}\0${evidenceDigest}`).digest("hex");
+    this.memberId = contract.memberIdForPath(this.relativePath);
     Object.freeze(this);
   }
   static fromCanonicalPath(contract, relativePath) {
     if (!(contract instanceof FlowArtifactContract) || contract.logicalKey.toString() !== "review.evidence") {
       throw new Error("review evidence canonical path requires its review.evidence contract");
     }
-    const match = safeRelativePath(relativePath, "review evidence canonical path").match(/^steps\/(.+)\/evidence\/([A-Za-z0-9][A-Za-z0-9._-]*)\.json$/);
+    const match = safeRelativePath(relativePath, "review evidence canonical path").match(/^steps\/(.+)\/evidence\/([a-f0-9]{64})\.json$/);
     if (!match) throw new Error("review evidence canonical path must contain a typed owner and digest");
     const [, ownerPath, digest] = match;
     const taskOwner = ownerPath.match(/^impl\/([A-Za-z0-9][A-Za-z0-9._-]*)\/review$/);
     const owner = taskOwner === null
-      ? FlowArtifactStepOwner.reviewStep(ownerPath)
+      ? FlowArtifactStepOwner.reviewDirectory(ownerPath)
       : FlowArtifactStepOwner.taskReview(taskOwner[1]);
     const evidence = new FlowArtifactReviewEvidence(contract, { owner, digest });
     if (evidence.relativePath !== relativePath) throw new Error("review evidence canonical path does not match its typed owner");
     return evidence;
   }
-  publicationStep() { return this.owner.toString().startsWith("impl/") ? "task-review" : this.owner.toString(); }
+  publicationStep() {
+    if (this.owner.publicationStep === null) throw new Error("review evidence owner has no publication step");
+    return this.owner.publicationStep;
+  }
   assertAuthoritySlot(slot) {
     if (!(slot instanceof ArtifactAuthoritySlot)) throw new Error("review evidence requires an ArtifactAuthoritySlot");
     const expected = this.authoritySlotFor(this.publicationStep());
@@ -555,11 +921,15 @@ export class FlowArtifactRegistry {
       for (let right = left + 1; right < contracts.length; right += 1) {
         const leftPath = contracts[left].canonicalPath;
         const rightPath = contracts[right].canonicalPath;
-        const leftSample = leftPath.resolve(Object.fromEntries(leftPath.parameters.map((parameter) => [parameter, parameter.endsWith("Path") ? "owner/path" : "member"])));
-        const rightSample = rightPath.resolve(Object.fromEntries(rightPath.parameters.map((parameter) => [parameter, parameter.endsWith("Path") ? "owner/path" : "member"])));
-        if (leftPath.matches(rightSample) || rightPath.matches(leftSample)) {
+        if (canonicalPathsOverlap(leftPath, rightPath)) {
           throw new Error(`overlapping artifact canonical paths: ${leftPath} / ${rightPath}`);
         }
+      }
+    }
+    for (const contract of contracts) {
+      if (contract.cataloged && contract.canonicalPath.parameters.length > 0
+        && contract.authoritySlot.cardinality.value !== "collection") {
+        throw new Error(`parameterized catalog artifact paths require collection authority: ${contract.logicalKey}`);
       }
     }
     const rootKeys = new Set(contracts.filter((contract) => !contract.canonicalPath.toString().includes("/")).map((contract) => contract.logicalKey.toString()));
@@ -648,13 +1018,16 @@ export class FlowArtifactRegistry {
   }
   resolve(logicalKey, parameters = {}) { return this.require(logicalKey).resolve(parameters); }
   reviewEvidence({ reviewStep = null, taskId = null, digest } = {}) {
+    if ((reviewStep === null) === (taskId === null)) {
+      throw new Error("review evidence requires exactly one review step or taskId owner");
+    }
     const owner = taskId == null ? FlowArtifactStepOwner.reviewStep(identifier(reviewStep, "review step")) : FlowArtifactStepOwner.taskReview(taskId);
     return new FlowArtifactReviewEvidence(this.require("review.evidence"), { owner, digest });
   }
   taskDirectory(taskId, segment) { return new FlowArtifactTaskOwner(taskId, segment).toString(); }
   finalRegressionRawLog(attempt) { return this.require("final.regression.raw-log").resolve({ attempt: attempt instanceof FlowArtifactAttempt ? attempt : new FlowArtifactAttempt(attempt) }); }
   classify(relativePath) {
-    const matches = [...this.byKey.values()].filter((contract) => contract.canonicalPath.matches(relativePath));
+    const matches = [...this.byKey.values()].filter((contract) => contract.matchesCanonicalPath(relativePath));
     if (matches.length !== 1) throw new Error(`artifact path is not uniquely classified: ${relativePath}`);
     return matches[0];
   }
@@ -701,6 +1074,13 @@ const FLOW_ARTIFACT_MUTATION_POLICIES = new Map([
   ["review.evidence", new FlowArtifactMutationPolicy("immutable")],
 ]);
 
+const FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS = new Set([
+  "draft.questions.review", "draft.coverage.review", "spec.review", "scenario.validity",
+  "test.review", "test.execute", "test.result.review", "impl.review", "task.review",
+  "acceptance.review", "final.regression",
+]);
+const FLOW_ARTIFACT_ATTEMPT_HISTORY_CONTENT = new FlowArtifactAttemptHistoryContent();
+
 function placementFor(logicalKey) {
   const placement = FLOW_ARTIFACT_PLACEMENTS.get(logicalKey);
   if (!placement) throw new Error(`artifact contract is missing placement: ${logicalKey}`);
@@ -711,9 +1091,61 @@ function mutationPolicyFor(logicalKey) {
   return FLOW_ARTIFACT_MUTATION_POLICIES.get(logicalKey) ?? new FlowArtifactMutationPolicy("replaceable");
 }
 
+const FLOW_ARTIFACT_OWNER_STEP_BY_KEY = new Map([
+  ["draft", "draft"],
+  ["draft.questions.review", "draft-questions-review"],
+  ["draft.questions.triage", "draft-questions-triage"],
+  ["draft.questions.repair", "draft-questions-repair"],
+  ["draft.coverage.review", "draft-coverage-review"],
+  ["draft.coverage.triage", "draft-coverage-triage"],
+  ["draft.coverage.repair", "draft-coverage-repair"],
+  ["draft.gate.source", "draft-gate"],
+  ["draft.gate", "draft-gate"],
+  ["spec.review", "spec-review"],
+  ["spec.triage", "spec-triage"],
+  ["spec.repair", "spec-repair"],
+  ["spec.gate.source", "spec-gate"],
+  ["spec.gate", "spec-gate"],
+  ["scenario.validity", "scenario-validity"],
+  ["test.review", "test-review"],
+  ["test.execute", "test-execute"],
+  ["test.result.review", "test-result-review"],
+  ["impl.review", "impl-review"],
+  ["impl.triage", "impl-triage"],
+  ["impl.repair", "impl-repair"],
+  ["impl.gate.source", "impl-gate"],
+  ["impl.gate", "impl-gate"],
+  ["retro", "retro"],
+  ["acceptance.review", "acceptance-review"],
+  ["acceptance.review.evidence", "acceptance-review"],
+  ["final.regression", "final-regression"],
+  ["file.map", "implement"],
+  ["placeholder.permission", "test"],
+  ["gate.memory", "impl-gate"],
+  ["repair.fingerprint", "impl-repair"],
+  ["repair.delta", "impl-repair"],
+  ["repair.migration", "impl-repair"],
+  ["finalize.cleanup.agent-metrics", "finalize-cleanup"],
+  ["finalize.cleanup.notes", "finalize-cleanup"],
+  ["finalize.cleanup.plugin-artifacts", "finalize-cleanup"],
+]);
+
+function stepOwnerFor(logicalKey) {
+  if (placementFor(logicalKey).toString() !== "step-owner") return null;
+  if (logicalKey === "task.review") return FlowArtifactStepOwner.taskCollection("review");
+  if (logicalKey === "task.gate.source" || logicalKey === "task.gate") return FlowArtifactStepOwner.taskCollection("gate");
+  if (logicalKey === "review.evidence") return FlowArtifactStepOwner.reviewCollection();
+  const stepId = FLOW_ARTIFACT_OWNER_STEP_BY_KEY.get(logicalKey);
+  if (stepId === undefined) throw new Error(`artifact contract is missing a classified step owner: ${logicalKey}`);
+  return FlowArtifactStepOwner.forStep(stepId);
+}
+
 function contract(logicalKey, canonicalPath, kind, authority, publicationStep, ownership, retention = "permanent", cardinality = "singleton", cataloged = true) {
   return new FlowArtifactContract({
-    logicalKey, canonicalPath, placement: placementFor(logicalKey), mutationPolicy: mutationPolicyFor(logicalKey), retention, ownership, cataloged,
+    logicalKey, canonicalPath, placement: placementFor(logicalKey), mutationPolicy: mutationPolicyFor(logicalKey),
+    stepOwner: stepOwnerFor(logicalKey),
+    contentContract: FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS.has(logicalKey) ? FLOW_ARTIFACT_ATTEMPT_HISTORY_CONTENT : null,
+    retention, ownership, cataloged,
     authoritySlot: new FlowArtifactAuthoritySlot({ kind, authority, publicationStep, cardinality }),
   });
 }
@@ -723,10 +1155,19 @@ const own = (producers, updaters, consumers) => ({
   updaters,
   consumers,
 });
+const NORMAL_FLOW_STEP_ACTORS = Object.freeze([...AUTHORITY_ACTORS].filter((actor) => actor !== "system"));
+const FLOW_WIDE_RECORD_ACTORS = Object.freeze(["system", ...NORMAL_FLOW_STEP_ACTORS]);
+const FLOW_FINDING_SOURCE_ACTORS = Object.freeze([
+  "draft-questions-review", "draft-coverage-review", "draft-gate", "spec-review", "spec-gate",
+  "scenario-validity", "test-review", "test-result-review", "task-review", "task-gate",
+  "impl-review", "impl-gate", "retro",
+]);
+const NONBLOCKING_HANDOFF_SOURCE_ACTORS = Object.freeze([
+  "scenario-validity", "test-result-review", "retro",
+]);
+const WORKER_HANDOFF_STEP_ACTORS = WORKER_ARTIFACT_HANDOFF_STEPS;
 export const FLOW_ARTIFACT_NO_ARTIFACT_STEPS = Object.freeze([
   new FlowArtifactNoArtifactClassification("branch", "selects execution checkout"),
-  new FlowArtifactNoArtifactClassification("approval", "records an explicit decision in flow state"),
-  new FlowArtifactNoArtifactClassification("acceptance-decision", "records an explicit decision in flow state"),
   new FlowArtifactNoArtifactClassification("finalize-commit", "delegates repository commit"),
   new FlowArtifactNoArtifactClassification("finalize-merge", "delegates repository merge"),
   new FlowArtifactNoArtifactClassification("task-impl", "changes repository source; task authority remains spec.json.tasks[]"),
@@ -735,37 +1176,50 @@ export const FLOW_ARTIFACT_NO_ARTIFACT_STEPS = Object.freeze([
 const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // Roots retain their authoritative names.  Every other permanent output is
   // owned by its producing step; independent deliverables live in artifacts/.
-  contract("flow.state", "flow.json", "flow-state", "repository-metadata", "system", own(["system", "prepare-spec"], ["system", "prepare-spec", "draft", "spec", "test", "implement", "finalize-cleanup"], ["prepare-spec", "draft", "spec", "test", "implement", "report"])),
-  contract("flow.activities", "activities.jsonl", "activity-ledger", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], ["system", "prepare-spec", "draft", "spec", "test", "implement"], ["prepare-spec", "draft", "spec", "test", "implement", "report"])),
-  contract("spec.record", "spec.json", "spec-record", "repository-metadata", "system", own(["prepare-spec", "spec"], ["system", "prepare-spec", "spec"], ["draft", "spec", "spec-review", "test", "implement", "report"])),
-  contract("issue.log", "issue-log.json", "issue-log", "canonical-flow-artifacts", "system", own(["prepare-spec", "system"], ["system", "prepare-spec", "impl-review", "impl-gate", "final-regression"], ["impl-review", "impl-gate", "acceptance-review", "report"])),
+  contract("flow.state", "flow.json", "flow-state", "repository-metadata", "system", own(["system", "prepare-spec"], ["system", ...NORMAL_FLOW_STEP_ACTORS], NORMAL_FLOW_STEP_ACTORS)),
+  contract("flow.activities", "activities.jsonl", "activity-ledger", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], FLOW_WIDE_RECORD_ACTORS, FLOW_WIDE_RECORD_ACTORS)),
+  contract("spec.record", "spec.json", "spec-record", "repository-metadata", "system", own(["prepare-spec", "spec"], ["system", "prepare-spec", "spec", "spec-repair", "approval"], [
+    "draft", "draft-questions-review", "draft-coverage-review", "draft-gate", "spec", "spec-review", "spec-triage",
+    "spec-repair", "spec-gate", "approval", "test", "scenario-validity", "test-review", "test-execute",
+    "test-result-review", "implement", "impl-review", "impl-repair", "impl-gate", "retro", "acceptance-review",
+    "final-regression", "report", "task-impl", "task-review", "task-gate",
+  ])),
+  contract("issue.log", "issue-log.json", "issue-log", "canonical-flow-artifacts", "system", own(["prepare-spec", "system"], FLOW_WIDE_RECORD_ACTORS, [
+    "system", "draft-gate", "spec-gate", "test-review", "test-result-review", "impl-review", "impl-repair",
+    "task-gate", "impl-gate", "acceptance-review", "acceptance-decision", "final-regression", "report", "finalize-cleanup",
+  ])),
   contract("artifact.catalog", "artifact-catalog.json", "artifact-catalog", "repository-metadata", "system", own(["system", "prepare-spec"], ["system"], ["system", "prepare-spec"]), "permanent", "singleton", false),
-  contract("issue.snapshot", "issue.md", "issue-snapshot", "canonical-flow-artifacts", "system", own("prepare-spec", ["system", "prepare-spec"], ["draft", "draft-questions-review", "draft-gate", "spec"])),
-  contract("draft", "steps/draft/result.json", "draft", "canonical-flow-artifacts", "system", own("draft", ["system", "draft", "draft-refine"], ["draft-questions-review", "draft-coverage-review", "draft-gate", "spec"])),
+  contract("issue.snapshot", "issue.md", "issue-snapshot", "canonical-flow-artifacts", "system", own(["system", "prepare-spec"], ["system", "prepare-spec"], ["system", "draft", "draft-questions-review", "draft-gate", "spec"])),
+  contract("draft", "steps/draft/result.json", "draft", "canonical-flow-artifacts", "system", own("draft", [
+    "system", "draft", "draft-questions-repair", "draft-refine", "draft-coverage-repair",
+  ], [
+    "draft-questions-review", "draft-questions-triage", "draft-questions-repair", "draft-refine",
+    "draft-coverage-review", "draft-coverage-triage", "draft-coverage-repair", "draft-gate", "spec",
+  ])),
   contract("draft.questions.review", "steps/draft-questions-review/result.json", "draft-questions-review", "canonical-flow-artifacts", "draft-questions-review", own("draft-questions-review", ["draft-questions-review"], ["draft-questions-triage", "draft-questions-repair", "draft-gate"])),
-  contract("draft.questions.triage", "steps/draft-questions-triage/result.json", "draft-questions-triage", "canonical-flow-artifacts", "system", own("draft-questions-triage", ["system", "draft-questions-triage"], ["draft-questions-repair", "draft-refine"])),
-  contract("draft.questions.repair", "steps/draft-questions-repair/result.json", "draft-questions-repair", "canonical-flow-artifacts", "system", own("draft-questions-repair", ["system", "draft-questions-repair"], ["draft-refine", "draft-gate"])),
+  contract("draft.questions.triage", "steps/draft-questions-triage/result.json", "draft-questions-triage", "canonical-flow-artifacts", "system", own("draft-questions-triage", ["system", "draft-questions-triage"], ["draft-questions-repair", "draft-refine", "draft-gate"])),
+  contract("draft.questions.repair", "steps/draft-questions-repair/result.json", "draft-questions-repair", "canonical-flow-artifacts", "system", own("draft-questions-repair", ["system", "draft-questions-repair"], ["draft-refine", "draft-gate", "acceptance-review"])),
   contract("draft.coverage.review", "steps/draft-coverage-review/result.json", "draft-coverage-review", "canonical-flow-artifacts", "draft-coverage-review", own("draft-coverage-review", ["draft-coverage-review"], ["draft-coverage-triage", "draft-coverage-repair", "draft-gate"])),
   contract("draft.coverage.triage", "steps/draft-coverage-triage/result.json", "draft-coverage-triage", "canonical-flow-artifacts", "system", own("draft-coverage-triage", ["system", "draft-coverage-triage"], ["draft-coverage-repair", "draft-gate"])),
-  contract("draft.coverage.repair", "steps/draft-coverage-repair/result.json", "draft-coverage-repair", "canonical-flow-artifacts", "system", own("draft-coverage-repair", ["system", "draft-coverage-repair"], ["draft-gate"])),
+  contract("draft.coverage.repair", "steps/draft-coverage-repair/result.json", "draft-coverage-repair", "canonical-flow-artifacts", "system", own("draft-coverage-repair", ["system", "draft-coverage-repair"], ["draft-gate", "acceptance-review"])),
   contract("draft.gate.source", "steps/draft-gate/source.json", "draft-gate-source", "canonical-flow-artifacts", "draft-gate", own("draft-gate", ["draft-gate"], ["draft-gate", "spec"])),
   contract("draft.gate", "steps/draft-gate/result.json", "draft-gate", "canonical-flow-artifacts", "draft-gate", own("draft-gate", ["draft-gate"], ["spec"])),
   contract("spec.review", "steps/spec-review/result.json", "spec-review", "canonical-flow-artifacts", "spec-review", own("spec-review", ["spec-review"], ["spec-triage", "spec-repair", "spec-gate"])),
   contract("spec.triage", "steps/spec-triage/result.json", "spec-triage", "canonical-flow-artifacts", "system", own("spec-triage", ["system", "spec-triage"], ["spec-repair", "spec-gate"])),
-  contract("spec.repair", "steps/spec-repair/result.json", "spec-repair", "canonical-flow-artifacts", "system", own("spec-repair", ["system", "spec-repair"], ["spec-gate"])),
+  contract("spec.repair", "steps/spec-repair/result.json", "spec-repair", "canonical-flow-artifacts", "system", own("spec-repair", ["system", "spec-repair"], ["spec-gate", "acceptance-review"])),
   contract("spec.gate.source", "steps/spec-gate/source.json", "spec-gate-source", "canonical-flow-artifacts", "spec-gate", own("spec-gate", ["spec-gate"], ["spec-gate", "approval"])),
   contract("spec.gate", "steps/spec-gate/result.json", "spec-gate", "canonical-flow-artifacts", "spec-gate", own("spec-gate", ["spec-gate"], ["approval"])),
-  contract("scenario.validity", "steps/scenario-validity/result.json", "scenario-validity", "canonical-flow-artifacts", "scenario-validity", own("scenario-validity", ["scenario-validity"], ["test-review", "implement"])),
-  contract("test.review", "steps/test-review/result.json", "test-review", "canonical-flow-artifacts", "test-review", own("test-review", ["test-review"], ["implement", "impl-review"])),
-  contract("test.execute", "steps/test-execute/result.json", "test-execute", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-result-review", "impl-gate", "final-regression", "report"])),
-  contract("test.result.review", "steps/test-result-review/result.json", "test-result-review", "canonical-flow-artifacts", "test-result-review", own("test-result-review", ["test-result-review"], ["impl-review", "impl-gate", "final-regression", "report"])),
+  contract("scenario.validity", "steps/scenario-validity/result.json", "scenario-validity", "canonical-flow-artifacts", "scenario-validity", own("scenario-validity", ["scenario-validity"], ["test", "test-review", "implement", "acceptance-review"])),
+  contract("test.review", "steps/test-review/result.json", "test-review", "canonical-flow-artifacts", "test-review", own("test-review", ["test-review"], ["test", "implement", "impl-review"])),
+  contract("test.execute", "steps/test-execute/result.json", "test-execute", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-review", "test-result-review", "impl-review", "impl-repair", "impl-gate", "task-gate", "acceptance-review", "final-regression", "retro", "report"])),
+  contract("test.result.review", "steps/test-result-review/result.json", "test-result-review", "canonical-flow-artifacts", "test-result-review", own("test-result-review", ["test-result-review"], ["test-review", "impl-review", "impl-repair", "impl-gate", "task-gate", "acceptance-review", "final-regression", "retro", "report"])),
   contract("impl.review", "steps/impl/review/result.json", "impl-review", "canonical-flow-artifacts", "impl-review", own("impl-review", ["impl-review"], ["impl-triage", "impl-repair", "impl-gate", "acceptance-review"])),
   contract("impl.triage", "steps/impl/triage/result.json", "impl-triage", "execution-checkout", "impl-triage", own("impl-triage", ["impl-triage"], ["impl-repair", "impl-gate", "acceptance-review"])),
   contract("impl.repair", "steps/impl/repair/result.json", "impl-repair", "execution-checkout", "impl-repair", own("impl-repair", ["impl-repair"], ["test-execute", "impl-gate", "acceptance-review"])),
   contract("impl.gate.source", "steps/impl/gate/source.json", "impl-gate-source", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["impl-gate", "retro"])),
   contract("impl.gate", "steps/impl/gate/result.json", "impl-gate", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["retro", "acceptance-review", "final-regression", "report"])),
   contract("retro", "steps/impl/retro/result.json", "retro", "canonical-flow-artifacts", "retro", own("retro", ["retro"], ["acceptance-review", "report"])),
-  contract("acceptance.review", "steps/acceptance-review/result.json", "acceptance-review", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review"], ["acceptance-decision", "final-regression", "report"])),
+  contract("acceptance.review", "steps/acceptance-review/result.json", "acceptance-review", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review", "acceptance-decision"], ["acceptance-decision", "final-regression", "report"])),
   contract("acceptance.review.evidence", "steps/acceptance-review/dispositions.json", "acceptance-review-evidence", "canonical-flow-artifacts", "acceptance-review", own("acceptance-review", ["acceptance-review"], ["acceptance-review", "final-regression"])),
   contract("final.regression", "steps/final-regression/result.json", "final-regression", "canonical-flow-artifacts", "final-regression", own("final-regression", ["final-regression"], ["report"])),
   contract("report", "artifacts/report.json", "report", "canonical-flow-artifacts", "report", own("report", ["report"], ["finalize-commit", "finalize-sync"])),
@@ -774,39 +1228,59 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // namespace.  Workflow ideas retain their own contract and are excluded
   // from this broader source-era pattern below.
   contract("plugin.lifecycle.artifact", "artifacts/plugin-artifacts/:{pluginArtifactPath}", "plugin-lifecycle-artifact", "canonical-flow-artifacts", "system", own("system", ["system"], ["system"]), "permanent", "collection"),
-  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own("implement", ["implement", "impl-repair"], ["impl-review", "impl-gate"])),
+  contract("file.map", "steps/impl/file-map.json", "file-map", "execution-checkout", "implement", own("implement", ["implement", "impl-repair"], ["implement", "test-execute", "test-result-review", "impl-review", "impl-gate"])),
   // upgrade.js is the actual writer; this shared progress evidence is consumed by gates and reporting.
-  contract("upgrade.result", "steps/upgrade-result.json", "upgrade-result", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "final-regression", "report"])),
-  contract("upgrade.recovery.audit", "steps/upgrade-recovery-audit.json", "upgrade-recovery-audit", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "final-regression"])),
-  contract("placeholder.permission", "steps/test/placeholder-permission.json", "placeholder-permission", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "impl-gate"])),
-  contract("completion.overrides", "steps/completion-overrides.json", "completion-overrides", "canonical-flow-artifacts", "system", own("system", ["system"], ["draft-gate", "spec-gate", "impl-gate", "final-regression"])),
+  contract("upgrade.result", "steps/upgrade-result.json", "upgrade-result", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "acceptance-review", "final-regression", "report"])),
+  contract("upgrade.recovery.audit", "steps/upgrade-recovery-audit.json", "upgrade-recovery-audit", "canonical-flow-artifacts", "system", own("system", ["system", "impl-gate"], ["impl-gate", "acceptance-review", "final-regression"])),
+  contract("placeholder.permission", "steps/test/permission.json", "placeholder-permission", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "impl-gate"])),
+  contract("completion.overrides", "steps/completion-overrides.json", "completion-overrides", "canonical-flow-artifacts", "system", own("system", ["system"], ["test-review", "test-result-review", "impl-review", "impl-gate", "acceptance-review", "final-regression"])),
   contract("retry.recovery", "steps/retry-recovery.json", "retry-recovery", "canonical-flow-artifacts", "system", own("system", ["system"], ["draft-gate", "spec-gate", "impl-gate", "test-review", "impl-review"])),
   contract("gate.memory", "steps/impl/gate/memory.json", "gate-memory", "canonical-flow-artifacts", "impl-gate", own("impl-gate", ["impl-gate"], ["impl-gate", "final-regression"])),
   contract("repair.fingerprint", "steps/impl/repair/fingerprint.json", "repair-fingerprint", "canonical-flow-artifacts", "impl-repair", own("impl-repair", ["impl-repair"], ["test-execute", "impl-gate"])),
   contract("repair.delta", "steps/impl/repair/deltas/:{deltaId}.json", "repair-delta", "canonical-flow-artifacts", "impl-repair", own("impl-repair", ["impl-repair"], ["test-execute", "impl-gate"]), "permanent", "collection"),
   contract("repair.migration", "steps/impl/repair/migration.json", "repair-migration", "canonical-flow-artifacts", "impl-repair", own("impl-repair", ["impl-repair"], ["test-execute", "impl-gate"])),
-  contract("task.review", "steps/impl/:{taskId}/review/result.json", "task-review", "canonical-flow-artifacts", "task-review", own("task-review", ["task-review"], ["task-gate"])),
-  contract("task.gate.source", "steps/impl/:{taskId}/gate/source.json", "task-gate-source", "canonical-flow-artifacts", "task-gate", own("task-gate", ["task-gate"], ["task-gate"])),
-  contract("task.gate", "steps/impl/:{taskId}/gate/result.json", "task-gate", "canonical-flow-artifacts", "task-gate", own("task-gate", ["task-gate"], ["task-impl", "implement"])),
-  contract("review.evidence", "steps/:{ownerPath}/evidence/:{digest}.json", "review-evidence", "canonical-flow-artifacts", "impl-review", own("impl-review", ["draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review", "task-review"], ["draft-questions-triage", "draft-questions-repair", "draft-coverage-triage", "draft-coverage-repair", "draft-gate", "spec-triage", "spec-repair", "spec-gate", "impl-triage", "impl-repair", "impl-gate", "task-gate", "acceptance-review"]), "permanent", "collection"),
-  contract("tests.source", "artifacts/tests/:{testPath}", "test-source", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "implement", "test-execute"])),
-  contract("flow.findings", "steps/flow-findings.json", "flow-findings", "canonical-flow-artifacts", "impl-review", own("impl-review", ["impl-review", "acceptance-review"], ["impl-triage", "impl-repair", "impl-gate", "acceptance-review"])),
-  contract("nonblocking.handoffs", "steps/nonblocking-handoffs.json", "nonblocking-handoffs", "canonical-flow-artifacts", "test-review", own("test-review", ["test-review", "impl-review"], ["impl-gate", "acceptance-review"])),
+  contract("task.review", "steps/impl/:{taskId}/review/result.json", "task-review", "canonical-flow-artifacts", "task-review", own("task-review", ["task-review"], ["task-gate"]), "permanent", "collection"),
+  contract("task.gate.source", "steps/impl/:{taskId}/gate/source.json", "task-gate-source", "canonical-flow-artifacts", "task-gate", own("task-gate", ["task-gate"], ["task-gate"]), "permanent", "collection"),
+  contract("task.gate", "steps/impl/:{taskId}/gate/result.json", "task-gate", "canonical-flow-artifacts", "task-gate", own("task-gate", ["task-gate"], ["task-impl", "implement"]), "permanent", "collection"),
+  contract("review.evidence", "steps/:{ownerPath}/evidence/:{digest}.json", "review-evidence", "canonical-flow-artifacts", "impl-review", own(
+    ["draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review", "task-review"],
+    ["draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review", "task-review"],
+    [
+      "draft-questions-review", "draft-coverage-review", "spec-review", "test-review", "impl-review", "task-review",
+      "draft-questions-triage", "draft-questions-repair", "draft-coverage-triage", "draft-coverage-repair", "draft-gate",
+      "spec-triage", "spec-repair", "spec-gate", "impl-triage", "impl-repair", "impl-gate", "task-gate", "acceptance-review",
+    ],
+  ), "permanent", "collection"),
+  contract("tests.source", "artifacts/tests/:{testPath}", "test-source", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "implement", "test-execute", "final-regression"]), "permanent", "collection"),
+  contract("flow.findings", "steps/flow-findings.json", "flow-findings", "canonical-flow-artifacts", "impl-review", own(
+    FLOW_FINDING_SOURCE_ACTORS,
+    [...FLOW_FINDING_SOURCE_ACTORS, "acceptance-review"],
+    ["system", ...FLOW_FINDING_SOURCE_ACTORS, "acceptance-review", "final-regression"],
+  )),
+  contract("nonblocking.handoffs", "steps/nonblocking-handoffs.json", "nonblocking-handoffs", "canonical-flow-artifacts", "scenario-validity", own(
+    NONBLOCKING_HANDOFF_SOURCE_ACTORS,
+    NONBLOCKING_HANDOFF_SOURCE_ACTORS,
+    [...NONBLOCKING_HANDOFF_SOURCE_ACTORS, "acceptance-review"],
+  )),
   // Transient records are non-cataloged. Transactions and worker state are
   // runtime-only; execution logs remain next to the step that produced them.
-  contract("scenario.validity.raw-log", "steps/scenario-validity/output.log", "scenario-validity-log", "canonical-flow-artifacts", "scenario-validity", own("scenario-validity", ["scenario-validity"], ["scenario-validity"]), "transient", "singleton", false),
-  contract("test.execute.raw-log", "steps/test-execute/output.log", "test-execute-log", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-execute"]), "transient", "singleton", false),
+  contract("scenario.validity.raw-log", "steps/scenario-validity/output.log", "scenario-validity-log", "canonical-flow-artifacts", "scenario-validity", own("scenario-validity", ["scenario-validity"], ["scenario-validity", "acceptance-review"]), "transient", "singleton", false),
+  contract("test.execute.raw-log", "steps/test-execute/output.log", "test-execute-log", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-execute", "test-result-review", "impl-gate"]), "transient", "singleton", false),
   contract("final.regression.raw-log", "steps/final-regression/attempt-:{attempt}.log", "final-regression-log", "canonical-flow-artifacts", "final-regression", own("final-regression", ["final-regression"], ["final-regression"]), "transient", "collection", false),
-  contract("retry.recovery.transaction", ".runtime/retry-recovery/transaction.json", "retry-recovery-transaction", "canonical-flow-artifacts", "system", own("system", ["system"], ["impl-gate"]), "transient", "singleton", false),
+  contract("retry.recovery.transaction", ".runtime/retry-recovery/transaction.json", "retry-recovery-transaction", "canonical-flow-artifacts", "system", own("system", ["system"], ["system"]), "transient", "singleton", false),
   contract("impl.repair.transaction", ".runtime/impl/repair/transaction.json", "impl-repair-transaction", "execution-checkout", "impl-repair", own("impl-repair", ["impl-repair"], ["impl-repair"]), "transient", "singleton", false),
-  contract("test.requirement.summary", ".runtime/test/requirement-summary.json", "test-requirement-summary", "canonical-flow-artifacts", "test", own("test", ["test"], ["scenario-validity", "test-review"]), "transient", "singleton", false),
-  contract("worker.handoff", ".runtime/worker-handoffs/:{handoffPath}", "worker-handoff", "dispatcher-handoff", "system", own("system", ["system"], ["draft", "spec", "test"]), "transient", "collection", false),
+  contract("test.requirement.summary", ".runtime/test-execute/requirement-summary.json", "test-requirement-summary", "canonical-flow-artifacts", "test-execute", own("test-execute", ["test-execute"], ["test-execute"]), "transient", "singleton", false),
+  contract("worker.handoff", ".runtime/worker-handoffs/:{handoffPath}", "worker-handoff", "dispatcher-handoff", "system", own(
+    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
+    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
+    ["system", ...WORKER_HANDOFF_STEP_ACTORS],
+  ), "transient", "collection", false),
   contract("review.work.unit", ".runtime/review-work-units/:{workUnitPath}", "review-work-unit", "canonical-flow-artifacts", "impl-review", own("impl-review", ["impl-review"], ["impl-review"]), "transient", "collection", false),
   // Finalize cleanup persists the three user-visible durable surfaces; its
   // journal and command log are recovery diagnostics and stay non-cataloged.
-  contract("finalize.cleanup.agent-metrics", "steps/finalize-cleanup/agent-metrics.json", "finalize-cleanup-agent-metrics", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["report"])),
-  contract("finalize.cleanup.notes", "steps/finalize-cleanup/notes.json", "finalize-cleanup-notes", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["report"])),
-  contract("finalize.cleanup.plugin-artifacts", "steps/finalize-cleanup/plugin-artifacts.json", "finalize-cleanup-plugin-artifacts", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["report", "finalize-sync"])),
+  contract("finalize.cleanup.agent-metrics", "steps/finalize-cleanup/agent-metrics.json", "finalize-cleanup-agent-metrics", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["finalize-cleanup"])),
+  contract("finalize.cleanup.notes", "steps/finalize-cleanup/notes.json", "finalize-cleanup-notes", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["finalize-cleanup"])),
+  contract("finalize.cleanup.plugin-artifacts", "steps/finalize-cleanup/plugin-artifacts.json", "finalize-cleanup-plugin-artifacts", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["finalize-cleanup"])),
   contract("finalize.cleanup.runtime-log", ".runtime/finalize-cleanup/runtime-log.json", "finalize-cleanup-runtime-log", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["finalize-cleanup"]), "transient", "singleton", false),
   contract("finalize.cleanup.journal", ".runtime/finalize-cleanup/journal.json", "finalize-cleanup-journal", "canonical-flow-artifacts", "finalize-cleanup", own("finalize-cleanup", ["finalize-cleanup"], ["finalize-cleanup"]), "transient", "singleton", false),
   // Locks are operational state, never catalog content.  These typed paths
@@ -841,7 +1315,7 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("flow.state", ["flow.json"], "flow.json", "prepare-spec", "prepare-spec"),
   newTarget("flow.activities", "activities.jsonl", "prepare-spec", "prepare-spec"),
   target("spec.record", ["spec.json"], "spec.json", "prepare-spec", "spec"),
-  target("issue.log", ["issue-log.json"], "issue-log.json", "prepare-spec", "impl-gate"),
+  target("issue.log", ["issue-log.json", "redolog.json"], "issue-log.json", "prepare-spec", "impl-gate"),
   newTarget("artifact.catalog", "artifact-catalog.json", "prepare-spec", "prepare-spec"),
   target("issue.snapshot", ["issue.md"], "issue.md", "prepare-spec", "draft"),
   target("draft", ["draft.json"], "steps/draft/result.json", "draft", "draft-questions-review"),
@@ -877,7 +1351,7 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("file.map", ["file-map.json"], "steps/impl/file-map.json", "implement", "impl-review"),
   target("upgrade.result", ["upgrade-result.json"], "steps/upgrade-result.json", "system", "impl-gate"),
   target("upgrade.recovery.audit", ["upgrade-recovery-audit.json"], "steps/upgrade-recovery-audit.json", "system", "impl-gate"),
-  target("placeholder.permission", ["placeholder-permission.json"], "steps/test/placeholder-permission.json", "test", "test-review"),
+  target("placeholder.permission", ["placeholder-permission.json"], "steps/test/permission.json", "test", "test-review"),
   target("completion.overrides", ["completion-overrides.json"], "steps/completion-overrides.json", "system", "impl-gate"),
   target("retry.recovery", ["retry-recovery.json"], "steps/retry-recovery.json", "system", "impl-gate"),
   target("gate.memory", ["gate-impl-memory.json"], "steps/impl/gate/memory.json", "impl-gate", "impl-gate"),
@@ -890,18 +1364,18 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   patternTarget("review.evidence", ["review-evidence/:{digest}.json"], "steps/:{ownerPath}/evidence/:{digest}.json", "impl-review", "impl-gate"),
   patternTarget("tests.source", [new FlowArtifactLegacyPattern("tests/:{testPath}", { excludedPrefixes: ["tests/.raw/"] })], "artifacts/tests/:{testPath}", "test", "test-review"),
   target("flow.findings", ["flow-findings.json"], "steps/flow-findings.json", "impl-review", "impl-gate"),
-  target("nonblocking.handoffs", ["nonblocking-handoffs.json"], "steps/nonblocking-handoffs.json", "test-review", "impl-gate"),
+  target("nonblocking.handoffs", ["nonblocking-handoffs.json"], "steps/nonblocking-handoffs.json", "scenario-validity", "acceptance-review"),
   target("scenario.validity.raw-log", ["tests/.raw/scenario-validity.log"], "steps/scenario-validity/output.log", "scenario-validity", "scenario-validity"),
   target("test.execute.raw-log", ["tests/.raw/test-execution.log"], "steps/test-execute/output.log", "test-execute", "test-execute"),
   patternTarget("final.regression.raw-log", ["tests/.raw/final-regression-attempt-:{attempt}.log"], "steps/final-regression/attempt-:{attempt}.log", "final-regression", "final-regression"),
-  target("retry.recovery.transaction", [".retry-recovery.transaction.json"], ".runtime/retry-recovery/transaction.json", "system", "impl-gate"),
+  target("retry.recovery.transaction", [".retry-recovery.transaction.json"], ".runtime/retry-recovery/transaction.json", "system", "system"),
   target("impl.repair.transaction", ["impl-repair-transaction.json"], ".runtime/impl/repair/transaction.json", "impl-repair", "impl-repair"),
-  target("test.requirement.summary", ["tests/.raw/requirement-summary.json"], ".runtime/test/requirement-summary.json", "test", "scenario-validity"),
+  target("test.requirement.summary", ["tests/.raw/requirement-summary.json"], ".runtime/test-execute/requirement-summary.json", "test-execute", "test-execute"),
   patternTarget("worker.handoff", [".sennel/handoffs/:{handoffPath}"], ".runtime/worker-handoffs/:{handoffPath}", "system", "draft"),
   patternTarget("review.work.unit", ["review-history/work-units/:{workUnitPath}"], ".runtime/review-work-units/:{workUnitPath}", "impl-review", "impl-review"),
-  target("finalize.cleanup.agent-metrics", ["agent-metrics.json"], "steps/finalize-cleanup/agent-metrics.json", "finalize-cleanup", "report"),
-  target("finalize.cleanup.notes", ["notes.json"], "steps/finalize-cleanup/notes.json", "finalize-cleanup", "report"),
-  target("finalize.cleanup.plugin-artifacts", ["plugin-artifacts.json"], "steps/finalize-cleanup/plugin-artifacts.json", "finalize-cleanup", "finalize-sync"),
+  target("finalize.cleanup.agent-metrics", ["agent-metrics.json"], "steps/finalize-cleanup/agent-metrics.json", "finalize-cleanup", "finalize-cleanup"),
+  target("finalize.cleanup.notes", ["notes.json"], "steps/finalize-cleanup/notes.json", "finalize-cleanup", "finalize-cleanup"),
+  target("finalize.cleanup.plugin-artifacts", ["plugin-artifacts.json"], "steps/finalize-cleanup/plugin-artifacts.json", "finalize-cleanup", "finalize-cleanup"),
   target("finalize.cleanup.runtime-log", ["runtime-log.json"], ".runtime/finalize-cleanup/runtime-log.json", "finalize-cleanup", "finalize-cleanup"),
   target("finalize.cleanup.journal", ["finalize-cleanup.json"], ".runtime/finalize-cleanup/journal.json", "finalize-cleanup", "finalize-cleanup"),
   target("runtime.lock.issue-log", [".issue-log.lock"], ".runtime/locks/issue-log.lock", "system", "system"),
@@ -917,10 +1391,12 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   patternTarget("runtime.lock.retry-recovery-owner", ["..retry-recovery.lock.:{ownerToken}.owner.tmp"], ".runtime/locks/retry-recovery/:{ownerToken}.owner.tmp", "system", "system"),
   removeTarget("legacy.flow.version", ["flow-version.json"]),
   removeTarget("legacy.activity.view", ["activities.md"]),
-  removeTarget("legacy.derived.views", ["draft.md", "draft-review.md", "draft-review-questions.md", "draft-review-coverage.md", "spec.md", "spec-review.md", "test-review.md", "test-result-review.md", "review.md", "qa.md"]),
+  removeTarget("legacy.derived.views", ["draft.md", "draft-review.md", "draft-review-questions.md", "draft-review-coverage.md", "spec.md", "spec-review.md", "test.md", "test-review.md", "test-result-review.md", "review.md", "qa.md"]),
+  removeTarget("legacy.task.views", [], ["tasks/:{taskView}.md"]),
   removeTarget("legacy.derived.review.artifacts", ["draft-review-questions-repair.json", "spec-review-triage.json"]),
   removeTarget("legacy.review.history", [], [new FlowArtifactLegacyPattern("review-history/:{historyPath}", { excludedPrefixes: ["review-history/work-units/"] })]),
   removeTarget("legacy.finalize.envelopes", ["report-envelope.json", "recovery-envelope.json"], [], "finalize-cleanup", "finalize-cleanup"),
+  removeTarget("legacy.raw.logs", ["tests/.raw/final-regression.log"]),
   removeTarget("legacy.upgrade.log", ["tests/.raw/upgrade.log"]),
 ]);
 
@@ -930,7 +1406,7 @@ const knownNew = (logicalKey, canonicalPath) => new FlowArtifactKnownFile({ logi
 
 export const FLOW_ARTIFACT_NORMAL_FLOW_FILES = Object.freeze([
   known("flow.state", "switch", "flow.json"), knownNew("flow.activities", "activities.jsonl"),
-  known("spec.record", "switch", "spec.json"), known("issue.log", "switch", "issue-log.json"),
+  known("spec.record", "switch", "spec.json"), known("issue.log", "switch", "issue-log.json"), known("issue.log", "switch", "redolog.json"),
   knownNew("artifact.catalog", "artifact-catalog.json"), known("issue.snapshot", "switch", "issue.md"),
   known("draft", "switch", "draft.json"), known("draft.questions.review", "switch", "draft-review-questions.json"),
   known("draft.questions.triage", "switch", "draft-questions-triage.json"), known("draft.questions.repair", "switch", "draft-questions-repair.json"),
@@ -947,16 +1423,16 @@ export const FLOW_ARTIFACT_NORMAL_FLOW_FILES = Object.freeze([
   known("finalize.cleanup.agent-metrics", "switch", "agent-metrics.json"), known("finalize.cleanup.notes", "switch", "notes.json"), known("finalize.cleanup.plugin-artifacts", "switch", "plugin-artifacts.json"), known("finalize.cleanup.runtime-log", "switch", "runtime-log.json"), known("finalize.cleanup.journal", "switch", "finalize-cleanup.json"),
   known("runtime.lock.issue-log", "switch", ".issue-log.lock"), known("runtime.lock.current-flow-state", "switch", ".current-flow-state.lock"), known("runtime.lock.artifact-catalog", "switch", ".artifact-catalog.lock"), known("runtime.lock.retry-recovery", "switch", ".retry-recovery.lock"), known("runtime.lock.flow-state-writer", "switch", ".flow.json.writer.lock"), knownPattern("runtime.lock.flow-state-writer-owner", "switch", ".flow.json.writer.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.impl-repair", "switch", ".impl-repair.lock/:{lockPath}"),
   knownPattern("runtime.lock.issue-log-owner", "switch", "..issue-log.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.current-flow-state-owner", "switch", "..current-flow-state.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.artifact-catalog-owner", "switch", "..artifact-catalog.lock.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.retry-recovery-owner", "switch", "..retry-recovery.lock.:{ownerToken}.owner.tmp"),
-  known("legacy.flow.version", "remove", "flow-version.json"), known("legacy.activity.view", "remove", "activities.md"), known("legacy.derived.views", "remove", "draft.md"), known("legacy.derived.views", "remove", "draft-review.md"), known("legacy.derived.views", "remove", "draft-review-questions.md"), known("legacy.derived.views", "remove", "draft-review-coverage.md"), known("legacy.derived.views", "remove", "spec.md"), known("legacy.derived.views", "remove", "spec-review.md"), known("legacy.derived.views", "remove", "test-review.md"), known("legacy.derived.views", "remove", "test-result-review.md"), known("legacy.derived.views", "remove", "review.md"), known("legacy.derived.views", "remove", "qa.md"), known("legacy.derived.review.artifacts", "remove", "draft-review-questions-repair.json"), known("legacy.derived.review.artifacts", "remove", "spec-review-triage.json"), knownPattern("legacy.review.history", "remove", new FlowArtifactLegacyPattern("review-history/:{historyPath}", { excludedPrefixes: ["review-history/work-units/"] })), known("legacy.finalize.envelopes", "remove", "report-envelope.json"), known("legacy.finalize.envelopes", "remove", "recovery-envelope.json"), known("legacy.upgrade.log", "remove", "tests/.raw/upgrade.log"),
+  known("legacy.flow.version", "remove", "flow-version.json"), known("legacy.activity.view", "remove", "activities.md"), known("legacy.derived.views", "remove", "draft.md"), known("legacy.derived.views", "remove", "draft-review.md"), known("legacy.derived.views", "remove", "draft-review-questions.md"), known("legacy.derived.views", "remove", "draft-review-coverage.md"), known("legacy.derived.views", "remove", "spec.md"), known("legacy.derived.views", "remove", "spec-review.md"), known("legacy.derived.views", "remove", "test.md"), known("legacy.derived.views", "remove", "test-review.md"), known("legacy.derived.views", "remove", "test-result-review.md"), known("legacy.derived.views", "remove", "review.md"), known("legacy.derived.views", "remove", "qa.md"), knownPattern("legacy.task.views", "remove", "tasks/:{taskView}.md"), known("legacy.derived.review.artifacts", "remove", "draft-review-questions-repair.json"), known("legacy.derived.review.artifacts", "remove", "spec-review-triage.json"), knownPattern("legacy.review.history", "remove", new FlowArtifactLegacyPattern("review-history/:{historyPath}", { excludedPrefixes: ["review-history/work-units/"] })), known("legacy.finalize.envelopes", "remove", "report-envelope.json"), known("legacy.finalize.envelopes", "remove", "recovery-envelope.json"), known("legacy.raw.logs", "remove", "tests/.raw/final-regression.log"), known("legacy.upgrade.log", "remove", "tests/.raw/upgrade.log"),
 ]);
-
-export const FLOW_ARTIFACT_CONTRACTS = new FlowArtifactRegistry({
-  contracts: FLOW_ARTIFACT_CONTRACT_LIST,
-  legacyTargets: [new FlowArtifactLegacyTarget("flow-version.json"), new FlowArtifactLegacyTarget("artifacts")],
-  switchTargets: FLOW_ARTIFACT_SWITCH_TARGETS,
-  knownFiles: FLOW_ARTIFACT_NORMAL_FLOW_FILES,
-});
 
 export const FLOW_ARTIFACT_LEGACY_SWITCH_TARGETS = Object.freeze([
   new FlowArtifactLegacyTarget("flow-version.json"), new FlowArtifactLegacyTarget("artifacts"), new FlowArtifactLegacyTarget("review-evidence"),
 ]);
+
+export const FLOW_ARTIFACT_CONTRACTS = new FlowArtifactRegistry({
+  contracts: FLOW_ARTIFACT_CONTRACT_LIST,
+  legacyTargets: FLOW_ARTIFACT_LEGACY_SWITCH_TARGETS,
+  switchTargets: FLOW_ARTIFACT_SWITCH_TARGETS,
+  knownFiles: FLOW_ARTIFACT_NORMAL_FLOW_FILES,
+});

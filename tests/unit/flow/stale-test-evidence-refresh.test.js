@@ -181,9 +181,10 @@ test("stale evidence refresh extends an existing repair ledger to the current fi
     exitCode: 0,
     result: "success-updated",
     summary: {},
+    failureReason: null,
     checkedPaths: ["src/skills/demo/SKILL.md"],
     rawLogPath: "tests/.raw/upgrade.log",
-    rawLogDigest: "0".repeat(64),
+    rawOutputSha256: "1bd098a097fe7d338ff2f6701739150a46c04b5c52375e7a7e360043010c60bb",
   }, null, 2));
   writeFile(tmp, "specs/demo/tests/.raw/upgrade.log", "stale upgrade output\n");
   writeFile(tmp, "specs/demo/retro.json", JSON.stringify({

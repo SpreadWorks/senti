@@ -33,7 +33,6 @@ import {
   completeTestExecuteArtifactChange,
   completeTestResultReviewArtifactChange,
   readJsonStrict,
-  resolveRawFile,
   validateTestExecuteResultV2,
 } from "./test-artifacts.js";
 import {
@@ -399,11 +398,6 @@ export async function preValidateImplementStepCompletion({ root, state, requeste
       const completed = await completeTestExecuteArtifactChange({ root, specDir, artifact });
       if (completed.constructor.name === "ArtifactCompletionMechanicalFailure") {
         for (const code of completed.issueCodes) addImplementIssue(issueCodes, code);
-      }
-      const rawOutputPath = artifact.rawOutputPath || artifact.raw_output_path;
-      const rawPath = resolveRawFile(root, specDir, rawOutputPath || "");
-      if (rawOutputPath && !fs.existsSync(rawPath)) {
-        addImplementIssue(issueCodes, "durable-artifact-missing");
       }
     } catch (err) {
       addImplementIssue(issueCodes, "durable-artifact-missing");

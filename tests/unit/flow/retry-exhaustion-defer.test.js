@@ -962,8 +962,10 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
     exitCode: 0,
     result: "success-updated",
     summary: {},
+    failureReason: null,
     checkedPaths: ["src/skills/sennel.flow/SKILL.md"],
     rawLogPath: "tests/.raw/upgrade.log",
+    rawOutputSha256: "c367f8475c1c133d124c63124306e1f0b2056422657dd6e8e0c5e7ecd08fcd28",
   });
   const state = makeFlowState({
     specId: "demo",
@@ -991,8 +993,10 @@ test("acceptance-review exposes validated upgrade evidence for changed skill sou
       exitCode: 0,
       result: "success-updated",
       summary: {},
+      failureReason: null,
       checkedPaths: ["src/skills/sennel.flow/SKILL.md"],
       rawLogPath: "tests/.raw/upgrade.log",
+      rawOutputSha256: "c367f8475c1c133d124c63124306e1f0b2056422657dd6e8e0c5e7ecd08fcd28",
     },
     invalidReason: null,
   });

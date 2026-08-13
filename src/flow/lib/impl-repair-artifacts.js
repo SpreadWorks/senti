@@ -1945,10 +1945,7 @@ function isFreshMigrationArtifact(specDir, relativePath, currentFingerprint) {
 
 function hasCurrentTestExecutionEvidence(specDir, currentFingerprint) {
   const resultPath = path.join(specDir, "test-execute-result.json");
-  const rawPath = path.join(specDir, "tests", ".raw", "test-execution.log");
-  if (!fs.existsSync(resultPath) || !fs.existsSync(rawPath) || !fs.statSync(rawPath).isFile()) {
-    return false;
-  }
+  if (!fs.existsSync(resultPath)) return false;
   return MigrationEvidenceInspection.evaluate(() => {
     const result = readJson(resultPath);
     const rawOutputPath = typeof result.raw_output_path === "string"

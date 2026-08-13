@@ -214,6 +214,10 @@ export class UpgradeEvidenceAuthority {
 
   assertRawLog(rawPath) {
     const rawLogDigest = sha256(fs.readFileSync(rawPath));
+    this.assertRawLogDigest(rawLogDigest);
+  }
+
+  assertRawLogDigest(rawLogDigest) {
     if (rawLogDigest !== this.rawLogDigest) {
       throw new Error("upgrade recovery authority rawLogDigest mismatch");
     }
@@ -238,6 +242,16 @@ export function validateUpgradeResultArtifact(specDir, artifact, {
     if (!["success-no-change", "success-updated", "failed"].includes(artifact.result)) {
       throw new Error("result must be success-no-change, success-updated, or failed");
     }
+    if (artifact.result === "failed") {
+      if (typeof artifact.failureReason !== "string" || artifact.failureReason.trim() === "") {
+        throw new Error("failureReason is required for failed upgrade result");
+      }
+    } else if (artifact.failureReason != null) {
+      throw new Error("failureReason must be null for successful upgrade result");
+    }
+    if (!REPAIR_FINGERPRINT_PATTERN.test(artifact.rawOutputSha256 || "")) {
+      throw new Error("rawOutputSha256 must be a 64-character SHA-256 digest");
+    }
     validateUpgradeSummary(artifact.summary);
     if (!Array.isArray(artifact.checkedPaths) || artifact.checkedPaths.some((p) => typeof p !== "string" || p.length === 0)) {
       throw new Error("checkedPaths must be an array of non-empty strings");
@@ -251,9 +265,11 @@ export function validateUpgradeResultArtifact(specDir, artifact, {
       allowedBaseDir: specDir,
       relPath: artifact.rawLogPath,
       label: "rawLogPath",
+      mustExist: false,
     });
-    if (!fs.existsSync(rawPath)) {
-      throw new Error("rawLogPath points to missing upgrade raw log");
+    const hasRawLog = fs.existsSync(rawPath);
+    if (hasRawLog && sha256(fs.readFileSync(rawPath)) !== artifact.rawOutputSha256) {
+      throw new Error("rawLogPath content does not match rawOutputSha256");
     }
     const authority = trustAuthority ? readUpgradeRecoveryAuthority(specDir) : null;
     if (
@@ -265,9 +281,9 @@ export function validateUpgradeResultArtifact(specDir, artifact, {
     }
     if (authority) {
       authority.assertCurrent({ currentFingerprint, target });
-      authority.assertRawLog(rawPath);
+      authority.assertRawLogDigest(artifact.rawOutputSha256);
     }
-    return upgradeResultSuccess({ artifact, rawPath, authority });
+    return upgradeResultSuccess({ artifact, rawPath: hasRawLog ? rawPath : null, authority });
   } catch (err) {
     return upgradeResultFailure(err.message);
   }
@@ -306,8 +322,12 @@ export function writeUpgradeResultArtifact({
     exitCode,
     result,
     summary,
+    failureReason: result === "failed"
+      ? String(summary?.error || `upgrade command exited with code ${exitCode}`)
+      : null,
     checkedPaths,
     rawLogPath: UPGRADE_RAW_OUTPUT_RELATIVE,
+    rawOutputSha256: sha256(String(rawOutput ?? "")),
   };
   fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(upgradeResultPath(specDir), JSON.stringify(artifact, null, 2) + "\n", "utf8");
@@ -428,10 +448,10 @@ export class UpgradeEvidenceRecovery {
 
     const checkedPaths = validation?.artifact.checkedPaths ?? [];
     const artifactPaths = validation
-      ? [UPGRADE_RESULT_FILE, UPGRADE_RAW_OUTPUT_RELATIVE]
+      ? [UPGRADE_RESULT_FILE, ...(validation.rawPath ? [UPGRADE_RAW_OUTPUT_RELATIVE] : [])]
       : [];
     const rawLogDigest = validation
-      ? sha256(fs.readFileSync(validation.rawPath))
+      ? validation.artifact.rawOutputSha256
       : null;
     return this.#recordResolution({
       decision: assessment.decision,
@@ -968,13 +988,12 @@ export function validateScenarioValidityResult(result, { root, specDir, requirem
   if (typeof root !== "string" || root.length === 0) throw new Error("root is required");
   if (typeof specDir !== "string" || specDir.length === 0) throw new Error("specDir is required");
   if (result.version !== "1") throw new Error(`scenario-validity-result.json version='${result.version}', expected '1'`);
-  if (!Array.isArray(rawLines) || rawLines.length === 0) {
-    if (typeof rawText !== "string" || rawText.length === 0) {
-      throw new Error("scenario-validity rawText or rawLines is required");
-    }
+  if (!Array.isArray(rawLines)) throw new Error("scenario-validity rawLines must be an array");
+  const hasRawEvidence = rawLines.length > 0 || (typeof rawText === "string" && rawText.length > 0);
+  if (rawLines.length === 0 && hasRawEvidence) {
     rawLines = rawText.split(/\r?\n/);
   }
-  if (typeof rawText !== "string" || rawText.length === 0) {
+  if (hasRawEvidence && (typeof rawText !== "string" || rawText.length === 0)) {
     rawText = rawLines.join("\n");
   }
   if (rawText.length > MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS) {
@@ -1023,7 +1042,7 @@ export function validateScenarioValidityResult(result, { root, specDir, requirem
     }
     const evidence = entry.evidence;
     assertScenarioValidityEvidence(evidence, `${entry.id}: evidence`);
-    if (evidence.raw_output_lines.end_line > rawLines.length) {
+    if (hasRawEvidence && evidence.raw_output_lines.end_line > rawLines.length) {
       throw new Error(`${entry.id}: raw_output_lines is outside raw output`);
     }
     if (SCENARIO_VALIDITY_CLASSIFICATIONS_REQUIRING_TEST_FILE.has(entry.classification)) {
@@ -1033,7 +1052,7 @@ export function validateScenarioValidityResult(result, { root, specDir, requirem
         throw new Error(`${entry.id}: test name not found in ${evidence.test_file}: ${evidence.test_name}`);
       }
     }
-    if (rawText && !rawText.includes(entry.id)) {
+    if (hasRawEvidence && !rawText.includes(entry.id)) {
       throw new Error(`${entry.id}: raw output does not contain requirement id`);
     }
   }
@@ -1261,30 +1280,25 @@ function validateFinalRegressionSkipKind(result) {
   }
 }
 
-function validateFinalRegressionStreamCapture(stream, label, rawOutputPath) {
+function validateFinalRegressionStreamEvidence(stream, label) {
   if (!stream || typeof stream !== "object" || Array.isArray(stream)) {
     throw new Error(`${label} must be an object`);
   }
-  if (typeof stream.content !== "string") throw new Error(`${label}.content must be a string`);
+  if (Object.hasOwn(stream, "content")) throw new Error(`${label}.content must not duplicate raw output`);
   if (!Number.isSafeInteger(stream.originalByteLength) || stream.originalByteLength < 0) {
     throw new Error(`${label}.originalByteLength must be a non-negative safe integer`);
   }
   if (!Number.isSafeInteger(stream.capturedByteLength) || stream.capturedByteLength < 0) {
     throw new Error(`${label}.capturedByteLength must be a non-negative safe integer`);
   }
-  if (Buffer.byteLength(stream.content, "utf8") !== stream.capturedByteLength) {
-    throw new Error(`${label}.capturedByteLength does not match content`);
-  }
   if (typeof stream.truncated !== "boolean") throw new Error(`${label}.truncated must be boolean`);
   if (stream.truncated !== (stream.capturedByteLength < stream.originalByteLength)) {
     throw new Error(`${label}.truncated does not match byte lengths`);
   }
-  if (stream.truncated && stream.rawOutputPath !== rawOutputPath) {
-    throw new Error(`${label}.rawOutputPath must reference final-regression rawOutputPath when truncated`);
+  if (typeof stream.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(stream.sha256)) {
+    throw new Error(`${label}.sha256 must be a SHA-256 digest`);
   }
-  if (!stream.truncated && Object.hasOwn(stream, "rawOutputPath")) {
-    throw new Error(`${label}.rawOutputPath is only valid when truncated`);
-  }
+  if (Object.hasOwn(stream, "rawOutputPath")) throw new Error(`${label}.rawOutputPath must be stored only on its process record`);
 }
 
 function validateFinalRegressionChildProcesses(result) {
@@ -1326,9 +1340,34 @@ function validateFinalRegressionChildProcesses(result) {
     if (child.rawOutputPath !== result.rawOutputPath) {
       throw new Error(`${label}.rawOutputPath must reference final-regression rawOutputPath`);
     }
-    validateFinalRegressionStreamCapture(child.stdout, `${label}.stdout`, child.rawOutputPath);
-    validateFinalRegressionStreamCapture(child.stderr, `${label}.stderr`, child.rawOutputPath);
+    validateFinalRegressionStreamEvidence(child.stdout, `${label}.stdout`);
+    validateFinalRegressionStreamEvidence(child.stderr, `${label}.stderr`);
   }
+}
+
+function validateFinalRegressionExecutionBinding(result) {
+  if (result.result === "skipped") {
+    if (Object.hasOwn(result, "executionBinding")) throw new Error("final-regression skipped result must not contain executionBinding");
+    return;
+  }
+  const binding = result.executionBinding;
+  if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+    throw new Error("final-regression executionBinding is required");
+  }
+  if (binding.command !== null && (typeof binding.command !== "string" || binding.command.length === 0)) {
+    throw new Error("final-regression executionBinding.command must be a string or null");
+  }
+  for (const field of ["rawOutputPath", "rawOutputSha256", "parsedResult", "worktreeSha256"]) {
+    if (typeof binding[field] !== "string" || binding[field].length === 0) {
+      throw new Error(`final-regression executionBinding.${field} is required`);
+    }
+  }
+  if (!Number.isSafeInteger(binding.testCount) || binding.testCount < 0) {
+    throw new Error("final-regression executionBinding.testCount must be a non-negative safe integer");
+  }
+  if (typeof binding.truncated !== "boolean") throw new Error("final-regression executionBinding.truncated must be boolean");
+  validateFinalRegressionStreamEvidence(binding.stdout, "final-regression.executionBinding.stdout");
+  validateFinalRegressionStreamEvidence(binding.stderr, "final-regression.executionBinding.stderr");
 }
 
 export function validateFinalRegressionResult(result) {
@@ -1346,6 +1385,7 @@ export function validateFinalRegressionResult(result) {
   else assertRange(result.rawOutputLines, "final-regression");
   assertProcessMetadata(result.process, "final-regression.process");
   validateFinalRegressionChildProcesses(result);
+  validateFinalRegressionExecutionBinding(result);
   validateFinalRegressionFailureKind(result);
   validateFinalRegressionSkipKind(result);
   validateFinalRegressionRecordAndProceed(result);
@@ -1495,7 +1535,9 @@ function resolveFinalRegressionRawOutputPath(root, rawOutputPath) {
     allowedBaseDir: path.resolve(root),
     relPath: rawOutputPath,
     label: "final-regression rawOutputPath",
+    mustExist: false,
   });
+  if (!fs.existsSync(resolved)) return null;
   const stat = fs.lstatSync(resolved);
   if (!stat.isFile() || stat.isSymbolicLink()) {
     throw new Error("final-regression rawOutputPath must reference a regular repository file");
@@ -1508,14 +1550,9 @@ export function validateFinalRegressionEvidence({ root, artifact, repositoryBind
     validateFinalRegressionResult(artifact);
     const binding = artifact.executionBinding;
     if (!binding || typeof binding !== "object") throw new Error("executionBinding is required");
-    const rawPath = resolveFinalRegressionRawOutputPath(root, binding.rawOutputPath || artifact.rawOutputPath);
-    const rawText = fs.readFileSync(rawPath, "utf8");
-    const manifest = readFinalRegressionManifest(rawText);
-    if (binding.command !== artifact.command || binding.command !== manifest.command) throw new Error("execution binding command mismatch");
-    if (binding.parsedResult !== artifact.result || binding.parsedResult !== manifest.result) throw new Error("execution binding result mismatch");
-    const rawResult = rawText.match(/(?:^|\n)result:\s*(pass|fail|skipped)(?:\s|$)/)?.[1];
-    if (rawResult !== binding.parsedResult) throw new Error("execution binding parsed result mismatch");
-    if (binding.worktreeSha256 !== manifest.worktreeSha256 || !/^[a-f0-9]{64}$/.test(binding.worktreeSha256)) {
+    if (binding.command !== artifact.command) throw new Error("execution binding command mismatch");
+    if (binding.parsedResult !== artifact.result) throw new Error("execution binding result mismatch");
+    if (!/^[a-f0-9]{64}$/.test(binding.worktreeSha256)) {
       throw new Error("execution binding worktree fingerprint mismatch");
     }
     if (artifact.completed) {
@@ -1525,25 +1562,33 @@ export function validateFinalRegressionEvidence({ root, artifact, repositoryBind
       if (recordedRepository.treeSha !== currentRepository.treeSha) throw new Error("execution binding tree is stale");
       if (recordedRepository.worktreeSha256 !== currentRepository.worktreeSha256) throw new Error("execution binding worktree is stale");
     }
+    const rawPath = resolveFinalRegressionRawOutputPath(root, binding.rawOutputPath || artifact.rawOutputPath);
+    if (rawPath === null) return { ok: true, rawEvidence: "absent" };
+    const rawText = fs.readFileSync(rawPath, "utf8");
+    const manifest = readFinalRegressionManifest(rawText);
+    if (binding.command !== manifest.command) throw new Error("execution binding command mismatch");
+    if (binding.parsedResult !== manifest.result) throw new Error("execution binding result mismatch");
+    const rawResult = rawText.match(/(?:^|\n)result:\s*(pass|fail|skipped)(?:\s|$)/)?.[1];
+    if (rawResult !== binding.parsedResult) throw new Error("execution binding parsed result mismatch");
+    if (binding.worktreeSha256 !== manifest.worktreeSha256) throw new Error("execution binding worktree fingerprint mismatch");
     if (binding.rawOutputSha256 !== crypto.createHash("sha256").update(rawText).digest("hex")) throw new Error("execution binding raw output mismatch");
     for (const stream of ["stdout", "stderr"]) {
-      const captured = binding[stream]?.content;
       const evidence = manifest.streams[stream];
       if (!binding[stream]
         || binding[stream].originalByteLength !== evidence.originalByteLength
         || binding[stream].capturedByteLength !== evidence.capturedByteLength
         || binding[stream].truncated !== evidence.truncated
-        || crypto.createHash("sha256").update(captured).digest("hex") !== evidence.sha256) {
+        || binding[stream].sha256 !== evidence.sha256) {
         throw new Error(`execution binding ${stream} mismatch`);
       }
     }
-    if (binding.testCount !== manifest.testCount || binding.testCount !== finalRegressionTestCount(binding.stdout.content)) {
+    if (binding.testCount !== manifest.testCount) {
       throw new Error("execution binding test count mismatch");
     }
     if (binding.truncated !== manifest.truncated || binding.truncated !== Boolean(manifest.streams.stdout.truncated || manifest.streams.stderr.truncated)) {
       throw new Error("execution binding truncation mismatch");
     }
-    return { ok: true };
+    return { ok: true, rawEvidence: "verified" };
   } catch (err) {
     return finalRegressionEvidenceFailure(err.message);
   }
@@ -1606,7 +1651,7 @@ export function validateSummaryEvidence(summary, {
     if (typeof evidence.command !== "string" || evidence.command.length === 0) {
       throw new Error(`${entry.id}: evidence.command is required`);
     }
-    if (evidence.raw_output_lines.end_line > rawLines.length) {
+    if (validateRawOutputRange && evidence.raw_output_lines.end_line > rawLines.length) {
       throw new Error(`${entry.id}: summary raw_output_lines is outside raw output`);
     }
     if (entry.result === "not_applicable") {
@@ -1661,11 +1706,12 @@ export function validateTestExecuteResultEvidence(result, {
   requirements = [],
   summary = true,
   specDir = null,
+  validateRawOutputRange = true,
 }) {
   if (summary) {
     validateSummaryEvidence(result.summary, {
       root,
-      validateRawOutputRange: true,
+      validateRawOutputRange,
       rawLines,
       requirements,
       specDir,
@@ -1673,7 +1719,7 @@ export function validateTestExecuteResultEvidence(result, {
   }
 
   const regression = result.regression;
-  if (regression.required) {
+  if (regression.required && validateRawOutputRange) {
     if (regression.raw_output_lines.end_line > rawLines.length) {
       throw new Error("regression.raw_output_lines is outside raw output");
     }
@@ -1835,10 +1881,8 @@ export async function completeScenarioValidityArtifactChange({ root, specDir, ar
   const rawFile = resolveRawFile(root, specDir, artifact?.raw_output_path);
   const entries = Array.isArray(artifact?.summary) ? artifact.summary : (Array.isArray(artifact?.requirements) ? artifact.requirements : []);
   const requirements = loadSpecTestableRequirements(specDir, entries);
-  if (!rawFile || !fs.existsSync(rawFile)) {
-    addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
-  } else {
-    try {
+  try {
+    if (rawFile && fs.existsSync(rawFile)) {
       const rawText = fs.readFileSync(rawFile, "utf8");
       validateScenarioValidityResult(artifact, {
         root,
@@ -1846,9 +1890,11 @@ export async function completeScenarioValidityArtifactChange({ root, specDir, ar
         requirements,
         rawText,
       });
-    } catch (err) {
-      addMappedValidationIssue(issueCodes, err, "scenario-validity-schema-invalid");
+    } else {
+      validateScenarioValidityResult(artifact, { root, specDir, requirements });
     }
+  } catch (err) {
+    addMappedValidationIssue(issueCodes, err, "scenario-validity-schema-invalid");
   }
   if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
   if (artifact?.version !== "1") addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
@@ -1924,7 +1970,6 @@ export async function completeTestExecuteArtifactChange({ root, specDir, artifac
   }
 
   if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "requirement-summary-missing");
-  if (!rawFile || lineCount == null) addCompletionIssue(issueCodes, "raw-output-missing");
   if (!specDir || !fs.existsSync(path.join(specDir, FILE_MAP_RELATIVE))) addCompletionIssue(issueCodes, "file-map-missing");
   if (!hasSummaryArray || entries.length === 0) addCompletionIssue(issueCodes, "requirement-summary-missing");
   if (!artifact?.regression) addCompletionIssue(issueCodes, "regression-evidence-missing");
@@ -2234,7 +2279,10 @@ export function validateIntegrationArtifactTrust({
     const spec = readBoundedJson(specJsonPath, path.relative(root, specJsonPath)).value;
     const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
     const rawPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
-    const { rawOutputText, rawLines } = readBoundedRawOutput(rawPath);
+    const hasRawOutput = fs.existsSync(rawPath);
+    const { rawOutputText, rawLines } = hasRawOutput
+      ? readBoundedRawOutput(rawPath)
+      : { rawOutputText: "", rawLines: [] };
 
     const resultArtifact = loadJsonArtifact(specDir, TEST_EXECUTE_RESULT_FILE);
     const reviewArtifact = loadJsonArtifact(specDir, TEST_RESULT_REVIEW_FILE);
@@ -2253,6 +2301,7 @@ export function validateIntegrationArtifactTrust({
       rawLines,
       requirements,
       specDir,
+      validateRawOutputRange: hasRawOutput,
     });
     assertIntegrationRegressionAuthority({
       root: executionRoot,

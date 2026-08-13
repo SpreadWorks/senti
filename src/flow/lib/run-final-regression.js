@@ -59,6 +59,7 @@ import {
   recordStepAttempt,
 } from "./step-outcome.js";
 import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { FINAL_REGRESSION_MAX_ATTEMPTS } from "../../lib/flow-artifact-contract.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -116,9 +117,8 @@ const EXPLICIT_RECORD_CATEGORIES = new Set([
 ]);
 const FIX_ATTEMPT_SCAN_LIMIT = 10_000;
 const FINAL_REGRESSION_ATTEMPT_FILE_RE = /^final-regression-attempt-(\d+)\.log$/;
-const MAX_FINAL_REGRESSION_ATTEMPTS = 10_000;
 const MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES = 10_000;
-const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${MAX_FINAL_REGRESSION_ATTEMPTS})`;
+const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${FINAL_REGRESSION_MAX_ATTEMPTS})`;
 const MAX_CHANGED_FILES_TO_MATCH = 1000;
 const MAX_FINAL_REGRESSION_STREAM_BYTES = 1024 * 1024;
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
@@ -520,7 +520,7 @@ class FinalRegressionArtifact {
       rawOutputPath: this.rawOutputPath,
       rawOutputLines: this.rawOutputLines,
       process: this.process.toJSON(),
-      childProcesses: this.childProcesses.map((entry) => entry.toJSON()),
+      childProcesses: this.childProcesses.map((entry) => entry.toArtifactJSON()),
       changedFiles: this.changedFiles,
       ...(this.commandIdentity ? { commandIdentity: this.commandIdentity } : {}),
       changedFileFingerprints: this.changedFileFingerprints,
@@ -559,22 +559,35 @@ class FinalRegressionArtifact {
   }
 }
 
-function captureStream(content) {
-  const bytes = Buffer.from(String(content || ""), "utf8");
-  let end = Math.min(bytes.length, MAX_FINAL_REGRESSION_STREAM_BYTES);
-  while (end > 0 && (bytes[end] & 0xc0) === 0x80) end -= 1;
-  if (end < bytes.length && end > 0) {
-    const lead = bytes[end - 1];
-    const width = lead < 0x80 ? 1 : lead < 0xe0 ? 2 : lead < 0xf0 ? 3 : 4;
-    if (end - 1 + width > MAX_FINAL_REGRESSION_STREAM_BYTES) end -= 1;
+class FinalRegressionStreamCapture {
+  constructor(content) {
+    const bytes = Buffer.from(String(content || ""), "utf8");
+    let end = Math.min(bytes.length, MAX_FINAL_REGRESSION_STREAM_BYTES);
+    while (end > 0 && (bytes[end] & 0xc0) === 0x80) end -= 1;
+    if (end < bytes.length && end > 0) {
+      const lead = bytes[end - 1];
+      const width = lead < 0x80 ? 1 : lead < 0xe0 ? 2 : lead < 0xf0 ? 3 : 4;
+      if (end - 1 + width > MAX_FINAL_REGRESSION_STREAM_BYTES) end -= 1;
+    }
+    const captured = bytes.subarray(0, end);
+    this.content = captured.toString("utf8");
+    this.originalByteLength = bytes.length;
+    this.capturedByteLength = captured.length;
+    this.truncated = bytes.length > captured.length;
+    Object.freeze(this);
   }
-  const captured = bytes.subarray(0, end);
-  return {
-    content: captured.toString("utf8"),
-    originalByteLength: bytes.length,
-    capturedByteLength: captured.length,
-    truncated: bytes.length > captured.length,
-  };
+  toEvidenceJSON() {
+    return {
+      originalByteLength: this.originalByteLength,
+      capturedByteLength: this.capturedByteLength,
+      truncated: this.truncated,
+      sha256: crypto.createHash("sha256").update(this.content).digest("hex"),
+    };
+  }
+}
+
+function captureStream(content) {
+  return new FinalRegressionStreamCapture(content);
 }
 
 class FinalRegressionProcessResultFactory {
@@ -1149,7 +1162,7 @@ function nextFinalRegressionAttempt(specDir) {
   const rawDir = path.join(specDir, TESTS_RAW_DIR_RELATIVE);
   fs.mkdirSync(rawDir, { recursive: true });
   const nextIndex = latestAttemptIndex(rawDir) + 1;
-  if (nextIndex > MAX_FINAL_REGRESSION_ATTEMPTS) {
+  if (nextIndex > FINAL_REGRESSION_MAX_ATTEMPTS) {
     throw new Error(`${ATTEMPT_LIMIT_MESSAGE}; next=${nextIndex}`);
   }
   const fileName = `final-regression-attempt-${String(nextIndex).padStart(3, "0")}.log`;
@@ -1570,8 +1583,8 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       parsedResult: resultStatus,
       testCount,
       truncated,
-      stdout: manifestStreams?.stdout,
-      stderr: manifestStreams?.stderr,
+      stdout: manifestStreams?.stdout.toEvidenceJSON(),
+      stderr: manifestStreams?.stderr.toEvidenceJSON(),
     };
 
     const artifact = new FinalRegressionArtifact({

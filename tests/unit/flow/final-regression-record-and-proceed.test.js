@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
-import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
+import {
+  validateFinalRegressionEvidence,
+  validateFinalRegressionResult,
+} from "../../../src/flow/lib/test-artifacts.js";
 import {
   CompletionValidator,
   contractFromFinalRegressionArtifact,
@@ -61,7 +64,7 @@ function failedRecordedArtifact(overrides = {}) {
     childProcesses: [{
       ...childProcessRecord({
         stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
-      }).toJSON(),
+      }).toArtifactJSON(),
       rawOutputPath,
     }],
     changedFiles: [],
@@ -92,6 +95,27 @@ function failedRecordedArtifact(overrides = {}) {
     nextAction: "report",
     nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
+    executionBinding: {
+      command: "npm test --",
+      rawOutputPath,
+      rawOutputSha256: "a".repeat(64),
+      parsedResult: "fail",
+      worktreeSha256: "b".repeat(64),
+      testCount: 1,
+      truncated: false,
+      stdout: {
+        originalByteLength: 0,
+        capturedByteLength: 0,
+        truncated: false,
+        sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      },
+      stderr: {
+        originalByteLength: 60,
+        capturedByteLength: 60,
+        truncated: false,
+        sha256: "c".repeat(64),
+      },
+    },
     ...overrides,
   };
 }
@@ -116,6 +140,16 @@ describe("final-regression record-and-proceed shared unit coverage", () => {
       assert.equal(artifact.failureCategory, "existing_failure");
       assert.equal(artifact.recordAndProceed.eligible, true);
       assert.equal(artifact.nextRecommendedAction, "fix-and-rerun");
+      assert.equal(Object.hasOwn(artifact.executionBinding.stdout, "content"), false);
+      assert.equal(Object.hasOwn(artifact.executionBinding.stderr, "content"), false);
+      assert.equal(artifact.childProcesses.every((entry) => (
+        !Object.hasOwn(entry.stdout, "content") && !Object.hasOwn(entry.stderr, "content")
+      )), true);
+      fs.rmSync(path.join(tmp, artifact.rawOutputPath), { force: true });
+      assert.deepEqual(validateFinalRegressionEvidence({ root: tmp, artifact }), {
+        ok: true,
+        rawEvidence: "absent",
+      });
     } finally {
       removeTmpDir(tmp);
     }

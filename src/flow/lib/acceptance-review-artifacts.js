@@ -1258,7 +1258,7 @@ function validateRequirementSummaryMembership(summary, requirements) {
 
 function readScenarioRawEvidence(specDir) {
   const file = path.join(specDir, "tests/.raw/scenario-validity.log");
-  if (!fs.existsSync(file)) throw new Error("scenario-validity raw evidence is missing");
+  if (!fs.existsSync(file)) return null;
   const size = fs.statSync(file).size;
   if (size > MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES) {
     throw new Error(`scenario-validity raw evidence exceeds ${MAX_ACCEPTANCE_RAW_EVIDENCE_BYTES} bytes`);
@@ -1344,7 +1344,7 @@ function mechanicalArtifactState({ root, specDir, fingerprint, requirements, flo
         root,
         specDir,
         requirements,
-        rawText,
+        ...(rawText === null ? {} : { rawText }),
       });
     } catch (error) {
       recordInvalidSchema("scenario-validity-result.json", error);

@@ -511,9 +511,6 @@ describe("repair state identity", () => {
         repairFingerprint: manifest.hash,
       }));
     }],
-    ["test execution raw evidence is missing", () => {
-      fs.rmSync(path.join(tmp, "specs/demo/tests/.raw/test-execution.log"));
-    }],
     ["repair delta evidence is missing", () => {
       fs.rmSync(path.join(tmp, "specs/demo/repair-deltas"), { recursive: true });
     }],
@@ -536,6 +533,25 @@ describe("repair state identity", () => {
       assert.equal(state.steps[0].status, "in_progress");
     });
   }
+
+  it("does not replay a completed retained migration when only transient test execution output is missing", async () => {
+    const { state, flowManager } = await migrateBaselineBearingLegacyV2();
+    writeCurrentTestExecutionEvidence();
+    state.steps[0].status = "done";
+    state.steps[1].status = "in_progress";
+    fs.rmSync(path.join(tmp, "specs/demo/tests/.raw/test-execution.log"));
+
+    const result = ensureRepairFingerprintContract({
+      root: tmp,
+      state,
+      flowManager,
+      continueAfterMigration: true,
+    });
+
+    assert.equal(result.migrated, false);
+    assert.equal(state.steps[0].status, "done");
+    assert.equal(state.steps[1].status, "in_progress");
+  });
 
   it("replays a completed retained migration when the reset step was not applied", async () => {
     const { state, flowManager } = await migrateBaselineBearingLegacyV2();

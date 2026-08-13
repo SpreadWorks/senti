@@ -59,7 +59,8 @@ export function buildUpgradeReportDataFromArtifacts(specDir) {
   return {
     result: artifact.result,
     summary: artifact.summary,
-    rawLogPath: artifact.rawLogPath,
+    failureReason: artifact.failureReason,
+    rawLogPath: validation.rawPath ? artifact.rawLogPath : null,
   };
 }
 

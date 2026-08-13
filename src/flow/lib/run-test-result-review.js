@@ -37,14 +37,14 @@ function fail(check, detail) {
   return { check, result: "fail", detail };
 }
 
-function validateSummary(result, { root, rawOutputText, rawLines, requirements }) {
+function validateSummary(result, { root, rawOutputText, rawLines, requirements, hasRawOutput }) {
   try {
     validateSummaryEvidence(result.summary, {
       root,
       rawText: rawOutputText,
       rawLines,
       requirements,
-      validateRawOutputRange: true,
+      validateRawOutputRange: hasRawOutput,
     });
   } catch (err) {
     return fail("summary_evidence", err.message);
@@ -52,7 +52,8 @@ function validateSummary(result, { root, rawOutputText, rawLines, requirements }
   return pass("summary_evidence", "summary membership, executable test evidence, no-tests decisions, commands, raw ranges, and output ids are valid");
 }
 
-function validateRegressionRawRange(result, rawLines) {
+function validateRegressionRawRange(result, rawLines, hasRawOutput) {
+  if (!hasRawOutput) return pass("raw_output_lines", "raw diagnostic is absent; structured regression facts remain authoritative");
   const regression = result.regression;
   if (regression.required) {
     const range = regression.raw_output_lines;
@@ -63,9 +64,12 @@ function validateRegressionRawRange(result, rawLines) {
   return pass("raw_output_lines", "regression line range is within raw output");
 }
 
-function validateProjectRegression(result, { root, rawOutputText, rawLines, requirements }) {
+function validateProjectRegression(result, { root, rawOutputText, rawLines, requirements, hasRawOutput }) {
   try {
-    validateTestExecuteResultEvidence(result, { root, rawOutputText, rawLines, requirements, summary: false });
+    validateTestExecuteResultEvidence(result, {
+      root, rawOutputText, rawLines, requirements, summary: false,
+      validateRawOutputRange: hasRawOutput,
+    });
   } catch (err) {
     return fail("project_regression_verification", err.message);
   }
@@ -114,17 +118,17 @@ export default class RunTestResultReviewCommand extends FlowCommand {
     const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     if (!fs.existsSync(resultPath)) throw new Error(`${TEST_EXECUTE_RESULT_FILE} not found at ${resultPath}: test-execute step has not been run`);
-    if (!fs.existsSync(rawOutputPath)) throw new Error(`${RAW_OUTPUT_RELATIVE} not found at ${rawOutputPath}: test-execute raw log is missing`);
     ensureRepairFingerprintContract({ root: executionRoot, artifactRoot: root, state, flowManager: ctx.flowManager });
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
     const loadedResult = readJsonStrict(resultPath);
     const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
     assertRepairFingerprint({ artifact: loadedResult, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
-    const rawOutputText = readRawOutputText(rawOutputPath);
-    const rawLines = rawOutputText.split(/\r?\n/);
+    const hasRawOutput = fs.existsSync(rawOutputPath);
+    const rawOutputText = hasRawOutput ? readRawOutputText(rawOutputPath) : "";
+    const rawLines = hasRawOutput ? rawOutputText.split(/\r?\n/) : [];
     const requirements = spec.requirements || [];
-    const evidenceContext = { root, rawOutputText, rawLines, requirements };
+    const evidenceContext = { root, rawOutputText, rawLines, requirements, hasRawOutput };
     const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
     let result;
     try {
@@ -154,7 +158,7 @@ export default class RunTestResultReviewCommand extends FlowCommand {
 
     const checked_items = [
       validateSummary(result, evidenceContext),
-      validateRegressionRawRange(result, rawLines),
+      validateRegressionRawRange(result, rawLines, hasRawOutput),
       validateProjectRegression(result, evidenceContext),
     ];
     const failed = checked_items.filter((item) => item.result !== "pass");

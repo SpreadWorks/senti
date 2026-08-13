@@ -19,9 +19,9 @@ export class ArtifactPublicationClaim {
     this.authority = ArtifactAuthority.from(authority);
     Object.freeze(this);
   }
-  assertSlot(slot) {
+  assertSlot(slot, { contractBound = false } = {}) {
     if (!(slot instanceof ArtifactAuthoritySlot)) throw new Error("ArtifactAuthoritySlot is required for publication authority");
-    if (this.authority.toString() !== slot.authority.toString()) {
+    if (!contractBound && this.authority.toString() !== slot.authority.toString()) {
       throw new Error(`artifact publication claim authority mismatch for ${this.stepId}`);
     }
     if (slot.publicationStep !== this.stepId) {
