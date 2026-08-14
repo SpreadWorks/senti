@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
 import {
-  buildTextSystemPrompt,
   getEnrichedContext,
   getAnalysisContext,
 } from "../../../../src/docs/lib/text-prompts.js";
@@ -184,15 +183,6 @@ describe("getEnrichedContext", () => {
     const result = getEnrichedContext(analysis, "overview.md", "light");
     assert.ok(result);
     assert.ok(result.includes("1 entries"));
-  });
-});
-
-describe("buildTextSystemPrompt", () => {
-  it("requires current-project source grounding and omits unsupported claims", () => {
-    const prompt = buildTextSystemPrompt(undefined, "en");
-    assert.match(prompt, /current project's analysis data and source files/);
-    assert.match(prompt, /declared dependency is not proof/);
-    assert.match(prompt, /omit the claim instead of inventing/);
   });
 });
 

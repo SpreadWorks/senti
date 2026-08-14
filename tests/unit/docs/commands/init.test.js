@@ -51,7 +51,7 @@ function throwingAgent() {
 
 describe("aiFilterChapters", () => {
   it("filters chapters based on valid AI JSON response", async () => {
-    const agent = respondingAgent('{"chapters":["overview.md","development.md"]}');
+    const agent = respondingAgent('["overview.md","development.md"]');
     const result = await aiFilterChapters(CHAPTERS, ANALYSIS, agent, process.cwd(), "");
     assert.equal(result.length, 2);
     assert.deepEqual(result.map((c) => c.fileName), ["overview.md", "development.md"]);
@@ -64,7 +64,7 @@ describe("aiFilterChapters", () => {
   });
 
   it("returns all chapters when AI returns empty array", async () => {
-    const agent = respondingAgent('{"chapters":[]}');
+    const agent = respondingAgent("[]");
     const result = await aiFilterChapters(CHAPTERS, ANALYSIS, agent, process.cwd(), "");
     assert.equal(result.length, CHAPTERS.length);
   });
@@ -75,14 +75,14 @@ describe("aiFilterChapters", () => {
     assert.equal(result.length, CHAPTERS.length);
   });
 
-  it("returns all chapters when AI returns the retired array response", async () => {
-    const agent = respondingAgent('["overview.md"]');
+  it("returns all chapters when AI returns non-array JSON", async () => {
+    const agent = respondingAgent('{"chapters": ["overview.md"]}');
     const result = await aiFilterChapters(CHAPTERS, ANALYSIS, agent, process.cwd(), "");
     assert.equal(result.length, CHAPTERS.length);
   });
 
   it("strips markdown fences from AI response", async () => {
-    const agent = respondingAgent('```json\n{"chapters":["overview.md","development.md"]}\n```');
+    const agent = respondingAgent('```json\n["overview.md","development.md"]\n```');
     const result = await aiFilterChapters(CHAPTERS, ANALYSIS, agent, process.cwd(), "");
     assert.equal(result.length, 2);
   });

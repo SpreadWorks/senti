@@ -50,44 +50,6 @@ class InitChapterPlan {
   }
 }
 
-class DocumentationChapterSelection {
-  constructor(input = {}) {
-    if (!input || typeof input !== "object" || Array.isArray(input)) {
-      throw new Error("chapter selection must be an object");
-    }
-    if (!Array.isArray(input.chapters)) {
-      throw new Error("chapter selection must contain a chapters array");
-    }
-    if (input.chapters.some((chapter) => typeof chapter !== "string" || chapter.trim() === "")) {
-      throw new Error("chapter selection entries must be non-empty strings");
-    }
-    this.chapters = Object.freeze([...new Set(input.chapters.map((chapter) => chapter.trim()))]);
-    Object.freeze(this);
-  }
-
-  static jsonSchema() {
-    return {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        chapters: {
-          type: "array",
-          items: { type: "string" },
-        },
-      },
-      required: ["chapters"],
-    };
-  }
-
-  static parse(response) {
-    let cleaned = response.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
-    }
-    return new DocumentationChapterSelection(JSON.parse(cleaned));
-  }
-}
-
 // ---------------------------------------------------------------------------
 // AI 章選別
 // ---------------------------------------------------------------------------
@@ -135,8 +97,11 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   if (audienceRule) ruleLines.push(audienceRule);
   pb.setRules(ruleLines.join("\n"));
 
-  pb.setJsonSchema(DocumentationChapterSelection.jsonSchema());
-  pb.setFmtFallback('Reply with ONLY a JSON object containing a chapters array. Example: {"chapters":["overview.md","commands.md"]}');
+  pb.setJsonSchema({
+    type: "array",
+    items: { type: "string" },
+  });
+  pb.setFmtFallback('Reply with ONLY a JSON array of chapter filenames. Example: ["overview.md","commands.md"]');
 
   pb.addUserPrompt("## Project analysis summary", summary);
   pb.addUserPrompt("## Available chapters", chapterList);
@@ -156,16 +121,28 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
     return chapters;
   }
 
-  let selection;
+  // JSON オブジェクトをパース（コードフェンスがあれば除去）
+  let cleaned = response.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
+  }
+
+  let selected;
   try {
-    selection = DocumentationChapterSelection.parse(response);
-  } catch (err) {
-    logger.log(`[init] WARN: AI chapter selection is invalid: ${err.message}`);
-    logger.log(`[init]   response: ${response.trim().slice(0, 200)}`);
+    const parsed = JSON.parse(cleaned);
+    selected = Array.isArray(parsed) ? parsed : null;
+  } catch (_) {
+    logger.log("[init] WARN: AI response is not valid JSON, skipping AI filter.");
+    logger.log(`[init]   response: ${cleaned.slice(0, 200)}`);
     return chapters;
   }
 
-  const selectedSet = new Set(selection.chapters);
+  if (!Array.isArray(selected)) {
+    logger.log("[init] WARN: AI response does not contain a chapters array, skipping AI filter.");
+    return chapters;
+  }
+
+  const selectedSet = new Set(selected);
   const filtered = chapters.filter((ch) => selectedSet.has(ch.fileName));
 
   if (filtered.length === 0) {
