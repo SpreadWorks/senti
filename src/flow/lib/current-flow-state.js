@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
-import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
+import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRuntimeLockLocation, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
 import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
 import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
 import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
@@ -4434,10 +4434,19 @@ export class CurrentFlowStateSnapshot {
  * reapplying the same Activity id/order; a conflicting duplicate is rejected.
  */
 export class CurrentFlowStateStore {
-  constructor({ directory, definition, faultInjector = () => {}, processIdentitySource } = {}) {
+  constructor({ directory, definition, faultInjector = () => {}, processIdentitySource, runtimeLockLocation = null } = {}) {
     this.directory = path.resolve(requireString(directory, "store.directory"));
     if (!(definition instanceof CurrentFlowDefinition)) throw new CurrentFlowStateInvariantError("store requires a CurrentFlowDefinition");
     if (typeof faultInjector !== "function") throw new CurrentFlowStateInvariantError("store.faultInjector must be a function");
+    if (runtimeLockLocation !== null && !(runtimeLockLocation instanceof FlowVersionRuntimeLockLocation)) {
+      throw new CurrentFlowStateInvariantError("current flow state runtime lock requires a typed Version lock location");
+    }
+    if (runtimeLockLocation !== null && (
+      runtimeLockLocation.logicalKey !== "runtime.lock.current-flow-state"
+      || runtimeLockLocation.location.directory !== this.directory
+    )) {
+      throw new CurrentFlowStateInvariantError("current flow state runtime lock must belong to this Version directory");
+    }
     fs.mkdirSync(this.directory, { recursive: true, mode: 0o755 });
     const lockErrorFactory = (status, message, { lockPath, cause } = {}) => {
       const error = new CurrentFlowStateConflictError(message);
@@ -4452,30 +4461,34 @@ export class CurrentFlowStateStore {
     this.validator = new CurrentFlowStateValidator({ definition });
     this.serializer = new CurrentFlowStateSerializer({ validator: this.validator });
     this.faultInjector = faultInjector;
+    this.runtimeLockLocation = runtimeLockLocation;
     this.statePath = path.join(this.directory, "flow.json");
     this.journal = new FlowActivityJournal(path.join(this.directory, "activities.jsonl"));
     // Runtime state is deliberately a real, non-authoritative subtree.  Create
     // it before capturing lock directory identities so nested authorities do
     // not have a creation race with their parent directory.
-    fs.mkdirSync(path.join(this.directory, ".runtime", "locks"), { recursive: true, mode: 0o755 });
+    const runtimeDirectory = runtimeLockLocation?.runtimeDirectory ?? path.join(this.directory, ".runtime");
+    const lockDirectory = runtimeLockLocation?.directory ?? path.join(runtimeDirectory, "locks");
+    const lockFileName = runtimeLockLocation?.fileName ?? "current-flow-state.lock";
+    fs.mkdirSync(lockDirectory, { recursive: true, mode: 0o755 });
     this.directoryAuthority = new RealDirectoryAuthority(this.directory, { errorFactory: lockErrorFactory });
-    this.runtimeAuthority = new RealDirectoryAuthority(path.join(this.directory, ".runtime"), {
+    this.runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, {
       create: true,
       parentAuthority: this.directoryAuthority,
       errorFactory: lockErrorFactory,
     });
-    this.lockDirectoryAuthority = new RealDirectoryAuthority(path.join(this.directory, ".runtime", "locks"), {
+    this.lockDirectoryAuthority = new RealDirectoryAuthority(lockDirectory, {
       create: true,
       parentAuthority: this.runtimeAuthority,
       errorFactory: lockErrorFactory,
     });
     this.lock = new ProcessOwnedLock({
       directoryAuthority: this.lockDirectoryAuthority,
-      fileName: "current-flow-state.lock",
+      fileName: lockFileName,
       kind: "current-flow-state",
       authority: {
         directory: this.directory,
-        runtimeDirectory: path.join(this.directory, ".runtime"),
+        runtimeDirectory,
         statePath: this.statePath,
         activityPath: this.journal.filePath,
       },
@@ -5124,6 +5137,7 @@ export class CurrentFlowVersionStore {
       this.#stateStore = new CurrentFlowStateStore({
         directory: this.location.directory,
         definition: this.definition,
+        runtimeLockLocation: this.location.runtimeLock("runtime.lock.current-flow-state"),
         ...(this.faultInjector && { faultInjector: this.faultInjector }),
         ...(this.processIdentitySource && { processIdentitySource: this.processIdentitySource }),
       });

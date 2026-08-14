@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
+import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { PRODUCT } from "../../lib/product.js";
 
 function normalizedRepositoryPath(value) {
@@ -56,10 +57,14 @@ export class FlowRepositoryRuntimeArtifactRegistry {
     Object.freeze(this);
   }
 
-  owns(value) {
+  owns(value, { runtimeLocks = [] } = {}) {
     const relativePath = normalizedRepositoryPath(value);
+    if (!Array.isArray(runtimeLocks) || runtimeLocks.some((lock) => !(lock instanceof FlowVersionRuntimeLockLocation))) {
+      throw new Error("repository runtime lock ownership requires FlowVersionRuntimeLockLocation values");
+    }
     return this.#exact.has(relativePath)
-      || this.#prefixes.some((prefix) => relativePath.startsWith(prefix));
+      || this.#prefixes.some((prefix) => relativePath.startsWith(prefix))
+      || runtimeLocks.some((lock) => lock.matchesRepositoryPath(relativePath));
   }
 
   gitPathspecExcludes() {

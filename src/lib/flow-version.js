@@ -517,6 +517,7 @@ export class FlowVersionLocation {
   artifactPath(value) { return this.resolve(path.posix.join("artifacts/legacy", relativePath(value, "migration artifact path"))); }
   artifact(logicalKey, parameters = {}) { return this.resolve(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
   relativeArtifact(logicalKey, parameters = {}) { return this.relativePath(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
+  runtimeLock(logicalKey) { return new FlowVersionRuntimeLockLocation({ location: this, logicalKey }); }
   // State consumers need repository-relative paths, but must not reconstruct
   // a Version directory themselves.  These accessors are the canonical
   // counterpart of the retired FlowSpecLocation conveniences.
@@ -538,6 +539,46 @@ export class FlowVersionLocation {
   }
   reviewEvidencePath({ reviewStep = null, taskId = null, digest } = {}) {
     return this.resolve(FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep, taskId, digest }).relativePath);
+  }
+}
+
+/**
+ * Typed location for one non-authoritative Version runtime lock.  Lock
+ * consumers receive this value rather than reconstructing a `.runtime` path,
+ * so repository authority checks can distinguish a Store-owned lock from an
+ * arbitrary worker-created runtime file.
+ */
+export class FlowVersionRuntimeLockLocation {
+  constructor({ location, logicalKey } = {}) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new Error("runtime lock location requires a FlowVersionLocation");
+    }
+    const key = identifier(logicalKey, "runtime lock logicalKey");
+    const contract = FLOW_ARTIFACT_CONTRACTS.require(key);
+    if (
+      !key.startsWith("runtime.lock.")
+      || contract.cataloged
+      || contract.retention.toString() !== "transient"
+      || contract.canonicalPath.parameters.length !== 0
+    ) {
+      throw new Error("runtime lock location requires a singleton transient runtime-lock contract");
+    }
+    this.location = location;
+    this.logicalKey = key;
+    this.repositoryRoot = location.repositoryRoot;
+    this.relativeRepositoryPath = location.relativeArtifact(key);
+    this.path = location.artifact(key);
+    this.directory = path.dirname(this.path);
+    this.fileName = path.basename(this.path);
+    this.runtimeDirectory = path.dirname(this.directory);
+    Object.freeze(this);
+  }
+
+  matchesRepositoryPath(value) {
+    const candidate = relativePath(value, "runtime lock repository path");
+    if (candidate === this.relativeRepositoryPath) return true;
+    return path.posix.dirname(candidate) === path.posix.dirname(this.relativeRepositoryPath)
+      && ProcessOwnedLock.isOwnerTemporaryFileName(this.fileName, path.posix.basename(candidate));
   }
 }
 
@@ -1110,15 +1151,16 @@ export class FlowArtifactCatalogStore {
     this.location.assertAuthority(null, { mustExist: true });
     if (!fs.lstatSync(this.location.directory).isDirectory()) throw new Error("Version root must be an existing real directory");
     const directoryAuthority = new RealDirectoryAuthority(this.location.directory);
-    const runtimeDirectory = this.location.resolve(".runtime");
-    const lockDirectory = this.location.resolve(".runtime/locks");
+    const runtimeLock = this.location.runtimeLock("runtime.lock.artifact-catalog");
+    const runtimeDirectory = runtimeLock.runtimeDirectory;
+    const lockDirectory = runtimeLock.directory;
     // Establish the non-authoritative runtime branch before its identity is
     // captured.  Publication never treats these files as catalog entries.
     fs.mkdirSync(lockDirectory, { recursive: true, mode: 0o755 });
     const runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, { parentAuthority: directoryAuthority });
     const lockDirectoryAuthority = new RealDirectoryAuthority(lockDirectory, { parentAuthority: runtimeAuthority });
     const lock = new ProcessOwnedLock({
-      directoryAuthority: lockDirectoryAuthority, fileName: "artifact-catalog.lock", kind: "artifact-catalog-publication",
+      directoryAuthority: lockDirectoryAuthority, fileName: runtimeLock.fileName, kind: "artifact-catalog-publication",
       authority: { directory: this.location.directory, runtimeDirectory, catalog: this.location.catalogFile },
     });
     let acquired = false;

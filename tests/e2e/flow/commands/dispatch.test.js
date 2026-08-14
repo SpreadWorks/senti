@@ -57,23 +57,27 @@ class DispatchFlowScenario {
   }
 }
 
-function installWorker(root, { delayMs = 75 } = {}) {
+function installWorker(root, { delayMs = 75, holdForRelease = false } = {}) {
   const worker = path.join(root, "serial-worker.mjs");
   const workDir = path.join(root, ".tmp");
   const count = path.join(workDir, "worker-count.txt");
   const lock = path.join(workDir, "worker.lock");
   const overlap = path.join(workDir, "worker-overlap.txt");
+  const release = path.join(workDir, "worker.release");
   fs.mkdirSync(workDir, { recursive: true });
   fs.writeFileSync(worker, [
     'import fs from "node:fs";',
     `const countFile=${JSON.stringify(count)};`,
     `const lockFile=${JSON.stringify(lock)};`,
     `const overlapFile=${JSON.stringify(overlap)};`,
+    `const releaseFile=${JSON.stringify(release)};`,
     'if (fs.existsSync(lockFile)) fs.writeFileSync(overlapFile, "overlap\\n");',
     'fs.writeFileSync(lockFile, String(process.pid));',
     'const previous=fs.existsSync(countFile)?Number(fs.readFileSync(countFile,"utf8")):0;',
     'fs.writeFileSync(countFile, String(previous+1));',
-    `await new Promise((resolve)=>setTimeout(resolve,${delayMs}));`,
+    holdForRelease
+      ? 'const releaseDeadline=Date.now()+10_000; while (!fs.existsSync(releaseFile)) { if (Date.now() >= releaseDeadline) { fs.rmSync(lockFile,{force:true}); throw new Error("timed out waiting for worker release"); } await new Promise((resolve)=>setTimeout(resolve,10)); }'
+      : `await new Promise((resolve)=>setTimeout(resolve,${delayMs}));`,
     'fs.rmSync(lockFile,{force:true});',
     'process.stdout.write("premature normal worker response");',
   ].join("\n"));
@@ -91,7 +95,7 @@ function installWorker(root, { delayMs = 75 } = {}) {
       },
     },
   }, null, 2)}\n`);
-  return { count, lock, overlap };
+  return { count, lock, overlap, release };
 }
 
 function ensureGitRepository(root) {
@@ -148,7 +152,7 @@ describe("flow dispatch CLI", () => {
 
   it("serializes worker ownership and rejects a concurrent dispatcher", async () => {
     root = createTmpDir("sennel-flow-dispatch-concurrent-");
-    const worker = installWorker(root, { delayMs: 300 });
+    const worker = installWorker(root, { holdForRelease: true });
     const scenario = new DispatchFlowScenario(root);
     ensureGitRepository(root);
     const first = spawn(process.execPath, scenario.args(), {
@@ -158,11 +162,20 @@ describe("flow dispatch CLI", () => {
     const firstResultPromise = spawnedResult(first);
 
     await waitForFile(worker.lock);
-    const second = invoke(scenario);
+    let second;
+    let secondFailure = null;
+    try {
+      second = invoke(scenario);
+    } catch (error) {
+      secondFailure = error;
+    } finally {
+      fs.writeFileSync(worker.release, "release\n");
+    }
     const firstResult = await firstResultPromise;
+    if (secondFailure) throw secondFailure;
 
     assert.notEqual(second.status, 0);
-    assert.equal(second.envelope.errors[0].code, "FLOW_TARGET_RECOVERY_REQUIRED");
+    assert.equal(second.envelope.errors[0].code, "FLOW_DISPATCH_BUSY");
     assert.notEqual(firstResult.status, 0, firstResult.stderr);
     assert.equal(firstResult.envelope.errors[0].code, "FLOW_ARTIFACT_HANDOFF_MISSING");
     assert.equal(fs.readFileSync(worker.count, "utf8"), "1");

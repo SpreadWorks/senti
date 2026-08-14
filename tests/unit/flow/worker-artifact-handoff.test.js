@@ -23,6 +23,7 @@ import {
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { persistAgentInvocationMetric } from "../../../src/lib/agent-invocation-metric.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "../../../src/lib/process-owned-lock.js";
 import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
@@ -136,6 +137,26 @@ function initializeGitRepository(value) {
   fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 1;\n");
   execFileSync("git", ["add", "."], { cwd: value.mainRoot });
   execFileSync("git", ["commit", "-q", "-m", "fixture"], { cwd: value.mainRoot });
+}
+
+function acquireRuntimeLock(location, logicalKey) {
+  const runtimeLock = location.runtimeLock(logicalKey);
+  fs.mkdirSync(runtimeLock.directory, { recursive: true });
+  const versionAuthority = new RealDirectoryAuthority(location.directory);
+  const runtimeAuthority = new RealDirectoryAuthority(runtimeLock.runtimeDirectory, {
+    parentAuthority: versionAuthority,
+  });
+  const lockAuthority = new RealDirectoryAuthority(runtimeLock.directory, {
+    parentAuthority: runtimeAuthority,
+  });
+  const lock = new ProcessOwnedLock({
+    directoryAuthority: lockAuthority,
+    fileName: runtimeLock.fileName,
+    kind: "worker-authority-runtime-lock",
+    authority: { logicalKey },
+  });
+  lock.acquire();
+  return { lock, runtimeLock };
 }
 
 function seal(request) {
@@ -854,7 +875,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("ignores repository runtime ownership changes while retaining worker mutation authority", () => {
+  it("ignores current Version Store locks but rejects another Version and source mutations", () => {
     const value = fixture("draft", { worktree: false });
     try {
       initializeGitRepository(value);
@@ -864,21 +885,73 @@ describe("worker artifact handoff", () => {
         invocation: value.invocation,
       });
       const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const currentLocation = value.flowManager.specLocation(value.specId);
+      const currentLocks = [
+        acquireRuntimeLock(currentLocation, "runtime.lock.artifact-catalog"),
+        acquireRuntimeLock(currentLocation, "runtime.lock.current-flow-state"),
+      ];
+      const ownerTemp = path.join(
+        currentLocks[0].runtimeLock.directory,
+        ProcessOwnedLock.ownerTemporaryFileName(currentLocks[0].runtimeLock.fileName, crypto.randomUUID()),
+      );
+      fs.writeFileSync(ownerTemp, "transient owner publication\n");
       const runtimeDirectory = path.join(value.mainRoot, ".sennel");
       fs.writeFileSync(path.join(runtimeDirectory, ".repository-flow-operation.lock"), "runtime lock\n");
       fs.writeFileSync(path.join(runtimeDirectory, ".flow-dispatch-concurrent.lock"), "dispatch lock\n");
       fs.mkdirSync(path.join(runtimeDirectory, "output"), { recursive: true });
       fs.writeFileSync(path.join(runtimeDirectory, "output", "concurrent.json"), "{}\n");
 
-      assert.doesNotThrow(() => authority.assertUnchanged());
+      try {
+        assert.doesNotThrow(() => authority.assertUnchanged());
 
-      fs.writeFileSync(path.join(value.mainRoot, "worker-untracked.txt"), "worker mutation\n");
-      assert.throws(
-        () => authority.assertUnchanged(),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
-          && error.data.changedPaths.includes("worker-untracked.txt"),
-      );
+        const unexpectedCurrentVersionRuntimePath = path.join(
+          currentLocks[0].runtimeLock.directory,
+          "unexpected-worker-runtime.lock",
+        );
+        fs.writeFileSync(unexpectedCurrentVersionRuntimePath, "worker mutation\n");
+        try {
+          assert.throws(
+            () => authority.assertUnchanged(),
+            (error) => error instanceof WorkerArtifactHandoffError
+              && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+              && error.data.changedPaths.includes(path.relative(
+                value.mainRoot,
+                unexpectedCurrentVersionRuntimePath,
+              ).split(path.sep).join("/")),
+          );
+        } finally {
+          fs.rmSync(unexpectedCurrentVersionRuntimePath, { force: true });
+        }
+
+        const otherLocation = new FlowManager({
+          root: value.mainRoot,
+          mainRoot: value.mainRoot,
+          inWorktree: false,
+          specId: "501-other-version",
+        }).specLocation("501-other-version");
+        const otherLock = acquireRuntimeLock(otherLocation, "runtime.lock.artifact-catalog");
+        try {
+          assert.throws(
+            () => authority.assertUnchanged(),
+            (error) => error instanceof WorkerArtifactHandoffError
+              && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+              && error.data.changedPaths.includes(otherLock.runtimeLock.relativeRepositoryPath),
+          );
+        } finally {
+          otherLock.lock.release();
+        }
+
+        fs.writeFileSync(path.join(value.mainRoot, "product.js"), "export const value = 2;\n");
+        assert.throws(
+          () => authority.assertUnchanged(),
+          (error) => error instanceof WorkerArtifactHandoffError
+            && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+            && error.data.changedPaths.includes("product.js"),
+        );
+      } finally {
+        fs.rmSync(ownerTemp, { force: true });
+        for (const entry of currentLocks.reverse()) entry.lock.release();
+      }
     } finally {
       removeTmpDir(value.mainRoot);
     }

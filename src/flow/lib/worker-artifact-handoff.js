@@ -11,6 +11,7 @@ import {
   captureRegularFile,
   sameFileIdentity,
 } from "../../lib/regular-file-snapshot.js";
+import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
 import { findActiveNode, getFlowNode } from "../definition.js";
 import { findStepById } from "./step-tree.js";
@@ -674,10 +675,10 @@ function authoritySnapshotError(message, cause = null, data = {}) {
   );
 }
 
-function isWorkerRuntimePath(relativePath) {
+function isWorkerRuntimePath(relativePath, runtimeLocks = []) {
   const segments = relativePath.split("/");
   if (segments.includes(".git") || segments.includes(".tmp")) return true;
-  return FLOW_REPOSITORY_RUNTIME_ARTIFACTS.owns(relativePath);
+  return FLOW_REPOSITORY_RUNTIME_ARTIFACTS.owns(relativePath, { runtimeLocks });
 }
 
 /**
@@ -707,8 +708,15 @@ function authorityIgnoredDirectories(directories = []) {
   return Object.freeze([...new Set(normalized)].sort((left, right) => left.localeCompare(right)));
 }
 
-function isIgnoredAuthorityPath(relativePath, ignoredDirectories) {
-  if (isWorkerRuntimePath(relativePath)) return true;
+function authorityRuntimeLocks(runtimeLocks = []) {
+  if (!Array.isArray(runtimeLocks) || runtimeLocks.some((lock) => !(lock instanceof FlowVersionRuntimeLockLocation))) {
+    throw authoritySnapshotError("worker authority runtime locks must be typed Version lock locations");
+  }
+  return Object.freeze([...new Set(runtimeLocks)]);
+}
+
+function isIgnoredAuthorityPath(relativePath, ignoredDirectories, runtimeLocks = []) {
+  if (isWorkerRuntimePath(relativePath, runtimeLocks)) return true;
   return ignoredDirectories.some((directory) => (
     relativePath === directory || relativePath.startsWith(`${directory}/`)
   ));
@@ -887,7 +895,7 @@ function authorityFileEntry(root, relativePath, budget) {
   });
 }
 
-function filteredIndexDigest(bytes, ignoredDirectories) {
+function filteredIndexDigest(bytes, ignoredDirectories, runtimeLocks) {
   const hash = crypto.createHash("sha256");
   for (const record of bytes.toString("utf8").split("\u0000").filter(Boolean)) {
     const separator = record.indexOf("\t");
@@ -895,16 +903,17 @@ function filteredIndexDigest(bytes, ignoredDirectories) {
       throw authoritySnapshotError("worker artifact authority received malformed Git index data");
     }
     const relativePath = record.slice(separator + 1);
-    if (!isIgnoredAuthorityPath(relativePath, ignoredDirectories)) hash.update(record).update("\u0000");
+    if (!isIgnoredAuthorityPath(relativePath, ignoredDirectories, runtimeLocks)) hash.update(record).update("\u0000");
   }
   return hash.digest("hex");
 }
 
-function gitAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
+function gitAuthoritySnapshot(root, { ignoredDirectories = [], runtimeLocks = [] } = {}) {
   const head = boundedGitOutput(root, ["rev-parse", "HEAD"], "Git HEAD").toString("utf8").trim();
   const indexDigest = filteredIndexDigest(
     boundedGitOutput(root, ["ls-files", "--stage", "-z"], "Git index"),
     ignoredDirectories,
+    runtimeLocks,
   );
   const tracked = nullSeparatedPaths(
     boundedGitOutput(
@@ -923,7 +932,7 @@ function gitAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
     "untracked path set",
   );
   const paths = [...new Set([...tracked, ...untracked])]
-    .filter((relativePath) => !isIgnoredAuthorityPath(relativePath, ignoredDirectories))
+    .filter((relativePath) => !isIgnoredAuthorityPath(relativePath, ignoredDirectories, runtimeLocks))
     .sort((left, right) => left.localeCompare(right));
   if (paths.length > MAX_AUTHORITY_DIRTY_PATHS) {
     throw authoritySnapshotError(
@@ -939,7 +948,7 @@ function gitAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
   };
 }
 
-function filesystemAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
+function filesystemAuthoritySnapshot(root, { ignoredDirectories = [], runtimeLocks = [] } = {}) {
   const relativePaths = [];
   const directories = [path.resolve(root)];
   while (directories.length > 0) {
@@ -950,7 +959,7 @@ function filesystemAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
       while ((entry = handle.readSync()) != null) {
         const absolutePath = path.join(directoryPath, entry.name);
         const relativePath = path.relative(root, absolutePath).split(path.sep).join("/");
-        if (isIgnoredAuthorityPath(relativePath, ignoredDirectories)) continue;
+        if (isIgnoredAuthorityPath(relativePath, ignoredDirectories, runtimeLocks)) continue;
         relativePaths.push(relativePath);
         if (relativePaths.length > MAX_AUTHORITY_DIRTY_PATHS) {
           throw authoritySnapshotError(
@@ -975,13 +984,14 @@ function filesystemAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
 }
 
 export class WorkerArtifactRepositoryMutationSnapshot {
-  constructor({ root, authorities, ignoredDirectories = [], mode, head, indexDigest, entries }) {
+  constructor({ root, authorities, ignoredDirectories = [], runtimeLocks = [], mode, head, indexDigest, entries }) {
     this.root = path.resolve(root);
     this.authorities = Object.freeze(authorities.map((entry) => requiredString(
       entry,
       "worker artifact repository authority",
     )));
     this.ignoredDirectories = authorityIgnoredDirectories(ignoredDirectories);
+    this.runtimeLocks = authorityRuntimeLocks(runtimeLocks);
     if (!new Set(["git", "filesystem"]).has(mode)) {
       throw new Error(`invalid worker artifact repository snapshot mode: ${mode}`);
     }
@@ -1002,16 +1012,18 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     Object.freeze(this);
   }
 
-  static capture({ root, authorities, ignoredDirectories = [] }) {
+  static capture({ root, authorities, ignoredDirectories = [], runtimeLocks = [] }) {
     try {
       const ignored = authorityIgnoredDirectories(ignoredDirectories);
+      const locks = authorityRuntimeLocks(runtimeLocks);
       const snapshot = exactGitRoot(root)
-        ? gitAuthoritySnapshot(root, { ignoredDirectories: ignored })
-        : filesystemAuthoritySnapshot(root, { ignoredDirectories: ignored });
+        ? gitAuthoritySnapshot(root, { ignoredDirectories: ignored, runtimeLocks: locks })
+        : filesystemAuthoritySnapshot(root, { ignoredDirectories: ignored, runtimeLocks: locks });
       return new WorkerArtifactRepositoryMutationSnapshot({
         root,
         authorities,
         ignoredDirectories: ignored,
+        runtimeLocks: locks,
         ...snapshot,
       });
     } catch (cause) {
@@ -1055,8 +1067,11 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         ["canonical", request.mainRoot],
       ]) {
         const resolved = fs.realpathSync(path.resolve(root));
-        const existing = roots.get(resolved) || { authorities: [], ignoredDirectories: [] };
+        const existing = roots.get(resolved) || { authorities: [], ignoredDirectories: [], runtimeLocks: [] };
         existing.authorities.push(authority);
+        for (const lock of request.runtimeLocks) {
+          if (fs.realpathSync(lock.repositoryRoot) === resolved) existing.runtimeLocks.push(lock);
+        }
         const relativeHandoff = path.relative(resolved, path.resolve(request.directory))
           .split(path.sep)
           .join("/");
@@ -1081,6 +1096,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
           root,
           authorities: scope.authorities,
           ignoredDirectories: scope.ignoredDirectories,
+          runtimeLocks: scope.runtimeLocks,
         })
       )),
     });
@@ -1092,6 +1108,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         root: captured.root,
         authorities: captured.authorities,
         ignoredDirectories: captured.ignoredDirectories,
+        runtimeLocks: captured.runtimeLocks,
       });
       if (current.digest === captured.digest) continue;
       throw new WorkerArtifactHandoffError(
@@ -1205,6 +1222,13 @@ export class WorkerArtifactHandoffRequest {
     this.payloads = Object.freeze(payloads);
     this.generatedAt = requiredString(generatedAt, "handoff generatedAt");
     this.handoffRoot = canonicalHandoffRoot(canonicalLocation);
+    if (typeof canonicalLocation?.runtimeLock !== "function") {
+      throw new Error("canonical worker handoff requires Version runtime lock locations");
+    }
+    this.runtimeLocks = Object.freeze([
+      canonicalLocation.runtimeLock("runtime.lock.artifact-catalog"),
+      canonicalLocation.runtimeLock("runtime.lock.current-flow-state"),
+    ]);
     const actionDirectory = handoffActionDirectory(
       this.handoffRoot,
       this.runId,

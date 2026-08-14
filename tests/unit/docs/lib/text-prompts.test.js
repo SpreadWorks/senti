@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
 import {
+  buildBatchPrompt,
+  buildTextSystemPrompt,
   getEnrichedContext,
   getAnalysisContext,
 } from "../../../../src/docs/lib/text-prompts.js";
@@ -183,6 +185,40 @@ describe("getEnrichedContext", () => {
     const result = getEnrichedContext(analysis, "overview.md", "light");
     assert.ok(result);
     assert.ok(result.includes("1 entries"));
+  });
+});
+
+describe("text prompt grounding rules", () => {
+  it("requires current-project source grounding and omits unsupported claims", () => {
+    const cases = [
+      {
+        lang: "en",
+        prompt: "Describe the overview.",
+        rules: [
+          /current project's analysis data and source files/,
+          /declared dependency is not proof/,
+          /omit the claim instead of inventing/,
+        ],
+      },
+      {
+        lang: "ja",
+        prompt: "概要を説明してください。",
+        rules: [
+          /現在のプロジェクトの解析データとソースファイル/,
+          /依存関係に宣言されているだけではソースコードで使用中とはみなさず/,
+          /根拠がない、または不十分な内容はもっともらしく補わず省略すること/,
+        ],
+      },
+    ];
+    for (const { lang, prompt: directivePrompt, rules } of cases) {
+      const prompts = [
+        buildTextSystemPrompt(undefined, lang),
+        buildBatchPrompt("overview.md", "", [{ prompt: directivePrompt, params: {} }], lang),
+      ];
+      for (const prompt of prompts) {
+        for (const rule of rules) assert.match(prompt, rule);
+      }
+    }
   });
 });
 

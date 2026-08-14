@@ -6,6 +6,7 @@ import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 const LOCK_VERSION = 1;
 const MAX_LOCK_BYTES = 64 * 1024;
 const MAX_ACQUIRE_ATTEMPTS = 4;
+const OWNER_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function sameFile(left, right) {
   return left.dev === right.dev && left.ino === right.ino;
@@ -193,6 +194,24 @@ class ProcessOwnedLockOwner {
 }
 
 export class ProcessOwnedLock {
+  static ownerTemporaryFileName(fileName, ownerToken) {
+    if (typeof fileName !== "string" || fileName === "" || path.basename(fileName) !== fileName) {
+      throw new Error("process-owned lock fileName must be a basename");
+    }
+    if (typeof ownerToken !== "string" || !OWNER_TOKEN_PATTERN.test(ownerToken)) {
+      throw new Error("process-owned lock ownerToken must be a UUID");
+    }
+    return `.${fileName}.${ownerToken}.owner.tmp`;
+  }
+
+  static isOwnerTemporaryFileName(fileName, candidate) {
+    if (typeof candidate !== "string" || path.basename(candidate) !== candidate) return false;
+    const prefix = `.${fileName}.`;
+    if (!candidate.startsWith(prefix) || !candidate.endsWith(".owner.tmp")) return false;
+    const ownerToken = candidate.slice(prefix.length, -".owner.tmp".length);
+    return OWNER_TOKEN_PATTERN.test(ownerToken);
+  }
+
   constructor({
     directoryAuthority,
     fileName,
@@ -314,7 +333,10 @@ export class ProcessOwnedLock {
 
   #publish() {
     const token = crypto.randomUUID();
-    const tempPath = path.join(this.directory, `.${path.basename(this.lockPath)}.${token}.owner.tmp`);
+    const tempPath = path.join(
+      this.directory,
+      ProcessOwnedLock.ownerTemporaryFileName(path.basename(this.lockPath), token),
+    );
     let descriptor = null;
     let published = false;
     let owner = null;
