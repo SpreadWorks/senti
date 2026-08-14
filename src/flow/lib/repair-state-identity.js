@@ -5,15 +5,12 @@ import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
 import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
-import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { PRODUCT } from "../../lib/product.js";
+import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime-artifacts.js";
 
 export const REPAIR_STATE_VERSION = 3;
-export const LEGACY_REPAIR_STATE_VERSION = 2;
 export const DEFAULT_REPAIR_CHANGED_PATH_LIMIT = 20_000;
 export const MAX_REPAIR_CHANGED_PATH_LIMIT = 1_000_000;
-export const REPAIR_FINGERPRINT_MANIFEST_FILE = "repair-fingerprint.json";
-export const REPAIR_DELTA_DIR = "repair-deltas";
 export const REPAIR_TRANSACTION_FILE = "impl-repair-transaction.json";
 export const REPAIR_MIGRATION_FILE = "repair-state-migration.json";
 export const REPAIR_LOCK_DIR = ".impl-repair.lock";
@@ -50,14 +47,6 @@ function requireHash(value, field) {
   const digest = requireString(value, field);
   if (!HASH_PATTERN.test(digest)) throw new Error(`${field} must be a SHA-256 digest`);
   return digest.toLowerCase();
-}
-
-function requireArtifactId(value, field) {
-  const id = requireString(value, field);
-  if (!RUN_ID_PATTERN.test(id) || id === "." || id === "..") {
-    throw new Error(`${field} must be a safe artifact identifier`);
-  }
-  return id;
 }
 
 export function normalizeRepairPath(value) {
@@ -195,16 +184,6 @@ export class CanonicalRepairEntry {
     return [this.path, this.oldPath || "", this.mode, this.contentHash];
   }
 
-  legacyCanonicalParts() {
-    return [
-      this.path,
-      this.oldPath || "",
-      ...this.statuses,
-      this.mode,
-      this.indexOid || "",
-      this.contentHash,
-    ];
-  }
 }
 
 class RepairFingerprintManifestBase {
@@ -265,84 +244,21 @@ export class RepairFingerprintManifest extends RepairFingerprintManifestBase {
     });
   }
 
-  toReference() {
-    return {
-      version: this.version,
-      hash: this.hash,
-      manifestRef: REPAIR_FINGERPRINT_MANIFEST_FILE,
-    };
-  }
-}
-
-export class LegacyRepairFingerprintManifest extends RepairFingerprintManifestBase {
-  constructor(input = {}) {
-    super(input, {
-      version: LEGACY_REPAIR_STATE_VERSION,
-      entryParts: (entry) => entry.legacyCanonicalParts(),
-    });
-  }
-
-  toCurrentManifest() {
-    const { hash, ...currentState } = this.toJSON();
-    return new RepairFingerprintManifest({
-      ...currentState,
-      version: REPAIR_STATE_VERSION,
-    });
-  }
-}
-
-export class RepairFingerprintReference {
-  constructor(input = {}) {
-    if (input.version !== REPAIR_STATE_VERSION) {
-      throw new Error(`repair fingerprint reference version must be ${REPAIR_STATE_VERSION}`);
-    }
-    this.version = REPAIR_STATE_VERSION;
-    this.hash = requireHash(input.hash, "hash");
-    this.manifestRef = normalizeRepairPath(input.manifestRef);
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return { version: this.version, hash: this.hash, manifestRef: this.manifestRef };
-  }
 }
 
 export class RepairArtifactRegistry {
-  #exact;
-  #prefixes;
+  #runtimeArtifacts;
 
   constructor(specPath) {
     this.specPath = normalizeRepairPath(specPath);
     this.specDir = path.posix.dirname(this.specPath);
-    this.#exact = new Set([
-      PRODUCT.managedPath(".active-flow"),
-      ...FlowTargetIdentityAuthority.repositoryPaths(),
-      PRODUCT.managedPath(".repository-flow-operation.lock"),
-      PRODUCT.managedPath(".repository-maintenance.lock"),
-      PRODUCT.managedPath(".worktree-prepare-attempt.json"),
-      PRODUCT.managedPath("flow-identity.json"),
-      PRODUCT.managedPath(".flow-identity.publication.json"),
-      PRODUCT.managedPath(".flow-identity.publication.intent"),
-      PRODUCT.managedPath(".flow-identity.publication.receipt.tmp"),
-      PRODUCT.managedPath(".flow-identity.publication.binding.tmp"),
-      PRODUCT.managedPath("last-finalized-spec"),
-    ]);
-    this.#prefixes = Object.freeze([
-      ".tmp/",
-      `${PRODUCT.managedPath(".active-flow")}.`,
-      `${PRODUCT.managedPath(".flow-dispatch-")}`,
-      `${PRODUCT.managedPath("agent-cache")}/`,
-      `${PRODUCT.managedPath("agent-work")}/`,
-      `${PRODUCT.managedPath("output")}/`,
-      `${PRODUCT.managedPath("recovery")}/`,
-      `${PRODUCT.managedPath("worktree")}/`,
-    ]);
+    this.#runtimeArtifacts = new FlowRepositoryRuntimeArtifactRegistry();
     Object.freeze(this);
   }
 
   owns(value) {
     const relPath = normalizeRepairPath(value);
-    if (this.#exact.has(relPath) || this.#prefixes.some((prefix) => relPath.startsWith(prefix))) return true;
+    if (this.#runtimeArtifacts.owns(relPath)) return true;
     if (!relPath.startsWith(`${this.specDir}/`)) return false;
     const versionRelativePath = relPath.slice(this.specDir.length + 1);
     let contract;
@@ -356,11 +272,7 @@ export class RepairArtifactRegistry {
 
   gitPathspecExcludes() {
     return Object.freeze([
-      ...[...this.#exact].flatMap((owned) => [
-        `:(exclude,top,literal)${owned}`,
-        `:(exclude,top,glob)${owned}.*.tmp`,
-      ]),
-      ...this.#prefixes.map((prefix) => `:(exclude,top,glob)${prefix}**`),
+      ...this.#runtimeArtifacts.gitPathspecExcludes(),
       `:(exclude,top,glob)${this.specDir}/**`,
     ]);
   }
@@ -829,9 +741,7 @@ function buildFilesystemManifest({ root, specPath, boundary, registry }) {
   });
 }
 
-function baselineFromStateOrRepository({ root, state, specDir }) {
-  const latest = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
-  if (fs.existsSync(latest)) return readRepairFingerprintManifest(specDir).baseline;
+function baselineFromStateOrRepository({ root, state }) {
   const objectFormat = gitObjectFormat(root);
   const runId = state?.runId;
   if (runId) {
@@ -871,8 +781,7 @@ export function buildRepairStateManifest({ root, artifactRoot = null, specPath, 
   );
   const boundary = readConfiguredBoundary(root);
   if (!isGitRepository(root)) return buildFilesystemManifest({ root, specPath: normalizedSpec, boundary, registry });
-  const specDir = path.dirname(path.resolve(resolvedArtifactRoot, normalizedSpec));
-  const baseline = baselineFromStateOrRepository({ root, state, specDir });
+  const baseline = baselineFromStateOrRepository({ root, state });
   const skipWorktreePaths = assertSupportedIndexFlags(root);
   const changed = collectGitChangedPaths(root, baseline, boundary);
   collectExplicitTree(root, PRODUCT.managedPath("config.json"), changed, registry, boundary);
@@ -917,138 +826,3 @@ export function buildRepairStateManifest({ root, artifactRoot = null, specPath, 
     entries,
   });
 }
-
-function atomicWriteJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  const descriptor = fs.openSync(temp, "wx", 0o600);
-  let failure = null;
-  try {
-    fs.writeFileSync(descriptor, JSON.stringify(value, null, 2) + "\n");
-    fs.fsyncSync(descriptor);
-  } catch (error) {
-    failure = error;
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  if (failure) {
-    try { fs.unlinkSync(temp); } catch (_) { /* crash recovery ignores owned temp files */ }
-    throw failure;
-  }
-  fs.renameSync(temp, file);
-  const directory = fs.openSync(path.dirname(file), "r");
-  try { fs.fsyncSync(directory); } finally { fs.closeSync(directory); }
-}
-
-export function writeRepairFingerprintManifest(specDir, manifest) {
-  const current = manifest instanceof RepairFingerprintManifest ? manifest : new RepairFingerprintManifest(manifest);
-  const file = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
-  atomicWriteJson(file, current.toJSON());
-  return { path: file, artifact: current.toJSON() };
-}
-
-export function readRepairFingerprintManifest(specDir) {
-  const artifact = readRepairFingerprintMigrationInput(specDir);
-  if (!(artifact instanceof RepairFingerprintManifest)) {
-    throw new Error(
-      `repair fingerprint version ${LEGACY_REPAIR_STATE_VERSION} is a migration input and cannot be read as current evidence`,
-    );
-  }
-  return artifact;
-}
-
-export function readRepairFingerprintMigrationInput(specDir) {
-  const file = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
-  if (!fs.existsSync(file)) throw new Error(`${REPAIR_FINGERPRINT_MANIFEST_FILE} is required`);
-  const input = JSON.parse(fs.readFileSync(file, "utf8"));
-  if (input?.version === REPAIR_STATE_VERSION) return new RepairFingerprintManifest(input);
-  if (input?.version === LEGACY_REPAIR_STATE_VERSION) return new LegacyRepairFingerprintManifest(input);
-  throw new Error(
-    `unsupported repair fingerprint version: ${input?.version}; expected ${REPAIR_STATE_VERSION}` +
-    ` or migration input ${LEGACY_REPAIR_STATE_VERSION}`,
-  );
-}
-
-export function changedRepairPaths(previous, current) {
-  const before = previous instanceof RepairFingerprintManifest ? previous : new RepairFingerprintManifest(previous);
-  const after = current instanceof RepairFingerprintManifest ? current : new RepairFingerprintManifest(current);
-  if (JSON.stringify(baselineIdentity(before.baseline)) !== JSON.stringify(baselineIdentity(after.baseline))) {
-    throw new Error("repair fingerprint baseline changed within an active flow");
-  }
-  const byPath = (manifest) => new Map(manifest.entries.map((entry) => [entry.path, JSON.stringify(entry.toJSON())]));
-  const previousEntries = byPath(before);
-  const currentEntries = byPath(after);
-  const paths = new Set([...previousEntries.keys(), ...currentEntries.keys()]);
-  return [...paths]
-    .filter((relPath) => previousEntries.get(relPath) !== currentEntries.get(relPath))
-    .sort(compareCanonicalText);
-}
-
-export class RepairDeltaArtifact {
-  constructor(input = {}) {
-    if (input.version !== 1) throw new Error("repair delta version must be 1");
-    this.version = 1;
-    this.id = requireArtifactId(input.id, "id");
-    this.previousHash = requireHash(input.previousHash, "previousHash");
-    this.currentHash = requireHash(input.currentHash, "currentHash");
-    if (this.previousHash === this.currentHash) throw new Error("repair delta hashes must differ");
-    if (!Array.isArray(input.changedPaths) || input.changedPaths.length === 0) {
-      throw new Error("repair delta changedPaths must be a non-empty array");
-    }
-    this.changedPaths = Object.freeze(input.changedPaths.map(normalizeRepairPath).sort(compareCanonicalText));
-    if (new Set(this.changedPaths).size !== this.changedPaths.length) {
-      throw new Error("repair delta changedPaths must not contain duplicates");
-    }
-    const digest = canonicalHash([
-      this.version,
-      this.id,
-      this.previousHash,
-      this.currentHash,
-      ...this.changedPaths,
-    ]);
-    if (input.digest != null && requireHash(input.digest, "digest") !== digest) {
-      throw new Error("repair delta digest does not match its canonical content");
-    }
-    this.digest = digest;
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      id: this.id,
-      previousHash: this.previousHash,
-      currentHash: this.currentHash,
-      changedPaths: [...this.changedPaths],
-      digest: this.digest,
-    };
-  }
-}
-
-export function repairDeltaArtifact({ id, previous, current, changedPaths }) {
-  const before = previous instanceof RepairFingerprintManifest ? previous : new RepairFingerprintManifest(previous);
-  const after = current instanceof RepairFingerprintManifest ? current : new RepairFingerprintManifest(current);
-  return new RepairDeltaArtifact({
-    version: 1,
-    id,
-    previousHash: before.hash,
-    currentHash: after.hash,
-    changedPaths,
-  });
-}
-
-export function writeRepairDelta(specDir, delta) {
-  const artifact = delta instanceof RepairDeltaArtifact ? delta : new RepairDeltaArtifact(delta);
-  const fileName = `${normalizeRepairPath(artifact.id)}.json`;
-  const relPath = `${REPAIR_DELTA_DIR}/${fileName}`;
-  const file = path.join(specDir, relPath);
-  if (fs.existsSync(file)) {
-    const stored = new RepairDeltaArtifact(JSON.parse(fs.readFileSync(file, "utf8")));
-    if (stored.digest !== artifact.digest) throw new Error(`repair delta already exists with different content: ${relPath}`);
-    return relPath;
-  }
-  atomicWriteJson(file, artifact.toJSON());
-  return relPath;
-}
-
-export { atomicWriteJson };

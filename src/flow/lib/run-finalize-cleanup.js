@@ -2475,15 +2475,15 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     }
 
     if (persistedStrategy !== "squash") {
-      // Either an old flow.json predating this feature, or a corrupt state.
-      // Halt unless the user explicitly waives baseline checking via --force.
+      // The canonical finalize-merge receipt is missing or corrupt. Halt unless
+      // the user explicitly waives baseline checking via --force.
       if (!force) {
         return Envelope.fail(
           "run",
           "finalize-cleanup",
           "SQUASH_BASELINE_MISSING",
           [
-            "Squash baseline is not recorded on this flow (mergeStrategy is missing).",
+            "Squash baseline is not recorded in the canonical finalize-merge receipt.",
             "Detection cannot run safely. Recovery: archive the feature branch, inspect commits via patch, cherry-pick post-squash fixes onto baseBranch by hand, then re-run with --force.",
             "Resolve any cherry-pick state via `git cherry-pick --skip` or `git cherry-pick --abort` before retrying.",
           ],

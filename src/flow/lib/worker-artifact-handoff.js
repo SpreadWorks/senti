@@ -33,6 +33,7 @@ import {
   CanonicalDraftReviewHandoffArtifact,
   CanonicalDraftReviewHandoffEvidence,
 } from "./canonical-review-artifacts.js";
+import { FlowRepositoryRuntimeArtifactRegistry } from "./flow-repository-runtime-artifacts.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
@@ -48,7 +49,7 @@ const MAX_AUTHORITY_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
 const MAX_AUTHORITY_DIRTY_PATHS = 20_000;
 const MAX_AUTHORITY_FILE_BYTES = 64 * 1024 * 1024;
 const MAX_AUTHORITY_TOTAL_FILE_BYTES = 256 * 1024 * 1024;
-const WORKER_RUNTIME_DIRECTORIES = new Set(["agent-cache", "agent-work"]);
+const FLOW_REPOSITORY_RUNTIME_ARTIFACTS = new FlowRepositoryRuntimeArtifactRegistry();
 const AUTHORITY_ENTRY_KINDS = new Set(["missing", "symlink", "directory", "file", "other"]);
 const SPEC_TEST_FILE = /\.(?:js|mjs|ts|json|md|ya?ml|txt|sh)$/;
 const COMMAND_OWNED_SPEC_TEST_DIRECTORY = ".raw";
@@ -676,13 +677,7 @@ function authoritySnapshotError(message, cause = null, data = {}) {
 function isWorkerRuntimePath(relativePath) {
   const segments = relativePath.split("/");
   if (segments.includes(".git") || segments.includes(".tmp")) return true;
-  for (let index = 0; index < segments.length - 1; index += 1) {
-    if (
-      segments[index] === PRODUCT.managedDirName
-      && WORKER_RUNTIME_DIRECTORIES.has(segments[index + 1])
-    ) return true;
-  }
-  return false;
+  return FLOW_REPOSITORY_RUNTIME_ARTIFACTS.owns(relativePath);
 }
 
 /**

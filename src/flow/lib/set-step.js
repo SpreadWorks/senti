@@ -2,7 +2,7 @@
  * src/flow/lib/set-step.js
  *
  * Update a workflow step's status.
- * Side effects (syncSpecTasks, autoUpgradeReeval) are driven by
+ * Side effects such as syncSpecTasks are driven by
  * the definition's sideEffects attribute — not hardcoded step IDs.
  */
 
@@ -10,12 +10,9 @@ import { FlowCommand } from "./base-command.js";
 import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { runAutoCheckCore } from "./run-auto-check.js";
-import { resolveCanonicalAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import {
   findActiveNode,
   isDefinitionLifecycleOwnedStep,
-  resolveSideEffects,
   taskIdForResolvedStep,
 } from "../definition.js";
 import { findStepById } from "./step-tree.js";
@@ -24,10 +21,6 @@ import {
   StepTransitionError,
 } from "./step-transition-policy.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
-
-function collectSideEffects(stepId) {
-  return resolveSideEffects({ scope: "flow", stepId }) || [];
-}
 
 function canonicalTargetId(activeNode, requestedId) {
   if (activeNode?.scope !== "task") return requestedId;
@@ -106,8 +99,6 @@ export default class SetStepCommand extends FlowCommand {
       return Envelope.fail("set", "step", transitionError.code, transitionError.message);
     }
 
-    const effects = status === "done" ? collectSideEffects(id) : [];
-
     // Pass specId so the mutator can locate flow.json by path even when the
     // current flowManager root has no .active-flow entry for this spec
     // (spec 251: main-repo authority during finalize-merge / sync / cleanup).
@@ -121,40 +112,6 @@ export default class SetStepCommand extends FlowCommand {
       container.get("logger").event("flow-step-change", { step: id, status });
     }
 
-    let extras = null;
-    if (status === "done") {
-      if (effects.includes("autoUpgradeReeval")) {
-        try {
-          const state = ctx.flowManager.load();
-          if (state?.autoDesired === true && state?.autoApprove !== true) {
-            const resolved = resolveCanonicalAutoCheckInput({
-              flowManager: ctx.flowManager,
-              state,
-            });
-            let verdict;
-            if (resolved.skip) {
-              verdict = buildSkipVerdict();
-            } else if (resolved.fail) {
-              verdict = resolved.verdict;
-            } else {
-              verdict = {
-                ...(await runAutoCheckCore(this.container, resolved.text)),
-                ...(resolved.goalGate ? { goalGate: resolved.goalGate } : {}),
-              };
-            }
-            if (verdict.eligible) {
-              if (!extras) extras = {};
-              extras.autoUpgrade = { available: true };
-            }
-          }
-        } catch (err) {
-          process.stderr.write(
-            `[sennel] set-step auto-upgrade re-eval: ${err.message}\n`,
-          );
-        }
-      }
-    }
-
-    return extras ? { id, status, ...extras } : { id, status };
+    return { id, status };
   }
 }

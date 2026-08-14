@@ -101,5 +101,7 @@ describe("canonical review PASS recovery", () => {
     assert.ok(entry.args.options.includes("--phase"));
     assert.ok(entry.args.options.includes("--expect-run-id"));
     assert.match(entry.help, /canonical PASS/);
+    assert.match(entry.help, /never\s+eligible/);
+    assert.doesNotMatch(entry.help, /review-history|before mutation/);
   });
 });

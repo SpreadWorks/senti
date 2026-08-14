@@ -275,7 +275,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 When spec writing discovers a missing user decision that belongs in draft QA:
 - Use `sennel flow run reopen-draft --reason "<text>"` to return to the draft phase.
 - Pre-implementation plan flows do not require a done task. On success, the command marks `draft` as `in_progress` and resets downstream plan steps so draft review, gate, spec, approval, and test planning run again.
-- Existing spec artifacts are retained and the reopen reason is recorded in `issue-log.json` so the next draft pass can see why the return happened.
+- Existing spec artifacts are retained; the reopen is recorded by a typed Version-1 Activity and its reason is appended to the active Version's cataloged `issue-log.json` so the next draft pass can see why the return happened.
 
 When `reopen-draft` fails or reports a recovery choice, surface that recovery through Choice Format and wait for the user's decision unless `autoApprove` explicitly covers the choice and the skill does not list it as an exception.
 
@@ -293,7 +293,7 @@ When implementation reveals that the spec needs additional tasks:
 - **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
 - Use `sennel flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions for implementation-phase task additions: at least one done task exists and the flow lifecycle is still `active`.
 - After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
-- Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json` remains the source of truth; the approval prompt renders `spec.md` only when the user needs the human-readable view. The approval post-hook reflects only the new tasks into `flow.json.tasks[]`; existing tasks keep their status and steps.
+- Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json.tasks[]` remains the task source of truth; the approval prompt renders `spec.md` only when the user needs the human-readable view. The approval post-hook admits only the new tasks through typed `addTask` operations; existing tasks keep their status and steps.
 
 ### Command execution discipline
 
@@ -347,7 +347,7 @@ sennel flow run scenario-validity
 sennel flow run test-execute
 sennel flow run test-result-review
 sennel flow run impl-confirm --mode <overview|detail>
-sennel flow run retro [--force] [--dry-run]
+sennel flow run retro [--dry-run]
 sennel flow run final-regression
 sennel flow run finalize-commit [--message "<msg>"]
 sennel flow run finalize-merge

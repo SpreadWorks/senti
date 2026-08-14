@@ -17,8 +17,6 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { loadConfig, managedConfigPath, managedOutputDir } from "../../lib/config.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
-  FINAL_REGRESSION_RESULT_FILE,
-  TESTS_RAW_DIR_RELATIVE,
   validateFinalRegressionResult,
   validateFinalRegressionEvidence,
   validateExplicitFinalRegressionProceed,
@@ -45,11 +43,6 @@ import {
 } from "./test-regression.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
-import {
-  nextStepAttemptNumber,
-  recordStepAttempt,
-} from "./step-outcome.js";
-import { FINAL_REGRESSION_MAX_ATTEMPTS } from "../../lib/flow-artifact-contract.js";
 import {
   CanonicalTestArtifactStore,
   isCanonicalFlowState,
@@ -110,10 +103,6 @@ const EXPLICIT_RECORD_CATEGORIES = new Set([
   FAILURE_CATEGORIES.OUT_OF_SCOPE,
   FAILURE_CATEGORIES.FLAKY_SUSPECTED,
 ]);
-const FIX_ATTEMPT_SCAN_LIMIT = 10_000;
-const FINAL_REGRESSION_ATTEMPT_FILE_RE = /^final-regression-attempt-(\d+)\.log$/;
-const MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES = 10_000;
-const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${FINAL_REGRESSION_MAX_ATTEMPTS})`;
 const MAX_CHANGED_FILES_TO_MATCH = 1000;
 const MAX_FINAL_REGRESSION_STREAM_BYTES = 1024 * 1024;
 export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
@@ -635,55 +624,11 @@ function readJsonIfExists(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function sortedPrimitiveObject(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]));
-}
-
-function primitiveObjectEqual(a, b) {
-  const left = sortedPrimitiveObject(a);
-  const right = sortedPrimitiveObject(b);
-  if (!left || !right) return false;
-  const leftKeys = Object.keys(left);
-  const rightKeys = Object.keys(right);
-  if (leftKeys.length !== rightKeys.length) return false;
-  for (const key of leftKeys) {
-    if (!Object.hasOwn(right, key)) return false;
-    const lv = left[key];
-    const rv = right[key];
-    if (lv !== null && !["string", "number", "boolean"].includes(typeof lv)) return false;
-    if (rv !== null && !["string", "number", "boolean"].includes(typeof rv)) return false;
-    if (lv !== rv) return false;
-  }
-  return true;
-}
-
-function argvEqual(a, b) {
-  return Array.isArray(a)
-    && Array.isArray(b)
-    && a.length === b.length
-    && a.every((entry, index) => typeof entry === "string" && entry === b[index]);
-}
-
-function commandIdentityEqual(a, b) {
-  if (!a || !b) return false;
-  for (const key of ["command", "commandSource", "source", "resolvedScriptDigest", "resolvedConfigDigest"]) {
-    if (a[key] !== b[key]) return false;
-  }
-  return argvEqual(a.argv, b.argv)
-    && primitiveObjectEqual(a.env, b.env)
-    && primitiveObjectEqual(a.metadata, b.metadata);
-}
-
 function fingerprintSet(files = []) {
   return files.map((entry) => ({
     path: entry.path,
     fingerprint: entry.fingerprint,
   })).sort((a, b) => a.path.localeCompare(b.path));
-}
-
-function fingerprintSetsEqual(a, b) {
-  return JSON.stringify(fingerprintSet(a)) === JSON.stringify(fingerprintSet(b));
 }
 
 function failureCategoryFor(failureKind) {
@@ -950,76 +895,6 @@ export function classifyFinalRegressionFailure({
   if (hasConcreteUnchangedFailurePath(output, changedFiles)) return new ExistingRegressionFailure();
   if (childFailure) return childFailure;
   return new UnknownRegressionFailure();
-}
-
-function nextFinalRegressionAttempt(specDir) {
-  const rawDir = path.join(specDir, TESTS_RAW_DIR_RELATIVE);
-  fs.mkdirSync(rawDir, { recursive: true });
-  const nextIndex = latestAttemptIndex(rawDir) + 1;
-  if (nextIndex > FINAL_REGRESSION_MAX_ATTEMPTS) {
-    throw new Error(`${ATTEMPT_LIMIT_MESSAGE}; next=${nextIndex}`);
-  }
-  const fileName = `final-regression-attempt-${String(nextIndex).padStart(3, "0")}.log`;
-  return path.join(rawDir, fileName);
-}
-
-function latestAttemptIndex(rawDir) {
-  let maxIndex = 0;
-  const dir = fs.opendirSync(rawDir);
-  let seen = 0;
-  try {
-    let entry;
-    while ((entry = dir.readSync())) {
-      if (++seen > MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES) {
-        throw new Error(`final-regression raw directory scan limit exceeded (max=${MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES})`);
-      }
-      const match = FINAL_REGRESSION_ATTEMPT_FILE_RE.exec(entry.name);
-      if (match) maxIndex = Math.max(maxIndex, Number.parseInt(match[1], 10));
-    }
-  } finally {
-    dir.closeSync();
-  }
-  return maxIndex;
-}
-
-function previousFinalRegressionFailures(root, state) {
-  const issueLog = retiredIssueReader(root, state.specPath);
-  return issueLog.entries.filter((entry) => entry.step === "final-regression" && entry.result === "fail");
-}
-
-function sameCommandIdentityEntry(entry, commandIdentity) {
-  return commandIdentityEqual(entry.commandIdentity, commandIdentity);
-}
-
-function countFixAttempts({ failures, commandIdentity, currentFingerprints }) {
-  const latest = failures.slice(-FIX_ATTEMPT_SCAN_LIMIT).filter((entry) => sameCommandIdentityEntry(entry, commandIdentity));
-  const seen = new Set();
-  for (const entry of latest) {
-    const fingerprints = Array.isArray(entry.changedFileFingerprints) ? entry.changedFileFingerprints : [];
-    if (!fingerprintSetsEqual(fingerprints, currentFingerprints)) {
-      seen.add(JSON.stringify(fingerprintSet(fingerprints)));
-    }
-  }
-  return seen.size;
-}
-
-function recordFinalRegressionFailure(root, state, artifact) {
-  retiredIssueWriter(root, state.specPath, {
-    step: "final-regression",
-    result: "fail",
-    failureKind: artifact.failureKind,
-    failureCategory: artifact.failureCategory,
-    reason: `final-regression failed: ${artifact.failureKind}`,
-    command: artifact.command,
-    commandIdentity: artifact.commandIdentity,
-    changedFileFingerprints: artifact.changedFileFingerprints,
-    rawOutputPath: artifact.rawOutputPath,
-    fixAttempts: artifact.fixAttempts,
-    retryable: artifact.retryable,
-    nextAction: artifact.nextAction,
-    nextRecommendedAction: artifact.nextRecommendedAction,
-    timestamp: new Date().toISOString(),
-  });
 }
 
 function recordAndProceedInput(ctx) {

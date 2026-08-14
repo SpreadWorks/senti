@@ -2,12 +2,18 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { FlowActivity } from "./current-flow-state.js";
 
 const SHA256_RE = /^[a-f0-9]{64}$/;
 const COMMIT_RE = /^[a-f0-9]{7,40}$/i;
 const MANDATORY_REQUIREMENT_PRIORITIES = new Set(["must", "required", "blocking"]);
 const REVIEW_DISPOSITIONS = new Set(["must-fix", "deferred", "informational"]);
 const REVIEW_FINDING_CANONICAL_TUPLE_LENGTH = 4;
+const DRAFT_REOPEN_ACTIVITY_OPERATIONS = new Set([
+  "reopen_draft_preimplementation",
+  "reopen_draft_task_addition",
+  "reopen_draft_spec_correction",
+]);
 export const REVIEW_FINDING_CANONICAL_FIELD_MAX_CHARS = 1200;
 
 function requireRecord(value, field) {
@@ -192,16 +198,28 @@ export class ReviewFindingCycle {
   constructor(input = {}) {
     const value = requireRecord(input, "review finding cycle");
     this.runId = optionalString(value.runId, "review finding cycle.runId");
-    const rewinds = Array.isArray(value.planRewinds) ? value.planRewinds : [];
-    const latestRewind = rewinds.length > 0 ? rewinds.at(-1)?.rewoundAt : null;
-    this.planRewindAt = optionalString(
-      value.planRewindAt ?? latestRewind,
-      "review finding cycle.planRewindAt",
-    );
-    if (this.planRewindAt !== null && !Number.isFinite(Date.parse(this.planRewindAt))) {
-      throw new Error("review finding cycle.planRewindAt must be an ISO date-time");
+    if (!Array.isArray(value.activities)) {
+      throw new Error("review finding cycle.activities must be an array of canonical Activities");
     }
+    const activities = value.activities.map((activity, index) => {
+      try {
+        return FlowActivity.canonical(activity);
+      } catch (error) {
+        throw new Error(`review finding cycle.activities[${index}] must be a canonical Activity: ${error.message}`);
+      }
+    });
+    const latestReopen = activities.findLast((activity) => (
+      DRAFT_REOPEN_ACTIVITY_OPERATIONS.has(activity.transition.operation)
+    ));
+    if (latestReopen !== undefined && latestReopen.timing === null) {
+      throw new Error("draft reopen Activity requires timing facts");
+    }
+    this.planRewindAt = latestReopen?.timing?.finishedAt ?? null;
     Object.freeze(this);
+  }
+
+  static fromActivityLedger({ runId = null, activities = [] } = {}) {
+    return new ReviewFindingCycle({ runId, activities });
   }
 
   matchesArtifact(value) {

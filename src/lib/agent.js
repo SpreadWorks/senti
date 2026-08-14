@@ -1425,7 +1425,7 @@ async function runWithLogging({
     }
 
     // Metric accumulation is the Agent's responsibility: it runs independently
-    // of cfg.logs.enabled so flow.json metrics are always up to date (R3).
+    // of cfg.logs.enabled so the typed Activity projection stays current (R3).
     if (flowAttribution.usesFlowState && flowManager) {
       await persistAgentInvocationMetric({
         flowManager,

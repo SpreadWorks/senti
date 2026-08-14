@@ -1,11 +1,9 @@
 /**
  * src/flow/lib/run-retro.js
  *
- * FlowCommand: retro — aggregate per-requirement pass/fail from the artifacts
- * produced by test-execute and verified by test-result-review. Reads
- * test-result-review.json (verdict gate) and test-execute-result.json (summary)
- * and writes retro.json. v2 raw_output_lines are range objects with start_line
- * and end_line. Performs no test execution.
+ * FlowCommand: retro — aggregate per-requirement pass/fail from cataloged
+ * test.execute and test.result.review Attempt histories, then attach the retro
+ * publication to the active Attempt. Performs no test execution.
  */
 
 import { normalizeRequirements } from "../../lib/spec-json.js";

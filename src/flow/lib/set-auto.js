@@ -7,8 +7,8 @@
  *   - Active flow: append a typed policy Activity through the Version Store.
  *   - Preparing flow (.sennel/.active-flow.<runId>, pre-prepare): mutate the
  *     preparing state so skill prelude B.0.5 can enable auto mode BEFORE
- *     `flow prepare` creates flow.json. `run-prepare-spec` then inherits the
- *     values into the new flow.json.
+ *     `flow prepare` creates flow.json. `run-prepare-spec` inherits only the
+ *     selected autoApprove policy into the new Version-1 state.
  *
  * Preparing-flow target resolution (spec 220):
  *   - --run-id is REQUIRED in preparing mode. Auto-select heuristics are gone.
@@ -17,12 +17,13 @@
  *   - Spec 208 R8 / R9: `on` is gated by auto-check — if the check returns
  *     eligible:false, autoApprove is NOT updated and the CLI exits non-zero
  *     with the reason on stderr.
- *   - Spec 218: When state already contains a persisted `autoCheck` (written
- *     earlier by `flow run auto-check`), the verdict is trusted verbatim and
- *     the AI is NOT invoked again.
+ *   - Spec 218: When a preparing state contains a persisted `autoCheck`
+ *     (written earlier by `flow run auto-check`), the verdict is trusted
+ *     verbatim and the AI is NOT invoked again.
  *   - Spec 220: phase-aware input and spec-approved skip share a single
  *     catalog resolver with run-auto-check.
- *   - Spec 232: autoDesired flag persisted on reject; failed verdict not saved.
+ *   - Spec 232: preparing autoDesired is persisted on reject; the failed
+ *     verdict is not saved and neither field enters canonical flow.json.
  *
  * ctx.value — "on" | "off"
  * ctx.runId — preparing-flow target (required in preparing mode)
@@ -100,11 +101,9 @@ export default class SetAutoCommand extends FlowCommand {
       return { autoApprove: true, autoCheck };
     }
 
-    // Trust path: a prior `flow run auto-check` already persisted a verdict to
-    // this state. Use it directly instead of re-invoking the AI with a
-    // different (typically thinner) input. Eliminates the split-brain where
-    // run auto-check evaluates a rich issue body but set auto on re-evaluates
-    // the bare "Issue #<n>" literal and hard-gate-rejects.
+    // Preparing flows retain a prior auto-check verdict so `set auto on` uses
+    // the exact pre-creation input. Active Version-1 flows do not cache this
+    // verdict in flow.json and resolve their catalog-backed input afresh.
     let autoCheck = state?.autoCheck || null;
     const trusted = !!autoCheck;
     if (trusted) {

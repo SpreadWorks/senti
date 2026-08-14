@@ -257,11 +257,6 @@ export class FlowDispatchAction {
     return this.requiresApproval && this.autoApproveChoiceId === "1";
   }
 
-  get hasAutoUpgradeChoice() {
-    return this.directive instanceof ExecuteStepDirective
-      && this.nextAction.autoUpgrade?.available === true;
-  }
-
   get isContinuation() {
     return this.directive instanceof ExecuteStepDirective
       || this.directive instanceof ExecuteCommandDirective
@@ -752,26 +747,6 @@ export default class RunDispatchCommand extends FlowCommand {
         }
         return new FlowDispatchBoundary({
           kind: action.directive.kind,
-          nextAction: current,
-          dispatchCount,
-        }).toJSON();
-      }
-
-      if (action.hasAutoUpgradeChoice) {
-        if (suppliedApproval) {
-          return this.failure(
-            ctx,
-            "FLOW_DISPATCH_APPROVAL_STALE",
-            "the supplied approval token no longer targets an approval boundary",
-            new FlowDispatchBoundary({
-              kind: "auto_upgrade_decision",
-              nextAction: current,
-              dispatchCount,
-            }).toJSON(),
-          );
-        }
-        return new FlowDispatchBoundary({
-          kind: "auto_upgrade_decision",
           nextAction: current,
           dispatchCount,
         }).toJSON();

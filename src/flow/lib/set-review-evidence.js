@@ -4,14 +4,11 @@ import { findActiveNode, resolveMaxAttempts } from "../definition.js";
 import { ReviewEvidenceInput } from "./review-evidence-store.js";
 import {
   ReviewConvergenceState,
-  ReviewDisposition,
-  ReviewEvidence,
   ReviewEvidenceReference,
   buildReviewHandoffFindings,
   resolveReviewPermittedOperation,
 } from "./review-convergence.js";
 import { ReviewTargetAuthority } from "./review-target-authority.js";
-import { PRODUCT } from "../../lib/product.js";
 import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
@@ -23,68 +20,6 @@ const PHASE_BY_REVIEW_STEP = Object.freeze({
   "impl-review": "impl",
   "task-review": "impl",
 });
-
-class FinalizedFlowReviewArtifact {
-  constructor(providerArtifact, state) {
-    if (!providerArtifact?.finalized || providerArtifact.verdict !== "PASS") {
-      throw new Error("finalized PASS provider artifact is required");
-    }
-    if (providerArtifact.phase !== state?.phase) throw new Error("provider artifact phase does not match current state");
-    if (providerArtifact.taskId !== null || state?.taskId !== null) {
-      throw new Error("provider artifact task target does not match flow-level state");
-    }
-    if (providerArtifact.treeSha !== state.treeSha) throw new Error("provider artifact tree does not match current state");
-    if (providerArtifact.targetStateDigest !== state.targetStateDigest) {
-      throw new Error("provider artifact state digest does not match current state");
-    }
-    this.phase = state.phase;
-    this.taskId = null;
-    this.treeSha = state.treeSha;
-    this.targetStateDigest = state.targetStateDigest;
-    const provenance = providerArtifact.provenance || {
-      provider: PRODUCT.provider("review"),
-      invocationId: "recovered-finalized-artifact",
-      capturedAt: providerArtifact.generatedAt || new Date().toISOString(),
-    };
-    this.evidence = new ReviewEvidence({
-      phase: this.phase,
-      taskId: this.taskId,
-      treeSha: this.treeSha,
-      targetStateDigest: this.targetStateDigest,
-      provenance,
-      disposition: new ReviewDisposition({
-        value: providerArtifact.verdict,
-        blockingFindings: providerArtifact.blockingFindings || providerArtifact.findings || [],
-        advisoryFindings: providerArtifact.advisoryFindings || [],
-      }),
-    });
-    Object.freeze(this);
-  }
-
-  toRegistration() {
-    return {
-      phase: this.phase,
-      taskId: this.taskId,
-      treeSha: this.treeSha,
-      targetStateDigest: this.targetStateDigest,
-    };
-  }
-}
-
-/**
- * Register an already-finalized flow-level provider artifact without invoking
- * the provider again. The canonical evidence store remains the registration
- * boundary; this adapter only verifies that the artifact still targets the
- * current flow state.
- */
-export function recoverFinalizedFlowReviewEvidence({ providerArtifact, state, canonicalEvidenceStore } = {}) {
-  if (!canonicalEvidenceStore || typeof canonicalEvidenceStore.register !== "function") {
-    throw new Error("canonical evidence store must provide register");
-  }
-  const artifact = new FinalizedFlowReviewArtifact(providerArtifact, state);
-  canonicalEvidenceStore.register(artifact.evidence);
-  return artifact;
-}
 
 function currentReviewTarget(flowState, treeSha) {
   const active = findActiveNode(flowState);

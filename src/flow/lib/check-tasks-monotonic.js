@@ -2,8 +2,8 @@
  * src/flow/lib/check-tasks-monotonic.js
  *
  * REQ-3 (spec 215): spec gate の monotonic 検証。
- * 2 回目以降の approval では、既存 task (flow.json.tasks[]) の
- * id / origin / added_round は spec.json.tasks[] と一致しなければならない。
+ * 2 回目以降の approval では、Version Store が Activity から投影した既存 task の
+ * id / origin / added_round は正本である spec.json.tasks[] と一致しなければならない。
  * title / description の差異は許可する。
  * 新規 task の added_round は既存の最大 added_round + 1 でなければならない。
  *

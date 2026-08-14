@@ -46,7 +46,6 @@ import {
   assertCatalogPublicationAuthority,
 } from "../../../src/flow/lib/flow-artifact-authority.js";
 import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
-import { ReviewEvidenceStore } from "../../../src/flow/lib/review-evidence-store.js";
 import { ReviewDisposition, ReviewEvidence, ReviewProvenance } from "../../../src/flow/lib/review-convergence.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../../src/lib/flow-artifact-contract.js";
 
@@ -1007,42 +1006,6 @@ describe("Version collection writers", () => {
     assert.doesNotThrow(() => flow.load());
     assert.doesNotThrow(() => flow.loadSnapshot());
     assert.doesNotThrow(() => flow.catalog());
-  });
-
-  it("stores two review evidence members without pretending their digests are Activity IDs", () => {
-    const location = canonicalLocation();
-    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location });
-    flow.create(freshState(boundary, location), { specRecord: specRecord() });
-    const claim = artifactPublicationClaimForStep("impl-review");
-    const review = ReviewEvidenceStore.forVersion({ location, publicationClaim: claim });
-    const first = evidence(1);
-    const second = evidence(2);
-    review.write(first);
-    review.write(second);
-    assert.equal(review.contains(first), true);
-    assert.equal(review.contains(second), true);
-    const members = flow.catalog().artifacts.filter((artifact) => artifact.kind === "review-evidence");
-    assert.equal(members.every((artifact) => artifact.logicalKey === "review.evidence"), true);
-    assert.deepEqual(members.map((artifact) => artifact.memberId).sort(), [
-      FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: first.identity.evidenceDigest }).memberId,
-      FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: second.identity.evidenceDigest }).memberId,
-    ].sort());
-    assert.deepEqual(members.map((artifact) => artifact.activityId), [null, null]);
-    assert.equal(typeof flow.regenerateCatalog, "undefined");
-
-    const store = new FlowArtifactCatalogStore({ location });
-    assert.throws(() => store.publish({
-      relativePath: FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C }).relativePath,
-      authoritySlot: ArtifactAuthoritySlot.collectionMember({
-        kind: "review-evidence", authority: "canonical-flow-artifacts", memberId: FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: first.identity.evidenceDigest }).memberId,
-        publicationStep: "impl-review",
-      }),
-      publicationClaim: claim,
-      mediaType: "application/json", retention: "permanent",
-      write: () => fs.writeFileSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C }), "{}"),
-    }), /derived from its typed owner and digest/);
-    assert.equal(fs.existsSync(location.reviewEvidencePath({ reviewStep: "impl-review", digest: REVIEW_DIGEST_C })), false);
   });
 
   it("serializes Issue-log publication through the same catalog authority", () => {

@@ -40,7 +40,7 @@
         "flow.test-review"
       ],
       "state": [],
-      "body": "### MUST\n**MUST: AI は `sennel flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/sennel.flow-auto` 等）でのみ実行する。\n\n### Why\nauto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。\n\n### How to apply\n- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。\n- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。\n- `flow get next-action` の autoUpgrade.available === true でも、AI が `set auto on` を自走実行してはならない（ユーザーが選択肢で `[1]` を選ぶまで待機）。"
+      "body": "### MUST\n**MUST: AI は `sennel flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/sennel.flow-auto` 等）でのみ実行する。\n\n### Why\nauto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。\n\n### How to apply\n- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。\n- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。"
     },
     {
       "id": "thoroughness",
@@ -110,7 +110,7 @@
         "task.task-gate"
       ],
       "state": [],
-      "body": "### MUST\n**MUST: Spec-Driven Development フロー内では、CLI の `requires_approval` が true のアクションだけユーザー承認を要求する。** `requires_approval: false` の通常 step では、実行確認の選択肢を出さずに step instruction を実行する。\n\n### Why\n`requires_approval` は CLI 側が持つ承認境界である。skill 側が全 step で確認を挟むと、draft-questions-review などの機械的 step まで不要に停止し、CLI の承認設計と矛盾する。\n\n### How to apply\n- `flow get next-action` の `requires_approval` が false なら、「実行しますか？」の確認を出さずに指示を実行する。\n- `requires_approval` が true か、autoUpgrade / エラー復旧 / ユーザー回答が必要な QA loop の場合だけ Choice Format で確認する。\n- step 完了後は次の `flow get next-action` を読み、同じルールで判断する。"
+      "body": "### MUST\n**MUST: Spec-Driven Development フロー内では、CLI の `requires_approval` が true のアクションだけユーザー承認を要求する。** `requires_approval: false` の通常 step では、実行確認の選択肢を出さずに step instruction を実行する。\n\n### Why\n`requires_approval` は CLI 側が持つ承認境界である。skill 側が全 step で確認を挟むと、draft-questions-review などの機械的 step まで不要に停止し、CLI の承認設計と矛盾する。\n\n### How to apply\n- `flow get next-action` の `requires_approval` が false なら、「実行しますか？」の確認を出さずに指示を実行する。\n- `requires_approval` が true か、エラー復旧 / ユーザー回答が必要な QA loop の場合だけ Choice Format で確認する。\n- step 完了後は次の `flow get next-action` を読み、同じルールで判断する。"
     },
     {
       "id": "commit-split-strategy",

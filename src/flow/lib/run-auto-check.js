@@ -335,7 +335,6 @@ export default class RunAutoCheckCommand extends FlowCommand {
       if (resolvedInput.fail) {
         ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
           delete s.autoCheck;
-          delete s.autoUpgrade;
         });
         return resolvedInput.verdict;
       }
@@ -350,7 +349,6 @@ export default class RunAutoCheckCommand extends FlowCommand {
       } else {
         ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
           delete s.autoCheck;
-          delete s.autoUpgrade;
         });
       }
       return result;

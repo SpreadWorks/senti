@@ -5,12 +5,20 @@ import assert from "node:assert/strict";
 import path, { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import {
+  CanonicalFlowFixture,
+  makeFlowManager,
+  setupFlowConfig,
+} from "../../../helpers/flow-setup.js";
 import { FLOW_STEPS } from "../../../../src/lib/flow-helpers.js";
 import { FlowManager } from "../../../../src/lib/flow-manager.js";
 import { emptySpecStub } from "../../../../src/lib/spec-json.js";
 import { CanonicalFlowCreateRequest } from "../../../../src/flow/lib/canonical-flow-manager-store.js";
 import { CurrentFlowSpecRecord } from "../../../../src/flow/lib/current-flow-state.js";
 import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
+import { container } from "../../../../src/lib/container.js";
+import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
+import { ReviewFindingCycle } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
@@ -33,7 +41,7 @@ import {
   ReviewEvidence,
   ReviewEvidenceReference,
 } from "../../../../src/flow/lib/review-convergence.js";
-import {
+import FlowReviewCommand, {
   parseProposals,
   buildDraftReviewPrompt,
   buildSpecSummaryMarkdown,
@@ -49,7 +57,6 @@ import {
   formatImplReviewMd,
   formatImplReviewJson,
   buildImplReviewPrompt,
-  scopeTaskReviewTarget,
   createReviewExcludeMatcher,
   collectTestFiles,
   filterProposalsByScope,
@@ -64,11 +71,15 @@ import {
   assertTestReviewPromptWithinLimit,
   runTestReviewWithDependencies,
   runLoopReviewWithDependencies,
+  canonicalLoopReviewCheckpointStore,
   resolveMergeBase,
+  resolveReviewTarget,
   loopProposalsToImplReviewJson,
   buildDraftReviewArtifact,
   writeReviewAttemptHistory,
   classifyReviewCommandError,
+  loadPreviousImplReviewMemory,
+  priorImplReviewFingerprintCounts,
 } from "../../../../src/flow/commands/review.js";
 
 function assertAllMatch(text, patterns) {
@@ -77,6 +88,53 @@ function assertAllMatch(text, patterns) {
 
 function assertAllDoesNotMatch(text, patterns) {
   for (const pattern of patterns) assert.doesNotMatch(text, pattern);
+}
+
+const CATALOGED_REVIEW_FINGERPRINT = "c".repeat(64);
+
+function reviewFindingCycle(flowManager, flow) {
+  return ReviewFindingCycle.fromActivityLedger({
+    runId: flow.runId,
+    activities: flowManager.activityLedger(flow.specId),
+  });
+}
+
+function catalogedImplReviewPayload({ cycle, title = "Cataloged repeated finding" } = {}) {
+  return {
+    version: 1,
+    phase: "impl",
+    generatedAt: "2026-08-14T00:00:00.000Z",
+    verdict: "REJECTED",
+    summary: { blocking: 1, nonBlocking: 0, total: 1 },
+    blockingFindings: [{
+      findingKey: "cataloged-repeated-finding",
+      title,
+      failureMode: "missing-implementation",
+      file: "src/example.js",
+      requirementId: "R-1",
+      issue: "The required behavior is absent.",
+      suggestion: "Implement the required behavior.",
+      disposition: "must-fix",
+      rationale: "R-1 makes this behavior mandatory.",
+      findingId: CATALOGED_REVIEW_FINGERPRINT,
+      fingerprint: CATALOGED_REVIEW_FINGERPRINT,
+      repeatCount: 1,
+    }],
+    nonBlockingImprovements: [],
+    excluded: { missingFile: 0, outOfScope: 0 },
+    runId: cycle.runId,
+    planRewindAt: cycle.planRewindAt,
+  };
+}
+
+function publishCanonicalImplReview(flowManager, flow, payload) {
+  flowManager.publishCurrentAttemptResult({
+    specId: flow.specId,
+    commandResult: attachCanonicalCommandResultArtifact({ result: "ok" }, {
+      logicalKey: "impl.review",
+      payload,
+    }),
+  });
 }
 
 describe("review command error classification", () => {
@@ -88,7 +146,293 @@ describe("review command error classification", () => {
   });
 });
 
+describe("canonical impl review catalog history", () => {
+  let historyRoot = null;
+
+  afterEach(() => {
+    if (historyRoot) removeTmpDir(historyRoot);
+    historyRoot = null;
+  });
+
+  it("counts same-cycle retries from cataloged attempts and excludes them after typed draft reopen", () => {
+    historyRoot = createTmpDir("canonical-impl-review-history-");
+    const flowManager = makeFlowManager(historyRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-cataloged-review-history",
+      runId: "run-cataloged-review-history",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+      specRecord: {
+        goal: "Keep implementation review history canonical.",
+        requirements: [{ id: "R-1", desc: "Review finding history remains durable." }],
+      },
+    }).create().registerActive().activate("impl-review");
+
+    let flow = fixture.state();
+    let cycle = reviewFindingCycle(flowManager, flow);
+    publishCanonicalImplReview(flowManager, flow, catalogedImplReviewPayload({ cycle }));
+
+    flowManager.failCurrentAttempt({
+      specId: flow.specId,
+      failure: {
+        category: "tooling",
+        code: "REVIEW_WORKER_RETRY",
+        message: "Retry the review worker.",
+        retryable: true,
+        retryKind: "tooling",
+      },
+    });
+    flowManager.retryCurrentAttempt({ specId: flow.specId });
+    flow = fixture.state();
+    cycle = reviewFindingCycle(flowManager, flow);
+    publishCanonicalImplReview(flowManager, flow, catalogedImplReviewPayload({ cycle }));
+
+    assert.equal(
+      flowManager.activityLedger(flow.specId).some((activity) => activity.transition.operation === "retry_attempt"),
+      true,
+    );
+    assert.equal(
+      priorImplReviewFingerprintCounts({ flowManager, flow, cycle }).get(CATALOGED_REVIEW_FINGERPRINT),
+      2,
+      "two cataloged impl.review attempts in the same cycle count as two occurrences",
+    );
+    assert.equal(
+      loadPreviousImplReviewMemory({ flowManager, flow }).previousBlockingFindings[0].title,
+      "Cataloged repeated finding",
+    );
+
+    const transientWorkUnit = path.join(
+      fixture.location().directory,
+      ".runtime",
+      "review-work-units",
+      "impl-review",
+      "transient-attempt",
+    );
+    fs.mkdirSync(transientWorkUnit, { recursive: true });
+    fs.writeFileSync(path.join(transientWorkUnit, "checkpoint.json"), "{}\n");
+    fs.rmSync(transientWorkUnit, { recursive: true, force: true });
+    assert.equal(fs.existsSync(transientWorkUnit), false);
+    assert.equal(
+      priorImplReviewFingerprintCounts({ flowManager, flow, cycle }).get(CATALOGED_REVIEW_FINGERPRINT),
+      2,
+      "removing a transient work unit cannot erase cataloged review history",
+    );
+
+    flowManager.reopenDraft({ specId: flow.specId, route: "spec-correction" });
+    fixture.activate("impl-review");
+    flow = fixture.state();
+    cycle = reviewFindingCycle(flowManager, flow);
+    assert.notEqual(cycle.planRewindAt, null);
+    assert.equal(
+      flowManager.activityLedger(flow.specId).some((activity) => (
+        activity.transition.operation === "reopen_draft_spec_correction"
+      )),
+      true,
+    );
+    assert.equal(
+      priorImplReviewFingerprintCounts({ flowManager, flow, cycle }).get(CATALOGED_REVIEW_FINGERPRINT) || 0,
+      0,
+      "a reopened draft begins a new finding cycle",
+    );
+    assert.equal(fs.existsSync(path.join(fixture.location().directory, "review-history")), false);
+  });
+});
+
+describe("normal no-diff canonical review", () => {
+  let noDiffRoot = null;
+  let previousReviewOutputDirectory;
+
+  afterEach(() => {
+    container.reset();
+    if (previousReviewOutputDirectory === undefined) delete process.env.SENNEL_REVIEW_OUTPUT_DIR;
+    else process.env.SENNEL_REVIEW_OUTPUT_DIR = previousReviewOutputDirectory;
+    previousReviewOutputDirectory = undefined;
+    if (noDiffRoot) removeTmpDir(noDiffRoot);
+    noDiffRoot = null;
+  });
+
+  it("passes without a diff on a first Attempt and a typed retry after transient cleanup", async () => {
+    noDiffRoot = createTmpDir("canonical-no-diff-review-");
+    execFileSync("git", ["init", "--initial-branch=main"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.email", "review@example.test"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.name", "Review Fixture"], { cwd: noDiffRoot, stdio: "pipe" });
+
+    const flowManager = makeFlowManager(noDiffRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-no-diff-review",
+      runId: "run-no-diff-review",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+      specRecord: {
+        goal: "Exercise a normal no-diff review.",
+        requirements: [{ id: "R-1", desc: "The retry lifecycle remains canonical." }],
+      },
+    }).create().registerActive().activate("impl-review");
+    execFileSync("git", ["add", "--all"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", "canonical review fixture"], { cwd: noDiffRoot, stdio: "pipe" });
+
+    const outputDirectory = path.join(
+      fixture.location().directory,
+      ".runtime",
+      "review-work-units",
+      "impl-review",
+      "no-diff",
+    );
+    previousReviewOutputDirectory = process.env.SENNEL_REVIEW_OUTPUT_DIR;
+    process.env.SENNEL_REVIEW_OUTPUT_DIR = outputDirectory;
+    container.reset();
+    container.register("root", noDiffRoot);
+    container.register("mainRoot", noDiffRoot);
+    container.register("flowManager", flowManager);
+    container.register("config", { flow: { review: {} } });
+
+    const command = new FlowReviewCommand();
+    await command.execute({ _rawArgs: [] });
+    assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
+    assert.equal(
+      flowManager.readProducerArtifact({
+        specId: fixture.specId,
+        nodeId: "impl-review",
+        logicalKey: "impl.review",
+        optional: true,
+      }),
+      null,
+      "a first normal no-diff review has no prior catalog artifact",
+    );
+
+    let flow = fixture.state();
+    let cycle = reviewFindingCycle(flowManager, flow);
+    publishCanonicalImplReview(flowManager, flow, catalogedImplReviewPayload({ cycle }));
+    flowManager.failCurrentAttempt({
+      specId: flow.specId,
+      failure: {
+        category: "semantic",
+        code: "REVIEW_REJECTED",
+        message: "The first canonical review Attempt has a retryable finding.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+    });
+    flowManager.retryCurrentAttempt({ specId: flow.specId });
+    flow = fixture.state();
+    cycle = reviewFindingCycle(flowManager, flow);
+    assert.equal(flowManager.canonicalState(flow.specId).attempt.sequence, 2);
+    assert.equal(
+      priorImplReviewFingerprintCounts({ flowManager, flow, cycle }).get(CATALOGED_REVIEW_FINGERPRINT),
+      1,
+      "the replacement Attempt reads prior canonical history without a transient checkpoint",
+    );
+    fs.rmSync(outputDirectory, { recursive: true, force: true });
+
+    await command.execute({ _rawArgs: [] });
+    assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
+    assert.equal(fs.existsSync(path.join(fixture.location().directory, "review-history")), false);
+  });
+});
+
+describe("canonical review target artifact filtering", () => {
+  let targetRoot = null;
+
+  afterEach(() => {
+    if (targetRoot) removeTmpDir(targetRoot);
+    targetRoot = null;
+  });
+
+  it("retains Store-published tests.source while excluding other Version artifacts", async () => {
+    targetRoot = createTmpDir("canonical-review-target-");
+    execFileSync("git", ["init", "--initial-branch=main"], { cwd: targetRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.email", "review@example.test"], { cwd: targetRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.name", "Review Fixture"], { cwd: targetRoot, stdio: "pipe" });
+    execFileSync("git", ["commit", "--allow-empty", "-m", "review target baseline"], { cwd: targetRoot, stdio: "pipe" });
+
+    const flowManager = makeFlowManager(targetRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-review-target",
+      runId: "run-review-target",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+      specRecord: { goal: "Preserve canonical test source review input.", requirements: [] },
+    }).create().registerActive().activate("test");
+    flowManager.publishArtifacts({
+      specId: fixture.specId,
+      nodeId: "test",
+      artifactWrites: [{
+        logicalKey: "tests.source",
+        parameters: { testPath: "preserved.test.js" },
+        mediaType: "text/javascript",
+        bytes: Buffer.from("export const preserved = 1;\n", "utf8"),
+      }],
+    });
+    fixture.settle("test").activate("impl-review");
+    const location = fixture.location();
+    const canonicalTestPath = path.join(location.directory, "artifacts", "tests", "preserved.test.js");
+    const flow = fixture.state();
+    const relativeTestPath = path.relative(targetRoot, canonicalTestPath).split(path.sep).join("/");
+    const storeManagedPaths = [
+      location.relativeFlowStateFile,
+      location.relativeActivitiesFile,
+      location.relativeCatalogFile,
+      location.relativeSpecFile,
+    ];
+    const mergeBase = resolveMergeBase(targetRoot, "main");
+    const untrackedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase);
+
+    assert.equal(untrackedTarget.untrackedFiles.has(relativeTestPath), true);
+    for (const relativePath of storeManagedPaths) {
+      assert.equal(
+        untrackedTarget.untrackedFiles.has(relativePath),
+        false,
+        `Store-owned Version artifact must not become review input: ${relativePath}`,
+      );
+    }
+
+    execFileSync("git", ["add", "--", relativeTestPath], { cwd: targetRoot, stdio: "pipe" });
+    const stagedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase);
+    assert.match(stagedTarget.diff, new RegExp(relativeTestPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.equal(stagedTarget.touchedFiles.has(relativeTestPath), true);
+    for (const relativePath of storeManagedPaths) {
+      assert.equal(stagedTarget.touchedFiles.has(relativePath), false);
+      assert.equal(stagedTarget.untrackedFiles.has(relativePath), false);
+    }
+  });
+});
+
 describe("canonical review finding disposition", () => {
+  it("keeps the agent-facing evidence reference on the typed Flow or Task catalog path", () => {
+    const evidenceFor = (taskId) => new ReviewEvidence({
+      phase: "impl",
+      taskId,
+      treeSha: "1".repeat(40),
+      provenance: {
+        provider: "fixture-provider",
+        invocationId: taskId === null ? "flow-handoff-evidence" : "task-handoff-evidence",
+        capturedAt: "2026-08-14T00:00:00.000Z",
+      },
+      disposition: new ReviewDisposition({
+        value: "ADVISORY",
+        blockingFindings: [],
+        advisoryFindings: [{
+          findingId: taskId === null ? "flow-handoff-finding" : "task-handoff-finding",
+          summary: "The reviewer recorded an advisory finding.",
+          fingerprint: taskId === null ? "a".repeat(64) : "b".repeat(64),
+          evidenceRefs: ["review.json#finding"],
+          disposition: "informational",
+        }],
+      }),
+    });
+    const flowEvidence = evidenceFor(null);
+    const taskEvidence = evidenceFor("T-1");
+
+    assert.equal(
+      buildReviewHandoffFindings(flowEvidence)[0].canonicalEvidenceRef,
+      `steps/impl/review/evidence/${flowEvidence.identity.evidenceDigest}.json`,
+    );
+    assert.equal(
+      buildReviewHandoffFindings(taskEvidence)[0].canonicalEvidenceRef,
+      `steps/impl/T-1/review/evidence/${taskEvidence.identity.evidenceDigest}.json`,
+    );
+  });
+
   it("preserves an informational disposition for acceptance handoff", () => {
     const canonical = canonicalReviewArtifactFindings({
       blockingFindings: [],
@@ -626,6 +970,42 @@ describe("flow run review --phase test CLI", () => {
       assert.match(out, /no active flow/i);
     }
   });
+
+  it("fails closed when a direct child review omits its canonical work-unit environment", () => {
+    tmp = createTmpDir();
+    setupFlowConfig(tmp, "en");
+    const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+    const created = flowManager.createFresh(new CanonicalFlowCreateRequest({
+      specId: "001-direct-review-child",
+      runId: "direct-review-child-run",
+      request: "Require the parent-created review work unit.",
+      execution: { mode: "direct" },
+      policy: { autoApprove: false, nonblocking: null },
+      flowId: "direct-review-child-flow",
+      flowVersionId: "direct-review-child-v1",
+      specRecord: new CurrentFlowSpecRecord({ ...emptySpecStub(), tasks: [] }, { specId: "001-direct-review-child" }),
+    }));
+    flowManager.addActiveFlow(created.specId, "direct");
+    const environment = { ...process.env };
+    for (const variable of [
+      "SENNEL_REVIEW_OUTPUT_DIR",
+      "SENNEL_REVIEW_TEST_SOURCE_DIR",
+      "SENNEL_REVIEW_TEST_ARTIFACT_REVISION",
+      "SENNEL_REVIEW_TASK_SPEC_SOURCE",
+      "SENNEL_REVIEW_DRAFT_SOURCE",
+    ]) delete environment[variable];
+
+    assert.throws(
+      () => execFileSync("node", [join(process.cwd(), "src/flow/commands/review.js"), "--phase", "test"], {
+        encoding: "utf8",
+        env: { ...environment, SENNEL_WORK_ROOT: tmp },
+      }),
+      (error) => {
+        const output = `${error.stdout || ""}${error.stderr || ""}`;
+        return /SENNEL_REVIEW_OUTPUT_DIR is required for a canonical review work unit/.test(output);
+      },
+    );
+  });
 });
 
 describe("test-review spec-local file scope", () => {
@@ -1016,6 +1396,67 @@ describe("parseProposals extracts file from **File:** marker (spec 201 R-P1/R-P3
     const changed = await run();
     assert.equal(calls, 2);
     assert.equal(changed.reviewCallCount, 1);
+  });
+});
+
+describe("canonical impl loop work-unit checkpoints", () => {
+  let checkpointRoot = null;
+
+  afterEach(() => {
+    if (checkpointRoot) removeTmpDir(checkpointRoot);
+    checkpointRoot = null;
+  });
+
+  it("keeps retry checkpoints in the parent work unit and recreates them after transient cleanup", async () => {
+    checkpointRoot = createTmpDir("canonical-loop-review-checkpoint-");
+    const versionDirectory = path.join(checkpointRoot, "specs", "001-loop-checkpoint", "001");
+    const outputDirectory = path.join(
+      versionDirectory,
+      ".runtime",
+      "review-work-units",
+      "impl-review",
+      "attempt-loop-checkpoint",
+    );
+    const environmentKey = "SENNEL_REVIEW_OUTPUT_DIR";
+    const previousOutputDirectory = process.env[environmentKey];
+    process.env[environmentKey] = outputDirectory;
+    try {
+      const checkpointStore = canonicalLoopReviewCheckpointStore();
+      const checkpointDirectory = checkpointStore.checkpointDir();
+      let calls = 0;
+      const run = () => runLoopReviewWithDependencies({
+        groups: [{
+          files: ["src/example.js"],
+          representative: "src/example.js",
+          diff: "+ canonical loop review",
+        }],
+        buildChunkInput: () => "canonical loop input",
+        reviewChunk: async () => {
+          calls += 1;
+          return JSON.stringify({ proposals: [] });
+        },
+        crossCheck: async () => JSON.stringify({ proposals: [] }),
+        checkpointStore,
+        requirementIds: new Set(["R-1"]),
+      });
+
+      const first = await run();
+      assert.equal(first.reviewCallCount, 1);
+      assert.equal(calls, 1);
+      assert.equal(checkpointDirectory, path.join(outputDirectory, "review-history", "work-units", "impl-review"));
+      assert.equal(fs.readdirSync(checkpointDirectory).length, 1);
+      assert.equal(fs.existsSync(path.join(versionDirectory, "review-history")), false);
+
+      fs.rmSync(checkpointDirectory, { recursive: true, force: true });
+      const retried = await run();
+      assert.equal(retried.reviewCallCount, 1);
+      assert.equal(calls, 2);
+      assert.equal(fs.readdirSync(checkpointDirectory).length, 1);
+      assert.equal(fs.existsSync(path.join(versionDirectory, "review-history")), false);
+    } finally {
+      if (previousOutputDirectory === undefined) delete process.env[environmentKey];
+      else process.env[environmentKey] = previousOutputDirectory;
+    }
   });
 });
 
@@ -1699,49 +2140,6 @@ describe("collectTouchedFiles (spec 201 R-P4)", () => {
 
     const touched = collectTouchedFiles(tmp, baseSha);
     assert.ok(touched.has("c.js"), "includes staged file");
-  });
-});
-
-describe("scopeTaskReviewTarget", () => {
-  it("excludes only the active spec scenario-validity preflight evidence", () => {
-    const modified = (file) => [
-      `diff --git a/${file} b/${file}`,
-      `--- a/${file}`,
-      `+++ b/${file}`,
-      "@@ -1 +1 @@",
-      "-old",
-      "+new",
-      "",
-    ].join("\n");
-    const target = {
-      diff: [
-        modified("specs/demo/scenario-validity-result.json"),
-        modified("specs/demo/tests/.raw/scenario-validity.log"),
-        modified("specs/demo/flow.json"),
-        modified("specs/demo/spec.json"),
-        modified("specs/other/scenario-validity-result.json"),
-        modified("specs/demo/tests/finalize.test.js"),
-        modified("src/flow/lib/run-finalize-cleanup.js"),
-      ].join(""),
-      untrackedFiles: new Set([
-        "specs/demo/tests/.raw/scenario-validity.log",
-        "specs/demo/tests/finalize.test.js",
-      ]),
-    };
-
-    const scoped = scopeTaskReviewTarget(target, "specs/demo/spec.json");
-
-    assert.doesNotMatch(scoped.diff, /specs\/demo\/scenario-validity-result\.json/);
-    assert.doesNotMatch(scoped.diff, /specs\/demo\/tests\/\.raw\/scenario-validity\.log/);
-    assert.doesNotMatch(scoped.diff, /specs\/demo\/flow\.json/);
-    assert.doesNotMatch(scoped.diff, /specs\/demo\/spec\.json/);
-    assert.match(scoped.diff, /specs\/other\/scenario-validity-result\.json/);
-    assert.match(scoped.diff, /specs\/demo\/tests\/finalize\.test\.js/);
-    assert.match(scoped.diff, /src\/flow\/lib\/run-finalize-cleanup\.js/);
-    assert.deepEqual(
-      [...scoped.untrackedFiles],
-      ["specs/demo/tests/finalize.test.js"],
-    );
   });
 });
 

@@ -854,6 +854,36 @@ describe("worker artifact handoff", () => {
     }
   });
 
+  it("ignores repository runtime ownership changes while retaining worker mutation authority", () => {
+    const value = fixture("draft", { worktree: false });
+    try {
+      initializeGitRepository(value);
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
+      const runtimeDirectory = path.join(value.mainRoot, ".sennel");
+      fs.writeFileSync(path.join(runtimeDirectory, ".repository-flow-operation.lock"), "runtime lock\n");
+      fs.writeFileSync(path.join(runtimeDirectory, ".flow-dispatch-concurrent.lock"), "dispatch lock\n");
+      fs.mkdirSync(path.join(runtimeDirectory, "output"), { recursive: true });
+      fs.writeFileSync(path.join(runtimeDirectory, "output", "concurrent.json"), "{}\n");
+
+      assert.doesNotThrow(() => authority.assertUnchanged());
+
+      fs.writeFileSync(path.join(value.mainRoot, "worker-untracked.txt"), "worker mutation\n");
+      assert.throws(
+        () => authority.assertUnchanged(),
+        (error) => error instanceof WorkerArtifactHandoffError
+          && error.code === "FLOW_ARTIFACT_HANDOFF_AUTHORITY_VIOLATION"
+          && error.data.changedPaths.includes("worker-untracked.txt"),
+      );
+    } finally {
+      removeTmpDir(value.mainRoot);
+    }
+  });
+
   it("rejects execution source, Git index, HEAD, and untracked project mutations", () => {
     const cases = [
       {

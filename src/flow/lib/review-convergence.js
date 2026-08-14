@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { resolveMaxAttempts, resolveToolingMaxAttempts } from "../definition.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
 export const REVIEW_EVIDENCE_VERSION = 1;
 export const MAX_REVIEW_EVIDENCE_BYTES = 1024 * 1024;
@@ -784,6 +785,15 @@ export function buildReviewHandoffFindings(evidence, { sourceStep = null } = {})
   const resolvedSourceStep = sourceStep || (evidence.taskId == null
     ? REVIEW_NODE_ID_BY_PHASE[evidence.phase]
     : "task-review");
+  const canonicalEvidenceRef = evidence.taskId == null
+    ? FLOW_ARTIFACT_CONTRACTS.reviewEvidence({
+      reviewStep: REVIEW_NODE_ID_BY_PHASE[evidence.phase],
+      digest: evidence.identity.evidenceDigest,
+    }).relativePath
+    : FLOW_ARTIFACT_CONTRACTS.reviewEvidence({
+      taskId: evidence.taskId,
+      digest: evidence.identity.evidenceDigest,
+    }).relativePath;
   return evidence.findings.map((finding) => new ReviewHandoffFinding({
     ...finding.toJSON(),
     sourceStep: resolvedSourceStep,
@@ -791,36 +801,9 @@ export function buildReviewHandoffFindings(evidence, { sourceStep = null } = {})
     taskId: evidence.taskId,
     treeSha: evidence.treeSha,
     provenance: evidence.provenance.toJSON(),
-    canonicalEvidenceRef: `review-evidence/${evidence.identity.evidenceDigest}.json`,
     evidenceDigest: evidence.identity.evidenceDigest,
+    canonicalEvidenceRef,
     reviewDisposition: evidence.disposition.value,
     finalDispositionOwner: "acceptance-review",
   }));
-}
-
-class RetiredReviewRootMutation {
-  constructor() {
-    throw new Error("mutable review convergence is retired; use immutable V1 review evidence");
-  }
-}
-
-export class ReviewToolingRecoveryMutation extends RetiredReviewRootMutation {
-  static forExhaustedAttempt() { return null; }
-}
-
-export class ReviewSemanticRecoveryMutation extends RetiredReviewRootMutation {}
-
-export function applyReviewEvidenceTransition() {
-  throw new Error("mutable review convergence is retired; publish V1 review evidence through FlowManager");
-}
-
-/** Retired mutable convergence facade. */
-export class ReviewConvergenceStore extends RetiredReviewRootMutation {}
-
-export function resolveReviewOperationForFlowState() {
-  return null;
-}
-
-export function resolveReviewActionForFlowState() {
-  return null;
 }

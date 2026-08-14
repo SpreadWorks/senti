@@ -952,7 +952,7 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: sennel flow set request \"<text>\" [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Set the user request field. Works in both active and preparing mode.",
+        "Set the request on a preparing Flow. An active Version-1 request is immutable.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
@@ -960,7 +960,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.issue",
       command: () => import("./lib/set-issue.js"),
       args: { positional: ["number"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: sennel flow set issue <number>\n\nSet the GitHub issue number in flow.json.",
+      help: "Usage: sennel flow set issue <number>\n\nReject an Issue change after canonical Flow creation; Issue identity and issue.md are immutable.",
     },
     note: {
       helpKey: "flow.set.note",
@@ -970,7 +970,8 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: sennel flow set note \"<text>\" [--task-id <id>] [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Append a note entry to state.notes. Works in both active and preparing mode.",
+        "Append a typed note Activity to an active Version-1 Flow, or append a",
+        "pre-creation note to the selected preparing Flow.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
@@ -1046,10 +1047,9 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow set approval --approved [--notes <text>] [--confirmed-at <iso>]",
         "",
-        "Persist user approval into the active flow's spec.json `user_approval`",
-        "field. The renderer reads this field to produce spec.md's",
-        "`## User Confirmation` section, so the approval state survives subsequent",
-        "`spec render` runs.",
+        "Persist user approval into the active Version's cataloged spec.json",
+        "`user_approval` field. Subsequent `spec render` runs read that canonical",
+        "record when producing their transient Markdown output.",
         "",
         "Options:",
         "  --approved             Required. Marks the spec as approved.",
@@ -1063,7 +1063,7 @@ export const FLOW_COMMANDS = {
       targetNotFoundAsMismatch: true,
       command: () => import("./lib/set-issue-log.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: withTargetGuardOptions(["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--normalized-finding-id", "--repair-ref-commit", "--repair-ref-file", "--task-id"]) },
-      help: "Usage: sennel flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]\n\nRecord an issue-log entry in issue-log.json. When target guards are supplied, append only to the matching flow. Infers taskId from active task unless --task-id is given.",
+      help: "Usage: sennel flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--normalized-finding-id <id>] [--repair-ref-commit <sha>] [--repair-ref-file <path>] [--task-id <id>] [--expect-issue <number> | --expect-no-issue] [--expect-spec <spec>] [--expect-run-id <runId>]\n\nAppend an Activity-backed entry to the active Version's cataloged issue.log artifact. When target guards are supplied, append only to the matching flow. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");
@@ -1119,8 +1119,8 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: sennel flow set auto on|off [--run-id <id>] ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Enable or disable autoApprove mode. Writes to flow.json when an",
-        "active flow exists; otherwise writes to the matching preparing",
+        "Enable or disable autoApprove mode. Appends a typed policy Activity when",
+        "an active Version-1 Flow exists; otherwise writes to the matching preparing",
         "flow (.active-flow.<runId>). --run-id selects a preparing flow",
         "when multiple exist; auto-detected when exactly one is present.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
@@ -1194,11 +1194,10 @@ export const FLOW_COMMANDS = {
       help: [
         `Usage: sennel flow run recover-review-pass --phase <draft-questions|draft-coverage|spec|test|impl> ${FLOW_TARGET_GUARD_USAGE}`,
         "",
-        "Restore a flow-level review projection from one exact canonical PASS.",
-        "The command requires exact target guards and verifies the current tree,",
-        "review target state, canonical digest, provenance, PASS step outcome,",
-        "and one matching immutable review-history artifact before mutation.",
-        "It does not invoke the reviewer or fabricate triage evidence.",
+        "Check whether an exact canonical PASS needs recovery.",
+        "Version-1 publishes each review result, immutable evidence, Activity, and",
+        "state transition atomically, so the retired projection recovery is never",
+        "eligible. The command requires exact target guards and fails without mutation.",
         "",
         "Options:",
         "  --phase <phase>       Exact flow-level review phase to recover.",
@@ -1270,11 +1269,11 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow run gate [options]",
         "",
-        "Run gate check. Resolves target from flow.json if omitted.",
+        "Run gate check. Resolves target from the active Version-1 Flow if omitted.",
         `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
         "",
         "Options:",
-        "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
+        "  --spec <path>                 Path to canonical Spec (directory / spec.json; auto-resolved from the active Version-1 Flow)",
         `  --phase <${VALID_GATE_PHASES.join("|")}>  Gate phase (default: auto-resolve from in-progress step)`,
         "  --agent-work-dir <path>       Per-invocation agent/tmp base directory",
         "  Required evaluations cannot be bypassed from the public CLI.",
@@ -1472,10 +1471,9 @@ export const FLOW_COMMANDS = {
         "  - otherwise                → issue + request",
         "",
         "Runs static keyword gates first; if clear, calls the AI once for scoring.",
-        "Result is persisted to the active flow.json autoCheck, or to the",
-        "preparing flow state (.active-flow.<runId>) when --run-id targets one.",
-        "`flow set auto on` then trusts this persisted verdict instead of",
-        "re-invoking the AI with a thinner input.",
+        "For an active Version-1 Flow, the verdict is returned without adding a",
+        "mutable autoCheck field to flow.json. A preparing flow persists the verdict",
+        "in .active-flow.<runId> so `flow set auto on` can reuse the same input.",
         "",
         "Options:",
         "  --run-id <runId>   Target preparing flow (required for prelude, even when another flow is active)",
@@ -1497,7 +1495,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --mode <overview|detail>  Check mode (default: overview)",
-        "    overview: summarize requirements status from flow.json",
+        "    overview: summarize requirements status from cataloged spec.json",
         "    detail:   also compare git diff against requirements",
         "  --agent-work-dir <path>   Per-invocation agent/tmp base directory",
       ].join("\n"),
@@ -1692,8 +1690,8 @@ export const FLOW_COMMANDS = {
         "preserves source/tasks/artifacts, and invalidates prior approval/evidence.",
         ...FLOW_TARGET_GUARD_HELP_LINES,
         "",
-        "Task-level events remain recorded under the configured spec root in <spec>/issue-log.json;",
-        "flow-level events are atomically audited in flow.json planRewinds.",
+        "Each reopen is recorded as a typed Version-1 Activity, and its reason is appended",
+        "to the active Version's cataloged issue-log.json.",
       ].join("\n"),
     },
     "repair-plan-gate": {
@@ -1778,9 +1776,9 @@ export const FLOW_COMMANDS = {
         "Additions JSON shape:",
         "  {modules: string[], data_flow: string[], decisions: string[]}",
         "All three categories are required.",
-        "The current task id is auto-stamped as added_by_task. spec.md is",
-        "re-rendered after the merge. Spec 226 moves this from a dedicated",
-        "step to an impl-step production caller.",
+        "The current task id is auto-stamped as added_by_task. The update is",
+        "published through the active Version Store as a typed spec.record",
+        "Activity; derived Markdown is not persisted.",
       ].join("\n"),
     },
     // lint is a sub-task of the implement phase; it does not exclusively own the step.
@@ -1807,9 +1805,9 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow run test-execute",
         "",
-        "Execute the project's test runner via AI agent and persist:",
-        "  <configured-spec-root>/<spec>/test-execute-result.json (machine-readable summary)",
-        "  <configured-spec-root>/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
+        "Execute the project's test runner via AI agent and publish to the active Version:",
+        "  steps/test-execute/result.json (machine-readable attempt history)",
+        "  steps/test-execute/output.log (transient raw stdout/stderr)",
       ].join("\n"),
       async post(ctx, result) {
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
@@ -1830,9 +1828,9 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow run scenario-validity",
         "",
-        "Execute pre-implementation spec-local tests and persist:",
-        "  <configured-spec-root>/<spec>/scenario-validity-result.json",
-        "  <configured-spec-root>/<spec>/tests/.raw/scenario-validity.log",
+        "Execute pre-implementation spec-local tests and publish to the active Version:",
+        "  steps/scenario-validity/result.json",
+        "  steps/scenario-validity/output.log (transient raw output)",
       ].join("\n"),
       post(ctx, result) {
         if (result?.result === "pass") {
@@ -1855,8 +1853,8 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sennel flow run test-result-review",
         "",
-        "Verify test-execute-result.json integrity against raw output and code.",
-        "Persists test-result-review.json and test-result-review.md under the configured spec root.",
+        "Verify the cataloged test.execute attempt against transient raw output and code.",
+        "Publishes the review history as steps/test-result-review/result.json; derived Markdown is not persisted.",
       ].join("\n"),
       async post(ctx, result) {
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
@@ -1880,17 +1878,15 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.retro",
       runtimeLog: { stepId: "retro" },
       command: () => import("./lib/run-retro.js"),
-      args: { flags: withTargetGuardFlags(["--force", "--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
+      args: { flags: withTargetGuardFlags(["--dry-run"]), options: [...FLOW_RUN_OPTIONS] },
       help: [
         "Usage: sennel flow run retro [options]",
         "",
-        "Aggregate test-execute results per requirement and save retro.json.",
-        "Reads test-result-review.json and test-execute-result.json (produced",
-        "by earlier impl steps); does not execute tests.",
+        "Aggregate cataloged test execution and result-review attempts per requirement.",
+        "Publishes steps/impl/retro/result.json; does not execute tests.",
         "",
         "Options:",
-        "  --force     Overwrite existing retro.json (default: always overwrites)",
-        "  --dry-run   Preview only, do not write retro.json",
+        "  --dry-run   Preview only, do not publish the attempt result",
       ].join("\n"),
       post(ctx, result) {
         if (
@@ -1921,7 +1917,7 @@ export const FLOW_COMMANDS = {
         "Usage: sennel flow run final-regression [--record-and-proceed --record-category <category> --record-evidence <text> --remaining-risk <text>]",
         "",
         "Run the full project-level regression command after retro and before finalize.",
-        "Persists final-regression-result.json and tests/.raw/final-regression-attempt-<N>.log under the configured spec root (zero-padded to at least three digits).",
+        "Publishes steps/final-regression/result.json and transient attempt logs through the active Version Store.",
         "A current-diff failure may be recorded only as out_of_scope with explicit evidence and remaining risk.",
       ].join("\n"),
       async post(ctx, result) {
@@ -1964,7 +1960,7 @@ export const FLOW_COMMANDS = {
         "Usage: sennel flow run acceptance-review",
         "",
         "Evaluate original request satisfaction after retro and before final-regression.",
-        "Persists acceptance-review.json under the configured spec root and routes pass/non-pass verdicts.",
+        "Publishes steps/acceptance-review/result.json through the active Version Store and routes pass/non-pass verdicts.",
       ].join("\n"),
       async post(ctx, result) {
         const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");

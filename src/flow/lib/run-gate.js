@@ -23,7 +23,6 @@ import { assertOk } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
 import { PRODUCT } from "../../lib/product.js";
 import { runGit } from "../../lib/git-helpers.js";
-import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
 
 const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
@@ -34,9 +33,6 @@ import { getSpecName } from "../../lib/flow-helpers.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
 import {
   enumerateUsableRequirementIds,
-  loadSpecJson,
-  resolveSpecJsonPath,
-  resolveSpecDir,
   specJsonToPromptText,
   validateSpecJsonObject,
 } from "../../lib/spec-json.js";
@@ -99,8 +95,6 @@ import {
 } from "./step-outcome.js";
 import {
   FindingDispositionPolicy,
-  ReviewFindingCycle,
-  ReviewFindingFingerprint,
   ReviewFindingGateArtifact,
 } from "./finding-disposition-policy.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
@@ -108,6 +102,7 @@ import { GateMutationOwner } from "./gate-mutation-owner.js";
 import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { buildRepairFingerprint } from "./repair-fingerprint.js";
+import { RepairArtifactRegistry } from "./repair-state-identity.js";
 import {
   SPEC_TEST_COVERAGE_GUARDRAIL_ID,
   SpecTestCoverageDecision,
@@ -381,16 +376,12 @@ export function excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath) 
   if (typeof specPath !== "string" || specPath.trim() === "") {
     throw new Error("specPath must be a non-empty string");
   }
-  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
-  const excluded = new Set([
-    `${specDir}/scenario-validity-result.json`,
-    `${specDir}/tests/.raw/scenario-validity.log`,
-  ]);
+  const registry = new RepairArtifactRegistry(specPath);
   return diff
     .split(/(?=^diff --git )/m)
     .filter((segment) => {
       const header = segment.match(/^diff --git a\/.+? b\/(.+)\r?$/m);
-      return !header || !excluded.has(header[1]);
+      return !header || !registry.owns(header[1]);
     })
     .join("");
 }
@@ -418,12 +409,7 @@ export function excludeGeneratedSpecArtifactsFromGateDiff(diff, specPath) {
 }
 
 function shouldIncludeGateDiffFile(relPath, specPath) {
-  if (!isGeneratedSpecArtifactForGate(relPath, specPath)) return true;
-  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
-  const localPath = relPath.slice(specDir.length + 1);
-  return localPath === "test-execute-result.json"
-    || localPath === "test-result-review.json"
-    || localPath === "tests/.raw/test-execution.log";
+  return !isGeneratedSpecArtifactForGate(relPath, specPath);
 }
 
 function excludeGeneratedSpecArtifactsFromPerFileDiffs(perFileDiffs, specPath) {
@@ -522,24 +508,12 @@ function taskCursorRequiredGateFailure(scopeDecision, phase, state) {
 
 function isGeneratedSpecArtifactForGate(relPath, specPath) {
   if (!specPath) return false;
-  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
-  const normalized = relPath.split(path.sep).join("/");
-  if (!normalized.startsWith(`${specDir}/`)) return false;
-  if (/^specs\/[^/]+\/tests\/[^/]+\.(test|spec)\.(js|mjs|ts)$/.test(normalized)) return false;
-  return true;
+  return new RepairArtifactRegistry(specPath).owns(relPath);
 }
 
 function isGateLifecycleArtifactForGate(relPath, specPath) {
   if (!specPath) return false;
-  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
-  const normalized = relPath.split(path.sep).join("/");
-  if (!normalized.startsWith(`${specDir}/`)) return false;
-  const localPath = normalized.slice(specDir.length + 1);
-  return localPath === "flow.json"
-    || localPath === "issue-log.json"
-    || localPath === "retry-recovery.json"
-    || localPath === ".retry-recovery.transaction.json"
-    || /^(?:draft|spec|task-impl|impl)-gate-(?:source|result)\.json$/.test(localPath);
+  return new RepairArtifactRegistry(specPath).owns(relPath);
 }
 
 function sectionAt(lines, lineIdx) {
@@ -625,8 +599,8 @@ function checkSpecText(text) {
 /**
  * Scan a parsed spec.json tree for unresolved markers in human-authored
  * string values. Schema validation is performed at the caller via
- * `loadSpecJson()` (the single validated load path); this function operates
- * on an already-validated spec object.
+ * `validateSpecJsonObject()`; this function operates on an already-validated
+ * cataloged spec object.
  *
  * @param {object} spec - parsed and schema-validated spec.json
  * @returns {string[]} issues, each prefixed with the dotted field path
@@ -1699,245 +1673,6 @@ export function buildGateRetryExhaustedEnvelope({ phase, attempts, max, reason }
   );
 }
 
-const GATE_COVERAGE_FAILURE_KINDS = new Set([
-  "coverage_header_failure",
-  "missing_header",
-  "uncovered_requirement",
-  "unknown_requirement_id",
-  "malformed_header",
-  "duplicate_requirement_id",
-  "duplicate_header",
-  "not_testable_in_header",
-  "wrong_header_marker",
-  "header_without_test_name",
-  "test_name_without_header",
-]);
-
-function normalizeGateMode(value) {
-  return String(value || "").toLowerCase().replace(/[-\s]+/g, "_");
-}
-
-function hasStructuredCoverageFailure(finding) {
-  return normalizeGateMode(finding?.origin) === "test_coverage"
-    || GATE_COVERAGE_FAILURE_KINDS.has(normalizeGateMode(finding?.failureKind))
-    || GATE_COVERAGE_FAILURE_KINDS.has(normalizeGateMode(finding?.failureMode));
-}
-
-function failedGateFindings(artifact) {
-  const blockingFindings = Array.isArray(artifact?.blockingFindings)
-    ? artifact.blockingFindings
-    : [];
-  if (blockingFindings.length > 0) return blockingFindings;
-  const evaluations = Array.isArray(artifact?.evaluations)
-    ? artifact.evaluations.filter((entry) => entry?.result === "fail")
-    : [];
-  if (evaluations.length > 0) return evaluations;
-  const observations = artifact?.nextAction?.diagnosis?.observations || artifact?.observations || [];
-  return Array.isArray(observations)
-    ? observations.filter((entry) => entry?.severity === "blocking")
-    : [];
-}
-
-class GateRetryFinding {
-  constructor(input = {}, {
-    phase,
-    taskId = null,
-    reportedAt = null,
-    priorReportedAtByFingerprint = new Map(),
-  } = {}) {
-    if (input?.result !== "fail") throw new Error("gate retry finding must be a failed evaluation");
-    const authorityId = String(input.guardrail_id || input.requirementId || input.guardrailId || "").trim();
-    const rationale = String(input.rationale || input.reason || input.observed || "").trim();
-    if (!authorityId || !rationale) {
-      throw new Error("gate retry finding requires guardrail_id and rationale");
-    }
-    if (input.disposition != null && input.disposition !== "must-fix") {
-      throw new Error("failed gate evaluation disposition must be must-fix");
-    }
-    const requirement = input.category === "requirements" || input.requirementId != null;
-    if (
-      (input.requirementId != null && input.requirementId !== authorityId)
-      || (input.guardrailId != null && input.guardrailId !== authorityId)
-    ) {
-      throw new Error("gate retry finding authority IDs must agree");
-    }
-    const identity = {
-      scope: taskId == null ? "flow" : "task",
-      phase,
-      taskId,
-      category: input.category || "guardrail",
-      failureMode: authorityId,
-      requirementId: requirement ? authorityId : null,
-      guardrailId: requirement ? null : authorityId,
-    };
-    this.fingerprint = ReviewFindingFingerprint.fromFinding(identity).value;
-    if (input.fingerprint != null && input.fingerprint !== this.fingerprint) {
-      throw new Error("gate retry finding fingerprint does not match its authority");
-    }
-    if (input.findingId != null && input.findingId !== this.fingerprint) {
-      throw new Error("gate retry finding ID does not match its authority");
-    }
-    const findingReportedAt = input.reportedAt
-      ?? priorReportedAtByFingerprint.get(this.fingerprint)
-      ?? reportedAt
-      ?? new Date().toISOString();
-    if (typeof findingReportedAt !== "string" || !Number.isFinite(Date.parse(findingReportedAt))) {
-      throw new Error("gate retry finding requires an ISO reportedAt");
-    }
-    this.value = Object.freeze({
-      ...input,
-      findingId: this.fingerprint,
-      fingerprint: this.fingerprint,
-      disposition: "must-fix",
-      rationale,
-      requirementId: identity.requirementId,
-      guardrailId: identity.guardrailId,
-      reportedAt: findingReportedAt,
-      repeatCount: Number.isSafeInteger(input.repeatCount) && input.repeatCount > 0
-        ? input.repeatCount
-        : 1,
-    });
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return { ...this.value };
-  }
-}
-
-function dispositionGateEvaluations(evaluations, {
-  phase,
-  taskId = null,
-  reportedAt = null,
-  priorReportedAtByFingerprint = new Map(),
-} = {}) {
-  if (!Array.isArray(evaluations)) return [];
-  return evaluations.map((evaluation) => {
-    const failed = evaluation?.result === "fail" || evaluation?.severity === "blocking";
-    if (!failed) return evaluation;
-    const authorityId = evaluation?.guardrail_id
-      || evaluation?.requirementId
-      || evaluation?.guardrailId
-      || evaluation?.requirementRef;
-    if (typeof authorityId !== "string" || authorityId.trim() === "") {
-      return evaluation;
-    }
-    return new GateRetryFinding({
-      ...evaluation,
-      result: "fail",
-      guardrail_id: authorityId,
-      category: evaluation.category || "guardrail",
-    }, {
-      phase,
-      taskId,
-      reportedAt,
-      priorReportedAtByFingerprint,
-    }).toJSON();
-  });
-}
-
-function gateRetryClassificationContext({ root = null, flowState = null, flowManager = null, phase } = {}) {
-  if (!root || !flowState?.specId) {
-    return {
-      root,
-      flowState,
-      phase,
-      taskId: flowState?.currentTaskId ?? null,
-      issueLogEntries: [],
-      cycle: new ReviewFindingCycle(flowState || {}),
-    };
-  }
-  return {
-    root,
-    flowState,
-    phase,
-    taskId: flowState.currentTaskId ?? null,
-    issueLogEntries: flowManager === null
-      ? []
-      : loadCanonicalIssueLog(flowManager, flowState, { consumerNodeId: flowState.currentNodeId }).entries,
-    cycle: new ReviewFindingCycle(flowState),
-  };
-}
-
-export function classifyGateRetryExhaustionSource(input = {}) {
-  const artifact = input.sourceArtifact || {};
-  const merged = { ...artifact, ...input };
-  if (merged.cycle instanceof ReviewFindingCycle && !merged.cycle.matchesArtifact(artifact)) {
-    return { completionKind: "blocking", deferAllowed: false, reason: "invalid_schema" };
-  }
-  if (merged.flowStateValid === false) return { completionKind: "blocking", deferAllowed: false, reason: "flow_corruption" };
-  if (merged.guardCode === "NO_PROGRESS_SINCE_LAST_FAIL") return { completionKind: "blocking", deferAllowed: false, reason: "no_progress_guard" };
-  if (merged.toolingFailure) return { completionKind: "blocking", deferAllowed: false, reason: "tooling_failure" };
-  if (merged.command && merged.command.exitCode != null && merged.command.exitCode !== 0) return { completionKind: "blocking", deferAllowed: false, reason: "failed_command" };
-  if (merged.testEvidence && merged.testEvidence.result === "fail") return { completionKind: "blocking", deferAllowed: false, reason: "failed_test_evidence" };
-  if (merged.sourceArtifactStatus === "invalid_schema") return { completionKind: "blocking", deferAllowed: false, reason: "invalid_schema" };
-  if (merged.malformedArtifact) return { completionKind: "blocking", deferAllowed: false, reason: "malformed_artifact" };
-  if (merged.coverage?.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
-  if (merged.phase === "test" && merged.validation?.ok === false) return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
-  const artifactFindings = failedGateFindings(artifact);
-  const rawFindings = artifactFindings.length > 0 ? artifactFindings : failedGateFindings(merged);
-  if (rawFindings.some(hasStructuredCoverageFailure)) {
-    return { completionKind: "blocking", deferAllowed: false, reason: "coverage_header_failure" };
-  }
-  if (merged.phase === "task-impl" && merged.root && merged.flowState) {
-    const assessment = assessTaskGateRepairEvidence({
-      root: merged.root,
-      flowState: merged.flowState,
-      sourceArtifact: artifact,
-      issueLogEntries: merged.issueLogEntries || [],
-    });
-    if (!assessment.valid) {
-      return { completionKind: "blocking", deferAllowed: false, reason: assessment.reason };
-    }
-    return {
-      completionKind: "deferred",
-      deferAllowed: true,
-      reason: "semantic_findings",
-    };
-  }
-  let findings;
-  try {
-    findings = dispositionGateEvaluations(rawFindings, {
-      phase: merged.phase || "integration",
-      taskId: merged.taskId ?? null,
-      reportedAt: merged.generatedAt ?? null,
-    });
-  } catch {
-    return { completionKind: "blocking", deferAllowed: false, reason: "invalid_finding_disposition" };
-  }
-  if (findings.length === 0) return { completionKind: "blocking", deferAllowed: false, reason: "missing_content_findings" };
-  if (merged.phase === "draft") {
-    if (!rawFindings.every((finding) => finding?.category === "semantic")) {
-      return { completionKind: "blocking", deferAllowed: false, reason: "non_semantic_findings" };
-    }
-    return {
-      completionKind: "deferred",
-      deferAllowed: true,
-      reason: "semantic_findings",
-    };
-  }
-  let decision;
-  try {
-    decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
-      findings,
-      issueLogEntries: merged.repairEvidence || merged.issueLogEntries || [],
-      phase: merged.phase || "integration",
-      taskId: merged.taskId ?? null,
-      root: merged.root ?? null,
-    });
-  } catch {
-    return { completionKind: "blocking", deferAllowed: false, reason: "invalid_finding_disposition" };
-  }
-  if (!decision.allowsPass()) {
-    return { completionKind: "blocking", deferAllowed: false, reason: "missing_repair_evidence" };
-  }
-  return {
-    completionKind: "deferred",
-    deferAllowed: true,
-    reason: "semantic_findings",
-  };
-}
-
 export function evaluateReviewFindingGateReadiness({
   reviewArtifacts = [], phase, taskId = null, issueLog = null,
   triage = null, repairLedger = null, runId = null, supersedesHistory = false,
@@ -2015,17 +1750,6 @@ function gateExternalBlockForResult(result) {
     recoveryHint: artifacts.recoveryHint,
     recoveryCommand: artifacts.recoveryCommand,
   });
-}
-
-function gateExhaustionOutcome(artifact, context = {}) {
-  const classification = classifyGateRetryExhaustionSource({ sourceArtifact: artifact, ...context });
-  if (classification.deferAllowed) {
-    return new DeferOutcome({
-      nextAction: "refresh-next-action",
-      findingCount: failedGateFindings(artifact).length,
-    });
-  }
-  return gateExternalBlock(classification.reason);
 }
 
 function recordGateOutcome(ctx, result, phase, attempt, outcome) {
@@ -2415,62 +2139,65 @@ export function computeGitState(root) {
   return { headSha: head.stdout.trim(), worktreeHash };
 }
 
-const PLAN_GATE_EVIDENCE_FILES = Object.freeze({
+const PLAN_GATE_EVIDENCE_LOGICAL_KEYS = Object.freeze({
   draft: Object.freeze([
-    "draft.json",
-    "draft-review-questions.json",
-    "draft-questions-triage.json",
-    "draft-questions-repair.json",
-    "draft-review-coverage.json",
-    "draft-coverage-triage.json",
-    "draft-coverage-repair.json",
+    "draft",
+    "draft.questions.review",
+    "draft.questions.triage",
+    "draft.questions.repair",
+    "draft.coverage.review",
+    "draft.coverage.triage",
+    "draft.coverage.repair",
   ]),
   spec: Object.freeze([
-    "spec.json",
-    "spec-review.json",
-    "spec-triage.json",
-    "spec-repair.json",
+    "spec.record",
+    "spec.review",
+    "spec.triage",
+    "spec.repair",
   ]),
 });
 
 export class PlanGateEvidenceTarget {
-  constructor({ root, phase, specDir, files }) {
-    this.root = path.resolve(root);
+  constructor({ phase, artifacts }) {
     if (!new Set(["draft", "spec"]).has(phase)) {
       throw new Error(`invalid plan gate evidence phase: ${phase}`);
     }
     this.phase = phase;
-    this.specDir = path.resolve(specDir);
-    const relative = path.relative(this.root, this.specDir);
-    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      throw new Error("plan gate evidence target escapes the repository root");
+    if (!Array.isArray(artifacts)) throw new Error("plan gate evidence artifacts must be an array");
+    const allowed = new Set(PLAN_GATE_EVIDENCE_LOGICAL_KEYS[phase]);
+    this.artifacts = Object.freeze(artifacts
+      .filter((artifact) => allowed.has(artifact.logicalKey))
+      .map((artifact) => Object.freeze({
+        logicalKey: artifact.logicalKey,
+        relativePath: artifact.relativePath,
+        hash: artifact.hash,
+        activityId: artifact.activityId,
+      }))
+      .sort((left, right) => left.relativePath < right.relativePath ? -1 : left.relativePath > right.relativePath ? 1 : 0));
+    if (this.artifacts.some((artifact) => typeof artifact.hash !== "string" || !/^[a-f0-9]{64}$/.test(artifact.hash))) {
+      throw new Error("plan gate evidence artifact hash must be a SHA-256 digest");
     }
-    this.files = Object.freeze([...files]);
     Object.freeze(this);
   }
 
-  static resolve({ root, flowManager = null, flowState, phase, targetPath = null }) {
-    const files = PLAN_GATE_EVIDENCE_FILES[phase];
-    if (!files) return null;
-    let specDir;
-    if (phase === "spec" && targetPath) {
-      const specJsonPath = resolveSpecJsonPath(path.resolve(root, targetPath));
-      specDir = path.dirname(specJsonPath);
-    } else if (flowState?.schemaRevision === 3 && typeof flowManager?.specLocation === "function") {
-      specDir = flowManager.specLocation(flowState.specId).directory;
-    } else {
-      specDir = specDirFromFlowState(root, flowState);
+  static resolve({ flowManager, flowState, phase }) {
+    if (!PLAN_GATE_EVIDENCE_LOGICAL_KEYS[phase]) return null;
+    if (flowState?.schemaRevision !== 3 || typeof flowManager?.artifactCatalog !== "function") {
+      throw new Error("plan gate evidence requires a Version-1 Flow artifact catalog");
     }
-    return new PlanGateEvidenceTarget({ root, phase, specDir, files });
+    return new PlanGateEvidenceTarget({
+      phase,
+      artifacts: flowManager.artifactCatalog(flowState.specId).artifacts,
+    });
   }
 
   fingerprint() {
     const hash = crypto.createHash("sha256");
-    for (const filename of this.files) {
-      const file = path.join(this.specDir, filename);
-      hash.update(filename).update("\x00");
-      if (fs.existsSync(file)) hash.update(fs.readFileSync(file));
-      else hash.update("<missing>");
+    for (const artifact of this.artifacts) {
+      hash.update(artifact.logicalKey).update("\x00");
+      hash.update(artifact.relativePath).update("\x00");
+      hash.update(artifact.hash).update("\x00");
+      hash.update(artifact.activityId || "").update("\x00");
       hash.update("\x00");
     }
     return hash.digest("hex");
@@ -2478,18 +2205,15 @@ export class PlanGateEvidenceTarget {
 }
 
 export function computeGateEvidenceState({
-  root,
   executionRoot,
   flowManager = null,
   flowState,
   phase,
-  targetPath = null,
 }) {
-  const files = PLAN_GATE_EVIDENCE_FILES[phase];
-  if (!files) return computeGitState(executionRoot);
+  if (!PLAN_GATE_EVIDENCE_LOGICAL_KEYS[phase]) return computeGitState(executionRoot);
   const head = runGit(["rev-parse", "HEAD"], { cwd: executionRoot });
   assertOk(head, "failed to read HEAD sha");
-  const target = PlanGateEvidenceTarget.resolve({ root, flowManager, flowState, phase, targetPath });
+  const target = PlanGateEvidenceTarget.resolve({ flowManager, flowState, phase });
   return { headSha: head.stdout.trim(), worktreeHash: target.fingerprint() };
 }
 
@@ -4818,12 +4542,10 @@ export class GateIssueLogEntry {
       && (result?.artifacts?.failureKind === "ai_semantic_fail" || observations.length > 0);
     const gitState = ctx.gitState || (needsProgressIdentity && RETRY_TRACKED_PHASES.includes(phase)
       ? computeGateEvidenceState({
-          root: ctx.root,
           executionRoot: ctx.executionRoot || ctx.root,
           flowManager: ctx.flowManager,
           flowState: ctx.flowState,
           phase,
-          targetPath: ctx.gateEvidenceTargetPath || (phase === "spec" ? ctx.spec : null),
         })
       : null);
     const reasons = result?.artifacts?.issues?.length

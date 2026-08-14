@@ -1,13 +1,13 @@
 /**
  * src/flow/lib/set-note.js
  *
- * Append a note entry to state.notes.
+ * Append a note observation.
  *
  * Dual-mode operation (same pattern as set-auto.js):
- *   - Active flow (flow.json present): mutate flow.json.
+ *   - Active Version-1 flow: append a typed note Activity. The command view
+ *     derives state.notes from the Activity ledger.
  *   - Preparing flow (.active-flow.<runId>): mutate the preparing state so
- *     prelude choices are recorded before `flow prepare` creates flow.json.
- *     `run-prepare-spec` inherits notes into the new flow.json.
+ *     prelude choices are available to the prepare command input.
  *
  * ctx.text    — note text (required)
  * ctx.taskId  — optional explicit taskId (overrides active-task inference)

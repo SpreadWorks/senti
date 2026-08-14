@@ -1063,7 +1063,7 @@ const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/approval.schema.json",
         requiresApproval: true,
         autoApproveChoiceId: "1",
-        sideEffects: ["syncSpecTasks", "autoUpgradeReeval"],
+        sideEffects: ["syncSpecTasks"],
       }),
       new FlowNode({
         id: "test",

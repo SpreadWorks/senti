@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import { attachCanonicalCommandResultPublications } from "../../../src/flow/lib/canonical-command-result.js";
+import { ReviewFindingCycle } from "../../../src/flow/lib/finding-disposition-policy.js";
 import RunReopenDraftCommand from "../../../src/flow/lib/run-reopen-draft.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { FlowAtStepFixture, TaskLifecycleFixture, makeFlowManager } from "../../helpers/flow-setup.js";
@@ -54,6 +55,36 @@ describe("draft reopen canonical authority", () => {
       assert.equal(findStepById(state.steps, targetStep).status, "invalidated");
       assert.equal(flowManager.activityLedger(SPEC_ID).at(-2).transition.operation, "reopen_draft_preimplementation");
     }
+  });
+
+  it("starts a new review-finding cycle from the typed draft-reopen Activity", async () => {
+    const { flowManager } = createAt("spec-review");
+    const before = flowManager.loadReadOnly(SPEC_ID);
+    const priorCycle = ReviewFindingCycle.fromActivityLedger({
+      runId: before.runId,
+      activities: flowManager.activityLedger(SPEC_ID),
+    });
+    assert.equal(priorCycle.planRewindAt, null);
+
+    const result = await run(new RunReopenDraftCommand(), flowManager);
+    assert.equal(result.ok, true, JSON.stringify(result));
+    const state = flowManager.loadReadOnly(SPEC_ID);
+    const ledger = flowManager.activityLedger(SPEC_ID);
+    const reopen = ledger.findLast((activity) => (
+      activity.transition.operation === "reopen_draft_preimplementation"
+    ));
+    assert.ok(reopen);
+    const cycle = ReviewFindingCycle.fromActivityLedger({ runId: state.runId, activities: ledger });
+    assert.equal(cycle.planRewindAt, reopen.timing.finishedAt);
+
+    const fingerprint = "d".repeat(64);
+    const history = [
+      { runId: state.runId, planRewindAt: priorCycle.planRewindAt, fingerprint },
+      { runId: state.runId, planRewindAt: cycle.planRewindAt, fingerprint },
+    ];
+    const currentCycleFindings = history.filter((artifact) => cycle.matchesArtifact(artifact));
+    assert.deepEqual(currentCycleFindings.map((artifact) => artifact.fingerprint), [fingerprint]);
+    assert.equal(cycle.matchesArtifact({ ...history[1], runId: "run-other" }), false);
   });
 
   it("keeps draft/spec evidence catalog-owned and refuses an unauthorized consumer", () => {

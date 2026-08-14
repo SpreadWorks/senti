@@ -2,6 +2,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
+import { ReviewFindingCycle } from "./finding-disposition-policy.js";
 
 export const FLOW_FINDINGS_LOGICAL_KEY = "flow.findings";
 export const MAX_FLOW_FINDINGS = 200;
@@ -205,7 +206,7 @@ function sourcePayload({ logicalKey, bytes }) {
  */
 export class CanonicalFlowFindingsStore {
   constructor({ flowManager, flowState, nodeId } = {}) {
-    if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.readProducerArtifact !== "function" || typeof flowManager.publishArtifacts !== "function") {
+    if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.readProducerArtifact !== "function" || typeof flowManager.publishArtifacts !== "function" || typeof flowManager.activityLedger !== "function") {
       throw new Error("canonical flow findings require FlowManager catalog APIs");
     }
     const state = canonicalFlowState(flowState);
@@ -213,6 +214,10 @@ export class CanonicalFlowFindingsStore {
     this.flowManager = flowManager;
     this.flowState = state;
     this.nodeId = nodeId;
+    this.cycle = ReviewFindingCycle.fromActivityLedger({
+      runId: state.runId,
+      activities: flowManager.activityLedger(state.specId),
+    });
     Object.freeze(this);
   }
 
@@ -229,10 +234,7 @@ export class CanonicalFlowFindingsStore {
     ));
     if (!filterCurrentRun) return artifact;
     return new FlowFindingsArtifact({
-      entries: artifact.entries.filter((entry) => (
-        entry.runId === this.flowState.runId
-        && entry.planRewindAt === null
-      )),
+      entries: artifact.entries.filter((entry) => this.cycle.matchesArtifact(entry)),
     });
   }
 
@@ -320,7 +322,7 @@ export function appendDeferredFlowFinding({
 }) {
   const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
   const existing = store.read();
-  const planRewindAt = null;
+  const planRewindAt = store.cycle.planRewindAt;
   const source = store.sourceArtifact(sourceArtifact);
   if (source === null) throw new Error(`canonical source artifact is absent: ${sourceArtifact}`);
   const normalizedFingerprint = requireFindingFingerprint(fingerprint);

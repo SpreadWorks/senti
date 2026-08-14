@@ -138,6 +138,37 @@ function publishAttemptArtifact(manager, specId, nodeId, logicalKey, payload) {
   });
 }
 
+function canonicalIdentity(state) {
+  const value = state.toJSON();
+  return {
+    schemaRevision: value.schemaRevision,
+    flowId: value.flowId,
+    flowVersionId: value.flowVersionId,
+    runId: value.runId,
+    specId: value.specId,
+    request: value.request,
+    version: value.version,
+    execution: value.execution,
+  };
+}
+
+function catalogDescriptorReferences(catalog) {
+  return catalog.toJSON().artifacts.map((artifact) => ({
+    logicalKey: artifact.logicalKey,
+    kind: artifact.kind,
+    relativePath: artifact.relativePath,
+    mediaType: artifact.mediaType,
+    authority: artifact.authority,
+    memberId: artifact.memberId,
+    publicationStep: artifact.publicationStep,
+    retention: artifact.retention,
+  }));
+}
+
+function catalogArtifactReferences(catalog) {
+  return catalogDescriptorReferences(catalog).map(({ publicationStep, ...reference }) => reference);
+}
+
 /** A production-API fixture for the V1 worker-owned test collection. */
 function canonicalTestTreeHandoffScenario(specId, invocationId) {
   const repository = root();
@@ -1240,12 +1271,14 @@ describe("FlowManager canonical Version-1 runtime", () => {
       mediaType: "application/json",
       bytes: '{"version":1,"verdict":"PASS"}\n',
     };
+    const activityCount = manager.activityLedger(created.specId).length;
     manager.publishArtifacts({ nodeId: "spec-review", artifactWrites: [evidence] });
 
     const relativePath = `steps/spec-review/evidence/${digest}.json`;
     const descriptor = manager.artifactCatalog(created.specId).resolve(relativePath);
     assert.equal(descriptor.logicalKey, "review.evidence");
     assert.equal(fs.existsSync(path.join(manager.specLocation(created.specId).directory, relativePath)), true);
+    assert.equal(manager.activityLedger(created.specId).length, activityCount + 1);
     assert.throws(
       () => manager.publishArtifacts({
         nodeId: "spec-review",
@@ -1255,7 +1288,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
     );
   });
 
-  it("registers independent review evidence through the V1 catalog without a root-state mutation", () => {
+  it("registers independent advisory review evidence through the V1 catalog without a root-state mutation", () => {
     const repository = root();
     fs.writeFileSync(path.join(repository, "README.md"), "canonical review evidence\n");
     initGitRepo(repository);
@@ -1294,22 +1327,32 @@ describe("FlowManager canonical Version-1 runtime", () => {
         invocationId: "canonical-set-review-evidence",
         capturedAt: "2026-08-14T00:00:00.000Z",
       },
-      disposition: "PASS",
+      disposition: "ADVISORY",
       blockingFindings: [],
-      advisoryFindings: [],
+      advisoryFindings: [{
+        findingId: "advisory-catalog-reference",
+        summary: "Catalog evidence stays authoritative for advisory handoff.",
+        fingerprint: "c".repeat(64),
+        evidenceRefs: ["independent-review.json#advisory-catalog-reference"],
+        disposition: "informational",
+      }],
     }, null, 2) + "\n");
 
     const result = new SetReviewEvidenceCommand().execute({ ...ctx, file: evidenceFile });
     assert.equal(result.providerInvoked, false);
     assert.equal(result.phase, "spec");
     assert.equal(result.reviewAction.kind, "move_to_acceptance");
+    assert.equal(result.reviewAction.handoffFindings.length, 1);
+    assert.equal(result.reviewAction.handoffFindings[0].evidenceDigest, result.evidenceDigest);
     assert.match(result.artifactPath, /^steps\/spec-review\/evidence\/[a-f0-9]{64}\.json$/);
+    assert.equal(result.reviewAction.handoffFindings[0].canonicalEvidenceRef, result.artifactPath);
+    assert.equal(manager.artifactCatalog(created.specId).resolve(result.artifactPath).logicalKey, "review.evidence");
     const evidence = manager.readCatalogArtifact({
       specId: created.specId,
       relativePath: result.artifactPath,
       consumerNodeId: "spec-triage",
     });
-    assert.equal(JSON.parse(evidence.bytes.toString("utf8")).disposition, "PASS");
+    assert.equal(JSON.parse(evidence.bytes.toString("utf8")).disposition, "ADVISORY");
     assert.equal(Object.hasOwn(manager.load(created.specId), "reviewConvergence"), false);
     const activityCount = manager.activityLedger(created.specId).length;
     assert.throws(
@@ -1396,6 +1439,10 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(attachedCanonicalCommandResultPublications(result)[0].logicalKey, "review.evidence");
 
     await FLOW_COMMANDS.run.review.post(ctx, result);
+    const transientWorkUnit = invocation.options.env.SENNEL_REVIEW_OUTPUT_DIR;
+    assert.equal(fs.existsSync(transientWorkUnit), true);
+    fs.rmSync(transientWorkUnit, { recursive: true, force: true });
+    assert.equal(fs.existsSync(transientWorkUnit), false);
 
     const location = manager.specLocation(created.specId);
     const history = JSON.parse(manager.readArtifact({
@@ -1628,10 +1675,39 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(resumed.state.request, "Keep the request exactly as supplied.");
   });
 
-  it("preserves the original request after finalization and a fresh read", () => {
+  it("preserves V1 identity, finalized state, Activities, and catalog references after a fresh read", () => {
     const repository = root();
     const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
     const created = manager.createFresh(request("001-canonical-finalized-request"));
+    const originalIdentity = canonicalIdentity(manager.canonicalState(created.specId));
+    const ordered = leaves(manager.load(created.specId).steps);
+    const scenarioIndex = ordered.findIndex((step) => step.id === "scenario-validity");
+    assert.ok(scenarioIndex >= 0);
+    for (const step of ordered.slice(0, scenarioIndex)) {
+      manager.updateStepStatus(
+        { stepId: step.id, requestedStatus: "done" },
+        { specId: created.specId },
+      );
+    }
+    manager.updateStepStatus(
+      { stepId: "scenario-validity", requestedStatus: "in_progress" },
+      { specId: created.specId },
+    );
+    const location = manager.specLocation(created.specId);
+    publishAttemptArtifact(manager, created.specId, "scenario-validity", "scenario.validity", {
+      version: "1",
+      command: "node --test artifacts/tests/scenario.test.js",
+      process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
+      result: "pass",
+      raw_output_path: location.relativeArtifact("scenario.validity.raw-log"),
+      summary: [],
+    });
+    const referencesBeforeFinalization = catalogArtifactReferences(manager.artifactCatalog(created.specId));
+    assert.equal(referencesBeforeFinalization.some((artifact) => artifact.logicalKey === "scenario.validity"), true);
+    manager.updateStepStatus(
+      { stepId: "scenario-validity", requestedStatus: "done" },
+      { specId: created.specId },
+    );
 
     for (const step of leaves(manager.load(created.specId).steps)) {
       if (step.status === "pending") {
@@ -1645,15 +1721,33 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const finalized = manager.finalizeFlow(created.specId);
     assert.equal(finalized.lifecycle.state, "finalized");
     assert.equal(finalized.request, "Keep the request exactly as supplied.");
+    const finalizedState = manager.canonicalState(created.specId).toJSON();
+    const finalizedActivities = manager.activityLedger(created.specId);
+    const finalizedCatalog = manager.artifactCatalog(created.specId).toJSON();
+    assert.deepEqual(canonicalIdentity(manager.canonicalState(created.specId)), originalIdentity);
+    assert.equal(finalizedActivities.at(-1).transition.operation, "finalize_flow");
+    assert.deepEqual(
+      catalogArtifactReferences(manager.artifactCatalog(created.specId)),
+      referencesBeforeFinalization,
+    );
 
-    const reopened = new FlowManager({
+    const reopenedManager = new FlowManager({
       root: repository,
       mainRoot: repository,
       inWorktree: false,
       specId: created.specId,
-    }).loadReadOnly(created.specId);
+    });
+    const reopened = reopenedManager.loadReadOnly(created.specId);
     assert.equal(reopened.lifecycle, "finalized");
     assert.equal(reopened.request, "Keep the request exactly as supplied.");
+    assert.deepEqual(canonicalIdentity(reopenedManager.canonicalState(created.specId)), originalIdentity);
+    assert.deepEqual(reopenedManager.canonicalState(created.specId).toJSON(), finalizedState);
+    assert.deepEqual(reopenedManager.activityLedger(created.specId), finalizedActivities);
+    assert.deepEqual(reopenedManager.artifactCatalog(created.specId).toJSON(), finalizedCatalog);
+    assert.deepEqual(
+      catalogDescriptorReferences(reopenedManager.artifactCatalog(created.specId)),
+      catalogDescriptorReferences(manager.artifactCatalog(created.specId)),
+    );
   });
 
   it("keeps only unfinished outbox work in flow.json and journals terminal side effects", () => {

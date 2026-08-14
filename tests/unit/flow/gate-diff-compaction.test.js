@@ -7,6 +7,7 @@ import {
   excludeGeneratedSpecArtifactsFromGateDiff,
   excludeGateLifecycleArtifactsFromGateDiff,
   excludeScenarioValidityEvidenceFromTaskGateDiff,
+  PlanGateEvidenceTarget,
   default as RunGateCommand,
 } from "../../../src/flow/lib/run-gate.js";
 import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
@@ -109,8 +110,8 @@ describe("guardrail diff prompt compaction", () => {
 });
 
 describe("task gate scenario-validity evidence", () => {
-  it("excludes active-spec pre-fix evidence while retaining implementation and post-fix evidence", () => {
-    const specDir = "specs/999-example";
+  it("excludes active Version artifacts while retaining implementation and foreign evidence", () => {
+    const specDir = "specs/999-example/001";
     const preamble = "diagnostic preamble\n";
     const malformed = [
       "diff --git malformed-header",
@@ -118,19 +119,19 @@ describe("task gate scenario-validity evidence", () => {
       "",
     ].join("\n");
     const quoted = [
-      'diff --git "a/specs/999-example/tests/.raw/scenario-validity.log" "b/specs/999-example/tests/.raw/scenario-validity.log"',
-      '--- "a/specs/999-example/tests/.raw/scenario-validity.log"',
-      '+++ "b/specs/999-example/tests/.raw/scenario-validity.log"',
+      'diff --git "a/specs/999-example/001/steps/scenario-validity/output.log" "b/specs/999-example/001/steps/scenario-validity/output.log"',
+      '--- "a/specs/999-example/001/steps/scenario-validity/output.log"',
+      '+++ "b/specs/999-example/001/steps/scenario-validity/output.log"',
       "@@ -0,0 +1 @@",
       "+quoted path remains",
       "",
     ].join("\n");
     const special = modifiedDiff("specs/999-example/証拠-ß.json");
-    const scenarioResult = modifiedDiff(`${specDir}/scenario-validity-result.json`);
-    const scenarioLog = modifiedDiff(`${specDir}/tests/.raw/scenario-validity.log`);
-    const testExecuteResult = modifiedDiff(`${specDir}/test-execute-result.json`);
-    const testExecutionLog = modifiedDiff(`${specDir}/tests/.raw/test-execution.log`);
-    const otherSpecScenario = modifiedDiff("specs/998-other/scenario-validity-result.json");
+    const scenarioResult = modifiedDiff(`${specDir}/steps/scenario-validity/result.json`);
+    const scenarioLog = modifiedDiff(`${specDir}/steps/scenario-validity/output.log`);
+    const testExecuteResult = modifiedDiff(`${specDir}/steps/test-execute/result.json`);
+    const testExecutionLog = modifiedDiff(`${specDir}/steps/test-execute/output.log`);
+    const otherSpecScenario = modifiedDiff("specs/998-other/001/steps/scenario-validity/result.json");
     const implementation = modifiedDiff("src/flow/lib/review-convergence.js");
     const diff = [
       preamble,
@@ -148,8 +149,6 @@ describe("task gate scenario-validity evidence", () => {
       preamble,
       malformed,
       quoted,
-      testExecuteResult,
-      testExecutionLog,
       otherSpecScenario,
       special,
       implementation,
@@ -161,27 +160,58 @@ describe("task gate scenario-validity evidence", () => {
     );
 
     assert.equal(filtered, expected);
-    assert.match(filtered, new RegExp(`${specDir}/test-execute-result\\.json`));
-    assert.match(filtered, new RegExp(`${specDir}/tests/\\.raw/test-execution\\.log`));
-    assert.match(filtered, /specs\/998-other\/scenario-validity-result\.json/);
+    assert.doesNotMatch(filtered, new RegExp(`${specDir}/steps/test-execute/result\\.json`));
+    assert.doesNotMatch(filtered, new RegExp(`${specDir}/steps/test-execute/output\\.log`));
+    assert.match(filtered, /specs\/998-other\/001\/steps\/scenario-validity\/result\.json/);
     assert.match(filtered, /src\/flow\/lib\/review-convergence\.js/);
     assert.ok(filtered.startsWith(preamble));
     assert.match(filtered, /diff --git malformed-header\n\+malformed content remains/);
-    assert.match(filtered, /diff --git "a\/specs\/999-example\/tests\/\.raw\/scenario-validity\.log"/);
+    assert.match(filtered, /diff --git "a\/specs\/999-example\/001\/steps\/scenario-validity\/output\.log"/);
     assert.match(filtered, /\+quoted path remains/);
     assert.match(filtered, /specs\/999-example\/証拠-ß\.json/);
     assert.ok(filtered.indexOf("malformed-header") < filtered.indexOf("quoted path remains"));
-    assert.ok(filtered.indexOf("quoted path remains") < filtered.indexOf("test-execute-result.json"));
   });
 });
 
 describe("gate lifecycle evidence", () => {
-  it("excludes active gate state while retaining product and test evidence", () => {
-    const specDir = "specs/999-example";
+  it("binds plan-gate retry identity to catalog descriptors, not root sibling files", () => {
+    const draft = {
+      logicalKey: "draft",
+      relativePath: "steps/draft/result.json",
+      hash: "a".repeat(64),
+      activityId: "activity-draft-1",
+    };
+    const unrelated = {
+      logicalKey: "test.execute",
+      relativePath: "steps/test-execute/result.json",
+      hash: "b".repeat(64),
+      activityId: "activity-test-1",
+    };
+    const flowState = { schemaRevision: 3, specId: "999-example" };
+    const resolve = (artifacts) => PlanGateEvidenceTarget.resolve({
+      phase: "draft",
+      flowState,
+      flowManager: { artifactCatalog: () => ({ artifacts }) },
+    }).fingerprint();
+
+    assert.equal(resolve([draft]), resolve([draft, unrelated]));
+    assert.notEqual(resolve([draft]), resolve([{ ...draft, hash: "c".repeat(64) }]));
+    assert.throws(
+      () => PlanGateEvidenceTarget.resolve({
+        phase: "draft",
+        flowState: { schemaRevision: 2, specId: "999-example" },
+        flowManager: { artifactCatalog: () => ({ artifacts: [draft] }) },
+      }),
+      /Version-1 Flow artifact catalog/,
+    );
+  });
+
+  it("excludes active Version artifacts while retaining product and cataloged test sources", () => {
+    const specDir = "specs/999-example/001";
     const flowState = modifiedDiff(`${specDir}/flow.json`);
-    const gateResult = modifiedDiff(`${specDir}/task-impl-gate-result.json`);
-    const testResult = modifiedDiff(`${specDir}/test-execute-result.json`);
-    const specTest = modifiedDiff(`${specDir}/tests/review-scope.test.js`);
+    const gateResult = modifiedDiff(`${specDir}/steps/impl/T-1/gate/result.json`);
+    const testResult = modifiedDiff(`${specDir}/steps/test-execute/result.json`);
+    const specTest = modifiedDiff(`${specDir}/artifacts/tests/review-scope.test.js`);
     const implementation = modifiedDiff("src/flow/lib/run-review.js");
 
     const filtered = excludeGateLifecycleArtifactsFromGateDiff(
@@ -190,17 +220,17 @@ describe("gate lifecycle evidence", () => {
     );
 
     assert.doesNotMatch(filtered, /flow\.json/);
-    assert.doesNotMatch(filtered, /task-impl-gate-result\.json/);
-    assert.match(filtered, /test-execute-result\.json/);
-    assert.match(filtered, /tests\/review-scope\.test\.js/);
+    assert.doesNotMatch(filtered, /steps\/impl\/T-1\/gate\/result\.json/);
+    assert.doesNotMatch(filtered, /steps\/test-execute\/result\.json/);
+    assert.match(filtered, /artifacts\/tests\/review-scope\.test\.js/);
     assert.match(filtered, /src\/flow\/lib\/run-review\.js/);
   });
 
   it("excludes generated spec artifacts while retaining requirement tests", () => {
-    const specDir = "specs/999-example";
-    const result = modifiedDiff(`${specDir}/test-execute-result.json`);
-    const review = modifiedDiff(`${specDir}/review.md`);
-    const specTest = modifiedDiff(`${specDir}/tests/review-scope.test.js`);
+    const specDir = "specs/999-example/001";
+    const result = modifiedDiff(`${specDir}/steps/test-execute/result.json`);
+    const review = modifiedDiff(`${specDir}/steps/impl/review/result.json`);
+    const specTest = modifiedDiff(`${specDir}/artifacts/tests/review-scope.test.js`);
     const implementation = modifiedDiff("src/flow/lib/run-review.js");
 
     const filtered = excludeGeneratedSpecArtifactsFromGateDiff(
@@ -208,9 +238,9 @@ describe("gate lifecycle evidence", () => {
       `${specDir}/spec.json`,
     );
 
-    assert.match(filtered, /test-execute-result\.json/);
-    assert.doesNotMatch(filtered, /review\.md/);
-    assert.match(filtered, /tests\/review-scope\.test\.js/);
+    assert.doesNotMatch(filtered, /steps\/test-execute\/result\.json/);
+    assert.doesNotMatch(filtered, /steps\/impl\/review\/result\.json/);
+    assert.match(filtered, /artifacts\/tests\/review-scope\.test\.js/);
     assert.match(filtered, /src\/flow\/lib\/run-review\.js/);
   });
 });
