@@ -1,24 +1,12 @@
-import { describe, it, afterEach } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
-import { SENNEL, writeBaseConfig } from "../../helpers/metrics-token.js";
 
-function paddedSpecJson(padChar, padLen) {
-  return JSON.stringify({
-    goal: padChar.repeat(padLen),
-    background: "",
-    scope: { in: [], out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [],
-    acceptance_criteria: [],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-  });
-}
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import {
+  createCanonicalTokenMetricsFlow,
+  runToken,
+  writeBaseConfig,
+} from "../../helpers/metrics-token.js";
 
 describe("metrics token command", () => {
   let tmp;
@@ -27,68 +15,52 @@ describe("metrics token command", () => {
   function setupProject() {
     tmp = createTmpDir("sennel-metrics-token-");
     writeBaseConfig(tmp);
-    writeJson(tmp, "specs/001-alpha/flow.json", {
-      state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
-      metrics: {
-        draft: {
-          tokens: { input: 100, output: 50, cacheRead: 20, cacheCreation: 10 },
-          cost: 0.01,
-          callCount: 2,
-        },
-      },
+    return createCanonicalTokenMetricsFlow(tmp, {
+      agentMetrics: [{
+        phase: "draft",
+        input: 100,
+        output: 50,
+        cacheRead: 20,
+        cacheCreation: 10,
+        cost: 0.01,
+        callCount: 2,
+      }],
     });
   }
 
   function setupProjectWithDifficultyData() {
     tmp = createTmpDir("sennel-metrics-token-diff-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("A", 1600));
-    writeFile(tmp, "specs/001-alpha/review.md", [
-      "# Code Review Results",
-      "",
-      "### [x] 1. first",
-      "### [ ] 2. second",
-    ].join("\n"));
-    writeFile(tmp, "specs/001-alpha/tests/a.test.js", "export {};\n");
-    writeJson(tmp, "specs/001-alpha/issue-log.json", {
-      entries: [{ step: "draft", reason: "r1" }],
-    });
-    writeJson(tmp, "specs/001-alpha/flow.json", {
-      state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
+    return createCanonicalTokenMetricsFlow(tmp, {
       request: "metrics difficulty test request",
-      summary: [{ desc: "r1" }, { desc: "r2" }],
-      reviewCount: { spec: 2, test: 0, impl: 0 },
-      redoCount: 1,
-      metrics: {
-        draft: {
-          question: 1,
-          tokens: { input: 100, output: 50, cacheRead: 20, cacheCreation: 10 },
-          cost: 0.01,
-          callCount: 2,
-        },
-      },
+      goal: "A".repeat(1600),
+      requirements: [{ id: "R-1", desc: "Preserve canonical metric inputs." }],
+      draftQuestions: 1,
+      issueEntries: [{ step: "draft", reason: "recorded canonical issue fact" }],
+      agentMetrics: [{
+        phase: "draft",
+        input: 100,
+        output: 50,
+        cacheRead: 20,
+        cacheCreation: 10,
+        cost: 0.01,
+        callCount: 2,
+      }],
     });
   }
 
   it("supports json format and returns aggregated rows", () => {
-    setupProject();
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "json"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
+    const flow = setupProject();
+    const out = runToken(tmp, ["--format", "json"]);
     const parsed = JSON.parse(out);
     assert.ok(Array.isArray(parsed.rows), "json output should include rows array");
     assert.ok(parsed.rows.length >= 1, "rows should not be empty");
+    assert.equal(flow.location.relativeSpecFile, "specs/001-alpha/001/spec.json");
   });
 
   it("uses text format by default and prints phase sections", () => {
     setupProject();
-    const out = execFileSync("node", [SENNEL, "metrics", "token"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
+    const out = runToken(tmp);
     assert.match(out, /-- draft -+/i);
     assert.match(out, /difficulty/i);
     assert.match(out, /call count/i);
@@ -96,102 +68,56 @@ describe("metrics token command", () => {
 
   it("supports csv format with expected headers", () => {
     setupProject();
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "csv"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
+    const out = runToken(tmp, ["--format", "csv"]);
     assert.match(
       out,
-      /date,phase,specCount,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,cacheHitRate,callCount,cost/i
+      /date,phase,specCount,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,cacheHitRate,callCount,cost/i,
     );
   });
 
-  it("computes numeric difficulty when required fields exist", () => {
+  it("computes numeric difficulty from cataloged Spec, Issue, and Activity inputs", () => {
     setupProjectWithDifficultyData();
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "json"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
-    const parsed = JSON.parse(out);
-    const row = parsed.rows.find((r) => r.phase === "draft");
+    const parsed = JSON.parse(runToken(tmp, ["--format", "json"]));
+    const row = parsed.rows.find((entry) => entry.phase === "draft");
     assert.ok(row, "draft row should exist");
     assert.equal(typeof row.difficulty, "number");
     assert.ok(row.difficulty > 0, "difficulty should be positive");
   });
 
-  it("returns — difficulty when reviewCount/redoCount are missing", () => {
+  it("does not require retired reviewCount or redoCount state fields", () => {
     setupProject();
-    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
-    writeFile(tmp, "specs/001-alpha/review.md", "### [x] 1. one");
-    writeJson(tmp, "specs/001-alpha/issue-log.json", { entries: [] });
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "csv"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
-    const lines = out.trim().split("\n");
+    const lines = runToken(tmp, ["--format", "csv"]).trim().split("\n");
     assert.ok(lines.length >= 2, "csv must include at least one data row");
     const cols = lines[1].split(",");
-    assert.equal(cols[3], "—");
+    assert.notEqual(cols[3], "—", "V1 derives review count from Activities");
   });
 
-  it("treats missing qaCount/testCount/issueLogEntries as zero for calculation", () => {
+  it("treats absent optional Issue and question observations as zero", () => {
     tmp = createTmpDir("sennel-metrics-token-zeroable-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("B", 1200));
-    writeJson(tmp, "specs/001-alpha/flow.json", {
-      state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
-      request: "request for zero-fill fields",
-      summary: [{ desc: "r1" }],
-      reviewCount: { spec: 1, test: 0, impl: 0 },
-      redoCount: 1,
-      metrics: {
-        draft: {
-          tokens: { input: 10, output: 5, cacheRead: 2, cacheCreation: 1 },
-          cost: 0.001,
-          callCount: 1,
-        },
-      },
+    createCanonicalTokenMetricsFlow(tmp, {
+      goal: "B".repeat(1200),
+      requirements: [{ id: "R-1", desc: "Metric input." }],
+      agentMetrics: [{ phase: "draft", input: 10, output: 5, cacheRead: 2, cacheCreation: 1, cost: 0.001 }],
     });
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "json"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
-    const parsed = JSON.parse(out);
-    const row = parsed.rows.find((r) => r.phase === "draft");
+    const parsed = JSON.parse(runToken(tmp, ["--format", "json"]));
+    const row = parsed.rows.find((entry) => entry.phase === "draft");
     assert.ok(row);
     assert.equal(typeof row.difficulty, "number");
     assert.ok(row.difficulty > 0);
   });
 
-  it("returns — when requestChars resolves to zero", () => {
+  it("returns — when the immutable request is empty", () => {
     tmp = createTmpDir("sennel-metrics-token-reqzero-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
-    writeJson(tmp, "specs/001-alpha/flow.json", {
-      state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
+    createCanonicalTokenMetricsFlow(tmp, {
       request: "",
-      summary: [{ desc: "r1" }],
-      reviewCount: { spec: 1, test: 0, impl: 0 },
-      redoCount: 1,
-      metrics: {
-        draft: {
-          question: 1,
-          tokens: { input: 10, output: 5, cacheRead: 2, cacheCreation: 1 },
-          cost: 0.001,
-          callCount: 1,
-        },
-      },
+      goal: "C".repeat(10),
+      requirements: [{ id: "R-1", desc: "Metric input." }],
+      draftQuestions: 1,
+      agentMetrics: [{ phase: "draft", input: 10, output: 5, cacheRead: 2, cacheCreation: 1, cost: 0.001 }],
     });
-    const out = execFileSync("node", [SENNEL, "metrics", "token", "--format", "csv"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-      cwd: tmp,
-    });
-    const lines = out.trim().split("\n");
+    const lines = runToken(tmp, ["--format", "csv"]).trim().split("\n");
     const cols = lines[1].split(",");
     assert.equal(cols[3], "—");
   });

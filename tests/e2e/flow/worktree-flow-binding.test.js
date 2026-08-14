@@ -31,6 +31,11 @@ function createProject() {
     version: "0.0.0",
     type: "module",
   }, null, 2));
+  const bin = path.join(root, ".fixture-bin");
+  fs.mkdirSync(bin, { recursive: true });
+  fs.writeFileSync(path.join(bin, "gh"), `#!/bin/sh
+printf '%s\\n' '{"title":"Offline fixture Issue","body":"Offline fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`, { mode: 0o755 });
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
@@ -43,7 +48,11 @@ function runFlow(root, args) {
   const result = spawnSync("node", [cliPath, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENNEL_WORK_ROOT: root },
+    env: {
+      ...process.env,
+      PATH: `${path.join(root, ".fixture-bin")}${path.delimiter}${process.env.PATH}`,
+      SENNEL_WORK_ROOT: root,
+    },
   });
   const stdout = result.stdout.trim();
   return { ...result, envelope: stdout.startsWith("{") ? JSON.parse(stdout) : null };

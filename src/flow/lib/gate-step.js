@@ -11,6 +11,7 @@ import {
   collectGatePhaseEntries,
   findActiveNode,
 } from "../definition.js";
+import { TaskStepIdentity } from "./task-step-identity.js";
 
 const PHASE_TO_STEP_ENTRIES = Object.freeze(collectGatePhaseEntries());
 
@@ -32,14 +33,14 @@ export function resolveGateStepId(phase) {
 
 export function resolveScopedGateStepId(state, phase) {
   const activeNode = findActiveNode(state);
-  if (phase === "task-impl" && activeNode?.stepId === "task-gate") {
-    return activeNode.stepId;
+  const taskStep = TaskStepIdentity.fromStateNode(state, activeNode?.stepId);
+  if (phase === "task-impl" && taskStep?.definitionId === "task-gate") {
+    return taskStep.nodeId;
   }
   return resolveGateStepId(phase);
 }
 
 const TASK_STEP_TO_PHASE = Object.freeze({
-  "spec-gate": "task-spec",
   "task-gate": "task-impl",
 });
 
@@ -57,14 +58,20 @@ export function resolveGatePhaseFromState(state) {
   const task = resolveActiveTask(state);
   const taskInProgress = task
     ? (task.steps || []).filter(
-        (s) => TASK_GATE_STEP_IDS.includes(s.id) && s.status === "in_progress",
+        (step) => {
+          const identity = TaskStepIdentity.fromTaskNode(task, step.id);
+          return identity !== null
+            && TASK_GATE_STEP_IDS.includes(identity.definitionId)
+            && step.status === "in_progress";
+        },
       )
     : [];
 
   if (taskInProgress.length > 0) {
     const chosen = taskInProgress[0];
+    const identity = TaskStepIdentity.fromTaskNode(task, chosen.id);
     const staleSteps = flowInProgress.map((s) => s.id);
-    return { phase: TASK_STEP_TO_PHASE[chosen.id], staleSteps };
+    return { phase: TASK_STEP_TO_PHASE[identity.definitionId], staleSteps };
   }
 
   if (flowInProgress.length === 0) return null;

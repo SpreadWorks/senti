@@ -4,19 +4,22 @@ import { join } from "path";
 import { checkSpecText, checkSpecJson } from "../../../../src/flow/lib/run-gate.js";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
 import { execFileSync, spawnSync } from "child_process";
-import { makeFlowManager, setupFlowAtStep } from "../../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 import { findInProgressLeaf } from "../../../../src/flow/lib/step-tree.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
 const SENNEL = join(process.cwd(), "src/sennel.js");
 
-function initGateProject(tmp, { specId = "001-test" } = {}) {
+function initGateProject(tmp, { specId = "001-test", specRecord = null } = {}) {
   initGitRepo(tmp);
   commitAll(tmp, "init");
-  setupFlowAtStep(tmp, "spec-gate", {
-    specId: specId,
-    featureBranch: `feature/${specId}`,
-  });
+  const taskDocuments = specRecord?.tasks ?? [];
+  const fixture = new CanonicalFlowFixture({
+    flowManager: makeFlowManager(tmp),
+    specId,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${specId}` },
+    specRecord: specRecord ? { ...specRecord, tasks: [] } : null,
+  }).create().addTasks(taskDocuments).registerActive().activate("spec-gate");
   writeJson(tmp, ".sennel/config.json", {
     lang: "en", type: "base",
     docs: { languages: ["en"], defaultLanguage: "en" },
@@ -30,6 +33,7 @@ function initGateProject(tmp, { specId = "001-test" } = {}) {
       },
     },
   });
+  return fixture;
 }
 
 function runBlockedGate(tmp, args) {
@@ -370,7 +374,7 @@ describe("gate CLI", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("exits 0 on valid spec (legacy markdown via --spec spec.md)", () => {
+  it("exits 0 on a valid explicit task-spec markdown target", () => {
     tmp = createTmpDir();
     initGateProject(tmp);
     const specContent = [
@@ -384,15 +388,16 @@ describe("gate CLI", () => {
     ].join("\n");
     writeFile(tmp, "spec.md", specContent);
 
-    // For this CLI test we feed a markdown path directly; phase=task-spec is what
-    // the markdown checker is meant for. The CLI accepts --spec for any phase.
-    const result = execFileSync("node", [
+    // This is the explicit task-spec markdown surface. The canonical gate
+    // retains the spec-gate Attempt as its authority while validating it.
+    const result = spawnSync("node", [
       join(process.cwd(), "src/sennel.js"),
       "flow", "run", "gate",
       "--phase", "task-spec",
       "--spec", join(tmp, "spec.md"),
     ], { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } });
-    const envelope = JSON.parse(result);
+    assert.equal(result.status, 0, `stdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+    const envelope = JSON.parse(result.stdout);
     assert.equal(envelope.ok, true);
   });
 
@@ -411,8 +416,6 @@ describe("gate CLI", () => {
 
   it("phase=spec reads spec.json and returns ok:true with PASS-eligible textCheck (R1, R5, R7)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp);
-    const specDir = join(tmp, "specs", "001-test");
     const validSpec = validSpecJson({
       // T-default matches the seed task in flow.json (monotonic check).
       tasks: [
@@ -428,14 +431,14 @@ describe("gate CLI", () => {
         },
       ],
     });
-    writeJson(tmp, "specs/001-test/spec.json", validSpec);
+    const fixture = initGateProject(tmp, { specRecord: validSpec });
 
     // Pass spec.md path; resolveSpecJsonPath should resolve to spec.json (R5).
     const result = execFileSync("node", [
       join(process.cwd(), "src/sennel.js"),
       "flow", "run", "gate",
       "--phase", "spec",
-      "--spec", join(specDir, "spec.md"),
+      "--spec", fixture.location().specFile,
     ], { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } });
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
@@ -444,8 +447,6 @@ describe("gate CLI", () => {
 
   it("phase=spec returns mechanical failures before required evaluation (R5)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp);
-    const specDir = join(tmp, "specs", "001-test");
     const invalidSpec = validSpecJson({
       requirements: [
         { id: "R1", desc: "one", priority: "must" },
@@ -465,11 +466,11 @@ describe("gate CLI", () => {
         },
       ],
     });
-    writeJson(tmp, "specs/001-test/spec.json", invalidSpec);
+    const fixture = initGateProject(tmp, { specRecord: invalidSpec });
 
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
-      "--spec", join(specDir, "spec.md"),
+      "--spec", fixture.location().specFile,
     ]);
 
     assert.equal(envelope.data.result, "fail");
@@ -489,8 +490,6 @@ describe("gate CLI", () => {
 
   it("phase=spec FAILs when spec.json has unresolved marker in goal (R3, R7)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp, { specId: "002-test" });
-    const specDir = join(tmp, "specs", "002-test");
     const spec = {
       goal: "TBD",
       background: "",
@@ -504,11 +503,11 @@ describe("gate CLI", () => {
       alternatives_considered: [],
       open_questions: [],
     };
-    writeJson(tmp, "specs/002-test/spec.json", spec);
+    const fixture = initGateProject(tmp, { specId: "002-test", specRecord: spec });
 
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
-      "--spec", join(specDir, "spec.json"),
+      "--spec", fixture.location().specFile,
     ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(
@@ -519,8 +518,6 @@ describe("gate CLI", () => {
 
   it("phase=spec FAILs when spec.json fails schema validation (R2)", () => {
     tmp = createTmpDir();
-    initGateProject(tmp, { specId: "003-test" });
-    const specDir = join(tmp, "specs", "003-test");
     // Missing required field: acceptance_criteria
     const spec = {
       goal: "g",
@@ -534,11 +531,11 @@ describe("gate CLI", () => {
       alternatives_considered: [],
       open_questions: [],
     };
-    writeJson(tmp, "specs/003-test/spec.json", spec);
+    const fixture = initGateProject(tmp, { specId: "003-test", specRecord: spec });
 
     const envelope = runBlockedGate(tmp, [
       "--phase", "spec",
-      "--spec", join(specDir, "spec.json"),
+      "--spec", fixture.location().specFile,
     ]);
     assert.equal(envelope.data.result, "fail");
     assert.ok(

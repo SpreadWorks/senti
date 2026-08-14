@@ -7,10 +7,10 @@
  *   - resolve the target flow (active flow.json or preparing record via --run-id)
  *   - delegate input resolution to `resolve-auto-check-input` which picks the
  *     payload based on phase markers in flow state (see that module for rules)
- *   - if the resolver signals skip (spec approved), persist a skip verdict and
- *     return without invoking the AI
+ *   - if the resolver signals skip (spec approved), return without invoking
+ *     the AI; exact V1 state never caches the verdict
  *   - otherwise: static gates (keyword match, sync) → AI scoring → compose
- *     eligible verdict → persist
+ *     eligible verdict
  *
  * The preparing-state persistence path is what allows the subsequent
  * `flow set auto on` to trust this verdict instead of re-invoking the AI
@@ -28,7 +28,12 @@
 import { FlowCommand } from "./base-command.js";
 import { evaluateStaticGates } from "./auto-check-static.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
-import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
+import {
+  CanonicalAutoCheckInputError,
+  resolvePreparingAutoCheckInput,
+  resolveAutoCheckInputForFlow,
+  buildSkipVerdict,
+} from "./resolve-auto-check-input.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import {
@@ -272,32 +277,29 @@ export default class RunAutoCheckCommand extends FlowCommand {
   async execute(ctx) {
     // Active flow path: state is already loaded; resolve input from state phase
     if (ctx.flowManager && ctx.flowState) {
-      const paths = { root: ctx.root };
-      const resolved = resolveAutoCheckInput(ctx.flowState, paths);
+      let resolved;
+      try {
+        resolved = resolveAutoCheckInputForFlow({
+          flowManager: ctx.flowManager,
+          state: ctx.flowState,
+        });
+      } catch (error) {
+        if (error instanceof CanonicalAutoCheckInputError) {
+          return Envelope.fail("run", "auto-check", error.code, error.message);
+        }
+        throw error;
+      }
       if (resolved.skip) {
         const verdict = buildSkipVerdict();
-        ctx.flowManager.mutate((state) => { state.autoCheck = verdict; });
         return verdict;
       }
       if (resolved.fail) {
-        ctx.flowManager.mutate((state) => {
-          delete state.autoCheck;
-          delete state.autoUpgrade;
-        });
         return resolved.verdict;
       }
       const result = {
         ...(await runAutoCheckCore(this.container, resolved.text)),
         ...(resolved.goalGate ? { goalGate: resolved.goalGate } : {}),
       };
-      if (result.eligible) {
-        ctx.flowManager.mutate((state) => { state.autoCheck = result; });
-      } else {
-        ctx.flowManager.mutate((state) => {
-          delete state.autoCheck;
-          delete state.autoUpgrade;
-        });
-      }
       return result;
     }
 
@@ -322,7 +324,7 @@ export default class RunAutoCheckCommand extends FlowCommand {
       const state = ctx.flowManager.loadPreparingFlow(resolvedId.runId);
       // Preparing records have no spec directory yet, so draft body is not
       // available. Only base input (issue + request) is used.
-      const resolvedInput = resolveAutoCheckInput(state, { root: ctx.root, specPath: null });
+      const resolvedInput = resolvePreparingAutoCheckInput(state);
       if (resolvedInput.skip) {
         const verdict = buildSkipVerdict();
         ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {

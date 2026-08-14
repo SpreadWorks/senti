@@ -13,8 +13,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import os from "node:os";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import RunImplConfirmCommand from "../../../src/flow/lib/run-impl-confirm.js";
+import GetResolveContextCommand from "../../../src/flow/lib/get-resolve-context.js";
+import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -35,27 +37,15 @@ function createProject() {
   return tmp;
 }
 
-function writeSpecJson(tmp, specId, specJson) {
-  const specDir = path.join(tmp, "specs", specId);
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson, null, 2));
-  fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
-}
-
-function setupFlow(tmp, specId) {
-  const state = {
-    specId: specId,
+function setupFlow(tmp, specId, specRecord) {
+  return new CanonicalFlowFixture({
+    flowManager: makeFlowManager(tmp),
+    specId,
     runId: `run-${specId}`,
-    baseBranch: "main",
-    featureBranch: `feature/${specId}`,
-    steps: buildInitialSteps(),
-    requirements: [],
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow(specId, "branch");
-  return state;
+    request: "Verify canonical requirements authority",
+    execution: { mode: "direct" },
+    specRecord,
+  }).create().registerActive();
 }
 
 function run(tmp, argv) {
@@ -121,11 +111,10 @@ describe("spec 219 R4: flow get status returns requirements from spec.json", () 
   it("returns requirements populated from spec.json when flow state requirements is empty", () => {
     tmp = createProject();
     const specId = "001-test";
-    writeSpecJson(tmp, specId, minimalSpec([
+    setupFlow(tmp, specId, minimalSpec([
       { id: "R1", desc: "first requirement", priority: "must", status: "done" },
       { id: "R2", desc: "second requirement", priority: "should", status: "pending" },
     ]));
-    setupFlow(tmp, specId);
 
     const res = run(tmp, ["flow", "get", "status"]);
     assert.equal(res.status, 0, res.stderr || res.stdout);
@@ -138,11 +127,10 @@ describe("spec 219 R4: flow get status returns requirements from spec.json", () 
   it("treats spec.json requirements without status field as 'pending' (R7)", () => {
     tmp = createProject();
     const specId = "001-test";
-    writeSpecJson(tmp, specId, minimalSpec([
+    setupFlow(tmp, specId, minimalSpec([
       { id: "R1", desc: "no status", priority: "must" },
       { id: "R2", desc: "explicit done", priority: "must", status: "done" },
     ]));
-    setupFlow(tmp, specId);
 
     const res = run(tmp, ["flow", "get", "status"]);
     assert.equal(res.status, 0, res.stderr || res.stdout);
@@ -157,6 +145,9 @@ describe("spec 219 R4: flow get status returns requirements from spec.json", () 
 // ---------------------------------------------------------------------------
 
 describe("spec 219 R6: impl-confirm / resume / resolve-context do not reference state.requirements", () => {
+  let tmp;
+  afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
+
   for (const file of [
     "src/flow/lib/run-impl-confirm.js",
     "src/flow/lib/run-resume.js",
@@ -171,4 +162,45 @@ describe("spec 219 R6: impl-confirm / resume / resolve-context do not reference 
       );
     });
   }
+
+  it("reads implementation and resume context from the cataloged spec.record", async () => {
+    tmp = createProject();
+    const manager = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({
+      flowManager: manager,
+      specId: "001-test",
+      runId: "run-001-test",
+      request: "Verify cataloged spec record consumers",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "feature/001-test" },
+      specRecord: minimalSpec([
+        { id: "R1", desc: "cataloged completed requirement", priority: "must", status: "done" },
+        { id: "R2", desc: "cataloged pending requirement", priority: "must", status: "pending" },
+      ]),
+    }).create().registerActive();
+    const state = fixture.state();
+    const ctx = { root: tmp, mainRoot: tmp, flowManager: manager, flowState: state };
+
+    const implConfirm = await new RunImplConfirmCommand().execute(ctx);
+    const resolved = new GetResolveContextCommand().execute(ctx);
+    const resumed = new RunResumeCommand().execute(ctx);
+
+    assert.deepEqual(implConfirm.artifacts.requirements, {
+      total: 2,
+      done: 1,
+      pending: 1,
+      inProgress: 0,
+      items: [
+        { index: 0, desc: "cataloged completed requirement", status: "done" },
+        { index: 1, desc: "cataloged pending requirement", status: "pending" },
+      ],
+    });
+    for (const context of [resolved, resumed]) {
+      assert.equal(context.goal, "test");
+      assert.deepEqual(context.scope, { in: [], out: [] });
+      assert.deepEqual(context.requirements.map(({ id, desc, status }) => ({ id, desc, status })), [
+        { id: "R1", desc: "cataloged completed requirement", status: "done" },
+        { id: "R2", desc: "cataloged pending requirement", status: "pending" },
+      ]);
+    }
+  });
 });

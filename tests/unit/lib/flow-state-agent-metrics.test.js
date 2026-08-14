@@ -7,11 +7,10 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager, makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildMetricsSummary } from "../../../src/flow/lib/get-status.js";
-import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 
 function makeUsage({ input = 100, output = 50, cacheRead = 20, cacheCreation = 10, cost = 0.005 } = {}) {
   return {
@@ -25,12 +24,10 @@ function makeUsage({ input = 100, output = 50, cacheRead = 20, cacheCreation = 1
 
 function setupFlow(dir, phase = "draft") {
   const specId = "001-test";
-  const state = makeFlowState({ specId: specId });
-  if (flattenSteps(state.steps).some((step) => step.id === phase)) {
-    moveFlowToStep(state, phase);
-  }
-  makeFlowManager(dir).create(state);
-  makeFlowManager(dir).addActiveFlow(specId, "local");
+  const fixture = new CanonicalFlowFixture({
+    flowManager: makeFlowManager(dir), specId, runId: `run-${specId}`,
+  }).create().registerActive();
+  if (fixture.leaves().some((step) => step.id === phase)) fixture.activate(phase);
 }
 
 function agentEntries(metrics) {

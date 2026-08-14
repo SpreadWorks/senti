@@ -5,32 +5,25 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
 describe("resolveActiveFlow", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
   function setupFlow(dir, specId = "001-test", issue = Number(specId.slice(0, 3))) {
-    const state = {
-      specId: specId,
-      baseBranch: "main",
-      featureBranch: `feature/${specId}`,
+    const manager = makeFlowManager(dir);
+    return new CanonicalFlowFixture({
+      flowManager: manager,
+      specId,
       runId: `run-${specId}`,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    if (issue != null) state.issue = issue;
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return state;
+      execution: { mode: "worktree", baseBranch: "main", featureBranch: `feature/${specId}` },
+      issue,
+    }).create().registerActive().state();
   }
 
   it("returns flow from flowState when provided", () => {
@@ -155,21 +148,15 @@ describe("resolveActiveFlow", () => {
 
   it("does not discover unregistered branch or worktree flow files during normal active resolution", () => {
     tmp = createTmpDir();
+    const manager = makeFlowManager(tmp);
     for (const specId of ["001-stale", "002-stale"]) {
-      const specDir = path.join(tmp, "specs", specId);
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify({
-        specId: specId,
-        baseBranch: "main",
-        featureBranch: `feature/${specId}`,
-        steps: buildInitialSteps(),
-        requirements: [],
-        tasks: [],
-        currentTaskId: null,
-      }));
+      const location = manager.specLocation(specId);
+      const retiredRoot = path.dirname(location.directory);
+      fs.mkdirSync(retiredRoot, { recursive: true });
+      fs.writeFileSync(path.join(retiredRoot, "flow.json"), "retired legacy authority\n");
     }
 
-    const result = makeFlowManager(tmp).resolveActiveFlow(null);
+    const result = manager.resolveActiveFlow(null);
     assert.equal(result, null);
   });
 
@@ -177,17 +164,7 @@ describe("resolveActiveFlow", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
     // Add a second active flow
-    const state2 = {
-      specId: "002-second",
-      baseBranch: "main",
-      featureBranch: "feature/002-second",
-      runId: "run-002-second",
-      issue: 2,
-      steps: buildInitialSteps(),
-      requirements: [],
-    };
-    makeFlowManager(tmp).create(state2);
-    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+    setupFlow(tmp, "002-second", 2);
 
     assert.throws(
       () => makeFlowManager(tmp).resolveActiveFlow(null),
@@ -198,17 +175,7 @@ describe("resolveActiveFlow", () => {
   it("selects a specific flow via opts.selectSpecId when multiple are active", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
-    const state2 = {
-      specId: "002-second",
-      baseBranch: "main",
-      featureBranch: "feature/002-second",
-      runId: "run-002-second",
-      issue: 2,
-      steps: buildInitialSteps(),
-      requirements: [],
-    };
-    makeFlowManager(tmp).create(state2);
-    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+    setupFlow(tmp, "002-second", 2);
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "002-second" });
     assert.ok(result);
@@ -218,17 +185,7 @@ describe("resolveActiveFlow", () => {
   it("selects a specific flow via opts.selectRunId when multiple are active", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
-    const state2 = {
-      specId: "002-second",
-      baseBranch: "main",
-      featureBranch: "feature/002-second",
-      runId: "run-002-second",
-      issue: 2,
-      steps: buildInitialSteps(),
-      requirements: [],
-    };
-    makeFlowManager(tmp).create(state2);
-    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+    setupFlow(tmp, "002-second", 2);
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectRunId: "run-002-second" });
     assert.ok(result);
@@ -238,17 +195,7 @@ describe("resolveActiveFlow", () => {
   it("selects a specific flow via opts.selectIssue when multiple are active", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "001-first");
-    const state2 = {
-      specId: "002-second",
-      baseBranch: "main",
-      featureBranch: "feature/002-second",
-      runId: "run-002-second",
-      issue: 222,
-      steps: buildInitialSteps(),
-      requirements: [],
-    };
-    makeFlowManager(tmp).create(state2);
-    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+    setupFlow(tmp, "002-second", 222);
 
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectIssue: 222 });
     assert.ok(result);
@@ -263,7 +210,7 @@ describe("resolveActiveFlow", () => {
     const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectNoIssue: true });
 
     assert.equal(result.specId, "002-no-issue");
-    assert.equal(Object.hasOwn(result.state, "issue"), false);
+    assert.equal(result.state.issue, null);
   });
 
   it("returns the structured not-found error when no Issue-less flow is active", () => {

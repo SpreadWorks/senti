@@ -10,17 +10,6 @@
 import { FlowCommand } from "./base-command.js";
 import { VALID_REQ_STATUSES } from "../../lib/constants.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadSpecRequirements, updateSpecRequirementStatus } from "../../lib/spec-json.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
-function resolveRequirementIndex(root, specPath, rawRef) {
-  const ref = String(rawRef);
-  if (/^\d+$/.test(ref)) return parseInt(ref, 10);
-
-  const requirements = loadSpecRequirements(root, specPath);
-  const index = requirements.findIndex((req) => req.id === ref);
-  return index >= 0 ? index : null;
-}
 
 export default class SetReqCommand extends FlowCommand {
   execute(ctx) {
@@ -29,17 +18,6 @@ export default class SetReqCommand extends FlowCommand {
 
     if (rawRef == null || !status) {
       return Envelope.fail("set", "req", "INVALID_USAGE", "usage: flow set req <reqId|zeroBasedIndex> <status>");
-    }
-
-    const specPath = relativeFlowSpecFile(ctx.flowState);
-    const index = resolveRequirementIndex(ctx.root, specPath, rawRef);
-    if (index == null) {
-      return Envelope.fail(
-        "set",
-        "req",
-        "INVALID_ARG_VALUE",
-        `not a valid requirement id or zero-based index: ${rawRef}`,
-      );
     }
 
     if (!VALID_REQ_STATUSES.includes(status)) {
@@ -51,8 +29,28 @@ export default class SetReqCommand extends FlowCommand {
       );
     }
 
-    const requirement = updateSpecRequirementStatus(ctx.root, specPath, index, status);
+    const reference = typeof rawRef === "number" ? String(rawRef) : rawRef.trim();
+    if (!/^(?:\d+|R-?\d+|REQ-?\d+)$/i.test(reference)) {
+      return Envelope.fail("set", "req", "INVALID_ARG_VALUE", `not a valid requirement id or zero-based index: ${rawRef}`);
+    }
 
-    return { index, reqId: requirement.id ?? null, status };
+    if (ctx.flowState?.schemaRevision !== 3 || typeof ctx.flowManager?.updateRequirementStatus !== "function") {
+      throw new Error("canonical FlowManager.updateRequirementStatus is required");
+    }
+    let outcome;
+    try {
+      outcome = ctx.flowManager.updateRequirementStatus({
+        specId: ctx.flowState.specId,
+        reference,
+        status,
+      });
+    } catch (error) {
+      if (error.message.startsWith("requirement id not found:")) {
+        return Envelope.fail("set", "req", "INVALID_ARG_VALUE", `not a valid requirement id or zero-based index: ${rawRef}`);
+      }
+      throw error;
+    }
+
+    return { index: outcome.index, reqId: outcome.requirement.id ?? null, status };
   }
 }

@@ -17,7 +17,7 @@ const AUTHORITY_REPOSITORY_PATHS = Object.freeze([
   PRODUCT.managedPath(AUTHORITY_LOCK_FILE),
 ]);
 const PREPARING_PREFIX = ".active-flow.";
-const ACTIVE_MODES = new Set(["worktree", "branch", "local"]);
+const ACTIVE_MODES = new Set(["worktree", "branch", "direct"]);
 const LIFECYCLES = new Set(["preparing", "active"]);
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const MAX_RUN_ID_LENGTH = 200;
@@ -161,8 +161,16 @@ export class FlowTargetIdentity {
   }
 
   static active(state, mode, specRoot = DEFAULT_FLOW_SPEC_DIR) {
-    if (state?.lifecycle === "preparing") {
+    const lifecycle = state?.lifecycle?.state ?? state?.lifecycle;
+    if (lifecycle === "preparing") {
       throw new FlowTargetAuthorityError("active flow state must not use preparing lifecycle");
+    }
+    const executionMode = state?.execution?.mode;
+    if (!ACTIVE_MODES.has(executionMode)) {
+      throw new FlowTargetAuthorityError("active flow state requires a canonical execution mode");
+    }
+    if (mode !== executionMode) {
+      throw new FlowTargetAuthorityError("active flow registry mode must match canonical execution mode");
     }
     const normalizedSpecId = FlowSpecId.from(state?.specId).toString();
     return new FlowTargetIdentity({
@@ -171,7 +179,7 @@ export class FlowTargetIdentity {
       specId: normalizedSpecId,
       lifecycle: "active",
       mode,
-      stateLocation: path.posix.join(FlowSpecRoot.from(specRoot).toString(), normalizedSpecId, "flow.json"),
+      stateLocation: path.posix.join(FlowSpecRoot.from(specRoot).toString(), normalizedSpecId, "001", "flow.json"),
     });
   }
 
@@ -188,7 +196,11 @@ export class FlowTargetIdentity {
     try {
       actual = this.preparing
         ? FlowTargetIdentity.preparing(state)
-        : FlowTargetIdentity.active(state, this.mode, path.posix.dirname(path.posix.dirname(this.stateLocation)));
+        : FlowTargetIdentity.active(
+          state,
+          this.mode,
+          path.posix.dirname(path.posix.dirname(path.posix.dirname(this.stateLocation))),
+        );
     } catch (cause) {
       throw new FlowTargetRecoveryError(
         this,

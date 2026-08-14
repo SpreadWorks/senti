@@ -12,71 +12,35 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
 import { getStepInstructions } from "./get-step-instructions.js";
-import {
-  findActiveNode,
-  deriveNextAction,
-  getFlowNode,
-  getTaskNode,
-} from "../definition.js";
-import { flattenSteps, promoteNextPendingLeaf } from "./step-tree.js";
-import { promoteNextPending } from "../../lib/flow-helpers.js";
+import { deriveNextAction } from "../definition.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
-import { reviewPhaseForStepId } from "./review-failure.js";
-import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
-import { inspectDurableGateSemanticDeferral } from "./run-gate.js";
-import { buildStateRetryRecoveryView } from "./retry-recovery.js";
-import {
-  evaluateTaskScope,
-  taskScopeViolationMessages,
-} from "./task-scope.js";
-import { Envelope } from "../../lib/flow-envelope.js";
-import { FlowCompletion } from "./flow-completion.js";
 import { PRODUCT } from "../../lib/product.js";
 import {
-  NONBLOCKING_SOURCE_STEPS,
-  retryResetTimestampForStep,
-  ObservedNonPassOutcome,
-  StepAttemptLog,
-} from "./step-outcome.js";
-import {
-  resolveReviewOperationForFlowState,
-  RetryReview,
-} from "./review-convergence.js";
-import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
-import {
-  decisionContextForActiveFlow,
-  nonblockingActivationOfferForStrictStop,
-  reconcileNonblockingAcceptanceContinuation,
-} from "./nonblocking.js";
-import {
   AbortedDirective,
-  AwaitUserDecisionDirective,
+  BlockedDirective,
   CompletedDirective,
   ExecuteCommandDirective,
   ExecuteStepDirective,
   IdleDirective,
-  NextActionDirectiveResolver,
   RepairEvidenceDirective,
 } from "./next-action-directive.js";
+import { TaskNode } from "./current-flow-state.js";
 import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import { guardedCommand } from "./guarded-command.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
 import { resolveFinalizationOutboxRecovery } from "./finalization-outbox-recovery.js";
-import { recoverInterruptedFinalizeSync } from "./recover-interrupted-finalize-sync.js";
-import { inspectCanonicalReviewPassRecovery } from "./run-recover-review-pass.js";
-import { FLOW_REVIEW_ROUTES } from "./review-route.js";
-import { resolveTaskGateOverviewRecovery } from "./task-gate-completion.js";
-import { ReviewTargetAuthority } from "./review-target-authority.js";
-import { resolveDraftReviewWorkerContext } from "./draft-review-artifacts.js";
+import {
+  recoverInterruptedFinalizeSync,
+  recordInterruptedFinalizeSyncIssue,
+} from "./recover-interrupted-finalize-sync.js";
 import {
   flowArtifactAuthorityForStep,
   requiresWorkerArtifactHandoff,
 } from "./flow-artifact-authority.js";
-import { PlanGateRepairRecord } from "./plan-gate-repair.js";
-import { inspectScenarioValidityTestRepair } from "./run-repair-plan-gate.js";
+import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
 import {
-  inspectTestReviewRepair,
-  TestReviewRepairRecord,
+  canonicalTestReviewRepairForTarget,
+  inspectCanonicalTestReviewRepair,
 } from "./test-review-repair.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
@@ -88,58 +52,6 @@ function resolveSchemaDir() {
 function loadSchema(relPath) {
   const full = path.join(resolveSchemaDir(), relPath);
   return JSON.parse(readFileSync(full, "utf8"));
-}
-
-function findCurrentTask(state) {
-  if (state.currentTaskId == null) return null;
-  return state.tasks.find((t) => t.id === state.currentTaskId) || null;
-}
-
-function normalizeTaskCursor(state) {
-  let changed = false;
-  let task = findCurrentTask(state);
-  if (!task) {
-    if (promoteNextPending(state) == null) return false;
-    task = findCurrentTask(state);
-    changed = true;
-  }
-  if (!task) return changed;
-  if (task.status === "pending") {
-    task.status = "in_progress";
-    changed = true;
-  }
-  if (Array.isArray(task.steps) && !task.steps.some((step) => step.status === "in_progress")) {
-    const pending = task.steps.find((step) => step.status === "pending");
-    if (pending) {
-      pending.status = "in_progress";
-      changed = true;
-    }
-  }
-  return changed;
-}
-
-function findUnresolvedInProgressStep(steps, resolveNode) {
-  return flattenSteps(steps || []).find((step) => (
-    step.status === "in_progress" && !resolveNode(step.id)
-  )) || null;
-}
-
-function findUnresolvedInProgressTarget(state) {
-  const task = findCurrentTask(state);
-  if (task && Array.isArray(task.steps)) {
-    const step = findUnresolvedInProgressStep(task.steps, getTaskNode);
-    if (step) return { scope: "task", taskId: state.currentTaskId, stepId: step.id };
-  }
-  const step = findUnresolvedInProgressStep(state.steps, getFlowNode);
-  if (step) return { scope: "flow", taskId: null, stepId: step.id };
-  return null;
-}
-
-function assertNoUnresolvedInProgressTarget(state) {
-  const target = findUnresolvedInProgressTarget(state);
-  if (target) {
-    throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
-  }
 }
 
 function deriveStateSet(state) {
@@ -185,89 +97,6 @@ function buildContextDescriptor(kinds, target, state) {
   return { kinds, paths };
 }
 
-function isFlowImplementationStep(target) {
-  return target?.scope === "flow"
-    && ["implement", "impl-review", "impl-triage", "impl-repair", "impl-gate"].includes(target.stepId);
-}
-
-function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) {
-  return buildStateRetryRecoveryView({
-    root: ctx.root,
-    flowState: state,
-    kind,
-    phase,
-    attempts,
-    max,
-  });
-}
-
-function attachLatestStepAttempt(result, state, target) {
-  if (!state.runId || !target?.stepId) return null;
-  const log = new StepAttemptLog(state.stepAttempts || []);
-  const lastAttempt = log.latestForRun(state.runId);
-  if (lastAttempt) {
-    result.lastStepAttempt = lastAttempt.toJSON();
-    result.lastStepOutcome = lastAttempt.outcome.toJSON();
-  }
-  const attempt = log.latest({
-    runId: state.runId,
-    taskId: target.taskId ?? null,
-    stepId: target.stepId,
-  });
-  if (!attempt) return null;
-  const targetSteps = target.scope === "task"
-    ? state.tasks.find((task) => task.id === target.taskId)?.steps
-    : state.steps;
-  const targetStep = flattenSteps(targetSteps || [])
-    .find((step) => step.id === target.stepId);
-  const resetAt = retryResetTimestampForStep(state, target.stepId);
-  if (
-    (targetStep?.startedAt && attempt.recordedAt < targetStep.startedAt)
-    || Date.parse(attempt.recordedAt) < resetAt
-  ) return null;
-  result.stepAttempt = attempt.toJSON();
-  result.stepOutcome = attempt.outcome.toJSON();
-  return attempt;
-}
-
-function buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay) {
-  if (!["draft", "spec"].includes(gateRecoveryDisplay.phase)) return null;
-  const inspection = inspectDurableGateSemanticDeferral({
-    root: ctx.root,
-    flowState: state,
-    phase: gateRecoveryDisplay.phase,
-  });
-  if (!inspection.deferAllowed || inspection.reason !== "semantic_findings") return null;
-  const phase = gateRecoveryDisplay.phase;
-  return Object.freeze({
-    kind: "gate",
-    phase,
-    canonicalPhase: phase,
-    attempts: gateRecoveryDisplay.attempts,
-    max: gateRecoveryDisplay.max,
-    recoveryPossible: true,
-    recoveryReason: "semantic_findings",
-    classification: "semantic_findings",
-    changedEvidence: null,
-    recoveryCommand: `sennel flow run gate --phase ${phase}`,
-    reason: "semantic_findings",
-  });
-}
-
-function buildGateRetryRecovery(ctx, state, gateRecoveryDisplay) {
-  const existingRecovery = () => buildRetryRecoveryForState(ctx, state, {
-    kind: "gate",
-    phase: gateRecoveryDisplay.phase,
-    attempts: gateRecoveryDisplay.attempts,
-    max: gateRecoveryDisplay.max,
-  });
-  if (["task-impl", "integration"].includes(gateRecoveryDisplay.phase)) {
-    return existingRecovery();
-  }
-  return buildPlanGateSemanticDeferralRecovery(ctx, state, gateRecoveryDisplay)
-    || existingRecovery();
-}
-
 function captureNextActionBinding(ctx, state) {
   if (ctx.flowCommandBoundary !== true) return null;
   try {
@@ -283,7 +112,7 @@ function captureNextActionBinding(ctx, state) {
 
 function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
   if (target.stepId !== "scenario-validity") return null;
-  const plan = inspectPreimplementationBootstrap({ root: ctx.root, state });
+  const plan = inspectPreimplementationBootstrap({ flowManager: ctx.flowManager, state });
   if (!plan) return null;
   return new ExecuteCommandDirective({
     actionId: "RECOVER_PREIMPLEMENTATION_BOOTSTRAP",
@@ -293,81 +122,24 @@ function buildPreimplementationBootstrapDirective(ctx, state, target, binding) {
   });
 }
 
-function buildScenarioTestRepairDirective(ctx, state, target, binding) {
-  if (target.stepId !== "scenario-validity") return null;
-  const source = inspectScenarioValidityTestRepair({ root: ctx.root, state });
-  if (!source) return null;
-  return new RepairEvidenceDirective({
-    actionId: "REPAIR_SCENARIO_TESTS",
-    evidenceKind: "test",
-    phase: "test",
-    instruction: "Run the guarded scenario-test repair transition. It freezes the command-owned blocking classifications and rewinds to the test worker handoff; do not edit canonical spec tests directly.",
-    reason: source.reason,
-    nextAction: guardedCommand("sennel flow run repair-plan-gate", state, binding),
-  });
-}
-
-function buildTestReviewRepairDirective(ctx, state, target, binding, reviewOperation) {
-  if (
-    target.stepId !== "test-review"
-    || !(reviewOperation instanceof RetryReview)
-    || reviewOperation.requiresChangedEvidence !== true
-  ) return null;
-  const source = inspectTestReviewRepair({
-    root: ctx.root,
-    executionRoot: ctx.executionRoot || ctx.root,
-    state,
-  });
-  if (!source) return null;
+function buildCanonicalTestReviewRepairDirective(ctx, state, target, binding) {
+  if (target.stepId !== "test-review") return null;
+  let source;
+  try {
+    source = inspectCanonicalTestReviewRepair({ flowManager: ctx.flowManager, state });
+  } catch (error) {
+    if (/absent from catalog/.test(error.message)) return null;
+    throw error;
+  }
+  if (source === null) return null;
   return new RepairEvidenceDirective({
     actionId: "REPAIR_TEST_REVIEW",
     evidenceKind: "test",
     phase: "test",
-    instruction: "Run the guarded test-review repair transition. It freezes the canonical blocking findings and source test revision, then rewinds through the dispatcher-owned test handoff; do not edit canonical tests or review artifacts directly.",
-    reason: source.reason,
+    instruction: "Run the guarded test-review repair transition. It binds the rejected review Attempt and current cataloged test revision, then starts a replacement test worker Attempt.",
+    reason: "The cataloged test-review contains blocking findings that require changed test evidence.",
     nextAction: guardedCommand("sennel flow run repair-test-review", state, binding),
   });
-}
-
-function buildCanonicalReviewPassRecoveryDirective(ctx, state, binding) {
-  for (const route of FLOW_REVIEW_ROUTES) {
-    const plan = inspectCanonicalReviewPassRecovery({
-      root: ctx.root,
-      executionRoot: ctx.executionRoot || ctx.root,
-      state,
-      phase: route.phase,
-    });
-    if (!plan) continue;
-    return new ExecuteCommandDirective({
-      actionId: "RECOVER_CANONICAL_REVIEW_PASS",
-      nextAction: guardedCommand(
-        `sennel flow run recover-review-pass --phase ${route.phase}`,
-        state,
-        binding,
-      ),
-      instruction: "Restore the exact canonical PASS projection and clear only the conflicting review tooling state, then refresh next-action.",
-      reason: `The ${route.phase} review has canonical PASS evidence for the unchanged target, but its mutable projection or convergence status was overwritten.`,
-    });
-  }
-  return null;
-}
-
-function promoteNextAvailableTarget(state) {
-  const task = findCurrentTask(state);
-  if (task && Array.isArray(task.steps)) {
-    const pending = task.steps.find((s) => s.status === "pending");
-    if (pending) {
-      pending.status = "in_progress";
-      return true;
-    }
-  }
-  const leaf = promoteNextPendingLeaf(state.steps);
-  if (leaf) {
-    leaf.status = "in_progress";
-    return true;
-  }
-  state.currentTaskId = null;
-  return normalizeTaskCursor(state);
 }
 
 function completedNextAction() {
@@ -404,65 +176,66 @@ export class NextActionPlanError extends Error {
   }
 }
 
-function requiredPlanObject(value, field, display = field) {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new NextActionPlanError("NEXT_ACTION_PLAN_INVALID", `${field} (${display}) is required`);
-  }
-  return value;
-}
-
-export class NextActionPromotionPlan {
-  constructor({
-    definition,
-    rule,
-    outputSchema,
-    instruction,
-    target,
-    taskScope,
-    expectedRevision,
-    maxAttempts,
-    nextState = null,
-    result = null,
-    commitRequired = null,
-  }) {
-    this.definition = requiredPlanObject(definition, "definition");
-    this.rule = requiredPlanObject(rule, "rule");
-    this.outputSchema = requiredPlanObject(outputSchema, "outputSchema", "output schema");
-    this.instruction = requiredPlanObject(instruction, "instruction");
-    this.target = requiredPlanObject(target, "target");
-    this.taskScope = requiredPlanObject(taskScope, "taskScope", "task scope");
-    this.expectedRevision = requiredPlanObject(expectedRevision, "expectedRevision", "expected revision");
-    if (!Number.isSafeInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10_000) {
-      throw new NextActionPlanError(
-        "NEXT_ACTION_PLAN_INVALID",
-        `maxAttempts must be a safe integer from 1 through 10000, got ${maxAttempts}`,
-      );
+/**
+ * Definition-facing identity for a Version-1 next action.
+ *
+ * A materialized Task leaf has a globally unique id such as `T-1-impl`,
+ * while the public worker contract deliberately keeps the definition id
+ * `task-impl`. This value object owns that translation so no consumer
+ * mistakes a materialized id or prompt key for a rule identity.
+ */
+class CanonicalNextActionTarget {
+  constructor({ state, descriptor }) {
+    if (!state || typeof state.findNode !== "function") {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical Flow state is unavailable");
     }
-    this.maxAttempts = maxAttempts;
-    this.nextState = nextState;
-    this.result = result;
-    this.commitRequired = commitRequired;
+    if (!descriptor || !Array.isArray(descriptor.path) || descriptor.path.length === 0) {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical next action has no stable path");
+    }
+    const task = descriptor.path
+      .map((nodeId) => state.findNode(nodeId))
+      .find((node) => node instanceof TaskNode) ?? null;
+    if (typeof descriptor.nodeId !== "string" || descriptor.nodeId.length === 0) {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical next action has no node id");
+    }
+    if (typeof descriptor.nodeKey !== "string" || descriptor.nodeKey.length === 0) {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical next action has no definition key");
+    }
+    const taskPrefix = task === null ? null : `${task.id}-`;
+    const definitionStepId = task === null
+      ? descriptor.nodeId
+      : descriptor.nodeId.startsWith(taskPrefix)
+        ? `task-${descriptor.nodeId.slice(taskPrefix.length)}`
+        : null;
+    if (typeof definitionStepId !== "string" || definitionStepId.length === 0) {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical next action does not match its Task Step identity");
+    }
+    this.nodeId = descriptor.nodeId;
+    this.stepId = definitionStepId;
+    this.scope = task === null ? "flow" : "task";
+    this.taskId = task?.id ?? null;
     Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      scope: this.scope,
+      taskId: this.taskId,
+      stepId: this.stepId,
+      nodeId: this.nodeId,
+    };
   }
 }
 
-class NextActionTerminalPlan {
-  constructor(result) {
-    this.result = result;
-    Object.freeze(this);
-  }
+function canonicalInstruction(derived, target, state) {
+  const baseInstructions = getStepInstructions(derived.instructionsKey);
+  return Object.freeze({
+    key: derived.instructionsKey,
+    content: injectPersistentRules(baseInstructions, target, state),
+  });
 }
 
-function buildNextActionResult(
-  ctx,
-  state,
-  target,
-  derived,
-  outputSchema,
-  instruction,
-  binding,
-  outboxRecovery = null,
-) {
+function canonicalWorkerContext(ctx, derived, target, state, typedState) {
   const context = buildContextDescriptor(derived.contextKinds, target, state);
   if (requiresWorkerArtifactHandoff(target.stepId)) {
     const authority = flowArtifactAuthorityForStep(target.stepId);
@@ -474,315 +247,87 @@ function buildNextActionResult(
       completionValidator: authority.completionValidator,
     });
   }
-  const planGateRepair = PlanGateRepairRecord.forTarget(state, target.stepId);
-  if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
-  const testReviewRepair = TestReviewRepairRecord.forTarget(state, target.stepId);
-  if (testReviewRepair) context.testReviewRepair = testReviewRepair.toWorkerJSON();
-  const draftReview = resolveDraftReviewWorkerContext({
-    root: ctx.mainRoot || ctx.root,
+  const planGateRepair = canonicalPlanGateRepairForTarget({
+    flowManager: ctx.flowManager,
     state,
-    stepId: target.stepId,
+    targetStepId: target.stepId,
   });
-  if (draftReview) context.draftReview = draftReview.toJSON();
+  if (planGateRepair) context.planGateRepair = planGateRepair.toWorkerJSON();
+  const testReviewRepair = canonicalTestReviewRepairForTarget({
+    flowManager: ctx.flowManager,
+    state,
+    targetStepId: target.stepId,
+  });
+  if (testReviewRepair) context.testReviewRepair = testReviewRepair.toWorkerJSON();
+  return context;
+}
+
+function canonicalFailureDirective(descriptor, action) {
+  if (["start", "recover", "resume", "retry"].includes(descriptor.operation)) {
+    return new ExecuteStepDirective({ action });
+  }
+  const disposition = descriptor.failureDisposition?.decision ?? null;
+  const reason = disposition?.reason
+    ?? "The current canonical Attempt requires an explicit lifecycle recovery.";
+  return new BlockedDirective({
+    code: "CANONICAL_ATTEMPT_RECOVERY_REQUIRED",
+    reason,
+    resumeInstruction: reason,
+  });
+}
+
+/**
+ * Assemble the stable worker envelope from V1's typed descriptor rather than
+ * its projected compatibility view.  The enumerable payload remains in the
+ * established field order; only the source of identity and lifecycle facts
+ * changes from mutable state to the Version Store.
+ */
+function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
+  const target = new CanonicalNextActionTarget({ state: typedState, descriptor });
+  const binding = captureNextActionBinding(ctx, state);
+  const derived = deriveNextAction({
+    scope: target.scope,
+    stepId: target.stepId,
+    context: state,
+  });
+  if (derived === null) {
+    throw new NextActionPlanError(
+      "NEXT_ACTION_TARGET_MISMATCH",
+      `canonical Flow selected ${target.scope}.${target.stepId}, which is absent from the definition`,
+    );
+  }
+  const outputSchema = derived.outputSchemaRef ? loadSchema(derived.outputSchemaRef) : {};
+  const instruction = canonicalInstruction(derived, target, state);
+  const outboxRecovery = target.scope === "flow"
+    ? resolveFinalizationOutboxRecovery(ctx, state, target, null)
+    : null;
+  const strictDirective = target.scope === "flow"
+    ? buildPreimplementationBootstrapDirective(ctx, state, target, binding)
+      || buildCanonicalTestReviewRepairDirective(ctx, state, target, binding)
+    : null;
   const result = {
     taskId: target.taskId,
     step: target.stepId,
     action: derived.action,
     instructions: instruction,
-    context,
+    context: canonicalWorkerContext(ctx, derived, target, state, typedState),
     output_schema: outputSchema,
     requires_approval: derived.requiresApproval === true,
     ...(derived.autoApproveChoiceId && {
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
+    directive: (strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action)).toJSON(),
   };
-  if (state.autoUpgrade?.available === true) {
-    result.autoUpgrade = state.autoUpgrade;
-  }
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;
-  }
-  const stepAttempt = attachLatestStepAttempt(result, state, target);
-  const reviewPhase = reviewPhaseForStepId(target.stepId);
-  let reviewOperation = null;
-  let reviewTargetChanged = false;
-  if (reviewPhase) {
-    assertReviewRecoveryAuthority({
-      root: ctx.root,
-      flowState: state,
-      phase: reviewPhase,
-      resolvedMax: derived.maxAttempts,
-    });
-    const authority = new ReviewTargetAuthority({
-      executionRoot: ctx.executionRoot || ctx.root,
-      artifactRoot: ctx.root,
-      flowState: state,
-    });
-    reviewOperation = resolveReviewOperationForFlowState(state, {
-      phase: reviewPhase,
-      taskId: target.taskId,
-      resolveTreeSha: () => authority.resolveTreeSha(),
-      resolveTargetStateDigest: () => authority.captureFingerprint().hash,
-    });
-    reviewTargetChanged = reviewOperation == null && (
-      state.reviewConvergence?.records || []
-    ).some((record) => (
-      record?.phase === reviewPhase
-      && (record?.taskId ?? null) === (target.taskId ?? null)
-    ));
-  }
-  const gateRecoveryDisplay = target.stepId.endsWith("-gate")
-    ? resolveGateRecoveryDisplayPhase({
-        root: ctx.root,
-        flowState: state,
-        stepId: target.stepId,
-        maxAttempts: derived.maxAttempts,
-      })
-    : null;
-  const gateRecovery = gateRecoveryDisplay
-    ? buildGateRetryRecovery(ctx, state, gateRecoveryDisplay)
-    : null;
-  const strictDirective = buildPreimplementationBootstrapDirective(ctx, state, target, binding)
-    || buildScenarioTestRepairDirective(ctx, state, target, binding)
-    || buildTestReviewRepairDirective(ctx, state, target, binding, reviewOperation)
-    || buildCanonicalReviewPassRecoveryDirective(ctx, state, binding)
-    || outboxRecovery?.directive
-    || new NextActionDirectiveResolver({
-      state,
-      binding,
-      action: derived.action,
-      nextAction: derived.executionCommand
-        ? guardedCommand(derived.executionCommand, state, binding)
-        : null,
-      reviewPhase,
-      reviewTargetChanged,
-      gatePhase: gateRecoveryDisplay?.phase ?? null,
-      stepAttempt,
-      reviewOperation,
-      gateRecovery,
-    }).resolve();
-  const activationOffer = nonblockingActivationOfferForStrictStop(ctx.root, state, strictDirective);
-  const directive = activationOffer
-    ? new AwaitUserDecisionDirective({
-        prompt: activationOffer.prompt,
-        reason: activationOffer.blocker,
-      })
-    : strictDirective;
-  result.directive = directive.toJSON();
-  if (state.nonblocking?.enabled === true && NONBLOCKING_SOURCE_STEPS.includes(target.stepId)) {
-    try {
-      const nonblockingDecision = decisionContextForActiveFlow(ctx.root, state);
-      // A repair/retry decision is already durable while its subsequent check
-      // runs. Keep the normal directive authoritative until that check writes
-      // a new result; exposing an empty decision context would invite a second
-      // decision for the same evidence.
-      if (nonblockingDecision.allowedActions.length > 0) {
-        result.nonblockingDecision = nonblockingDecision.toJSON();
-      }
-    } catch (error) {
-      const attempts = new StepAttemptLog(state.stepAttempts || []);
-      const observed = attempts.entries.some((entry) => (
-        entry.runId === state.runId
-        && entry.taskId === (target.taskId ?? null)
-        && entry.stepId === target.stepId
-        && entry.outcome instanceof ObservedNonPassOutcome
-      ));
-      if (error.code === "NONBLOCKING_NO_ELIGIBLE_EVIDENCE" && !observed) {
-        // The policy may be enabled before this check has produced any result.
-        // The normal step remains authoritative until a non-pass is durably
-        // observed.
-      } else if (error.code === "NONBLOCKING_EVIDENCE_UNAVAILABLE" && !observed) {
-        // No non-pass has been persisted. Re-running the current check is the
-        // bounded mechanical recovery for an absent pre-decision artifact.
-      } else {
-        // Do not silently fall back to the normal command: the dispatcher
-        // serializes this error's FlowContinuation as a guarded retry route.
-        throw error;
-      }
-    }
   }
   return result;
 }
 
-export class NextActionPlanner {
-  build(ctx) {
-    const original = ctx.flowState;
-    if (original.acceptanceReview?.status === "aborted") {
-      return new NextActionTerminalPlan(abortedNextAction());
-    }
-    if (new FlowCompletion(original).complete) {
-      return new NextActionTerminalPlan(completedNextAction());
-    }
-
-    const state = structuredClone(original);
-    const reconciledNonblockingAcceptance = reconcileNonblockingAcceptanceContinuation(ctx.root, state);
-    assertNoUnresolvedInProgressTarget(state);
-    let promoted = false;
-    let target = findActiveNode(state);
-    if (isFlowImplementationStep(target)) {
-      const decision = evaluateTaskScope(state, target.stepId);
-      if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
-        return new NextActionTerminalPlan(Envelope.fail(
-          "get",
-          "next-action",
-          "TASK_CURSOR_REQUIRED",
-          taskScopeViolationMessages(decision, target.stepId),
-          { step: target.stepId, currentTaskId: state.currentTaskId ?? null },
-        ));
-      }
-      if (decision.promotable || decision.kind === "task") {
-        promoted = normalizeTaskCursor(state);
-        target = findActiveNode(state);
-      }
-    }
-    if (!target) {
-      promoted = promoteNextAvailableTarget(state);
-      if (promoted) {
-        assertNoUnresolvedInProgressTarget(state);
-        target = findActiveNode(state);
-      }
-    }
-    if (!target) return new NextActionTerminalPlan(completedNextAction());
-
-    const derived = deriveNextAction({
-      scope: target.scope,
-      stepId: target.stepId,
-      context: state,
-    });
-    if (!derived) {
-      throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
-    }
-    const outputSchema = derived.outputSchemaRef ? loadSchema(derived.outputSchemaRef) : {};
-    const baseInstructions = getStepInstructions(derived.instructionsKey);
-    const instruction = {
-      key: derived.instructionsKey,
-      content: injectPersistentRules(baseInstructions, target, state),
-    };
-    const binding = captureNextActionBinding(ctx, state);
-    const taskGateOverviewRecovery = resolveTaskGateOverviewRecovery(state, binding);
-    const finalizationRecovery = taskGateOverviewRecovery == null
-      ? resolveFinalizationOutboxRecovery(ctx, state, target, binding)
-      : null;
-    const outboxRecovery = taskGateOverviewRecovery || finalizationRecovery;
-    const result = buildNextActionResult(
-      ctx,
-      state,
-      target,
-      derived,
-      outputSchema,
-      instruction,
-      binding,
-      outboxRecovery,
-    );
-    return new NextActionPromotionPlan({
-      definition: target.scope === "task" ? getTaskNode(target.stepId) : getFlowNode(target.stepId),
-      rule: derived,
-      outputSchema,
-      instruction,
-      target: { ...target, runId: state.runId },
-      taskScope: { taskId: original.currentTaskId ?? null },
-      expectedRevision: original,
-      maxAttempts: derived.maxAttempts,
-      nextState: state,
-      result,
-      commitRequired: promoted || reconciledNonblockingAcceptance || outboxRecovery?.stateChanged === true,
-    });
-  }
-}
-
-function targetStepForPlan(state, target) {
-  const scope = target.scope === "task"
-    ? state.tasks?.find((task) => task.id === target.taskId)
-    : state;
-  return flattenSteps(scope?.steps || []).find((step) => step.id === target.stepId) || null;
-}
-
-function validatePlanAgainstState(plan, state) {
-  if (plan.nextState && plan.expectedRevision !== state) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_EXPECTED_REVISION_MISMATCH",
-      "expected revision does not match the loaded flow state",
-    );
-  }
-  if (plan.target.runId !== state.runId) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_TARGET_MISMATCH",
-      `target runId ${plan.target.runId ?? "missing"} does not match ${state.runId ?? "missing"}`,
-    );
-  }
-  const expectedTaskId = state.currentTaskId ?? null;
-  if ((plan.taskScope.taskId ?? null) !== expectedTaskId) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
-      `task scope ${plan.taskScope.taskId ?? "none"} does not match ${expectedTaskId ?? "none"}`,
-    );
-  }
-  if (
-    expectedTaskId !== null
-    && plan.nextState
-    && (plan.nextState.currentTaskId ?? null) !== expectedTaskId
-  ) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
-      `planned task ${plan.nextState.currentTaskId ?? "none"} does not match current task ${expectedTaskId}`,
-    );
-  }
-  const targetTaskId = plan.target.taskId ?? null;
-  const expectedTargetTaskId = plan.nextState
-    ? plan.nextState.currentTaskId
-    : state.currentTaskId;
-  if (
-    (plan.target.scope === "task" && plan.target.taskId !== expectedTargetTaskId)
-    || (plan.target.scope === "flow" && targetTaskId !== null)
-  ) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_TASK_SCOPE_MISMATCH",
-      `target ${plan.target.scope} task ${targetTaskId ?? "none"} does not match planned task ${expectedTargetTaskId ?? "none"}`,
-    );
-  }
-  const step = targetStepForPlan(state, plan.target);
-  if (!step || !["pending", "in_progress"].includes(step.status)) {
-    throw new NextActionPlanError(
-      "NEXT_ACTION_TARGET_MISMATCH",
-      `target ${plan.target.scope}.${plan.target.stepId} is not pending or in_progress`,
-    );
-  }
-  return step;
-}
-
-function injectedPlanResult(plan) {
-  return {
-    taskId: plan.target.taskId ?? null,
-    step: plan.target.stepId,
-    action: plan.rule.action,
-    instructions: plan.instruction,
-    context: null,
-    output_schema: plan.outputSchema,
-    requires_approval: plan.rule.requiresApproval === true,
-    ...(plan.rule.autoApproveChoiceId && {
-      auto_approval_choice_id: plan.rule.autoApproveChoiceId,
-    }),
-    maxAttempts: plan.maxAttempts,
-    directive: new ExecuteStepDirective({ action: plan.rule.action }).toJSON(),
-  };
-}
-
 export default class GetNextActionCommand extends FlowCommand {
-  constructor({ planner = new NextActionPlanner(), effects = null } = {}) {
+  constructor() {
     super({ requiresFlow: false, explicitTargetResolution: true });
-    if (!planner || typeof planner.build !== "function") {
-      throw new Error("next-action planner.build is required");
-    }
-    if (effects) {
-      for (const method of ["writeRuntimeLog", "writeArtifact", "recordRetry"]) {
-        if (typeof effects[method] !== "function") {
-          throw new Error(`next-action effects.${method} is required`);
-        }
-      }
-    }
-    this.planner = planner;
-    this.effects = effects;
   }
 
   async execute(ctx) {
@@ -799,53 +344,42 @@ export default class GetNextActionCommand extends FlowCommand {
       };
     }
 
-    const interruptedSync = recoverInterruptedFinalizeSync(ctx);
-    if (interruptedSync.recovered) {
-      interruptedSync.stateOwner.bindContext(ctx);
-      ctx.flowState = interruptedSync.stateOwner.loadReadOnly();
-    }
-
-    const candidate = this.planner.build(ctx);
-    if (candidate instanceof NextActionTerminalPlan) return candidate.result;
-    const plan = new NextActionPromotionPlan(candidate);
-    const currentStep = validatePlanAgainstState(plan, ctx.flowState);
-    const result = plan.result || injectedPlanResult(plan);
-    if (currentStep.status === "in_progress") {
-      if (plan.commitRequired === true && plan.nextState) {
-        const nextState = structuredClone(plan.nextState);
-        ctx.flowManager.mutate((state) => {
-          for (const key of Object.keys(state)) delete state[key];
-          Object.assign(state, nextState);
-        }, { expectedOriginal: plan.expectedRevision });
-      }
-      return result;
-    }
-
-    const nextState = plan.nextState ? structuredClone(plan.nextState) : structuredClone(ctx.flowState);
-    const nextStep = targetStepForPlan(nextState, plan.target);
-    if (!nextStep) {
+    if (ctx.flowState.schemaRevision !== 3 || typeof ctx.flowManager?.canonicalState !== "function") {
       throw new NextActionPlanError(
         "NEXT_ACTION_TARGET_MISMATCH",
-        `target ${plan.target.scope}.${plan.target.stepId} is absent from the promotion state`,
+        "active Flow must be backed by the canonical Version Store",
       );
     }
-    nextStep.status = "in_progress";
-    if (!nextStep.startedAt) nextStep.startedAt = new Date().toISOString();
-    delete nextStep.finishedAt;
-
-    if (plan.commitRequired === true && plan.nextState) {
-      ctx.flowManager.mutate((state) => {
-        for (const key of Object.keys(state)) delete state[key];
-        Object.assign(state, nextState);
-      }, { expectedOriginal: plan.expectedRevision });
-    } else {
-      ctx.flowManager.saveAtomic(nextState, {
-        expectedOriginal: plan.expectedRevision,
-      });
+    const interruptedSync = recoverInterruptedFinalizeSync(ctx);
+    if (interruptedSync.recovered) {
+      ctx.flowState = ctx.flowManager.load(ctx.specId);
+      recordInterruptedFinalizeSyncIssue(ctx, interruptedSync);
+      ctx.flowState = ctx.flowManager.load(ctx.specId);
     }
-    this.effects?.writeRuntimeLog({ plan, result });
-    this.effects?.writeArtifact({ plan, result });
-    this.effects?.recordRetry({ plan, result });
+    return this.executeCanonical(ctx);
+  }
+
+  executeCanonical(ctx) {
+    const typedState = ctx.flowManager.canonicalState(ctx.specId);
+    if (!typedState) {
+      throw new NextActionPlanError("NEXT_ACTION_TARGET_MISMATCH", "canonical Flow state is unavailable");
+    }
+    if (typedState.lifecycle.state !== "active") {
+      return typedState.lifecycle.state === "finalized" ? completedNextAction() : abortedNextAction();
+    }
+
+    const descriptor = typedState.nextAction();
+
+    if (descriptor === null) {
+      return completedNextAction();
+    }
+    const result = buildCanonicalNextActionResult(ctx, ctx.flowState, typedState, descriptor);
+    if (["start", "recover", "retry"].includes(descriptor.operation)) {
+      ctx.flowManager.beginNextAction(ctx.specId);
+      // Downstream dispatcher hooks and injected test effects must observe the
+      // Activity-confirmed state, never the planner's temporary projection.
+      ctx.flowState = ctx.flowManager.load(ctx.specId);
+    }
     return result;
   }
 }

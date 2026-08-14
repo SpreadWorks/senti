@@ -1,7 +1,3 @@
-import { normalizeSourceArtifactPath } from "./flow-findings.js";
-import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
-import { UPGRADE_RECOVERY_ARTIFACTS } from "./upgrade-evidence-paths.js";
-
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
 function requireHash(value, field) {
@@ -9,16 +5,6 @@ function requireHash(value, field) {
     throw new Error(`${field} must be a 64-character SHA-256 digest`);
   }
   return value;
-}
-
-class AdditionalRefreshArtifact {
-  constructor({ relativePath, index }) {
-    this.relativePath = normalizeSourceArtifactPath(
-      relativePath,
-      `additionalArtifacts[${index}]`,
-    );
-    Object.freeze(this);
-  }
 }
 
 export class StaleTestEvidenceRefreshResult {
@@ -97,28 +83,21 @@ export class StaleTestEvidenceMismatch {
   }
 
   #recover({
-    root,
     state,
-    specDir,
     flowManager,
     reason,
     sourceStep = "test-evidence-refresh",
-    additionalArtifacts = [],
-    faultInjector = null,
   }, expectedPreviousFingerprint) {
     return new StaleTestEvidenceRefresh({
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
     }).recover({
-      root,
       state,
-      specDir,
       flowManager,
       reason,
       sourceStep,
-      additionalArtifacts,
-      faultInjector,
       expectedPreviousFingerprint,
+      artifactNames: this.artifactNames,
     });
   }
 }
@@ -134,43 +113,25 @@ export class StaleTestEvidenceRefresh {
   }
 
   recover({
-    root,
     state,
-    specDir,
     flowManager,
     reason,
     sourceStep = "test-evidence-refresh",
-    additionalArtifacts = [],
-    faultInjector = null,
     expectedPreviousFingerprint = this.previousFingerprint,
+    artifactNames = [],
   }) {
-    const normalizedAdditionalArtifacts = [
-      ...additionalArtifacts.map((relativePath, index) => new AdditionalRefreshArtifact({
-        relativePath,
-        index,
-      }).relativePath),
-      ...UPGRADE_RECOVERY_ARTIFACTS.map((relativePath, index) => new AdditionalRefreshArtifact({
-        relativePath,
-        index: additionalArtifacts.length + index,
-      }).relativePath),
-    ];
-    const completed = completeTestEvidenceRefresh({
-      root,
-      state,
-      specDir,
-      flowManager,
-      reason,
-      sourceStep,
-      additionalArtifacts: normalizedAdditionalArtifacts,
-      expectedPreviousFingerprint,
-      expectedCurrentFingerprint: this.currentFingerprint,
-      faultInjector,
-    });
+    if (state?.schemaRevision !== 3 || typeof flowManager?.rewindTestEvidence !== "function") {
+      throw new Error("stale test evidence recovery requires the canonical Version Store");
+    }
+    if (expectedPreviousFingerprint !== null && expectedPreviousFingerprint !== this.previousFingerprint) {
+      throw new Error("stale test evidence recovery baseline changed");
+    }
+    flowManager.rewindTestEvidence({ specId: state.specId, reason, sourceStep });
     return new StaleTestEvidenceRefreshResult({
       previousFingerprint: this.previousFingerprint,
       currentFingerprint: this.currentFingerprint,
-      invalidatedArtifacts: completed.invalidatedArtifacts,
-      invalidations: completed.invalidations || [],
+      invalidatedArtifacts: artifactNames,
+      invalidations: [],
     });
   }
 }

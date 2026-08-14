@@ -1,15 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   normalize,
   jaccard,
   findPreviousFailedEvaluations,
   assertNoRepeatedFail,
   buildFailedEvaluations,
-  appendIssueLogFromGateResult,
+  GateIssueLogEntry,
 } from "../../../src/flow/lib/run-gate.js";
 
 // -----------------------------------------------------------------------------
@@ -261,20 +258,12 @@ describe("appendIssueLogFromGateResult (REQ-4)", () => {
   const phase = "task-impl";
 
   it("writes failedEvaluations alongside the legacy flat reason field", () => {
-    const tmp = createTmpDir();
-    try {
-      const specRel = "specs/0001-test/spec.json";
-      const specDir = path.join(tmp, "specs/0001-test");
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "spec.json"), "{}");
-
-      const ctx = {
-        root: tmp,
+    const entry = new GateIssueLogEntry({
+      ctx: {
         phase,
-        flowState: { specId: "0001-test" },
         gitState: { headSha: "h", worktreeHash: "w" },
-      };
-      const result = {
+      },
+      result: {
         result: "fail",
         artifacts: {
           phase,
@@ -286,35 +275,22 @@ describe("appendIssueLogFromGateResult (REQ-4)", () => {
           ],
           issues: ["bad one", "bad two"],
         },
-      };
+      },
+    }).toJSON();
 
-      appendIssueLogFromGateResult(ctx, result);
-
-      const log = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
-      assert.equal(log.entries.length, 1);
-      const entry = log.entries[0];
-      assert.equal(entry.phase, phase);
-      assert.equal(typeof entry.reason, "string");
-      assert.match(entry.reason, /bad one/);
-      assert.deepEqual(entry.failedEvaluations, [
-        { guardrail_id: "g-fail-1", reason: "bad one" },
-        { guardrail_id: "g-fail-2", reason: "bad two" },
-      ]);
-    } finally {
-      removeTmpDir(tmp);
-    }
+    assert.equal(entry.phase, phase);
+    assert.equal(typeof entry.reason, "string");
+    assert.match(entry.reason, /bad one/);
+    assert.deepEqual(entry.failedEvaluations, [
+      { guardrail_id: "g-fail-1", reason: "bad one" },
+      { guardrail_id: "g-fail-2", reason: "bad two" },
+    ]);
   });
 
   it("omits failedEvaluations when no FAIL evaluations are present", () => {
-    const tmp = createTmpDir();
-    try {
-      const specRel = "specs/0001-test/spec.json";
-      const specDir = path.join(tmp, "specs/0001-test");
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "spec.json"), "{}");
-
-      const ctx = { root: tmp, phase, flowState: { specId: "0001-test" } };
-      const result = {
+    const entry = new GateIssueLogEntry({
+      ctx: { phase },
+      result: {
         result: "fail",
         artifacts: {
           phase,
@@ -322,16 +298,9 @@ describe("appendIssueLogFromGateResult (REQ-4)", () => {
           evaluations: [],
           issues: ["structural issue"],
         },
-      };
+      },
+    }).toJSON();
 
-      appendIssueLogFromGateResult(ctx, result);
-
-      const log = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
-      assert.equal(log.entries.length, 1);
-      const entry = log.entries[0];
-      assert.ok(!("failedEvaluations" in entry) || entry.failedEvaluations.length === 0);
-    } finally {
-      removeTmpDir(tmp);
-    }
+    assert.equal("failedEvaluations" in entry, false);
   });
 });

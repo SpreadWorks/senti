@@ -1,76 +1,50 @@
 /**
- * tests/unit/flow/run-retro-no-missing-requirements.test.js
- *
- * spec 251: retro is now a result-file aggregator that requires the artifacts
- * produced by the upstream test-execute and test-result-review steps. The
- * dry-run path returns an aggregated result without writing retro.json. The
- * fail path returns an Envelope.fail when an upstream artifact is missing.
- *
- * Historical context (spec 219 R2): retro used to call AI/diff on spec.md.
- * That entrypoint was replaced; this test now verifies the new artifact
- * dependency contract.
+ * `retro` aggregates producer-owned test Attempt artifacts.  These scenarios
+ * use the Version Store publication boundary rather than reconstructing a
+ * root spec/result tree.
  */
 
 // spec: R5 R52
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { RunRetroCommand } from "../../../src/flow/lib/run-retro.js";
-import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
-import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
+import { attachCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
-import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 
 function createRepo() {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "retro-req-"));
-  execFileSync("git", ["init", tmp], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "config", "user.email", "t@t.t"], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "config", "user.name", "t"], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "checkout", "-b", "main"], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "checkout", "-b", "feature/001-test"], { stdio: "ignore" });
-  fs.writeFileSync(path.join(tmp, "change.txt"), "hello\n");
-  execFileSync("git", ["-C", tmp, "add", "."], { stdio: "ignore" });
-  execFileSync("git", ["-C", tmp, "commit", "-m", "change"], { stdio: "ignore" });
-  return tmp;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "retro-req-"));
+  execFileSync("git", ["init", root], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "config", "user.email", "t@t.t"], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "config", "user.name", "t"], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "commit", "--allow-empty", "-m", "init"], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "checkout", "-b", "main"], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "checkout", "-b", "feature/001-test"], { stdio: "ignore" });
+  fs.writeFileSync(path.join(root, "change.txt"), "hello\n");
+  execFileSync("git", ["-C", root, "add", "."], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "commit", "-m", "change"], { stdio: "ignore" });
+  return root;
 }
 
-function writeSpec(tmp, specId, requirements) {
-  const specDir = path.join(tmp, "specs", specId);
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
-    goal: "test",
-    background: "",
-    scope: { in: [], out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    requirements,
-    acceptance_criteria: [],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-  }, null, 2));
-  fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
-  return specDir;
-}
-
-function writeArtifacts(specDir, summary, verdict = "pass") {
-  const root = path.dirname(path.dirname(specDir));
-  const specPath = path.relative(root, path.join(specDir, "spec.json"));
-  const rawOutput = path.join(specDir, "tests", ".raw", "test-execution.log");
-  fs.mkdirSync(path.dirname(rawOutput), { recursive: true });
-  fs.writeFileSync(rawOutput, "raw output\n");
-  const repairFingerprint = buildRepairFingerprint({ root, specPath }).hash;
-  fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
+function executionArtifact({ repairFingerprint = undefined } = {}) {
+  return {
     version: "2",
-    raw_output_path: path.relative(path.dirname(specDir), rawOutput),
-    summary,
+    raw_output_path: "test-execute.raw-log",
+    summary: [{
+      id: "R1",
+      result: "pass",
+      evidence: {
+        test_file: "f.test.js",
+        test_name: "R1: works",
+        command: "node --test",
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
+    }],
     regression: {
       required: false,
       result: "skipped",
@@ -81,132 +55,122 @@ function writeArtifacts(specDir, summary, verdict = "pass") {
       reason: "unit fixture",
       classified_paths: [],
     },
-    repairFingerprint,
-  }, null, 2));
-  fs.writeFileSync(path.join(specDir, "test-result-review.json"), JSON.stringify({
-    verdict,
-    checked_items: [{ check: "project_regression_verification", result: "pass" }],
-    result_file_path: path.join(specDir, "test-execute-result.json"),
-    raw_output_path: rawOutput,
-    repairFingerprint,
-  }, null, 2));
+    ...(repairFingerprint === undefined ? {} : { repairFingerprint }),
+  };
 }
 
-describe("R5: retro reads test-execute-result.json (spec 251)", () => {
-  let tmp;
-  afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
+function reviewArtifact({ repairFingerprint = undefined } = {}) {
+  return {
+    verdict: "pass",
+    checked_items: [{ check: "project_regression_verification", result: "pass" }],
+    result_file_path: "test-execute-result.json",
+    raw_output_path: "test-execute.raw-log",
+    ...(repairFingerprint === undefined ? {} : { repairFingerprint }),
+  };
+}
 
-  it("R5: dry-run retro aggregates pass/fail per requirement when artifacts exist", async () => {
-    tmp = createRepo();
-    const specId = "001-test";
-    const specDir = writeSpec(tmp, specId, [
-      { id: "R1", desc: "first", priority: "must", status: "pending" },
-    ]);
-    writeArtifacts(specDir, [
-      {
-        id: "R1",
-        result: "pass",
-        evidence: {
-          test_file: "f.test.js",
-          test_name: "R1: works",
-          command: "node --test",
-          raw_output_lines: { start_line: 1, end_line: 2 },
-        },
-      },
-    ]);
+function publishAttemptResult(flowManager, specId, logicalKey, payload) {
+  flowManager.publishCurrentAttemptResult({
+    specId,
+    commandResult: attachCanonicalCommandResultArtifact({ result: "ok" }, { logicalKey, payload }),
+  });
+}
 
-    const ctx = {
-      root: tmp,
-      dryRun: true,
-      flowState: {
-        specId: specId,
-        baseBranch: "main",
-        requirements: [],
-      },
-    };
+function createRetroContext(root, {
+  includeExecution = true,
+  includeReview = true,
+  repairFingerprint = undefined,
+} = {}) {
+  const specId = "001-test";
+  const flowManager = makeFlowManager(root);
+  const fixture = new FlowAtStepFixture({
+    flowManager,
+    specId,
+    runId: "run-retro-test",
+    request: "Aggregate canonical test evidence.",
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    specRecord: {
+      goal: "retro fixture",
+      requirements: [{ id: "R1", desc: "first", priority: "must", status: "pending" }],
+    },
+    targetStep: "test-execute",
+  }).create();
+  if (includeExecution) {
+    publishAttemptResult(flowManager, specId, "test.execute", executionArtifact({ repairFingerprint }));
+  }
+  flowManager.updateStepStatus({ stepId: "test-execute", requestedStatus: "done" }, { specId });
+  flowManager.updateStepStatus({ stepId: "test-result-review", requestedStatus: "in_progress" }, { specId });
+  if (includeReview) {
+    publishAttemptResult(flowManager, specId, "test.result.review", reviewArtifact({ repairFingerprint }));
+  }
+  flowManager.updateStepStatus({ stepId: "test-result-review", requestedStatus: "done" }, { specId });
+  // Retro is separated from test review by definition-owned leaves.  The
+  // fixture settles those predecessors through normal typed Attempts.
+  fixture.flow.flow.activate("retro");
+  return {
+    specId,
+    flowManager,
+    location: fixture.location(),
+    context: {
+      root,
+      mainRoot: root,
+      executionRoot: root,
+      flowManager,
+      flowState: flowManager.loadReadOnly(specId),
+    },
+  };
+}
 
-    const cmd = new RunRetroCommand();
-    const out = await cmd.execute(ctx);
+describe("R5: retro consumes canonical test Attempt results (spec 251)", () => {
+  let root;
+  afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
+
+  it("R5: dry-run retro aggregates pass/fail per requirement when producer artifacts exist", async () => {
+    root = createRepo();
+    const { context } = createRetroContext(root);
+
+    const out = await new RunRetroCommand().execute({ ...context, dryRun: true });
+
     assert.equal(out.result, "dry-run", JSON.stringify(out));
     assert.equal(out.artifacts.summary.total, 1);
     assert.equal(out.artifacts.summary.done, 1);
+    assert.match(out.artifacts.spec, /^specs\/001-test\/001\/spec\.json$/);
   });
 
-  it("R5: returns Envelope.fail when test-execute-result.json is missing", async () => {
-    tmp = createRepo();
-    const specId = "001-test";
-    writeSpec(tmp, specId, [
-      { id: "R1", desc: "first", priority: "must", status: "pending" },
-    ]);
+  it("R5: returns Envelope.fail when the canonical test-execute result is missing", async () => {
+    root = createRepo();
+    const { context } = createRetroContext(root, { includeExecution: false });
 
-    const ctx = {
-      root: tmp,
-      dryRun: true,
-      flowState: {
-        specId: specId,
-        baseBranch: "main",
-        requirements: [],
-      },
-    };
+    const result = await new RunRetroCommand().execute({ ...context, dryRun: true });
 
-    const cmd = new RunRetroCommand();
-    const result = await cmd.execute(ctx);
     assert.equal(result.ok, false);
-    const msgs = result.errors.flatMap((e) => e.messages);
-    assert.ok(
-      msgs.some((m) => /test-result-review|test-execute/i.test(m)),
-      `error must reference upstream artifact: ${msgs.join("; ")}`,
-    );
+    assert.equal(result.errors[0].code, "TEST_EXECUTE_RESULT_MISSING");
+    assert.match(result.errors[0].messages.join(" "), /test-execute canonical artifact is absent/i);
   });
 
-  it("rewinds stale post-gate evidence to test-execute instead of stranding retro", async () => {
-    tmp = createRepo();
-    const specId = "001-test";
-    const specPath = `specs/${specId}/spec.json`;
-    const specDir = writeSpec(tmp, specId, [
-      { id: "R1", desc: "first", priority: "must", status: "pending" },
-    ]);
-    const state = moveFlowToStep(makeFlowState({ specId }), "retro");
-    const previous = buildRepairFingerprint({ root: tmp, specPath, state });
-    state.repairBaseline = previous.baseline.toJSON();
-    writeRepairFingerprintManifest(specDir, previous);
-    writeArtifacts(specDir, [{
-      id: "R1",
-      result: "pass",
-      evidence: {
-        test_file: "f.test.js",
-        test_name: "R1: works",
-        command: "node --test",
-        raw_output_lines: { start_line: 1, end_line: 1 },
-      },
-    }]);
-    fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, "src", "post-gate-repair.js"), "export const repaired = true;\n");
-    const flowManager = new FlowManager({
-      root: tmp,
-      mainRoot: tmp,
-      inWorktree: false,
-    });
-    flowManager.create(state);
+  it("rewinds stale post-gate evidence to test-execute through one canonical recovery Activity", async () => {
+    root = createRepo();
+    const previousFingerprint = "a".repeat(64);
+    const { context, flowManager, specId, location } = createRetroContext(root, { repairFingerprint: previousFingerprint });
+    fs.mkdirSync(path.join(root, "src"), { recursive: true });
+    fs.writeFileSync(path.join(root, "src", "post-gate-repair.js"), "export const repaired = true;\n");
+    const currentFingerprint = buildRepairFingerprint({
+      root,
+      specPath: location.relativeSpecFile,
+    }).hash;
 
-    const result = await new RunRetroCommand().execute({
-      root: tmp,
-      flowState: flowManager.loadReadOnly(),
-      flowManager,
-    });
-    await FLOW_COMMANDS.run.retro.post({
-      root: tmp,
-      flowState: flowManager.loadReadOnly(),
-      flowManager,
-    }, result);
-    const recoveredState = flowManager.loadReadOnly();
+    const result = await new RunRetroCommand().execute(context);
+    const recoveredState = flowManager.loadReadOnly(specId);
 
     assert.equal(result.result, "recovered");
     assert.equal(result.next, "test-execute");
     assert.equal(result.artifacts.evidenceRefresh.recovered, true);
+    assert.equal(result.artifacts.evidenceRefresh.previousFingerprint, previousFingerprint);
+    assert.equal(result.artifacts.evidenceRefresh.currentFingerprint, currentFingerprint);
     assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
-    assert.equal(findStepById(recoveredState.steps, "retro").status, "pending");
-    assert.equal(fs.existsSync(path.join(specDir, "test-execute-result.json")), false);
-    assert.equal(fs.existsSync(path.join(specDir, "test-result-review.json")), false);
+    assert.equal(findStepById(recoveredState.steps, "retro").status, "invalidated");
+    assert.equal(flowManager.activityLedger(specId).at(-1).transition.operation, "rewind_test_evidence");
+    assert.equal(fs.existsSync(path.join(root, "specs", specId, "test-execute-result.json")), false);
+    assert.equal(fs.existsSync(path.join(root, "specs", specId, "test-result-review.json")), false);
   });
 });

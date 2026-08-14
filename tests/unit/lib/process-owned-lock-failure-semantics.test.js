@@ -9,10 +9,6 @@ import {
   RealDirectoryAuthority,
 } from "../../../src/lib/process-owned-lock.js";
 import { ProcessIdentitySource } from "../../../src/lib/process-identity.js";
-import {
-  RECOVERY_ARTIFACT_FILE,
-  applyRetryReset,
-} from "../../../src/flow/lib/retry-recovery.js";
 
 function identitySource(bootIdentity = "candidate8-boot") {
   return new ProcessIdentitySource({
@@ -219,64 +215,33 @@ describe("ProcessOwnedLock failure semantics", () => {
     lock.release();
   });
 
-  it("preserves retry operation body and release failures in deterministic order", () => {
-    const root = createTmpDir("retry-body-release-failure-");
+  it("reports release durability failure without a retry-recovery sidecar transaction", () => {
+    const root = createTmpDir("lock-release-failure-");
     roots.push(root);
-    const specId = "441-lock";
-    const spec = `specs/${specId}/spec.json`;
-    const specDir = path.join(root, path.dirname(spec));
-    fs.mkdirSync(specDir, { recursive: true });
-    const artifactPath = path.join(specDir, RECOVERY_ARTIFACT_FILE);
-    fs.writeFileSync(artifactPath, "{malformed\n");
-    const lockPath = path.join(specDir, ".retry-recovery.lock");
+    const lock = makeLock(root);
+    lock.acquire();
     const originalFsync = fs.fsyncSync;
-    let directoryFsyncs = 0;
     fs.fsyncSync = (descriptor) => {
       if (isDirectoryDescriptor(descriptor)) {
-        directoryFsyncs += 1;
-        if (directoryFsyncs === 2) throw Object.assign(new Error("retry release directory fsync failed"), { code: "EIO" });
+        throw Object.assign(new Error("release directory fsync failed"), { code: "EIO" });
       }
       return originalFsync(descriptor);
     };
     try {
       assert.throws(
-        () => applyRetryReset({
-          root,
-          specId,
-          flowManager: {
-            mutate() {},
-            specLocation() { return { relativeSpecFile: spec }; },
-          },
-          resolveConfiguredMaxAttempts: () => 1,
-          input: {
-            action: "reset",
-            kind: "gate",
-            phase: "task-impl",
-            reason: "candidate8 dual failure verification",
-            yes: true,
-          },
-          expectedAttempts: 1,
-          expectedMaxAttempts: 1,
-          expectedRunId: "candidate8-run",
-          processIdentitySource: identitySource(),
-        }),
+        () => lock.release(),
         (error) => {
-          assert.ok(error instanceof AggregateError);
-          assert.equal(error.cause, error.errors[0]);
-          assert.match(error.errors[0].message, /JSON|Unexpected|property name/i);
-          assertTransition(error.errors[1], {
+          assertTransition(error, {
             phase: "release-directory-fsync",
             publishedToVisibleName: false,
             durabilityUnknown: true,
             tempResidue: false,
             visibleResidue: false,
           });
-          assert.equal(error.errors[1].lockPath, lockPath);
           return true;
         },
       );
-      assert.equal(fs.readFileSync(artifactPath, "utf8"), "{malformed\n");
-      assert.equal(fs.existsSync(lockPath), false);
+      assert.equal(fs.existsSync(lock.lockPath), false);
     } finally {
       fs.fsyncSync = originalFsync;
     }

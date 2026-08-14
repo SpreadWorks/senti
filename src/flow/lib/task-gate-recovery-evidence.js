@@ -1,14 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
 import {
   RepairReference,
   ReviewFindingCycle,
 } from "./finding-disposition-policy.js";
 
-const TASK_GATE_SOURCE_FILE = "task-impl-gate-source.json";
-const MAX_TASK_GATE_SOURCE_BYTES = 1024 * 1024;
 const FINDING_ID_RE = /^[a-f0-9]{64}$/;
 
 class TaskGateRepairEvidenceReference {
@@ -104,32 +98,12 @@ export class TaskGateRepairEvidenceAssessment {
   }
 }
 
-export function assessTaskGateRepairEvidence({ root, flowState, issueLogEntries }) {
+export function assessTaskGateRepairEvidence({ root, flowState, sourceArtifact, issueLogEntries }) {
   const taskId = typeof flowState?.currentTaskId === "string"
     ? flowState.currentTaskId.trim()
     : "";
   if (!taskId) return TaskGateRepairEvidenceAssessment.reject("missing-current-task");
-  if (typeof flowState?.specId !== "string" || flowState.specId.trim() === "") {
-    return TaskGateRepairEvidenceAssessment.reject("missing-flow-spec");
-  }
-
-  const repositoryRoot = path.resolve(root);
-  const specPath = path.resolve(repositoryRoot, relativeFlowSpecFile(flowState));
-  const relativeSpec = path.relative(repositoryRoot, specPath);
-  if (relativeSpec.startsWith("..") || path.isAbsolute(relativeSpec)) {
-    return TaskGateRepairEvidenceAssessment.reject("invalid-flow-spec-authority");
-  }
-  const sourcePath = path.join(path.dirname(specPath), TASK_GATE_SOURCE_FILE);
-  let artifact;
-  try {
-    const stat = fs.lstatSync(sourcePath);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_TASK_GATE_SOURCE_BYTES) {
-      return TaskGateRepairEvidenceAssessment.reject("invalid-task-gate-source");
-    }
-    artifact = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
-  } catch {
-    return TaskGateRepairEvidenceAssessment.reject("missing-or-malformed-task-gate-source");
-  }
+  const artifact = sourceArtifact;
   if (
     artifact == null
     || typeof artifact !== "object"
@@ -162,7 +136,7 @@ export function assessTaskGateRepairEvidence({ root, flowState, issueLogEntries 
       normalizedFindingId: findingId,
       taskId,
       reportedAt,
-      root: repositoryRoot,
+      root,
     });
     if (!evidence) {
       return TaskGateRepairEvidenceAssessment.reject("missing-matching-formal-repair-evidence");

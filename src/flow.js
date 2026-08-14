@@ -43,15 +43,22 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     envelopeKey,
     runtimeLog,
     buildHookCtx: (c, input = {}) => {
+      const targetInput = resolvedEntry.specOptionAsTarget === true
+        && input.expectSpec == null
+        && input.spec != null
+        ? { ...input, expectSpec: input.spec }
+        : input;
       return resolveFlowContext(c, {
         allowMissingActive: resolvedEntry.requiresFlow === false,
-        captureTargetResolutionError: resolvedEntry.explicitTargetResolution === true
-          || resolvedEntry.targetNotFoundAsMismatch === true,
+        // Every parsed target guard is an exact authority selection. Resolve
+        // failures are public command outcomes and must reach the shared JSON
+        // envelope boundary instead of escaping while hook context is built.
+        captureTargetResolutionError: true,
         explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
         mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
         positionalRunIdTarget: resolvedEntry.positionalRunIdTarget === true,
         preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
-        input,
+        input: targetInput,
       });
     },
   });

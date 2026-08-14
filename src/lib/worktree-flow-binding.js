@@ -7,7 +7,6 @@ import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.j
 import { PRODUCT } from "./product.js";
 
 export const WORKTREE_FLOW_BINDING_FILE = PRODUCT.managedPath("flow-identity.json");
-export const WORKTREE_FLOW_ISSUE_TRANSITION_FILE = PRODUCT.managedPath("flow-identity.issue-transaction.json");
 export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_FILE = PRODUCT.managedPath(".flow-identity.publication.json");
 export const WORKTREE_FLOW_BINDING_PUBLICATION_INTENT_FILE = PRODUCT.managedPath(".flow-identity.publication.intent");
 export const WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_TEMP_FILE = PRODUCT.managedPath(".flow-identity.publication.receipt.tmp");
@@ -15,16 +14,6 @@ export const WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE = PRODUCT.managedPath("
 
 const BINDING_VERSION = 2;
 const BINDING_KEYS = Object.freeze(["version", "runId", "issue", "specId", "worktreePath"]);
-const IDENTITY_KEYS = Object.freeze(["runId", "issue", "specId", "worktreePath"]);
-const ISSUE_TRANSITION_VERSION = 1;
-const ISSUE_TRANSITION_KEYS = Object.freeze([
-  "version",
-  "transitionId",
-  "writerOwnerToken",
-  "writerOwnerTempName",
-  "original",
-  "next",
-]);
 const PUBLICATION_RECEIPT_VERSION = 1;
 const PUBLICATION_RECEIPT_KEYS = Object.freeze([
   "version",
@@ -41,10 +30,6 @@ const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SAFE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const BINDING_PUBLICATION_TEMP_NAME = path.basename(WORKTREE_FLOW_BINDING_PUBLICATION_TEMP_FILE);
-
-function writerOwnerTempName(ownerToken) {
-  return `.flow.json.writer.${ownerToken}.owner.tmp`;
-}
 
 function canonicalDirectory(input) {
   if (typeof input !== "string" || !path.isAbsolute(input)) {
@@ -103,24 +88,6 @@ function assertExactObjectKeys(value, expectedKeys, label) {
   if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) {
     throw new Error(`${label} fields must be exactly: ${expectedKeys.join(", ")}`);
   }
-}
-
-function assertIssueTransitionShape(value) {
-  assertExactObjectKeys(value, ISSUE_TRANSITION_KEYS, "worktree flow Issue transition");
-  if (value.version !== ISSUE_TRANSITION_VERSION) {
-    throw new Error(`unsupported worktree flow Issue transition version: ${value.version}`);
-  }
-  if (!SAFE_UUID.test(value.transitionId)) {
-    throw new Error("worktree flow Issue transition ID must be a UUID");
-  }
-  if (!SAFE_UUID.test(value.writerOwnerToken)) {
-    throw new Error("worktree flow Issue transition writer owner token must be a UUID");
-  }
-  if (value.writerOwnerTempName !== writerOwnerTempName(value.writerOwnerToken)) {
-    throw new Error("worktree flow Issue transition writer owner temp name is invalid");
-  }
-  assertExactObjectKeys(value.original, IDENTITY_KEYS, "worktree flow Issue transition original identity");
-  assertExactObjectKeys(value.next, IDENTITY_KEYS, "worktree flow Issue transition next identity");
 }
 
 function sameFile(left, right) {
@@ -242,12 +209,14 @@ export class WorktreeFlowIdentity {
     if (!state || typeof state !== "object") {
       throw new Error("worktree flow binding did not resolve flow state");
     }
-    const stateIssue = Object.hasOwn(state, "issue") ? state.issue : null;
+    // `issue.md` holds the immutable body, while the nullable Issue number is
+    // part of the Flow identity needed to bind a worktree after restart.
+    const stateIssue = state.issue ?? null;
     if (
       state.runId !== this.runId
       || stateIssue !== this.issue
       || state.specId !== this.specId
-      || state.worktree !== true
+      || state.execution?.mode !== "worktree"
     ) {
       throw new Error(
         `worktree flow binding does not match flow state: expected ${this.runId}/${this.issue}/${this.specId}`,
@@ -302,77 +271,6 @@ export class WorktreeFlowBinding {
 
   toJSON() {
     return { version: this.version, ...this.identity.toJSON() };
-  }
-}
-
-export class WorktreeFlowIssueTransition {
-  constructor({ transitionId, writerOwnerToken, writerOwnerTempName: ownerTempName, original, next }) {
-    if (typeof transitionId !== "string" || !SAFE_UUID.test(transitionId)) {
-      throw new Error("worktree flow Issue transition ID must be a UUID");
-    }
-    if (!SAFE_UUID.test(writerOwnerToken) || ownerTempName !== writerOwnerTempName(writerOwnerToken)) {
-      throw new Error("worktree flow Issue transition writer publication authority is invalid");
-    }
-    if (!(original instanceof WorktreeFlowIdentity) || !(next instanceof WorktreeFlowIdentity)) {
-      throw new Error("worktree flow Issue transition identities are required");
-    }
-    if (
-      original.runId !== next.runId
-      || original.specId !== next.specId
-      || original.worktreePath !== next.worktreePath
-      || original.issue === next.issue
-    ) {
-      throw new Error("worktree flow Issue transition may change only the Issue identity");
-    }
-    this.version = ISSUE_TRANSITION_VERSION;
-    this.transitionId = transitionId;
-    this.writerOwnerToken = writerOwnerToken;
-    this.writerOwnerTempName = ownerTempName;
-    this.original = original;
-    this.next = next;
-    Object.freeze(this);
-  }
-
-  static create(original, next) {
-    const writerOwnerToken = crypto.randomUUID();
-    return new WorktreeFlowIssueTransition({
-      transitionId: crypto.randomUUID(),
-      writerOwnerToken,
-      writerOwnerTempName: writerOwnerTempName(writerOwnerToken),
-      original,
-      next,
-    });
-  }
-
-  static fromJSON(value) {
-    assertIssueTransitionShape(value);
-    return new WorktreeFlowIssueTransition({
-      transitionId: value.transitionId,
-      writerOwnerToken: value.writerOwnerToken,
-      writerOwnerTempName: value.writerOwnerTempName,
-      original: new WorktreeFlowIdentity(value.original),
-      next: new WorktreeFlowIdentity(value.next),
-    });
-  }
-
-  equals(other) {
-    return other instanceof WorktreeFlowIssueTransition
-      && this.transitionId === other.transitionId
-      && this.writerOwnerToken === other.writerOwnerToken
-      && this.writerOwnerTempName === other.writerOwnerTempName
-      && this.original.equals(other.original)
-      && this.next.equals(other.next);
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      transitionId: this.transitionId,
-      writerOwnerToken: this.writerOwnerToken,
-      writerOwnerTempName: this.writerOwnerTempName,
-      original: this.original.toJSON(),
-      next: this.next.toJSON(),
-    };
   }
 }
 
@@ -782,10 +680,6 @@ export class WorktreeFlowBindingStore {
   constructor({ worktreePath, faultInjector = () => {}, processIdentitySource } = {}) {
     this.worktreePath = canonicalDirectory(worktreePath);
     this.path = path.join(this.worktreePath, WORKTREE_FLOW_BINDING_FILE);
-    this.issueTransitionPath = path.join(
-      this.worktreePath,
-      WORKTREE_FLOW_ISSUE_TRANSITION_FILE,
-    );
     this.publicationReceiptPath = path.join(
       this.worktreePath,
       WORKTREE_FLOW_BINDING_PUBLICATION_RECEIPT_FILE,
@@ -807,12 +701,6 @@ export class WorktreeFlowBindingStore {
       this.faultInjector,
       "binding",
       this.publicationJournal,
-    );
-    this.issueTransitionPublisher = new WorktreeFlowBindingPublisher(
-      this.issueTransitionPath,
-      this.directoryAuthority,
-      this.faultInjector,
-      "issue-transition",
     );
     this.lock = new ProcessOwnedLock({
       directoryAuthority: this.directoryAuthority,
@@ -868,51 +756,6 @@ export class WorktreeFlowBindingStore {
 
   loadOwned() {
     return this.#readSnapshot();
-  }
-
-  get issueTransitionExists() {
-    try {
-      fs.lstatSync(this.issueTransitionPath);
-      return true;
-    } catch (error) {
-      if (error.code === "ENOENT") return false;
-      throw error;
-    }
-  }
-
-  loadIssueTransitionOwned() {
-    if (!this.issueTransitionExists) return null;
-    const { value } = this.#readDocument(
-      this.issueTransitionPath,
-      "worktree flow Issue transition",
-      "issue-transition",
-    );
-    const transition = WorktreeFlowIssueTransition.fromJSON(value);
-    this.#assertPath(transition.original);
-    this.#assertPath(transition.next);
-    return transition;
-  }
-
-  beginIssueTransition(original, next, ownerToken) {
-    this.#assertOwner(ownerToken, "Issue transition publication");
-    const transition = WorktreeFlowIssueTransition.create(original, next);
-    this.#assertPath(original);
-    if (this.issueTransitionExists) {
-      throw new Error(`worktree flow Issue transition already exists: ${this.issueTransitionPath}`);
-    }
-    this.issueTransitionPublisher.replace(Buffer.from(`${JSON.stringify(transition.toJSON(), null, 2)}\n`));
-    const published = this.loadIssueTransitionOwned();
-    if (!published.equals(transition)) {
-      throw new Error(`worktree flow Issue transition readback mismatch: ${this.issueTransitionPath}`);
-    }
-    return published;
-  }
-
-  clearIssueTransition(ownerToken) {
-    this.#assertOwner(ownerToken, "Issue transition removal");
-    if (!this.issueTransitionExists) return;
-    this.loadIssueTransitionOwned();
-    this.issueTransitionPublisher.remove();
   }
 
   save(identity) {

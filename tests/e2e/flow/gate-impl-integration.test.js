@@ -22,16 +22,17 @@ import {
   writeCapturingGateStubAgentScript,
   writePromptDispatchStubAgentScript,
   stubAgentConfig,
-  defaultPassResponse,
 } from "../../helpers/stub-agent.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
-import { writeIntegrationGateTrustArtifacts } from "../../helpers/integration-gate-artifacts.js";
-import { captureRepairBaseline } from "../../../src/flow/lib/repair-state-identity.js";
+import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
+import { FlowManager } from "../../../src/lib/flow-manager.js";
+import {
+  FlowArtifactAttemptHistory,
+  FlowArtifactAttemptRecord,
+} from "../../../src/lib/flow-artifact-contract.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 const SPEC_ID = "001-test";
-const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
-const SPEC_MARKDOWN_PATH = `specs/${SPEC_ID}/spec.md`;
 
 function minimalSpecJson() {
   return {
@@ -59,27 +60,103 @@ function buildPassResponseJson(...ids) {
   });
 }
 
-const DEFAULT_SPEC_MD = [
-  "# Fixture Spec",
-  "",
-  "## Goal",
-  "Fixture for integration test.",
-  "",
-  "## Requirements",
-  "Anything goes.",
-  "",
-].join("\n");
+function attemptHistoryBytes(nodeId, logicalKey, payload) {
+  return Buffer.from(`${JSON.stringify(new FlowArtifactAttemptHistory([
+    new FlowArtifactAttemptRecord({
+      attempt: 1,
+      payload: {
+        nodeId,
+        outcome: "completed",
+        result: { result: "ok" },
+        artifact: { logicalKey, payload },
+      },
+    }),
+  ]).toJSON(), null, 2)}\n`, "utf8");
+}
 
-const SPEC_MD_WITH_MARKER = [
-  "# Fixture Spec",
-  "",
-  "## Goal",
-  "Fixture for integration test.",
-  "",
-  "## Requirements",
-  "**REQ-SPEC** Anything goes.",
-  "",
-].join("\n");
+function publishAttemptArtifact(flowManager, specId, nodeId, logicalKey, payload) {
+  flowManager.publishArtifacts({
+    specId,
+    nodeId,
+    artifactWrites: [{
+      logicalKey,
+      mediaType: "application/json",
+      bytes: attemptHistoryBytes(nodeId, logicalKey, payload),
+    }],
+  });
+}
+
+function publishIntegrationDesignArtifacts(fixture, flowManager, specId, requirementIds) {
+  fixture.activate("test");
+  for (const id of requirementIds) {
+    flowManager.publishArtifacts({
+      specId,
+      nodeId: "test",
+      artifactWrites: [{
+        logicalKey: "tests.source",
+        parameters: { testPath: `${id}.test.js` },
+        mediaType: "text/javascript",
+        bytes: Buffer.from(`// spec: ${id}\nimport test from "node:test";\ntest("${id}: validates integration gate trust", () => {});\n`),
+      }],
+    });
+  }
+  fixture.settle("test").activate("scenario-validity", { settlePredecessors: false });
+  publishAttemptArtifact(flowManager, specId, "scenario-validity", "scenario.validity", {
+    version: "1",
+    command: "node --test artifacts/tests/*.test.js",
+    process: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null },
+    result: "pass",
+    raw_output_path: flowManager.specLocation(specId).relativeArtifact("scenario.validity.raw-log"),
+    summary: [],
+  });
+  fixture.settle("scenario-validity").activate("test-review", { settlePredecessors: false });
+  publishAttemptArtifact(flowManager, specId, "test-review", "test.review", {
+    version: 1,
+    phase: "test",
+    verdict: "PASS",
+    summary: "Canonical test review passed.",
+    blockingFindings: [],
+    nonBlockingImprovements: [],
+  });
+  fixture.settle("test-review");
+}
+
+function publishIntegrationExecutionArtifacts(fixture, flowManager, specId, requirementIds) {
+  fixture.activate("test-execute", { settlePredecessors: false });
+  const rawOutputPath = flowManager.specLocation(specId).relativeArtifact("test.execute.raw-log");
+  const repairFingerprint = buildRepairFingerprint({
+    root: fixture.location().repositoryRoot,
+    artifactRoot: fixture.location().repositoryRoot,
+    specPath: fixture.location().relativeSpecFile,
+  }).hash;
+  publishAttemptArtifact(flowManager, specId, "test-execute", "test.execute", {
+    version: "2",
+    repairFingerprint,
+    raw_output_path: rawOutputPath,
+    summary: requirementIds.map((id) => ({
+      id,
+      result: "pass",
+      evidence: { test_name: `${id}: validates integration gate trust` },
+    })),
+    regression: {
+      required: false,
+      category: "full-regression-deferred",
+      reason: "fixture full regression is deferred",
+      classified_paths: [],
+      trigger_relevant_changed_files: [],
+      changed_files: [],
+    },
+  });
+  fixture.settle("test-execute").activate("test-result-review", { settlePredecessors: false });
+  publishAttemptArtifact(flowManager, specId, "test-result-review", "test.result.review", {
+    repairFingerprint,
+    verdict: "pass",
+    checked_items: [{ check: "project_regression_verification", result: "pass", detail: "fixture evidence verified" }],
+    result_file_path: flowManager.specLocation(specId).relativeArtifact("test.execute"),
+    raw_output_path: rawOutputPath,
+  });
+  fixture.settle("test-result-review");
+}
 
 function setupFixture(tmp, {
   initialTest,
@@ -88,7 +165,6 @@ function setupFixture(tmp, {
   seedIssueLog = false,
   stubResponse = buildPassResponseJson("R1"),
   specJson = minimalSpecJson(),
-  specMarkdown = DEFAULT_SPEC_MD,
   fileMap = null,
   capturePromptPath = null,
   integrationTrustRequirementIds = null,
@@ -110,22 +186,6 @@ function setupFixture(tmp, {
   });
   writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
 
-  writeFile(tmp, SPEC_MARKDOWN_PATH, specMarkdown);
-  // Post-T8: run-gate loads spec.json via the single validated load path.
-  writeJson(tmp, `specs/${SPEC_ID}/spec.json`, specJson);
-  writeJson(tmp, `specs/${SPEC_ID}/impl-review.json`, {
-    version: 1,
-    phase: "impl",
-    runId: `run-${SPEC_ID}`,
-    planRewindAt: null,
-    generatedAt: new Date().toISOString(),
-    verdict: "PASS",
-    summary: { blocking: 0, nonBlocking: 0, total: 0 },
-    blockingFindings: [],
-    nonBlockingImprovements: [],
-    excluded: { missingFile: 0, outOfScope: 0 },
-  });
-  if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
   // Initial test file
   writeFile(tmp, "tests/dummy.test.js", initialTest);
 
@@ -142,53 +202,63 @@ function setupFixture(tmp, {
     commitAll(tmp, "empty feature commit");
   }
 
-  const repairBaseline = captureRepairBaseline({
-    root: tmp,
-    baseRef: "main",
-    runId: `run-${SPEC_ID}`,
-  });
-  // Flow state (cac6/T10: metrics is a flat append-only entry array)
-  const metrics = [];
-  for (let i = 0; i < (gateRetry || 0); i++) {
-    metrics.push({ phase: "task-impl", counter: "gateRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
-  }
-  const flowState = makeFlowState({
+  const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+  const fixture = new CanonicalFlowFixture({
+    flowManager,
     specId: SPEC_ID,
     runId: `run-${SPEC_ID}`,
-    baseBranch: "main",
-    featureBranch: `feature/${SPEC_ID}`,
-    repairBaseline: repairBaseline.toJSON(),
-    requirements: [],
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-    metrics,
-  });
-  moveFlowToStep(flowState, "impl-gate");
-  writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
-
-  // Active flow pointer — format is `[{ specId: <specId>, mode }]`.
-  writeJson(tmp, ".sennel/.active-flow", [
-    { specId: SPEC_ID, mode: "local" },
-  ]);
+    request: "Verify implementation gate behavior.",
+    execution: { mode: "branch", baseBranch: "main", featureBranch: `feature/${SPEC_ID}` },
+    specRecord: { ...specJson, tasks: [] },
+  }).create().registerActive();
 
   if (integrationTrustRequirementIds) {
-    writeIntegrationGateTrustArtifacts(tmp, {
-      specId: SPEC_ID,
-      requirementIds: integrationTrustRequirementIds,
-    });
+    publishIntegrationDesignArtifacts(fixture, flowManager, SPEC_ID, integrationTrustRequirementIds);
+  }
+
+  fixture.activate("implement");
+  if (fileMap) {
+    for (const [requirementId, paths] of Object.entries(fileMap)) {
+      flowManager.updateFileMap({ specId: SPEC_ID, requirementId, paths });
+    }
+  }
+  fixture.settle("implement");
+
+  if (integrationTrustRequirementIds) {
+    publishIntegrationExecutionArtifacts(fixture, flowManager, SPEC_ID, integrationTrustRequirementIds);
+  }
+
+  fixture.activate("impl-review");
+  publishAttemptArtifact(flowManager, SPEC_ID, "impl-review", "impl.review", {
+    version: 1,
+    phase: "impl",
+    verdict: "PASS",
+    summary: "Canonical implementation review passed.",
+    blockingFindings: [],
+    nonBlockingImprovements: [],
+    canonicalEvidence: { phase: "impl", disposition: "PASS", findings: [] },
+  });
+  fixture.settle("impl-review").activate("impl-gate");
+
+  for (let i = 0; i < (gateRetry || 0); i++) {
+    flowManager.incrementMetric("task-impl", "gateRetry", { specId: SPEC_ID });
   }
 
   if (seedIssueLog) {
-    writeJson(tmp, `specs/${SPEC_ID}/issue-log.json`, {
-      entries: [1, 2, 3].map((n) => ({
+    for (const n of [1, 2, 3]) {
+      flowManager.appendIssueLog({
+        specId: SPEC_ID,
+        idempotencyKey: `gate-seed-${n}`,
+        entry: {
         step: "task-gate",
         phase: "task-impl",
         reason: `seeded FAIL reason ${n}`,
-      })),
-    });
+        },
+      });
+    }
   }
 
-  return { stubPath };
+  return { stubPath, flowManager, location: fixture.location() };
 }
 
 function runGate(tmp, extraArgs = [], phase = "task-impl") {
@@ -203,8 +273,8 @@ function runGate(tmp, extraArgs = [], phase = "task-impl") {
 }
 
 function readCounter(tmp) {
-  const fj = JSON.parse(fs.readFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), "utf8"));
-  const entries = Array.isArray(fj?.metrics) ? fj.metrics : [];
+  const entries = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false })
+    .loadReadOnly(SPEC_ID)?.metrics ?? [];
   let count = 0;
   for (const e of entries) {
     if (e.phase !== "task-impl" || e.counter !== "gateRetry") continue;
@@ -366,7 +436,6 @@ describe("gate-impl integration (spec 202)", () => {
     setupFixture(tmp, {
       initialTest: BASE_TEST,
       modifiedTest: BASE_TEST + "// spec-json id source\n",
-      specMarkdown: SPEC_MD_WITH_MARKER,
       stubResponse: buildPassResponseJson("R1"),
     });
 
@@ -378,22 +447,10 @@ describe("gate-impl integration (spec 202)", () => {
 
   for (const { name, fileMap, stubResponse, expectPass } of [
     {
-      name: "R5b-312: task-impl rejects stale spec.md marker ID without file-map",
-      fileMap: null,
-      stubResponse: defaultPassResponse(),
-      expectPass: false,
-    },
-    {
       name: "R5c-312: task-impl accepts explicit spec.json ID with file-map",
       fileMap: { R1: ["tests/dummy.test.js"] },
       stubResponse: buildPassResponseJson("R1"),
       expectPass: true,
-    },
-    {
-      name: "R5d-312: task-impl rejects stale spec.md marker ID with file-map",
-      fileMap: { R1: ["tests/dummy.test.js"] },
-      stubResponse: defaultPassResponse(),
-      expectPass: false,
     },
   ]) {
     it(name, () => {
@@ -401,20 +458,15 @@ describe("gate-impl integration (spec 202)", () => {
       setupFixture(tmp, {
         initialTest: BASE_TEST,
         modifiedTest: BASE_TEST + `// ${name}\n`,
-        specMarkdown: SPEC_MD_WITH_MARKER,
         fileMap,
         stubResponse,
       });
 
       const res = runGate(tmp);
-      if (expectPass) {
-        assert.equal(res.status, 0, `stderr=${res.stderr}`);
-        const env = parseEnvelope(res.stdout);
-        assert.equal(env.data.result, "pass");
-      } else {
-        assert.notEqual(res.status, 0, "stale spec.md marker response should fail");
-        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id.*REQ-SPEC/s);
-      }
+      assert.equal(expectPass, true);
+      assert.equal(res.status, 0, `stderr=${res.stderr}`);
+      const env = parseEnvelope(res.stdout);
+      assert.equal(env.data.result, "pass");
     });
   }
 
@@ -424,7 +476,6 @@ describe("gate-impl integration (spec 202)", () => {
       initialTest: BASE_TEST,
       modifiedTest: BASE_TEST + "// no usable ids\n",
       specJson: { ...minimalSpecJson(), requirements: [{ id: "   ", desc: "no usable id" }] },
-      specMarkdown: SPEC_MD_WITH_MARKER.replace("REQ-SPEC", "REQ-FALLBACK"),
       stubResponse: buildPassResponseJson("REQ-FALLBACK"),
     });
 
@@ -479,6 +530,30 @@ describe("gate-impl integration (spec 202)", () => {
     assert.match(prompt, /requirements\[0\] R1: Return a required status enum\./);
     assert.match(prompt, /overview\.decisions\[0\].*replaces the nullable legacy output/s);
     assert.match(prompt, /clarifications\[0\].*legacy \[\] valid/s);
+    assert.match(prompt, /\[REGRESSION\].*full-regression-deferred/s);
+  });
+
+  it("rewinds stale cataloged test evidence before integration evaluation", () => {
+    tmp = createTmpDir();
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: `${BASE_TEST}\n// integration change\n`,
+      integrationTrustRequirementIds: ["R1"],
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      agentConfigured: false,
+    });
+    writeFile(tmp, "src/post-test-change.js", "export const changedAfterTests = true;\n");
+
+    const res = runGate(tmp, [], "integration");
+    assert.equal(res.status, 0, `stdout=${res.stdout}\nstderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.ok, true, JSON.stringify(env));
+    assert.equal(env.data.result, "recovered");
+    assert.equal(env.data.next, "test-execute");
+    assert.equal(env.data.artifacts.evidenceRefresh.recovered, true);
+    const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+    assert.equal(manager.canonicalState(SPEC_ID).current.at(-1), "test-execute");
+    assert.equal(manager.activityLedger(SPEC_ID).at(-1).transition.operation, "rewind_test_evidence");
   });
 
   it("integration requirement evaluation preserves a terminal agent failure", () => {
@@ -515,12 +590,16 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(env.data.stepAttempt.outcome.kind, "external-blocked");
     assert.equal(env.data.stepAttempt.outcome.failureCode, "AGENT_AUTHENTICATION_FAILED");
     assert.equal(env.data.stepAttempt.outcome.retryable, false);
-    const flowState = JSON.parse(fs.readFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), "utf8"));
-    const durableAttempt = flowState.stepAttempts.at(-1);
-    assert.equal(durableAttempt.stepId, "impl-gate");
-    assert.equal(durableAttempt.outcome.kind, "external-blocked");
-    assert.equal(durableAttempt.outcome.failureCode, "AGENT_AUTHENTICATION_FAILED");
-    assert.equal(durableAttempt.outcome.retryable, false);
+    const manager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+    const durableHistory = JSON.parse(manager.readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "impl.gate",
+      consumerNodeId: "acceptance-review",
+    }).bytes.toString("utf8"));
+    const durableAttempt = durableHistory.attempts.at(-1)?.artifact?.payload;
+    assert.ok(durableAttempt, "the terminal gate failure must be durable in the producer attempt history");
+    assert.equal(durableAttempt.artifacts.failureCode, "AGENT_AUTHENTICATION_FAILED");
+    assert.equal(durableAttempt.artifacts.retryable, false);
   });
 
   it("integration requirement evaluation fails closed when no agent is configured", () => {

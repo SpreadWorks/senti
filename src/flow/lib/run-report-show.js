@@ -4,7 +4,7 @@
  * `sennel flow report show` — stream the most recent finalize Report text
  * to stdout.
  *
- * Source of truth is `<configured-spec-root>/<id>/report.json` (generated from validated
+ * Source of truth is the cataloged `report` artifact in Version 1 (generated from validated
  * test-execute-result.json v2 and test-result-review.json artifacts by the
  * finalize post-commit hook and merged into the base branch). `finalize` writes the
  * specId of the latest finalized spec to
@@ -15,12 +15,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Command } from "../../lib/command.js";
-import { loadValidatedTestArtifacts } from "./test-artifacts.js";
 import { PRODUCT } from "../../lib/product.js";
-import {
-  DEFAULT_FLOW_SPEC_DIR,
-  FlowSpecLocation,
-} from "../../lib/flow-workspace.js";
+import { DEFAULT_FLOW_SPEC_DIR } from "../../lib/flow-workspace.js";
+import { FlowManager } from "../../lib/flow-manager.js";
 
 export const POINTER_REL_PATH = PRODUCT.managedPath("last-finalized-spec");
 
@@ -39,7 +36,7 @@ function reportShowError(code, message) {
  * @throws {Error} with `.code` set to `NO_POINTER`, `EMPTY_POINTER`,
  *   `INVALID_POINTER`, or `NO_REPORT` when the underlying resource is missing.
  */
-export function resolveLatestReportPath(mainRoot, specRoot = DEFAULT_FLOW_SPEC_DIR) {
+export function resolveLatestReportPath(mainRoot, specRoot = DEFAULT_FLOW_SPEC_DIR, flowManager = null) {
   const pointerPath = path.join(mainRoot, POINTER_REL_PATH);
   if (!fs.existsSync(pointerPath)) {
     throw reportShowError("NO_POINTER", `pointer not found: ${POINTER_REL_PATH} (run finalize first)`);
@@ -48,20 +45,29 @@ export function resolveLatestReportPath(mainRoot, specRoot = DEFAULT_FLOW_SPEC_D
   if (!specId) {
     throw reportShowError("EMPTY_POINTER", `pointer is empty: ${POINTER_REL_PATH}`);
   }
-  let reportPath;
+  let manager;
   try {
-    reportPath = new FlowSpecLocation({
-      repositoryRoot: mainRoot,
+    manager = flowManager ?? new FlowManager({
+      root: mainRoot,
+      mainRoot,
+      inWorktree: false,
       specRoot,
       specId,
-    }).artifact("report.json");
+    });
   } catch {
     throw reportShowError("INVALID_POINTER", `pointer has an invalid specId: ${specId}`);
   }
-  if (!fs.existsSync(reportPath)) {
-    throw reportShowError("NO_REPORT", `report.json not found at ${path.relative(mainRoot, reportPath)}`);
+  let resolved;
+  try {
+    resolved = manager.readArtifact({
+      specId,
+      logicalKey: "report",
+      consumerNodeId: "report",
+    });
+  } catch (error) {
+    throw reportShowError("NO_REPORT", `cataloged report is unavailable for ${specId}: ${error.message}`);
   }
-  return reportPath;
+  return manager.specLocation(specId).resolve(resolved.relativePath);
 }
 
 /**
@@ -85,7 +91,6 @@ export function readReportText(reportPath) {
   if (tests && (typeof tests !== "object" || !("projectRegression" in tests))) {
     throw reportShowError("NO_PROJECT_REGRESSION", `${path.basename(reportPath)} has test data without projectRegression`);
   }
-  if (tests) loadValidatedTestArtifacts(path.dirname(reportPath));
   return json.text;
 }
 
@@ -94,7 +99,11 @@ export default class RunReportShowCommand extends Command {
 
   async execute() {
     const mainRoot = this.container.get("mainRoot");
-    const reportPath = resolveLatestReportPath(mainRoot, this.container.get("flowSpecRoot"));
+    const reportPath = resolveLatestReportPath(
+      mainRoot,
+      this.container.get("flowSpecRoot"),
+      this.container.get("flowManager"),
+    );
     const text = readReportText(reportPath);
     process.stdout.write(text);
   }

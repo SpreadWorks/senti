@@ -8,7 +8,6 @@
 import crypto from "node:crypto";
 import fs from "fs";
 import path from "path";
-import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
 import { buildBoundedBroadModeHistory } from "../lib/task-scope.js";
@@ -640,17 +639,4 @@ function formatText(data) {
   }
 
   return lines.join("\n");
-}
-
-/**
- * Save report.json to the spec directory.
- * @param {string} root - project root
- * @param {string} specPath - relative spec path
- * @param {Object} reportData - { data, text }
- */
-export function saveReport(root, specPath, reportData) {
-  const specDir = path.dirname(path.resolve(root, specPath));
-  const reportPath = path.join(specDir, "report.json");
-  fs.mkdirSync(specDir, { recursive: true });
-  new AtomicJsonFile(reportPath).write(reportData);
 }

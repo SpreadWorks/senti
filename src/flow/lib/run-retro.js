@@ -8,32 +8,17 @@
  * and end_line. Performs no test execution.
  */
 
-import fs from "fs";
-import path from "path";
-import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
+import { normalizeRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateTestExecuteResultV2, validateTestResultReview } from "./test-artifacts.js";
-import {
-  assertRepairFingerprint,
-  buildRepairFingerprint,
-  ensureRepairFingerprintContract,
-  writeRepairEvidenceArtifact,
-} from "./impl-repair-artifacts.js";
+import { buildRepairFingerprint } from "./repair-fingerprint.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
-const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
-const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
-const RETRO_FILE = "retro.json";
-
-function readJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (err) {
-    throw new Error(`failed to read JSON at ${filePath}: ${err.message}`);
-  }
-}
+import {
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { attachCanonicalCommandResultPublications } from "./canonical-command-result.js";
 
 function aggregate(requirements, summary) {
   const summaryById = new Map();
@@ -81,146 +66,117 @@ function aggregate(requirements, summary) {
   };
 }
 
+function executeCanonicalRetro(ctx) {
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state: ctx.flowState });
+  const reviewArtifact = store.readCurrentAttempt({
+    logicalKey: "test.result.review",
+    consumerNodeId: "retro",
+    optional: true,
+  });
+  if (reviewArtifact === null) {
+    return Envelope.fail(
+      "run",
+      "retro",
+      "TEST_RESULT_REVIEW_MISSING",
+      "test-result-review canonical artifact is absent: test-result-review step has not been run",
+    );
+  }
+  const resultArtifact = store.readCurrentAttempt({
+    logicalKey: "test.execute",
+    consumerNodeId: "retro",
+    optional: true,
+  });
+  if (resultArtifact === null) {
+    return Envelope.fail(
+      "run",
+      "retro",
+      "TEST_EXECUTE_RESULT_MISSING",
+      "test-execute canonical artifact is absent: test-execute step has not been run",
+    );
+  }
+  const review = reviewArtifact.payload;
+  const result = resultArtifact.payload;
+  try {
+    validateTestResultReview(review);
+    validateTestExecuteResultV2(result);
+  } catch (error) {
+    return Envelope.fail("run", "retro", "TEST_ARTIFACT_INVALID", error.message);
+  }
+  const currentFingerprint = buildRepairFingerprint({
+    root: ctx.executionRoot || ctx.root,
+    artifactRoot: ctx.root,
+    specPath: store.location.relativeSpecFile,
+  });
+  const staleEvidence = StaleTestEvidenceMismatch.detect({
+    artifacts: new Map([
+      ["test-execute-result.json", result],
+      ["test-result-review.json", review],
+    ]),
+    currentFingerprint: currentFingerprint.hash,
+  });
+  if (staleEvidence !== null) {
+    ctx.flowManager.rewindTestEvidence({ specId: ctx.flowState.specId });
+    return {
+      result: "recovered",
+      changed: [],
+      artifacts: {
+        staleArtifacts: [...staleEvidence.artifactNames],
+        evidenceRefresh: {
+          recovered: true,
+          previousFingerprint: staleEvidence.previousFingerprint,
+          currentFingerprint: staleEvidence.currentFingerprint,
+          invalidatedArtifacts: [],
+          invalidations: [],
+          activeStep: "test-execute",
+        },
+      },
+      next: "test-execute",
+    };
+  }
+  if (review.verdict !== "pass") {
+    return Envelope.fail(
+      "run",
+      "retro",
+      "TEST_RESULT_REVIEW_NOT_PASSED",
+      "test-result-review canonical verdict is not pass; cannot aggregate untrusted results.",
+    );
+  }
+  const spec = store.readSpec("retro");
+  const requirements = normalizeRequirements(spec.requirements);
+  if (requirements.length === 0) {
+    return Envelope.fail("run", "retro", "NO_REQUIREMENTS", "no requirements found in canonical spec.json");
+  }
+  const retro = {
+    spec: store.location.relativeSpecFile,
+    date: new Date().toISOString(),
+    mode: "attempt-history",
+    ...aggregate(requirements, result.summary),
+  };
+  const retroPath = store.location.relativeArtifact("retro");
+  if (ctx.dryRun === true) {
+    return {
+      result: "dry-run",
+      artifacts: { spec: store.location.relativeSpecFile, retroPath, summary: retro.summary, requirements: retro.requirements },
+    };
+  }
+  return attachCanonicalCommandResultPublications({
+    result: "ok",
+    changed: [retroPath],
+    artifacts: {
+      spec: store.location.relativeSpecFile,
+      retroPath,
+      summary: retro.summary,
+      requirements: retro.requirements,
+      mode: "attempt-history",
+    },
+  }, [{ logicalKey: "retro", payload: retro }]);
+}
+
 export class RunRetroCommand extends FlowCommand {
   async execute(ctx) {
-    const { root } = ctx;
-    const executionRoot = ctx.executionRoot || root;
-    const dryRun = ctx.dryRun || false;
     const state = ctx.flowState;
-    const specPath = relativeFlowSpecFile(state);
-    const specDir = resolveSpecDir(path.resolve(root, specPath));
-    const retroPath = path.join(specDir, RETRO_FILE);
-
-    const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
-    const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
-
-    if (!fs.existsSync(reviewPath)) {
-      return Envelope.fail(
-        "run",
-        "retro",
-        "TEST_RESULT_REVIEW_MISSING",
-        `${TEST_RESULT_REVIEW_FILE} not found at ${path.relative(root, reviewPath)}: test-result-review step has not been run`,
-      );
-    }
-    if (!fs.existsSync(resultPath)) {
-      return Envelope.fail(
-        "run",
-        "retro",
-        "TEST_EXECUTE_RESULT_MISSING",
-        `${TEST_EXECUTE_RESULT_FILE} not found at ${path.relative(root, resultPath)}: test-execute step has not been run`,
-      );
-    }
-    ensureRepairFingerprintContract({
-      root: executionRoot,
-      artifactRoot: root,
-      state,
-      flowManager: ctx.flowManager,
-    });
-
-    const review = readJson(reviewPath);
-    if (review.verdict !== "pass") {
-      return Envelope.fail(
-        "run",
-        "retro",
-        "TEST_RESULT_REVIEW_NOT_PASSED",
-        `${TEST_RESULT_REVIEW_FILE} verdict is '${review.verdict}', expected 'pass'. Cannot aggregate untrusted results.`,
-      );
-    }
-
-    const result = readJson(resultPath);
-    const fingerprint = buildRepairFingerprint({
-      root: executionRoot,
-      artifactRoot: root,
-      specPath,
-      state,
-    });
-    const staleEvidence = StaleTestEvidenceMismatch.detect({
-      artifacts: new Map([
-        [TEST_EXECUTE_RESULT_FILE, result],
-        [TEST_RESULT_REVIEW_FILE, review],
-      ]),
-      currentFingerprint: fingerprint.hash,
-    });
-    if (staleEvidence) {
-      const refresh = staleEvidence.recoverFromCurrentAuthority({
-        root: executionRoot,
-        state,
-        specDir,
-        flowManager: ctx.flowManager,
-        reason: "retro detected stale fingerprint evidence after integration gate",
-        sourceStep: "retro",
-      });
-      return {
-        result: "recovered",
-        changed: [...refresh.invalidatedArtifacts],
-        artifacts: {
-          staleArtifacts: [...staleEvidence.artifactNames],
-          evidenceRefresh: refresh.toJSON(),
-        },
-        next: refresh.activeStep,
-      };
-    }
-    try {
-      validateTestResultReview(review);
-      validateTestExecuteResultV2(result);
-      assertRepairFingerprint({ artifact: review, fingerprint, label: TEST_RESULT_REVIEW_FILE });
-      assertRepairFingerprint({ artifact: result, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
-    } catch (err) {
-      return Envelope.fail(
-        "run",
-        "retro",
-        "TEST_ARTIFACT_INVALID",
-        err.message,
-      );
-    }
-
-    const specJson = loadSpecJson(path.resolve(root, specPath));
-    const requirements = normalizeRequirements(specJson.requirements);
-    if (requirements.length === 0) {
-      return Envelope.fail("run", "retro", "NO_REQUIREMENTS", `no requirements found in spec.json at ${specPath}`);
-    }
-
-    const aggregated = aggregate(requirements, result.summary);
-
-    const retro = {
-      spec: specPath,
-      date: new Date().toISOString(),
-      mode: "result-file",
-      ...aggregated,
-    };
-
-    if (dryRun) {
-      return {
-        result: "dry-run",
-        artifacts: {
-          spec: specPath,
-          retroPath: path.relative(root, retroPath),
-          summary: retro.summary,
-          requirements: retro.requirements,
-        },
-      };
-    }
-
-    fs.mkdirSync(specDir, { recursive: true });
-    const written = writeRepairEvidenceArtifact({
-      specDir,
-      stepId: "retro",
-      artifact: retro,
-      fingerprint,
-    });
-
-    return {
-      result: "ok",
-      changed: [path.relative(root, retroPath)],
-      artifacts: {
-        spec: specPath,
-        retroPath: path.relative(root, retroPath),
-        summary: retro.summary,
-        requirements: retro.requirements,
-        mode: "result-file",
-        repairFingerprint: written.artifact.repairFingerprint,
-      },
-    };
+    if (isCanonicalFlowState(state)) return executeCanonicalRetro(ctx);
+    throw new Error("retro requires a Version-1 Flow");
   }
 }
 

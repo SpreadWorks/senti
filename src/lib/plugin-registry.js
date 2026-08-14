@@ -1181,31 +1181,28 @@ function buildPluginApi() {
   };
 }
 
-function validateHookClass(HookClass, label, { persistedFailurePolicy = null } = {}) {
+function validateHookClass(HookClass, label) {
   if (typeof HookClass !== "function" || !HookClass.name) throw new Error(`plugin hook ${label} must return a named hook class`);
   if (!(HookClass.prototype instanceof FlowCommandHook)) throw new Error(`plugin hook ${label} must extend FlowCommandHook`);
   if (!FLOW_COMMANDS.has(HookClass.command)) throw new Error(`plugin hook ${label} has unknown command: ${HookClass.command}`);
   if (!FLOW_COMMAND_HOOKS.has(HookClass.hook)) throw new Error(`plugin hook ${label} has unknown hook: ${HookClass.hook}`);
   if (!Number.isInteger(Number(HookClass.priority || 0))) throw new Error(`plugin hook ${label} priority must be an integer`);
   return new FlowCommandHookFailurePolicy(
-    HookClass.failurePolicy ?? persistedFailurePolicy,
+    HookClass.failurePolicy,
     `plugin hook ${label} failure policy`,
   );
 }
 
-function normalizeHookSnapshot(snapshot) {
-  return snapshot.map((plan) => {
-    const failurePolicy = new FlowCommandHookFailurePolicy(
-      Object.hasOwn(plan, "failurePolicy") ? plan.failurePolicy : "required",
-      `snapshot hook ${plan.pluginId}/${plan.module} failure policy`,
-    );
-    return plan.failurePolicy === failurePolicy.value
-      ? plan
-      : { ...plan, failurePolicy: failurePolicy.value };
-  });
+function hookModuleCacheKey(modulePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(modulePath)).digest("hex");
 }
 
 export async function discoverFlowCommandHooks(root = repoRoot()) {
+  // Hooks are project configuration, never a hidden requirement of the
+  // Version Store.  A config-less in-memory/runtime fixture therefore has no
+  // installed plugins to discover; configured projects still re-resolve on
+  // every command so enable/disable changes take effect immediately.
+  if (!fs.existsSync(path.join(managedDir(root), "config.json"))) return [];
   const config = readProjectConfig(root);
   const enabledPackages = config.plugin.packages.filter((pkg) => pkg.enabled !== false);
   if (enabledPackages.length > MAX_ENABLED_PLUGIN_PACKAGES) throw new Error(`enabled plugin packages exceed ${MAX_ENABLED_PLUGIN_PACKAGES}`);
@@ -1219,7 +1216,8 @@ export async function discoverFlowCommandHooks(root = repoRoot()) {
     for (const file of files) {
       const rel = normalizeRel(`hooks/${file}`, "hook module");
       assertNoCoreInternalImports(root, pkg.id, pluginRoot, rel);
-      const mod = await new EsmModule(path.join(pluginRoot, rel)).import();
+      const modulePath = path.join(pluginRoot, rel);
+      const mod = await new EsmModule(modulePath, { cacheKey: hookModuleCacheKey(modulePath) }).import();
       if (typeof mod.default !== "function" || mod.default.name !== "register") throw new Error(`plugin hook ${pkg.id}/${rel} must export named default function register(api)`);
       const HookClass = mod.default(buildPluginApi());
       if (Array.isArray(HookClass)) throw new Error(`plugin hook ${pkg.id}/${rel} must return one hook class per file`);
@@ -1273,7 +1271,59 @@ function artifactRoot(root, pluginId, flow = {}, {
   return path.join(managedDir(artifactRepositoryRoot), "plugin-artifacts", pluginId);
 }
 
+export class FlowPluginArtifactCollection {
+  constructor(pluginId, { reader = null } = {}) {
+    this.pluginId = normalizeRel(pluginId, "plugin id");
+    if (this.pluginId.includes("/")) throw new Error("plugin id must be a single path segment");
+    if (reader !== null && typeof reader !== "function") throw new TypeError("plugin artifact reader must be a function");
+    this.reader = reader;
+    this.entries = new Map();
+  }
+  #key(relativePath) {
+    return `${this.pluginId}/${normalizeRel(relativePath, "plugin artifact path")}`;
+  }
+  async readJson(relativePath, fallback = null) {
+    const key = this.#key(relativePath);
+    const buffered = this.entries.get(key);
+    if (buffered !== undefined) return JSON.parse(buffered.bytes.toString("utf8"));
+    if (this.reader === null) return fallback;
+    const artifact = await this.reader({
+      logicalKey: "plugin.lifecycle.artifact",
+      parameters: { pluginArtifactPath: key },
+      optional: true,
+    });
+    if (artifact === null) return fallback;
+    const bytes = Buffer.isBuffer(artifact) ? artifact : artifact.bytes;
+    return JSON.parse(bytes.toString("utf8"));
+  }
+  writeJson(relativePath, value) {
+    this.#write(relativePath, "application/json", Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8"));
+  }
+  writeText(relativePath, value) {
+    this.#write(relativePath, "text/plain", Buffer.from(String(value), "utf8"));
+  }
+  #write(relativePath, mediaType, bytes) {
+    const key = this.#key(relativePath);
+    this.entries.set(key, Object.freeze({
+      logicalKey: "plugin.lifecycle.artifact",
+      parameters: Object.freeze({ pluginArtifactPath: key }),
+      mediaType,
+      bytes: Buffer.from(bytes),
+    }));
+  }
+  writes() {
+    return Object.freeze([...this.entries.values()]);
+  }
+}
+
 function artifactHelpers(root, pluginId, flow = {}, options = {}) {
+  if (options.collection instanceof FlowPluginArtifactCollection) {
+    return {
+      readJson: (relativePath, fallback = null) => options.collection.readJson(relativePath, fallback),
+      writeJson: async (relativePath, value) => options.collection.writeJson(relativePath, value),
+      writeText: async (relativePath, value) => options.collection.writeText(relativePath, value),
+    };
+  }
   const dir = artifactRoot(root, pluginId, flow, options);
   return {
     async readJson(rel, fallback = null) {
@@ -1302,6 +1352,7 @@ function buildPluginContext({
   result = {},
   requireSpecArtifacts = false,
   flowAttribution = "ambient",
+  artifactCollection = null,
 }) {
   const rootConfig = readProjectConfig(root);
   const pluginConfig = pluginConfigFor(root, pluginId);
@@ -1330,6 +1381,7 @@ function buildPluginContext({
     artifacts: artifactHelpers(root, pluginId, flow, {
       requireSpec: requireSpecArtifacts,
       artifactRepositoryRoot,
+      collection: artifactCollection,
     }),
     envelope: buildPluginApi().Envelope,
   };
@@ -1359,17 +1411,17 @@ export async function dispatchPluginCommand(root, commandName, args) {
   }
 }
 
-function snapshotPluginRoot(root, plan) {
+function configuredPluginRoot(root, plan) {
   const config = readProjectConfig(root);
   const pkg = config.plugin.packages.find((entry) => entry.id === plan.pluginId);
-  if (!pkg) throw new Error(`snapshot plugin missing: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
-  if (pkg.enabled === false) throw new Error(`snapshot plugin disabled: ${plan.pluginId}; re-enable the plugin package or re-prepare the flow`);
+  if (!pkg) throw new Error(`configured plugin missing: ${plan.pluginId}`);
+  if (pkg.enabled === false) throw new Error(`configured plugin disabled: ${plan.pluginId}`);
   const pluginRoot = path.join(managedDir(root), "plugins", plan.pluginId);
-  if (!fs.existsSync(pluginRoot)) throw new Error(`snapshot plugin removed: ${plan.pluginId}; restore the plugin package or re-prepare the flow`);
+  if (!fs.existsSync(pluginRoot)) throw new Error(`configured plugin package is absent: ${plan.pluginId}`);
   return pluginRoot;
 }
 
-function assertSnapshotMetadata(plan, HookClass) {
+function assertCurrentHookMetadata(plan, HookClass) {
   const comparisons = [
     ["className", plan.className, HookClass.name],
     ["command", plan.command, HookClass.command],
@@ -1378,28 +1430,26 @@ function assertSnapshotMetadata(plan, HookClass) {
   ];
   for (const [field, expected, actual] of comparisons) {
     if (expected !== actual) {
-      throw new Error(`plugin hook metadata mismatch for ${plan.pluginId}/${plan.module}: expected ${field} ${expected}, got ${actual}`);
+      throw new Error(`plugin hook changed between discovery and execution for ${plan.pluginId}/${plan.module}: expected ${field} ${expected}, got ${actual}`);
     }
   }
 }
 
 async function loadHookClass(root, plan) {
-  const pluginRoot = snapshotPluginRoot(root, plan);
+  const pluginRoot = configuredPluginRoot(root, plan);
   const rel = normalizeRel(plan.module, "hook module");
   const modulePath = path.join(pluginRoot, rel);
   if (!fs.existsSync(modulePath)) {
-    throw new Error(`snapshot hook module missing: ${plan.pluginId}/${rel}; restore the module or re-prepare the flow`);
+    throw new Error(`configured hook module is absent: ${plan.pluginId}/${rel}`);
   }
   assertNoCoreInternalImports(root, plan.pluginId, pluginRoot, rel);
-  const mod = await new EsmModule(modulePath, { cacheKey: Date.now() }).import();
+  const mod = await new EsmModule(modulePath, { cacheKey: hookModuleCacheKey(modulePath) }).import();
   if (typeof mod.default !== "function" || mod.default.name !== "register") {
     throw new Error(`plugin hook ${plan.pluginId}/${rel} must export named default function register(api)`);
   }
   const HookClass = mod.default(buildPluginApi());
-  validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`, {
-    persistedFailurePolicy: plan.failurePolicy,
-  });
-  assertSnapshotMetadata({ ...plan, module: rel }, HookClass);
+  validateHookClass(HookClass, `${plan.pluginId}/${plan.module}`);
+  assertCurrentHookMetadata({ ...plan, module: rel }, HookClass);
   return { HookClass, pluginRoot };
 }
 
@@ -1407,24 +1457,21 @@ function isEnvelopeLike(value) {
   return value && typeof value === "object" && typeof value.ok === "boolean" && Array.isArray(value.errors);
 }
 
-export async function runFlowCommandHooks(root, snapshot, {
+export async function runFlowCommandHooks(root, plans, {
   command,
   hook,
   flow = {},
   result = {},
   artifactRepositoryRoot = root,
+  artifactReader = null,
 } = {}) {
-  try {
-    snapshot = normalizeHookSnapshot(snapshot);
-  } catch (error) {
-    throw new FlowCommandHookIntegrityError(error);
-  }
   const warnings = [];
   const issueLogEntries = [];
   const hookData = [];
   const followUps = [];
+  const artifactCollections = new Map();
   let outcome = new FlowCommandHookExecutionOutcome({ kind: "success" });
-  for (const plan of snapshot.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
+  for (const plan of plans.filter((entry) => entry.command === command && entry.hook === hook).sort((a, b) => a.priority - b.priority)) {
     let loaded;
     try {
       loaded = await loadHookClass(root, plan);
@@ -1432,6 +1479,11 @@ export async function runFlowCommandHooks(root, snapshot, {
       throw new FlowCommandHookIntegrityError(error);
     }
     const { HookClass, pluginRoot } = loaded;
+    let artifactCollection = artifactCollections.get(plan.pluginId);
+    if (artifactCollection === undefined) {
+      artifactCollection = new FlowPluginArtifactCollection(plan.pluginId, { reader: artifactReader });
+      artifactCollections.set(plan.pluginId, artifactCollection);
+    }
     const context = buildPluginContext({
       root,
       artifactRepositoryRoot,
@@ -1440,6 +1492,7 @@ export async function runFlowCommandHooks(root, snapshot, {
       flow,
       result,
       requireSpecArtifacts: true,
+      artifactCollection,
     });
     try {
       const instance = new HookClass();
@@ -1466,30 +1519,41 @@ export async function runFlowCommandHooks(root, snapshot, {
       issueLogEntries.push({ pluginId: plan.pluginId, reason: `plugin hook ${command}.${hook} failed: ${err.message}`, payload: warning });
     }
   }
-  return { ok: true, outcome, warnings, issueLogEntries, hookData, followUps };
+  return {
+    ok: true,
+    outcome,
+    warnings,
+    issueLogEntries,
+    hookData,
+    followUps,
+    artifactWrites: Object.freeze([...artifactCollections.values()].flatMap((collection) => collection.writes())),
+  };
 }
 
-export async function runFlowCommandWithPluginLifecycle(root, snapshot, {
+export async function runFlowCommandWithPluginLifecycle(root, plans, {
   command,
   main,
   flow = {},
   artifactRepositoryRoot = root,
+  artifactReader = null,
 } = {}) {
-  const pre = await runFlowCommandHooks(root, snapshot, {
+  const pre = await runFlowCommandHooks(root, plans, {
     command,
     hook: "pre",
     flow,
     result: {},
     artifactRepositoryRoot,
+    artifactReader,
   });
   if (!pre.ok) return pluginLifecycleFailure(pre, null);
   const result = await main();
-  const post = await runFlowCommandHooks(root, snapshot, {
+  const post = await runFlowCommandHooks(root, plans, {
     command,
     hook: "post",
     flow,
     result,
     artifactRepositoryRoot,
+    artifactReader,
   });
   if (!post.ok) return pluginLifecycleFailure(post, result, pre);
   return composePluginLifecycleResult(result, pre, post, result?.ok !== false);
@@ -1507,6 +1571,7 @@ function composePluginLifecycleResult(result, pre, terminal, ok) {
       ...(result?.data || {}),
       pluginHooks: [...(pre?.hookData || []), ...terminal.hookData],
       followUps: [...(pre?.followUps || []), ...terminal.followUps],
+      pluginArtifactWrites: [...(pre?.artifactWrites || []), ...(terminal.artifactWrites || [])],
     },
     warnings: [...(pre?.warnings || []), ...terminal.warnings],
     issueLogEntries: [...(pre?.issueLogEntries || []), ...terminal.issueLogEntries],

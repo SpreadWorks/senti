@@ -5,14 +5,12 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
-import path from "path";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 const FLOW_CMD = join(process.cwd(), "src/sennel.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
@@ -52,26 +50,27 @@ describe("flow set issue-log", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = {
-      specId: specId,
+    const manager = makeFlowManager(dir);
+    new CanonicalFlowFixture({
+      flowManager: manager,
+      specId,
       runId: `run-${specId}`,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
+      request: "Record a durable issue-log fact through the canonical Store.",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+      specRecord: { requirements: [] },
+    }).create().activate("draft").registerActive();
     return specId;
   }
 
-  it("creates issue-log.json in specs/<spec>/ directory", () => {
+  function issueLogPath(dir, specId) {
+    return makeFlowManager(dir).specLocation(specId).issueLogFile;
+  }
+
+  it("creates cataloged issue-log.json in the canonical Version directory", () => {
     tmp = createTmpDir();
     const specId = setupFlowState(tmp);
     runSetIssueLog(tmp, ["--step", "draft", "--reason", REASON_A]);
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     assert.ok(fs.existsSync(logPath), "issue-log.json should exist");
     const issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     assert.equal(issueLog.entries.length, 1);
@@ -84,7 +83,7 @@ describe("flow set issue-log", () => {
     const specId = setupFlowState(tmp);
     runSetIssueLog(tmp, ["--step", "draft", "--reason", REASON_B]);
     runSetIssueLog(tmp, ["--step", "spec", "--reason", REASON_C]);
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     const issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     assert.equal(issueLog.entries.length, 2);
   });
@@ -111,7 +110,7 @@ describe("flow set issue-log", () => {
       "--resolution", RESOLUTION_E,
       "--guardrail-candidate", GUARDRAIL_E,
     ]);
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     const issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     const entry = issueLog.entries[0];
     assert.equal(entry.trigger, TRIGGER_E);
@@ -137,7 +136,7 @@ describe("flow set issue-log", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     runSetIssueLog(tmp, ["--step", "draft", "--reason", REASON_A]);
-    const flowPath = path.join(tmp, "specs", "001-test", "flow.json");
+    const flowPath = makeFlowManager(tmp).pathFor("001-test");
     const flow = JSON.parse(fs.readFileSync(flowPath, "utf8"));
     assert.equal(flow.issueLog, undefined, "issueLog should not be in flow.json");
   });
@@ -148,7 +147,7 @@ describe("flow set issue-log", () => {
     tmp = createTmpDir();
     const specId = setupFlowState(tmp);
     expectValidationError(tmp, ["--step", "draft", "--reason", "first"], "INVALID_REASON");
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     assert.ok(!fs.existsSync(logPath), "issue-log.json must not be created on validation failure");
   });
 
@@ -156,7 +155,7 @@ describe("flow set issue-log", () => {
     tmp = createTmpDir();
     const specId = setupFlowState(tmp);
     expectValidationError(tmp, ["--step", "draft", "--reason", "    wrong scope     "], "INVALID_REASON");
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     assert.ok(!fs.existsSync(logPath));
   });
 
@@ -166,7 +165,7 @@ describe("flow set issue-log", () => {
     const twenty = "a".repeat(20);
     assert.equal(twenty.length, 20);
     runSetIssueLog(tmp, ["--step", "draft", "--reason", twenty]);
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     const issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     assert.equal(issueLog.entries[0].reason, twenty);
   });
@@ -178,7 +177,7 @@ describe("flow set issue-log", () => {
       ["--step", "draft", "--reason", REASON_A, "--trigger", "short"],
       "INVALID_FIELD",
     );
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     assert.ok(!fs.existsSync(logPath));
   });
 
@@ -212,7 +211,7 @@ describe("flow set issue-log", () => {
       "--resolution", ten,
       "--guardrail-candidate", ten,
     ]);
-    const logPath = path.join(tmp, "specs", specId, "issue-log.json");
+    const logPath = issueLogPath(tmp, specId);
     const issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     assert.equal(issueLog.entries[0].trigger, ten);
   });

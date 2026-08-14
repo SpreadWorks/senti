@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderTaskMarkdown, renderSpecMarkdown, runSpecRender } from "../../../src/spec/commands/render.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { makeContainer, makeFlowState } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeContainer } from "../../helpers/flow-setup.js";
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -133,34 +133,29 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
     after(() => { removeTmpDir(tmp); });
 
     it("render is additive-only (orphan md files are not deleted)", async () => {
-      // Set up spec directory with spec.json containing one task
-      const specDir = path.join(tmp, "specs", "001-test");
-      fs.mkdirSync(specDir, { recursive: true });
-
-      const specJson = minSpec([
-        sampleTask({ id: "T-1", title: "First task" }),
-      ]);
-      fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson));
-
-      // Pre-create tasks/ with an orphan file that does not correspond to any task
-      const tasksDir = path.join(specDir, "tasks");
-      fs.mkdirSync(tasksDir, { recursive: true });
-      fs.writeFileSync(path.join(tasksDir, "T-old.md"), "# orphan content\n");
-
-      // Set up container with flowManager and root
+      // Build the authoritative Spec and Task through the V1 Store.  The
+      // renderer must resolve this active Flow's `001` location, never a
+      // guessed root-level spec directory.
       const container = makeContainer(tmp);
       container.register("root", tmp);
       const fm = container.get("flowManager");
-      fm.create(makeFlowState({
+      const fixture = new CanonicalFlowFixture({
+        flowManager: fm,
         specId: "001-test",
         runId: "run-001-test",
-        baseBranch: "main",
-        featureBranch: "feature/001-test",
-        tasks: [{ id: "T-default", title: "x", goal: "g", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-        currentTaskId: null,
-      }));
+        request: "Render canonical Task markdown.",
+        execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+        specRecord: minSpec(),
+      }).create().addTask(sampleTask({ id: "T-1", title: "First task" })).registerActive();
+      const specDir = fixture.location().directory;
 
-      await runSpecRender(["--spec", specDir], container);
+      // Rendered Markdown is transient beneath .runtime, so an additive
+      // orphan cannot pollute the cataloged Version authority.
+      const tasksDir = path.join(specDir, ".runtime", "spec-render", "tasks");
+      fs.mkdirSync(tasksDir, { recursive: true });
+      fs.writeFileSync(path.join(tasksDir, "T-old.md"), "# orphan content\n");
+
+      await runSpecRender([], container);
 
       // T-1.md should have been rendered
       assert.ok(
@@ -178,34 +173,28 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
         "# orphan content\n",
         "orphan file content was modified",
       );
+      assert.doesNotThrow(() => fm.loadReadOnly("001-test"), "rendered Markdown must stay outside the catalog authority");
+      assert.equal(fs.existsSync(path.join(specDir, "spec.md")), false, "derived spec.md must not be retained in the Version root");
     });
 
     it("render creates tasks/ directory if not exists", async () => {
-      // Set up a fresh spec directory WITHOUT a tasks/ subdirectory
-      const specDir = path.join(tmp, "specs", "002-fresh");
-      fs.mkdirSync(specDir, { recursive: true });
-
-      const specJson = minSpec([
-        sampleTask({ id: "T-A", title: "New task" }),
-      ]);
-      fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson));
-
-      const tasksDir = path.join(specDir, "tasks");
-      // Confirm tasks/ does not exist yet
-      assert.ok(!fs.existsSync(tasksDir), "tasks/ should not exist before render");
-
-      // Set up container with root
+      // An explicit `--spec` is still supported, but must name a Version-1
+      // Spec authority rather than a root-level legacy directory.
       const container2 = makeContainer(tmp);
       container2.register("root", tmp);
       const fm2 = container2.get("flowManager");
-      fm2.create(makeFlowState({
+      const fixture = new CanonicalFlowFixture({
+        flowManager: fm2,
         specId: "002-fresh",
         runId: "run-002-fresh",
-        baseBranch: "main",
-        featureBranch: "feature/002-fresh",
-        tasks: [{ id: "T-default", title: "x", goal: "g", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-        currentTaskId: null,
-      }));
+        request: "Render a new canonical Task markdown document.",
+        execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+        specRecord: minSpec(),
+      }).create().addTask(sampleTask({ id: "T-A", title: "New task" }));
+      const specDir = fixture.location().directory;
+      const tasksDir = path.join(specDir, ".runtime", "spec-render", "tasks");
+      // Confirm tasks/ does not exist yet
+      assert.ok(!fs.existsSync(tasksDir), "tasks/ should not exist before render");
 
       await runSpecRender(["--spec", specDir], container2);
 
@@ -219,6 +208,7 @@ describe("T-3: spec render generates tasks/<id>.md", () => {
         fs.existsSync(path.join(tasksDir, "T-A.md")),
         "T-A.md was not created inside tasks/",
       );
+      assert.doesNotThrow(() => fm2.loadReadOnly("002-fresh"));
     });
   });
 });

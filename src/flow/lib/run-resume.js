@@ -9,7 +9,11 @@ import { buildResolvedFlowContext } from "./resolve-context-envelope.js";
 
 export default class RunResumeCommand extends FlowCommand {
   constructor() {
-    super({ requiresFlow: false });
+    super({
+      requiresFlow: false,
+      explicitTargetResolution: true,
+      specOptionAsTarget: true,
+    });
   }
 
   execute(ctx) {

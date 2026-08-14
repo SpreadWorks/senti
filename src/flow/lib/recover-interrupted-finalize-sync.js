@@ -2,9 +2,8 @@ import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lo
 import { runtimeLogFileForContext } from "../../lib/runtime-log.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
-import { FlowOutbox, finalizationOutboxIdentity } from "./flow-outbox.js";
+import { FlowOutboxStore, finalizationOutboxIdentity } from "./flow-outbox.js";
 import { FinalizeSyncInterruptedError } from "./finalize-sync-diagnostics.js";
-import { finalizeOnError } from "./run-finalize.js";
 import { findStepById } from "./step-tree.js";
 
 function incompleteRuntimeLog(root, state) {
@@ -37,10 +36,10 @@ export function recoverInterruptedFinalizeSync(ctx) {
   const localState = ctx.flowState;
   const localSyncStep = findStepById(localState?.steps || [], "finalize-sync");
   if (localSyncStep?.status !== "in_progress") return { recovered: false, busy: false };
-  const localIdentity = finalizationOutboxIdentity(localState, "finalize-sync");
-  const localEntry = new FlowOutbox(localState.outbox || []).find(localIdentity);
-  if (localEntry?.status !== "pending") return { recovered: false, busy: false };
   if (typeof ctx.flowManager?.forRoot !== "function") return { recovered: false, busy: false };
+  const localIdentity = finalizationOutboxIdentity(localState, "finalize-sync");
+  const localEntry = new FlowOutboxStore(ctx.flowManager, { specId: localState.specId }).status(localIdentity);
+  if (localEntry?.status !== "pending") return { recovered: false, busy: false };
 
   const stateOwner = FinalizeFlowStateOwner.forMainContext(ctx);
   const state = stateOwner.loadReadOnly();
@@ -48,7 +47,7 @@ export function recoverInterruptedFinalizeSync(ctx) {
   const syncStep = findStepById(state.steps || [], "finalize-sync");
   if (syncStep?.status !== "in_progress") return { recovered: false, busy: false };
   const identity = finalizationOutboxIdentity(state, "finalize-sync");
-  const entry = new FlowOutbox(state.outbox || []).find(identity);
+  const entry = stateOwner.outbox().status(identity);
   if (entry?.status !== "pending") return { recovered: false, busy: false };
 
   const operation = new RepositoryFlowOperationLock({ mainRoot: stateOwner.mainRepoPath });
@@ -78,12 +77,31 @@ export function recoverInterruptedFinalizeSync(ctx) {
   } finally {
     operation.release();
   }
-  finalizeOnError("finalize-sync", "interrupted")({
-    ...ctx,
-    root: stateOwner.authorityRoot,
-    flowManager: stateOwner.flowManager,
-    flowState: stateOwner.loadReadOnly(),
-    specId: stateOwner.specId,
-  }, interruption);
+  // The skipped leaf no longer owns a producer Activity, so its issue-log
+  // evidence must be appended only after next-action claims finalize-cleanup.
+  // The caller performs that second, ordered half of recovery; attempting it
+  // here would leave a non-authoritative direct issue-log writer.
   return { recovered: true, busy: false, stateOwner, interruption };
+}
+
+/**
+ * Claim cleanup with the interrupted-sync audit in its same Store Activity.
+ * The cleanup Attempt owns the issue-log publication, so a crash cannot leave
+ * recovery state without its cataloged explanation.
+ */
+export function recordInterruptedFinalizeSyncIssue(ctx, recovery) {
+  if (!recovery?.recovered || !recovery.interruption) return;
+  const state = recovery.stateOwner.loadReadOnly();
+  const runtimeLog = recovery.interruption.data?.runtimeLog;
+  recovery.stateOwner.flowManager.beginInterruptedFinalizeSyncCleanup({
+    specId: recovery.stateOwner.specId,
+    entry: {
+      step: "finalize-sync",
+      reason: recovery.interruption.message,
+      trigger: "interrupted",
+      timestamp: new Date().toISOString(),
+      ...(runtimeLog ? { runtimeLog } : {}),
+    },
+    idempotencyKey: `interrupted-finalize-sync-${state.runId}-${runtimeLog?.sequence ?? "unknown"}`,
+  });
 }

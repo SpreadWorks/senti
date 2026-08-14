@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { join } from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { spawnSync } from "child_process";
-import { setupFlowAtStep } from "../../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
 
 const SENNEL = join(process.cwd(), "src/sennel.js");
@@ -51,32 +51,33 @@ describe("gate guardrail integration", () => {
     tmp = createTmpDir();
     initGitRepo(tmp);
     commitAll(tmp, "init");
-    setupFlowAtStep(tmp, "spec-gate");
+    const fixture = new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
+      specRecord: { ...validSpec, tasks: [] },
+    }).create().addTasks(validSpec.tasks).registerActive().activate("spec-gate");
     writeJson(tmp, ".sennel/config.json", config || {
       lang: "en", type: "base",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
-    writeJson(tmp, "spec.json", validSpec);
     if (guardrails) {
       writeJson(tmp, ".sennel/guardrail.json", { guardrails });
     }
-    return tmp;
+    return { root: tmp, fixture };
   }
 
-  function runGate(dir, { phase = "spec", extraArgs = [] } = {}) {
+  function runGate({ root, fixture }, { phase = "spec", extraArgs = [] } = {}) {
     // Explicit `phase` is required under the post-spec-221 contract: when no
-    // gate-type step is in_progress in the flow state (the test fixture only
-    // uses `setupFlow` which leaves every step pending), the gate command
+    // gate-type step is in_progress in the flow state, the gate command
     // errors out unless --phase is passed. The helper centralizes the flag so
     // callers cannot accidentally pass a conflicting --phase via extraArgs.
     return spawnSync("node", [
       SENNEL, "flow", "run", "gate",
       "--phase", phase,
-      "--spec", join(dir, "spec.json"),
+      "--spec", fixture.location().specFile,
       ...extraArgs,
     ], {
       encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: dir },
+      env: { ...process.env, SENNEL_WORK_ROOT: root },
     });
   }
 
@@ -88,13 +89,13 @@ describe("gate guardrail integration", () => {
   }
 
   it("fails closed when no evaluation agent is configured", () => {
-    createGateFixture();
-    const envelope = parseGateResult(runGate(tmp));
+    const fixture = createGateFixture();
+    const envelope = parseGateResult(runGate(fixture));
     assert.equal(envelope.data.artifacts.failureCode, "GATE_REQUIRED_AGENT_UNSET");
   });
 
   it("fails closed with configured guardrails but no evaluation agent", () => {
-    createGateFixture({
+    const fixture = createGateFixture({
       guardrails: [
         {
           id: "no-external-deps",
@@ -104,12 +105,12 @@ describe("gate guardrail integration", () => {
         },
       ],
     });
-    const envelope = parseGateResult(runGate(tmp));
+    const envelope = parseGateResult(runGate(fixture));
     assert.equal(envelope.data.artifacts.failureCode, "GATE_REQUIRED_AGENT_UNSET");
   });
 
   it("rejects --skip-guardrail as a public CLI option", () => {
-    createGateFixture({
+    const fixture = createGateFixture({
       config: {
         lang: "en", type: "base",
         docs: { languages: ["en"], defaultLanguage: "en" },
@@ -124,7 +125,7 @@ describe("gate guardrail integration", () => {
         },
       ],
     });
-    const result = runGate(tmp, { extraArgs: ["--skip-guardrail"] });
+    const result = runGate(fixture, { extraArgs: ["--skip-guardrail"] });
     assert.notEqual(result.status, 0);
     assert.match(`${result.stdout}\n${result.stderr}`, /unknown option.*--skip-guardrail/i);
   });

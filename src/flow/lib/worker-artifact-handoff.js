@@ -5,43 +5,37 @@ import path from "node:path";
 
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { PRODUCT } from "../../lib/product.js";
-import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { validateSpecJsonObject } from "../../lib/spec-json.js";
+import { CanonicalWorkerSpecPublication } from "./current-flow-state.js";
 import {
   captureRegularFile,
   sameFileIdentity,
 } from "../../lib/regular-file-snapshot.js";
-import { DraftArtifactRevision } from "./draft-artifact-promotion.js";
-import {
-  DraftReviewArtifactFile,
-  DraftReviewEvidenceSet,
-} from "./draft-review-artifacts.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
 import { findActiveNode, getFlowNode } from "../definition.js";
 import { findStepById } from "./step-tree.js";
-import {
-  NormalStepTransition,
-  StepTransitionCommitIntent,
-} from "./step-transition-policy.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { SpecTestBootstrapValidator } from "./spec-test-bootstrap-validator.js";
 import {
   validateSpecRepairDocument,
   validateSpecTriageDocument,
 } from "./spec-review-artifacts.js";
-import { WorkerArtifactRevision } from "./worker-artifact-revision.js";
 import { requiresWorkerArtifactHandoff } from "./flow-artifact-authority.js";
-import { PlanGateRepairRecord } from "./plan-gate-repair.js";
-import {
-  TestReviewRepairCompletion,
-  TestReviewRepairRecord,
-} from "./test-review-repair.js";
+import { canonicalPlanGateRepairForTarget } from "./plan-gate-repair.js";
+import { canonicalTestReviewRepairForTarget } from "./test-review-repair.js";
 import { DraftWorkerContextSnapshot } from "./worker-context-snapshot.js";
+import {
+  CanonicalWorkerArtifactAddress,
+  CanonicalWorkerTestTree,
+  mediaTypeForPath,
+} from "./canonical-worker-artifacts.js";
+import {
+  CanonicalDraftReviewHandoffArtifact,
+  CanonicalDraftReviewHandoffEvidence,
+} from "./canonical-review-artifacts.js";
 
 export const WORKER_ARTIFACT_HANDOFF_REQUEST_ENV = PRODUCT.env("FLOW_HANDOFF_REQUEST");
 export const WORKER_ARTIFACT_HANDOFF_VERSION = 2;
-export const WORKER_ARTIFACT_HANDOFF_ROOT = PRODUCT.managedPath("handoffs");
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_INPUT_BYTES = 2 * 1024 * 1024;
@@ -54,7 +48,7 @@ const MAX_AUTHORITY_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
 const MAX_AUTHORITY_DIRTY_PATHS = 20_000;
 const MAX_AUTHORITY_FILE_BYTES = 64 * 1024 * 1024;
 const MAX_AUTHORITY_TOTAL_FILE_BYTES = 256 * 1024 * 1024;
-const WORKER_RUNTIME_DIRECTORIES = new Set(["agent-cache", "agent-work", "handoffs"]);
+const WORKER_RUNTIME_DIRECTORIES = new Set(["agent-cache", "agent-work"]);
 const AUTHORITY_ENTRY_KINDS = new Set(["missing", "symlink", "directory", "file", "other"]);
 const SPEC_TEST_FILE = /\.(?:js|mjs|ts|json|md|ya?ml|txt|sh)$/;
 const COMMAND_OWNED_SPEC_TEST_DIRECTORY = ".raw";
@@ -126,15 +120,6 @@ function readRegularFile(filePath, label, maxBytes = MAX_PAYLOAD_BYTES) {
   }
 }
 
-function readOptionalSnapshot(filePath, label, maxBytes = MAX_PAYLOAD_BYTES) {
-  try {
-    return readRegularFile(filePath, label, maxBytes);
-  } catch (error) {
-    if (error.classification === "missing") return null;
-    throw error;
-  }
-}
-
 function normalizedRelativePath(value, field) {
   const relative = requiredString(value, field).replaceAll("\\", "/");
   if (
@@ -200,20 +185,6 @@ function ensureRealDirectory(directory, boundary) {
       `worker artifact directory authority is invalid: ${cause.message}`,
       { cause, data: { directory: resolved, boundary: stop } },
     );
-  }
-}
-
-function removeEmptyParents(directory, stop) {
-  let current = path.resolve(directory);
-  const boundary = path.resolve(stop);
-  while (current !== boundary && isWithin(boundary, current)) {
-    try {
-      fs.rmdirSync(current);
-    } catch (error) {
-      if (["ENOTEMPTY", "ENOENT"].includes(error.code)) return;
-      throw error;
-    }
-    current = path.dirname(current);
   }
 }
 
@@ -321,11 +292,9 @@ export class WorkerArtifactInputContract {
     Object.freeze(this);
   }
 
-  resolve(state) {
-    const testReviewRepair = TestReviewRepairRecord.forTarget(state, this.stepId);
+  resolve({ planGateRepair = null, testReviewRepair = null } = {}) {
     if (testReviewRepair) return this.testReviewRepairInputs;
-    const repair = PlanGateRepairRecord.forTarget(state, this.stepId);
-    return repair ? (this.repairInputs[repair.phase] || this.inputs) : this.inputs;
+    return planGateRepair ? (this.repairInputs[planGateRepair.phase] || this.inputs) : this.inputs;
   }
 
   accepts(paths) {
@@ -638,32 +607,57 @@ function manifestDigest(entries) {
   }))));
 }
 
-function treeSnapshot(directory) {
-  const entries = scanTree(directory, {
-    allowMissing: true,
-    label: "canonical spec-test tree",
-    commandOwnedEvidence: "exclude",
-  })
-    .map(({ relativePath, snapshot }) => ({
-      targetRelativePath: path.posix.join("tests", relativePath),
-      digest: snapshot.digest,
-      byteLength: snapshot.byteLength,
-    }));
+/**
+ * Resolve a stable worker protocol filename through the Version Store.
+ * `workerPath` remains part of the agent handoff contract; it is never a
+ * filesystem authority.  The Store verifies catalog hash and consumer
+ * ownership before this boundary parses the established JSON document.
+ */
+function canonicalHandoffInputSnapshot({ flowManager, state, workerPath, consumerNodeId, label }) {
+  const address = CanonicalWorkerArtifactAddress.from(workerPath);
+  const input = address.read({
+    flowManager,
+    specId: state.specId,
+    consumerNodeId,
+  });
   return Object.freeze({
-    entries: Object.freeze(entries.map((entry) => Object.freeze(entry))),
-    digest: digest(stableStringify(entries)),
-    byteLength: entries.reduce((sum, entry) => sum + entry.byteLength, 0),
+    document: input.jsonDocument(label),
+    snapshot: input.snapshot(),
   });
 }
 
-function specDirectory(mainRoot, state) {
-  return path.dirname(path.resolve(mainRoot, relativeFlowSpecFile(state)));
+function canonicalIssueSnapshotText({ flowManager, state }) {
+  if (state.issue == null) return null;
+  return CanonicalWorkerArtifactAddress.from("issue.md").read({
+    flowManager,
+    specId: state.specId,
+    consumerNodeId: "draft",
+  }).text("linked Issue context");
 }
 
-function handoffActionDirectory(executionRoot, runId, dispatchInvocationId, actionDigest) {
+function canonicalPayloadBaseline({ flowManager, state, rule }) {
+  if (rule.kind === "tree") {
+    const snapshot = CanonicalWorkerTestTree.catalogSnapshot({ flowManager, specId: state.specId });
+    return Object.freeze({
+      digest: digest(stableStringify(snapshot.entries)),
+      byteLength: snapshot.entries.reduce((total, entry) => total + entry.byteLength, 0),
+      entries: snapshot.entries,
+    });
+  }
+  return CanonicalWorkerArtifactAddress.from(rule.targetRelativePath)
+    .catalogSnapshot({ flowManager, specId: state.specId });
+}
+
+function canonicalHandoffRoot(canonicalLocation) {
+  if (!canonicalLocation || typeof canonicalLocation.directory !== "string" || !path.isAbsolute(canonicalLocation.directory)) {
+    throw new Error("canonical worker handoff requires a Version Store location");
+  }
+  return path.resolve(canonicalLocation.directory, ".runtime", "worker-handoffs");
+}
+
+function handoffActionDirectory(handoffRoot, runId, dispatchInvocationId, actionDigest) {
   return path.resolve(
-    executionRoot,
-    WORKER_ARTIFACT_HANDOFF_ROOT,
+    handoffRoot,
     digest(runId).slice(0, 24),
     digest(dispatchInvocationId).slice(0, 24),
     actionDigest,
@@ -689,6 +683,40 @@ function isWorkerRuntimePath(relativePath) {
     ) return true;
   }
   return false;
+}
+
+/**
+ * Resolve the one worker-owned runtime subtree relative to a repository
+ * authority root.  Version-1 handoffs live below the Flow Version's
+ * `.runtime/`, so treating every `.runtime` directory as disposable would
+ * let one worker hide a mutation to another Flow.  Only this exact guarded
+ * handoff directory is excluded from the repository snapshot.
+ */
+function authorityIgnoredDirectories(directories = []) {
+  if (!Array.isArray(directories)) throw new Error("worker authority ignored directories must be an array");
+  const normalized = directories.flatMap((directory) => {
+    if (typeof directory !== "string" || directory === "") {
+      throw authoritySnapshotError("worker authority ignored directory is invalid");
+    }
+    const relativePath = directory.split(path.sep).join("/");
+    if (
+      path.posix.isAbsolute(relativePath)
+      ||
+      path.posix.normalize(relativePath) !== relativePath
+      || relativePath.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
+    ) {
+      throw authoritySnapshotError("worker authority ignored directory escapes its repository");
+    }
+    return [relativePath];
+  });
+  return Object.freeze([...new Set(normalized)].sort((left, right) => left.localeCompare(right)));
+}
+
+function isIgnoredAuthorityPath(relativePath, ignoredDirectories) {
+  if (isWorkerRuntimePath(relativePath)) return true;
+  return ignoredDirectories.some((directory) => (
+    relativePath === directory || relativePath.startsWith(`${directory}/`)
+  ));
 }
 
 function boundedGitOutput(root, args, label) {
@@ -864,7 +892,7 @@ function authorityFileEntry(root, relativePath, budget) {
   });
 }
 
-function filteredIndexDigest(bytes) {
+function filteredIndexDigest(bytes, ignoredDirectories) {
   const hash = crypto.createHash("sha256");
   for (const record of bytes.toString("utf8").split("\u0000").filter(Boolean)) {
     const separator = record.indexOf("\t");
@@ -872,15 +900,16 @@ function filteredIndexDigest(bytes) {
       throw authoritySnapshotError("worker artifact authority received malformed Git index data");
     }
     const relativePath = record.slice(separator + 1);
-    if (!isWorkerRuntimePath(relativePath)) hash.update(record).update("\u0000");
+    if (!isIgnoredAuthorityPath(relativePath, ignoredDirectories)) hash.update(record).update("\u0000");
   }
   return hash.digest("hex");
 }
 
-function gitAuthoritySnapshot(root) {
+function gitAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
   const head = boundedGitOutput(root, ["rev-parse", "HEAD"], "Git HEAD").toString("utf8").trim();
   const indexDigest = filteredIndexDigest(
     boundedGitOutput(root, ["ls-files", "--stage", "-z"], "Git index"),
+    ignoredDirectories,
   );
   const tracked = nullSeparatedPaths(
     boundedGitOutput(
@@ -899,7 +928,7 @@ function gitAuthoritySnapshot(root) {
     "untracked path set",
   );
   const paths = [...new Set([...tracked, ...untracked])]
-    .filter((relativePath) => !isWorkerRuntimePath(relativePath))
+    .filter((relativePath) => !isIgnoredAuthorityPath(relativePath, ignoredDirectories))
     .sort((left, right) => left.localeCompare(right));
   if (paths.length > MAX_AUTHORITY_DIRTY_PATHS) {
     throw authoritySnapshotError(
@@ -915,7 +944,7 @@ function gitAuthoritySnapshot(root) {
   };
 }
 
-function filesystemAuthoritySnapshot(root) {
+function filesystemAuthoritySnapshot(root, { ignoredDirectories = [] } = {}) {
   const relativePaths = [];
   const directories = [path.resolve(root)];
   while (directories.length > 0) {
@@ -926,7 +955,7 @@ function filesystemAuthoritySnapshot(root) {
       while ((entry = handle.readSync()) != null) {
         const absolutePath = path.join(directoryPath, entry.name);
         const relativePath = path.relative(root, absolutePath).split(path.sep).join("/");
-        if (isWorkerRuntimePath(relativePath)) continue;
+        if (isIgnoredAuthorityPath(relativePath, ignoredDirectories)) continue;
         relativePaths.push(relativePath);
         if (relativePaths.length > MAX_AUTHORITY_DIRTY_PATHS) {
           throw authoritySnapshotError(
@@ -951,12 +980,13 @@ function filesystemAuthoritySnapshot(root) {
 }
 
 export class WorkerArtifactRepositoryMutationSnapshot {
-  constructor({ root, authorities, mode, head, indexDigest, entries }) {
+  constructor({ root, authorities, ignoredDirectories = [], mode, head, indexDigest, entries }) {
     this.root = path.resolve(root);
     this.authorities = Object.freeze(authorities.map((entry) => requiredString(
       entry,
       "worker artifact repository authority",
     )));
+    this.ignoredDirectories = authorityIgnoredDirectories(ignoredDirectories);
     if (!new Set(["git", "filesystem"]).has(mode)) {
       throw new Error(`invalid worker artifact repository snapshot mode: ${mode}`);
     }
@@ -977,12 +1007,18 @@ export class WorkerArtifactRepositoryMutationSnapshot {
     Object.freeze(this);
   }
 
-  static capture({ root, authorities }) {
+  static capture({ root, authorities, ignoredDirectories = [] }) {
     try {
+      const ignored = authorityIgnoredDirectories(ignoredDirectories);
       const snapshot = exactGitRoot(root)
-        ? gitAuthoritySnapshot(root)
-        : filesystemAuthoritySnapshot(root);
-      return new WorkerArtifactRepositoryMutationSnapshot({ root, authorities, ...snapshot });
+        ? gitAuthoritySnapshot(root, { ignoredDirectories: ignored })
+        : filesystemAuthoritySnapshot(root, { ignoredDirectories: ignored });
+      return new WorkerArtifactRepositoryMutationSnapshot({
+        root,
+        authorities,
+        ignoredDirectories: ignored,
+        ...snapshot,
+      });
     } catch (cause) {
       if (cause instanceof WorkerArtifactHandoffError) throw cause;
       throw authoritySnapshotError(
@@ -1024,8 +1060,17 @@ export class WorkerArtifactMutationAuthoritySnapshot {
         ["canonical", request.mainRoot],
       ]) {
         const resolved = fs.realpathSync(path.resolve(root));
-        const existing = roots.get(resolved) || [];
-        existing.push(authority);
+        const existing = roots.get(resolved) || { authorities: [], ignoredDirectories: [] };
+        existing.authorities.push(authority);
+        const relativeHandoff = path.relative(resolved, path.resolve(request.directory))
+          .split(path.sep)
+          .join("/");
+        if (
+          relativeHandoff !== ""
+          && relativeHandoff !== ".."
+          && !relativeHandoff.startsWith("../")
+          && !path.posix.isAbsolute(relativeHandoff)
+        ) existing.ignoredDirectories.push(relativeHandoff);
         roots.set(resolved, existing);
       }
     } catch (cause) {
@@ -1036,8 +1081,12 @@ export class WorkerArtifactMutationAuthoritySnapshot {
     }
     return new WorkerArtifactMutationAuthoritySnapshot({
       specId: request.specId,
-      repositories: [...roots].map(([root, authorities]) => (
-        WorkerArtifactRepositoryMutationSnapshot.capture({ root, authorities })
+      repositories: [...roots].map(([root, scope]) => (
+        WorkerArtifactRepositoryMutationSnapshot.capture({
+          root,
+          authorities: scope.authorities,
+          ignoredDirectories: scope.ignoredDirectories,
+        })
       )),
     });
   }
@@ -1047,6 +1096,7 @@ export class WorkerArtifactMutationAuthoritySnapshot {
       const current = WorkerArtifactRepositoryMutationSnapshot.capture({
         root: captured.root,
         authorities: captured.authorities,
+        ignoredDirectories: captured.ignoredDirectories,
       });
       if (current.digest === captured.digest) continue;
       throw new WorkerArtifactHandoffError(
@@ -1065,31 +1115,27 @@ export class WorkerArtifactMutationAuthoritySnapshot {
   }
 }
 
-function baseInputRevision(state, policy, inputDigest) {
-  if (policy.revisionKind === "draft" && SHA256.test(state?.draftArtifactRevision?.digest || "")) {
-    return state.draftArtifactRevision.digest;
-  }
-  if (["spec", "test"].includes(policy.revisionKind) && SHA256.test(state?.specArtifactRevision?.digest || "")) {
-    return state.specArtifactRevision.digest;
-  }
-  return inputDigest;
-}
-
-function inputRevision(state, policy, inputDigest) {
-  const baseRevision = baseInputRevision(state, policy, inputDigest);
-  const testReviewRepair = TestReviewRepairRecord.forTarget(state, policy.stepId);
+function inputRevision(inputDigest, { planGateRepair = null, testReviewRepair = null } = {}) {
+  const baseRevision = inputDigest;
   if (testReviewRepair) {
     return digest(stableStringify({
       baseRevision,
       testReviewRepair: testReviewRepair.toJSON(),
     }));
   }
-  const repair = PlanGateRepairRecord.forTarget(state, policy.stepId);
-  if (!repair) return baseRevision;
+  if (!planGateRepair) return baseRevision;
   return digest(stableStringify({
     baseRevision,
-    planGateRepair: repair.toJSON(),
+    planGateRepair: planGateRepair.toJSON(),
   }));
+}
+
+function currentPlanGateRepair({ flowManager, state, stepId }) {
+  return canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId: stepId });
+}
+
+function currentTestReviewRepair({ flowManager, state, stepId }) {
+  return canonicalTestReviewRepairForTarget({ flowManager, state, targetStepId: stepId });
 }
 
 function requiresDraftWorkerContext(policy) {
@@ -1121,10 +1167,19 @@ export class WorkerArtifactHandoffRequest {
     inputDigest,
     inputRevision: revision,
     generatedAt,
+    canonicalLocation = null,
+    flowManager = null,
   }) {
     this.mainRoot = path.resolve(mainRoot);
     this.executionRoot = path.resolve(executionRoot);
     this.state = state;
+    if (state?.schemaRevision !== 3) {
+      throw new Error("worker handoff requires a Version-1 Flow state");
+    }
+    if (!flowManager || typeof flowManager.readArtifact !== "function") {
+      throw new Error("canonical worker handoff requires a Version Store catalog reader");
+    }
+    this.flowManager = flowManager;
     this.policy = policy;
     this.version = WORKER_ARTIFACT_HANDOFF_VERSION;
     this.runId = requiredString(state.runId, "handoff runId");
@@ -1154,8 +1209,9 @@ export class WorkerArtifactHandoffRequest {
     this.contextSnapshot = contextSnapshot;
     this.payloads = Object.freeze(payloads);
     this.generatedAt = requiredString(generatedAt, "handoff generatedAt");
+    this.handoffRoot = canonicalHandoffRoot(canonicalLocation);
     const actionDirectory = handoffActionDirectory(
-      this.executionRoot,
+      this.handoffRoot,
       this.runId,
       this.dispatchInvocationId,
       this.actionDigest,
@@ -1164,19 +1220,37 @@ export class WorkerArtifactHandoffRequest {
     this.payloadDirectory = path.join(this.directory, "payload");
     this.requestPath = path.join(this.directory, "request.json");
     this.submissionPath = path.join(this.directory, "handoff.json");
-    if (!isWithin(this.executionRoot, this.directory)) throw new Error("handoff directory escapes execution root");
+    if (!isWithin(this.handoffRoot, this.directory)) throw new Error("handoff directory escapes its runtime authority");
     Object.freeze(this);
   }
 
-  static create({ mainRoot, executionRoot, state, invocation, now = () => new Date() }) {
+  static create({ mainRoot, executionRoot, state, invocation, flowManager = null, now = () => new Date() }) {
     const policy = workerArtifactHandoffPolicy(invocation?.action?.nextAction?.step);
     if (!policy) return null;
-    const specDir = specDirectory(mainRoot, state);
-    const inputs = policy.inputContract.resolve(state).map((relativePath) => {
-      const { document, snapshot } = boundedJson(
-        path.join(specDir, relativePath),
-        `canonical handoff input ${relativePath}`,
+    if (state?.schemaRevision !== 3) {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        "worker handoff requires a Version-1 Flow state",
       );
+    }
+    if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.specLocation !== "function") {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        "canonical worker handoff requires the Version Store catalog reader",
+      );
+    }
+    const planGateRepair = currentPlanGateRepair({ flowManager, state, stepId: policy.stepId });
+    const testReviewRepair = currentTestReviewRepair({ flowManager, state, stepId: policy.stepId });
+    const inputs = policy.inputContract.resolve({ planGateRepair, testReviewRepair }).map((relativePath) => {
+      const { document, snapshot } = canonicalHandoffInputSnapshot({
+        flowManager,
+        state,
+        workerPath: relativePath,
+        consumerNodeId: policy.stepId,
+        label: `canonical handoff input ${relativePath}`,
+      });
       if (snapshot.byteLength > MAX_INPUT_BYTES) {
         throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", `canonical handoff input ${relativePath} is oversized`);
       }
@@ -1191,10 +1265,10 @@ export class WorkerArtifactHandoffRequest {
     if (requiresDraftWorkerContext(policy)) {
       try {
         contextSnapshot = DraftWorkerContextSnapshot.materialize({
-          specDirectory: specDir,
           executionRoot,
           state,
           invocation,
+          issueText: canonicalIssueSnapshotText({ flowManager, state }),
         });
       } catch (cause) {
         throw new WorkerArtifactHandoffError(
@@ -1207,10 +1281,7 @@ export class WorkerArtifactHandoffRequest {
     }
     const inputDigestValue = handoffInputDigest(inputs, contextSnapshot);
     const payloads = policy.payloads.map((rule) => {
-      const canonicalPath = path.join(specDir, ...rule.targetRelativePath.split("/"));
-      const baseline = rule.kind === "tree"
-        ? treeSnapshot(canonicalPath)
-        : readOptionalSnapshot(canonicalPath, `canonical target ${rule.targetRelativePath}`);
+      const baseline = canonicalPayloadBaseline({ flowManager, state, rule });
       return Object.freeze({
         rule,
         baselineDigest: baseline?.digest ?? null,
@@ -1228,12 +1299,14 @@ export class WorkerArtifactHandoffRequest {
       contextSnapshot,
       payloads,
       inputDigest: inputDigestValue,
-      inputRevision: inputRevision(state, policy, inputDigestValue),
+      inputRevision: inputRevision(inputDigestValue, { planGateRepair, testReviewRepair }),
       generatedAt: now().toISOString(),
+      canonicalLocation: flowManager.specLocation(state.specId),
+      flowManager,
     });
   }
 
-  static restore({ mainRoot, state, journal }) {
+  static restore({ mainRoot, state, journal, flowManager = null, canonicalLocation = null }) {
     if (!(journal instanceof WorkerArtifactPublicationJournal)) {
       throw new Error("restoring a worker artifact handoff requires a publication journal");
     }
@@ -1266,6 +1339,8 @@ export class WorkerArtifactHandoffRequest {
       inputDigest: stored.inputDigest,
       inputRevision: stored.inputRevision,
       generatedAt: stored.generatedAt,
+      canonicalLocation,
+      flowManager,
     });
     if (
       request.directory !== journal.handoffDirectory
@@ -1323,11 +1398,18 @@ export class WorkerArtifactHandoffRequest {
   }
 
   prepare() {
-    ensureRealDirectory(this.directory, this.executionRoot);
-    ensureRealDirectory(this.payloadDirectory, this.executionRoot);
+    // The handoff is an uncommitted work unit, not a Flow artifact.  Version
+    // 1 therefore keeps it under the Flow's `.runtime/` authority.  The
+    // stable request payload itself remains unchanged for the worker.
+    ensureRealDirectory(
+      this.handoffRoot,
+      path.dirname(this.handoffRoot),
+    );
+    ensureRealDirectory(this.directory, this.handoffRoot);
+    ensureRealDirectory(this.payloadDirectory, this.handoffRoot);
     for (const payload of this.payloads) {
       if (payload.rule.kind === "tree") {
-        ensureRealDirectory(this.payloadPath(payload.rule.logicalName), this.executionRoot);
+        ensureRealDirectory(this.payloadPath(payload.rule.logicalName), this.handoffRoot);
       }
     }
     new AtomicFile(this.requestPath, { phaseNamespace: "worker-handoff-request" })
@@ -1375,7 +1457,6 @@ export class WorkerArtifactHandoffRequest {
         "worker artifact handoff no longer matches the active Flow target or step",
       );
     }
-    const specDir = specDirectory(this.mainRoot, state);
     if (this.contextSnapshot) {
       try {
         this.contextSnapshot.assertBinding({
@@ -1395,20 +1476,41 @@ export class WorkerArtifactHandoffRequest {
         );
       }
     }
-    const current = this.inputs.map(({ targetRelativePath: relativePath }) => {
-      const snapshot = readRegularFile(
-        path.join(specDir, relativePath),
-        `current canonical handoff input ${relativePath}`,
-        MAX_INPUT_BYTES,
+    const planGateRepair = currentPlanGateRepair({
+      flowManager: this.flowManager,
+      state,
+      stepId: this.stepId,
+    });
+    const testReviewRepair = currentTestReviewRepair({
+      flowManager: this.flowManager,
+      state,
+      stepId: this.stepId,
+    });
+    const expectedInputPaths = this.policy.inputContract.resolve({ planGateRepair, testReviewRepair });
+    if (
+      expectedInputPaths.length !== this.inputs.length
+      || expectedInputPaths.some((relativePath, index) => relativePath !== this.inputs[index].targetRelativePath)
+    ) {
+      throw new WorkerArtifactHandoffError(
+        "stale",
+        "FLOW_ARTIFACT_HANDOFF_STALE",
+        "worker artifact handoff input contract changed before publication",
       );
-      return { path: relativePath, digest: snapshot.digest, byteLength: snapshot.byteLength };
+    }
+    const current = this.inputs.map(({ targetRelativePath: relativePath }) => {
+      const input = CanonicalWorkerArtifactAddress.from(relativePath).read({
+        flowManager: this.flowManager,
+        specId: state.specId,
+        consumerNodeId: this.stepId,
+      });
+      return { path: relativePath, digest: input.snapshot().digest, byteLength: input.snapshot().byteLength };
     });
     const currentDigest = handoffInputDigest(current.map((input) => ({
       targetRelativePath: input.path,
       digest: input.digest,
       byteLength: input.byteLength,
     })), this.contextSnapshot);
-    const currentRevision = inputRevision(state, this.policy, currentDigest);
+    const currentRevision = inputRevision(currentDigest, { planGateRepair, testReviewRepair });
     if (currentDigest !== this.inputDigest || currentRevision !== this.inputRevision) {
       throw new WorkerArtifactHandoffError(
         "stale",
@@ -1660,59 +1762,32 @@ function prePublicationArtifactError(request, error) {
   );
 }
 
-function pendingPublicationRecoveryError(request, state, error) {
-  const pending = state?.workerArtifactPublication;
-  if (!pending || path.resolve(pending.handoffDirectory || "") !== request.directory) return null;
-  return publicationRecoveryError(request, error, {
-    stepId: pending.stepId,
-    actionDigest: pending.actionDigest,
-    dispatchInvocationId: pending.dispatchInvocationId,
-    handoffDirectory: pending.handoffDirectory,
-    requestDigest: pending.requestDigest,
-    handoffDigest: pending.handoffDigest,
-  });
-}
-
-function publicationRecoveryError(request, error, data = {}) {
-  return new WorkerArtifactHandoffError(
-    "recovery-required",
-    "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-    `worker artifact publication requires recovery: ${error.message}`,
-    {
-      cause: error,
-      data: {
-        stepId: request.stepId,
-        actionDigest: request.actionDigest,
-        dispatchInvocationId: request.dispatchInvocationId,
-        handoffDirectory: request.directory,
-        ...data,
-        ...error.data,
-      },
-    },
-  );
-}
-
 function requestFromStored(filePath) {
   const resolvedRequestPath = path.resolve(filePath);
   const actionDirectory = path.dirname(resolvedRequestPath);
   const invocationDirectory = path.dirname(actionDirectory);
   const runDirectory = path.dirname(invocationDirectory);
   const handoffRoot = path.dirname(runDirectory);
-  const managedDirectory = path.dirname(handoffRoot);
-  const executionRoot = path.dirname(managedDirectory);
-  if (
-    path.basename(resolvedRequestPath) !== "request.json"
-    || path.basename(handoffRoot) !== "handoffs"
-    || path.basename(managedDirectory) !== PRODUCT.managedDirName
-  ) {
-    throw new Error("handoff request path is outside the dedicated execution-root handoff authority");
+  const canonicalRuntimeDirectory = path.dirname(handoffRoot);
+  const canonicalVersionDirectory = path.dirname(canonicalRuntimeDirectory);
+  const canonicalSpecDirectory = path.dirname(canonicalVersionDirectory);
+  const canonical = path.basename(handoffRoot) === "worker-handoffs"
+    && path.basename(canonicalRuntimeDirectory) === ".runtime"
+    && path.basename(canonicalVersionDirectory) === "001";
+  if (path.basename(resolvedRequestPath) !== "request.json" || !canonical) {
+    throw new Error("handoff request path is outside its dedicated runtime authority");
   }
+  const executionRoot = canonicalVersionDirectory;
   const { document } = boundedJson(resolvedRequestPath, "worker artifact handoff request");
   const policy = workerArtifactHandoffPolicy(document.stepId);
   if (!policy) throw new Error(`unsupported worker artifact handoff step: ${document.stepId}`);
   const runId = requiredString(document.runId, "handoff request runId");
   const invocationId = requiredString(document.dispatchInvocationId, "handoff request dispatchInvocationId");
   const actionDigest = requiredDigest(document.actionDigest, "handoff request actionDigest");
+  const specId = requiredString(document.specId, "handoff request specId");
+  if (path.basename(canonicalSpecDirectory) !== specId) {
+    throw new Error("canonical handoff request path does not match its Spec identity");
+  }
   if (
     path.basename(runDirectory) !== digest(runId).slice(0, 24)
     || path.basename(invocationDirectory) !== digest(invocationId).slice(0, 24)
@@ -1740,7 +1815,7 @@ function requestFromStored(filePath) {
   const request = {
     version: document.version,
     runId,
-    specId: requiredString(document.specId, "handoff request specId"),
+    specId,
     issue: document.issue ?? null,
     stepId: requiredString(document.stepId, "handoff request stepId"),
     actionDigest,
@@ -1750,11 +1825,23 @@ function requestFromStored(filePath) {
     inputRevision: requiredDigest(document.inputRevision, "handoff request inputRevision"),
     generatedAt: requiredString(document.generatedAt, "handoff request generatedAt"),
     executionRoot,
+    handoffRoot,
     directory: actionDirectory,
     payloadDirectory,
     requestPath: resolvedRequestPath,
     submissionPath: path.join(actionDirectory, "handoff.json"),
-    payloads: policy.payloads.map((rule) => ({ rule })),
+    payloads: policy.payloads.map((rule) => {
+      const stored = storedPayloads.find((entry) => entry?.logicalName === rule.logicalName);
+      return Object.freeze({
+        rule,
+        baselineDigest: stored.baselineDigest ?? null,
+        baselineByteLength: stored.baselineByteLength ?? 0,
+        // Tree baselines are advisory only during a restart replay: the
+        // sealed manifest and catalog are the authority.  The original
+        // request format deliberately has no duplicate copy of the tree.
+        baselineEntries: null,
+      });
+    }),
     inputs: (Array.isArray(document.inputs) ? document.inputs : []).map((input) => (
       new WorkerArtifactInputSnapshot({
         name: input?.name,
@@ -1786,10 +1873,46 @@ function requestFromStored(filePath) {
     throw new Error("handoff request context snapshot does not match its step contract");
   }
   request.requestDigest = digest(stableStringify(document));
-  if (!isWithin(executionRoot, request.requestPath) || !isWithin(executionRoot, payloadDirectory)) {
+  if (!isWithin(handoffRoot, request.requestPath) || !isWithin(handoffRoot, payloadDirectory)) {
     throw new Error("handoff request escapes execution root");
   }
   return Object.freeze(request);
+}
+
+function restoreCanonicalHandoffRequest({ mainRoot, executionRoot, state, stored, canonicalLocation, flowManager }) {
+  if (state?.schemaRevision !== 3) {
+    throw new Error("canonical handoff restore requires a Version-1 Flow state");
+  }
+  const policy = workerArtifactHandoffPolicy(stored.stepId);
+  if (!policy) throw new Error(`unsupported canonical worker handoff step: ${stored.stepId}`);
+  const request = new WorkerArtifactHandoffRequest({
+    mainRoot,
+    executionRoot,
+    state,
+    invocation: {
+      id: stored.dispatchInvocationId,
+      action: {
+        digest: stored.actionDigest,
+        nextAction: { step: stored.stepId },
+      },
+      ...(stored.contextSnapshot === null ? {} : {
+        target: { digest: stored.contextSnapshot.binding.targetDigest },
+      }),
+    },
+    policy,
+    inputs: stored.inputs,
+    contextSnapshot: stored.contextSnapshot,
+    payloads: stored.payloads,
+    inputDigest: stored.inputDigest,
+    inputRevision: stored.inputRevision,
+    generatedAt: stored.generatedAt,
+    canonicalLocation,
+    flowManager,
+  });
+  if (request.directory !== stored.directory || request.requestDigest !== stored.requestDigest) {
+    throw new Error("canonical handoff request does not reproduce its persisted identity");
+  }
+  return request;
 }
 
 export function sealWorkerArtifactHandoff({ requestPath, invocationId, now = () => new Date() } = {}) {
@@ -1946,14 +2069,6 @@ export class WorkerArtifactPublicationJournal {
   }
 }
 
-export function validateWorkerArtifactPublicationState(value, state) {
-  const journal = new WorkerArtifactPublicationJournal(value);
-  if (journal.runId !== state.runId || journal.specId !== state.specId) {
-    throw new Error("worker artifact publication does not match Flow state");
-  }
-  return journal;
-}
-
 export class WorkerArtifactHandoffReceipt {
   constructor(input = {}) {
     if (input.version !== 1) throw new Error("worker artifact receipt version must be 1");
@@ -1991,24 +2106,6 @@ export class WorkerArtifactHandoffReceipt {
       consumedAt: this.consumedAt,
     };
   }
-}
-
-export function validateWorkerArtifactReceiptsState(value, state) {
-  if (!Array.isArray(value) || value.length > 64) {
-    throw new Error("workerArtifactReceipts must be an array with at most 64 entries");
-  }
-  const digests = new Set();
-  return value.map((entry) => {
-    const receipt = new WorkerArtifactHandoffReceipt(entry);
-    if (receipt.runId !== state.runId || receipt.specId !== state.specId) {
-      throw new Error("worker artifact receipt does not match Flow state");
-    }
-    if (digests.has(receipt.handoffDigest)) {
-      throw new Error("worker artifact receipts contain a duplicate handoff digest");
-    }
-    digests.add(receipt.handoffDigest);
-    return receipt;
-  });
 }
 
 function validateSubmission(request, submission) {
@@ -2093,6 +2190,26 @@ function payloadDocument(request, submission, logicalName) {
   return boundedJson(source, `handoff payload ${logicalName}`).document;
 }
 
+function canonicalDraftReviewPayload(request, submission, artifactName) {
+  const entry = submission.payloadManifest.find((candidate) => candidate.logicalName === artifactName);
+  if (!entry) throw new Error(`handoff payload is missing: ${artifactName}`);
+  return CanonicalDraftReviewHandoffArtifact.fromPayload({
+    name: artifactName,
+    digest: entry.digest,
+    document: payloadDocument(request, submission, artifactName),
+  });
+}
+
+function canonicalDraftReviewEvidence(request, submission, state, route, { triage = null, repair = null } = {}) {
+  return CanonicalDraftReviewHandoffEvidence.fromInputs({
+    route,
+    state,
+    inputs: request.inputs,
+    triage,
+    repair,
+  });
+}
+
 function validateDraftPayload(request, submission, state) {
   const draft = payloadDocument(request, submission, "draft.json");
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
@@ -2100,27 +2217,19 @@ function validateDraftPayload(request, submission, state) {
   }
   const route = draftReviewRouteForStepId(request.stepId);
   if (!route) return;
-  const canonicalSpecDir = specDirectory(request.mainRoot, state);
-  const reviewFile = new DraftReviewArtifactFile({ specDir: canonicalSpecDir, filename: route.reviewArtifact });
-  const triageFile = request.stepId === route.triageStepId
-    ? new DraftReviewArtifactFile({
-        specDir: request.payloadDirectory,
-        filename: route.triageArtifact,
-      })
-    : new DraftReviewArtifactFile({ specDir: canonicalSpecDir, filename: route.triageArtifact });
-  const repairFile = request.stepId === route.repairStepId
-    ? new DraftReviewArtifactFile({
-        specDir: request.payloadDirectory,
-        filename: route.repairArtifact,
-      })
-    : null;
-  const evidence = new DraftReviewEvidenceSet({ route, state, reviewFile, triageFile, repairFile });
+  const evidence = canonicalDraftReviewEvidence(request, submission, state, route, {
+    repair: canonicalDraftReviewPayload(request, submission, route.repairArtifact),
+  });
   const validation = evidence.validateThrough(request.stepId);
   if (validation.issues.length > 0) throw new Error(validation.issues.join("; "));
 }
 
 function assertPlanGateRepairMadeProgress(request, submission, state, logicalName) {
-  const repair = PlanGateRepairRecord.forTarget(state, request.stepId);
+  const repair = currentPlanGateRepair({
+    flowManager: request.flowManager,
+    state,
+    stepId: request.stepId,
+  });
   if (!repair) return;
   const target = request.payloads.find(({ rule }) => rule.logicalName === logicalName);
   const entries = submission.payloadManifest.filter((candidate) => candidate.logicalName === logicalName);
@@ -2143,7 +2252,11 @@ function assertPlanGateRepairMadeProgress(request, submission, state, logicalNam
 }
 
 function assertTestReviewRepairMadeProgress(request, submission, state, logicalName) {
-  const repair = TestReviewRepairRecord.forTarget(state, request.stepId);
+  const repair = currentTestReviewRepair({
+    flowManager: request.flowManager,
+    state,
+    stepId: request.stepId,
+  });
   if (!repair) return;
   const target = request.payloads.find(({ rule }) => rule.logicalName === logicalName);
   const entries = submission.payloadManifest.filter((candidate) => candidate.logicalName === logicalName);
@@ -2176,12 +2289,8 @@ function validatePayload(request, submission, state) {
     if (request.stepId.startsWith("draft")) {
       if (request.stepId.endsWith("triage")) {
         const route = draftReviewRouteForStepId(request.stepId);
-        const canonicalSpecDir = specDirectory(request.mainRoot, state);
-        const evidence = new DraftReviewEvidenceSet({
-          route,
-          state,
-          reviewFile: new DraftReviewArtifactFile({ specDir: canonicalSpecDir, filename: route.reviewArtifact }),
-          triageFile: new DraftReviewArtifactFile({ specDir: request.payloadDirectory, filename: route.triageArtifact }),
+        const evidence = canonicalDraftReviewEvidence(request, submission, state, route, {
+          triage: canonicalDraftReviewPayload(request, submission, route.triageArtifact),
         });
         const result = evidence.validateThrough(request.stepId);
         if (result.issues.length > 0) throw new Error(result.issues.join("; "));
@@ -2220,7 +2329,10 @@ function validatePayload(request, submission, state) {
       if (!result.ok) throw new Error(formatValidationMessages(result).join("; "));
       new SpecTestBootstrapValidator({
         payloadSpecDir: request.payloadDirectory,
-        canonicalSpecDir: specDirectory(request.mainRoot, state),
+        canonicalSpecDir: CanonicalWorkerTestTree.artifactRoot({
+          flowManager: request.flowManager,
+          specId: state.specId,
+        }),
         repositoryRoot: request.mainRoot,
         executionRoot: request.executionRoot,
       }).validate().assertValid();
@@ -2245,15 +2357,6 @@ function validatePayload(request, submission, state) {
   }
 }
 
-function manifestByTarget(entries) {
-  return new Map(entries.map((entry) => [entry.targetRelativePath, entry]));
-}
-
-function currentFileIdentity(filePath) {
-  const snapshot = readOptionalSnapshot(filePath, `canonical publication target ${filePath}`);
-  return snapshot ? { digest: snapshot.digest, byteLength: snapshot.byteLength } : null;
-}
-
 function manifestPayloadBytes(request, entry, label = "publication payload") {
   const source = path.join(request.payloadDirectory, ...entry.relativePath.split("/"));
   const snapshot = readRegularFile(source, `${label} ${entry.relativePath}`);
@@ -2265,237 +2368,6 @@ function manifestPayloadBytes(request, entry, label = "publication payload") {
     );
   }
   return snapshot.bytes;
-}
-
-function publicationCommitGuard(target, baseline, desired, targetRelativePath) {
-  return () => {
-    const status = assertFilePublishable(
-      currentFileIdentity(target),
-      baseline,
-      desired,
-      targetRelativePath,
-    );
-    if (status !== "pending") {
-      throw new WorkerArtifactHandoffError(
-        "conflict",
-        "FLOW_ARTIFACT_HANDOFF_CONFLICT",
-        `canonical artifact changed during publication: ${targetRelativePath}`,
-      );
-    }
-  };
-}
-
-function assertFilePublishable(current, baseline, desired, target) {
-  const same = (left, right) => left?.digest === right?.digest && left?.byteLength === right?.byteLength;
-  if (same(current, desired)) return "published";
-  if (same(current, baseline) || (current == null && baseline == null)) return "pending";
-  throw new WorkerArtifactHandoffError(
-    "conflict",
-    "FLOW_ARTIFACT_HANDOFF_CONFLICT",
-    `canonical artifact changed after handoff capture: ${target}`,
-    { data: { target, baselineDigest: baseline?.digest ?? null, currentDigest: current?.digest ?? null } },
-  );
-}
-
-function publishJournal({ request, journal, faultInjector }) {
-  const specDir = specDirectory(request.mainRoot, request.state);
-  const desired = manifestByTarget(journal.payloadManifest);
-  for (const baseline of journal.targetBaselines) {
-    if (baseline.kind === "file") {
-      const target = path.join(specDir, ...baseline.targetRelativePath.split("/"));
-      const desiredEntry = desired.get(baseline.targetRelativePath);
-      const current = currentFileIdentity(target);
-      const status = assertFilePublishable(
-        current,
-        baseline.digest == null ? null : { digest: baseline.digest, byteLength: baseline.byteLength },
-        desiredEntry,
-        baseline.targetRelativePath,
-      );
-      if (status === "pending") {
-        ensureRealDirectory(path.dirname(target), specDir);
-        const baselineIdentity = baseline.digest == null
-          ? null
-          : { digest: baseline.digest, byteLength: baseline.byteLength };
-        new AtomicFile(target, {
-          phaseNamespace: "worker-handoff-publication",
-          faultInjector,
-          commitGuard: publicationCommitGuard(
-            target,
-            baselineIdentity,
-            desiredEntry,
-            baseline.targetRelativePath,
-          ),
-        }).write(manifestPayloadBytes(request, desiredEntry));
-      }
-      continue;
-    }
-
-    const treeRoot = path.join(specDir, ...baseline.targetRelativePath.split("/"));
-    ensureRealDirectory(treeRoot, specDir);
-    const baselineByTarget = manifestByTarget(baseline.entries || []);
-    const desiredEntries = journal.payloadManifest.filter((entry) => entry.logicalName === baseline.logicalName);
-    for (const entry of desiredEntries) {
-      const target = path.join(specDir, ...entry.targetRelativePath.split("/"));
-      const current = currentFileIdentity(target);
-      const status = assertFilePublishable(current, baselineByTarget.get(entry.targetRelativePath), entry, entry.targetRelativePath);
-      if (status === "pending") {
-        ensureRealDirectory(path.dirname(target), specDir);
-        const baselineIdentity = baselineByTarget.get(entry.targetRelativePath) || null;
-        new AtomicFile(target, {
-          phaseNamespace: "worker-handoff-publication",
-          faultInjector,
-          commitGuard: publicationCommitGuard(
-            target,
-            baselineIdentity,
-            entry,
-            entry.targetRelativePath,
-          ),
-        }).write(manifestPayloadBytes(request, entry));
-      }
-    }
-    const desiredTargets = new Set(desiredEntries.map((entry) => entry.targetRelativePath));
-    for (const previous of baseline.entries || []) {
-      if (desiredTargets.has(previous.targetRelativePath)) continue;
-      const target = path.join(specDir, ...previous.targetRelativePath.split("/"));
-      const current = currentFileIdentity(target);
-      if (current == null) continue;
-      assertFilePublishable(current, previous, null, previous.targetRelativePath);
-      new AtomicFile(target, {
-        phaseNamespace: "worker-handoff-publication",
-        faultInjector,
-      }).remove();
-      removeEmptyParents(path.dirname(target), treeRoot);
-    }
-  }
-}
-
-function assertJournalPublished(mainRoot, state, journal) {
-  const specDir = specDirectory(mainRoot, state);
-  const desiredTargets = new Set(journal.payloadManifest.map((entry) => entry.targetRelativePath));
-  for (const entry of journal.payloadManifest) {
-    const target = path.join(specDir, ...entry.targetRelativePath.split("/"));
-    const current = readRegularFile(target, `published handoff target ${entry.targetRelativePath}`);
-    if (current.digest !== entry.digest || current.byteLength !== entry.byteLength) {
-      throw new WorkerArtifactHandoffError("recovery-required", "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED", `published handoff target is incomplete: ${entry.targetRelativePath}`);
-    }
-  }
-  for (const baseline of journal.targetBaselines.filter((entry) => entry.kind === "tree")) {
-    for (const previous of baseline.entries || []) {
-      if (!desiredTargets.has(previous.targetRelativePath)) {
-        const target = path.join(specDir, ...previous.targetRelativePath.split("/"));
-        if (fs.existsSync(target)) {
-          throw new WorkerArtifactHandoffError("recovery-required", "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED", `stale canonical test file remains after publication: ${previous.targetRelativePath}`);
-        }
-      }
-    }
-  }
-}
-
-class WorkerArtifactCompletionIntent extends StepTransitionCommitIntent {
-  constructor({ mainRoot, journal, revision, now = () => new Date() }) {
-    super();
-    this.mainRoot = mainRoot;
-    this.journal = journal;
-    this.revision = revision;
-    this.completedAt = now().toISOString();
-    Object.freeze(this);
-  }
-
-  assertBeforeTransition(state) {
-    const pending = new WorkerArtifactPublicationJournal(state.workerArtifactPublication);
-    if (pending.handoffDigest !== this.journal.handoffDigest) {
-      throw new WorkerArtifactHandoffError("conflict", "FLOW_ARTIFACT_HANDOFF_CONFLICT", "pending worker artifact publication changed before transition");
-    }
-    assertJournalPublished(this.mainRoot, state, this.journal);
-  }
-
-  applyTo(state) {
-    const testReviewRepair = TestReviewRepairRecord.forTarget(state, this.journal.stepId);
-    if (this.revision?.kind === "draft") state.draftArtifactRevision = this.revision.value;
-    if (this.revision?.kind === "spec") state.specArtifactRevision = this.revision.value;
-    if (this.revision?.kind === "test") state.specTestArtifactRevision = this.revision.value;
-    const receipts = Array.isArray(state.workerArtifactReceipts) ? state.workerArtifactReceipts : [];
-    const receipt = new WorkerArtifactHandoffReceipt({
-      version: 1,
-      runId: this.journal.runId,
-      specId: this.journal.specId,
-      stepId: this.journal.stepId,
-      actionDigest: this.journal.actionDigest,
-      dispatchInvocationId: this.journal.dispatchInvocationId,
-      requestDigest: this.journal.requestDigest,
-      handoffDigest: this.journal.handoffDigest,
-      inputDigest: this.journal.inputDigest,
-      inputRevision: this.journal.inputRevision,
-      payloadDigest: manifestDigest(this.journal.payloadManifest),
-      consumedAt: this.completedAt,
-    });
-    state.workerArtifactReceipts = [...receipts, receipt.toJSON()].slice(-64);
-    if (testReviewRepair) {
-      if (this.revision?.kind !== "test") {
-        throw new WorkerArtifactHandoffError(
-          "conflict",
-          "FLOW_ARTIFACT_HANDOFF_CONFLICT",
-          "test-review repair publication did not produce a canonical test revision",
-        );
-      }
-      const history = Array.isArray(state.testReviewRepairHistory)
-        ? state.testReviewRepairHistory
-        : [];
-      const completion = new TestReviewRepairCompletion({
-        version: 1,
-        repair: testReviewRepair.toJSON(),
-        publishedTestRevisionDigest: this.revision.value.digest,
-        handoffDigest: receipt.handoffDigest,
-        completedAt: this.completedAt,
-      });
-      state.testReviewRepairHistory = [...history, completion.toJSON()].slice(-64);
-      delete state.testReviewRepair;
-    }
-    const repair = PlanGateRepairRecord.forTarget(state, this.journal.stepId);
-    if (repair) delete state.planGateRepair;
-    delete state.draftArtifactPromotion;
-    delete state.workerArtifactPublication;
-  }
-}
-
-function revisionFor(request, journal, now = () => new Date()) {
-  if (!request.policy.revisionKind) return null;
-  const entries = journal.payloadManifest.filter((entry) => (
-    request.policy.revisionKind === "draft"
-      ? entry.targetRelativePath === "draft.json"
-      : request.policy.revisionKind === "spec"
-        ? entry.targetRelativePath === "spec.json"
-        : entry.logicalName === "spec-tests"
-  ));
-  const hash = manifestDigest(entries);
-  const byteLength = entries.reduce((sum, entry) => sum + entry.byteLength, 0);
-  if (request.policy.revisionKind === "draft") {
-    const draftEntry = entries[0];
-    return {
-      kind: "draft",
-      value: new DraftArtifactRevision({
-        version: 1,
-        runId: request.runId,
-        specId: request.specId,
-        sourceStepId: request.stepId,
-        digest: draftEntry.digest,
-        byteLength: draftEntry.byteLength,
-        finalizedAt: now().toISOString(),
-      }).toJSON(),
-    };
-  }
-  return {
-    kind: request.policy.revisionKind,
-    value: new WorkerArtifactRevision({
-      version: 1,
-      runId: request.runId,
-      specId: request.specId,
-      stepId: request.stepId,
-      digest: hash,
-      byteLength,
-      finalizedAt: now().toISOString(),
-    }).toJSON(),
-  };
 }
 
 function readSubmission(request) {
@@ -2513,24 +2385,12 @@ function readSubmission(request) {
   }
 }
 
-function receiptFor(state, handoffDigest) {
-  return (state?.workerArtifactReceipts || []).find((entry) => entry?.handoffDigest === handoffDigest) || null;
-}
-
-function receiptForRequest(state, request) {
-  return (state?.workerArtifactReceipts || []).find((entry) => (
-    entry?.requestDigest === request.requestDigest
-    && entry?.dispatchInvocationId === request.dispatchInvocationId
-    && entry?.actionDigest === request.actionDigest
-  )) || null;
-}
-
-function cleanupCompletedHandoff(executionRoot, receiptValue, faultInjector = () => {}) {
+function cleanupCompletedHandoff(handoffRoot, receiptValue, faultInjector = () => {}) {
   const receipt = receiptValue instanceof WorkerArtifactHandoffReceipt
     ? receiptValue
     : new WorkerArtifactHandoffReceipt(receiptValue);
   const directory = handoffActionDirectory(
-    executionRoot,
+    handoffRoot,
     receipt.runId,
     receipt.dispatchInvocationId,
     receipt.actionDigest,
@@ -2595,6 +2455,208 @@ function cleanupCompletedHandoff(executionRoot, receiptValue, faultInjector = ()
   }
 }
 
+function canonicalTestTreeBaselineForPublication(request) {
+  const payload = request.payloads.find(({ rule }) => rule.kind === "tree" && rule.targetRelativePath === "tests");
+  if (!payload) {
+    throw new WorkerArtifactHandoffError(
+      "invalid",
+      "FLOW_ARTIFACT_HANDOFF_INVALID",
+      "canonical test publication has no declared test-tree baseline",
+    );
+  }
+  const baseline = CanonicalWorkerTestTree.catalogSnapshot({
+    flowManager: request.flowManager,
+    specId: request.specId,
+  });
+  const baselineDigest = digest(stableStringify(baseline.entries));
+  const baselineByteLength = baseline.entries.reduce((total, entry) => total + entry.byteLength, 0);
+  if (payload.baselineDigest !== baselineDigest || payload.baselineByteLength !== baselineByteLength) {
+    throw new WorkerArtifactHandoffError(
+      "conflict",
+      "FLOW_ARTIFACT_HANDOFF_CONFLICT",
+      "canonical worker test-source collection changed after handoff capture",
+      {
+        data: {
+          expectedBaselineDigest: payload.baselineDigest,
+          currentBaselineDigest: baselineDigest,
+        },
+      },
+    );
+  }
+  return baseline;
+}
+
+function canonicalHandoffPublications(request, submission) {
+  const artifactWrites = [];
+  const artifactRemovals = [];
+  let specRecord;
+  let testSourceBaseline;
+  const testEntries = [];
+  for (const entry of submission.payloadManifest) {
+    const bytes = manifestPayloadBytes(request, entry, "canonical handoff payload");
+    if (entry.targetRelativePath.startsWith("tests/")) {
+      testEntries.push({
+        targetRelativePath: entry.targetRelativePath,
+        bytes,
+        mediaType: mediaTypeForPath(entry.targetRelativePath),
+      });
+      continue;
+    }
+    const address = new CanonicalWorkerArtifactAddress(entry.targetRelativePath);
+    if (address.logicalKey === "spec.record") {
+      if (specRecord !== undefined) {
+        throw new WorkerArtifactHandoffError("invalid", "FLOW_ARTIFACT_HANDOFF_INVALID", "handoff publishes spec.json more than once");
+      }
+      try {
+        specRecord = new CanonicalWorkerSpecPublication(JSON.parse(bytes.toString("utf8")));
+      } catch (cause) {
+        throw new WorkerArtifactHandoffError(
+          "invalid",
+          "FLOW_ARTIFACT_HANDOFF_INVALID",
+          `canonical spec payload is malformed JSON: ${cause.message}`,
+          { cause, retryable: true },
+        );
+      }
+      continue;
+    }
+    artifactWrites.push(address.publication(bytes, mediaTypeForPath(entry.targetRelativePath)));
+  }
+  if (testEntries.length > 0) {
+    const replacement = new CanonicalWorkerTestTree(testEntries)
+      .replacement(canonicalTestTreeBaselineForPublication(request));
+    artifactWrites.push(...replacement.artifactWrites);
+    artifactRemovals.push(...replacement.artifactRemovals);
+    testSourceBaseline = replacement.testSourceBaseline;
+  }
+  return Object.freeze({
+    specRecord: specRecord ?? undefined,
+    artifactWrites: Object.freeze(artifactWrites),
+    artifactRemovals: Object.freeze(artifactRemovals),
+    testSourceBaseline: testSourceBaseline ?? undefined,
+  });
+}
+
+function canonicalHandoffResult(request, submission, now) {
+  return Object.freeze({
+    outcome: "passed",
+    summary: `Worker handoff confirmed for ${request.stepId}.`,
+    confirmedAt: now().toISOString(),
+    artifactRefs: [
+      { kind: "worker-handoff", id: submission.handoffDigest },
+      { kind: "worker-handoff-request", id: request.requestDigest },
+    ],
+  });
+}
+
+function canonicalHandoffReceipt(request, submission, now) {
+  return new WorkerArtifactHandoffReceipt({
+    version: 1,
+    runId: request.runId,
+    specId: request.specId,
+    stepId: request.stepId,
+    actionDigest: request.actionDigest,
+    dispatchInvocationId: request.dispatchInvocationId,
+    requestDigest: request.requestDigest,
+    handoffDigest: submission.handoffDigest,
+    inputDigest: request.inputDigest,
+    inputRevision: request.inputRevision,
+    payloadDigest: manifestDigest(submission.payloadManifest),
+    consumedAt: now().toISOString(),
+  });
+}
+
+function canonicalHandoffReceiptForRequest(state, request) {
+  const step = findStepById(state?.steps || [], request.stepId);
+  if (step?.status !== "done" || !Array.isArray(step.result?.artifactRefs)) return null;
+  const requestReference = step.result.artifactRefs.find((reference) => (
+    reference.kind === "worker-handoff-request" && reference.id === request.requestDigest
+  )) ?? null;
+  const handoffReference = step.result.artifactRefs.find((reference) => reference.kind === "worker-handoff") ?? null;
+  return requestReference !== null && handoffReference !== null ? handoffReference : null;
+}
+
+function canonicalHandoffIsCommitted(state, request, submission) {
+  const receipt = canonicalHandoffReceiptForRequest(state, request);
+  return receipt?.id === submission.handoffDigest;
+}
+
+function canonicalHandoffRuntimeEntries(handoffRoot) {
+  if (!fs.existsSync(handoffRoot)) {
+    return Object.freeze({
+      requestPaths: Object.freeze([]),
+      consumedDirectories: Object.freeze([]),
+      orphanedDirectories: Object.freeze([]),
+    });
+  }
+  const root = path.resolve(handoffRoot);
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink() || fs.realpathSync(root) !== root) {
+    throw new WorkerArtifactHandoffError(
+      "recovery-required",
+      "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+      "canonical worker handoff runtime authority is invalid",
+      { data: { handoffRoot: root } },
+    );
+  }
+  const requestPaths = [];
+  const consumedDirectories = [];
+  const orphanedDirectories = [];
+  const descend = (directory, remaining) => {
+    const stat = fs.lstatSync(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== directory) {
+      throw new WorkerArtifactHandoffError(
+        "recovery-required",
+        "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+        "canonical worker handoff runtime contains an invalid directory",
+        { data: { handoffDirectory: directory } },
+      );
+    }
+    if (remaining === 0) {
+      const requestPath = path.join(directory, "request.json");
+      if (fs.existsSync(requestPath)) requestPaths.push(requestPath);
+      else if (/^[a-f0-9]{64}$/.test(path.basename(directory))) orphanedDirectories.push(directory);
+      return;
+    }
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = path.join(directory, entry.name);
+      // A committed handoff is renamed before its transient runtime work unit
+      // is removed.  It has no request path at its canonical identity any
+      // longer, so attempting to restore it as a pending request would turn a
+      // recoverable cleanup crash into an identity failure.  It is safe to
+      // discard only this exact, generated cleanup name: the rename happens
+      // after the Store confirmation has made the handoff receipt durable.
+      if (remaining === 1 && /^[a-f0-9]{64}\.consumed-[a-f0-9]{24}$/.test(entry.name)) {
+        consumedDirectories.push(candidate);
+        continue;
+      }
+      descend(candidate, remaining - 1);
+    }
+  };
+  // worker-handoffs/<run>/<invocation>/<action>/request.json
+  descend(root, 3);
+  return Object.freeze({
+    requestPaths: Object.freeze(requestPaths.sort()),
+    consumedDirectories: Object.freeze(consumedDirectories.sort()),
+    orphanedDirectories: Object.freeze(orphanedDirectories.sort()),
+  });
+}
+
+function cleanupTransientCanonicalHandoffDirectory(directory) {
+  let stat;
+  try {
+    stat = fs.lstatSync(directory);
+  } catch (cause) {
+    if (cause.code === "ENOENT") return false;
+    throw cause;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(directory) !== directory) {
+    throw new Error(`canonical worker handoff cleanup target is not a real directory: ${directory}`);
+  }
+  fs.rmSync(directory, { recursive: true });
+  return true;
+}
+
 export class WorkerArtifactHandoffCoordinator {
   constructor({ faultInjector = () => {}, now = () => new Date() } = {}) {
     this.faultInjector = faultInjector;
@@ -2607,6 +2669,7 @@ export class WorkerArtifactHandoffCoordinator {
       executionRoot: ctx.executionRoot || ctx.root,
       state,
       invocation,
+      flowManager: ctx.flowManager,
       now: this.now,
     });
     return request?.prepare() || null;
@@ -2616,240 +2679,226 @@ export class WorkerArtifactHandoffCoordinator {
     const state = typeof ctx.flowManager.load === "function"
       ? ctx.flowManager.load(ctx.specId)
       : ctx.flowManager.loadReadOnly(ctx.specId);
-    if (state.workerArtifactPublication == null) {
-      const cleaned = (state.workerArtifactReceipts || []).reduce((count, receipt) => (
-        cleanupCompletedHandoff(ctx.executionRoot || ctx.root, receipt, this.faultInjector) ? count + 1 : count
-      ), 0);
-      return cleaned > 0
-        ? { completed: true, replayed: true, cleanedHandoffs: cleaned }
-        : null;
+    if (state?.schemaRevision !== 3 || typeof ctx.flowManager.confirmCurrentAttempt !== "function") {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        "worker artifact handoff recovery requires a Version-1 Flow",
+      );
     }
-    let journal;
-    let request;
-    try {
-      journal = validateWorkerArtifactPublicationState(state.workerArtifactPublication, state);
-      request = WorkerArtifactHandoffRequest.restore({
-        mainRoot: ctx.mainRoot || ctx.root,
-        state,
-        journal,
-      });
-    } catch (cause) {
-      const pending = journal || state.workerArtifactPublication || {};
-      const data = {
-        ...(typeof pending.stepId === "string" && { stepId: pending.stepId }),
-        ...(SHA256.test(pending.actionDigest || "") && { actionDigest: pending.actionDigest }),
-        ...(typeof pending.dispatchInvocationId === "string" && {
-          dispatchInvocationId: pending.dispatchInvocationId,
-        }),
-        ...(typeof pending.handoffDirectory === "string" && {
-          handoffDirectory: pending.handoffDirectory,
-        }),
-      };
-      if (cause instanceof WorkerArtifactHandoffError) {
+    return this.#recoverCanonicalPending({ ctx, state });
+  }
+
+  #recoverCanonicalPending({ ctx, state }) {
+    const mainRoot = ctx.mainRoot || ctx.root;
+    const executionRoot = ctx.executionRoot || ctx.root;
+    const canonicalLocation = ctx.flowManager.specLocation(state.specId);
+    const handoffRoot = canonicalHandoffRoot(canonicalLocation);
+    let cleaned = 0;
+    const runtimeEntries = canonicalHandoffRuntimeEntries(handoffRoot);
+    for (const requestPath of runtimeEntries.requestPaths) {
+      let stored;
+      try {
+        stored = requestFromStored(requestPath);
+      } catch (cause) {
         throw new WorkerArtifactHandoffError(
-          cause.classification,
-          cause.code,
-          cause.message,
-          { cause, data: { ...data, ...cause.data } },
+          "recovery-required",
+          "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+          `canonical worker handoff request cannot be restored: ${cause.message}`,
+          { cause, data: { requestPath } },
         );
+      }
+      if (stored.specId !== state.specId || stored.runId !== state.runId) {
+        throw new WorkerArtifactHandoffError(
+          "recovery-required",
+          "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+          "canonical worker handoff runtime belongs to a different Flow identity",
+          { data: { requestPath, specId: stored.specId, runId: stored.runId } },
+        );
+      }
+      let submission;
+      try {
+        submission = readSubmission(stored);
+      } catch (cause) {
+        if (cause instanceof WorkerArtifactHandoffError && cause.classification === "missing") {
+          // No sealed payload exists.  The next dispatcher attempt owns a
+          // fresh request; this incomplete work unit is not persisted truth.
+          continue;
+        }
+        throw cause;
+      }
+      const request = restoreCanonicalHandoffRequest({
+        mainRoot,
+        executionRoot,
+        state,
+        stored,
+        canonicalLocation,
+        flowManager: ctx.flowManager,
+      });
+      if (canonicalHandoffIsCommitted(state, request, submission)) {
+        cleanupCompletedHandoff(request.handoffRoot, canonicalHandoffReceipt(request, submission, this.now), this.faultInjector);
+        cleaned += 1;
+        continue;
+      }
+      if (state.currentNodeId === request.stepId) {
+        return this.#reconcileCanonical({ ctx, request, state });
       }
       throw new WorkerArtifactHandoffError(
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-        `pending worker artifact publication cannot be reconstructed: ${cause.message}`,
-        { cause, data },
+        "sealed canonical worker handoff has no matching active Attempt or committed result",
+        { data: { stepId: request.stepId, handoffDirectory: request.directory } },
       );
     }
-    return this.reconcile({ ctx, request });
+    for (const transientDirectory of [
+      ...runtimeEntries.consumedDirectories,
+      ...runtimeEntries.orphanedDirectories,
+    ]) {
+      try {
+        if (cleanupTransientCanonicalHandoffDirectory(transientDirectory)) cleaned += 1;
+      } catch (cause) {
+        throw new WorkerArtifactHandoffError(
+          "recovery-required",
+          "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
+          `canonical worker handoff cleanup requires recovery: ${cause.message}`,
+          { cause, data: { handoffDirectory: transientDirectory } },
+        );
+      }
+    }
+    return cleaned > 0
+      ? { completed: true, replayed: true, cleanedHandoffs: cleaned }
+      : null;
   }
 
   reconcile({ ctx, request }) {
     if (!(request instanceof WorkerArtifactHandoffRequest)) return null;
-    let state = ctx.flowManager.load(request.specId);
-    const completedReceipt = receiptForRequest(state, request);
-    if (completedReceipt) {
-      cleanupCompletedHandoff(request.executionRoot, completedReceipt, this.faultInjector);
+    // A sealed V1 payload sits in `.runtime/` until the parent accepts it.
+    // Validate that untrusted surface before loading the Version Store: a
+    // symlink or undeclared payload must be reported as a typed handoff
+    // rejection, never as a catalog corruption caused by inspecting it.
+    if (request.state?.schemaRevision !== 3 || typeof ctx.flowManager.confirmCurrentAttempt !== "function") {
+      throw new WorkerArtifactHandoffError(
+        "invalid",
+        "FLOW_ARTIFACT_HANDOFF_INVALID",
+        "worker artifact handoff publication requires a Version-1 Flow",
+      );
+    }
+    let state = null;
+    try {
+      state = ctx.flowManager.load(request.specId);
+      const committed = canonicalHandoffReceiptForRequest(state, request);
+      if (committed !== null) {
+        return {
+          completed: true,
+          replayed: true,
+          stepId: request.stepId,
+          handoffDigest: committed.id,
+          payloadDigest: null,
+        };
+      }
+    } catch {
+      // An untrusted runtime payload can make catalog verification reject a
+      // symlink before its own handoff validation runs. Defer that load
+      // failure until after the sealed surface has been checked below.
+      state = null;
+    }
+    let submission;
+    try {
+      submission = readSubmission(request);
+      validateSubmission(request, submission);
+    } catch (cause) {
+      throw cause instanceof WorkerArtifactHandoffError
+        ? cause
+        : new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            `canonical worker artifact handoff is invalid: ${cause.message}`,
+            { cause },
+          );
+    }
+    state ??= ctx.flowManager.load(request.specId);
+    return this.#reconcileCanonical({ ctx, request, state, submission });
+  }
+
+  #reconcileCanonical({ ctx, request, state, submission = null }) {
+    const committed = canonicalHandoffReceiptForRequest(state, request);
+    if (committed !== null) {
       return {
         completed: true,
         replayed: true,
-        stepId: completedReceipt.stepId,
-        handoffDigest: completedReceipt.handoffDigest,
-        payloadDigest: completedReceipt.payloadDigest,
+        stepId: request.stepId,
+        handoffDigest: committed.id,
+        payloadDigest: null,
       };
     }
-    const operation = new RepositoryFlowOperationLock({ mainRoot: request.mainRoot });
-    let operationOwnerToken;
-    let journal = null;
-    let publicationJournalActive = false;
     try {
-      operationOwnerToken = operation.acquire();
+      const resolvedSubmission = submission ?? readSubmission(request);
+      if (submission === null) validateSubmission(request, resolvedSubmission);
+      submission = resolvedSubmission;
+      request.assertCurrent(state);
+      validatePayload(request, submission, state);
     } catch (cause) {
-      throw new WorkerArtifactHandoffError(
-        "conflict",
-        "FLOW_ARTIFACT_HANDOFF_CONFLICT",
-        `worker artifact publication could not acquire canonical repository authority: ${cause.message}`,
-        { cause },
-      );
-    }
-    try {
-      let submission;
-      try {
-        submission = readSubmission(request);
-      } catch (cause) {
-        const recoveryError = pendingPublicationRecoveryError(request, state, cause);
-        if (recoveryError) throw recoveryError;
-        // A worker that could not seal a file payload leaves no submission and
-        // therefore no publication journal. An invalid file is retryable, but
-        // a worker that never produced a payload remains a non-retryable
-        // missing-handoff failure. A missing submission while a journal is
-        // already pending remains recovery-owned below.
-        if (
-          cause instanceof WorkerArtifactHandoffError
-          && cause.classification === "missing"
-          && state.workerArtifactPublication == null
-        ) {
-          const invalidPayload = invalidUnsealedFilePayload(request);
-          if (invalidPayload) throw invalidPayload;
-          throw new WorkerArtifactHandoffError(
-            "missing",
-            cause.code,
-            cause.message,
-            {
-              cause,
-              retryable: false,
-              data: {
-                stepId: request.stepId,
-                actionDigest: request.actionDigest,
-                dispatchInvocationId: request.dispatchInvocationId,
-                handoffDirectory: request.directory,
-                ...cause.data,
-              },
-            },
+      throw cause instanceof WorkerArtifactHandoffError
+        ? cause
+        : new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            `canonical worker artifact handoff is invalid: ${cause.message}`,
+            { cause },
           );
-        }
-        throw prePublicationArtifactError(request, cause);
-      }
-      try {
-        validateSubmission(request, submission);
-      } catch (cause) {
-        const recoveryError = pendingPublicationRecoveryError(request, state, cause);
-        if (recoveryError) throw recoveryError;
-        throw prePublicationArtifactError(request, cause);
-      }
-      state = ctx.flowManager.load(request.specId);
-      if (receiptFor(state, submission.handoffDigest)) {
-        cleanupCompletedHandoff(
-          request.executionRoot,
-          receiptFor(state, submission.handoffDigest),
-          this.faultInjector,
-        );
-        return { completed: true, replayed: true };
-      }
-      const hasJournal = state.workerArtifactPublication != null;
-      journal = hasJournal
-        ? new WorkerArtifactPublicationJournal(state.workerArtifactPublication)
-        : WorkerArtifactPublicationJournal.create(request, submission, this.now);
-      if (!journal.matches(request, submission)) {
-        throw new WorkerArtifactHandoffError("conflict", "FLOW_ARTIFACT_HANDOFF_CONFLICT", "another worker artifact publication is already pending");
-      }
-      publicationJournalActive = hasJournal;
-      if (!hasJournal) {
-        request.assertCurrent(state);
-        try {
-          validatePayload(request, submission, state);
-        } catch (cause) {
-          throw prePublicationArtifactError(request, cause);
-        }
-        ctx.flowManager.mutate((current) => {
-          request.assertCurrent(current);
-          current.workerArtifactPublication = journal.toJSON();
-        }, {
-          specId: request.specId,
-          expectedOriginal: state,
-          operationOwnerToken,
-        });
-        publicationJournalActive = true;
-        state = ctx.flowManager.load(request.specId);
-      }
-      this.faultInjector({ phase: "after-worker-handoff-journal", stepId: request.stepId });
-      validateSubmission(request, submission);
-      publishJournal({ request, journal, faultInjector: this.faultInjector });
-      this.faultInjector({ phase: "after-worker-handoff-publication", stepId: request.stepId });
-      validateSubmission(request, submission);
-      assertJournalPublished(request.mainRoot, state, journal);
-      const active = findActiveNode(state);
-      const step = findStepById(state.steps || [], request.stepId);
-      const transition = new NormalStepTransition({
-        stepId: request.stepId,
-        currentStepId: active?.stepId,
-        currentStatus: step?.status,
-        requestedStatus: "done",
-        lifecycleOwned: false,
-      });
-      const revision = revisionFor(request, journal, this.now);
-      ctx.flowManager.updateStepStatus(
-        transition,
-        {
-          specId: request.specId,
-          taskId: null,
-          expectedOriginal: state,
-          operationOwnerToken,
-        },
-        new WorkerArtifactCompletionIntent({
-          mainRoot: request.mainRoot,
-          journal,
-          revision,
-          now: this.now,
-        }),
-      );
-      this.faultInjector({ phase: "after-worker-handoff-transition", stepId: request.stepId });
-      const completedState = ctx.flowManager.load(request.specId);
-      const receipt = receiptForRequest(completedState, request);
-      if (!receipt) {
-        throw new WorkerArtifactHandoffError(
-          "recovery-required",
-          "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-          "completed worker artifact handoff has no canonical receipt",
-          {
-            data: {
-              stepId: request.stepId,
-              actionDigest: request.actionDigest,
-              dispatchInvocationId: request.dispatchInvocationId,
-              handoffDirectory: request.directory,
-            },
-          },
-        );
-      }
-      cleanupCompletedHandoff(request.executionRoot, receipt, this.faultInjector);
-      return {
-        completed: true,
-        replayed: false,
-        stepId: request.stepId,
-        handoffDigest: submission.handoffDigest,
-        payloadDigest: manifestDigest(submission.payloadManifest),
-      };
+    }
+    let publications;
+    try {
+      publications = canonicalHandoffPublications(request, submission);
     } catch (cause) {
-      if (cause instanceof WorkerArtifactHandoffError) {
-        if (publicationJournalActive && cause.classification === "invalid") {
-          throw publicationRecoveryError(request, cause);
-        }
-        throw cause;
+      throw cause instanceof WorkerArtifactHandoffError
+        ? cause
+        : new WorkerArtifactHandoffError(
+            "invalid",
+            "FLOW_ARTIFACT_HANDOFF_INVALID",
+            `canonical worker artifact publication cannot be resolved: ${cause.message}`,
+            { cause, retryable: true },
+          );
+    }
+    try {
+      ctx.flowManager.confirmCurrentAttempt({
+        specId: request.specId,
+        result: canonicalHandoffResult(request, submission, this.now),
+        references: {
+          evaluations: [],
+          findings: [],
+          repairs: [],
+          artifacts: [{ id: submission.handoffDigest, label: request.stepId }],
+        },
+        specRecord: publications.specRecord,
+        artifactWrites: publications.artifactWrites,
+        artifactRemovals: publications.artifactRemovals,
+        testSourceBaseline: publications.testSourceBaseline,
+      });
+    } catch (cause) {
+      if (cause?.code === "CURRENT_FLOW_STATE_CONFLICT") {
+        throw new WorkerArtifactHandoffError(
+          "conflict",
+          "FLOW_ARTIFACT_HANDOFF_CONFLICT",
+          `canonical worker artifact handoff lost its Version Store precondition: ${cause.message}`,
+          { cause, data: { stepId: request.stepId, handoffDirectory: request.directory } },
+        );
       }
       throw new WorkerArtifactHandoffError(
         "recovery-required",
         "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-        `worker artifact publication requires recovery: ${cause.message}`,
-        {
-          cause,
-          data: {
-            stepId: request.stepId,
-            actionDigest: request.actionDigest,
-            handoffDirectory: request.directory,
-          },
-        },
+        `canonical worker artifact handoff could not commit: ${cause.message}`,
+        { cause, data: { stepId: request.stepId, handoffDirectory: request.directory } },
       );
-    } finally {
-      operation.release();
     }
+    const receipt = canonicalHandoffReceipt(request, submission, this.now);
+    cleanupCompletedHandoff(request.handoffRoot, receipt, this.faultInjector);
+    return {
+      completed: true,
+      replayed: false,
+      stepId: receipt.stepId,
+      handoffDigest: receipt.handoffDigest,
+      payloadDigest: receipt.payloadDigest,
+    };
   }
 }

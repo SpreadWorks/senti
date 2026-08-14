@@ -6,6 +6,13 @@ import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js"
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import SetInitCommand from "../../../src/flow/lib/set-init.js";
 import { PREPARING_PREFIX } from "../../../src/lib/flow-helpers.js";
+import { IssueSnapshot, IssueSnapshotSource } from "../../../src/flow/lib/issue-snapshot-source.js";
+
+class FixtureIssueSnapshotSource extends IssueSnapshotSource {
+  load({ number }) {
+    return new IssueSnapshot({ number, body: `Issue #${number} fixture body` });
+  }
+}
 
 function setupProject(tmp) {
   writeJson(tmp, ".sennel/config.json", {
@@ -74,7 +81,7 @@ describe("flow set init preparing-flow preservation", () => {
     ageFileByMs(preparingFilePath(tmp, stale1), 2 * 60 * 60 * 1000); // 2h
     ageFileByMs(preparingFilePath(tmp, stale2), 3 * 60 * 60 * 1000); // 3h
 
-    const cmd = new SetInitCommand();
+    const cmd = new SetInitCommand({ issueSnapshotSource: new FixtureIssueSnapshotSource() });
     const { result, stderr } = captureStderr(() =>
       cmd.execute({ flowManager: fm, issue: 99 }),
     );
@@ -103,7 +110,7 @@ describe("flow set init preparing-flow preservation", () => {
   it("emits no warning when no preparing flows exist (AC-4, REQ-P6)", () => {
     const fm = makeFlowManager(tmp);
 
-    const cmd = new SetInitCommand();
+    const cmd = new SetInitCommand({ issueSnapshotSource: new FixtureIssueSnapshotSource() });
     const { result, stderr } = captureStderr(() =>
       cmd.execute({ flowManager: fm, issue: 1 }),
     );

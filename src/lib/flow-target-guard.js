@@ -7,7 +7,7 @@ import { Envelope } from "./flow-envelope.js";
 const MAX_TARGET_TOKEN_LENGTH = 300;
 const MAX_FLOW_TARGET_BINDING_TOKEN_BYTES = 32 * 1024;
 const FLOW_TARGET_BINDING_VERSION = 2;
-const FLOW_TARGET_BINDING_MODES = new Set(["branch", "local", "worktree"]);
+const FLOW_TARGET_BINDING_MODES = new Set(["branch", "direct", "worktree"]);
 
 function normalizedToken(value, field) {
   if (value == null) return null;
@@ -95,10 +95,11 @@ function requireBranch(value, field) {
 }
 
 function flowAuthorityMode(flowState) {
-  if (flowState.worktree === true) return "worktree";
-  const featureBranch = requireBranch(flowState.featureBranch, "featureBranch");
-  const baseBranch = requireBranch(flowState.baseBranch, "baseBranch");
-  return featureBranch === baseBranch ? "local" : "branch";
+  const mode = flowState?.execution?.mode;
+  if (!FLOW_TARGET_BINDING_MODES.has(mode)) {
+    throw new Error("FlowTargetBinding requires canonical execution.mode");
+  }
+  return mode;
 }
 
 class FlowExecutionAuthority {
@@ -138,7 +139,7 @@ class FlowExecutionAuthority {
         worktreePath: worktreePath ?? authorityRoot,
       });
     }
-    if (activeMode === "branch" || activeMode === "local") {
+    if (activeMode === "branch" || activeMode === "direct") {
       return new BranchFlowAuthority({
         mode: activeMode,
         mainRoot,
@@ -155,19 +156,25 @@ class FlowExecutionAuthority {
       throw new Error("stored Flow target authority must be an object");
     }
     if (value.mode === "worktree") return new ManagedWorktreeFlowAuthority(value);
-    if (value.mode === "branch" || value.mode === "local") return new BranchFlowAuthority(value);
+    if (value.mode === "branch" || value.mode === "direct") return new BranchFlowAuthority(value);
     throw new Error(`unsupported stored Flow target authority mode: ${value.mode}`);
   }
 }
 
 class BranchFlowAuthority extends FlowExecutionAuthority {
-  constructor({ mode = "branch", mainRoot, executionRoot, featureBranch, baseBranch }) {
+  constructor({ mode = "branch", mainRoot, executionRoot, featureBranch = null, baseBranch = null }) {
     super(mode, mainRoot, executionRoot);
     if (this.executionRoot !== this.mainRoot) {
       throw new Error(`${mode} Flow execution root must equal the canonical main repository`);
     }
-    this.featureBranch = requireBranch(featureBranch, "featureBranch");
-    this.baseBranch = requireBranch(baseBranch, "baseBranch");
+    if (mode === "branch" && ((featureBranch === null) !== (baseBranch === null))) {
+      throw new Error("FlowTargetBinding branch authority requires both branch names or neither");
+    }
+    if (mode === "direct" && featureBranch !== null) {
+      throw new Error("FlowTargetBinding direct authority must not have a feature branch");
+    }
+    this.featureBranch = featureBranch === null ? null : requireBranch(featureBranch, "featureBranch");
+    this.baseBranch = baseBranch === null ? null : requireBranch(baseBranch, "baseBranch");
     Object.freeze(this);
   }
 
@@ -287,7 +294,7 @@ export class FlowTargetBinding {
       flowState,
       mainRoot: ctx.mainRoot || ctx.root,
       authorityRoot: ctx.executionRoot || ctx.root,
-      worktreePath: flowState?.worktree === true ? (ctx.executionRoot || ctx.root) : undefined,
+      worktreePath: flowState?.execution?.mode === "worktree" ? (ctx.executionRoot || ctx.root) : undefined,
     });
   }
 

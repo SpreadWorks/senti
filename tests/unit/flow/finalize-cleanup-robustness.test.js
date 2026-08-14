@@ -7,20 +7,19 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
 import fs from "fs";
-import crypto from "crypto";
-import { execFileSync, spawn, spawnSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { pathToFileURL } from "node:url";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager, replaceFlowState } from "../../helpers/flow-setup.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
-import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
+import { ProcessIdentitySource } from "../../../src/lib/process-identity.js";
+import { ProcessOwnedLock, RealDirectoryAuthority } from "../../../src/lib/process-owned-lock.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../../src/lib/worktree-flow-binding.js";
-import { IssueLogStore } from "../../../src/flow/lib/issue-log-store.js";
 import {
   FlowOutboxStore,
   finalizationOutboxIdentity,
@@ -35,20 +34,35 @@ function initGitRepo(root) {
   execFileSync("git", ["-C", root, "commit", "--quiet", "-m", "initial commit"], { encoding: "utf8" });
 }
 
-function writeLiveFlowWriterLock(root, specId) {
-  const statePath = path.join(root, "specs", specId, "flow.json");
-  const lockPath = path.join(path.dirname(statePath), ".flow.json.writer.lock");
-  const processIdentity = new ProcessIdentitySource().createOwner(crypto.randomUUID());
-  fs.writeFileSync(lockPath, `${JSON.stringify({
-    version: 3,
-    kind: "flow-state-writer",
-    processIdentity,
-    root: fs.realpathSync(root),
-    specId: specId,
-    specRoot: "specs",
-    statePath: fs.realpathSync(statePath),
-  }, null, 2)}\n`, { mode: 0o600 });
-  return lockPath;
+function acquireLiveCurrentFlowStateLock(root, specId) {
+  const location = makeFlowManager(root).specLocation(specId);
+  const runtimeDirectory = location.resolve(".runtime");
+  const lockDirectory = location.resolve(".runtime/locks");
+  const directoryAuthority = new RealDirectoryAuthority(location.directory);
+  const runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, { parentAuthority: directoryAuthority });
+  const lockDirectoryAuthority = new RealDirectoryAuthority(lockDirectory, { parentAuthority: runtimeAuthority });
+  const lock = new ProcessOwnedLock({
+    directoryAuthority: lockDirectoryAuthority,
+    fileName: "current-flow-state.lock",
+    kind: "current-flow-state",
+    authority: {
+      directory: location.directory,
+      runtimeDirectory,
+      statePath: location.flowStateFile,
+      activityPath: location.activitiesFile,
+    },
+    processIdentitySource: new ProcessIdentitySource(),
+  });
+  lock.acquire();
+  return lock;
+}
+
+function canonicalFlowPath(root, specId) {
+  return makeFlowManager(root).specLocation(specId).flowStateFile;
+}
+
+function canonicalIssueLogPath(root, specId) {
+  return makeFlowManager(root).specLocation(specId).issueLogFile;
 }
 
 function saveManagedWorktreeBinding(worktreePath, state) {
@@ -58,6 +72,28 @@ function saveManagedWorktreeBinding(worktreePath, state) {
     specId: state.specId,
     worktreePath,
   }));
+}
+
+function setupFinalizeCleanupFlow(root, {
+  specId = "001-test",
+  runId = "run-test",
+  baseBranch = "main",
+  featureBranch = "feature/001-test",
+  worktree = false,
+} = {}) {
+  const flowManager = makeFlowManager(root);
+  return new FlowAtStepFixture({
+    flowManager,
+    specId,
+    runId,
+    request: "finalize cleanup fixture",
+    execution: {
+      mode: worktree ? "worktree" : "branch",
+      baseBranch,
+      featureBranch,
+    },
+    targetStep: "finalize-cleanup",
+  }).create().state();
 }
 
 describe("finalize-cleanup robustness", () => {
@@ -72,7 +108,7 @@ describe("finalize-cleanup robustness", () => {
     fs.mkdirSync(worktreeRoot);
     initGitRepo(mainRoot);
 
-    const state = setupFlow(mainRoot, { worktree: true, featureBranch: "feature/test" });
+    const state = setupFinalizeCleanupFlow(mainRoot, { worktree: true, featureBranch: "feature/test" });
     const specId = state.specId;
 
     const { FlowManager } = await import("../../../src/lib/flow-manager.js");
@@ -106,28 +142,32 @@ describe("finalize-cleanup robustness", () => {
     const featureBranch = `feature/${specId}`;
     initGitRepo(mainRoot);
 
-    const mainState = setupFlow(mainRoot, {
+    const mainState = setupFinalizeCleanupFlow(mainRoot, {
       specId,
       runId: "run-required-sync",
       featureBranch,
       baseBranch: "master",
       worktree: true,
     });
-    execFileSync("git", ["-C", mainRoot, "add", `specs/${specId}/flow.json`]);
+    execFileSync("git", ["-C", mainRoot, "add", path.relative(mainRoot, canonicalFlowPath(mainRoot, specId))]);
     execFileSync("git", ["-C", mainRoot, "commit", "--quiet", "-m", "add flow"]);
     execFileSync("git", ["-C", mainRoot, "worktree", "add", "-b", featureBranch, worktreePath]);
-    const worktreeState = makeFlowManager(worktreePath).load(specId);
-    findStepById(worktreeState.steps, "finalize-merge").runtimeLog = { sequence: 7, runId: "worktree-log" };
-    replaceFlowState(worktreePath, worktreeState, { specId });
-    execFileSync("git", ["-C", worktreePath, "add", `specs/${specId}/flow.json`]);
-    execFileSync("git", ["-C", worktreePath, "commit", "--quiet", "-m", "record runtime log"]);
-
     const fm = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true, specId });
+    fm.setStepRuntimeLog("finalize-merge", {
+      runId: "worktree-log",
+      sequence: 7,
+      attempt: 1,
+      command: "finalize-merge",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      exitCode: 0,
+    }, { specId });
+
     const registryPath = path.join(mainRoot, ".sennel", ".active-flow");
-    const lockPath = writeLiveFlowWriterLock(mainRoot, specId);
+    const flowState = fm.loadReadOnly(specId);
+    const lock = acquireLiveCurrentFlowStateLock(mainRoot, specId);
     const before = {
-      mainFlow: fs.readFileSync(path.join(mainRoot, `specs/${specId}/flow.json`)),
-      worktreeFlow: fs.readFileSync(path.join(worktreePath, `specs/${specId}/flow.json`)),
+      mainFlow: fs.readFileSync(canonicalFlowPath(mainRoot, specId)),
       registry: fs.readFileSync(registryPath),
       head: execFileSync("git", ["-C", mainRoot, "rev-parse", "HEAD"], { encoding: "utf8" }),
       branches: execFileSync("git", ["-C", mainRoot, "branch", "--format=%(refname)"], { encoding: "utf8" }),
@@ -135,7 +175,7 @@ describe("finalize-cleanup robustness", () => {
     };
     const ctx = {
       flowManager: fm,
-      flowState: fm.loadReadOnly(specId),
+      flowState,
       root: mainRoot,
       mainRoot,
       repositoryRoot: mainRoot,
@@ -152,14 +192,13 @@ describe("finalize-cleanup robustness", () => {
       }),
       (error) => error.code === "FLOW_STATE_ATOMIC_BUSY",
     );
-    assert.deepEqual(fs.readFileSync(path.join(mainRoot, `specs/${specId}/flow.json`)), before.mainFlow);
-    assert.deepEqual(fs.readFileSync(path.join(worktreePath, `specs/${specId}/flow.json`)), before.worktreeFlow);
+    assert.deepEqual(fs.readFileSync(canonicalFlowPath(mainRoot, specId)), before.mainFlow);
     assert.deepEqual(fs.readFileSync(registryPath), before.registry);
     assert.equal(execFileSync("git", ["-C", mainRoot, "rev-parse", "HEAD"], { encoding: "utf8" }), before.head);
     assert.equal(execFileSync("git", ["-C", mainRoot, "branch", "--format=%(refname)"], { encoding: "utf8" }), before.branches);
     assert.equal(execFileSync("git", ["-C", mainRoot, "worktree", "list", "--porcelain"], { encoding: "utf8" }), before.worktrees);
 
-    fs.unlinkSync(lockPath);
+    lock.release();
     const retried = await runTeardown(ctx, {
       worktreePath,
       mainRepoPath: mainRoot,
@@ -398,49 +437,60 @@ describe("finalize-cleanup robustness", () => {
   it("auto-rescue exempts only its exact conflict audit from issue-log dirtiness", async () => {
     const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
     tmp = createTmpDir("sennel-auto-rescue-issue-log-allowance-");
-    initGitRepo(tmp);
     const specId = "issue-log-allowance";
-    const specDirectory = path.join(tmp, "specs", specId);
-    const issuePath = path.join(specDirectory, "issue-log.json");
-    fs.mkdirSync(specDirectory, { recursive: true });
-    fs.writeFileSync(path.join(specDirectory, "spec.json"), "{}\n");
-    execFileSync("git", ["-C", tmp, "add", `specs/${specId}`]);
-    execFileSync("git", ["-C", tmp, "commit", "-qm", "add issue log"]);
-    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
-    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const featureBranch = "feature/issue-log-allowance";
-    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
-    fs.writeFileSync(path.join(tmp, "rescued.txt"), "rescue audit allowance\n");
-    execFileSync("git", ["-C", tmp, "add", "rescued.txt"]);
-    execFileSync("git", ["-C", tmp, "commit", "-qm", "add rescued file"]);
-    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
-
     const ownedAudit = { reason: "owned conflict", issueLogId: "owned-conflict-audit" };
-    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [ownedAudit, { reason: "user edit" }] })}\n`);
+    const prepareScenario = (root, { userEdit }) => {
+      initGitRepo(root);
+      fs.writeFileSync(path.join(root, ".gitignore"), ".sennel/\n");
+      setupFinalizeCleanupFlow(root, { specId, featureBranch });
+      const flowManager = makeFlowManager(root);
+      execFileSync("git", ["-C", root, "add", ".gitignore", "specs"]);
+      execFileSync("git", ["-C", root, "commit", "-qm", "add issue log"]);
+      const baseBranch = execFileSync("git", ["-C", root, "branch", "--show-current"], { encoding: "utf8" }).trim();
+      const baseline = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+      execFileSync("git", ["-C", root, "checkout", "-qb", featureBranch]);
+      fs.writeFileSync(path.join(root, "rescued.txt"), "rescue audit allowance\n");
+      execFileSync("git", ["-C", root, "add", "rescued.txt"]);
+      execFileSync("git", ["-C", root, "commit", "-qm", "add rescued file"]);
+      execFileSync("git", ["-C", root, "checkout", "-q", baseBranch]);
+      flowManager.appendIssueLog({ specId, entry: ownedAudit, idempotencyKey: ownedAudit.issueLogId });
+      if (userEdit) {
+        flowManager.appendIssueLog({
+          specId,
+          entry: { reason: "user edit", issueLogId: "user-edit" },
+          idempotencyKey: "user-edit",
+        });
+      }
+      return { baseBranch, baseline, issuePath: canonicalIssueLogPath(root, specId) };
+    };
+
+    const blockedScenario = prepareScenario(tmp, { userEdit: true });
     const blocked = runAutoRescue({
       mainRepoPath: tmp,
-      baseBranch,
-      baseline,
+      ...blockedScenario,
       featureBranch,
       specId,
       allowedIssueLogId: ownedAudit.issueLogId,
+      allowFinalizeMetadata: true,
     });
     assert.equal(blocked.ok, false);
     assert.equal(blocked.code, "MAIN_REPO_DIRTY");
-    assert.deepEqual(blocked.dirtyFiles, [`specs/${specId}/issue-log.json`]);
+    assert.deepEqual(blocked.dirtyFiles, [`specs/${specId}/001/issue-log.json`]);
 
-    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [ownedAudit] })}\n`);
+    const cleanRoot = path.join(tmp, "owned-audit-only");
+    const rescuedScenario = prepareScenario(cleanRoot, { userEdit: false });
     const rescued = runAutoRescue({
-      mainRepoPath: tmp,
-      baseBranch,
-      baseline,
+      mainRepoPath: cleanRoot,
+      ...rescuedScenario,
       featureBranch,
       specId,
       allowedIssueLogId: ownedAudit.issueLogId,
+      allowFinalizeMetadata: true,
     });
     assert.equal(rescued.ok, true, JSON.stringify(rescued));
-    assert.equal(fs.readFileSync(path.join(tmp, "rescued.txt"), "utf8"), "rescue audit allowance\n");
-    assert.deepEqual(JSON.parse(fs.readFileSync(issuePath, "utf8")).entries, [ownedAudit]);
+    assert.equal(fs.readFileSync(path.join(cleanRoot, "rescued.txt"), "utf8"), "rescue audit allowance\n");
+    assert.deepEqual(JSON.parse(fs.readFileSync(rescuedScenario.issuePath, "utf8")).entries, [ownedAudit]);
   });
 
   it("auto-rescue fails closed when repository status cannot be established", async () => {
@@ -477,7 +527,7 @@ describe("finalize-cleanup robustness", () => {
 
     const { FlowManager } = await import("../../../src/lib/flow-manager.js");
     const fm = new FlowManager({ root: worktreePath, mainRoot: mainRoot, inWorktree: true, specId });
-    setupFlow(mainRoot, {
+    setupFinalizeCleanupFlow(mainRoot, {
       specId,
       worktree: true,
       featureBranch,
@@ -508,47 +558,36 @@ describe("finalize-cleanup robustness", () => {
     execFileSync("git", ["-C", mainRoot, "worktree", "remove", "--force", worktreePath], { encoding: "utf8" });
   });
 
-  it("forced teardown failure compensates only its stable audit id after another process appends", async () => {
+  it("forced teardown failure compensates only its stable audit id and retains independently appended facts", async () => {
     const { RunFinalizeCleanupCommand } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
     tmp = createTmpDir("sennel-finalize-audit-compensation-");
     initGitRepo(tmp);
     const specId = "126";
     const spec = `specs/${specId}/spec.json`;
     const featureBranch = "feature/126";
-    const state = setupFlow(tmp, {
+    const state = setupFinalizeCleanupFlow(tmp, {
       specId,
       runId: "run-compensation",
       baseBranch: "master",
       featureBranch,
       worktree: false,
     });
-    state.state = {};
-    replaceFlowState(tmp, state, { specId });
     execFileSync("git", ["-C", tmp, "branch", featureBranch]);
-    const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
-    fs.writeFileSync(issuePath, `${JSON.stringify({ entries: [{ issueLogId: "existing", reason: "existing" }] }, null, 2)}\n`);
+    const issuePath = canonicalIssueLogPath(tmp, specId);
+    makeFlowManager(tmp).appendIssueLog({
+      specId,
+      entry: { issueLogId: "existing", reason: "existing" },
+      idempotencyKey: "existing",
+    });
+    makeFlowManager(tmp).appendIssueLog({
+      specId,
+      entry: { issueLogId: "concurrent-writer", reason: "concurrent" },
+      idempotencyKey: "concurrent-writer",
+    });
     const marker = path.join(tmp, "concurrent-appended");
     const hook = path.join(tmp, ".git", "hooks", "pre-commit");
-    fs.writeFileSync(hook, `#!/bin/sh\nwhile [ ! -f ${JSON.stringify(marker)} ]; do sleep 0.01; done\nexit 1\n`, { mode: 0o755 });
-    const watcherScript = `
-      const fs = require("node:fs");
-      const issuePath = ${JSON.stringify(issuePath)};
-      const marker = ${JSON.stringify(marker)};
-      const wait = new Int32Array(new SharedArrayBuffer(4));
-      for (let attempt = 0; attempt < 500; attempt += 1) {
-        const value = JSON.parse(fs.readFileSync(issuePath, "utf8"));
-        if (value.entries.some((entry) => /FORCED_ORPHAN_DROP/.test(entry.reason || ""))) {
-          value.entries.push({ issueLogId: "concurrent-writer", reason: "concurrent" });
-          fs.writeFileSync(issuePath, JSON.stringify(value, null, 2) + "\\n");
-          fs.writeFileSync(marker, "done");
-          process.exit(0);
-        }
-        Atomics.wait(wait, 0, 0, 10);
-      }
-      process.exit(2);
-    `;
-    const watcher = spawn(process.execPath, ["-e", watcherScript], { stdio: "ignore" });
-    const watcherDone = new Promise((resolve) => watcher.on("close", resolve));
+    fs.writeFileSync(marker, "ready");
+    fs.writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
 
     const result = await new RunFinalizeCleanupCommand().execute({
       root: tmp,
@@ -556,8 +595,6 @@ describe("finalize-cleanup robustness", () => {
       flowManager: makeFlowManager(tmp),
       force: true,
     });
-    assert.equal(await watcherDone, 0);
-
     assert.equal(result.ok, true, JSON.stringify(result));
     const entries = JSON.parse(fs.readFileSync(issuePath, "utf8")).entries;
     assert.equal(entries.some((entry) => entry.issueLogId === "existing"), true);
@@ -572,20 +609,18 @@ describe("finalize-cleanup robustness", () => {
     const specId = "127";
     const spec = `specs/${specId}/spec.json`;
     const featureBranch = "feature/127";
-    const state = setupFlow(tmp, {
+    const state = setupFinalizeCleanupFlow(tmp, {
       specId,
       runId: "run-audit-fail-stop",
       baseBranch: "master",
       featureBranch,
       worktree: false,
     });
-    state.state = {};
-    replaceFlowState(tmp, state, { specId });
     execFileSync("git", ["-C", tmp, "branch", featureBranch]);
-    const issuePath = path.join(tmp, `specs/${specId}/issue-log.json`);
+    const issuePath = canonicalIssueLogPath(tmp, specId);
     fs.mkdirSync(issuePath);
     const before = {
-      flow: fs.readFileSync(path.join(tmp, `specs/${specId}/flow.json`)),
+      flow: fs.readFileSync(canonicalFlowPath(tmp, specId)),
       head: execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }),
       branches: execFileSync("git", ["-C", tmp, "branch", "--format=%(refname)"], { encoding: "utf8" }),
       worktrees: execFileSync("git", ["-C", tmp, "worktree", "list", "--porcelain"], { encoding: "utf8" }),
@@ -600,7 +635,7 @@ describe("finalize-cleanup robustness", () => {
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "ISSUE_LOG_AUDIT_FAILED");
-    assert.deepEqual(fs.readFileSync(path.join(tmp, `specs/${specId}/flow.json`)), before.flow);
+    assert.deepEqual(fs.readFileSync(canonicalFlowPath(tmp, specId)), before.flow);
     assert.equal(execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }), before.head);
     assert.equal(execFileSync("git", ["-C", tmp, "branch", "--format=%(refname)"], { encoding: "utf8" }), before.branches);
     assert.equal(execFileSync("git", ["-C", tmp, "worktree", "list", "--porcelain"], { encoding: "utf8" }), before.worktrees);

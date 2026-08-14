@@ -107,13 +107,6 @@ export class FinalizeFlowStateOwner {
     return this.flowManager.loadReadOnly(this.specId);
   }
 
-  mutate(mutator, { operationOwnerToken = null } = {}) {
-    return this.flowManager.mutate(mutator, {
-      specId: this.specId,
-      operationOwnerToken,
-    });
-  }
-
   updateStepStatus(transition, {
     taskId = null,
     operationOwnerToken = null,
@@ -125,9 +118,11 @@ export class FinalizeFlowStateOwner {
     });
   }
 
-  setMergeOutcome(outcome, { operationOwnerToken = null } = {}) {
-    return this.flowManager.setMergeOutcome(outcome, {
+  finalizeDownstream({ action, stepIds, operationOwnerToken = null } = {}) {
+    return this.flowManager.finalizeDownstream({
       specId: this.specId,
+      action,
+      stepIds,
       operationOwnerToken,
     });
   }
@@ -148,14 +143,6 @@ export class FinalizeFlowStateOwner {
   activeFlowIsCleared() {
     return !this.flowManager.loadActiveFlows()
       .some((entry) => entry.specId === this.specId);
-  }
-
-  restoreState(snapshot, { operationOwnerToken = null } = {}) {
-    const current = this.loadReadOnly();
-    return this.flowManager.saveAtomic(snapshot, {
-      expectedOriginal: current,
-      operationOwnerToken,
-    });
   }
 
 }

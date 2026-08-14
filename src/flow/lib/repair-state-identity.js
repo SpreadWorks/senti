@@ -3,8 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runGit, runGitToFile } from "../../lib/git-helpers.js";
-import { UPGRADE_RECOVERY_AUDIT_FILE } from "./upgrade-evidence-paths.js";
 import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
 import { PRODUCT } from "../../lib/product.js";
 
@@ -17,7 +17,6 @@ export const REPAIR_DELTA_DIR = "repair-deltas";
 export const REPAIR_TRANSACTION_FILE = "impl-repair-transaction.json";
 export const REPAIR_MIGRATION_FILE = "repair-state-migration.json";
 export const REPAIR_LOCK_DIR = ".impl-repair.lock";
-export const REPAIR_BASELINE_PUBLICATION_DIR = path.join(PRODUCT.managedDirName, "recovery", "repair-baselines");
 
 const MAX_PATH_LENGTH = 4096;
 const HASH_PATTERN = /^[a-f0-9]{64}$/i;
@@ -158,192 +157,6 @@ export class ImmutableGitBaseline {
       sourceRef: this.sourceRef,
       ref: this.ref,
       capturedAt: this.capturedAt,
-    };
-  }
-}
-
-function expectedRepairBaselineRef(runId) {
-  return PRODUCT.flowBaselineRef(assertSafeRunId(runId));
-}
-
-function resolveRepairBaselineRef({ root, ref }) {
-  const result = runGit([
-    "rev-parse",
-    "--verify",
-    "--end-of-options",
-    `${ref}^{commit}`,
-  ], { cwd: root });
-  if (!result.ok) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `failed to resolve repair baseline ${ref}: ${result.stderr || result.stdout}`.trim(),
-      { ref },
-    );
-  }
-  return result.stdout.trim().split(/\r?\n/).filter(Boolean);
-}
-
-function resolveRepairBaselineObjectFormat({ root }) {
-  const result = runGit(["rev-parse", "--show-object-format"], { cwd: root });
-  if (!result.ok) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `failed to resolve Git object format: ${result.stderr || result.stdout}`.trim(),
-    );
-  }
-  const objectFormat = result.stdout.trim();
-  if (objectFormat !== "sha1" && objectFormat !== "sha256") {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `unsupported Git object format: ${objectFormat}`,
-    );
-  }
-  return objectFormat;
-}
-
-export function resolveRepairBaselineAuthority({
-  root,
-  flowState,
-  resolveRef = resolveRepairBaselineRef,
-  resolveObjectFormat = resolveRepairBaselineObjectFormat,
-}) {
-  if (!flowState?.repairBaseline) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_REQUIRED",
-      "repair baseline authority is required.",
-    );
-  }
-
-  let baseline;
-  try {
-    baseline = new ImmutableGitBaseline(flowState.repairBaseline);
-  } catch (error) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline authority is invalid: ${error.message}`,
-    );
-  }
-
-  let expectedRef;
-  try {
-    expectedRef = expectedRepairBaselineRef(flowState.runId);
-  } catch (error) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      "repair baseline authority is missing its flow identity.",
-    );
-  }
-  if (baseline.kind !== "git" || baseline.ref !== expectedRef) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline authority does not belong to flow ${flowState.runId}.`,
-      { expectedRef, actualRef: baseline.ref },
-    );
-  }
-
-  let currentObjectFormat;
-  try {
-    currentObjectFormat = resolveObjectFormat({ root });
-  } catch (error) {
-    if (error instanceof RepairStateError) throw error;
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `failed to resolve Git object format: ${error.message}`,
-    );
-  }
-  if (currentObjectFormat !== baseline.objectFormat) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      "repair baseline object format does not match the repository.",
-      { expectedObjectFormat: baseline.objectFormat, actualObjectFormat: currentObjectFormat },
-    );
-  }
-
-  let candidates;
-  try {
-    candidates = resolveRef({ root, ref: baseline.ref });
-  } catch (error) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `repair baseline authority cannot be resolved: ${error.message}`,
-      { ref: baseline.ref },
-    );
-  }
-  if (!Array.isArray(candidates) || candidates.length === 0) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `repair baseline authority cannot resolve ${baseline.ref}.`,
-      { ref: baseline.ref },
-    );
-  }
-  if (candidates.length !== 1) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AMBIGUOUS",
-      `repair baseline authority resolved ${candidates.length} commits for ${baseline.ref}.`,
-      { ref: baseline.ref, candidateCount: candidates.length },
-    );
-  }
-  if (candidates[0] !== baseline.commitOid) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline ref ${baseline.ref} does not match the persisted commit.`,
-      { ref: baseline.ref, expectedCommit: baseline.commitOid, actualCommit: candidates[0] },
-    );
-  }
-  const tree = runGit([
-    "rev-parse",
-    "--verify",
-    "--end-of-options",
-    `${baseline.commitOid}^{tree}`,
-  ], { cwd: root });
-  if (!tree.ok) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_UNRESOLVABLE",
-      `failed to resolve repair baseline tree for ${baseline.commitOid}: ${tree.stderr || tree.stdout}`.trim(),
-      { commitOid: baseline.commitOid },
-    );
-  }
-  const actualTreeOid = tree.stdout.trim();
-  if (actualTreeOid !== baseline.treeOid) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline commit ${baseline.commitOid} does not match the persisted tree.`,
-      { commitOid: baseline.commitOid, expectedTree: baseline.treeOid, actualTree: actualTreeOid },
-    );
-  }
-  return baseline;
-}
-
-export class RepairBaselinePublication {
-  constructor(input = {}) {
-    if (input.version !== 1) throw new Error("repair baseline publication version must be 1");
-    this.version = 1;
-    this.runId = requireArtifactId(input.runId, "runId");
-    this.statePath = requireString(input.statePath, "statePath");
-    if (!path.isAbsolute(this.statePath) || path.basename(this.statePath) !== "flow.json") {
-      throw new Error("repair baseline publication statePath must be an absolute flow.json path");
-    }
-    this.baseline = input.baseline instanceof ImmutableGitBaseline
-      ? input.baseline
-      : new ImmutableGitBaseline(input.baseline);
-    const expectedRef = PRODUCT.flowBaselineRef(this.runId);
-    if (this.baseline.kind !== "git" || this.baseline.ref !== expectedRef) {
-      throw new Error("repair baseline publication ref does not match its runId");
-    }
-    this.createdAt = requireString(input.createdAt, "createdAt");
-    if (Number.isNaN(Date.parse(this.createdAt))) {
-      throw new Error("repair baseline publication createdAt must be an ISO timestamp");
-    }
-    Object.freeze(this);
-  }
-
-  toJSON() {
-    return {
-      version: this.version,
-      runId: this.runId,
-      statePath: this.statePath,
-      baseline: this.baseline.toJSON(),
-      createdAt: this.createdAt,
     };
   }
 }
@@ -501,62 +314,6 @@ export class RepairArtifactRegistry {
   constructor(specPath) {
     this.specPath = normalizeRepairPath(specPath);
     this.specDir = path.posix.dirname(this.specPath);
-    const specArtifacts = [
-      "flow.json",
-      "draft.json",
-      "draft.md",
-      "issue.md",
-      "issue-log.json",
-      "flow-findings.json",
-      "nonblocking-handoffs.json",
-      "acceptance-review-evidence.json",
-      "qa.md",
-      "spec.md",
-      "file-map.json",
-      "review.md",
-      "draft-review.md",
-      "draft-review-questions.json",
-      "draft-review-questions.md",
-      "draft-review-questions-repair.json",
-      "draft-review-coverage.json",
-      "draft-review-coverage.md",
-      "draft-questions-triage.json",
-      "draft-questions-repair.json",
-      "draft-coverage-triage.json",
-      "draft-coverage-repair.json",
-      "draft-gate-source.json",
-      "spec-review.json",
-      "spec-review.md",
-      "spec-review-triage.json",
-      "spec-triage.json",
-      "spec-repair.json",
-      "spec-gate-source.json",
-      "test-review.json",
-      "test-review.md",
-      "test-coverage.json",
-      "test-result-review.md",
-      "scenario-validity-result.json",
-      "upgrade-result.json",
-      UPGRADE_RECOVERY_AUDIT_FILE,
-      "placeholder-permission.json",
-      "test-execute-result.json",
-      "test-result-review.json",
-      "impl-review.json",
-      "impl-gate-result.json",
-      "retro.json",
-      "acceptance-review.json",
-      "final-regression-result.json",
-      "gate-impl-memory.json",
-      "retry-recovery.json",
-      ".retry-recovery.transaction.json",
-      "completion-overrides.json",
-      "report.json",
-      "impl-triage.json",
-      "impl-repair.json",
-      REPAIR_FINGERPRINT_MANIFEST_FILE,
-      REPAIR_TRANSACTION_FILE,
-      REPAIR_MIGRATION_FILE,
-    ].map((name) => `${this.specDir}/${name}`);
     this.#exact = new Set([
       PRODUCT.managedPath(".active-flow"),
       ...FlowTargetIdentityAuthority.repositoryPaths(),
@@ -564,13 +321,11 @@ export class RepairArtifactRegistry {
       PRODUCT.managedPath(".repository-maintenance.lock"),
       PRODUCT.managedPath(".worktree-prepare-attempt.json"),
       PRODUCT.managedPath("flow-identity.json"),
-      PRODUCT.managedPath("flow-identity.issue-transaction.json"),
       PRODUCT.managedPath(".flow-identity.publication.json"),
       PRODUCT.managedPath(".flow-identity.publication.intent"),
       PRODUCT.managedPath(".flow-identity.publication.receipt.tmp"),
       PRODUCT.managedPath(".flow-identity.publication.binding.tmp"),
       PRODUCT.managedPath("last-finalized-spec"),
-      ...specArtifacts,
     ]);
     this.#prefixes = Object.freeze([
       ".tmp/",
@@ -581,12 +336,6 @@ export class RepairArtifactRegistry {
       `${PRODUCT.managedPath("output")}/`,
       `${PRODUCT.managedPath("recovery")}/`,
       `${PRODUCT.managedPath("worktree")}/`,
-      `${this.specDir}/tests/.raw/`,
-      `${this.specDir}/review-history/`,
-      `${this.specDir}/review-evidence/`,
-      `${this.specDir}/.flow.json.`,
-      `${this.specDir}/${REPAIR_DELTA_DIR}/`,
-      `${this.specDir}/${REPAIR_LOCK_DIR}/`,
     ]);
     Object.freeze(this);
   }
@@ -594,13 +343,15 @@ export class RepairArtifactRegistry {
   owns(value) {
     const relPath = normalizeRepairPath(value);
     if (this.#exact.has(relPath) || this.#prefixes.some((prefix) => relPath.startsWith(prefix))) return true;
-    const directory = path.posix.dirname(relPath);
-    const basename = path.posix.basename(relPath);
-    if (directory !== this.specDir || !basename.endsWith(".tmp")) return false;
-    return [...this.#exact].some((owned) => {
-      const ownedName = path.posix.basename(owned);
-      return basename.startsWith(`${ownedName}.`);
-    });
+    if (!relPath.startsWith(`${this.specDir}/`)) return false;
+    const versionRelativePath = relPath.slice(this.specDir.length + 1);
+    let contract;
+    try {
+      contract = FLOW_ARTIFACT_CONTRACTS.classify(versionRelativePath);
+    } catch {
+      return false;
+    }
+    return !new Set(["spec.record", "tests.source"]).has(contract.logicalKey.toString());
   }
 
   gitPathspecExcludes() {
@@ -610,6 +361,7 @@ export class RepairArtifactRegistry {
         `:(exclude,top,glob)${owned}.*.tmp`,
       ]),
       ...this.#prefixes.map((prefix) => `:(exclude,top,glob)${prefix}**`),
+      `:(exclude,top,glob)${this.specDir}/**`,
     ]);
   }
 }
@@ -619,8 +371,7 @@ export class FinalizeFlowArtifactRegistry extends RepairArtifactRegistry {
     const relPath = normalizeRepairPath(value);
     return super.owns(relPath)
       || relPath === this.specPath
-      || relPath.startsWith(`${this.specDir}/tasks/`)
-      || relPath.startsWith(`${this.specDir}/tests/`);
+      || relPath.startsWith(`${this.specDir}/artifacts/tests/`);
   }
 }
 
@@ -714,202 +465,14 @@ export function captureRepairBaseline({ root, baseRef, runId, useMergeBase = fal
   });
 }
 
-function repairBaselinePublicationFile(mainRoot, runId) {
-  return path.join(mainRoot, REPAIR_BASELINE_PUBLICATION_DIR, `${requireArtifactId(runId, "runId")}.json`);
-}
-
-function pinPublishedBaseline(root, baseline) {
-  const current = baseline instanceof ImmutableGitBaseline ? baseline : new ImmutableGitBaseline(baseline);
-  const existing = runGit(["rev-parse", "--verify", current.ref], { cwd: root });
-  if (existing.ok) {
-    if (existing.stdout.trim() !== current.commitOid) {
-      throw new RepairStateError(
-        "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-        `repair baseline publication authority mismatch: ${current.ref}`,
-        { ref: current.ref, expected: current.commitOid },
-      );
-    }
-    return current;
-  }
-  const created = runGit(["update-ref", current.ref, current.commitOid, ""], { cwd: root });
-  if (!created.ok) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_PIN_FAILED",
-      `failed to pin repair baseline ${current.ref}: ${created.stderr || created.stdout}`.trim(),
-      { ref: current.ref, commitOid: current.commitOid },
-    );
-  }
-  return current;
-}
-
-function assertPublicationStatePath(mainRoot, publication) {
-  const relative = path.relative(path.resolve(mainRoot), path.resolve(publication.statePath));
-  if (relative === "" || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_PUBLICATION_INVALID",
-      `repair baseline publication state path escapes the repository authority: ${publication.statePath}`,
-      { runId: publication.runId },
-    );
-  }
-}
-
-export function beginRepairBaselinePublication({
-  root,
-  mainRoot,
-  baseRef,
-  runId,
-  useMergeBase = false,
-  statePath,
-}) {
-  const authorityRoot = path.resolve(mainRoot || root);
-  const resolvedStatePath = path.resolve(statePath);
-  const file = repairBaselinePublicationFile(authorityRoot, runId);
-  let publication;
-  if (fs.existsSync(file)) {
-    publication = new RepairBaselinePublication(JSON.parse(fs.readFileSync(file, "utf8")));
-    if (publication.statePath !== resolvedStatePath || publication.baseline.sourceRef !== baseRef) {
-      throw new RepairStateError(
-        "REPAIR_BASELINE_PUBLICATION_CONFLICT",
-        `repair baseline publication retry does not match run ${runId}`,
-        { runId },
-      );
-    }
-  } else {
-    const resolved = captureRepairBaseline({ root, baseRef, runId, useMergeBase, pin: false });
-    const baseline = new ImmutableGitBaseline({
-      ...resolved.toJSON(),
-      ref: PRODUCT.flowBaselineRef(requireArtifactId(runId, "runId")),
-    });
-    publication = new RepairBaselinePublication({
-      version: 1,
-      runId,
-      statePath: resolvedStatePath,
-      baseline,
-      createdAt: new Date().toISOString(),
-    });
-    assertPublicationStatePath(authorityRoot, publication);
-    atomicWriteJson(file, publication.toJSON());
-  }
-  assertPublicationStatePath(authorityRoot, publication);
-  pinPublishedBaseline(root, publication.baseline);
-  return publication;
-}
-
-export function completeRepairBaselinePublication({ mainRoot, publication }) {
-  const current = publication instanceof RepairBaselinePublication
-    ? publication
-    : new RepairBaselinePublication(publication);
-  const file = repairBaselinePublicationFile(path.resolve(mainRoot), current.runId);
-  if (!fs.existsSync(file)) return false;
-  const stored = new RepairBaselinePublication(JSON.parse(fs.readFileSync(file, "utf8")));
-  if (
-    stored.statePath !== current.statePath
-    || stored.baseline.ref !== current.baseline.ref
-    || stored.baseline.commitOid !== current.baseline.commitOid
-  ) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_PUBLICATION_CONFLICT",
-      `repair baseline publication completion authority mismatch: ${current.runId}`,
-      { runId: current.runId },
-    );
-  }
-  fs.rmSync(file, { force: true });
-  return true;
-}
-
-export function rollbackRepairBaselinePublication({ root, mainRoot, publication }) {
-  const current = publication instanceof RepairBaselinePublication
-    ? publication
-    : new RepairBaselinePublication(publication);
-  deleteRepairBaselineRef({ root, baseline: current.baseline });
-  completeRepairBaselinePublication({ mainRoot, publication: current });
-}
-
-export function recoverRepairBaselinePublications({ root, mainRoot, excludeRunId = null }) {
-  const authorityRoot = path.resolve(mainRoot || root);
-  const directory = path.join(authorityRoot, REPAIR_BASELINE_PUBLICATION_DIR);
-  if (!fs.existsSync(directory)) return { recovered: [], retained: [] };
-  const recovered = [];
-  const retained = [];
-  for (const name of fs.readdirSync(directory).sort(compareCanonicalText)) {
-    if (!name.endsWith(".json")) continue;
-    const file = path.join(directory, name);
-    const publication = new RepairBaselinePublication(JSON.parse(fs.readFileSync(file, "utf8")));
-    assertPublicationStatePath(authorityRoot, publication);
-    if (publication.runId === excludeRunId) {
-      retained.push(publication.runId);
-      continue;
-    }
-    if (fs.existsSync(publication.statePath)) {
-      const state = JSON.parse(fs.readFileSync(publication.statePath, "utf8"));
-      const baseline = state?.repairBaseline == null ? null : new ImmutableGitBaseline(state.repairBaseline);
-      if (
-        state?.runId !== publication.runId
-        || baseline?.ref !== publication.baseline.ref
-        || baseline?.commitOid !== publication.baseline.commitOid
-      ) {
-        throw new RepairStateError(
-          "REPAIR_BASELINE_PUBLICATION_CONFLICT",
-          `repair baseline publication state authority mismatch: ${publication.runId}`,
-          { runId: publication.runId },
-        );
-      }
-      pinPublishedBaseline(root, publication.baseline);
-      completeRepairBaselinePublication({ mainRoot: authorityRoot, publication });
-      retained.push(publication.runId);
-      continue;
-    }
-    rollbackRepairBaselinePublication({ root, mainRoot: authorityRoot, publication });
-    recovered.push(publication.runId);
-  }
-  return { recovered, retained };
-}
-
-export function deleteRepairBaselineRef({ root, baseline }) {
-  const current = baseline instanceof ImmutableGitBaseline ? baseline : new ImmutableGitBaseline(baseline);
-  if (current.kind !== "git" || current.ref == null) return false;
-  const existing = runGit(["rev-parse", "--verify", current.ref], { cwd: root });
-  if (!existing.ok) return false;
-  if (existing.stdout.trim() !== current.commitOid) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline cleanup authority mismatch: ${current.ref}`,
-      { ref: current.ref },
-    );
-  }
-  runGitRequired(root, ["update-ref", "-d", current.ref, current.commitOid], "failed to delete repair baseline ref");
-  return true;
-}
-
 export function deleteRepairBaselineForFlow(root, flowState) {
-  if (!flowState?.repairBaseline) return false;
-  const expectedRef = PRODUCT.flowBaselineRef(assertSafeRunId(flowState.runId));
-  if (flowState.repairBaseline.ref !== expectedRef) {
-    throw new RepairStateError(
-      "REPAIR_BASELINE_AUTHORITY_MISMATCH",
-      `repair baseline does not belong to flow ${flowState.runId}`,
-      { runId: flowState.runId, expectedRef },
-    );
-  }
-  const deleted = deleteRepairBaselineRef({ root, baseline: flowState.repairBaseline });
-  if (flowState.runId) {
-    const file = repairBaselinePublicationFile(path.resolve(root), flowState.runId);
-    if (fs.existsSync(file)) {
-      const publication = new RepairBaselinePublication(JSON.parse(fs.readFileSync(file, "utf8")));
-      if (
-        publication.baseline.ref !== flowState.repairBaseline.ref
-        || publication.baseline.commitOid !== flowState.repairBaseline.commitOid
-      ) {
-        throw new RepairStateError(
-          "REPAIR_BASELINE_PUBLICATION_CONFLICT",
-          `repair baseline finalize authority mismatch: ${flowState.runId}`,
-          { runId: flowState.runId },
-        );
-      }
-      fs.rmSync(file, { force: true });
-    }
-  }
-  return deleted;
+  const runId = assertSafeRunId(flowState?.runId);
+  const ref = PRODUCT.flowBaselineRef(runId);
+  const existing = runGit(["rev-parse", "--verify", ref], { cwd: root });
+  if (!existing.ok) return false;
+  const commitOid = existing.stdout.trim();
+  runGitRequired(root, ["update-ref", "-d", ref, commitOid], "failed to delete repair baseline ref");
+  return true;
 }
 
 function isGitRepository(root) {
@@ -1267,7 +830,6 @@ function buildFilesystemManifest({ root, specPath, boundary, registry }) {
 }
 
 function baselineFromStateOrRepository({ root, state, specDir }) {
-  if (state?.repairBaseline) return new ImmutableGitBaseline(state.repairBaseline);
   const latest = path.join(specDir, REPAIR_FINGERPRINT_MANIFEST_FILE);
   if (fs.existsSync(latest)) return readRepairFingerprintManifest(specDir).baseline;
   const objectFormat = gitObjectFormat(root);
@@ -1316,7 +878,8 @@ export function buildRepairStateManifest({ root, artifactRoot = null, specPath, 
   collectExplicitTree(root, PRODUCT.managedPath("config.json"), changed, registry, boundary);
   collectExplicitTree(root, PRODUCT.managedPath("config.local.json"), changed, registry, boundary);
   collectExplicitTree(resolvedArtifactRoot, normalizedSpec, changed, registry, boundary);
-  collectExplicitTree(resolvedArtifactRoot, path.posix.join(path.posix.dirname(normalizedSpec), "tests"), changed, registry, boundary);
+  const testSourceDirectory = path.posix.join(path.posix.dirname(normalizedSpec), "artifacts/tests");
+  collectExplicitTree(resolvedArtifactRoot, testSourceDirectory, changed, registry, boundary);
   for (const relPath of boundary.include) collectExplicitTree(root, relPath, changed, registry, boundary);
   for (const relPath of [...changed.keys()]) {
     if (registry.owns(relPath)) changed.delete(relPath);
@@ -1332,7 +895,7 @@ export function buildRepairStateManifest({ root, artifactRoot = null, specPath, 
   const entries = [...changed.values()].map((entry) => {
     const indexEntry = index.get(entry.path) || null;
     const isSpecInput = entry.path === normalizedSpec
-      || entry.path.startsWith(`${path.posix.dirname(normalizedSpec)}/tests/`);
+      || entry.path.startsWith(`${testSourceDirectory}/`);
     const identity = contentIdentity(isSpecInput ? resolvedArtifactRoot : root, entry.path, indexEntry);
     return new CanonicalRepairEntry({
       path: entry.path,

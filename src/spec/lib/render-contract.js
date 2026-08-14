@@ -98,6 +98,26 @@ export class TaskOutputPath {
   }
 }
 
+/**
+ * Resolves regenerated human-facing views below the Version-local runtime
+ * area.  `spec.json` remains the only durable Spec authority; Markdown is an
+ * on-demand view and must never become an unclassified catalog artifact.
+ */
+export class SpecRenderOutputLocation {
+  constructor({ specDir, specMarkdownFile = null } = {}) {
+    if (typeof specDir !== "string" || specDir.trim() === "") {
+      throw new Error("SpecRenderOutputLocation requires a spec directory");
+    }
+    this.specDir = path.resolve(specDir);
+    this.runtimeDirectory = path.join(this.specDir, ".runtime", "spec-render");
+    this.specMarkdownFile = specMarkdownFile == null
+      ? path.join(this.runtimeDirectory, "spec.md")
+      : path.resolve(specMarkdownFile);
+    this.tasksDirectory = path.join(this.runtimeDirectory, "tasks");
+    Object.freeze(this);
+  }
+}
+
 class TaskRenderEntry {
   constructor(task, outputPath, markdown) {
     this.task = task;
@@ -150,7 +170,7 @@ class SpecRenderMeta {
 export class SpecRenderContext {
   #meta;
 
-  constructor({ root, specDir, specJsonPath }) {
+  constructor({ root, specDir, specJsonPath, flowState = null }) {
     if (!root || !specDir || !specJsonPath) {
       throw new Error("SpecRenderContext requires root, specDir, and specJsonPath");
     }
@@ -161,18 +181,14 @@ export class SpecRenderContext {
     if (path.dirname(resolvedSpecJsonPath) !== resolvedSpecDir) {
       throw new Error("SpecRenderContext spec.json must belong to the selected spec directory");
     }
-    const title = path.basename(resolvedSpecDir);
-    const relativeSpecPath = path.relative(resolvedRoot, resolvedSpecJsonPath);
-    const isRepoRelative = relativeSpecPath !== ".."
-      && !relativeSpecPath.startsWith(`..${path.sep}`)
-      && !path.isAbsolute(relativeSpecPath);
-    const flowPath = path.join(resolvedSpecDir, "flow.json");
-    let matchingFlow = null;
-
-    if (fs.existsSync(flowPath)) {
-      const state = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-      if (isRepoRelative && state.specId === title) matchingFlow = state;
-    }
+    const matchingFlow = flowState !== null
+      && typeof flowState === "object"
+      && !Array.isArray(flowState)
+      && typeof flowState.specId === "string"
+      && flowState.specId !== ""
+      ? flowState
+      : null;
+    const title = matchingFlow?.specId || path.basename(resolvedSpecDir);
 
     this.#meta = new SpecRenderMeta({
       title,

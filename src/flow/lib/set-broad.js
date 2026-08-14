@@ -25,11 +25,11 @@ export default class SetBroadCommand extends FlowCommand {
       return Envelope.fail("set", "broad", "INVALID_BROAD_MODE", err.message);
     }
 
-    ctx.flowManager.mutate((state) => {
-      if (!Array.isArray(state.broadModeHistory)) state.broadModeHistory = [];
-      state.broadModeHistory.push(record);
-    });
+    if (typeof ctx.flowManager?.addNote !== "function") {
+      throw new Error("set broad requires the canonical Activity note Store API");
+    }
+    ctx.flowManager.addNote(record.toActivityText(), { specId: ctx.flowState.specId });
 
-    return { broadMode: record };
+    return { broadMode: record.toJSON() };
   }
 }

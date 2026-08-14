@@ -143,8 +143,8 @@ describe("FinalizeMergeTransaction", () => {
         && error.code === "MERGE_FEATURE_DIRTY"
         && error.data.paths.includes("specs/001-test/operator-notes.txt")
         && !error.data.paths.includes("specs/001-test/flow.json")
-        && !error.data.paths.includes("specs/001-test/tasks/T-1.md")
-        && !error.data.paths.includes("specs/001-test/tests/R1.test.js")
+        && error.data.paths.includes("specs/001-test/tasks/T-1.md")
+        && error.data.paths.includes("specs/001-test/tests/R1.test.js")
       ),
     );
   });

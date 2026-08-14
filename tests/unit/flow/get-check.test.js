@@ -5,13 +5,11 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow get check", () => {
@@ -20,36 +18,14 @@ describe("flow get check", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = {
-      specId: specId,
-      runId: `run-${specId}`,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
+    return new CanonicalFlowFixture({
+      flowManager: makeFlowManager(dir), specId, runId: `run-${specId}`,
+    }).create().registerActive();
   }
 
   it("returns JSON envelope with pass and checks array", () => {
     tmp = createTmpDir();
-    setupFlowState(tmp);
-    makeFlowManager(tmp).mutate((state) => {
-      for (const [stepId, status] of [
-        ["draft-questions-review", "skipped"],
-        ["draft-refine", "skipped"],
-        ["draft-coverage-review", "skipped"],
-        ["spec-gate", "done"],
-        ["spec-review", "skipped"],
-        ["test", "done"],
-        ["test-review", "skipped"],
-      ]) {
-        findStepById(state.steps, stepId).status = status;
-      }
-    });
+    setupFlowState(tmp).settleBefore("implement");
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "check", "impl"],
       { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },

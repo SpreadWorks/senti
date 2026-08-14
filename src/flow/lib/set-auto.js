@@ -4,7 +4,7 @@
  * Enable or disable autoApprove mode.
  *
  * Dual-mode operation:
- *   - Active flow (flow.json present): mutate flow.json.
+ *   - Active flow: append a typed policy Activity through the Version Store.
  *   - Preparing flow (.sennel/.active-flow.<runId>, pre-prepare): mutate the
  *     preparing state so skill prelude B.0.5 can enable auto mode BEFORE
  *     `flow prepare` creates flow.json. `run-prepare-spec` then inherits the
@@ -21,7 +21,7 @@
  *     earlier by `flow run auto-check`), the verdict is trusted verbatim and
  *     the AI is NOT invoked again.
  *   - Spec 220: phase-aware input and spec-approved skip share a single
- *     module with run-auto-check via `resolveAutoCheckInput`.
+ *     catalog resolver with run-auto-check.
  *   - Spec 232: autoDesired flag persisted on reject; failed verdict not saved.
  *
  * ctx.value — "on" | "off"
@@ -34,7 +34,9 @@ import { runAutoCheckCore } from "./run-auto-check.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 import {
-  resolveAutoCheckInput,
+  CanonicalAutoCheckInputError,
+  resolvePreparingAutoCheckInput,
+  resolveAutoCheckInputForFlow,
   resolvePersistedAutoCheckTrust,
   isSpecApproved,
   buildSkipVerdict,
@@ -70,19 +72,20 @@ export default class SetAutoCommand extends FlowCommand {
       runId = resolved.runId;
     }
 
-    const mutateState = (updater) => {
-      if (preparingMode) {
-        flowManager.mutatePreparingFlow(runId, updater);
-      } else {
-        flowManager.mutate(updater);
-      }
-    };
+    const updatePreparing = (updater) => flowManager.mutatePreparingFlow(runId, updater);
+    const updateActivePolicy = (autoApprove) => flowManager.setAutoApprove(autoApprove, {
+      ...(ctx.specId ? { specId: ctx.specId } : {}),
+    });
 
     if (value === "off") {
-      mutateState((s) => {
-        s.autoApprove = false;
-        s.autoDesired = false;
-      });
+      if (preparingMode) {
+        updatePreparing((s) => {
+          s.autoApprove = false;
+          s.autoDesired = false;
+        });
+      } else {
+        updateActivePolicy(false);
+      }
       return { autoApprove: false, ...(preparingMode ? { runId } : {}) };
     }
 
@@ -93,10 +96,7 @@ export default class SetAutoCommand extends FlowCommand {
     // Spec-approved skip path: skip auto-check entirely (active flow only).
     if (!preparingMode && isSpecApproved(state)) {
       const autoCheck = buildSkipVerdict();
-      flowManager.mutate((s) => {
-        s.autoCheck = autoCheck;
-        s.autoApprove = true;
-      });
+      updateActivePolicy(true);
       return { autoApprove: true, autoCheck };
     }
 
@@ -108,13 +108,21 @@ export default class SetAutoCommand extends FlowCommand {
     let autoCheck = state?.autoCheck || null;
     const trusted = !!autoCheck;
     if (trusted) {
-      const paths = { root: ctx.root };
-      const trustFailure = resolvePersistedAutoCheckTrust(state, paths);
+      const trustFailure = resolvePersistedAutoCheckTrust(state);
       if (trustFailure) autoCheck = trustFailure;
     }
     if (!autoCheck) {
-      const paths = { root: ctx.root };
-      const resolved = resolveAutoCheckInput(state, paths);
+      let resolved;
+      try {
+        resolved = preparingMode
+          ? resolvePreparingAutoCheckInput(state)
+          : resolveAutoCheckInputForFlow({ flowManager, state });
+      } catch (error) {
+        if (error instanceof CanonicalAutoCheckInputError) {
+          return Envelope.fail("set", "auto", error.code, error.message);
+        }
+        throw error;
+      }
       if (resolved.skip) {
         autoCheck = buildSkipVerdict();
       } else if (resolved.fail) {
@@ -126,12 +134,15 @@ export default class SetAutoCommand extends FlowCommand {
         };
       }
       if (autoCheck.eligible) {
-        mutateState((s) => { s.autoCheck = autoCheck; });
+        // A completed auto-check is worker evidence, not a mutable
+        // flow.json field.  The next owning worker publishes it as a cataloged
+        // result; the user-selected policy remains the only state update here.
+        if (preparingMode) updatePreparing((s) => { s.autoCheck = autoCheck; });
       }
     }
 
     if (!autoCheck.eligible) {
-      mutateState((s) => { s.autoDesired = true; });
+      if (preparingMode) updatePreparing((s) => { s.autoDesired = true; });
       return Envelope.fail(
         "set",
         "auto",
@@ -141,7 +152,8 @@ export default class SetAutoCommand extends FlowCommand {
       );
     }
 
-    mutateState((s) => { s.autoApprove = true; });
+    if (preparingMode) updatePreparing((s) => { s.autoApprove = true; });
+    else updateActivePolicy(true);
     return { autoApprove: true, autoCheck, trusted, ...(preparingMode ? { runId } : {}) };
   }
 }

@@ -7,10 +7,9 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const srcRoot = path.join(repoRoot, "src");
-const allowedOwner = path.join(srcRoot, "lib", "flow-state-atomic-writer.js");
+const allowedOwner = path.join(srcRoot, "flow", "lib", "current-flow-state.js");
 const allowedSinkOwners = new Set([
   allowedOwner,
-  path.join(srcRoot, "lib", "flow-store.js"),
 ]);
 const sinkApis = new Set([
   "writeFileSync", "writeFile", "appendFileSync", "appendFile",
@@ -1129,7 +1128,7 @@ for (const [label, source] of capabilityFixtures) {
   });
 }
 
-test("flow state path ownership and every source write sink stay in the shared writer", () => {
+test("flow state path ownership and every source write sink stay in the canonical state owner", () => {
   const files = sourceFiles(srcRoot);
   const findings = files.flatMap(directFlowStateSinks);
   assert.deepEqual(findings, [], `direct flow.json sinks:\n${findings.join("\n")}`);

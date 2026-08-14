@@ -6,7 +6,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 
 import { ReportBinding } from "../../../src/flow/commands/report.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 
 function createRepository(parent) {
   const root = path.join(parent, "execution");

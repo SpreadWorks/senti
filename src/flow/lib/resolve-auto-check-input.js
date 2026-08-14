@@ -2,9 +2,10 @@
  * src/flow/lib/resolve-auto-check-input.js
  *
  * Phase-aware input resolution for `flow run auto-check` and `flow set auto on`
- * (spec 220). Pure functions only — no CLI, no I/O beyond reading draft.json.
+ * (spec 220). Prepared Flow input is read only through FlowManager's artifact
+ * catalog; pre-creation input is a separate in-memory record value.
  *
- * Phase mapping (completion markers read from flow state `steps[]`):
+ * Phase mapping (completion markers read from canonical `steps[]`):
  *   - approval done            → skip AI evaluation (spec-approved)
  *   - draft-gate done + draft  → issue + request + draft body
  *   - otherwise                → issue + request
@@ -14,11 +15,8 @@
  * prevention).
  */
 
-import fs from "fs";
-import path from "path";
 import { getFlowNode } from "../definition.js";
-import { findStepById, flattenSteps } from "./step-tree.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { findStepById } from "./step-tree.js";
 
 function isStepDone(state, stepId) {
   const steps = state?.steps;
@@ -41,21 +39,6 @@ function isDraftGateDone(state) {
   return node ? isStepDone(state, node.id) : false;
 }
 
-function loadSpecSiblingText(root, specPath, fileName, { warnOnError = false } = {}) {
-  if (!root || !specPath) return null;
-  const filePath = path.join(path.dirname(path.resolve(root, specPath)), fileName);
-  if (!fs.existsSync(filePath)) return null;
-  try {
-    const text = fs.readFileSync(filePath, "utf8").trim();
-    return text || null;
-  } catch (e) {
-    if (warnOnError) {
-      process.stderr.write(`warn: failed to read ${fileName} at ${filePath}: ${e.message}\n`);
-    }
-    return null;
-  }
-}
-
 function parseDraftGoal(text) {
   try {
     const draft = JSON.parse(text);
@@ -63,6 +46,138 @@ function parseDraftGoal(text) {
   } catch {
     return "";
   }
+}
+
+/** A catalog-read failure that callers can expose without weakening input authority. */
+export class CanonicalAutoCheckInputError extends Error {
+  constructor(code, message, { cause = null } = {}) {
+    super(message, cause === null ? undefined : { cause });
+    this.name = "CanonicalAutoCheckInputError";
+    this.code = code;
+    Object.freeze(this);
+  }
+}
+
+function canonicalState(state) {
+  if (state?.schemaRevision !== 3 || typeof state.specId !== "string" || state.specId === "") {
+    throw new CanonicalAutoCheckInputError(
+      "AUTO_CHECK_INPUT_INVALID",
+      "canonical auto-check input requires a Version-1 Flow state",
+    );
+  }
+  return state;
+}
+
+/**
+ * Deep Version-1 input adapter.  It preserves the historical input order and
+ * text format while resolving every durable input through the artifact catalog
+ * rather than rebuilding a spec-relative path.
+ */
+export class CanonicalAutoCheckInputResolver {
+  constructor({ flowManager, state } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function") {
+      throw new CanonicalAutoCheckInputError(
+        "AUTO_CHECK_INPUT_INVALID",
+        "canonical auto-check input requires the FlowManager catalog reader",
+      );
+    }
+    this.flowManager = flowManager;
+    this.state = canonicalState(state);
+    Object.freeze(this);
+  }
+
+  resolve() {
+    if (isSpecApproved(this.state)) return { skip: true, reason: "spec approved" };
+
+    const draftGateDone = isDraftGateDone(this.state);
+    // The command consumes exactly the next-step input authority. Before the
+    // draft gate this is the draft context; after it, Spec is the authorized
+    // draft consumer. This does not invent a separate auto-check artifact role.
+    const consumerNodeId = draftGateDone ? "spec" : "draft";
+    const base = this.#baseInput(consumerNodeId);
+    if (!draftGateDone) return { skip: false, text: base };
+
+    const draft = this.#artifactText({
+      logicalKey: "draft",
+      consumerNodeId,
+      required: true,
+      label: "draft",
+    });
+    if (!parseDraftGoal(draft)) {
+      return { fail: true, verdict: buildGoalMissingVerdict() };
+    }
+    return {
+      skip: false,
+      text: base ? `${base}\n\n${draft}` : draft,
+      goalGate: { checked: true, passed: true },
+    };
+  }
+
+  #baseInput(consumerNodeId) {
+    const parts = [];
+    if (this.state.request) parts.push(String(this.state.request));
+    if (this.state.issue === null || this.state.issue === undefined) return parts.join("\n").trim();
+    const snapshot = this.#artifactText({
+      logicalKey: "issue.snapshot",
+      consumerNodeId,
+      required: true,
+      label: "Issue snapshot",
+    });
+    parts.push(snapshot);
+    return parts.join("\n").trim();
+  }
+
+  #artifactText({ logicalKey, consumerNodeId, required, label }) {
+    let resolved;
+    try {
+      resolved = this.flowManager.readArtifact({
+        specId: this.state.specId,
+        logicalKey,
+        consumerNodeId,
+        optional: !required,
+      });
+    } catch (cause) {
+      throw new CanonicalAutoCheckInputError(
+        "AUTO_CHECK_INPUT_ARTIFACT_INVALID",
+        `canonical ${label} artifact cannot be resolved: ${cause.message}`,
+        { cause },
+      );
+    }
+    if (resolved === null) {
+      throw new CanonicalAutoCheckInputError(
+        "AUTO_CHECK_INPUT_ARTIFACT_MISSING",
+        `canonical ${label} artifact is required but absent from the catalog`,
+      );
+    }
+    const text = resolved.bytes.toString("utf8").trim();
+    if (text === "") {
+      throw new CanonicalAutoCheckInputError(
+        "AUTO_CHECK_INPUT_ARTIFACT_INVALID",
+        `canonical ${label} artifact must not be empty`,
+      );
+    }
+    if (logicalKey === "draft") {
+      try {
+        JSON.parse(text);
+      } catch (cause) {
+        throw new CanonicalAutoCheckInputError(
+          "AUTO_CHECK_INPUT_ARTIFACT_INVALID",
+          `canonical draft artifact must be JSON: ${cause.message}`,
+          { cause },
+        );
+      }
+    }
+    return text;
+  }
+}
+
+export function resolveCanonicalAutoCheckInput({ flowManager, state } = {}) {
+  return new CanonicalAutoCheckInputResolver({ flowManager, state }).resolve();
+}
+
+/** Select the sole authoritative reader for active V1 or pre-creation input. */
+export function resolveAutoCheckInputForFlow({ flowManager, state } = {}) {
+  return resolveCanonicalAutoCheckInput({ flowManager, state });
 }
 
 export function buildGoalMissingVerdict() {
@@ -78,7 +193,7 @@ export function buildGoalMissingVerdict() {
   };
 }
 
-export function resolvePersistedAutoCheckTrust(state, paths = {}) {
+export function resolvePersistedAutoCheckTrust(state) {
   if (!state?.autoCheck) return null;
   if (state.autoCheck.goalGate?.passed !== true) {
     return {
@@ -86,14 +201,10 @@ export function resolvePersistedAutoCheckTrust(state, paths = {}) {
       reason: "persisted auto-check is missing a passing goalGate marker",
     };
   }
-  if (!isDraftGateDone(state) || !state?.specId) return null;
-  const draft = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "draft.json");
-  if (!draft) return null;
-  if (!parseDraftGoal(draft)) return buildGoalMissingVerdict();
   return null;
 }
 
-function buildBaseInput(state, paths = {}) {
+function buildPreparingBaseInput(state) {
   const parts = [];
   if (state?.request) parts.push(String(state.request));
 
@@ -103,14 +214,6 @@ function buildBaseInput(state, paths = {}) {
   if (preparingBody) {
     parts.push(preparingBody);
     return parts.join("\n").trim();
-  }
-
-  if (state?.specId) {
-    const fileBody = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "issue.md", { warnOnError: true });
-    if (fileBody) {
-      parts.push(fileBody);
-      return parts.join("\n").trim();
-    }
   }
 
   if (state?.issue) parts.push(`Issue #${state.issue}`);
@@ -124,21 +227,17 @@ function buildBaseInput(state, paths = {}) {
  * @param {object} [paths] - { root: string }
  * @returns {{skip: true, reason: string} | {skip: false, text: string}}
  */
-export function resolveAutoCheckInput(state, paths = {}) {
+export function resolvePreparingAutoCheckInput(state) {
+  if (state?.specId != null || state?.schemaRevision != null) {
+    throw new CanonicalAutoCheckInputError(
+      "AUTO_CHECK_INPUT_INVALID",
+      "prepared Flow input must be resolved through the canonical artifact catalog",
+    );
+  }
   if (isSpecApproved(state)) {
     return { skip: true, reason: "spec approved" };
   }
-  const base = buildBaseInput(state, paths);
-  if (isDraftGateDone(state) && state?.specId) {
-    const draft = loadSpecSiblingText(paths.root, relativeFlowSpecFile(state), "draft.json");
-    if (draft) {
-      if (!parseDraftGoal(draft)) {
-        return { fail: true, verdict: buildGoalMissingVerdict() };
-      }
-      const text = base ? `${base}\n\n${draft}` : draft;
-      return { skip: false, text, goalGate: { checked: true, passed: true } };
-    }
-  }
+  const base = buildPreparingBaseInput(state);
   return { skip: false, text: base };
 }
 

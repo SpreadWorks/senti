@@ -3,17 +3,14 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
-import { writeRepairFingerprintManifest } from "../../../src/flow/lib/repair-state-identity.js";
 import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifacts.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
-import { FlowManager } from "../../../src/lib/flow-manager.js";
+import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 import { shellPrintChildProcessRecord } from "../../helpers/child-process-record.js";
 
-const SPEC_DIR = "specs/001-test";
+const SPEC_ID = "001-test";
 const FIXTURE_PATH = "final-regression-fixture.sh";
 const PASSING_FIXTURE_BODY = "printf '%s\\n' 'initial pass'\n";
 
@@ -21,25 +18,32 @@ function failingFixtureBody(message) {
   return `printf '%s\\n' ${JSON.stringify(message)} >&2\nexit 1\n`;
 }
 
-function attemptLogPath(index) {
-  return `${SPEC_DIR}/tests/.raw/final-regression-attempt-${String(index).padStart(3, "0")}.log`;
-}
-
-function setupProject(tmp, scriptBody, extraFlowState = {}) {
-  fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
+function setupProject(tmp, scriptBody, { targetStep = "final-regression" } = {}) {
   writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);
   commitAll(tmp, "initial");
+  const flowManager = makeFlowManager(tmp);
+  const fixture = new FlowAtStepFixture({
+    flowManager,
+    specId: SPEC_ID,
+    runId: "run-final-regression",
+    request: "Run the final project regression.",
+    execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+    specRecord: {
+      goal: "Run the final project regression.",
+      requirements: [{ id: "R-1", desc: "The full project regression is recorded." }],
+    },
+    targetStep,
+  }).create();
+  commitAll(tmp, "record canonical final-regression frontier");
   return {
     root: tmp,
+    mainRoot: tmp,
+    executionRoot: tmp,
+    specId: SPEC_ID,
     config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
-    flowState: {
-      specId: "001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      ...extraFlowState,
-    },
+    flowManager,
+    flowState: fixture.state(),
   };
 }
 
@@ -54,19 +58,20 @@ function writeChangedFileReferencingFailureFixture(tmp, message) {
   ].join("\n"));
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+function readFinalRegressionArtifact(ctx) {
+  const history = JSON.parse(ctx.flowManager.readArtifact({
+    specId: SPEC_ID,
+    logicalKey: "final.regression",
+    consumerNodeId: "report",
+  }).bytes.toString("utf8"));
+  return validateFinalRegressionResult(history.attempts.at(-1).artifact.payload);
 }
 
-function readFinalRegressionArtifact(tmp) {
-  return validateFinalRegressionResult(readJson(path.join(tmp, SPEC_DIR, "final-regression-result.json")));
-}
-
-function assertFinalRegressionEnvelopeFailure(envelope, { failureKind, retryable, nextAction }) {
-  assert.equal(envelope.ok, false);
-  assert.equal(envelope.data.failureKind, failureKind);
-  assert.equal(envelope.data.retryable, retryable);
-  assert.equal(envelope.data.nextAction, nextAction);
+function assertFinalRegressionCommandFailure(result, { failureKind, retryable, nextAction }) {
+  assert.equal(result.result, "fail");
+  assert.equal(result.artifacts.failureKind, failureKind);
+  assert.equal(result.artifacts.retryable, retryable);
+  assert.equal(result.artifacts.nextAction, nextAction);
 }
 
 function assertFinalRegressionArtifactFailure(artifact, { failureKind, retryable, nextAction }) {
@@ -76,11 +81,20 @@ function assertFinalRegressionArtifactFailure(artifact, { failureKind, retryable
   assert.equal(artifact.nextAction, nextAction);
 }
 
-function assertFinalRegressionFailure(tmp, envelope, expected) {
-  assertFinalRegressionEnvelopeFailure(envelope, expected);
-  const artifact = readFinalRegressionArtifact(tmp);
+function assertFinalRegressionFailure(ctx, result, expected) {
+  assertFinalRegressionCommandFailure(result, expected);
+  const artifact = readFinalRegressionArtifact(ctx);
   assertFinalRegressionArtifactFailure(artifact, expected);
   return artifact;
+}
+
+async function executeFinalRegression(ctx) {
+  const result = await new RunFinalRegressionCommand().execute(ctx);
+  if (["pass", "skipped"].includes(result.result)) {
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, result);
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+  }
+  return result;
 }
 
 describe("flow run final-regression", () => {
@@ -91,17 +105,37 @@ describe("flow run final-regression", () => {
     tmp = createTmpDir("final-regression-pass-");
     const ctx = setupProject(tmp, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
     assert.equal(result.result, "pass");
     assert.equal(result.next, "report");
-    const artifact = readFinalRegressionArtifact(tmp);
+    const artifact = readFinalRegressionArtifact(ctx);
     assert.equal(artifact.result, "pass");
     assert.equal(artifact.failureKind, null);
     assert.equal(artifact.nextAction, "report");
     assert.equal(artifact.completed, true);
-    assert.equal(artifact.rawOutputPath, "specs/001-test/tests/.raw/final-regression-attempt-001.log");
-    assert.ok(fs.existsSync(path.join(tmp, attemptLogPath(1))));
+    assert.equal(artifact.rawOutputPath, "specs/001-test/001/steps/final-regression/attempt-001.log");
+    assert.ok(fs.existsSync(path.join(tmp, artifact.rawOutputPath)));
+  });
+
+  it("does not fingerprint canonical Version evidence as a project change", async () => {
+    tmp = createTmpDir("final-regression-version-evidence-");
+    const ctx = setupProject(tmp, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - final pass'\n");
+    ctx.flowManager.appendIssueLog({
+      specId: SPEC_ID,
+      entry: {
+        step: "final-regression",
+        reason: "Canonical evidence changed without a project source change.",
+      },
+      idempotencyKey: "final-regression-version-evidence",
+    });
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+
+    const result = await executeFinalRegression(ctx);
+
+    assert.equal(result.result, "pass");
+    const artifact = readFinalRegressionArtifact(ctx);
+    assert.deepEqual(artifact.changedFiles, []);
   });
 
   it("uses the authority root final regression timeout over a stale context config", async () => {
@@ -118,82 +152,44 @@ describe("flow run final-regression", () => {
       },
     }, null, 2));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
     assert.equal(result.result, "pass");
   });
 
-  it("invalidates stale test evidence and rewinds to test-execute before starting regression", async () => {
-    tmp = createTmpDir("final-regression-stale-evidence-");
-    const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");
-    writeFile(tmp, `${SPEC_DIR}/spec.json`, "{}\n");
-    const previous = buildRepairFingerprint({
-      root: tmp,
-      specPath: `${SPEC_DIR}/spec.json`,
-    });
-    writeRepairFingerprintManifest(path.join(tmp, SPEC_DIR), previous);
-    const state = moveFlowToStep(makeFlowState({
-      specId: "001-test",
-      repairBaseline: previous.baseline.toJSON(),
-    }), "final-regression");
-    writeFile(tmp, "src/repair.js", "export const repaired = true;\n");
-    const current = buildRepairFingerprint({
-      root: tmp,
-      specPath: `${SPEC_DIR}/spec.json`,
-      state,
-    });
-    writeFile(tmp, `${SPEC_DIR}/test-execute-result.json`, JSON.stringify({
-      repairFingerprint: previous.hash,
-    }, null, 2));
-    writeFile(tmp, `${SPEC_DIR}/retro.json`, JSON.stringify({
-      repairFingerprint: previous.hash,
-    }, null, 2));
-    writeFile(tmp, `${SPEC_DIR}/final-regression-result.json`, "{}\n");
-    const flowManager = new FlowManager({
-      root: tmp,
-      mainRoot: tmp,
-      inWorktree: false,
-    });
-    flowManager.create(state);
-    const persistedState = flowManager.loadReadOnly();
+  it("rejects execution before the definition-owned final-regression Attempt", async () => {
+    tmp = createTmpDir("final-regression-before-frontier-");
+    const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n", { targetStep: "retro" });
 
-    const result = await new RunFinalRegressionCommand().execute({
-      ...ctx,
-      flowState: persistedState,
-      flowManager,
-    });
-    const recoveredState = flowManager.loadReadOnly();
-
-    assert.equal(result.result, "recovered");
-    assert.equal(result.next, "test-execute");
-    assert.equal(result.artifacts.evidenceRefresh.previousFingerprint, previous.hash);
-    assert.equal(result.artifacts.evidenceRefresh.currentFingerprint, current.hash);
-    assert.equal(findStepById(recoveredState.steps, "test-execute").status, "in_progress");
-    assert.equal(findStepById(recoveredState.steps, "final-regression").status, "pending");
-    assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/test-execute-result.json`)), false);
-    assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/retro.json`)), false);
-    assert.equal(fs.existsSync(path.join(tmp, `${SPEC_DIR}/final-regression-result.json`)), false);
-    assert.equal(fs.existsSync(path.join(tmp, attemptLogPath(1))), false);
+    await assert.rejects(
+      () => new RunFinalRegressionCommand().execute(ctx),
+      /requires its active Attempt/,
+    );
+    assert.equal(ctx.flowManager.loadReadOnly(SPEC_ID).currentNodeId, "retro");
+    assert.equal(ctx.flowManager.readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "final.regression",
+      consumerNodeId: "report",
+      optional: true,
+    }), null);
   });
 
-  it("classifies current-change failure, records issue-log, and allows one repair retry", async () => {
+  it("classifies current-change failure and records one retryable failed Attempt", async () => {
     tmp = createTmpDir("final-regression-fail-");
     const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
     writeChangedFileReferencingFailureFixture(tmp, "boom");
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    assert.equal(result.errors[0].code, "FINAL_REGRESSION_FAILED");
-    assertFinalRegressionFailure(tmp, result, {
+    assertFinalRegressionFailure(ctx, result, {
       failureKind: "caused_by_current_change",
       retryable: true,
       nextAction: "regression-repair",
     });
-
-    const issueLog = readJson(path.join(tmp, SPEC_DIR, "issue-log.json"));
-    assert.equal(issueLog.entries.length, 1);
-    assert.equal(issueLog.entries[0].step, "final-regression");
-    assert.equal(issueLog.entries[0].failureKind, "caused_by_current_change");
+    const failed = ctx.flowManager.canonicalState(SPEC_ID).attempt.failure;
+    assert.equal(failed.code, "FINAL_REGRESSION_FAILED");
+    assert.equal(failed.retryable, true);
+    assert.equal(failed.retryKind, "semantic");
   });
 
   it("classifies failure with no project change as unattributed_existing_failure", async () => {
@@ -207,9 +203,9 @@ describe("flow run final-regression", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    assertFinalRegressionFailure(tmp, result, {
+    assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_existing_failure",
       retryable: false,
       nextAction: "user-confirmation",
@@ -234,9 +230,9 @@ describe("flow run final-regression", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    const artifact = assertFinalRegressionFailure(tmp, result, {
+    const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_existing_failure",
       retryable: false,
       nextAction: "user-confirmation",
@@ -277,9 +273,9 @@ describe("flow run final-regression", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    const artifact = assertFinalRegressionFailure(tmp, result, {
+    const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "caused_by_current_change",
       retryable: true,
       nextAction: "regression-repair",
@@ -297,9 +293,9 @@ describe("flow run final-regression", () => {
     tmp = createTmpDir("final-regression-silent-fail-");
     const ctx = setupProject(tmp, "exit 1\n");
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    assertFinalRegressionFailure(tmp, result, {
+    assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_unknown_failure",
       retryable: false,
       nextAction: "stop",
@@ -316,9 +312,9 @@ describe("flow run final-regression", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    const artifact = assertFinalRegressionFailure(tmp, result, {
+    const artifact = assertFinalRegressionFailure(ctx, result, {
       failureKind: "unattributed_unknown_failure",
       retryable: false,
       nextAction: "stop",
@@ -339,9 +335,9 @@ describe("flow run final-regression", () => {
       "",
     ].join("\n"));
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    assertFinalRegressionFailure(tmp, result, {
+    assertFinalRegressionFailure(ctx, result, {
       failureKind: "child_process_eperm",
       retryable: false,
       nextAction: "stop",
@@ -354,48 +350,54 @@ describe("flow run final-regression", () => {
     writeChangedFileReferencingFailureFixture(tmp, "still failing");
 
     await new RunFinalRegressionCommand().execute(ctx);
+    ctx.flowManager.retryCurrentAttempt({ specId: SPEC_ID });
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
     const second = await new RunFinalRegressionCommand().execute(ctx);
 
-    const artifact = assertFinalRegressionFailure(tmp, second, {
+    const artifact = assertFinalRegressionFailure(ctx, second, {
       failureKind: "caused_by_current_change",
       retryable: false,
       nextAction: "stop",
     });
     assert.ok(!Object.hasOwn(artifact, "previousFailureKind"), "previousFailureKind must not appear in the artifact");
-    assert.equal(artifact.rawOutputPath, attemptLogPath(2));
+    assert.match(artifact.rawOutputPath, /steps\/final-regression\/attempt-002\.log$/);
   });
 
   it("keeps per-attempt final-regression logs", async () => {
     tmp = createTmpDir("final-regression-attempt-logs-");
-    const ctx = setupProject(tmp, "printf '%s\\n' 'final pass'\n");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeChangedFileReferencingFailureFixture(tmp, "first attempt fails");
 
     await new RunFinalRegressionCommand().execute(ctx);
-    await new RunFinalRegressionCommand().execute(ctx);
+    ctx.flowManager.retryCurrentAttempt({ specId: SPEC_ID });
+    ctx.flowState = ctx.flowManager.loadReadOnly(SPEC_ID);
+    writeFile(tmp, FIXTURE_PATH, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - repaired final pass'\n");
+    await executeFinalRegression(ctx);
 
-    const artifact = readFinalRegressionArtifact(tmp);
-    assert.equal(artifact.rawOutputPath, attemptLogPath(2));
-    assert.ok(fs.existsSync(path.join(tmp, attemptLogPath(1))));
-    assert.ok(fs.existsSync(path.join(tmp, attemptLogPath(2))));
+    const artifact = readFinalRegressionArtifact(ctx);
+    assert.match(artifact.rawOutputPath, /steps\/final-regression\/attempt-002\.log$/);
+    const firstLog = artifact.rawOutputPath.replace("attempt-002.log", "attempt-001.log");
+    assert.ok(fs.existsSync(path.join(tmp, firstLog)));
+    assert.ok(fs.existsSync(path.join(tmp, artifact.rawOutputPath)));
   });
 
-  it("stops before project tests when worktreePath does not match ctx.root", async () => {
-    tmp = createTmpDir("final-regression-worktree-root-");
+  it("runs the project command only in the explicit execution authority root", async () => {
+    tmp = createTmpDir("final-regression-execution-root-");
     const fixtureBody = failingFixtureBody("PROJECT_TEST_RAN");
-    const ctx = setupProject(tmp, fixtureBody, {
-      worktree: true,
-      worktreePath: path.join(tmp, "different-active-worktree"),
-    });
-    fs.mkdirSync(ctx.flowState.worktreePath, { recursive: true });
+    const ctx = setupProject(tmp, fixtureBody);
+    const executionRoot = path.join(tmp, "execution-authority");
+    fs.mkdirSync(executionRoot, { recursive: true });
+    writeFile(executionRoot, FIXTURE_PATH, "printf '%s\\n' 'TAP version 13' '1..1' 'ok 1 - authority pass'\n");
+    initGitRepo(executionRoot);
+    commitAll(executionRoot, "execution authority");
+    ctx.executionRoot = executionRoot;
 
-    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const result = await executeFinalRegression(ctx);
 
-    const artifact = assertFinalRegressionFailure(tmp, result, {
-      failureKind: "infra_failure",
-      retryable: false,
-      nextAction: "stop",
-    });
-    assert.equal(artifact.rawOutputPath, attemptLogPath(1));
-    const raw = fs.readFileSync(path.join(tmp, attemptLogPath(1)), "utf8");
+    assert.equal(result.result, "pass");
+    const artifact = readFinalRegressionArtifact(ctx);
+    const raw = fs.readFileSync(path.join(tmp, artifact.rawOutputPath), "utf8");
     assert.doesNotMatch(raw, /PROJECT_TEST_RAN/);
+    assert.match(raw, /authority pass/);
   });
 });

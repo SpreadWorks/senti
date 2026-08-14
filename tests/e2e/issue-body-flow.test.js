@@ -118,7 +118,7 @@ JSON
     assert.match(captured, /ISSUE_MARKER_e2e/, "AI prompt should contain Issue body text");
   });
 
-  it("gh fetch failure: silent fallback keeps flow running (no issueBody, no issue.md)", () => {
+  it("gh fetch failure: refuses to create a linked Flow without an immutable Issue snapshot", () => {
     const ghStub = `#!/bin/sh
 echo "gh failure" >&2
 exit 1
@@ -130,28 +130,15 @@ exit 1
       "--issue", "1002",
       "--request", "add progress bar",
     ], { extraPath: ghBin });
-    assert.equal(initRes.status, 0, `init should succeed despite gh failure: ${initRes.stderr}`);
-    const runId = JSON.parse(initRes.stdout.trim()).data.runId;
-    const preparing = JSON.parse(fs.readFileSync(path.join(tmp, ".sennel", `.active-flow.${runId}`), "utf8"));
-    assert.ok(!preparing.issueBody, "issueBody should NOT be set when gh fails");
-    // warning should be present on stderr
+    assert.notEqual(initRes.status, 0, "init must reject a linked Issue without its snapshot");
+    const envelope = JSON.parse(initRes.stdout.trim());
+    assert.equal(envelope.ok, false);
+    assert.equal(envelope.errors[0].code, "ISSUE_SNAPSHOT_UNAVAILABLE");
     assert.match(initRes.stderr, /warn:/);
-
-    const prepRes = runCli(tmp, [
-      "flow", "prepare",
-      "--title", "issue-body-test",
-      "--no-branch",
-      "--run-id", runId,
-    ], { extraPath: ghBin });
-    assert.equal(prepRes.status, 0, prepRes.stderr);
-    const prepData = JSON.parse(prepRes.stdout.trim()).data;
-    const issueMd = path.join(tmp, prepData.artifacts.specDir, "issue.md");
-    assert.ok(!fs.existsSync(issueMd), "issue.md should NOT be created when issueBody missing");
-
-    const checkRes = runCli(tmp, ["flow", "run", "auto-check"], { extraPath: ghBin });
-    assert.equal(checkRes.status, 0, checkRes.stderr);
-    const checkData = JSON.parse(checkRes.stdout.trim()).data;
-    // flow should still complete (eligible decision reached, no hard-crash)
-    assert.equal(typeof checkData.eligible, "boolean");
+    assert.deepEqual(
+      fs.readdirSync(path.join(tmp, ".sennel")).filter((name) => name.startsWith(".active-flow.")),
+      [],
+      "no preparing Flow may survive without its immutable Issue snapshot",
+    );
   });
 });

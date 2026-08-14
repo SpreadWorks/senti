@@ -5,12 +5,8 @@
  * Appends paths to file-map.json with deduplication.
  */
 
-import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { appendFiles } from "./req-map.js";
-import { resolveSpecDir } from "../../lib/spec-json.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 export default class SetFilesCommand extends FlowCommand {
   execute(ctx) {
@@ -20,14 +16,18 @@ export default class SetFilesCommand extends FlowCommand {
       return Envelope.fail("set", "files", "INVALID_USAGE", "usage: flow set files <reqId> <path...>");
     }
 
-    const specPath = relativeFlowSpecFile(ctx.flowState);
-    const specDir = resolveSpecDir(path.resolve(ctx.root, specPath));
-
     let map;
     try {
-      map = appendFiles(specDir, reqId, paths, ctx.root, specPath);
+      if (ctx.flowState?.schemaRevision !== 3 || typeof ctx.flowManager?.updateFileMap !== "function") {
+        throw new Error("canonical FlowManager.updateFileMap is required");
+      }
+      map = ctx.flowManager.updateFileMap({
+        specId: ctx.flowState.specId,
+        requirementId: reqId,
+        paths,
+      });
     } catch (err) {
-      if (err.code === "INVALID_REQ_ID") {
+      if (err.code === "INVALID_REQ_ID" || err.message.startsWith("requirement id not found:")) {
         return Envelope.fail("set", "files", "INVALID_REQ_ID", err.message);
       }
       throw err;

@@ -6,7 +6,7 @@
  *
  * @typedef {Object} ActiveFlowEntry
  * @property {string} specId - spec ID (e.g. "086-migrate-flow-state")
- * @property {"worktree"|"branch"|"local"} mode
+ * @property {"worktree"|"branch"|"direct"} mode
  */
 
 import fs from "fs";
@@ -14,7 +14,6 @@ import path from "path";
 import { managedDir } from "./config.js";
 import { runGit } from "./git-helpers.js";
 import { ACTIVE_FLOW_FILE } from "./flow-helpers.js";
-import { flowStatePath } from "./flow-state-atomic-writer.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import {
@@ -22,10 +21,11 @@ import {
   resolveRepositoryLockRoot,
 } from "./repository-maintenance-lock.js";
 import { FlowSpecId } from "./flow-spec-id.js";
-import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
+import { FlowVersion } from "./flow-version.js";
+import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot, FlowWorkspace } from "./flow-workspace.js";
 
 const REGISTRY_LOCK_FILE = ".active-flow.lock";
-const VALID_MODES = new Set(["worktree", "branch", "local"]);
+const VALID_MODES = new Set(["worktree", "branch", "direct"]);
 
 function activeFlowPath(mainRoot) {
   return path.join(managedDir(mainRoot), ACTIVE_FLOW_FILE);
@@ -266,7 +266,7 @@ function branchExists(mainRoot, branch) {
   );
 }
 
-function localFlowExists(filePath) {
+function canonicalFlowExists(filePath) {
   let stat;
   try {
     stat = fs.lstatSync(filePath);
@@ -280,7 +280,7 @@ function localFlowExists(filePath) {
     || stat.nlink !== 1
     || fs.realpathSync(filePath) !== path.resolve(filePath)
   ) {
-    throw new Error(`active local flow authority must be one real non-hardlinked file: ${filePath}`);
+    throw new Error(`active canonical flow authority must be one real non-hardlinked file: ${filePath}`);
   }
   const descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   try {
@@ -291,12 +291,20 @@ function localFlowExists(filePath) {
       || opened.dev !== stat.dev
       || opened.ino !== stat.ino
     ) {
-      throw new Error(`active local flow authority changed while probing: ${filePath}`);
+      throw new Error(`active canonical flow authority changed while probing: ${filePath}`);
     }
   } finally {
     fs.closeSync(descriptor);
   }
   return true;
+}
+
+function canonicalFlowStatePath(mainRoot, specRoot, specId) {
+  return new FlowWorkspace({
+    repositoryRoot: mainRoot,
+    executionRoot: mainRoot,
+    specRoot,
+  }).canonicalVersion(specId, new FlowVersion(1)).flowStateFile;
 }
 
 export class ActiveFlowRegistry {
@@ -356,7 +364,7 @@ export class ActiveFlowRegistry {
 
   /**
    * @param {string} specId
-   * @param {"worktree"|"branch"|"local"} mode
+   * @param {"worktree"|"branch"|"direct"} mode
    */
   add(specId, mode, options = {}) {
     ActiveFlowEntry.assertValidSpecId(specId);
@@ -372,7 +380,7 @@ export class ActiveFlowRegistry {
    * registry. Prepare uses this before switching the shared checkout.
    *
    * @param {string} specId
-   * @param {"worktree"|"branch"|"local"} mode
+   * @param {"worktree"|"branch"|"direct"} mode
    */
   assertCanAdd(specId, mode, options = {}) {
     ActiveFlowEntry.assertValidSpecId(specId);
@@ -406,8 +414,8 @@ export class ActiveFlowRegistry {
     return this.#withMutationLock(() => {
       const snapshot = readActiveFlowAuthority(activeFlowPath(this._mainRoot));
       const valid = snapshot.document.entries.filter((entry) => {
-        const statePath = flowStatePath(this._mainRoot, entry.specId, this._specRoot);
-        if (!localFlowExists(statePath)) {
+        const statePath = canonicalFlowStatePath(this._mainRoot, this._specRoot, entry.specId);
+        if (!canonicalFlowExists(statePath)) {
           const error = new Error(
             `active flow state is missing at the configured spec root: ${statePath}. `
             + "Restore flow.specDir or resolve the active flow explicitly before continuing.",

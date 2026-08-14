@@ -1,16 +1,13 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
-import path from "node:path";
 
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
-import { FlowArtifactCatalogStore, FlowArtifactPublicationContext, FlowVersionLocation } from "../../lib/flow-version.js";
-import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
+import { FlowArtifactCatalogStore, FlowVersionLocation } from "../../lib/flow-version.js";
+import { buildCurrentFlowDefinition } from "../definition.js";
+import { CanonicalFlowRuntime } from "./canonical-flow-runtime.js";
 import { ProcessIdentitySource } from "../../lib/process-identity.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
-import {
-  RepositoryFlowOperationLock,
-  resolveRepositoryLockRoot,
-} from "../../lib/repository-maintenance-lock.js";
+import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 
 const LOCK_WAIT_ATTEMPTS = 500;
 const LOCK_WAIT_MS = 10;
@@ -36,58 +33,12 @@ function revisionOf(document) {
   return crypto.createHash("sha256").update(JSON.stringify(document.toJSON())).digest("hex");
 }
 
-function issueLogPublication() {
-  return FLOW_ARTIFACT_CONTRACTS.resolve("issue.log").publication({ mediaType: "application/json" });
-}
-
-function fsyncDirectory(directory) {
-  const descriptor = fs.openSync(directory, "r");
-  try {
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
-function writeExactIssueLog(filePath, bytes, mode) {
-  const tempPath = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${crypto.randomUUID()}.restore.tmp`);
-  const descriptor = fs.openSync(tempPath, "wx", mode);
-  try {
-    fs.writeFileSync(descriptor, bytes);
-    fs.fchmodSync(descriptor, mode);
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  fs.renameSync(tempPath, filePath);
-  fsyncDirectory(path.dirname(filePath));
-}
-
-function assertSpecFileAuthority(resolvedSpec, spec) {
-  let stat;
-  try {
-    stat = fs.lstatSync(resolvedSpec);
-  } catch (error) {
-    if (error.code === "ENOENT") return;
-    throw new Error(`issue-log spec authority is unreadable: ${spec}`, { cause: error });
-  }
-  if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(resolvedSpec) !== resolvedSpec) {
-    throw new Error(`issue-log spec authority must be a real file: ${spec}`);
-  }
-}
-
 export class IssueLogDocument {
-  constructor(value = {}, { allowLegacyArray = false } = {}) {
-    if (allowLegacyArray && Array.isArray(value)) {
-      this.entries = structuredClone(value);
-      this.legacyArray = true;
-      return;
-    }
+  constructor(value = {}) {
     if (value == null || typeof value !== "object" || Array.isArray(value) || !Array.isArray(value.entries)) {
       throw new Error('Invalid issue-log.json: "entries" must be an array');
     }
     this.entries = structuredClone(value.entries);
-    this.legacyArray = false;
   }
 
   append(entry, idempotencyKey) {
@@ -99,22 +50,16 @@ export class IssueLogDocument {
     return { appended: true, entry: structuredClone(stored) };
   }
 
-  remove(idempotencyKey) {
-    const key = requireAuthorityString(idempotencyKey, "issue-log idempotencyKey");
-    const index = this.entries.findIndex((item) => item?.issueLogId === key || item?.grantId === key);
-    if (index < 0) return false;
-    this.entries.splice(index, 1);
-    return true;
-  }
-
   toJSON() {
-    const entries = structuredClone(this.entries);
-    return this.legacyArray ? entries : { entries };
+    return { entries: structuredClone(this.entries) };
   }
 }
 
 export class IssueLogSnapshot {
   constructor(document) {
+    if (!(document instanceof IssueLogDocument)) {
+      throw new Error("IssueLogSnapshot requires an IssueLogDocument");
+    }
     this.document = document;
     this.revision = revisionOf(document);
     Object.freeze(this);
@@ -125,230 +70,124 @@ export class IssueLogSnapshot {
   }
 }
 
+/**
+ * Canonical Version issue-log adapter.
+ *
+ * The issue log is a producer-owned catalog artifact.  This class accepts only
+ * a typed Version location and delegates every publication to the same
+ * journaled Activity Store as flow.json and activities.jsonl.
+ */
 export class IssueLogStore {
-  static forVersion({ location, ...options } = {}) {
-    if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Version issue-log storage");
-    location.requireScope("canonical");
-    return new IssueLogStore({
-      ...options,
-      root: location.directory,
-      mainRoot: location.repositoryRoot,
-      spec: FLOW_ARTIFACT_CONTRACTS.resolve("spec.record").relativePath,
-      versionLocation: location,
-    });
+  static forVersion(options = {}) {
+    return new IssueLogStore(options);
   }
 
   constructor({
-    root,
-    spec,
+    location,
     processIdentitySource = new ProcessIdentitySource(),
     faultInjector,
-    allowLegacyArray = false,
-    mainRoot = null,
     maintenanceOwnerToken = null,
     operationOwnerToken = null,
-    versionLocation = null,
   } = {}) {
-    this.root = path.resolve(requireAuthorityString(root, "issue-log root"));
-    this.mainRoot = mainRoot == null
-      ? resolveRepositoryLockRoot(this.root)
-      : path.resolve(mainRoot);
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new Error("FlowVersionLocation is required for Version issue-log storage");
+    }
+    location.requireScope("canonical");
+    location.assertAuthority(null, { mustExist: true });
+    this.location = location;
+    this.mainRoot = location.repositoryRoot;
     this.maintenanceOwnerToken = maintenanceOwnerToken;
     this.operationOwnerToken = operationOwnerToken;
     this.processIdentitySource = processIdentitySource;
-    this.spec = requireAuthorityString(spec, "issue-log spec");
-    const resolvedSpec = path.resolve(this.root, this.spec);
-    const relative = path.relative(this.root, resolvedSpec);
-    const specFile = path.basename(resolvedSpec);
-    if (
-      relative.startsWith("..")
-      || path.isAbsolute(relative)
-      || !["spec.json", "spec.md"].includes(specFile)
-    ) {
-      throw new Error(`issue-log spec authority is outside the project root: ${this.spec}`);
-    }
-    this.directory = path.dirname(resolvedSpec);
-    this.relativeFilePath = versionLocation instanceof FlowVersionLocation
-      ? FLOW_ARTIFACT_CONTRACTS.resolve("issue.log").relativePath
-      : "issue-log.json";
-    this.filePath = versionLocation instanceof FlowVersionLocation
-      ? versionLocation.artifact("issue.log")
-      : path.join(this.directory, this.relativeFilePath);
-    const directoryAuthority = new RealDirectoryAuthority(this.directory, {
+    this.filePath = location.issueLogFile;
+    this.relativeFilePath = location.relativeArtifact("issue.log");
+    this.file = new AtomicJsonFile(this.filePath, { faultInjector });
+    this.catalogStore = new FlowArtifactCatalogStore({ location });
+
+    const versionAuthority = new RealDirectoryAuthority(location.directory, {
       errorFactory: (status, message, data) => issueLogError(status, message, data),
     });
-    directoryAuthority.ensure();
-    assertSpecFileAuthority(resolvedSpec, this.spec);
+    versionAuthority.ensure();
+    const runtimeDirectory = location.resolve(".runtime");
+    fs.mkdirSync(runtimeDirectory, { recursive: true, mode: 0o755 });
+    const runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, {
+      parentAuthority: versionAuthority,
+      errorFactory: (status, message, data) => issueLogError(status, message, data),
+    });
+    runtimeAuthority.ensure();
+    const lockDirectory = location.resolve(".runtime/locks");
+    fs.mkdirSync(lockDirectory, { recursive: true, mode: 0o755 });
+    const lockAuthority = new RealDirectoryAuthority(lockDirectory, {
+      parentAuthority: runtimeAuthority,
+      errorFactory: (status, message, data) => issueLogError(status, message, data),
+    });
+    lockAuthority.ensure();
     this.lock = new ProcessOwnedLock({
-      directoryAuthority,
-      fileName: ".issue-log.lock",
+      directoryAuthority: lockAuthority,
+      fileName: "issue-log.lock",
       kind: "issue-log-writer",
-      authority: { root: this.root, spec: this.spec, filePath: this.filePath },
+      authority: {
+        versionRoot: location.directory,
+        filePath: this.filePath,
+        runtimeDirectory,
+      },
       processIdentitySource,
       errorFactory: (status, message, data) => issueLogError(status, message, data),
     });
-    this.file = new AtomicJsonFile(this.filePath, { faultInjector });
-    this.catalogStore = versionLocation instanceof FlowVersionLocation
-      ? new FlowArtifactCatalogStore({ location: versionLocation })
-      : null;
-    this.allowLegacyArray = allowLegacyArray;
   }
 
   read() {
-    return this.#readFresh();
-  }
-
-  append(entry, idempotencyKey, publicationContext = null) {
-    return this.#withLock(() => {
-      const snapshot = this.#readFresh();
-      const result = snapshot.document.append(entry, idempotencyKey);
-      if (result.appended) this.#write(snapshot.document.toJSON(), publicationContext);
-      return {
-        ...result,
-        total: snapshot.document.entries.length,
-        revision: revisionOf(snapshot.document),
-      };
-    });
-  }
-
-  appendMany(entries, publicationContext = null) {
-    if (!Array.isArray(entries)) throw new Error("issue-log appendMany entries must be an array");
-    return this.#withLock(() => {
-      const snapshot = this.#readFresh();
-      const appended = [];
-      for (const item of entries) {
-        const result = snapshot.document.append(item.entry, item.idempotencyKey);
-        if (result.appended) appended.push(result.entry);
-      }
-      if (appended.length > 0) this.#write(snapshot.document.toJSON(), publicationContext);
-      return { appended, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
-    });
-  }
-
-  mutate(expectedRevision, mutator, publicationContext = null) {
-    requireAuthorityString(expectedRevision, "issue-log expectedRevision");
-    if (typeof mutator !== "function") throw new Error("issue-log mutator is required");
-    return this.#withLock(() => {
-      const snapshot = this.#readFresh();
-      if (snapshot.revision !== expectedRevision) {
-        throw issueLogError("revision-conflict", "issue-log changed before the requested mutation");
-      }
-      const result = mutator(snapshot.document);
-      this.#write(snapshot.document.toJSON(), publicationContext);
-      return { result, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
-    });
-  }
-
-  compensate(idempotencyKey, publicationContext = null) {
-    return this.#withLock(() => {
-      const snapshot = this.#readFresh();
-      const removed = snapshot.document.remove(idempotencyKey);
-      if (removed) this.#write(snapshot.document.toJSON(), publicationContext);
-      return { removed, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
-    });
-  }
-
-  restoreOwnedMutation({ idempotencyKeys, before }, publicationContext = null) {
-    if (!Array.isArray(idempotencyKeys)) throw new Error("issue-log restore IDs must be an array");
-    if (
-      before == null
-      || typeof before !== "object"
-      || typeof before.exists !== "boolean"
-      || (before.exists && (typeof before.bytes !== "string" || !Number.isInteger(before.mode)))
-    ) {
-      throw new Error("issue-log restore before-image is invalid");
-    }
-    const beforeBytes = before.exists ? Buffer.from(before.bytes, "base64") : null;
-    const beforeDocument = new IssueLogDocument(
-      before.exists ? JSON.parse(beforeBytes.toString("utf8")) : { entries: [] },
-      { allowLegacyArray: this.allowLegacyArray },
-    );
-    return this.#withLock(() => {
-      const snapshot = this.#readFresh();
-      let removed = false;
-      for (const idempotencyKey of new Set(idempotencyKeys)) {
-        removed = snapshot.document.remove(idempotencyKey) || removed;
-      }
-      if (revisionOf(snapshot.document) === revisionOf(beforeDocument)) {
-        if (before.exists) {
-          this.#writeExact(beforeBytes, before.mode, publicationContext);
-        } else {
-          try {
-            this.#removeFile();
-            fsyncDirectory(this.directory);
-          } catch (error) {
-            if (error.code !== "ENOENT") throw error;
-          }
-        }
-      } else if (removed) {
-        this.#write(snapshot.document.toJSON(), publicationContext);
-      }
-      return { removed, exact: revisionOf(snapshot.document) === revisionOf(beforeDocument) };
-    });
-  }
-
-  #readFresh() {
-    const read = () => new IssueLogSnapshot(new IssueLogDocument(
-      this.file.read({ entries: [] }), { allowLegacyArray: this.allowLegacyArray },
-    ));
-    if (!this.catalogStore) return read();
     return this.catalogStore.read({
       read: (catalog) => {
-        if (fs.existsSync(this.filePath)) catalog.resolve(this.relativeFilePath);
-        return read();
+        if (fs.existsSync(this.filePath)) catalog.resolve("issue-log.json");
+        return new IssueLogSnapshot(new IssueLogDocument(this.file.read({ entries: [] })));
       },
     });
   }
 
-  #write(document, publicationContext = null) {
-    if (!this.catalogStore) return this.file.write(document);
-    if (publicationContext !== null) {
-      if (!(publicationContext instanceof FlowArtifactPublicationContext)) {
-        throw new Error("Version issue-log write requires a FlowArtifactPublicationContext");
-      }
-      const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("issue.log");
-      return this.catalogStore.publish({
-        ...publicationContext.publication(artifact, { mediaType: "application/json" }),
-        write: () => this.file.write(document),
-      }).result;
-    }
-    return this.catalogStore.publishSystem({
-      ...issueLogPublication(),
-      write: () => this.file.write(document),
-    }).result;
+  append(entry, idempotencyKey) {
+    return this.#withLock(() => this.#appendEntries([{ entry, idempotencyKey }]));
   }
 
-  #writeExact(bytes, mode, publicationContext = null) {
-    if (!this.catalogStore) return writeExactIssueLog(this.filePath, bytes, mode);
-    if (publicationContext !== null) {
-      if (!(publicationContext instanceof FlowArtifactPublicationContext)) {
-        throw new Error("Version issue-log exact write requires a FlowArtifactPublicationContext");
-      }
-      const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("issue.log");
-      return this.catalogStore.publish({
-        ...publicationContext.publication(artifact, { mediaType: "application/json" }),
-        write: () => writeExactIssueLog(this.filePath, bytes, mode),
-      }).result;
-    }
-    return this.catalogStore.publishSystem({
-      ...issueLogPublication(),
-      write: () => writeExactIssueLog(this.filePath, bytes, mode),
-    }).result;
+  appendMany(entries) {
+    if (!Array.isArray(entries)) throw new Error("issue-log appendMany entries must be an array");
+    return this.#withLock(() => this.#appendEntries(entries));
   }
 
-  #removeFile() {
-    if (!this.catalogStore) {
-      fs.unlinkSync(this.filePath);
-      fsyncDirectory(this.directory);
-      return;
+  #appendEntries(entries) {
+    const snapshot = this.read();
+    const appended = [];
+    for (const item of entries) {
+      if (item == null || typeof item !== "object" || Array.isArray(item)) {
+        throw new Error("issue-log appendMany entries must contain entry objects");
+      }
+      const result = snapshot.document.append(item.entry, item.idempotencyKey);
+      if (result.appended) appended.push(result.entry);
     }
-    return this.catalogStore.unpublishSystem({
-      relativePath: this.relativeFilePath,
-      write: () => {
-        fs.unlinkSync(this.filePath);
-        fsyncDirectory(this.directory);
-      },
-    }).result;
+    if (appended.length === 0) {
+      return { appended, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
+    }
+    const runtime = new CanonicalFlowRuntime({
+      repositoryRoot: this.location.repositoryRoot,
+      executionRoot: this.location.repositoryRoot,
+      specRoot: this.location.specRoot,
+      definition: buildCurrentFlowDefinition(),
+    });
+    const specId = this.location.specId.toString();
+    const state = runtime.load(specId);
+    const nodeId = state.current?.at(-1) ?? null;
+    if (nodeId === null) throw new Error("canonical issue-log append requires an active Flow leaf");
+    runtime.publishArtifacts({
+      specId,
+      activityId: `issue-log-${crypto.randomUUID()}`,
+      nodeId,
+      artifactWrites: [{
+        logicalKey: "issue.log",
+        mediaType: "application/json",
+        bytes: `${JSON.stringify(snapshot.document.toJSON(), null, 2)}\n`,
+      }],
+    });
+    return { appended, total: snapshot.document.entries.length, revision: revisionOf(snapshot.document) };
   }
 
   #withLock(operation) {

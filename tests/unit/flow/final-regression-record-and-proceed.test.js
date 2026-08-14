@@ -1,7 +1,8 @@
-import { describe, test } from "node:test";
+import { afterEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import {
   validateFinalRegressionEvidence,
@@ -12,43 +13,57 @@ import {
   contractFromFinalRegressionArtifact,
 } from "../../../src/flow/lib/flow-judgment-contract.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { generateReport } from "../../../src/flow/commands/report.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   childProcessRecord,
   shellPrintChildProcessRecord,
 } from "../../helpers/child-process-record.js";
 
-const SPEC_DIR = "specs/001-record-proceed";
+const SPEC_ID = "001-record-proceed";
 const FIXTURE_PATH = "final-regression-fixture.sh";
 
-function setupProject(tmp, scriptBody) {
-  fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  writeFile(tmp, `${SPEC_DIR}/spec.md`, "# Spec\n");
-  writeFile(tmp, FIXTURE_PATH, scriptBody);
-  initGitRepo(tmp);
-  commitAll(tmp, "initial");
-  return {
-    root: tmp,
-    config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
-    flowState: {
-      specId: "001-record-proceed",
-      baseBranch: "main",
-      featureBranch: "feature/001-record-proceed",
+function setupProject(root, scriptBody) {
+  writeFile(root, FIXTURE_PATH, scriptBody);
+  initGitRepo(root);
+  commitAll(root, "initial");
+  const flowManager = makeFlowManager(root);
+  const fixture = new FlowAtStepFixture({
+    flowManager,
+    specId: SPEC_ID,
+    runId: "run-final-regression-recorded",
+    request: "Exercise explicit final-regression acceptance.",
+    execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+    specRecord: {
+      goal: "Exercise explicit final-regression acceptance.",
+      requirements: [{ id: "R-1", desc: "A failed regression can be explicitly accepted with evidence." }],
     },
+    targetStep: "final-regression",
+  }).create();
+  commitAll(root, "record canonical final-regression frontier");
+  return {
+    root,
+    mainRoot: root,
+    executionRoot: root,
+    specId: SPEC_ID,
+    config: { test: { command: `sh ${FIXTURE_PATH}`, timeout: 5 } },
+    flowManager,
+    flowState: fixture.state(),
   };
 }
 
-function readArtifact(tmp) {
-  return validateFinalRegressionResult(JSON.parse(
-    fs.readFileSync(path.join(tmp, SPEC_DIR, "final-regression-result.json"), "utf8"),
-  ));
+function latestArtifact(ctx) {
+  const history = JSON.parse(ctx.flowManager.readArtifact({
+    specId: SPEC_ID,
+    logicalKey: "final.regression",
+    consumerNodeId: "report",
+  }).bytes.toString("utf8"));
+  return validateFinalRegressionResult(history.attempts.at(-1).artifact.payload);
 }
 
 function failedRecordedArtifact(overrides = {}) {
-  const rawOutputPath = "specs/001/tests/.raw/final-regression-attempt-002.log";
+  const rawOutputPath = "specs/001/001/steps/final-regression/attempt-002.log";
   return {
     version: "1",
     completed: true,
@@ -95,12 +110,15 @@ function failedRecordedArtifact(overrides = {}) {
     nextAction: "report",
     nextRecommendedAction: "record-and-proceed",
     failureSummary: "existing failure",
+    currentDiffRelationship: "non-current-diff",
     executionBinding: {
       command: "npm test --",
       rawOutputPath,
       rawOutputSha256: "a".repeat(64),
       parsedResult: "fail",
-      worktreeSha256: "b".repeat(64),
+      headSha: "b".repeat(40),
+      treeSha: "c".repeat(40),
+      worktreeSha256: "d".repeat(64),
       testCount: 1,
       truncated: false,
       stdout: {
@@ -113,169 +131,101 @@ function failedRecordedArtifact(overrides = {}) {
         originalByteLength: 60,
         capturedByteLength: 60,
         truncated: false,
-        sha256: "c".repeat(64),
+        sha256: "e".repeat(64),
       },
     },
     ...overrides,
   };
 }
 
-describe("final-regression record-and-proceed shared unit coverage", () => {
-  test("runner records eligible existing failures with Issue 403 category and recommendation", async () => {
-    const tmp = createTmpDir("unit-final-regression-record-proceed-runner-");
-    try {
-      const ctx = setupProject(tmp, [
-        "printf '%s\\n' 'existing failure' >&2",
-        shellPrintChildProcessRecord({
-          stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
-        }),
-        "exit 1",
-        "",
-      ].join("\n"));
+describe("canonical final-regression record-and-proceed", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
 
-      await new RunFinalRegressionCommand().execute(ctx);
-      const artifact = readArtifact(tmp);
+  test("records eligible existing failures in the immutable first Attempt", async () => {
+    tmp = createTmpDir("unit-final-regression-record-proceed-existing-");
+    const ctx = setupProject(tmp, [
+      "printf '%s\\n' 'existing failure' >&2",
+      shellPrintChildProcessRecord({
+        stderr: "ERR_ASSERTION\ntests/unit/existing.test.js: existing failure\n",
+      }),
+      "exit 1",
+      "",
+    ].join("\n"));
 
-      assert.equal(artifact.result, "fail");
-      assert.equal(artifact.failureCategory, "existing_failure");
-      assert.equal(artifact.recordAndProceed.eligible, true);
-      assert.equal(artifact.nextRecommendedAction, "fix-and-rerun");
-      assert.equal(Object.hasOwn(artifact.executionBinding.stdout, "content"), false);
-      assert.equal(Object.hasOwn(artifact.executionBinding.stderr, "content"), false);
-      assert.equal(artifact.childProcesses.every((entry) => (
-        !Object.hasOwn(entry.stdout, "content") && !Object.hasOwn(entry.stderr, "content")
-      )), true);
-      fs.rmSync(path.join(tmp, artifact.rawOutputPath), { force: true });
-      assert.deepEqual(validateFinalRegressionEvidence({ root: tmp, artifact }), {
-        ok: true,
-        rawEvidence: "absent",
-      });
-    } finally {
-      removeTmpDir(tmp);
-    }
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+    const artifact = latestArtifact(ctx);
+
+    assert.equal(result.result, "fail");
+    assert.equal(artifact.failureCategory, "existing_failure");
+    assert.equal(artifact.recordAndProceed.eligible, true);
+    assert.equal(artifact.nextRecommendedAction, "fix-and-rerun");
+    fs.rmSync(path.join(tmp, artifact.rawOutputPath), { force: true });
+    assert.deepEqual(validateFinalRegressionEvidence({ root: tmp, artifact }), {
+      ok: true,
+      rawEvidence: "absent",
+    });
   });
 
-  test("permits an explicit out-of-scope record for a current-diff failure", async () => {
-    const tmp = createTmpDir("unit-final-regression-record-proceed-current-diff-");
-    try {
-      const ctx = setupProject(tmp, [
-        "printf '%s\\n' 'current failure' >&2",
-        shellPrintChildProcessRecord({
-          stderr: "ERR_ASSERTION\\nsrc/current.js: unrelated flow test failure\\n",
-        }),
-        "exit 1",
-        "",
-      ].join("\n"));
-      writeFile(tmp, "src/current.js", "export const current = true;\n");
+  test("accepts a current-diff failure only through a second typed Attempt with explicit evidence", async () => {
+    tmp = createTmpDir("unit-final-regression-record-proceed-current-");
+    const ctx = setupProject(tmp, "printf '%s\\n' 'initial pass'\n");
+    writeFile(tmp, FIXTURE_PATH, [
+      "printf '%s\\n' 'current failure' >&2",
+      shellPrintChildProcessRecord({
+        stderr: `ERR_ASSERTION\n${FIXTURE_PATH}: unrelated flow test failure\n`,
+      }),
+      "exit 1",
+      "",
+    ].join("\n"));
 
-      await new RunFinalRegressionCommand().execute(ctx);
-      const failed = readArtifact(tmp);
-      assert.equal(failed.failureKind, "caused_by_current_change");
-      assert.equal(failed.recordAndProceed.eligible, false);
+    await new RunFinalRegressionCommand().execute(ctx);
+    const failed = latestArtifact(ctx);
+    assert.equal(failed.failureKind, "caused_by_current_change");
+    assert.equal(failed.recordAndProceed.eligible, false);
 
-      const recorded = await new RunFinalRegressionCommand().execute({
-        ...ctx,
-        recordAndProceed: true,
-        recordAndProceedEvidence: {
-          category: "out_of_scope",
-          evidence: "User approved recording this unrelated regression failure.",
-          failureClassification: "out_of_scope",
-          operatorJustification: "The failure is outside the requested change scope.",
-          remainingRisk: "The full regression remains red for the recorded unrelated failure.",
-          executionBinding: failed.executionBinding,
-        },
-      });
-      const artifact = readArtifact(tmp);
+    const recorded = await new RunFinalRegressionCommand().execute({
+      ...ctx,
+      flowState: ctx.flowManager.loadReadOnly(SPEC_ID),
+      recordAndProceed: true,
+      recordCategory: "out_of_scope",
+      recordEvidence: "User approved recording this unrelated regression failure.",
+      remainingRisk: "The full regression remains red for the recorded unrelated failure.",
+    });
+    await FLOW_COMMANDS.run["final-regression"].post(ctx, recorded);
+    const artifact = latestArtifact(ctx);
+    const history = JSON.parse(ctx.flowManager.readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "final.regression",
+      consumerNodeId: "report",
+    }).bytes.toString("utf8"));
 
-      assert.equal(recorded.failedRecorded, true, JSON.stringify(recorded));
-      assert.equal(artifact.completed, true);
-      assert.equal(artifact.failureCategory, "out_of_scope");
-      assert.equal(artifact.recordAndProceed.validated, true);
-    } finally {
-      removeTmpDir(tmp);
-    }
+    assert.equal(recorded.failedRecorded, true);
+    assert.equal(artifact.completed, true);
+    assert.equal(artifact.failureCategory, "out_of_scope");
+    assert.equal(artifact.recordAndProceed.validated, true);
+    assert.deepEqual(history.attempts.map((entry) => entry.attempt), [1, 2]);
+    assert.equal(ctx.flowManager.canonicalState(SPEC_ID).findNode("final-regression").status, "done");
+    assert.ok(ctx.flowManager.activityLedger(SPEC_ID).some((activity) => (
+      activity.transition.operation === "accept_final_regression_failure"
+    )));
   });
 
-  test("schema accepts explicitly failed-recorded artifacts and rejects invalid failed completion", () => {
+  test("schema accepts only fully validated failed-recorded artifacts", () => {
     assert.equal(validateFinalRegressionResult(failedRecordedArtifact()).result, "fail");
     assert.throws(() => validateFinalRegressionResult(failedRecordedArtifact({
       recordAndProceed: { eligible: true, validated: false, evidence: "" },
     })), /record-and-proceed evidence/i);
-  });
-
-  test("registry and completion policy complete only explicitly validated failed-recorded artifacts", async () => {
     const validator = new CompletionValidator();
     const contract = contractFromFinalRegressionArtifact(failedRecordedArtifact(), {
-      artifactPath: "specs/001/final-regression-result.json",
+      artifactPath: "specs/001/001/steps/final-regression/result.json",
     });
     assert.equal(validator.validate({ contract, requestedStatus: "done" }).kind, "normal");
-
-    const tmp = createTmpDir("unit-final-regression-record-proceed-registry-");
-    try {
-      const specDir = "specs/001";
-      const updated = [];
-      const flowState = moveFlowToStep(makeFlowState({
-        specId: "001",
-        runId: "run-final-regression-recorded",
-        tasks: [],
-        currentTaskId: null,
-      }), "final-regression");
-      writeFile(tmp, `${specDir}/spec.json`, JSON.stringify({ requirements: [] }, null, 2));
-      writeFile(tmp, `${specDir}/final-regression-result.json`, JSON.stringify(failedRecordedArtifact(), null, 2));
-      await FLOW_COMMANDS.run["final-regression"].post({
-        root: tmp,
-        specId: "001",
-        flowState,
-        flowManager: {
-          load: () => flowState,
-          updateStepStatus(transition) {
-            updated.push({ stepId: transition.stepId, status: transition.requestedStatus });
-          },
-        },
-      }, { result: "fail", failedRecorded: true });
-
-      assert.deepEqual(updated.at(-1), { stepId: "final-regression", status: "done" });
-    } finally {
-      removeTmpDir(tmp);
-    }
   });
 
-  test("registry post-hook accepts stale-evidence recovery without a final artifact", async () => {
-    const updated = [];
-    await FLOW_COMMANDS.run["final-regression"].post({
-      root: "/unused",
-      flowState: {},
-      flowManager: {
-        updateStepStatus(transition) {
-          updated.push(transition);
-        },
-      },
-    }, {
-      result: "recovered",
-      artifacts: {
-        evidenceRefresh: { recovered: true },
-      },
-    });
-
-    assert.deepEqual(updated, []);
-  });
-
-  test("prompt and report expose auto recommendation and failed-recorded non-pass details", () => {
+  test("prompt documents the explicit failed-regression decision", () => {
     const prompt = fs.readFileSync("src/flow/prompts/impl/final-regression.md", "utf8");
     assert.match(prompt, /auto(?:Approve| mode).*recommended action/i);
-
-    const { data, text } = generateReport({
-      state: { specId: "001", steps: [], metrics: [], tasks: [] },
-      results: { finalRegression: failedRecordedArtifact() },
-      issueLog: { entries: [] },
-      implDiffStat: null,
-      commitMessages: [],
-    });
-
-    assert.equal(data.tests.finalRegression.result, "fail");
-    assert.equal(data.tests.finalRegression.failureCategory, "existing_failure");
-    assert.match(text, /Final regression: result=fail/);
-    assert.match(text, /selectedAction=explicit-record-and-proceed/);
-    assert.doesNotMatch(text, /Final regression: result=pass/);
+    assert.match(prompt, /record-and-proceed/);
   });
 });

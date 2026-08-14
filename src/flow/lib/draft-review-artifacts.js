@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import {
   DRAFT_REVIEW_ARTIFACT_LIMIT,
@@ -67,7 +66,11 @@ function sameFile(left, right) {
 }
 
 function specDirForRoot(root, state) {
-  return path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
+  void root;
+  if (typeof state?.specDirectory !== "string" || state.specDirectory === "") {
+    throw new Error("draft review filesystem projection is retired; use catalog handoff inputs");
+  }
+  return state.specDirectory;
 }
 
 export function normalizeDraftReviewText(value, fallback) {
@@ -251,7 +254,13 @@ function validateRequiredStringFields(issues, prefix, item, fields) {
   for (const field of fields) validateRequiredString(issues, `${prefix}.${field}`, item?.[field]);
 }
 
-function validateReviewRevision(issues, route, reviewFile, state, { requireCurrentRevision = false } = {}) {
+function validateReviewRevision(
+  issues,
+  route,
+  reviewFile,
+  state,
+  { requireCurrentRevision = false, validateBinding = true } = {},
+) {
   const review = reviewFile.document;
   if (!validateArtifactObject(issues, `${route.reviewArtifact}: sourceDraftRevision`, review.sourceDraftRevision)) {
     issues.push(`${route.reviewArtifact}: version 2 requires sourceDraftRevision`);
@@ -274,13 +283,15 @@ function validateReviewRevision(issues, route, reviewFile, state, { requireCurre
   }
   try {
     const revision = DraftArtifactRevision.from(review.sourceDraftRevision);
-    revision.assertFlow(state);
     revision.assertReviewSource(route.retryPhase);
-    const stored = state?.draftReviewRevisions?.[route.retryPhase];
-    if (stored && !requireCurrentRevision) {
-      DraftReviewRevisionBinding.from(stored).assertMatches({ state, route, reviewFile, revision });
-    } else {
-      revision.assertCurrentReview(state, route.retryPhase);
+    if (validateBinding) {
+      revision.assertFlow(state);
+      const stored = state?.draftReviewRevisions?.[route.retryPhase];
+      if (stored && !requireCurrentRevision) {
+        DraftReviewRevisionBinding.from(stored).assertMatches({ state, route, reviewFile, revision });
+      } else {
+        revision.assertCurrentReview(state, route.retryPhase);
+      }
     }
   } catch (error) {
     issues.push(`${route.reviewArtifact}: invalid sourceDraftRevision: ${error.message}`);
@@ -508,8 +519,8 @@ export class DraftReviewEvidenceSet {
     return issues;
   }
 
-  validateThrough(stepId = this.route.repairStepId) {
-    const issues = this.validateReview();
+  validateThrough(stepId = this.route.repairStepId, options = {}) {
+    const issues = this.validateReview(options);
     if (!this.reviewFile) return { issues, triage: null };
     const triageItems = validateDraftTriageArtifact(
       issues,
@@ -688,13 +699,8 @@ export function registerDraftReviewRevision({ root, state, flowManager, route, n
     revision,
     recordedAt: now().toISOString(),
   });
-  flowManager.mutate((current) => {
-    revision.assertCurrentReview(current, route.retryPhase);
-    current.draftReviewRevisions = {
-      ...(current.draftReviewRevisions || {}),
-      [route.retryPhase]: binding.toJSON(),
-    };
-  }, { specId: state.specId, expectedOriginal: state });
+  void flowManager;
+  revision.assertCurrentReview(state, route.retryPhase);
   return binding;
 }
 

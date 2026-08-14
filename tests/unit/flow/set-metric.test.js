@@ -6,7 +6,7 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
@@ -20,9 +20,9 @@ describe("flow set metric", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = makeFlowState({ specId: specId });
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
+    new CanonicalFlowFixture({
+      flowManager: makeFlowManager(dir), specId, runId: `run-${specId}`,
+    }).create().registerActive();
   }
 
   it("appends a metric entry and returns JSON envelope", () => {

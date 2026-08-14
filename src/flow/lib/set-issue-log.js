@@ -14,10 +14,8 @@
 
 import crypto from "node:crypto";
 import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
-import { resolveTaskIdForEntry } from "../../lib/flow-store.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { IssueLogStore } from "./issue-log-store.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
 
 /**
  * Load issue-log.json from the resolved spec directory.
@@ -25,19 +23,95 @@ import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
  * @param {string} specPath - relative spec path
  * @returns {{ entries: Object[] }}
  */
-export function loadIssueLog(root, specPath) {
-  const snapshot = new IssueLogStore({ root, spec: specPath }).read();
-  return snapshot.toJSON();
+export function issueLogStoreForVersion(location, options = {}) {
+  return IssueLogStore.forVersion({ location, ...options });
 }
 
-export function appendIssueLogEntry(root, specPath, entry, idempotencyKey = null) {
-  const key = idempotencyKey || entry?.issueLogId || entry?.grantId || `issue-log-${crypto.randomUUID()}`;
-  return new IssueLogStore({ root, spec: specPath }).append(entry, key);
+function canonicalIssueLogIdempotencyKey(state, entry) {
+  const stableEntry = structuredClone(entry);
+  // The timestamp records when the user command was first observed; it must
+  // not make a restart of that same command publish a second fact.
+  delete stableEntry.timestamp;
+  delete stableEntry.issueLogId;
+  delete stableEntry.grantId;
+  const digest = crypto.createHash("sha256")
+    .update(JSON.stringify({
+      runId: state.runId,
+      nodeId: state.currentNodeId,
+      entry: stableEntry,
+    }))
+    .digest("hex");
+  return `set-issue-log-${digest}`;
+}
+
+/**
+ * Resolve the append-only issue log through the Version Store.  This is the
+ * normal-runtime reader counterpart of `appendCanonicalIssueLogEntry`: it
+ * accepts a Flow identity and a consumer Step, never a guessed spec path.
+ */
+export function loadCanonicalIssueLog(flowManager, state, { consumerNodeId = state?.currentNodeId } = {}) {
+  if (state?.schemaRevision !== 3 || typeof state?.specId !== "string") {
+    throw new Error("canonical issue-log read requires a Version-1 Flow state");
+  }
+  if (!flowManager || typeof flowManager.readArtifact !== "function") {
+    throw new Error("canonical issue-log read requires FlowManager.readArtifact");
+  }
+  if (typeof consumerNodeId !== "string" || consumerNodeId === "") {
+    throw new Error("canonical issue-log read requires a consumer Step");
+  }
+  const artifact = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "issue.log",
+    consumerNodeId,
+    optional: true,
+  });
+  if (artifact === null) return { entries: [] };
+  try {
+    return new IssueLogDocument(JSON.parse(artifact.bytes.toString("utf8"))).toJSON();
+  } catch (error) {
+    throw new Error(`canonical issue-log is invalid: ${error.message}`);
+  }
+}
+
+/**
+ * Append one user-visible issue fact through the active Attempt's Activity
+ * transaction.  No normal command may reconstruct `issue-log.json` from a
+ * spec path or use the retired independent writer.
+ */
+export function appendCanonicalIssueLogEntry(flowManager, state, entry, idempotencyKey = null) {
+  if (state?.schemaRevision !== 3 || typeof state?.specId !== "string") {
+    throw new Error("canonical issue-log append requires a Version-1 Flow state");
+  }
+  if (!flowManager || typeof flowManager.appendIssueLog !== "function") {
+    throw new Error("canonical issue-log append requires FlowManager.appendIssueLog");
+  }
+  return flowManager.appendIssueLog({
+    specId: state.specId,
+    entry,
+    idempotencyKey: idempotencyKey || entry?.issueLogId || entry?.grantId
+      || canonicalIssueLogIdempotencyKey(state, entry),
+  });
 }
 
 const MIN_REASON_LENGTH = 20;
 const MIN_OPTIONAL_FIELD_LENGTH = 10;
 const COMMIT_HASH_RE = /^[0-9a-f]{7,40}$/i;
+
+/**
+ * Issue-log scope is a command concern, not a reason to import the retired
+ * mutable legacy state. The Version-1 command view already exposes Task ids
+ * derived from canonical state/Activity records.
+ */
+function resolveTaskIdForIssueLog(state, options = {}) {
+  if (Object.hasOwn(options, "taskId")) {
+    if (options.taskId === null) return null;
+    if (!(state.tasks || []).some((task) => task.id === options.taskId)) {
+      throw new Error(`unknown task id: ${options.taskId}`);
+    }
+    return options.taskId;
+  }
+  return state.currentTaskId ?? null;
+}
 
 function validateReason(reason) {
   if ((reason ?? "").trim().length < MIN_REASON_LENGTH) {
@@ -97,8 +171,6 @@ export default class SetIssueLogCommand extends FlowCommand {
   }
 
   execute(ctx) {
-    const { root } = ctx;
-
     if (!ctx.step || !ctx.reason) {
       return Envelope.fail("set", "issue-log", "INVALID_USAGE", "--step and --reason are required");
     }
@@ -118,7 +190,7 @@ export default class SetIssueLogCommand extends FlowCommand {
     if (repairRefFail) return repairRefFail;
 
     const state = ctx.flowState;
-    const taskId = resolveTaskIdForEntry(state, resolveExplicitTaskOption(ctx));
+    const taskId = resolveTaskIdForIssueLog(state, resolveExplicitTaskOption(ctx));
 
     const entry = {
       step: ctx.step,
@@ -132,7 +204,7 @@ export default class SetIssueLogCommand extends FlowCommand {
       timestamp: new Date().toISOString(),
     };
 
-    const result = appendIssueLogEntry(root, relativeFlowSpecFile(state), entry);
+    const result = appendCanonicalIssueLogEntry(ctx.flowManager, state, entry);
 
     return { entry: result.entry, total: result.total };
   }

@@ -1,11 +1,16 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
-import { execFileSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
-import { makeFlowState, setupFlow, makeFlowManager } from "../../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 const FLOW_CMD = join(process.cwd(), "src/sennel.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
+
+function activeFixture(root) {
+  const flowManager = makeFlowManager(root);
+  return new CanonicalFlowFixture({ flowManager }).create().registerActive();
+}
 
 // ---------------------------------------------------------------------------
 // flow set request / flow set note
@@ -15,15 +20,18 @@ describe("flow set request", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("saves request to flow.json", () => {
+  it("rejects mutation of the immutable active Flow request", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
-    execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "request", "make a resume command"], {
+    const fixture = activeFixture(tmp);
+    const result = spawnSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "request", "make a resume command"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },
     });
-    const updated = makeFlowManager(tmp).load();
-    assert.equal(updated.request, "make a resume command");
+    assert.notEqual(result.status, 0, result.stderr);
+    const envelope = JSON.parse(result.stdout);
+    assert.equal(envelope.ok, false);
+    assert.equal(envelope.errors[0].code, "REQUEST_IMMUTABLE");
+    assert.equal(makeFlowManager(tmp).loadReadOnly().request, fixture.state().request);
   });
 
   it("saves request to a preparing flow with --run-id", () => {
@@ -65,7 +73,7 @@ describe("flow set note", () => {
 
   it("appends {taskId, text, ts} entry to state.notes", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    activeFixture(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "draft: first note"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },
@@ -79,7 +87,7 @@ describe("flow set note", () => {
 
   it("appends multiple notes in order", () => {
     tmp = createTmpDir();
-    setupFlow(tmp);
+    activeFixture(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "first note"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },
@@ -94,12 +102,9 @@ describe("flow set note", () => {
     assert.equal(updated.notes[1].text, "second note");
   });
 
-  it("initializes notes array when absent", () => {
+  it("preserves the canonical notes collection contract", () => {
     tmp = createTmpDir();
-    const state = makeFlowState();
-    delete state.notes;
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "local");
+    activeFixture(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "new note"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },

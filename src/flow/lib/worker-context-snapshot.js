@@ -193,11 +193,13 @@ export class DraftInputAuthority {
   }
 }
 
-function issueContext(specDirectory, state) {
+function issueContext(specDirectory, state, issueText = null) {
   if (state.issue == null) {
     return new WorkerContextOmission({ kind: "issue", reason: "no-linked-issue" });
   }
-  const body = readContextText(path.join(specDirectory, "issue.md"), "linked Issue context");
+  const body = issueText === null
+    ? readContextText(path.join(specDirectory, "issue.md"), "linked Issue context")
+    : requireString(issueText, "linked Issue context").trim();
   return new WorkerContextDocument({
     kind: "issue",
     document: { number: requireIssue(state.issue, "Flow issue"), body },
@@ -261,7 +263,7 @@ export class DraftWorkerContextSnapshot {
     Object.freeze(this);
   }
 
-  static materialize({ specDirectory, executionRoot, state, invocation }) {
+  static materialize({ specDirectory = null, executionRoot, state, invocation, issueText = null }) {
     const binding = new WorkerContextBinding({
       runId: state.runId,
       specId: state.specId,
@@ -271,7 +273,7 @@ export class DraftWorkerContextSnapshot {
       targetDigest: invocation.target?.digest,
     });
     const entries = [
-      issueContext(specDirectory, state),
+      issueContext(specDirectory, state, issueText),
       requestContext(state),
       guardrailContext(executionRoot),
       projectOverviewContext(executionRoot),

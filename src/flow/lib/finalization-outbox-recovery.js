@@ -1,6 +1,6 @@
 import {
-  FlowOutbox,
   FlowOutboxRecoveryClaim,
+  FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
 import { hasOutboxCommit } from "./run-finalize.js";
@@ -12,11 +12,10 @@ import {
 } from "./next-action-directive.js";
 import { guardFlagsForState } from "./user-action-prompt.js";
 import { runGit } from "../../lib/git-helpers.js";
-import { container } from "../../lib/container.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { FinalizeFlowArtifactRegistry } from "./repair-state-identity.js";
 
 const FINALIZATION_COMMANDS = Object.freeze({
+  report: "report",
   "finalize-commit": "finalize-commit",
   "finalize-merge": "finalize-merge",
   "finalize-sync": "finalize-sync",
@@ -34,23 +33,16 @@ function refreshCommand(state, binding) {
   return `sennel flow get next-action${guards ? ` ${guards}` : ""}`;
 }
 
-function featureMetadataPaths(state) {
-  if (!state?.specId) return [];
-  const specDirectory = path.posix.dirname(relativeFlowSpecFile(state));
+function featureMetadataPaths(location) {
   return [
-    `${specDirectory}/flow.json`,
-    `${specDirectory}/issue-log.json`,
+    location.relativeFlowStateFile,
+    location.relativeIssueLogFile,
   ];
 }
 
 function mainRootFor(ctx, state) {
   if (state.worktree !== true) return ctx.root;
   return ctx.flowManager.resolveWorktreePaths(state).mainRepoPath || ctx.root;
-}
-
-function configuredPushRemote() {
-  const config = container.has("config") ? container.get("config") : null;
-  return config?.flow?.push?.remote || "origin";
 }
 
 export class FinalizationOutboxRecovery {
@@ -68,7 +60,8 @@ export class FinalizationOutboxRecovery {
     if (!command) return null;
 
     const identity = finalizationOutboxIdentity(this.state, this.target.stepId);
-    const entry = new FlowOutbox(this.state.outbox || []).find(identity);
+    const outbox = new FlowOutboxStore(this.ctx.flowManager, { specId: this.state.specId });
+    const entry = outbox.status(identity);
     if (entry?.status !== "failed") return null;
     const preSyncConflict = this.#preSyncConflictRecovery(entry);
     if (preSyncConflict?.directive) return preSyncConflict;
@@ -97,14 +90,12 @@ export class FinalizationOutboxRecovery {
       if (readiness) return readiness;
     }
 
-    const outbox = new FlowOutbox(this.state.outbox || []);
     outbox.reopenFailedExact(new FlowOutboxRecoveryClaim({
       identity,
       attempt: entry.attempt,
       failure: entry.failure,
       recoveryKey,
     }));
-    this.state.outbox = outbox.toJSON();
     return {
       directive: new ExecuteCommandDirective({
         actionId: `RECOVER_${this.target.stepId.replaceAll("-", "_").toUpperCase()}_OUTBOX`,
@@ -119,6 +110,7 @@ export class FinalizationOutboxRecovery {
   }
 
   #isDurable(entry) {
+    if (this.target.stepId === "report") return this.#hasCanonicalReport(entry);
     const mainRoot = mainRootFor(this.ctx, this.state);
     if (this.target.stepId === "finalize-merge") {
       return hasOutboxCommit({
@@ -133,13 +125,39 @@ export class FinalizationOutboxRecovery {
     return hasOutboxCommit({ root, ref: "HEAD", idempotencyKey: entry.idempotencyKey });
   }
 
+  /**
+   * A report is deliberately produced before the finalize commit, so commit
+   * markers cannot prove its external-effect recovery is safe.  Version 1
+   * instead proves durability through the catalog-owned pending report bound
+   * to this exact outbox identity.  No path inference or sibling read is
+   * allowed here.
+   */
+  #hasCanonicalReport(entry) {
+    if (this.state?.schemaRevision !== 3) return false;
+    try {
+      const artifact = this.ctx.flowManager.readArtifact({
+        specId: this.state.specId,
+        logicalKey: "report",
+        consumerNodeId: "report",
+        optional: true,
+      });
+      if (artifact === null) return false;
+      const report = JSON.parse(artifact.bytes.toString("utf8"));
+      const delivery = report?.data?.delivery;
+      return (delivery?.status === "pending" || delivery?.status === "done")
+        && delivery.idempotencyKey === entry.idempotencyKey;
+    } catch {
+      // A malformed or unauthorized report is not durable recovery evidence.
+      // The caller leaves the failed outbox unchanged and fails closed.
+      return false;
+    }
+  }
+
   #preSyncConflictRecovery(entry) {
     if (this.target.stepId !== "finalize-merge") return null;
     const failure = entry.latestFailure;
     if (!failure) return null;
-    const recovery = failure.code === "MERGE_PRE_SYNC_CONFLICT"
-      ? failure.recovery
-      : this.#legacyPreSyncConflictRecovery(failure);
+    const recovery = failure.code === "MERGE_PRE_SYNC_CONFLICT" ? failure.recovery : null;
     if (recovery == null) return null;
     const { baseRef, baseHead } = recovery;
     const featureRoot = this.state.worktree === true
@@ -177,20 +195,10 @@ export class FinalizationOutboxRecovery {
     };
   }
 
-  #legacyPreSyncConflictRecovery(failure) {
-    if (!String(failure.failure || "").startsWith("Pre-merge rebase detected conflicts in ")) return null;
-    const baseRef = `${configuredPushRemote()}/${this.state.baseBranch}`;
-    const featureRoot = this.state.worktree === true
-      ? (this.ctx.flowManager.resolveWorktreePaths(this.state).worktreePath || this.ctx.root)
-      : (this.ctx.executionRoot || this.ctx.root);
-    const baseHead = runGit(["-C", featureRoot, "rev-parse", baseRef]);
-    if (!baseHead.ok || baseHead.stdout.trim() === "") return null;
-    return { baseRef, baseHead: baseHead.stdout.trim() };
-  }
-
   #inspectMergeReadiness() {
     try {
-      const flowArtifactRegistry = new FinalizeFlowArtifactRegistry(relativeFlowSpecFile(this.state));
+      const location = this.ctx.flowManager.specLocation(this.state.specId);
+      const flowArtifactRegistry = new FinalizeFlowArtifactRegistry(location.relativeSpecFile);
       new FinalizeMergeTransaction({
         featureRoot: this.ctx.executionRoot || this.ctx.root,
         mainRoot: mainRootFor(this.ctx, this.state),
@@ -199,7 +207,7 @@ export class FinalizationOutboxRecovery {
         commitMessage: "sennel finalize merge recovery inspection",
         flowArtifactRegistry,
       }).inspect({
-        allowFeatureMetadataPaths: featureMetadataPaths(this.state),
+        allowFeatureMetadataPaths: featureMetadataPaths(location),
         flowArtifactRegistry,
       });
       return null;
@@ -219,4 +227,3 @@ export class FinalizationOutboxRecovery {
 export function resolveFinalizationOutboxRecovery(ctx, state, target, binding = null) {
   return new FinalizationOutboxRecovery({ ctx, state, target, binding }).resolve();
 }
-import path from "node:path";

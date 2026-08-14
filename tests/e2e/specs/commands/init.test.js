@@ -5,7 +5,7 @@ import fs from "fs";
 import { join } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
-import { makeFlowManager } from "../../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 
 const CMD = join(process.cwd(), "src/sennel.js");
 
@@ -22,7 +22,10 @@ function initProject(tmp) {
 
 function assertPrepareArtifacts(root, specDir) {
   assert.ok(fs.existsSync(join(root, specDir, "spec.json")));
-  assert.ok(fs.existsSync(join(root, specDir, "draft.json")));
+  assert.ok(fs.existsSync(join(root, specDir, "flow.json")));
+  assert.ok(fs.existsSync(join(root, specDir, "activities.jsonl")));
+  assert.ok(fs.existsSync(join(root, specDir, "artifact-catalog.json")));
+  assert.equal(fs.existsSync(join(root, specDir, "steps", "draft", "result.json")), false);
 }
 
 function expectedSpecId(runId, slug) {
@@ -35,25 +38,28 @@ function expectedSpecId(runId, slug) {
 
 function assertRunDerivedSpecIdentity(data, slug) {
   assert.equal(data.specId, expectedSpecId(data.runId, slug));
-  assert.equal(data.artifacts.specDir, `specs/${data.specId}`);
+  assert.equal(data.artifacts.specDir, `specs/${data.specId}/001`);
   assert.equal(data.artifacts.branch, `feature/${data.specId}`);
 }
 
 function assertDryRunSpecIdentity(data, slug) {
-  assert.match(data.artifacts.specDir, new RegExp(`^specs/[0-9a-f]{8}-${slug}$`));
-  const specId = data.artifacts.specDir.slice("specs/".length);
+  assert.match(data.artifacts.specDir, new RegExp(`^specs/[0-9a-f]{8}-${slug}/001$`));
+  const specId = data.artifacts.specDir.slice("specs/".length, -"/001".length);
   assert.equal(data.artifacts.branch, `feature/${specId}`);
 }
 
-function assertCanonicalFlowState(root, data, { worktree }) {
+function assertCanonicalFlowState(root, data) {
   const flow = JSON.parse(fs.readFileSync(
     join(root, data.artifacts.specDir, "flow.json"),
     "utf8",
   ));
   assert.equal(flow.specId, data.specId);
   assert.equal(flow.runId, data.runId);
-  assert.equal(flow.featureBranch, `feature/${data.specId}`);
-  assert.equal(flow.worktree === true, worktree);
+  assert.equal(
+    flow.execution.featureBranch,
+    data.artifacts.mode === "direct" ? null : `feature/${data.specId}`,
+  );
+  assert.equal(flow.execution.mode, data.artifacts.mode);
 }
 
 describe("spec init CLI", () => {
@@ -106,7 +112,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created spec/);
     assertRunDerivedSpecIdentity(envelope.data, "my-feat");
     assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
-    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
+    assertCanonicalFlowState(tmp, envelope.data);
     assert.equal(
       execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim(),
       `feature/${envelope.data.specId}`,
@@ -141,14 +147,14 @@ describe("spec init CLI", () => {
     assert.ok(!envelope.data.output.includes("created branch"));
     assertRunDerivedSpecIdentity(envelope.data, "nb-feat");
     assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
-    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
+    assertCanonicalFlowState(tmp, envelope.data);
 
     // Should still be on main
     const branch = execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
     assert.equal(branch, "main");
   });
 
-  it("shows mode: spec-only in --no-branch --dry-run", () => {
+  it("shows mode: direct in --no-branch --dry-run", () => {
     tmp = createTmpDir();
     initProject(tmp);
 
@@ -159,7 +165,7 @@ describe("spec init CLI", () => {
 
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
-    assert.equal(envelope.data.artifacts.mode, "spec-only");
+    assert.equal(envelope.data.artifacts.mode, "direct");
   });
 
   it("creates worktree with --worktree", () => {
@@ -180,7 +186,7 @@ describe("spec init CLI", () => {
     assert.equal(envelope.data.worktreePath, wtPath);
     assert.equal(envelope.data.artifacts.worktree, wtPath);
     assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
-    assertCanonicalFlowState(tmp, envelope.data, { worktree: true });
+    assertCanonicalFlowState(tmp, envelope.data);
     assert.equal(fs.existsSync(join(wtPath, "specs", envelope.data.specId)), false);
     assert.equal(
       execFileSync("git", ["-C", wtPath, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim(),
@@ -246,36 +252,30 @@ describe("spec init CLI", () => {
     assert.equal(envelope.data.runId, initialized.data.runId);
     assertRunDerivedSpecIdentity(envelope.data, "auto-feat");
     assertPrepareArtifacts(tmp, envelope.data.artifacts.specDir);
-    assertCanonicalFlowState(tmp, envelope.data, { worktree: false });
+    assertCanonicalFlowState(tmp, envelope.data);
     assert.equal(fs.existsSync(join(wtPath, "specs", envelope.data.specId)), false);
 
     const specId = envelope.data.specId;
-    const mainSpecDir = join(tmp, "specs", specId);
-    const mainState = JSON.parse(fs.readFileSync(join(mainSpecDir, "flow.json"), "utf8"));
-    fs.writeFileSync(join(mainSpecDir, "flow.json"), `${JSON.stringify({
-      ...mainState,
-      request: "main authority",
-    }, null, 2)}\n`);
+    const manager = makeFlowManager(tmp);
+    const mainState = manager.loadReadOnly(specId);
 
     const switched = JSON.parse(execFileSync("node", [CMD, "flow", "get", "status", "--details"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: wtPath },
     }));
-    assert.equal(switched.data.request, "main authority");
+    assert.equal(switched.data.runId, mainState.runId);
+    assert.equal(switched.data.specId, specId);
 
     const secondSpec = "002-positional";
-    const secondState = {
-      ...mainState,
+    new CanonicalFlowFixture({
+      flowManager: manager,
       specId: secondSpec,
       runId: "run-positional-second",
       issue: 442,
-      worktree: false,
+      issueSnapshot: "# Issue #442\n",
       request: "positional target",
-    };
-    fs.mkdirSync(join(tmp, "specs", secondSpec), { recursive: true });
-    fs.writeFileSync(join(tmp, "specs", secondSpec, "flow.json"), `${JSON.stringify(secondState, null, 2)}\n`);
-    makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
-    fs.writeFileSync(join(tmp, ".sennel", ".current-flow"), `${specId}\n`);
+      execution: { mode: "direct" },
+    }).create().registerActive();
     const positional = JSON.parse(execFileSync("node", [
       CMD, "flow", "get", "status", "run-positional-second",
       "--expect-run-id", "run-positional-second",

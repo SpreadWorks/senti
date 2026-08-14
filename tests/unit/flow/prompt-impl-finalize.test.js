@@ -5,28 +5,18 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 function setupFlowState(dir) {
   const specId = "001-test";
-  const state = {
-    specId: specId,
-    runId: `run-${specId}`,
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
-    steps: buildInitialSteps(),
-    requirements: [],
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(dir).create(state);
-  makeFlowManager(dir).addActiveFlow(specId, "local");
+  new CanonicalFlowFixture({
+    flowManager: makeFlowManager(dir), specId, runId: `run-${specId}`,
+  }).create().registerActive();
 }
 
 describe("flow get prompt impl.review-mode (reworked)", () => {

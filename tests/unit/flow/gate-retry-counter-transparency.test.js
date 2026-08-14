@@ -2,9 +2,9 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager, setupFlowConfig } from "../../helpers/flow-setup.js";
 import {
   countGateRetry,
   checkRetryBelowMax,
@@ -16,6 +16,14 @@ import {
 // -----------------------------------------------------------------------------
 
 const SENNEL_CMD = path.join(process.cwd(), "src/sennel.js");
+
+function activeFixture(root) {
+  const flowManager = makeFlowManager(root);
+  return new CanonicalFlowFixture({
+    flowManager,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create().registerActive();
+}
 
 describe("countGateRetry ignores non-gateRetry metric entries (REQ-4)", () => {
   it("does not count issueLog metrics as gateRetry", () => {
@@ -52,18 +60,17 @@ describe("issue-log recording does not increment gateRetry (REQ-4)", () => {
   it("flow set issue-log leaves gateRetry count at zero", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
-    setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
+    activeFixture(tmp).activate("impl-gate");
 
-    execFileSync(
+    const result = spawnSync(
       "node",
       [SENNEL_CMD, "flow", "set", "issue-log", "--step", "impl-gate",
         "--reason", "fix: some issue that was fixed during implementation"],
       { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
     );
+    assert.equal(result.status, 0, `stdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 
-    const flow = JSON.parse(
-      fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
-    );
+    const flow = makeFlowManager(tmp).loadReadOnly();
     const gateRetryEntries = (flow.metrics || [])
       .filter((e) => e.counter === "gateRetry");
     assert.equal(gateRetryEntries.length, 0,

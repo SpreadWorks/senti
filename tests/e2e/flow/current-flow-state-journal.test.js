@@ -32,6 +32,7 @@ function attemptFor(state, currentPath, id, sequence = null, tooling = 0) {
   const previous = state.current?.at(-1) === leaf.id ? state.attempt : null;
   return new CurrentAttempt({
     id,
+    nodeId: currentPath.at(-1),
     sequence: nextSequence,
     startedAt: NOW,
     consumption: {
@@ -80,10 +81,14 @@ function activity({
     type,
     transition: new ActivityTransition({
       operation,
-      path: currentPath,
+      nodeId: node.id,
       task,
       attempt: activityAttempt,
       status,
+      policy: null,
+      outbox: null,
+      approval: null,
+      nonblocking: null,
     }),
     result: activityResult,
     timing: null,
@@ -217,11 +222,11 @@ describe("Current Flow state filesystem lifecycle", () => {
       activityResult: result("prepare-spec"),
     }));
 
-    advanceUntil("task-a/task-impl", "prelude");
+    advanceUntil("task-a-impl", "prelude");
     const taskAImpl = state.nextAction().path;
     completeDescriptor("task-a-impl");
-    assert.equal(taskAImpl.at(-1), "task-a/task-impl");
-    assert.equal(state.nextAction().nodeId, "task-a/task-review");
+    assert.equal(taskAImpl.at(-1), "task-a-impl");
+    assert.equal(state.nextAction().nodeId, "task-a-review");
     const reviewPath = state.nextAction().path;
     apply(activity({
       id: "task-a-review-start",
@@ -270,11 +275,11 @@ describe("Current Flow state filesystem lifecycle", () => {
       status: "done",
       activityResult: result("task-a-review"),
     }));
-    assert.equal(state.nextAction().nodeId, "task-a/task-gate");
+    assert.equal(state.nextAction().nodeId, "task-a-gate");
     const gatePath = state.nextAction().path;
     completeDescriptor("task-a-gate");
     assert.equal(state.findNode("task-a").status, "done");
-    assert.equal(state.nextAction().nodeId, "task-b/task-impl");
+    assert.equal(state.nextAction().nodeId, "task-b-impl");
 
     apply(activity({
       id: "task-a-review-rewind",
@@ -284,10 +289,10 @@ describe("Current Flow state filesystem lifecycle", () => {
       order,
       operation: "rewind",
     }));
-    assert.equal(state.current.at(-1), "task-a/task-review");
+    assert.equal(state.current.at(-1), "task-a-review");
     assert.equal(state.attempt.sequence, 3);
-    assert.equal(state.findNode("task-a/task-review").attemptSequence, 3);
-    assert.equal(state.findNode("task-a/task-gate").status, "invalidated");
+    assert.equal(state.findNode("task-a-review").attemptSequence, 3);
+    assert.equal(state.findNode("task-a-gate").status, "invalidated");
     assert.equal(state.findNode("task-b").status, "invalidated");
     apply(activity({
       id: "task-a-review-reconfirm",
@@ -299,7 +304,7 @@ describe("Current Flow state filesystem lifecycle", () => {
       activityResult: result("task-a-review-reconfirmed"),
     }));
     assert.equal(state.nextAction().operation, "recover");
-    assert.equal(state.nextAction().nodeId, "task-a/task-gate");
+    assert.equal(state.nextAction().nodeId, "task-a-gate");
     assert.throws(
       () => new CurrentFlowStateStore({ directory, definition }).apply({ activity: activity({
         id: "illegal-gate-start",
@@ -320,7 +325,7 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "recover_attempt",
     }));
     assert.equal(state.attempt.sequence, 2);
-    assert.equal(state.findNode("task-a/task-gate").attemptSequence, 2);
+    assert.equal(state.findNode("task-a-gate").attemptSequence, 2);
     apply(activity({
       id: "task-a-gate-recovered",
       state,
@@ -331,7 +336,7 @@ describe("Current Flow state filesystem lifecycle", () => {
       activityResult: result("task-a-gate-recovered"),
     }));
     assert.equal(state.nextAction().operation, "recover");
-    assert.equal(state.nextAction().nodeId, "task-b/task-impl");
+    assert.equal(state.nextAction().nodeId, "task-b-impl");
 
     const taskBImplPath = state.nextAction().path;
     apply(activity({
@@ -362,7 +367,7 @@ describe("Current Flow state filesystem lifecycle", () => {
     }));
     const taskBReviewAuthority = state.artifactAuthority();
     assert.ok(taskBReviewAuthority.resolutions.every((resolution) => (
-      resolution.source?.nodeId === "task-b/task-impl"
+      resolution.source?.nodeId === "task-b-impl"
     )));
     assert.equal(taskBReviewAuthority.resolutions.some((resolution) => (
       resolution.source?.path.includes("task-a")
@@ -441,14 +446,14 @@ describe("Current Flow state filesystem lifecycle", () => {
       operation: "record_failure",
       activityResult: exhaustedResult,
     }));
-    assert.equal(state.findNode("task-b/task-review").status, "failed");
+    assert.equal(state.findNode("task-b-review").status, "failed");
     const taskBGateAuthority = state.artifactAuthority();
     assert.equal(
       taskBGateAuthority.resolutions.find((resolution) => resolution.resourceKind === "guardrail").missing,
       true,
     );
     assert.equal(taskBGateAuthority.resolutions.some((resolution) => (
-      resolution.source?.nodeId === "task-b/task-review"
+      resolution.source?.nodeId === "task-b-review"
     )), false);
     const taskBGatePath = state.nextAction().path;
     apply(activity({
@@ -488,10 +493,7 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.equal(journal.find((entry) => entry.id === "task-b-review-fail-exhausted").failure.retryable, true);
     assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").type, "failure_recorded");
     assert.equal(journal.find((entry) => entry.id === "task-b-review-record-exhaustion").result.outcome, "failed");
-    store.writeActivitiesView();
-    const markdown = fs.readFileSync(path.join(directory, "activities.md"), "utf8");
-    assert.match(markdown, /attempt_retried/);
-    assert.match(markdown, /\| skipped \|/);
+    assert.equal(fs.existsSync(path.join(directory, "activities.md")), false);
   });
 
   it("reloads a terminal failed Attempt as an explicit blocked disposition without contradictory journal payloads", () => {

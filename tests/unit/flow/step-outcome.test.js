@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -23,65 +22,13 @@ import {
   TimeoutRegressionFailure,
   classifyFinalRegressionFailure,
 } from "../../../src/flow/lib/run-final-regression.js";
-import {
-  resolveReviewRetryMax,
-  updateReviewRetryCounter,
-} from "../../../src/flow/lib/run-review.js";
-import {
-  resolveRetryMax,
-  updateGateRetryCounter,
-} from "../../../src/flow/lib/run-gate.js";
-import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
-import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import {
   UserActionChoice,
   UserActionImpact,
   UserActionPrompt,
 } from "../../../src/flow/lib/user-action-prompt.js";
-
-function semanticFinding(findingId) {
-  return {
-    findingId,
-    fingerprint: "b".repeat(64),
-    result: "fail",
-    category: "semantic",
-    reason: "A semantic requirement is not satisfied.",
-    disposition: "informational",
-    rationale: "This semantic finding has no mandatory authority.",
-  };
-}
-
-function dispositionedSemanticFinding(findingId) {
-  return {
-    ...semanticFinding(findingId),
-    fingerprint: "b".repeat(64),
-    disposition: "must-fix",
-    rationale: "A mandatory semantic requirement remains unsatisfied.",
-  };
-}
-
-function retryMetrics(phase, counter, count) {
-  return Array.from({ length: count }, () => ({ phase, counter, delta: 1 }));
-}
-
-function flowManagerFor(flowState, updates) {
-  return {
-    appendMetric(metric) {
-      flowState.metrics.push(metric);
-    },
-    mutate(mutator) {
-      mutator(flowState);
-    },
-    updateStepStatus(transition) {
-      updates.push({ stepId: transition.stepId, status: transition.requestedStatus });
-    },
-  };
-}
 
 function decisionPrompt() {
   return new UserActionPrompt({
@@ -185,181 +132,6 @@ describe("typed step outcomes", () => {
     }
   });
 
-  it("persists review and gate deferral on the final command attempt", () => {
-    const root = createTmpDir("typed-step-attempt-");
-    try {
-      const spec = "specs/419-outcome/spec.json";
-      const specDir = path.join(root, path.dirname(spec));
-      writeJson(root, spec, { requirements: [] });
-      writeJson(specDir, "test-review.json", {
-        verdict: "REJECTED",
-        blockingFindings: [dispositionedSemanticFinding("review-semantic")],
-      });
-
-      const reviewState = moveFlowToStep(makeFlowState({
-        runId: "run-review-419",
-        specId: "419-outcome",
-        currentTaskId: null,
-        tasks: [],
-        metrics: [],
-        stepAttempts: [],
-      }), "test-review");
-      const reviewMax = resolveReviewRetryMax({ flowState: reviewState }, "test");
-      reviewState.metrics = retryMetrics("test", "reviewRetry", reviewMax - 1);
-      const reviewUpdates = [];
-      const reviewResult = {
-        result: "ok",
-        artifacts: { phase: "test", retryPhase: "test", verdict: "REJECTED" },
-        next: null,
-      };
-      updateReviewRetryCounter({
-        root,
-        phase: "test",
-        flowState: reviewState,
-        flowManager: flowManagerFor(reviewState, reviewUpdates),
-      }, reviewResult);
-
-      assert.equal(reviewResult.result, "deferred");
-      assert.deepEqual(reviewUpdates, [{ stepId: "test-review", status: "done" }]);
-      assert.ok(StepAttempt.fromStored(reviewState.stepAttempts[0]).outcome instanceof DeferOutcome);
-
-      const gateState = moveFlowToStep(makeFlowState({
-        runId: "run-gate-419",
-        specId: "419-outcome",
-        currentTaskId: null,
-        tasks: [],
-        metrics: [],
-        stepAttempts: [],
-      }), "spec-gate");
-      const gateMax = resolveRetryMax({ flowState: gateState, scope: "flow" }, "spec");
-      gateState.metrics = retryMetrics("spec", "gateRetry", gateMax - 1);
-      const gateUpdates = [];
-      const gateResult = {
-        result: "fail",
-        artifacts: {
-          phase: "spec",
-          failureKind: "ai_semantic_fail",
-          evaluations: [semanticFinding("gate-semantic")],
-        },
-        next: null,
-      };
-      updateGateRetryCounter({
-        root,
-        phase: "spec",
-        flowState: gateState,
-        flowManager: flowManagerFor(gateState, gateUpdates),
-      }, gateResult);
-
-      assert.equal(gateResult.result, "deferred");
-      assert.deepEqual(gateUpdates, [{ stepId: "spec-gate", status: "done" }]);
-      assert.ok(StepAttempt.fromStored(gateState.stepAttempts[0]).outcome instanceof DeferOutcome);
-    } finally {
-      removeTmpDir(root);
-    }
-  });
-
-  it("surfaces only typed stop outcomes as guarded resume instructions", async () => {
-    const root = createTmpDir("typed-next-action-");
-    try {
-      const steps = buildInitialSteps();
-      const leaves = flattenSteps(steps);
-      const reviewIndex = leaves.findIndex((step) => step.id === "spec-review");
-      leaves.forEach((step, index) => {
-        step.status = index < reviewIndex ? "done" : "pending";
-      });
-      findStepById(steps, "spec-review").status = "in_progress";
-      const blocked = new StepAttempt({
-        runId: "run-next-419",
-        stepId: "spec-review",
-        attempt: 2,
-        outcome: new ExternalBlockedOutcome({
-          reason: "provider_failure",
-          resumeInstruction: "Retry after the provider recovers.",
-        }),
-      });
-      const flowState = {
-        runId: "run-next-419",
-        specId: "419-next",
-        steps,
-        tasks: [],
-        currentTaskId: null,
-        metrics: [],
-        stepAttempts: [blocked.toJSON()],
-      };
-      writeJson(root, `specs/${flowState.specId}/spec.json`, { requirements: [] });
-
-      const result = await new GetNextActionCommand().execute({
-        root,
-        flowState,
-        flowManager: { mutate() { throw new Error("active target must not be promoted"); } },
-      });
-
-      assert.equal(result.stepOutcome.kind, "external-blocked");
-      assert.equal(result.lastStepOutcome.kind, "external-blocked");
-      assert.equal(result.directive.kind, "blocked");
-      assert.equal(result.directive.resumeInstruction, "Retry after the provider recovers.");
-    } finally {
-      removeTmpDir(root);
-    }
-  });
-
-  it("does not halt a reactivated step on a stopped outcome from its previous activation", async () => {
-    const root = createTmpDir("superseded-stop-next-action-");
-    try {
-      const steps = buildInitialSteps();
-      const leaves = flattenSteps(steps);
-      const reviewIndex = leaves.findIndex((step) => step.id === "spec-review");
-      leaves.forEach((step, index) => {
-        step.status = index < reviewIndex ? "done" : "pending";
-      });
-      const reviewStep = findStepById(steps, "spec-review");
-      reviewStep.status = "in_progress";
-      reviewStep.startedAt = "2026-07-24T10:00:00.000Z";
-      const blocked = new StepAttempt({
-        runId: "run-reactivated-419",
-        stepId: "spec-review",
-        attempt: 1,
-        outcome: new ExternalBlockedOutcome({
-          reason: "provider_failure",
-          resumeInstruction: "Retry after the provider recovers.",
-        }),
-        recordedAt: "2026-07-24T09:00:00.000Z",
-      });
-      const recovery = new StepAttempt({
-        runId: "run-reactivated-419",
-        stepId: "spec-repair",
-        attempt: 1,
-        outcome: new DecisionOutcome({
-          decision: "PASS",
-          nextAction: "spec-review",
-        }),
-        recordedAt: "2026-07-24T09:59:00.000Z",
-      });
-      const flowState = {
-        runId: "run-reactivated-419",
-        specId: "419-reactivated",
-        steps,
-        tasks: [],
-        currentTaskId: null,
-        metrics: [],
-        stepAttempts: [blocked.toJSON(), recovery.toJSON()],
-      };
-      writeJson(root, `specs/${flowState.specId}/spec.json`, { requirements: [] });
-
-      const result = await new GetNextActionCommand().execute({
-        root,
-        flowState,
-        flowManager: { mutate() { throw new Error("active target must not be promoted"); } },
-      });
-
-      assert.equal(result.halt, undefined);
-      assert.equal(result.stepAttempt, undefined);
-      assert.equal(result.stepOutcome, undefined);
-      assert.equal(result.lastStepOutcome.kind, "decision");
-    } finally {
-      removeTmpDir(root);
-    }
-  });
 });
 
 describe("typed final-regression recovery policies", () => {

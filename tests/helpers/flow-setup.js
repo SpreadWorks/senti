@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import { Container } from "../../src/lib/container.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
-import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
+import { emptySpecStub } from "../../src/lib/spec-json.js";
+import { CanonicalFlowCreateRequest } from "../../src/flow/lib/canonical-flow-manager-store.js";
+import { CurrentFlowSpecRecord, FlowExecution } from "../../src/flow/lib/current-flow-state.js";
 import { findStepById, flattenSteps } from "../../src/flow/lib/step-tree.js";
 import { createLifecycleStepTransition } from "../../src/flow/lib/lifecycle-step-transition.js";
 import { NormalStepTransition } from "../../src/flow/lib/step-transition-policy.js";
@@ -15,15 +17,15 @@ import { NormalStepTransition } from "../../src/flow/lib/step-transition-policy.
  * Tests run outside any real worktree, so `inWorktree` is always false
  * and `mainRoot === root`.
  */
-export function makeContainer(root) {
+export function makeContainer(root, options = {}) {
   const c = new Container();
-  c.register("flowManager", new FlowManager({ root, mainRoot: root, inWorktree: false }));
+  c.register("flowManager", new FlowManager({ root, mainRoot: root, inWorktree: false, ...options }));
   return c;
 }
 
 /** Convenience accessor used by tests: returns the per-test container's flowManager. */
-export function makeFlowManager(root) {
-  return makeContainer(root).get("flowManager");
+export function makeFlowManager(root, options = {}) {
+  return makeContainer(root, options).get("flowManager");
 }
 
 export function makeNormalStepTransition(state, stepId, requestedStatus = "done") {
@@ -52,83 +54,499 @@ export function makeLifecycleStepTransition(
   });
 }
 
-const DEFAULT_TASK = {
-  id: "T-default",
-  title: "Default test task",
-  goal: "Placeholder task for test fixtures.",
-  parent: null,
-  origin: "plan",
-  added_round: 0,
-  status: "pending",
-  steps: [
-    { id: "task-impl", status: "pending" },
-    { id: "task-review", status: "pending" },
-    { id: "task-gate", status: "pending" },
-  ],
-};
+const FIXTURE_TASK_STEP_SUFFIXES = new Map([
+  ["task-impl", "impl"],
+  ["task-review", "review"],
+  ["task-gate", "gate"],
+]);
 
-export function makeDefaultTask(overrides = {}) {
-  return { ...structuredClone(DEFAULT_TASK), ...structuredClone(overrides) };
+/**
+ * Purpose-built V1 Flow fixture API.
+ *
+ * This class exposes the same operations normal production code uses:
+ * validated fresh creation, typed Task admission, and definition-ordered
+ * Attempt transitions.  It deliberately accepts a Spec document and named
+ * lifecycle targets, never a mutable legacy flow.json-shaped state object.
+ */
+export class CanonicalFlowFixture {
+  constructor({
+    flowManager,
+    specId = "001-test",
+    runId = "run-test",
+    request = "Fixture request",
+    execution = { mode: "direct" },
+    autoApprove = false,
+    issue = null,
+    issueSnapshot = null,
+    flowId = null,
+    flowVersionId = null,
+    specRecord = null,
+  } = {}) {
+    if (flowManager === null || typeof flowManager?.createFresh !== "function") {
+      throw new TypeError("CanonicalFlowFixture requires a FlowManager");
+    }
+    this.flowManager = flowManager;
+    this.specId = specId;
+    this.runId = runId;
+    this.request = request;
+    this.execution = execution instanceof FlowExecution ? execution : new FlowExecution(execution);
+    this.autoApprove = autoApprove === true;
+    this.issue = issue;
+    this.issueSnapshot = issueSnapshot;
+    this.flowId = flowId;
+    this.flowVersionId = flowVersionId;
+    this.specRecord = specRecord;
+    this.created = false;
+  }
+
+  create() {
+    if (this.created) throw new Error("canonical fixture Flow is already created");
+    const supplied = this.specRecord instanceof CurrentFlowSpecRecord
+      ? this.specRecord.toJSON()
+      : this.specRecord ?? {};
+    if (supplied.tasks != null && (!Array.isArray(supplied.tasks) || supplied.tasks.length !== 0)) {
+      throw new Error("CanonicalFlowFixture fresh Spec tasks must be added with addTask");
+    }
+    const specRecord = new CurrentFlowSpecRecord({
+      ...emptySpecStub(),
+      ...structuredClone(supplied),
+      tasks: [],
+    }, { specId: this.specId });
+    this.flowManager.createFresh(new CanonicalFlowCreateRequest({
+      specId: this.specId,
+      runId: this.runId,
+      request: this.request,
+      execution: this.execution.toJSON(),
+      policy: { autoApprove: this.autoApprove, nonblocking: null },
+      issue: this.issue,
+      ...(this.issue === null ? {} : {
+        issueSnapshot: this.issueSnapshot ?? `# Issue #${this.issue}\n`,
+      }),
+      flowId: this.flowId ?? `flow-${this.runId}`,
+      flowVersionId: this.flowVersionId ?? `flow-v1-${this.runId}`,
+      specRecord,
+    }));
+    this.created = true;
+    return this;
+  }
+
+  addTask(task) {
+    this.#assertCreated();
+    if (task?.steps !== undefined) {
+      throw new Error("CanonicalFlowFixture.addTask accepts a Spec Task document, not runtime Task steps");
+    }
+    this.flowManager.addTask(structuredClone(task), { specId: this.specId });
+    return this;
+  }
+
+  addTasks(tasks) {
+    if (!Array.isArray(tasks)) throw new TypeError("CanonicalFlowFixture.addTasks requires an array");
+    for (const task of tasks) this.addTask(task);
+    return this;
+  }
+
+  registerActive() {
+    this.#assertCreated();
+    this.flowManager.addActiveFlow(this.specId, this.execution.mode);
+    return this;
+  }
+
+  state() {
+    this.#assertCreated();
+    return this.flowManager.loadReadOnly(this.specId);
+  }
+
+  location() {
+    this.#assertCreated();
+    return this.flowManager.specLocation(this.specId);
+  }
+
+  leaves() {
+    return flattenSteps(this.state().steps);
+  }
+
+  /** Confirm every definition leaf before `nodeId`, leaving no active Attempt. */
+  settleBefore(nodeId) {
+    const index = this.#leafIndex(nodeId);
+    for (const step of this.leaves().slice(0, index)) {
+      if (["done", "skipped"].includes(step.status)) continue;
+      this.settle(step.id);
+    }
+    return this;
+  }
+
+  /** Confirm one named definition leaf through an explicit typed Attempt. */
+  settle(nodeId, status = "done") {
+    this.#assertCreated();
+    const state = this.state();
+    const node = flattenSteps(state.steps).find((entry) => entry.id === nodeId) ?? null;
+    if (node === null) throw new Error(`canonical fixture node is absent: ${nodeId}`);
+    if (["done", "skipped"].includes(node.status)) return this;
+    if (state.currentNodeId !== nodeId) {
+      const task = this.#firstTaskForNode(state, nodeId);
+      if (task !== null) {
+        this.flowManager.startTask(task.id, { specId: this.specId });
+      } else {
+        this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId: this.specId });
+      }
+    }
+    this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: status }, { specId: this.specId });
+    return this;
+  }
+
+  /** Start one ordinary Flow leaf after settling all definition predecessors. */
+  activate(nodeId, { settlePredecessors = true } = {}) {
+    if (settlePredecessors) this.settleBefore(nodeId);
+    const task = this.#firstTaskForNode(this.state(), nodeId);
+    if (task !== null) {
+      this.flowManager.startTask(task.id, { specId: this.specId });
+    } else {
+      this.flowManager.updateStepStatus({ stepId: nodeId, requestedStatus: "in_progress" }, { specId: this.specId });
+    }
+    return this;
+  }
+
+  /** Start a Task only through the production typed Task-start operation. */
+  activateTask(taskId, { settlePredecessors = true } = {}) {
+    this.#assertCreated();
+    const task = this.state().tasks.find((entry) => entry.id === taskId) ?? null;
+    if (task === null) throw new Error(`canonical fixture Task is absent: ${taskId}`);
+    const firstStep = task.steps[0] ?? null;
+    if (firstStep === null) throw new Error(`canonical fixture Task has no Steps: ${taskId}`);
+    if (settlePredecessors) this.settleBefore(firstStep.id);
+    this.flowManager.startTask(taskId, { specId: this.specId });
+    return this;
+  }
+
+  /** Leave the first Task leaf pending after all static pre-Task leaves. */
+  prepareTaskFrontier() {
+    this.#assertCreated();
+    const firstTaskLeaf = this.leaves().find((step) => (
+      this.state().tasks.some((task) => task.steps.some((candidate) => candidate.id === step.id))
+    )) ?? null;
+    if (firstTaskLeaf === null) throw new Error("canonical fixture has no admitted Task frontier");
+    this.settleBefore(firstTaskLeaf.id);
+    return this;
+  }
+
+  #leafIndex(nodeId) {
+    const index = this.leaves().findIndex((step) => step.id === nodeId);
+    if (index < 0) throw new Error(`canonical fixture node is absent: ${nodeId}`);
+    return index;
+  }
+
+  #firstTaskForNode(state, nodeId) {
+    return state.tasks.find((task) => task.steps[0]?.id === nodeId) ?? null;
+  }
+
+  #assertCreated() {
+    if (!this.created) throw new Error("canonical fixture Flow must be created first");
+  }
 }
 
-export function makeFlowState(overrides = {}) {
-  return {
-    specId: "001-test",
-    runId: "run-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
-    steps: buildInitialSteps(),
-    requirements: [],
-    tasks: [makeDefaultTask()],
-    currentTaskId: null,
-    ...structuredClone(overrides),
-  };
+function assertFixtureFields(input, allowed, fixtureName) {
+  for (const field of Object.keys(input)) {
+    if (!allowed.has(field)) {
+      throw new TypeError(`${fixtureName} does not accept legacy field: ${field}`);
+    }
+  }
+}
+
+const FRESH_FLOW_FIXTURE_FIELDS = new Set([
+  "flowManager", "specId", "runId", "request", "execution", "autoApprove",
+  "issue", "issueSnapshot", "flowId", "flowVersionId", "specRecord",
+]);
+
+/** A fresh canonical Flow with no mutable state import or state replacement API. */
+export class FreshFlowFixture {
+  constructor(input = {}) {
+    assertFixtureFields(input, FRESH_FLOW_FIXTURE_FIELDS, "FreshFlowFixture");
+    this.flow = new CanonicalFlowFixture(input);
+  }
+
+  create() { this.flow.create(); return this; }
+  addTask(task) { this.flow.addTask(task); return this; }
+  addTasks(tasks) { this.flow.addTasks(tasks); return this; }
+  registerActive() { this.flow.registerActive(); return this; }
+  state() { return this.flow.state(); }
+  location() { return this.flow.location(); }
+}
+
+const FLOW_AT_STEP_FIXTURE_FIELDS = new Set([
+  ...FRESH_FLOW_FIXTURE_FIELDS,
+  "taskDocuments", "targetStep",
+]);
+
+/** Builds a named active Flow leaf using only definition-ordered typed transitions. */
+export class FlowAtStepFixture {
+  constructor(input = {}) {
+    assertFixtureFields(input, FLOW_AT_STEP_FIXTURE_FIELDS, "FlowAtStepFixture");
+    if (typeof input.targetStep !== "string" || input.targetStep.length === 0) {
+      throw new TypeError("FlowAtStepFixture requires a targetStep");
+    }
+    this.targetStep = input.targetStep;
+    this.taskDocuments = input.taskDocuments ?? [];
+    if (!Array.isArray(this.taskDocuments)) {
+      throw new TypeError("FlowAtStepFixture taskDocuments must be an array");
+    }
+    const { taskDocuments, targetStep, ...flowInput } = input;
+    this.flow = new FreshFlowFixture(flowInput);
+  }
+
+  create() {
+    this.flow.create().addTasks(this.taskDocuments).registerActive();
+    this.flow.flow.activate(this.targetStep);
+    return this;
+  }
+
+  state() { return this.flow.state(); }
+  location() { return this.flow.location(); }
+}
+
+const TASK_LIFECYCLE_FIXTURE_FIELDS = new Set([
+  ...FRESH_FLOW_FIXTURE_FIELDS,
+  "taskDocuments", "taskId", "targetStep",
+]);
+
+/** Builds a Task lifecycle frontier from Spec Task documents, never runtime Task blobs. */
+export class TaskLifecycleFixture {
+  constructor(input = {}) {
+    assertFixtureFields(input, TASK_LIFECYCLE_FIXTURE_FIELDS, "TaskLifecycleFixture");
+    if (!Array.isArray(input.taskDocuments) || input.taskDocuments.length === 0) {
+      throw new TypeError("TaskLifecycleFixture requires taskDocuments");
+    }
+    if (typeof input.taskId !== "string" || input.taskId.length === 0) {
+      throw new TypeError("TaskLifecycleFixture requires a taskId");
+    }
+    this.taskId = input.taskId;
+    this.targetStep = input.targetStep ?? "task-impl";
+    const { taskDocuments, taskId, targetStep, ...flowInput } = input;
+    this.flow = new FreshFlowFixture(flowInput);
+    this.taskDocuments = taskDocuments;
+  }
+
+  create() {
+    this.flow.create().addTasks(this.taskDocuments).registerActive();
+    const suffix = this.targetStep.replace(/^task-/, "");
+    if (!new Set(["impl", "review", "gate"]).has(suffix)) {
+      throw new TypeError(`TaskLifecycleFixture targetStep is unsupported: ${this.targetStep}`);
+    }
+    const nodeId = `${this.taskId}-${suffix}`;
+    this.flow.flow.settleBefore(`${this.taskId}-impl`);
+    this.flow.flow.activateTask(this.taskId, { settlePredecessors: false });
+    for (const predecessor of ["impl", "review"]) {
+      if (predecessor === suffix) break;
+      this.flow.flow.settle(`${this.taskId}-${predecessor}`);
+    }
+    if (suffix !== "impl") this.flow.flow.activate(nodeId, { settlePredecessors: false });
+    return this;
+  }
+
+  state() { return this.flow.state(); }
+  location() { return this.flow.location(); }
 }
 
 /**
- * Move a fresh full flow fixture to one definition leaf while preserving the
- * current FlowState invariant of at most one in-progress flow leaf.
+ * Purpose-specific causal fixture for commands that consume auto-check input.
+ *
+ * It creates only a fresh V1 Flow and reaches input phases through the normal
+ * typed lifecycle APIs. In particular, its draft is published through the
+ * producer-owned catalog while `draft` is active; it is not a root-file setup
+ * shortcut or a legacy state converter.
  */
-export function moveFlowToStep(state, stepId, { completePrevious = true } = {}) {
-  const leaves = flattenSteps(state.steps);
-  const targetIndex = leaves.findIndex((step) => step.id === stepId);
-  if (targetIndex < 0) throw new Error(`unknown flow step: ${stepId}`);
-
-  for (const [index, step] of leaves.entries()) {
-    if (index === targetIndex) {
-      step.status = "in_progress";
-    } else {
-      step.status = completePrevious && index < targetIndex ? "done" : "pending";
-    }
+export class CanonicalAutoCheckScenario {
+  constructor({
+    flowManager,
+    specId = "001-test",
+    runId = "run-001-test",
+    request = "add a progress bar",
+    issue = null,
+    execution = { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    autoApprove = false,
+  } = {}) {
+    this.flow = new CanonicalFlowFixture({
+      flowManager,
+      specId,
+      runId,
+      request,
+      issue,
+      execution,
+      autoApprove,
+      specRecord: { goal: "canonical auto-check fixture", requirements: [] },
+    });
+    this.flowManager = flowManager;
+    this.specId = specId;
+    this.created = false;
   }
-  return state;
+
+  create() {
+    if (this.created) throw new Error("canonical auto-check scenario is already created");
+    this.flow.create().addTask({
+      id: "T-1",
+      title: "Auto-check fixture task",
+      goal: "Exercise canonical auto-check input.",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }).registerActive();
+    this.created = true;
+    return this;
+  }
+
+  /** Persist a valid draft but deliberately leave draft-gate unfinished. */
+  draftSavedBeforeGate(draftText) {
+    this.#assertCreated();
+    this.#publishDraft(draftText);
+    this.flow.settle("draft");
+    return this;
+  }
+
+  /** Reach the only phase in which auto-check may consume the saved draft. */
+  draftGateDone(draftText) {
+    this.draftSavedBeforeGate(draftText);
+    this.flow.activate("draft-gate").settle("draft-gate");
+    return this;
+  }
+
+  /** Reach the spec-approved skip path through definition-ordered transitions. */
+  approvalDone() {
+    this.#assertCreated();
+    this.flow.settleBefore("approval").settle("approval");
+    return this;
+  }
+
+  state() { return this.flow.state(); }
+
+  #publishDraft(draftText) {
+    if (typeof draftText !== "string" || draftText.trim() === "") {
+      throw new Error("canonical auto-check draft text is required");
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(draftText);
+    } catch (error) {
+      throw new Error(`canonical auto-check draft text must be JSON: ${error.message}`);
+    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("canonical auto-check draft text must encode an object");
+    }
+    this.flow.activate("draft");
+    this.flowManager.publishArtifacts({
+      specId: this.specId,
+      nodeId: "draft",
+      artifactWrites: [{
+        logicalKey: "draft",
+        mediaType: "application/json",
+        bytes: Buffer.from(draftText, "utf8"),
+      }],
+    });
+  }
+
+  #assertCreated() {
+    if (!this.created) throw new Error("canonical auto-check scenario must be created first");
+  }
 }
 
-export function setupFlow(tmp, overrides = {}) {
-  const state = makeFlowState(overrides);
-  return persistFlow(tmp, state);
-}
+/**
+ * Causal V1 setup for the next-action command contract.
+ *
+ * The command observes a definition-selected worker frontier.  This fixture
+ * therefore admits Task documents through spec.json, then reaches a target
+ * only through the Store's definition-ordered Attempt transitions.  It has
+ * no mutable-state import or arbitrary path writer.
+ */
+export class CanonicalNextActionScenario {
+  constructor({
+    flowManager,
+    specId = "001-test",
+    runId = "run-001-test",
+    request = "Fixture request",
+    execution = { mode: "direct" },
+    autoApprove = false,
+    issue = null,
+    specRecord = { requirements: [] },
+  } = {}) {
+    this.flowManager = flowManager;
+    this.specId = specId;
+    this.flow = new CanonicalFlowFixture({
+      flowManager,
+      specId,
+      runId,
+      request,
+      execution,
+      autoApprove,
+      issue,
+      specRecord,
+    });
+    this.created = false;
+  }
 
-export function setupFlowAtStep(tmp, stepId, overrides = {}) {
-  const state = moveFlowToStep(makeFlowState(overrides), stepId);
-  return persistFlow(tmp, state);
-}
+  create({ tasks = [] } = {}) {
+    if (this.created) throw new Error("canonical next-action scenario is already created");
+    this.flow.create().addTasks(tasks).registerActive();
+    this.created = true;
+    return this;
+  }
 
-function persistFlow(tmp, state) {
-  const fm = makeFlowManager(tmp);
-  fm.create(state);
-  const specId = state.specId;
-  const mode = state.worktree ? "worktree" : state.featureBranch === state.baseBranch ? "local" : "branch";
-  fm.addActiveFlow(specId, mode);
-  return fm.loadReadOnly(specId);
-}
+  /** Leave one Flow Step active for an established worker-envelope assertion. */
+  atFlowStep(stepId) {
+    this.#assertCreated();
+    this.flow.activate(stepId);
+    return this;
+  }
 
-export function replaceFlowState(root, state, options = {}) {
-  const replacement = structuredClone(state);
-  makeFlowManager(root).mutate((current) => {
-    for (const key of Object.keys(current)) delete current[key];
-    Object.assign(current, replacement);
-  }, options);
+  /** Leave the definition-next Step pending; get-next-action must claim it. */
+  beforeFlowStep(stepId) {
+    this.#assertCreated();
+    this.flow.settleBefore(stepId);
+    return this;
+  }
+
+  /** Reach a Task child through typed Task admission and typed Task start. */
+  atTaskStep(taskId, stepId = "task-impl") {
+    this.#assertCreated();
+    const suffix = this.#taskSuffix(stepId);
+    const nodeId = `${taskId}-${suffix}`;
+    this.flow.settleBefore(`${taskId}-impl`);
+    this.flow.activateTask(taskId, { settlePredecessors: false });
+    for (const predecessor of ["impl", "review"]) {
+      if (predecessor === suffix) break;
+      this.flow.settle(`${taskId}-${predecessor}`);
+    }
+    if (suffix !== "impl") this.flow.activate(nodeId, { settlePredecessors: false });
+    return this;
+  }
+
+  /** Leave the first Task child pending at the definition-owned Task frontier. */
+  beforeTask(taskId) {
+    this.#assertCreated();
+    this.flow.settleBefore(`${taskId}-impl`);
+    return this;
+  }
+
+  settleAll() {
+    this.#assertCreated();
+    for (const node of this.flow.leaves()) this.flow.settle(node.id);
+    return this;
+  }
+
+  state() {
+    this.#assertCreated();
+    return this.flow.state();
+  }
+
+  #taskSuffix(stepId) {
+    const value = String(stepId);
+    if (["impl", "review", "gate"].includes(value)) return value;
+    const suffix = FIXTURE_TASK_STEP_SUFFIXES.get(value);
+    if (suffix === undefined) throw new Error(`canonical next-action Task Step is unknown: ${value}`);
+    return suffix;
+  }
+
+  #assertCreated() {
+    if (!this.created) throw new Error("canonical next-action scenario must be created first");
+  }
 }
 
 export function setStepDone(state, ...ids) {

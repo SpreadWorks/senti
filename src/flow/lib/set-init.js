@@ -9,12 +9,20 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { fetchNormalizedIssueBody } from "./issue-body-cache.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
+import {
+  GitHubIssueSnapshotSource,
+  IssueSnapshot,
+  IssueSnapshotSource,
+} from "./issue-snapshot-source.js";
 
 export default class SetInitCommand extends FlowCommand {
-  constructor() {
+  constructor({ issueSnapshotSource = new GitHubIssueSnapshotSource() } = {}) {
     super({ requiresFlow: false });
+    if (!(issueSnapshotSource instanceof IssueSnapshotSource)) {
+      throw new TypeError("issueSnapshotSource must be an IssueSnapshotSource");
+    }
+    this.issueSnapshotSource = issueSnapshotSource;
   }
 
   execute(ctx) {
@@ -31,9 +39,21 @@ export default class SetInitCommand extends FlowCommand {
           `--issue must be a positive integer: ${ctx.issue}`,
         );
       }
+      const snapshot = this.issueSnapshotSource.load({ number: n, root: ctx.root });
+      if (snapshot === null) {
+        return Envelope.fail(
+          "set",
+          "init",
+          "ISSUE_SNAPSHOT_UNAVAILABLE",
+          `cannot initialize linked Issue #${n}: its immutable Issue snapshot could not be retrieved`,
+        );
+      }
+      if (!(snapshot instanceof IssueSnapshot)) {
+        throw new TypeError("issueSnapshotSource must return an IssueSnapshot or null");
+      }
+      snapshot.assertIdentity(n);
       extra.issue = n;
-      const body = fetchNormalizedIssueBody(n, ctx.root);
-      if (body) extra.issueBody = body;
+      extra.issueBody = snapshot.body;
     }
     if (ctx.request) extra.request = ctx.request;
 

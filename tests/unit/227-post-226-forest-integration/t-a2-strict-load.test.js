@@ -1,26 +1,38 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager, makeDefaultTask } from "../../helpers/flow-setup.js";
+import { FreshFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 
-describe("REQ-A2: FlowStore.load validates tasks field", () => {
+function taskDocument(id = "T-1") {
+  return {
+    id,
+    title: "Fixture task",
+    goal: "Exercise canonical Task admission.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  };
+}
+
+describe("REQ-A2: canonical Flow read model validates tasks field", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("accepts empty tasks array", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, { tasks: [], currentTaskId: null });
     const fm = makeFlowManager(tmp);
-    const state = fm.load();
+    new FreshFlowFixture({ flowManager: fm }).create().registerActive();
+    const state = fm.loadReadOnly();
     assert.ok(Array.isArray(state.tasks));
     assert.equal(state.tasks.length, 0);
   });
 
   it("accepts non-empty tasks array", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, { tasks: [makeDefaultTask()], currentTaskId: null });
     const fm = makeFlowManager(tmp);
-    const state = fm.load();
+    new FreshFlowFixture({ flowManager: fm }).create().addTask(taskDocument()).registerActive();
+    const state = fm.loadReadOnly();
     assert.ok(Array.isArray(state.tasks));
     assert.ok(state.tasks.length > 0);
   });

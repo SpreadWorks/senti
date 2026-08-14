@@ -1,11 +1,9 @@
-import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { resolveSpecDir } from "../../lib/spec-json.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-import { latestPlanRewind } from "./plan-rewind.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
+import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 
-export const FLOW_FINDINGS_FILE = "flow-findings.json";
+export const FLOW_FINDINGS_LOGICAL_KEY = "flow.findings";
 export const MAX_FLOW_FINDINGS = 200;
 export const MAX_SOURCE_REF_CHARS = 300;
 export const MAX_MIRROR_FIELD_CHARS = 1000;
@@ -60,29 +58,6 @@ export function normalizeSourceArtifactPath(value, field = "sourceArtifact") {
     throw new Error(`${field} must stay inside the spec directory`);
   }
   return normalized;
-}
-
-function isInsideDirectory(parent, child) {
-  const relative = path.relative(parent, child);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-function resolveSourceArtifactPath(specDir, relPath) {
-  const normalized = normalizeSourceArtifactPath(relPath);
-  const file = path.resolve(specDir, normalized);
-  if (!isInsideDirectory(path.resolve(specDir), file)) {
-    throw new Error("sourceArtifact must stay inside the spec directory");
-  }
-  return file;
-}
-
-function resolveExistingSourceArtifactPath(specDir, relPath) {
-  const file = resolveSourceArtifactPath(specDir, relPath);
-  if (!fs.existsSync(file)) return null;
-  const specReal = fs.realpathSync(specDir);
-  const fileReal = fs.realpathSync(file);
-  if (!isInsideDirectory(specReal, fileReal)) return null;
-  return fileReal;
 }
 
 function requireInteger(value, field) {
@@ -182,44 +157,143 @@ export class FlowFindingsArtifact {
   }
 }
 
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+function canonicalFlowState(flowState) {
+  if (flowState?.schemaRevision !== 3 || typeof flowState.specId !== "string" || flowState.specId === "") {
+    throw new Error("flow findings require a Version-1 Flow state");
+  }
+  return flowState;
 }
 
-function writeJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
+function jsonFromArtifact(bytes, field) {
+  try {
+    const value = JSON.parse(bytes.toString("utf8"));
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("must contain an object");
+    }
+    return value;
+  } catch (error) {
+    throw new Error(`${field} must be JSON: ${error.message}`);
+  }
 }
 
-export function flowFindingsPath(specDir) {
-  return path.join(specDir, FLOW_FINDINGS_FILE);
+function sourceLogicalKey(sourceArtifact) {
+  const normalized = normalizeSourceArtifactPath(sourceArtifact);
+  try {
+    return FLOW_ARTIFACT_CONTRACTS.resolve(normalized).logicalKey;
+  } catch {
+    // A recorded finding stores the descriptor's canonical relative path,
+    // while callers use its logical key. Both are catalog identities.
+  }
+  for (const contract of FLOW_ARTIFACT_CONTRACTS.inventory()) {
+    if (contract.matchesCanonicalPath(normalized)) return contract.logicalKey.toString();
+  }
+  throw new Error(`sourceArtifact has no canonical catalog contract: ${normalized}`);
 }
 
-export function readFlowFindingsArtifact(specDir, { flowState = null } = {}) {
-  const file = flowFindingsPath(specDir);
-  if (!fs.existsSync(file)) return new FlowFindingsArtifact({ entries: [] });
-  const artifact = new FlowFindingsArtifact(readJson(file));
-  if (flowState === null) return artifact;
-  const expectedRunId = flowState?.runId == null ? null : String(flowState.runId).trim();
-  const rewind = latestPlanRewind(flowState);
-  return new FlowFindingsArtifact({
-    entries: artifact.entries.filter((entry) => (
-      entry.runId === expectedRunId
-      && entry.planRewindAt === (rewind?.rewoundAt ?? null)
-    )),
-  });
+function sourcePayload({ logicalKey, bytes }) {
+  try {
+    return CanonicalCommandAttemptArtifactHistory.fromBytes({ logicalKey, bytes }).current.payload;
+  } catch {
+    return jsonFromArtifact(bytes, `canonical ${logicalKey}`);
+  }
 }
 
-export function writeFlowFindingsArtifact(specDir, artifact) {
-  const normalized = artifact instanceof FlowFindingsArtifact ? artifact : new FlowFindingsArtifact(artifact);
-  const file = flowFindingsPath(specDir);
-  writeJson(file, normalized.toJSON());
-  return file;
+/**
+ * One deep catalog boundary for deferred semantic findings. It owns both the
+ * catalog read and the producer-authorized publication; callers never infer a
+ * spec directory, reconstruct a source path, or write a sidecar file.
+ */
+export class CanonicalFlowFindingsStore {
+  constructor({ flowManager, flowState, nodeId } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.readProducerArtifact !== "function" || typeof flowManager.publishArtifacts !== "function") {
+      throw new Error("canonical flow findings require FlowManager catalog APIs");
+    }
+    const state = canonicalFlowState(flowState);
+    if (typeof nodeId !== "string" || nodeId === "") throw new Error("canonical flow findings nodeId is required");
+    this.flowManager = flowManager;
+    this.flowState = state;
+    this.nodeId = nodeId;
+    Object.freeze(this);
+  }
+
+  read({ filterCurrentRun = false } = {}) {
+    const resolved = this.flowManager.readArtifact({
+      specId: this.flowState.specId,
+      logicalKey: FLOW_FINDINGS_LOGICAL_KEY,
+      consumerNodeId: this.nodeId,
+      optional: true,
+    });
+    const artifact = new FlowFindingsArtifact(resolved === null ? { entries: [] } : jsonFromArtifact(
+      resolved.bytes,
+      "canonical flow findings",
+    ));
+    if (!filterCurrentRun) return artifact;
+    return new FlowFindingsArtifact({
+      entries: artifact.entries.filter((entry) => (
+        entry.runId === this.flowState.runId
+        && entry.planRewindAt === null
+      )),
+    });
+  }
+
+  publish(artifact) {
+    const normalized = artifact instanceof FlowFindingsArtifact ? artifact : new FlowFindingsArtifact(artifact);
+    this.flowManager.publishArtifacts({
+      specId: this.flowState.specId,
+      nodeId: this.nodeId,
+      artifactWrites: [{
+        logicalKey: FLOW_FINDINGS_LOGICAL_KEY,
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(normalized.toJSON(), null, 2)}\n`, "utf8"),
+      }],
+    });
+    return normalized;
+  }
+
+  sourceArtifact(sourceArtifact) {
+    const logicalKey = sourceLogicalKey(sourceArtifact);
+    const contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
+    const parameters = logicalKey === "task.review"
+      ? { taskId: this.flowState.currentTaskId }
+      : {};
+    const resolved = contract.ownership.producers.includes(this.nodeId)
+      ? this.flowManager.readProducerArtifact({
+        specId: this.flowState.specId,
+        nodeId: this.nodeId,
+        logicalKey,
+        parameters,
+        optional: true,
+      })
+      : this.flowManager.readArtifact({
+        specId: this.flowState.specId,
+        logicalKey,
+        parameters,
+        consumerNodeId: this.nodeId,
+        optional: true,
+      });
+    if (resolved === null) return null;
+    return Object.freeze({
+      logicalKey,
+      relativePath: resolved.relativePath,
+      bytes: Buffer.from(resolved.bytes),
+      payload: sourcePayload({ logicalKey, bytes: resolved.bytes }),
+    });
+  }
 }
 
-export function specDirFromFlowState(root, flowState) {
-  if (!flowState?.specId) throw new Error("flowState.specId is required");
-  return resolveSpecDir(path.resolve(root, relativeFlowSpecFile(flowState)));
+/** Resolve a cataloged source once, preserving its descriptor path and bytes. */
+export function readCatalogedSourceArtifact({ flowManager, flowState, nodeId, sourceArtifact } = {}) {
+  return new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId })
+    .sourceArtifact(sourceArtifact);
+}
+
+/** Catalog-only source lookup used by semantic finding classifiers. */
+export function readBoundedSourceArtifact({ flowManager, flowState, nodeId, sourceArtifact } = {}) {
+  return readCatalogedSourceArtifact({ flowManager, flowState, nodeId, sourceArtifact })?.payload ?? null;
+}
+
+export function sourceArtifactExists(input = {}) {
+  return readBoundedSourceArtifact(input) !== null;
 }
 
 function nextFindingId(existing) {
@@ -232,8 +306,9 @@ function nextRound(existing) {
 }
 
 export function appendDeferredFlowFinding({
-  root,
+  flowManager,
   flowState,
+  nodeId,
   sourceStep,
   sourceArtifact,
   sourceFindingId,
@@ -243,10 +318,11 @@ export function appendDeferredFlowFinding({
   round = null,
   finalDisposition = null,
 }) {
-  const specDir = specDirFromFlowState(root, flowState);
-  const existing = readFlowFindingsArtifact(specDir);
-  const planRewindAt = latestPlanRewind(flowState)?.rewoundAt ?? null;
-  const normalizedSourceArtifact = normalizeSourceArtifactPath(sourceArtifact);
+  const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
+  const existing = store.read();
+  const planRewindAt = null;
+  const source = store.sourceArtifact(sourceArtifact);
+  if (source === null) throw new Error(`canonical source artifact is absent: ${sourceArtifact}`);
   const normalizedFingerprint = requireFindingFingerprint(fingerprint);
   const runId = flowState?.runId == null ? null : requireString(flowState.runId, "flowState.runId");
   const existingIndex = existing.entries.findIndex((entry) => (
@@ -269,13 +345,13 @@ export function appendDeferredFlowFinding({
       planRewindAt,
     });
     const entries = existing.entries.map((item, index) => (index === existingIndex ? entry : item));
-    writeFlowFindingsArtifact(specDir, new FlowFindingsArtifact({ entries }));
+    store.publish(new FlowFindingsArtifact({ entries }));
     return entry;
   }
   const entry = new FlowFinding({
     findingId: nextFindingId(existing),
     sourceStep,
-    sourceArtifact: normalizedSourceArtifact,
+    sourceArtifact: source.relativePath,
     sourceFindingId,
     fingerprint: normalizedFingerprint,
     disposition: "deferred",
@@ -288,28 +364,12 @@ export function appendDeferredFlowFinding({
     finalDisposition,
     planRewindAt,
   });
-  const next = new FlowFindingsArtifact({ entries: [...existing.entries, entry] });
-  writeFlowFindingsArtifact(specDir, next);
+  store.publish(new FlowFindingsArtifact({ entries: [...existing.entries, entry] }));
   return entry;
 }
 
-export function sourceArtifactExists(specDir, relPath) {
-  const file = resolveExistingSourceArtifactPath(specDir, relPath);
-  if (!file) return false;
-  const stat = fs.statSync(file);
-  return stat.isFile() && stat.size <= MAX_SOURCE_ARTIFACT_READ_BYTES;
-}
-
-export function readBoundedSourceArtifact(specDir, relPath) {
-  const file = resolveExistingSourceArtifactPath(specDir, relPath);
-  if (!file) return null;
-  const stat = fs.statSync(file);
-  if (!stat.isFile() || stat.size > MAX_SOURCE_ARTIFACT_READ_BYTES) return null;
-  return readJson(file);
-}
-
-export function buildDeferredFindingsSummary({ specDir, flowState = null }) {
-  const artifact = readFlowFindingsArtifact(specDir, { flowState });
+export function buildDeferredFindingsSummary({ flowManager, flowState, nodeId }) {
+  const artifact = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId }).read({ filterCurrentRun: true });
   const sourceSteps = [];
   const seen = new Set();
   for (const entry of artifact.entries) {
@@ -317,28 +377,10 @@ export function buildDeferredFindingsSummary({ specDir, flowState = null }) {
     seen.add(entry.sourceStep);
     sourceSteps.push(entry.sourceStep);
   }
-  const latestReviewRecords = new Map();
-  for (const record of flowState?.reviewConvergence?.records || []) {
-    latestReviewRecords.set(`${record.phase}:${record.taskId ?? ""}`, record);
-  }
-  const fingerprints = new Set(artifact.entries.map((entry) => entry.fingerprint));
-  const reviewHandoffs = [...latestReviewRecords.values()].flatMap((record) => (
-    Array.isArray(record.handoffFindings) ? record.handoffFindings : []
-  )).filter((finding) => {
-    if (fingerprints.has(finding.fingerprint)) return false;
-    fingerprints.add(finding.fingerprint);
-    return true;
-  });
-  for (const finding of reviewHandoffs) {
-    const sourceStep = finding.sourceStep || "review";
-    if (seen.has(sourceStep)) continue;
-    seen.add(sourceStep);
-    sourceSteps.push(sourceStep);
-  }
   return {
-    count: artifact.entries.length + reviewHandoffs.length,
+    count: artifact.entries.length,
     sourceSteps,
-    artifactPath: FLOW_FINDINGS_FILE,
+    artifactPath: FLOW_ARTIFACT_CONTRACTS.resolve(FLOW_FINDINGS_LOGICAL_KEY).relativePath,
   };
 }
 
@@ -416,15 +458,17 @@ function sourceFindingRationale(finding) {
 }
 
 export function deferExhaustedSemanticFindings({
-  root,
+  flowManager,
   flowState,
+  nodeId,
   sourceStep,
   sourceArtifact,
   attempts,
   fingerprints = null,
 } = {}) {
-  const specDir = specDirFromFlowState(root, flowState);
-  const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
+  const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
+  const source = store.sourceArtifact(sourceArtifact);
+  const artifact = source?.payload ?? null;
   const selectedFingerprints = fingerprints instanceof Set ? fingerprints : null;
   const sourceFindings = sourceFindingsForArtifact(artifact, sourceStep).filter((finding) => (
     selectedFingerprints === null || selectedFingerprints.has(finding?.fingerprint)
@@ -435,10 +479,11 @@ export function deferExhaustedSemanticFindings({
     if (!byFingerprint.has(fingerprint)) byFingerprint.set(fingerprint, { finding, index });
   });
   const deferred = [...byFingerprint].map(([fingerprint, { finding, index }]) => appendDeferredFlowFinding({
-    root,
+    flowManager,
     flowState,
+    nodeId,
     sourceStep,
-    sourceArtifact,
+    sourceArtifact: source.relativePath,
     sourceFindingId: stableSourceFindingId(sourceStep, finding, index),
     fingerprint,
     rationale: sourceFindingRationale(finding),
@@ -459,17 +504,18 @@ export function resolveRetryExhaustionForFlowStep({
   return {
     stepDisposition: "continue",
     retryExhaustionOnlyStop: false,
-    deferredTo: FLOW_FINDINGS_FILE,
+    deferredTo: FLOW_ARTIFACT_CONTRACTS.resolve(FLOW_FINDINGS_LOGICAL_KEY).relativePath,
     sourceArtifact,
   };
 }
 
-export function mirrorFinalDispositions(specDir, deferredFindings) {
-  const artifact = readFlowFindingsArtifact(specDir);
+export function mirrorFinalDispositions({ flowManager, flowState, nodeId, deferredFindings }) {
+  const store = new CanonicalFlowFindingsStore({ flowManager, flowState, nodeId });
+  const artifact = store.read();
   const byId = new Map((deferredFindings || []).map((finding) => [finding.findingId, finding.finalDisposition]));
   const entries = artifact.entries.map((entry) => new FlowFinding({
     ...entry.toJSON(),
     finalDisposition: byId.has(entry.findingId) ? byId.get(entry.findingId) : entry.finalDisposition,
   }));
-  writeFlowFindingsArtifact(specDir, new FlowFindingsArtifact({ entries }));
+  store.publish(new FlowFindingsArtifact({ entries }));
 }

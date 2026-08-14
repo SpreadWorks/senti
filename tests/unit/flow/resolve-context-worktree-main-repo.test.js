@@ -18,8 +18,7 @@ import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import GetResolveContextCommand from "../../../src/flow/lib/get-resolve-context.js";
 import RunResumeCommand from "../../../src/flow/lib/run-resume.js";
 
@@ -38,31 +37,30 @@ function setupMainAndWorktree() {
   return { mainRoot, worktreePath };
 }
 
-function writeFlowState(mainRoot) {
-  const specId = "001-test";
-  const specDir = path.join(mainRoot, "specs", specId);
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.json"), '{"requirements":[]}\n');
-  const state = {
-    specId,
-    runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
-    worktree: true,
-    steps: buildInitialSteps(),
-    requirements: [],
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify(state, null, 2));
-  return state;
-}
-
 function prepareWorktreeCommandCtx() {
   const { mainRoot, worktreePath } = setupMainAndWorktree();
-  const state = writeFlowState(mainRoot);
-  const flowManager = new FlowManager({ root: worktreePath, mainRoot, inWorktree: true });
-  flowManager.addActiveFlow(state.specId, "worktree");
+  const flowManager = makeFlowManager(mainRoot);
+  const fixture = new CanonicalFlowFixture({
+    flowManager,
+    specId: "001-test",
+    runId: "run-001-test",
+    request: "Resolve a canonical worktree flow",
+    execution: { mode: "worktree", baseBranch: "main", featureBranch: "feature/001-test" },
+    specRecord: {
+      goal: "Canonical worktree context",
+      background: "",
+      scope: { in: [], out: [] },
+      constraints: [],
+      design_principles: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      requirements: [],
+      acceptance_criteria: [],
+      clarifications: [],
+      alternatives_considered: [],
+      open_questions: [],
+    },
+  }).create().registerActive();
+  const state = fixture.state();
   const ctx = {
     root: worktreePath,
     mainRoot,

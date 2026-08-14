@@ -10,9 +10,7 @@ import {
   writeCapturingStubAgentScript,
   stubAgentConfig,
 } from "../../helpers/stub-agent.js";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import { CanonicalAutoCheckScenario, makeFlowManager } from "../../helpers/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 
@@ -45,24 +43,31 @@ function setupProject(tmp, { aiResponse, capturePath } = {}) {
   return tmp;
 }
 
-function seedActiveFlow(tmp, { steps, issue, request, draftBody } = {}) {
-  const specDir = path.join(tmp, "specs", "001-test");
-  fs.mkdirSync(specDir, { recursive: true });
-  if (draftBody != null) {
-    fs.writeFileSync(path.join(specDir, "draft.json"), draftBody);
-  }
-  makeFlowManager(tmp).create({
+function seedActiveFlow(tmp, {
+  issue = 100,
+  request = "add a progress bar",
+  draftBody = null,
+  phase = "fresh",
+} = {}) {
+  const scenario = new CanonicalAutoCheckScenario({
+    flowManager: makeFlowManager(tmp),
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
-    issue: issue ?? 100,
-    request: request ?? "add a progress bar",
-    steps: steps ?? buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  });
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    issue,
+    request,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create();
+
+  if (phase === "fresh") return scenario;
+  if (!new Set(["draft-saved-before-gate", "draft-gate-done", "approval-done"]).has(phase)) {
+    throw new Error(`unknown canonical auto-check fixture phase: ${phase}`);
+  }
+  if (phase === "approval-done") {
+    return scenario.approvalDone();
+  }
+  if (typeof draftBody !== "string") throw new Error(`${phase} requires a canonical draft body`);
+  if (phase === "draft-saved-before-gate") return scenario.draftSavedBeforeGate(draftBody);
+  return scenario.draftGateDone(draftBody);
 }
 
 function runCli(tmp, args) {
@@ -71,13 +76,6 @@ function runCli(tmp, args) {
     cwd: tmp,
     env: { ...process.env, SENNEL_WORK_ROOT: tmp },
   });
-}
-
-function withStepDone(baseSteps, stepId) {
-  // Nested steps: mutate in-place via findStepById (deep lookup).
-  const step = findStepById(baseSteps, stepId);
-  if (step) step.status = "done";
-  return baseSteps;
 }
 
 describe("flow run auto-check — phase-aware input selection (spec 220)", () => {
@@ -95,8 +93,7 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
   it("returns skipped eligible=true without calling AI when approval step is done", () => {
     const capturePath = path.join(tmp, ".stub-agent-called");
     setupProject(tmp, { capturePath });
-    const steps = withStepDone(buildInitialSteps(), "approval");
-    seedActiveFlow(tmp, { steps });
+    seedActiveFlow(tmp, { phase: "approval-done" });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);
@@ -110,18 +107,17 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
       "AI agent must not be invoked when spec is approved",
     );
 
-    // Persist audit record
+    // Exact V1 state does not cache an auto-check verdict.
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoCheck?.skipped, true);
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   // A2 (R2) — draft body is included after draft-gate done
   it("includes draft.json body in AI prompt when draft-gate is done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const steps = withStepDone(buildInitialSteps(), "draft-gate");
     const draftBody = JSON.stringify({ goal: "DRAFT_MARKER_XYZ123 add a progress bar" });
-    seedActiveFlow(tmp, { steps, draftBody });
+    seedActiveFlow(tmp, { phase: "draft-gate-done", draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);
@@ -131,16 +127,19 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
       prompt.includes("DRAFT_MARKER_XYZ123"),
       `draft body marker must appear in prompt. prompt snippet: ${prompt.slice(0, 400)}`,
     );
-    // Issue / request context should still be present
-    assert.ok(prompt.includes("add a progress bar") || prompt.includes("Issue #100"));
+    // The canonical catalog adapter preserves the worker-facing input order.
+    assert.ok(prompt.includes("add a progress bar"));
+    assert.ok(prompt.includes("Issue #100"));
+    assert.ok(prompt.indexOf("add a progress bar") < prompt.indexOf("Issue #100"));
+    assert.ok(prompt.indexOf("Issue #100") < prompt.indexOf("DRAFT_MARKER_XYZ123"));
   });
 
   // A2 (R2) complement — when draft-gate NOT done, draft body is excluded
   it("excludes draft body when draft-gate is not done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
-    const draftBody = "PROVISIONAL_DRAFT_MARKER should not leak while draft-gate is still pending";
-    seedActiveFlow(tmp, { draftBody });
+    const draftBody = JSON.stringify({ goal: "PROVISIONAL_DRAFT_MARKER should not leak while draft-gate is pending" });
+    seedActiveFlow(tmp, { phase: "draft-saved-before-gate", draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);

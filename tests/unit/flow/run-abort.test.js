@@ -9,7 +9,7 @@ import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../../src/lib/worktree-flow-binding.js";
-import { makeFlowState } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
@@ -44,14 +44,17 @@ test("abort removes only the selected worktree, branch, spec directory, and acti
     inWorktree: false,
     specRoot,
   });
-  const state = makeFlowState({
+  const flow = new CanonicalFlowFixture({
+    flowManager: manager,
     specId,
     runId: "run-485-abort-target",
-    featureBranch: `feature/${specId}`,
-    worktree: true,
-  });
-  manager.create(state);
-  manager.addActiveFlow(specId, "worktree");
+    execution: {
+      mode: "worktree",
+      baseBranch: "main",
+      featureBranch: `feature/${specId}`,
+    },
+  }).create().registerActive();
+  const state = flow.state();
   const identity = new WorktreeFlowIdentity({
     runId: state.runId,
     issue: null,
@@ -60,13 +63,12 @@ test("abort removes only the selected worktree, branch, spec directory, and acti
   });
   new WorktreeFlowBindingStore({ worktreePath }).save(identity);
 
-  const other = makeFlowState({
+  new CanonicalFlowFixture({
+    flowManager: manager,
     specId: otherSpecId,
     runId: "run-486-other-flow",
-    featureBranch: "main",
-  });
-  manager.create(other);
-  manager.addActiveFlow(otherSpecId, "local");
+    execution: { mode: "direct" },
+  }).create().registerActive();
   fs.writeFileSync(path.join(root, "unrelated.txt"), "keep me\n");
 
   const selected = manager.loadReadOnly(specId);
@@ -84,5 +86,5 @@ test("abort removes only the selected worktree, branch, spec directory, and acti
   assert.equal(fs.existsSync(manager.specLocation(specId).directory), false);
   assert.equal(fs.existsSync(manager.specLocation(otherSpecId).flowStateFile), true);
   assert.equal(fs.readFileSync(path.join(root, "unrelated.txt"), "utf8"), "keep me\n");
-  assert.deepEqual(manager.loadActiveFlows(), [{ mode: "local", specId: otherSpecId }]);
+  assert.deepEqual(manager.loadActiveFlows(), [{ mode: "direct", specId: otherSpecId }]);
 });

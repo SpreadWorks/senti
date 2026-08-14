@@ -9,23 +9,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  loadSpecJson,
-  resolveSpecDir,
-  resolveSpecJsonPath,
   validateSpecJsonObject,
 } from "../../lib/spec-json.js";
 import { renderSpecMarkdown, renderTaskMarkdown } from "../../spec/commands/render.js";
 import {
   SpecRenderContext,
+  SpecRenderOutputLocation,
   TaskCollection,
   TaskRenderPlan,
 } from "../../spec/lib/render-contract.js";
-
-function resolveInput(root, specPath) {
-  if (!root) throw new Error("renderSpecView: root is required");
-  if (!specPath) throw new Error("renderSpecView: specPath is required");
-  return path.isAbsolute(specPath) ? specPath : path.resolve(root, specPath);
-}
 
 export class SpecViewRenderPlan {
   #root;
@@ -34,20 +26,20 @@ export class SpecViewRenderPlan {
   #specMarkdown;
   #taskPlan;
 
-  constructor({ root, specDir, specJsonPath, spec }) {
+  constructor({ root, specDir, specJsonPath, spec, flowState }) {
     const collection = new TaskCollection(spec.tasks ?? []);
     validateSpecJsonObject(spec);
-    const renderContext = new SpecRenderContext({ root, specDir, specJsonPath });
-    const tasksDir = path.join(specDir, "tasks");
+    const renderContext = new SpecRenderContext({ root, specDir, specJsonPath, flowState });
+    const outputs = new SpecRenderOutputLocation({ specDir });
     const taskPlan = new TaskRenderPlan({
       collection,
-      tasksDir,
+      tasksDir: outputs.tasksDirectory,
       renderTask: renderTaskMarkdown,
     });
 
     this.#root = root;
-    this.#specMdPath = path.join(specDir, "spec.md");
-    this.#tasksDir = tasksDir;
+    this.#specMdPath = outputs.specMarkdownFile;
+    this.#tasksDir = outputs.tasksDirectory;
     this.#specMarkdown = renderSpecMarkdown(spec, renderContext.toRenderMeta());
     this.#taskPlan = taskPlan;
     Object.freeze(this);
@@ -55,6 +47,7 @@ export class SpecViewRenderPlan {
 
   apply() {
     const changed = [];
+    fs.mkdirSync(path.dirname(this.#specMdPath), { recursive: true });
     fs.writeFileSync(this.#specMdPath, this.#specMarkdown);
     changed.push(path.relative(this.#root, this.#specMdPath));
 
@@ -70,42 +63,33 @@ export class SpecViewRenderPlan {
   }
 }
 
-class MissingSpecViewRenderPlan {
-  constructor(reason) {
-    this.reason = reason;
-    Object.freeze(this);
+export function buildSpecViewPlan({ root, flowManager, flowState }) {
+  if (!root) throw new Error("renderSpecView: root is required");
+  if (!flowManager || typeof flowManager.readArtifact !== "function") {
+    throw new Error("renderSpecView requires FlowManager.readArtifact");
   }
-
-  apply() {
-    return { rendered: false, changed: [], reason: this.reason };
+  if (flowState?.schemaRevision !== 3 || !flowState.specId) {
+    throw new Error("renderSpecView requires a Version-1 Flow state");
   }
-}
-
-export function buildSpecViewPlan({ root, specPath, spec = null, optional = false }) {
-  const input = resolveInput(root, specPath);
-  const specDir = resolveSpecDir(input);
-  const specJsonPath = resolveSpecJsonPath(input);
-
-  if (!fs.existsSync(specJsonPath)) {
-    if (optional) {
-      return new MissingSpecViewRenderPlan(`spec.json not found at ${specJsonPath}`);
-    }
-    throw new Error(`spec.json not found at ${specJsonPath}`);
-  }
-
-  const currentSpec = spec === null
-    ? loadSpecJson(specJsonPath, { validate: false })
-    : spec;
+  const specDir = flowManager.specLocation(flowState.specId).directory;
+  const specJsonPath = path.join(specDir, "spec.json");
+  const artifact = flowManager.readArtifact({
+    specId: flowState.specId,
+    logicalKey: "spec.record",
+    consumerNodeId: "flow",
+  });
+  const currentSpec = JSON.parse(artifact.bytes.toString("utf8"));
   return new SpecViewRenderPlan({
     root,
     specDir,
     specJsonPath,
     spec: currentSpec,
+    flowState,
   });
 }
 
 export function applySpecViewPlan(plan) {
-  if (!(plan instanceof SpecViewRenderPlan) && !(plan instanceof MissingSpecViewRenderPlan)) {
+  if (!(plan instanceof SpecViewRenderPlan)) {
     throw new Error("applySpecViewPlan requires a completed spec view render plan");
   }
   return plan.apply();

@@ -1,16 +1,13 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import {
   matchUpgradeRequiredSourcePaths,
   listUpgradeRequiredChangedPaths,
   validateUpgradeResultArtifact,
-  writeUpgradeResultArtifact,
+  createUpgradeResultArtifact,
 } from "../../../src/flow/lib/test-artifacts.js";
-import { buildUpgradeReportDataFromArtifacts } from "../../../src/flow/lib/run-report.js";
 
 let tmp;
 
@@ -74,32 +71,21 @@ describe("listUpgradeRequiredChangedPaths", () => {
     );
   });
 
-  it("keeps the structured upgrade result authoritative when its diagnostic log is absent", () => {
+  it("creates self-contained structured upgrade evidence", () => {
     initRepo();
     writeFile(tmp, "src/presets/base/guardrail.json", "{\"guardrails\":[{\"id\":\"migration-parity\"}]}\n");
-    const specDir = path.join(tmp, "specs", "demo");
-    const written = writeUpgradeResultArtifact({
+    const written = createUpgradeResultArtifact({
       root: tmp,
-      specDir,
       baseBranch: "main",
       command: "sennel upgrade",
       dryRun: false,
       exitCode: 1,
       result: "failed",
       summary: { error: "upgrade failed" },
-      rawOutput: "diagnostic output\n",
     });
-    fs.unlinkSync(written.rawLogPath);
 
-    const validation = validateUpgradeResultArtifact(specDir, written.artifact);
+    const validation = validateUpgradeResultArtifact(written.toJSON());
     assert.equal(validation.ok, true);
-    assert.equal(validation.rawPath, null);
-    assert.equal(written.artifact.failureReason, "upgrade failed");
-    assert.deepEqual(buildUpgradeReportDataFromArtifacts(specDir), {
-      result: "failed",
-      summary: { error: "upgrade failed" },
-      failureReason: "upgrade failed",
-      rawLogPath: null,
-    });
+    assert.equal(written.failureReason, "upgrade failed");
   });
 });

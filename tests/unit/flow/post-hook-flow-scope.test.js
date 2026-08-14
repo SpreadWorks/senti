@@ -1,169 +1,76 @@
-import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
-import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
-import { makeFlowManager, replaceFlowState, setupFlow } from "../../helpers/flow-setup.js";
+import { afterEach, describe, it } from "node:test";
+
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import {
+  FlowAtStepFixture,
+  TaskLifecycleFixture,
+  makeFlowManager,
+} from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
-const SPEC_PATH = "specs/001-test/spec.json";
-const SPEC_ID = "001-test";
+const TASK = {
+  id: "T-1",
+  title: "task",
+  goal: "task",
+  parent: null,
+  origin: "plan",
+  added_round: 0,
+  status: "pending",
+};
 
-function boundFlowManager(root) {
-  return makeFlowManager(root).forRoot(root, { specId: SPEC_ID });
-}
-
-function writeJson(root, relativePath, value) {
-  const target = path.join(root, relativePath);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function testExecuteArtifact() {
-  return {
-    version: "2",
-    raw_output_path: "specs/001-test/tests/.raw/test-execution.log",
-    summary: [],
-    regression: {
-      required: false,
-      changed_files: [],
-      trigger_relevant_changed_files: [],
-      category: "spec-artifact-only",
-      reason: "unit fixture",
-      classified_paths: [],
-    },
-  };
-}
-
-function testResultReviewArtifact(repairFingerprint) {
-  return {
-    verdict: "pass",
-    checked_items: [{
-      check: "project_regression_verification",
-      result: "pass",
-      detail: "unit fixture",
-    }],
-    result_file_path: "specs/001-test/test-execute-result.json",
-    raw_output_path: "specs/001-test/tests/.raw/test-execution.log",
-    repairFingerprint,
-  };
-}
-
-function setupPostHookFlow(root, stepId) {
-  const state = setupFlow(root, {
-    specId: SPEC_ID,
-    tasks: [{
-      id: "T-1",
-      title: "task",
-      goal: "task",
-      parent: null,
-      origin: "plan",
-      added_round: 0,
-      status: "in_progress",
-      steps: [
-        { id: "task-impl", status: "in_progress" },
-        { id: "task-review", status: "pending" },
-        { id: "task-gate", status: "pending" },
-      ],
-    }],
-    currentTaskId: "T-1",
-  });
-  for (const step of flattenSteps(state.steps)) step.status = "pending";
-  findStepById(state.steps, stepId).status = "in_progress";
-  replaceFlowState(root, state);
-  return state;
-}
-
-function assertFlowStepCompletedWithoutTaskMutation(root, stepId) {
-  const state = makeFlowManager(root).load();
-  assert.equal(findStepById(state.steps, stepId).status, "done");
-  assert.equal(state.tasks[0].steps[0].status, "in_progress");
-  assert.equal(state.currentTaskId, "T-1");
-}
-
-function assertScopesUnchanged(root, stepId) {
-  const state = makeFlowManager(root).load();
-  assert.equal(findStepById(state.steps, stepId).status, "in_progress");
-  assert.equal(state.tasks[0].steps[0].status, "in_progress");
-  assert.equal(state.currentTaskId, "T-1");
-}
-
-describe("flow-level artifact post-hook scope", () => {
-  let tmp;
-
+describe("canonical Flow and Task Attempt scope", () => {
+  let root = null;
   afterEach(() => {
-    if (tmp) removeTmpDir(tmp);
-    tmp = null;
+    if (root !== null) removeTmpDir(root);
+    root = null;
   });
 
-  it("completes test-execute at flow scope when currentTaskId is non-null", async () => {
-    tmp = createTmpDir("unit-test-execute-post-hook-scope-");
-    const flowState = setupPostHookFlow(tmp, "test-execute");
-    writeJson(tmp, "specs/001-test/test-execute-result.json", testExecuteArtifact());
+  it("prevents a flow-level Attempt from replacing an active Task Attempt", () => {
+    root = createTmpDir("canonical-task-flow-scope-");
+    const flowManager = makeFlowManager(root);
+    new TaskLifecycleFixture({
+      flowManager,
+      specId: "001-test",
+      runId: "run-task-scope",
+      request: "Keep Task and Flow scopes isolated.",
+      taskDocuments: [TASK],
+      taskId: TASK.id,
+      targetStep: "task-impl",
+    }).create();
 
-    await FLOW_COMMANDS.run["test-execute"].post({
-      root: tmp,
-      flowState,
-      flowManager: boundFlowManager(tmp),
-    });
-
-    assertFlowStepCompletedWithoutTaskMutation(tmp, "test-execute");
+    assert.throws(() => flowManager.updateStepStatus({
+      stepId: "test-execute",
+      requestedStatus: "in_progress",
+    }, { specId: "001-test" }), /cannot replace an active Attempt/);
+    const state = flowManager.loadReadOnly("001-test");
+    assert.equal(state.currentNodeId, "T-1-impl");
+    assert.equal(state.currentTaskId, "T-1");
   });
 
-  it("completes test-result-review at flow scope when currentTaskId is non-null", async () => {
-    tmp = createTmpDir("unit-test-result-review-post-hook-scope-");
-    const flowState = setupPostHookFlow(tmp, "test-result-review");
-    const fingerprint = buildRepairFingerprint({ root: tmp, specPath: SPEC_PATH });
-    writeJson(tmp, "specs/001-test/test-result-review.json", testResultReviewArtifact(fingerprint.hash));
+  it("completes a flow-level leaf without reopening a terminal Task", () => {
+    root = createTmpDir("canonical-flow-post-scope-");
+    const flowManager = makeFlowManager(root);
+    new FlowAtStepFixture({
+      flowManager,
+      specId: "001-test",
+      runId: "run-flow-scope",
+      request: "Complete a flow-level producer.",
+      taskDocuments: [TASK],
+      targetStep: "test-execute",
+    }).create();
 
-    await FLOW_COMMANDS.run["test-result-review"].post({
-      root: tmp,
-      flowState,
-      flowManager: boundFlowManager(tmp),
-    });
+    const before = flowManager.loadReadOnly("001-test");
+    assert.equal(before.tasks[0].status, "done");
+    assert.equal(before.currentTaskId, null);
+    flowManager.updateStepStatus({
+      stepId: "test-execute",
+      requestedStatus: "done",
+    }, { specId: "001-test" });
 
-    assertFlowStepCompletedWithoutTaskMutation(tmp, "test-result-review");
-  });
-
-  it("keeps both scopes unchanged when test-execute artifact validation fails", async () => {
-    tmp = createTmpDir("unit-test-execute-post-hook-atomicity-");
-    const flowState = setupPostHookFlow(tmp, "test-execute");
-    writeJson(tmp, "specs/001-test/test-execute-result.json", {
-      ...testExecuteArtifact(),
-      version: "1",
-    });
-
-    await assert.rejects(
-      FLOW_COMMANDS.run["test-execute"].post({
-        root: tmp,
-        flowState,
-        flowManager: boundFlowManager(tmp),
-      }),
-      /expected '2'/,
-    );
-
-    assertScopesUnchanged(tmp, "test-execute");
-  });
-
-  it("keeps both scopes unchanged when test-result-review artifact validation fails", async () => {
-    tmp = createTmpDir("unit-test-result-review-post-hook-atomicity-");
-    const flowState = setupPostHookFlow(tmp, "test-result-review");
-    writeJson(tmp, "specs/001-test/test-result-review.json", {
-      ...testResultReviewArtifact(),
-      verdict: "fail",
-    });
-
-    await assert.rejects(
-      FLOW_COMMANDS.run["test-result-review"].post({
-        root: tmp,
-        flowState,
-        flowManager: boundFlowManager(tmp),
-      }),
-      /verdict is not pass/,
-    );
-
-    assertScopesUnchanged(tmp, "test-result-review");
+    const after = flowManager.loadReadOnly("001-test");
+    assert.equal(findStepById(after.steps, "test-execute").status, "done");
+    assert.equal(after.tasks[0].status, "done");
+    assert.equal(after.currentTaskId, null);
   });
 });

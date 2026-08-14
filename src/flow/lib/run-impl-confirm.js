@@ -5,13 +5,10 @@
  * spec.json requirements against actual file changes.
  */
 
-import fs from "fs";
-import path from "path";
 import { runGit } from "../../lib/git-helpers.js";
 import { VALID_IMPL_CONFIRM_MODES } from "../../lib/constants.js";
-import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { CanonicalSpecRecord } from "./canonical-spec-record.js";
 
 /**
  * Get files changed between base branch and HEAD.
@@ -56,8 +53,11 @@ export class RunImplConfirmCommand extends FlowCommand {
     if (!VALID_IMPL_CONFIRM_MODES.includes(mode)) {
       throw new Error(`invalid mode: ${mode} (valid: ${VALID_IMPL_CONFIRM_MODES.join(", ")})`);
     }
-    const specPathRelative = relativeFlowSpecFile(state);
-    const requirements = summarizeRequirements(loadSpecRequirements(root, specPathRelative));
+    const requirements = summarizeRequirements(new CanonicalSpecRecord({
+      flowManager: ctx.flowManager,
+      state,
+      consumerNodeId: "implement",
+    }).requirements());
 
     // Determine readiness
     const allDone = requirements.total > 0 && requirements.done === requirements.total;
@@ -78,13 +78,6 @@ export class RunImplConfirmCommand extends FlowCommand {
       next = "fix";
     }
 
-    // Check spec file for additional context
-    const specPath = path.resolve(root, specPathRelative);
-    let specExists = false;
-    try {
-      specExists = fs.existsSync(specPath);
-    } catch (err) { if (err.code !== "ENOENT") console.error(err); }
-
     return {
       result: allDone || noRequirements ? "ready" : "incomplete",
       changed: [],
@@ -93,7 +86,7 @@ export class RunImplConfirmCommand extends FlowCommand {
         requirements,
         files: mode === "detail" ? files : undefined,
         specId: state.specId,
-        specExists,
+        specExists: true,
         baseBranch: state.baseBranch,
         featureBranch: state.featureBranch,
       },

@@ -6,7 +6,6 @@
  * 既存ファイルの MANUAL ブロックを保持する。
  */
 
-import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
 import { parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
@@ -15,6 +14,7 @@ import { translate } from "../../lib/i18n.js";
 import { Command } from "../../lib/command.js";
 import { ExecutionMode, WritePlan } from "../../lib/execution-plan.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
+import { CanonicalChangelogSpec } from "../lib/canonical-changelog-spec.js";
 
 async function optional(fsOp) {
   try {
@@ -26,8 +26,6 @@ async function optional(fsOp) {
 }
 
 const statIfExists = (p) => optional(() => fsp.stat(p));
-const readIfExists = (p) => optional(() => fsp.readFile(p, "utf8"));
-
 /**
  * パイプ文字をエスケープし、空白を正規化する。
  */
@@ -40,50 +38,23 @@ function sanitize(text) {
 }
 
 /**
- * spec ディレクトリから changelog 用メタ情報を取得する (spec 207 / T8)。
+ * Canonical Version Store から changelog 用メタ情報を取得する。
  *
- * title / inputLine は spec.json から、status / branch は flow.json から取得。
- * spec.json が存在しない spec はこの changelog から除外される（T11 migration
- * 実行後はこの方針で全 spec が揃う）。
+ * title / inputLine は cataloged spec.record、status / branch は canonical
+ * flow.json identity/lifecycle から得る。退役した root-level layout は読まない。
  */
-async function parseSpecDir(specDir, dirName) {
-  const spec = JSON.parse(fs.readFileSync(path.join(specDir, "spec.json"), "utf8"));
-
-  let title = dirName;
-  let inputLine = "";
-  if (spec.goal) {
-    const firstLine = spec.goal.split("\n")[0].trim();
-    if (firstLine) title = firstLine;
-  }
-  if (Array.isArray(spec.scope?.in) && spec.scope.in.length) {
-    inputLine = spec.scope.in[0];
-  }
-
-  const specJsonPath = path.join(specDir, "spec.json");
-  const jsonStat = await statIfExists(specJsonPath);
-  const created = jsonStat ? jsonStat.mtime.toISOString().slice(0, 10) : "";
-
-  let status = "";
-  let branch = "";
-  const flowPath = path.join(specDir, "flow.json");
-  const flowText = await readIfExists(flowPath);
-  if (flowText) {
-    try {
-      const flow = JSON.parse(flowText);
-      status = flow.state?.finalizedAt ? "completed" : "active";
-      if (flow.featureBranch) branch = flow.featureBranch;
-    } catch (err) {
-      process.stderr.write(`changelog: skipping malformed flow.json at ${flowPath}: ${err.message}\n`);
-    }
-  }
-
-  return {
-    title: sanitize(title || "n/a"),
-    created: sanitize(created || "n/a"),
-    status: sanitize(status || "n/a"),
-    branch: sanitize(branch || "n/a"),
-    inputLine: sanitize(inputLine || "n/a"),
-  };
+function parseSpecDir(flowManager, specId) {
+  const record = CanonicalChangelogSpec.read({ flowManager, specId });
+  if (record === null) return null;
+  const entry = record.toEntry();
+  return Object.freeze({
+    title: sanitize(entry.title),
+    created: sanitize(entry.created),
+    status: sanitize(entry.status),
+    branch: sanitize(entry.branch),
+    inputLine: sanitize(entry.inputLine),
+    links: Object.freeze(entry.links.map((link) => sanitize(link))),
+  });
 }
 
 /**
@@ -119,6 +90,7 @@ async function runChangelog(rawArgs, container) {
   const specLinkRoot = path.relative(path.dirname(outFile), specsDir).split(path.sep).join("/") || ".";
 
   const cfgData = container.get("config");
+  const flowManager = container.get("flowManager");
   const lang = cfgData?.docs?.defaultLanguage || cfgData?.lang || DEFAULT_LANG;
   const t = translate();
 
@@ -129,17 +101,10 @@ async function runChangelog(rawArgs, container) {
   const dirNames = dirsRaw ? (await fsp.readdir(specsDir)).sort() : [];
   const concurrencyLimit = Math.max(1, cfgData?.concurrency || 4);
   const results = await mapWithConcurrency(dirNames, concurrencyLimit, async (dirName) => {
-    const dirPath = path.join(specsDir, dirName);
-    const specJsonStat = await statIfExists(path.join(dirPath, "spec.json"));
-    if (!specJsonStat || !specJsonStat.isFile()) return null;
-
     const parsed = parseDirName(dirName);
     if (!parsed) return null;
-
-    const meta = await parseSpecDir(dirPath, dirName);
-
-    const dirEntries = await fsp.readdir(dirPath);
-    const linkedFiles = dirEntries.filter((f) => f.endsWith(".md")).sort();
+    const meta = parseSpecDir(flowManager, dirName);
+    if (meta === null) return null;
 
     return {
       dirName,
@@ -147,7 +112,6 @@ async function runChangelog(rawArgs, container) {
       number: parsed.number,
       isBackup: parsed.isBackup,
       ...meta,
-      links: linkedFiles,
     };
   });
   const entries = [];
@@ -191,7 +155,7 @@ async function runChangelog(rawArgs, container) {
   out.push("| series | latest | status | created | spec |");
   out.push("| --- | --- | --- | --- | --- |");
   for (const e of latestEntries) {
-    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](${specLinkRoot}/${e.dirName}/spec.md) |`);
+    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](${specLinkRoot}/${e.dirName}/001/spec.json) |`);
   }
   out.push("");
   out.push(t("messages:changelog.sectionAllSpecs"));
@@ -203,10 +167,10 @@ async function runChangelog(rawArgs, container) {
   for (const e of sortedEntries) {
     let fileLinks;
     if (e.links.length > 1) {
-      fileLinks = e.links.map((f) => `[${f}](${specLinkRoot}/${e.dirName}/${f})`).join(", ");
+      fileLinks = e.links.map((f) => `[${f}](${specLinkRoot}/${e.dirName}/001/${f})`).join(", ");
     } else {
-      const f = e.links[0] || "spec.md";
-      fileLinks = `[${f}](${specLinkRoot}/${e.dirName}/${f})`;
+      const f = e.links[0] || "spec.json";
+      fileLinks = `[${f}](${specLinkRoot}/${e.dirName}/001/${f})`;
     }
     out.push(`| \`${e.dirName}\` | ${e.status} | ${e.created} | ${e.title} | ${e.inputLine} | ${fileLinks} |`);
   }

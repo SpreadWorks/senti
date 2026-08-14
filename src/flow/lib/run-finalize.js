@@ -13,7 +13,6 @@ import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-auth
 import { PRODUCT } from "../../lib/product.js";
 import { runCmd, assertOk } from "../../lib/process.js";
 import { findStepById } from "./step-tree.js";
-import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   runGit,
   countCommitsBetween,
@@ -23,14 +22,11 @@ import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 import {
   DEFAULT_FLOW_SPEC_DIR,
-  FlowSpecLocation,
-  relativeFlowSpecFile,
+  FlowWorkspace,
 } from "../../lib/flow-workspace.js";
 import { FlowSpecId } from "../../lib/flow-spec-id.js";
-import {
-  FINALIZE_PRE_MERGE_DEFERRED_PATHS,
-  FinalizeCommitPathSet,
-} from "./finalize-commit-paths.js";
+import { FlowArtifactCatalogStore, FlowVersion } from "../../lib/flow-version.js";
+import { FINALIZE_DOCUMENTATION_PATHS, FINALIZE_PRE_MERGE_DEFERRED_PATHS } from "./finalize-commit-paths.js";
 
 const GIT_OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 
@@ -61,7 +57,13 @@ export function finalizeOnError(stepName, trigger) {
           ]),
         );
       }
-      appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), entry);
+      const attempt = ctx.flowManager.canonicalState(ctx.specId).attempt?.sequence ?? 0;
+      ctx.flowManager.appendIssueLog({
+        specId: ctx.specId,
+        entry,
+        idempotencyKey: ctx.flowOutboxEntry?.idempotencyKey
+          ?? `finalize-error-${ctx.flowState.runId}-${stepName}-${attempt}`,
+      });
     } catch (e) { console.error("[issue-log hook]", e.message); }
   };
 }
@@ -142,11 +144,17 @@ export function findOutboxCommit({ root, ref, idempotencyKey }) {
 }
 
 function getFinalizeMergeAllowedMetadataPaths(root, specId, specRoot = DEFAULT_FLOW_SPEC_DIR) {
-  const location = new FlowSpecLocation({ repositoryRoot: root, specRoot, specId });
+  const location = new FlowWorkspace({
+    repositoryRoot: root,
+    executionRoot: root,
+    specRoot,
+  }).canonicalVersion(specId, new FlowVersion(1));
   const specDirectory = location.relativeDirectory;
   const paths = [
     location.relativeFlowStateFile,
-    location.relativeArtifact("issue-log.json"),
+    location.relativeActivitiesFile,
+    location.relativeCatalogFile,
+    location.relativeIssueLogFile,
   ];
   return {
     paths,
@@ -285,7 +293,7 @@ export function commitFinalizeMergeMetadataIfSafe({
 
   const dirtySet = new Set(metadataPreflight.metadataDirtyPaths);
   if (includeFlowJson) dirtySet.add(metadataPreflight.allowedMetadataPaths[0]);
-  if (includeIssueLog) dirtySet.add(metadataPreflight.allowedMetadataPaths[1]);
+  if (includeIssueLog) dirtySet.add(metadataPreflight.allowedMetadataPaths[3]);
   const metadataPaths = metadataPreflight.allowedMetadataPaths
     .filter((relPath) => dirtySet.has(relPath))
     .filter((relPath) => isCommittablePath(root, relPath));
@@ -326,25 +334,30 @@ class FinalizeCompletionCommit {
       throw new Error("finalize completion additional paths are invalid");
     }
     this.root = root;
-    const location = new FlowSpecLocation({ repositoryRoot: root, specRoot, specId });
-    this.stateFile = location.relativeFlowStateFile;
+    this.location = new FlowWorkspace({
+      repositoryRoot: root,
+      executionRoot: root,
+      specRoot,
+    }).canonicalVersion(specId, new FlowVersion(1));
+    const catalog = new FlowArtifactCatalogStore({ location: this.location }).require();
+    const durableFlowPaths = catalog.artifacts
+      .filter((artifact) => artifact.retention === "permanent")
+      .map((artifact) => this.location.relativePath(artifact.relativePath));
     const allowedAdditionalPaths = new Set([
-      "agent-metrics.json",
-      "issue-log.json",
-      "notes.json",
-      "plugin-artifacts.json",
-      "recovery-envelope.json",
-      "report-envelope.json",
-      "runtime-log.json",
-    ].map((fileName) => location.relativeArtifact(fileName)));
+      this.location.relativeCatalogFile,
+      ...durableFlowPaths,
+    ]);
     if (additionalPaths.some((entry) => !allowedAdditionalPaths.has(entry))) {
       throw new Error("finalize completion additional path is not authorized");
     }
-    this.commitPaths = new FinalizeCommitPathSet({
-      repositoryRoot: root,
-      specRoot,
-      specId,
-    }).completionPaths;
+    // Catalog retention is the finalize boundary.  Never stage `.runtime`,
+    // transaction files, or a parent Spec directory merely because it happens
+    // to contain them.
+    this.commitPaths = [...new Set([
+      ...durableFlowPaths,
+      this.location.relativeCatalogFile,
+      ...FINALIZE_DOCUMENTATION_PATHS,
+    ])];
     this.idempotencyKey = idempotencyKey;
     this.marker = outboxCommitMarker(idempotencyKey);
   }

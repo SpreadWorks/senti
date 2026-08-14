@@ -33,10 +33,7 @@ import {
 } from "./next-action-directive.js";
 import { finalRegressionWorktreeFingerprint } from "./test-artifacts.js";
 import GetNextActionCommand from "./get-next-action.js";
-import { FlowDispatchArtifactRegistry } from "./repair-state-identity.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { PRODUCT } from "../../lib/product.js";
-import { appendIssueLogEntry } from "./set-issue-log.js";
 import {
   WorkerArtifactHandoffCoordinator,
   WorkerArtifactHandoffError,
@@ -137,10 +134,8 @@ function readFlowState(ctx) {
 }
 
 export function dispatchRepositoryFingerprint(ctx) {
-  const state = ctx.flowState || readFlowState(ctx);
-  const registry = state?.specId ? new FlowDispatchArtifactRegistry(relativeFlowSpecFile(state)) : null;
   return finalRegressionWorktreeFingerprint(ctx.executionRoot || ctx.root, {
-    pathspecExcludes: registry?.gitPathspecExcludes() || [],
+    pathspecExcludes: [],
   });
 }
 
@@ -211,22 +206,15 @@ function persistDispatchApproval(ctx, invocation) {
   const state = readFlowState(ctx);
   const existing = ExplicitFlowDispatchAuthorization.matching(state, action);
   if (existing) return existing;
-  if (typeof ctx.flowManager?.mutate !== "function") {
-    throw new Error("flow dispatch approval persistence requires a writable Flow manager");
+  if (state?.schemaRevision !== 3 || typeof ctx.flowManager?.recordDispatchApproval !== "function") {
+    throw new Error("flow dispatch approval requires the canonical Version Store receipt API");
   }
-  ctx.flowManager.mutate((current) => {
-    if (current.runId !== action.target.runId) {
-      throw new Error("flow dispatch approval target changed before persistence");
-    }
-    const receipts = Array.isArray(current.flowDispatchApprovals)
-      ? current.flowDispatchApprovals
-      : [];
-    if (!ExplicitFlowDispatchAuthorization.matching(current, action)) {
-      current.flowDispatchApprovals = [...receipts, authorization.toReceiptJSON()];
-    }
-  }, {
-    expectedOriginal: state,
-    operationOwnerToken: ctx.repositoryOperationOwnerToken || null,
+  if (state.runId !== action.target.runId) {
+    throw new Error("flow dispatch approval target changed before persistence");
+  }
+  ctx.flowManager.recordDispatchApproval({
+    specId: state.specId,
+    receipt: authorization.toReceiptJSON(),
   });
   return authorization;
 }
@@ -415,32 +403,32 @@ function workerHandoffFailureData(ctx, error, request, dispatchCount, agentError
   let issueLogError = null;
   if (state?.specId) {
     try {
-      appendIssueLogEntry(
-        ctx.mainRoot || ctx.root,
-        relativeFlowSpecFile(state),
-        {
-          step: stepId,
-          reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
-          trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
-          resolution: error instanceof WorkerArtifactRetryExhaustedError
-            ? "One fresh worker handoff retry was consumed; correct the artifact producer before dispatching this step again."
-            : error.recoveryPossible
-            ? "Resume the guarded dispatcher to replay the pending publication journal."
-            : "Correct the worker artifact payload and dispatch the current action again.",
-          ...(error instanceof WorkerArtifactRetryExhaustedError && {
-            diagnostic: {
-              code: error.code,
-              classification: error.classification,
-              attempts: error.data.attempts,
-              first: error.data.first,
-              second: error.data.second,
-            },
-          }),
-          taskId: null,
-          timestamp: new Date().toISOString(),
-        },
-        `worker-handoff-${actionDigest || "unknown"}-${error.classification || "invalid"}`,
-      );
+      const entry = {
+        step: stepId,
+        reason: `Worker artifact handoff ${error.classification || "invalid"}: ${error.message}`,
+        trigger: "Parent dispatcher rejected or could not complete a worker artifact handoff.",
+        resolution: error instanceof WorkerArtifactRetryExhaustedError
+          ? "One fresh worker handoff retry was consumed; correct the artifact producer before dispatching this step again."
+          : error.recoveryPossible
+          ? "Resume the guarded dispatcher to replay the pending publication journal."
+          : "Correct the worker artifact payload and dispatch the current action again.",
+        ...(error instanceof WorkerArtifactRetryExhaustedError && {
+          diagnostic: {
+            code: error.code,
+            classification: error.classification,
+            attempts: error.data.attempts,
+            first: error.data.first,
+            second: error.data.second,
+          },
+        }),
+        taskId: null,
+        timestamp: new Date().toISOString(),
+      };
+      const idempotencyKey = `worker-handoff-${actionDigest || "unknown"}-${error.classification || "invalid"}`;
+      if (state.schemaRevision !== 3 || typeof ctx.flowManager?.appendIssueLog !== "function") {
+        throw new Error("worker handoff diagnostics require canonical FlowManager.appendIssueLog");
+      }
+      ctx.flowManager.appendIssueLog({ specId: state.specId, entry, idempotencyKey });
     } catch (logError) {
       issueLogError = logError.message || String(logError);
     }

@@ -3,31 +3,41 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import { join } from "path";
 import { execFileSync } from "child_process";
-import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 
 const CMD = join(process.cwd(), "src/sennel.js");
 const CMD_ARGS = ["docs", "changelog"];
 
-function fixtureSpecJson({ goal, scopeIn = [] } = {}) {
-  return JSON.stringify({
-    goal: goal || "Test feature goal.",
-    background: "",
-    scope: { in: scopeIn, out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [],
-    acceptance_criteria: [],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-  });
-}
-
-function fixtureFlowJson({ featureBranch = "feature/001-test-feature", finalizedAt = null } = {}) {
-  const flow = { featureBranch, baseBranch: "main", spec: "" };
-  if (finalizedAt) flow.state = { finalizedAt };
-  return JSON.stringify(flow);
+/**
+ * Set up a normal production V1 Flow, never a hand-written root-level
+ * flow.json/spec.json pair. The changelog is a read-only consumer, so this
+ * deliberately leaves no active-flow registry shortcut for it to consult.
+ */
+function createCanonicalChangelogFlow(tmp, {
+  specId = "001-test-feature",
+  goal = "Test feature goal.",
+  scopeIn = [],
+  finalized = false,
+} = {}) {
+  const flowManager = makeFlowManager(tmp);
+  const fixture = new CanonicalFlowFixture({
+    flowManager,
+    specId,
+    runId: `changelog-${specId}`,
+    request: `Create ${goal}`,
+    execution: { mode: "direct" },
+    specRecord: {
+      goal,
+      scope: { in: scopeIn, out: [] },
+    },
+  }).create();
+  if (finalized) {
+    const leafIds = fixture.leaves().map((step) => step.id);
+    for (const nodeId of leafIds) fixture.settle(nodeId);
+    flowManager.finalizeFlow(specId);
+  }
+  return fixture;
 }
 
 describe("changelog CLI", () => {
@@ -36,11 +46,11 @@ describe("changelog CLI", () => {
 
   it("generates changelog from specs", () => {
     tmp = createTmpDir();
-    writeFile(tmp, "specs/001-test-feature/spec.json", fixtureSpecJson({
+    const flow = createCanonicalChangelogFlow(tmp, {
       goal: "Test feature goal.",
       scopeIn: ["Add tests"],
-    }));
-    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ finalizedAt: "2026-04-27T00:00:00.000Z" }));
+      finalized: true,
+    });
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
@@ -54,6 +64,9 @@ describe("changelog CLI", () => {
     assert.match(content, /Change Log/);
     assert.match(content, /001-test-feature/);
     assert.match(content, /completed/);
+    assert.match(content, /001\/spec\.json/);
+    assert.equal(fs.existsSync(join(tmp, "specs", flow.specId, "flow.json")), false);
+    assert.equal(fs.existsSync(join(tmp, "specs", flow.specId, "spec.json")), false);
   });
 
   it("generates empty changelog when no specs exist", () => {
@@ -73,10 +86,9 @@ describe("changelog CLI", () => {
 
   it("--dry-run outputs to stdout without writing file", () => {
     tmp = createTmpDir();
-    writeFile(tmp, "specs/001-test-feature/spec.json", fixtureSpecJson({
+    createCanonicalChangelogFlow(tmp, {
       goal: "Test feature goal.",
-    }));
-    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson());
+    });
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {

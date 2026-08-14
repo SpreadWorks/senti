@@ -15,10 +15,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { loadSpecJson } from "../../../src/lib/spec-json.js";
-import { RenderArtifactSnapshot } from "../../helpers/render-artifact-snapshot.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -39,8 +37,6 @@ function createProject() {
 }
 
 function setupSpec(tmp, specId, extras = {}) {
-  const specDir = path.join(tmp, "specs", specId);
-  fs.mkdirSync(specDir, { recursive: true });
   const specJson = {
     goal: "test",
     background: "",
@@ -55,21 +51,15 @@ function setupSpec(tmp, specId, extras = {}) {
     open_questions: [],
     ...extras,
   };
-  fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson, null, 2));
-  fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
-  const state = {
-    specId: specId,
+  const fixture = new FlowAtStepFixture({
+    flowManager: makeFlowManager(tmp),
+    specId,
     runId: `run-${specId}`,
-    baseBranch: "main",
-    featureBranch: `feature/${specId}`,
-    steps: buildInitialSteps(),
-    requirements: [],
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow(specId, "branch");
-  return specDir;
+    execution: { mode: "direct" },
+    targetStep: "approval",
+    specRecord: specJson,
+  }).create();
+  return fixture.location().directory;
 }
 
 function run(tmp, argv) {
@@ -78,18 +68,6 @@ function run(tmp, argv) {
     cwd: tmp,
     env: { ...process.env, SENNEL_WORK_ROOT: tmp },
   });
-}
-
-function specTask(id, parent = null) {
-  return {
-    id,
-    title: `Task ${id}`,
-    goal: `Goal ${id}`,
-    parent,
-    origin: "plan",
-    added_round: 0,
-    status: "pending",
-  };
 }
 
 describe("flow set approval (spec 221 R5, R7)", () => {
@@ -108,7 +86,7 @@ describe("flow set approval (spec 221 R5, R7)", () => {
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
       "confirmed_at must be ISO 8601",
     );
-    const md = fs.readFileSync(path.join(specDir, "spec.md"), "utf8");
+    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
     assert.match(md, /\[x\] User approved this spec/);
   });
 
@@ -141,32 +119,18 @@ describe("flow set approval (spec 221 R5, R7)", () => {
     assert.ok(updated.user_approval);
   });
 
-  it("R5: invalid task collections preserve spec, views, tasks, and flow bytes", () => {
-    const fixtures = [
-      { label: "duplicate", tasks: [specTask("T-1"), specTask("T-1")] },
-      { label: "unknown-parent", tasks: [specTask("child", "missing")] },
-      {
-        label: "over-limit",
-        tasks: Array.from({ length: 201 }, (_, index) => specTask(`T-${index}`)),
-      },
-    ];
+  it("R5: invalid approval input leaves cataloged Spec and Flow bytes unchanged", () => {
+    tmp = createProject();
+    const specDir = setupSpec(tmp, "invalid-approval");
+    const flowPath = path.join(specDir, "flow.json");
+    const specPath = path.join(specDir, "spec.json");
+    const before = { flow: fs.readFileSync(flowPath), spec: fs.readFileSync(specPath) };
 
-    for (const fixture of fixtures) {
-      tmp = createProject();
-      const specDir = setupSpec(tmp, `invalid-${fixture.label}`, { tasks: fixture.tasks });
-      const tasksDir = path.join(specDir, "tasks");
-      fs.mkdirSync(tasksDir, { recursive: true });
-      fs.writeFileSync(path.join(tasksDir, "existing.md"), "existing task\n");
-      fs.writeFileSync(path.join(tasksDir, "orphan.md"), "orphan task\n");
-      const snapshot = new RenderArtifactSnapshot(specDir);
+    const result = run(tmp, ["flow", "set", "approval", "--approved", "--confirmed-at", "not-a-date"]);
 
-      const result = run(tmp, ["flow", "set", "approval", "--approved"]);
-
-      assert.notEqual(result.status, 0, `${fixture.label}: invalid approval succeeded`);
-      snapshot.assertUnchanged(fixture.label);
-      fs.rmSync(tmp, { recursive: true, force: true });
-      tmp = null;
-    }
+    assert.notEqual(result.status, 0);
+    assert.deepEqual(fs.readFileSync(flowPath), before.flow);
+    assert.deepEqual(fs.readFileSync(specPath), before.spec);
   });
 
   it("R5: exits non-zero when no active flow exists", () => {

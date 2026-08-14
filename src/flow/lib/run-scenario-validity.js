@@ -1,25 +1,20 @@
 import fs from "fs";
 import path from "path";
-import { resolveSpecDir } from "../../lib/spec-json.js";
 import { runCmdAsync } from "../../lib/process.js";
 import { listChangedFilesDetailed, runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
-import { Envelope } from "../../lib/flow-envelope.js";
 import { DEFAULT_TEST_TIMEOUT_SECONDS } from "./test-regression.js";
-import { RepairStateError, resolveRepairBaselineAuthority } from "./repair-state-identity.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { SharedSpecTestExecution } from "./shared-spec-test-execution.js";
-import { appendIssueLogEntry } from "./set-issue-log.js";
 import { PRODUCT } from "../../lib/product.js";
+import { validateScenarioValidityResult } from "./test-artifacts.js";
 import {
-  SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
-  SCENARIO_VALIDITY_RESULT_FILE,
-  readJsonStrict,
-  validateScenarioValidityResult,
-} from "./test-artifacts.js";
+  CanonicalTestSourceRevision,
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
 const SCENARIO_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
-export { resolveRepairBaselineAuthority as resolveScenarioValidityBaselineAuthority } from "./repair-state-identity.js";
 
 function normalizePath(p) {
   return p.split(path.sep).join("/");
@@ -328,84 +323,239 @@ export function buildScenarioValiditySummary({
     });
 }
 
-export function recordScenarioValidityRepairEvidence({
-  root,
+/**
+ * One immutable, catalog-bound scenario-validity blocker fact.
+ *
+ * The old root issue-log writer used a filename as its source identity.  V1
+ * keeps that fact in the cataloged issue log and refers to the producer's
+ * logical artifact identity instead.  The source test-tree revision makes a
+ * repair fail closed if the tests change before the gate rewind.
+ */
+export class CanonicalScenarioValidityRepairEvidence {
+  constructor({ state, summary, testSourceRevision, timestamp = new Date().toISOString() } = {}) {
+    if (state?.schemaRevision !== 3) throw new Error("canonical scenario-validity repair evidence requires a Version-1 Flow");
+    if (!Array.isArray(summary)) throw new Error("canonical scenario-validity repair evidence summary must be an array");
+    if (!(testSourceRevision instanceof CanonicalTestSourceRevision)) {
+      throw new Error("canonical scenario-validity repair evidence requires a catalog test revision");
+    }
+    if (testSourceRevision.runId !== state.runId || testSourceRevision.specId !== state.specId) {
+      throw new Error("canonical scenario-validity repair evidence test revision does not match the Flow");
+    }
+    if (!Number.isFinite(Date.parse(timestamp))) {
+      throw new Error("canonical scenario-validity repair evidence timestamp must be ISO-8601");
+    }
+    this.runId = state.runId;
+    this.specId = state.specId;
+    this.testRevisionDigest = testSourceRevision.digest;
+    this.timestamp = timestamp;
+    this.blocking = Object.freeze(summary
+      .map((entry, index) => Object.freeze({ entry, index }))
+      .filter(({ entry }) => entry.classification !== "expected_fail"));
+    Object.freeze(this);
+  }
+
+  get exists() { return this.blocking.length > 0; }
+
+  get idempotencyKey() {
+    return ["scenario-validity-test-repair", this.runId, this.testRevisionDigest].join("-");
+  }
+
+  toIssueLogEntry() {
+    if (!this.exists) return null;
+    return {
+      step: "scenario-validity",
+      phase: "test",
+      reason: this.blocking.map(({ entry }) => `${entry.id}=${entry.classification}`).join(", "),
+      trigger: "scenario-validity found a test-design blocker before implementation",
+      resolution: "Rewind to the governed test handoff and replace the invalid test premise.",
+      sourceArtifact: "scenario.validity",
+      testRevisionDigest: this.testRevisionDigest,
+      observations: this.blocking.slice(0, 64).map(({ entry, index }) => ({
+        kind: "violation",
+        failureMode: entry.classification,
+        requirementRef: entry.id,
+        where: {
+          file: entry.evidence.test_file,
+          locator: entry.evidence.test_name,
+        },
+        observed: `Scenario validity classified ${entry.id} as ${entry.classification} before implementation.`,
+        severity: "blocking",
+        refs: [`scenario.validity#summary.${index}`],
+      })),
+      timestamp: this.timestamp,
+    };
+  }
+}
+
+export function recordCanonicalScenarioValidityRepairEvidence({
+  flowManager,
   state,
   summary,
+  testSourceRevision,
   timestamp = new Date().toISOString(),
-}) {
-  const blocking = summary
-    .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => entry.classification !== "expected_fail");
-  if (blocking.length === 0) return null;
-  const testRevisionDigest = state.specTestArtifactRevision?.digest || null;
-  const issueLogId = [
-    "scenario-validity-test-repair",
-    state.runId,
-    testRevisionDigest || "unversioned",
-  ].join("-");
-  const observations = blocking.slice(0, 64).map(({ entry, index }) => ({
-    kind: "violation",
-    failureMode: entry.classification,
-    requirementRef: entry.id,
-    where: {
-      file: entry.evidence.test_file,
-      locator: entry.evidence.test_name,
-    },
-    observed: `Scenario validity classified ${entry.id} as ${entry.classification} before implementation.`,
-    severity: "blocking",
-    refs: [`scenario-validity-result.json#summary.${index}`],
-  }));
-  const stored = appendIssueLogEntry(root, relativeFlowSpecFile(state), {
-    step: "scenario-validity",
-    phase: "test",
-    reason: blocking.map(({ entry }) => `${entry.id}=${entry.classification}`).join(", "),
-    trigger: "scenario-validity found a test-design blocker before implementation",
-    resolution: "Rewind to the governed test handoff and replace the invalid test premise.",
-    sourceArtifact: "scenario-validity-result.json",
-    testRevisionDigest,
-    observations,
+} = {}) {
+  if (!flowManager || typeof flowManager.appendIssueLog !== "function") {
+    throw new Error("canonical scenario-validity repair evidence requires FlowManager.appendIssueLog");
+  }
+  const evidence = new CanonicalScenarioValidityRepairEvidence({
+    state,
+    summary,
+    testSourceRevision,
     timestamp,
-  }, issueLogId);
+  });
+  if (!evidence.exists) return null;
+  const stored = flowManager.appendIssueLog({
+    specId: state.specId,
+    entry: evidence.toIssueLogEntry(),
+    idempotencyKey: evidence.idempotencyKey,
+  });
   return stored.entry;
 }
 
-function writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, rawOutputPath, requirements, command, err }) {
+/**
+ * V1 execution path.  It reads only cataloged tests/source Spec, retains the
+ * diagnostic output as a typed transient, and leaves the durable attempts[]
+ * result for the registry confirmation transaction.
+ */
+async function executeCanonicalScenarioValidity(ctx, scenarioTestExecutor, config) {
+  const state = ctx.flowState;
+  const executionRoot = ctx.executionRoot || ctx.root;
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  const repositoryRoot = store.location.repositoryRoot;
+  const spec = store.readSpec("scenario-validity");
+  const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
+  const sources = store.testSources("scenario-validity");
+  const testSourceRevision = store.testSourceRevision();
+  const files = sources
+    .map((source) => source.absolutePath)
+    .filter((file) => SCENARIO_TEST_FILE_RE.test(path.basename(file)));
+  const testEntries = await loadScenarioTestEntries(files);
+  const testFileSources = new Map(testEntries.flatMap((entry) => [
+    [normalizePath(path.relative(repositoryRoot, entry.file)), entry.source],
+    [entry.file, entry.source],
+  ]));
+  const command = files.length > 0
+    ? ["node", "--test", ...files.map((file) => normalizePath(path.relative(executionRoot, file)))].join(" ")
+    : "node --test";
+  const timeoutMs = (config?.test?.timeoutSeconds
+    || config?.test?.timeout
+    || config?.agent?.timeout
+    || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
+  const executions = buildScenarioValidityExecutions({ testEntries, requirements });
+  const fileRecords = await scenarioTestExecutor({
+    root: executionRoot,
+    repositoryRoot,
+    specDir: store.directory,
+    files,
+    executions,
+    timeoutMs,
+  });
+  const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
+  const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
+  const scenarioProcess = fileRecords.length === 0
+    ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
+    : {
+        started: fileRecords.some((record) => record.process.started),
+        exitCode: failedRecords.length === 0 ? 0 : fileRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
+        signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
+        timedOut: fileRecords.some((record) => record.process.timedOut),
+        spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
+        stdout: "",
+        stderr: "",
+      };
   const rawLines = [
-    "[sennel] scenario-validity error",
-    `error: ${err?.message || String(err)}`,
-    ...requirements.filter((req) => req.testable !== false).map((req) => `[sennel] requirement ${req.id} result invalid_test`),
-    "[sennel] scenario-validity error end",
+    "[sennel] scenario-validity tests start",
+    `command: ${command}`,
   ];
+  const recordRanges = new Map();
+  for (const record of fileRecords) {
+    const requirementLabel = record.requirementId || "unscoped";
+    recordRanges.set(record, appendRaw(rawLines, [
+      `[sennel] scenario-validity requirement ${requirementLabel} file start command=${record.command}`,
+      ...processLines(record.process),
+      `[sennel] scenario-validity requirement ${requirementLabel} file end command=${record.command}`,
+    ]));
+  }
+  appendRaw(rawLines, [
+    ...processLines(scenarioProcess),
+    ...requirements.filter((req) => req.testable !== false).map((req) => {
+      const entry = findTestEntriesForReq(testEntries, req.id)[0];
+      const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
+      return `[sennel] requirement ${req.id} observed: ${testName}`;
+    }),
+    "[sennel] scenario-validity tests end",
+  ]);
+  const rawText = rawLines.join("\n");
   const range = { start_line: 1, end_line: rawLines.length };
-  const summary = requirements
-    .filter((req) => req.testable !== false)
-    .map((req) => ({
-      id: req.id,
-      classification: "invalid_test",
-      evidence: {
-        test_file: normalizePath(path.relative(root, path.join(specDir, "tests", `${req.id.toLowerCase()}.test.js`))),
-        test_name: `${req.id}: scenario-validity error`,
-        command,
-        raw_output_lines: range,
-      },
-    }));
+  const summary = buildScenarioValiditySummary({
+    root: repositoryRoot,
+    files,
+    testEntries,
+    fileRecords,
+    requirements,
+    command,
+    range,
+    recordRanges,
+  });
+  const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
+  const rawRelativePath = store.location.relativeArtifact("scenario.validity.raw-log");
   const artifact = {
     version: "1",
-    raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
+    raw_output_path: rawRelativePath,
     command,
     process: {
-      started: false,
-      exitCode: null,
-      signal: null,
-      timedOut: false,
-      spawnError: err?.message || String(err),
+      started: scenarioProcess.started,
+      exitCode: scenarioProcess.exitCode,
+      signal: scenarioProcess.signal,
+      timedOut: scenarioProcess.timedOut,
+      spawnError: scenarioProcess.spawnError,
     },
-    result: "block",
+    result,
     summary,
   };
-    fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");
-    fs.writeFileSync(resultPath, JSON.stringify(artifact, null, 2) + "\n");
+  validateScenarioValidityResult(artifact, {
+    root: repositoryRoot,
+    specDir: store.directory,
+    requirements,
+    rawText,
+    rawLines,
+    testFileSources,
+    expectedRawOutputPath: rawRelativePath,
+    testDirectory: "artifacts/tests",
+  });
+  store.writeRaw({
+    nodeId: "scenario-validity",
+    logicalKey: "scenario.validity.raw-log",
+    bytes: `${rawText}\n`,
+  });
+  const resultRelativePath = store.location.relativeArtifact("scenario.validity");
+  const output = attachCanonicalCommandResultArtifact({
+    result,
+    changed: [resultRelativePath, rawRelativePath],
+    artifacts: {
+      result_path: resultRelativePath,
+      raw_output_path: rawRelativePath,
+      completed: result === "pass",
+      artifact_version: "1",
+      result,
+    },
+    next: result === "pass" ? "test-review" : null,
+  }, {
+    logicalKey: "scenario.validity",
+    payload: artifact,
+  });
+  if (result !== "pass") {
+    // A blocked command is not confirmed, but its observed attempt must still
+    // be durable for retry/recovery and for subsequent human diagnosis.
+    ctx.flowManager.publishCurrentAttemptResult({ specId: state.specId, commandResult: output });
+    recordCanonicalScenarioValidityRepairEvidence({
+      flowManager: ctx.flowManager,
+      state,
+      summary,
+      testSourceRevision,
+    });
+  }
+  return output;
 }
 
 export default class RunScenarioValidityCommand extends FlowCommand {
@@ -418,233 +568,11 @@ export default class RunScenarioValidityCommand extends FlowCommand {
   }
 
   async execute(ctx) {
-    const { root } = ctx;
-    const executionRoot = ctx.executionRoot || root;
     const state = ctx.flowState;
     const config = ctx.config || this.container?.get?.("config") || {};
-    const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(state)));
-    const specId = state.specId;
-    const resultPath = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
-    const rawOutputPath = path.join(specDir, SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE);
-    const blockedResult = (message, code = "SCENARIO_VALIDITY_BLOCKED", details = null) => Envelope.fail(
-      "run",
-      "scenario-validity",
-      code,
-      message,
-      {
-        result: "block",
-        changed: [
-          normalizePath(path.relative(root, resultPath)),
-          normalizePath(path.relative(root, rawOutputPath)),
-        ],
-        artifacts: {
-          result_path: normalizePath(path.relative(root, resultPath)),
-          raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-          completed: false,
-          artifact_version: "1",
-          result: "block",
-        },
-        ...(details ? { details } : {}),
-        next: null,
-      },
-    );
-    await fs.promises.mkdir(path.dirname(rawOutputPath), { recursive: true });
-    await fs.promises.rm(resultPath, { force: true });
-    await fs.promises.rm(rawOutputPath, { force: true });
-
-    let requirements = [];
-    let command = "node --test";
-    try {
-      const spec = readJsonStrict(path.join(specDir, "spec.json"));
-      requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
-      const files = await discoverScenarioValidityTestFiles({ root, specDir });
-      const testEntries = await loadScenarioTestEntries(files);
-      const testFileSources = new Map(testEntries.flatMap((entry) => [
-        [normalizePath(path.relative(root, entry.file)), entry.source],
-        [entry.file, entry.source],
-      ]));
-      command = files.length > 0
-        ? ["node", "--test", ...files.map((file) => normalizePath(path.relative(root, file)))].join(" ")
-        : "node --test";
-      const rawLines = [];
-
-    let baseline;
-    try {
-      baseline = resolveRepairBaselineAuthority({ root: executionRoot, flowState: state });
-    } catch (error) {
-      if (!(error instanceof RepairStateError)) throw error;
-      writeScenarioValidityFallbackArtifacts({
-        root,
-        specDir,
-        resultPath,
-        rawOutputPath,
-        requirements,
-        command,
-        err: error,
-      });
-      return blockedResult(error.message, "SCENARIO_VALIDITY_BLOCKED", {
-        baselineErrorCode: error.code,
-        ...error.details,
-      });
+    if (!isCanonicalFlowState(state)) {
+      throw new Error("scenario-validity requires a Version-1 Flow");
     }
-    const baselineRef = baseline.ref;
-    const changedFiles = listScenarioValidityPreflightFiles({ root: executionRoot, baselineRef });
-    const preflight = validateScenarioValidityPreflightPaths({
-      specDirectory: normalizePath(path.relative(root, specDir)),
-      changedFiles,
-    });
-    if (!preflight.ok) {
-      const range = appendRaw(rawLines, [
-        "[sennel] scenario-validity preflight block",
-        `command: ${buildScenarioValidityDiffArgs(baselineRef).join(" ")}`,
-        `invalid_paths: ${preflight.invalidPaths.join(", ")}`,
-        ...requirements.filter((req) => req.testable !== false).map((req) => `[sennel] requirement ${req.id} result invalid_test`),
-        "[sennel] scenario-validity preflight end",
-      ]);
-      const artifact = {
-        version: "1",
-        raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-        command,
-        process: { started: false, exitCode: null, signal: null, timedOut: false, spawnError: null },
-        result: "block",
-        summary: requirements
-          .filter((req) => req.testable !== false)
-          .map((req) => {
-            const entry = findTestEntriesForReq(testEntries, req.id)[0];
-            return {
-              id: req.id,
-              classification: "invalid_test",
-              evidence: {
-                test_file: entry ? normalizePath(path.relative(root, entry.file)) : normalizePath(path.relative(root, path.join(specDir, "tests", `${req.id.toLowerCase()}.test.js`))),
-                test_name: entry ? extractRequirementTestName(entry, req.id) : `${req.id}: preflight invalid`,
-                command,
-                raw_output_lines: range,
-              },
-            };
-          }),
-        preflight: { invalid_paths: preflight.invalidPaths },
-      };
-      await fs.promises.writeFile(rawOutputPath, rawLines.join("\n") + "\n");
-      validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText: rawLines.join("\n"), rawLines, testFileSources });
-      await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
-      return blockedResult(`scenario-validity blocked by implementation-target changes: ${preflight.invalidPaths.join(", ")}`);
-    }
-
-    const timeoutMs = (config?.test?.timeoutSeconds
-      || config?.test?.timeout
-      || config?.agent?.timeout
-      || DEFAULT_TEST_TIMEOUT_SECONDS) * 1000;
-    const executions = buildScenarioValidityExecutions({ testEntries, requirements });
-    const fileRecords = await this.scenarioTestExecutor({
-      root: executionRoot,
-      repositoryRoot: root,
-      specDir,
-      files,
-      executions,
-      timeoutMs,
-    });
-    const failedRecords = fileRecords.filter((record) => !processPassed(record.process));
-    const spawnErrors = fileRecords.map((record) => record.process.spawnError).filter(Boolean);
-    const scenarioProcess = fileRecords.length === 0
-      ? { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" }
-      : {
-          started: fileRecords.some((record) => record.process.started),
-          exitCode: failedRecords.length === 0 ? 0 : failedRecords.find((record) => record.process.exitCode !== null)?.process.exitCode ?? null,
-          signal: fileRecords.find((record) => record.process.signal)?.process.signal || null,
-          timedOut: fileRecords.some((record) => record.process.timedOut),
-          spawnError: spawnErrors.length > 0 ? spawnErrors.join("\n") : null,
-          stdout: "",
-          stderr: "",
-        };
-    appendRaw(rawLines, [
-      "[sennel] scenario-validity tests start",
-      `command: ${command}`,
-    ]);
-    const recordRanges = new Map();
-    for (const record of fileRecords) {
-      const requirementLabel = record.requirementId || "unscoped";
-      recordRanges.set(record, appendRaw(rawLines, [
-        `[sennel] scenario-validity requirement ${requirementLabel} file start command=${record.command}`,
-        ...processLines(record.process),
-        `[sennel] scenario-validity requirement ${requirementLabel} file end command=${record.command}`,
-      ]));
-    }
-    appendRaw(rawLines, [
-      ...processLines(scenarioProcess),
-      ...requirements.filter((req) => req.testable !== false).map((req) => {
-        const entry = findTestEntriesForReq(testEntries, req.id)[0];
-        const testName = entry ? extractRequirementTestName(entry, req.id) : `${req.id}: not run`;
-        return `[sennel] requirement ${req.id} observed: ${testName}`;
-      }),
-      "[sennel] scenario-validity tests end",
-    ]);
-    const rawText = rawLines.join("\n");
-    const range = { start_line: 1, end_line: rawLines.length };
-    const summary = buildScenarioValiditySummary({
-      root,
-      files,
-      testEntries,
-      fileRecords,
-      requirements,
-      command,
-      range,
-      recordRanges,
-    });
-    const result = summary.every((entry) => entry.classification === "expected_fail") ? "pass" : "block";
-    const artifact = {
-      version: "1",
-      raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-      command,
-      process: {
-        started: scenarioProcess.started,
-        exitCode: scenarioProcess.exitCode,
-        signal: scenarioProcess.signal,
-        timedOut: scenarioProcess.timedOut,
-        spawnError: scenarioProcess.spawnError,
-      },
-      result,
-      summary,
-    };
-    await fs.promises.writeFile(rawOutputPath, rawText + "\n");
-    validateScenarioValidityResult(artifact, { root, specDir, requirements, rawText, rawLines, testFileSources });
-    await fs.promises.writeFile(resultPath, JSON.stringify(artifact, null, 2) + "\n");
-
-    const output = {
-      result,
-      changed: [
-        normalizePath(path.relative(root, resultPath)),
-        normalizePath(path.relative(root, rawOutputPath)),
-      ],
-      artifacts: {
-        result_path: normalizePath(path.relative(root, resultPath)),
-        raw_output_path: normalizePath(path.relative(root, rawOutputPath)),
-        completed: result === "pass",
-        artifact_version: "1",
-        result,
-      },
-      next: result === "pass" ? "test-review" : null,
-    };
-    if (result !== "pass") {
-      recordScenarioValidityRepairEvidence({ root, state, summary });
-      output.changed.push(normalizePath(path.relative(root, path.join(specDir, "issue-log.json"))));
-      return Envelope.fail(
-        "run",
-        "scenario-validity",
-        "SCENARIO_VALIDITY_BLOCKED",
-        `scenario-validity blocked: ${summary.map((entry) => `${entry.id}=${entry.classification}`).join(", ")}`,
-        output,
-      );
-    }
-    return output;
-    } catch (err) {
-      const artifactsExist = await Promise.all([
-        fs.promises.access(resultPath).then(() => true, () => false),
-        fs.promises.access(rawOutputPath).then(() => true, () => false),
-      ]);
-      if (artifactsExist.includes(false)) {
-        writeScenarioValidityFallbackArtifacts({ root, specDir, resultPath, rawOutputPath, requirements, command, err });
-      }
-      throw err;
-    }
+    return executeCanonicalScenarioValidity(ctx, this.scenarioTestExecutor, config);
   }
 }

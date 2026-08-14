@@ -11,11 +11,36 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   resolveLatestReportPath,
   readReportText,
   POINTER_REL_PATH,
 } from "../../../src/flow/lib/run-report-show.js";
+
+function canonicalReportFixture(root, { specRoot = "specs", report = null } = {}) {
+  const flowManager = makeFlowManager(root, { specRoot });
+  const flow = new CanonicalFlowFixture({
+    flowManager,
+    specId: "001-demo",
+    runId: "run-report-show",
+    request: "Render the finalized canonical report.",
+    specRecord: { requirements: [] },
+  }).create().registerActive().activate("report");
+  if (report !== null) {
+    flowManager.publishArtifacts({
+      specId: flow.specId,
+      nodeId: "report",
+      artifactWrites: [{
+        logicalKey: "report",
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(report)}\n`, "utf8"),
+      }],
+    });
+  }
+  writeFile(root, POINTER_REL_PATH, `${flow.specId}\n`);
+  return { flow, flowManager };
+}
 
 describe("flow report show — resolve + read", () => {
   let tmp;
@@ -23,30 +48,29 @@ describe("flow report show — resolve + read", () => {
 
   it("AC1: resolves latest report.json from pointer and returns its text field", () => {
     tmp = createTmpDir("sennel-report-show-");
-    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
     const reportText = "  Report\n\n  Implementation\n──\n    feat: demo\n";
-    writeFile(
-      tmp,
-      "specs/001-demo/report.json",
-      JSON.stringify({ data: {}, text: reportText }),
-    );
+    const { flow, flowManager } = canonicalReportFixture(tmp, {
+      report: { data: {}, text: reportText },
+    });
 
-    const reportPath = resolveLatestReportPath(tmp);
+    const reportPath = resolveLatestReportPath(tmp, "specs", flowManager);
     assert.equal(
       reportPath,
-      path.join(tmp, "specs/001-demo/report.json"),
+      path.join(flow.location().directory, "artifacts/report.json"),
     );
     assert.equal(readReportText(reportPath), reportText);
   });
 
   it("resolves a report from a configured spec root", () => {
     tmp = createTmpDir("sennel-report-show-configured-root-");
-    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
-    writeFile(tmp, "flow-artifacts/specs/001-demo/report.json", JSON.stringify({ data: {}, text: "ok" }));
+    const { flow, flowManager } = canonicalReportFixture(tmp, {
+      specRoot: "flow-artifacts/specs",
+      report: { data: {}, text: "ok" },
+    });
 
     assert.equal(
-      resolveLatestReportPath(tmp, "flow-artifacts/specs"),
-      path.join(tmp, "flow-artifacts/specs/001-demo/report.json"),
+      resolveLatestReportPath(tmp, "flow-artifacts/specs", flowManager),
+      path.join(flow.location().directory, "artifacts/report.json"),
     );
   });
 
@@ -69,10 +93,10 @@ describe("flow report show — resolve + read", () => {
 
   it("AC3: throws NO_REPORT when pointer exists but report.json is missing", () => {
     tmp = createTmpDir("sennel-report-show-no-report-");
-    writeFile(tmp, POINTER_REL_PATH, "001-demo\n");
+    const { flowManager } = canonicalReportFixture(tmp);
     assert.throws(
-      () => resolveLatestReportPath(tmp),
-      (err) => err.code === "NO_REPORT" && /report\.json not found/.test(err.message),
+      () => resolveLatestReportPath(tmp, "specs", flowManager),
+      (err) => err.code === "NO_REPORT" && /cataloged report is unavailable/.test(err.message),
     );
   });
 

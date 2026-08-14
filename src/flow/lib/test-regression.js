@@ -7,7 +7,7 @@ import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
 import { collectTestCommandSources, selectTestCommandSource } from "../../lib/test-command-sources.js";
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 import { PRODUCT } from "../../lib/product.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
@@ -874,7 +874,11 @@ export function listRegressionChangedFiles({ root, state }) {
 
 export function classifyRegression({ root, state, analysis, config, changedFiles = null }) {
   changedFiles ||= listRegressionChangedFiles({ root, state });
-  const activeSpec = path.dirname(normalizePath(relativeFlowSpecFile(state)));
+  const location = flowStateSpecLocation(state);
+  if (location === null || state?.schemaRevision !== 3) {
+    throw new Error("regression classification requires a manager-bound Version-1 Flow state");
+  }
+  const activeSpec = normalizePath(location.relativeDirectory);
   const projectPaths = config?.test?.projectPaths || [];
   const analysisFiles = analysis && typeof analysis === "object"
     ? projectFilePathsFromAnalysis(analysis, { strict: false })

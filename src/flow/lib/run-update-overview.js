@@ -1,57 +1,14 @@
 /**
  * src/flow/lib/run-update-overview.js
  *
- * Persist-side of the update-overview behavior (spec 207). Given a spec
- * directory, AI-emitted additions, a task identifier, and rendering meta,
- * this module:
- *
- *   1. reads `spec.json` from the spec dir,
- *   2. applies `additions` with `added_by_task = taskId` stamped (via the
- *      merge helper — no mutation),
- *   3. writes the updated `spec.json`,
- *   4. re-renders `spec.md` deterministically,
- *   5. writes the refreshed `spec.md`.
- *
- * The function is a pure orchestrator over existing primitives; AI
- * invocation lives in the caller (e.g. the flow runner) and is out of
- * scope for this module.
+ * Validate one task overview contribution and publish it through the
+ * canonical Version Store.
  */
 
-import fs from "node:fs";
-import path from "node:path";
-import { applyOverviewAdditions, validateAdditions } from "./overview-merge.js";
-import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
+import { validateAdditions } from "./overview-merge.js";
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { getSpecDir } from "../../lib/flow-helpers.js";
-import { saveSpecJson } from "../../lib/spec-json.js";
-
-const MAX_SPEC_JSON_BYTES = 256 * 1024;
-
-export function persistOverviewUpdate({ specDir, additions, taskId }) {
-  const specJsonPath = path.join(specDir, "spec.json");
-
-  const stat = fs.statSync(specJsonPath);
-  if (stat.size > MAX_SPEC_JSON_BYTES) {
-    throw new Error(
-      `spec.json exceeds bounded size limit: ${stat.size} > ${MAX_SPEC_JSON_BYTES} bytes`,
-    );
-  }
-  const raw = fs.readFileSync(specJsonPath, "utf8");
-  const spec = JSON.parse(raw);
-
-  const next = applyOverviewAdditions(spec, additions, taskId);
-  const renderPlan = buildSpecViewPlan({
-    root: path.dirname(path.dirname(specDir)),
-    specPath: specJsonPath,
-    spec: next,
-  });
-  saveSpecJson(specJsonPath, next, { validate: false });
-  const renderResult = applySpecViewPlan(renderPlan);
-
-  return { specJsonPath, specMdPath: path.join(specDir, "spec.md"), rendered: renderResult.changed };
-}
 
 /**
  * Parse and validate the raw `--json` argument for `flow run update-overview`.
@@ -92,7 +49,7 @@ export function validateOverviewAdditions(raw) {
  *
  * Spec 226: The task-scope `update-overview` step has been removed; its
  * functionality is now invoked from the impl step via this CLI (production
- * caller of `applyOverviewAdditions` / `persistOverviewUpdate`).
+ * caller of the typed `FlowManager.updateTaskOverview` operation).
  *
  * The AI-emitted additions JSON is passed via `--json` option. The active
  * flow's current task id is auto-detected for the `added_by_task` stamp.
@@ -112,22 +69,21 @@ export class RunUpdateOverviewCommand extends FlowCommand {
       return Envelope.fail("run", "update-overview", "NO_ACTIVE_FLOW", "no active flow found");
     }
 
-    const specDir = getSpecDir(state, root);
-    if (!specDir) {
-      return Envelope.fail("run", "update-overview", "NO_SPEC_DIR", "spec directory not found in flow state");
-    }
-
     const taskId = state.currentTaskId || null;
 
     try {
-      const { specJsonPath, specMdPath } = persistOverviewUpdate({
-        specDir, additions, taskId,
+      if (state.schemaRevision !== 3 || typeof fm.updateTaskOverview !== "function") {
+        throw new Error("update-overview requires an active canonical Flow");
+      }
+      const outcome = fm.updateTaskOverview({
+        specId: state.specId,
+        taskId,
+        additions,
       });
       return Envelope.ok("run", "update-overview", {
-        specJsonPath,
-        specMdPath,
+        specJsonPath: fm.specLocation(state.specId).specFile,
         taskId,
-        applied: true,
+        applied: outcome.applied,
       });
     } catch (err) {
       return Envelope.fail("run", "update-overview", "PERSIST_FAILED", err.message);

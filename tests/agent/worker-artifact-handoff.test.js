@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createInitialDraftArtifactRevision } from "../../src/flow/lib/draft-artifact-promotion.js";
 import GetNextActionCommand from "../../src/flow/lib/get-next-action.js";
 import RunDispatchCommand from "../../src/flow/lib/run-dispatch.js";
 import { findStepById } from "../../src/flow/lib/step-tree.js";
@@ -13,7 +13,11 @@ import { Agent } from "../../src/lib/agent.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
 import { Logger } from "../../src/lib/log.js";
 import { ProviderRegistry } from "../../src/lib/provider.js";
-import { makeFlowState, moveFlowToStep } from "../helpers/flow-setup.js";
+import {
+  FlowArtifactAttemptHistory,
+  FlowArtifactAttemptRecord,
+} from "../../src/lib/flow-artifact-contract.js";
+import { CanonicalFlowFixture } from "../helpers/flow-setup.js";
 import { commitAll, initGitRepo } from "../helpers/git-repo.js";
 import { createTmpDir, removeTmpDir } from "../helpers/tmp-dir.js";
 import {
@@ -26,6 +30,32 @@ const WORKER_ARTIFACT_HANDOFF_SCHEMA = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
 );
+
+function attemptHistoryBytes(nodeId, logicalKey, payload) {
+  return Buffer.from(`${JSON.stringify(new FlowArtifactAttemptHistory([
+    new FlowArtifactAttemptRecord({
+      attempt: 1,
+      payload: {
+        nodeId,
+        outcome: "completed",
+        result: { result: "ok" },
+        artifact: { logicalKey, payload },
+      },
+    }),
+  ]).toJSON(), null, 2)}\n`, "utf8");
+}
+
+function publishAttemptArtifact(flowManager, specId, nodeId, logicalKey, payload) {
+  flowManager.publishArtifacts({
+    specId,
+    nodeId,
+    artifactWrites: [{
+      logicalKey,
+      mediaType: "application/json",
+      bytes: attemptHistoryBytes(nodeId, logicalKey, payload),
+    }],
+  });
+}
 
 function installSennelWrapper(executionRoot) {
   const binDir = path.join(executionRoot, ".test-bin");
@@ -138,23 +168,42 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
 
       const specId = "500-worker-handoff-agent";
-      const canonicalSpecDir = path.join(mainRoot, "specs", specId);
-      fs.mkdirSync(canonicalSpecDir, { recursive: true });
-      const draftPath = path.join(canonicalSpecDir, "draft.json");
-      fs.writeFileSync(draftPath, `${JSON.stringify({ goal: "Repair the worker handoff." }, null, 2)}\n`);
-      const state = moveFlowToStep(makeFlowState({
+      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+      const fixture = new CanonicalFlowFixture({
+        flowManager,
         specId,
         runId: "run-worker-handoff-agent",
-        worktree: true,
         request: "Exercise the real agent worker handoff.",
-      }), "draft-questions-triage");
-      state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
-      state.draftArtifactRevision.sourceStepId = "draft";
-      fs.writeFileSync(path.join(canonicalSpecDir, "draft-review-questions.json"), `${JSON.stringify({
+        execution: {
+          mode: "worktree",
+          baseBranch: "main",
+          featureBranch: "feature/worker-handoff-agent",
+        },
+        specRecord: { goal: "Exercise the worker handoff", requirements: [] },
+      }).create();
+      const canonicalSpecDir = flowManager.specLocation(specId).directory;
+      const draftBytes = Buffer.from(`${JSON.stringify({ goal: "Repair the worker handoff." }, null, 2)}\n`);
+      fixture.activate("draft");
+      flowManager.publishArtifacts({
+        specId,
+        nodeId: "draft",
+        artifactWrites: [{ logicalKey: "draft", mediaType: "application/json", bytes: draftBytes }],
+      });
+      fixture.settle("draft").activate("draft-questions-review");
+      const draftRevision = {
+        version: 1,
+        runId: "run-worker-handoff-agent",
+        specId,
+        sourceStepId: "draft",
+        digest: crypto.createHash("sha256").update(draftBytes).digest("hex"),
+        byteLength: draftBytes.length,
+        finalizedAt: "2026-08-14T00:00:00.000Z",
+      };
+      publishAttemptArtifact(flowManager, specId, "draft-questions-review", "draft.questions.review", {
         version: 2,
         phase: "draft-questions",
         sourceDraft: "draft.json",
-        sourceDraftRevision: state.draftArtifactRevision,
+        sourceDraftRevision: draftRevision,
         generatedAt: "2026-08-04T00:00:00.000Z",
         verdict: "ADVISORY",
         summary: "One repair is required.",
@@ -167,9 +216,9 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
           evidence: "The handoff contract assigns publication to the parent.",
           classification: "repair_target",
         }],
-      }, null, 2)}\n`);
-      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
-      flowManager.create(state);
+      });
+      fixture.settle("draft-questions-review").activate("draft-questions-triage");
+      const state = flowManager.load();
       const agent = realCodexAgent({ mainRoot, executionRoot, flowManager });
       const dispatcher = new RunDispatchCommand({
         nextAction: {
@@ -178,7 +227,14 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
             if (findStepById(current.steps, "draft-questions-triage").status !== "done") {
               return action("draft-questions-triage");
             }
-            if (findStepById(current.steps, "draft-questions-repair").status !== "done") {
+            const repair = findStepById(current.steps, "draft-questions-repair");
+            if (repair.status === "pending") {
+              flowManager.updateStepStatus({
+                stepId: "draft-questions-repair",
+                requestedStatus: "in_progress",
+              });
+            }
+            if (repair.status !== "done") {
               return action("draft-questions-repair");
             }
             return action(null);
@@ -208,15 +264,15 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       const completed = flowManager.load();
       assert.equal(findStepById(completed.steps, "draft-questions-triage").status, "done");
       assert.equal(findStepById(completed.steps, "draft-questions-repair").status, "done");
-      assert.equal(completed.draftArtifactRevision.sourceStepId, "draft-questions-repair");
-      assert.equal(completed.workerArtifactReceipts?.length, 2);
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir, "draft-questions-triage.json")), false);
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir, "draft-questions-repair.json")), false);
       assert.equal(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "draft-questions-triage.json"), "utf8")).items[0].decision,
-        "apply",
+        flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "draft.questions.triage"),
+        true,
       );
       assert.equal(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "draft-questions-repair.json"), "utf8")).items[0].target,
-        "goal",
+        flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "draft.questions.repair"),
+        true,
       );
       const downstream = await new GetNextActionCommand().execute({
         root: executionRoot,
@@ -239,7 +295,7 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       });
       assert.deepEqual(
         downstreamRequest.inputs[0].document,
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "draft.json"), "utf8")),
+        { goal: "Parent publication is canonical." },
       );
     } finally {
       process.env.PATH = originalPath;
@@ -260,20 +316,34 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       process.env.PATH = `${binDir}${path.delimiter}${originalPath}`;
 
       const specId = "505-worker-handoff-agent-spec";
-      const canonicalSpecDir = path.join(mainRoot, "specs", specId);
-      fs.mkdirSync(canonicalSpecDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(canonicalSpecDir, "draft.json"),
-        workerArtifactJson({ goal: "Publish the canonical spec through the parent dispatcher." }),
-      );
-      const state = moveFlowToStep(makeFlowState({
+      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
+      const fixture = new CanonicalFlowFixture({
+        flowManager,
         specId,
         runId: "run-worker-handoff-agent-spec",
-        worktree: true,
         request: "Exercise the real spec worker response schema and publication path.",
-      }), "spec");
-      const flowManager = new FlowManager({ root: executionRoot, mainRoot, inWorktree: true, specId });
-      flowManager.create(state);
+        execution: {
+          mode: "worktree",
+          baseBranch: "main",
+          featureBranch: "feature/worker-handoff-agent-spec",
+        },
+        specRecord: { goal: "Exercise spec publication", requirements: [] },
+      }).create();
+      fixture.activate("draft");
+      flowManager.publishArtifacts({
+        specId,
+        nodeId: "draft",
+        artifactWrites: [{
+          logicalKey: "draft",
+          mediaType: "application/json",
+          bytes: Buffer.from(workerArtifactJson({
+            goal: "Publish the canonical spec through the parent dispatcher.",
+          })),
+        }],
+      });
+      fixture.settle("draft").activate("spec");
+      const canonicalSpecDir = flowManager.specLocation(specId).directory;
+      const state = flowManager.load();
       const currentAction = specWorkerAction();
       const dispatcher = new RunDispatchCommand({
         nextAction: {
@@ -308,10 +378,12 @@ describe("real agent worker artifact handoff", { timeout: 480_000 }, () => {
       assert.equal(findStepById(completed.steps, "spec").status, "done");
       assert.deepEqual(
         JSON.parse(fs.readFileSync(path.join(canonicalSpecDir, "spec.json"), "utf8")),
-        validWorkerHandoffSpec(),
+        { ...validWorkerHandoffSpec(), tasks: [] },
       );
-      assert.equal(completed.workerArtifactReceipts?.length, 1);
-      assert.equal(completed.workerArtifactReceipts[0].stepId, "spec");
+      assert.equal(
+        flowManager.artifactCatalog(specId).artifacts.some((entry) => entry.logicalKey === "spec.record"),
+        true,
+      );
     } finally {
       process.env.PATH = originalPath;
       removeTmpDir(mainRoot);

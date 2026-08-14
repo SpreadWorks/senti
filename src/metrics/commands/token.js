@@ -2,8 +2,8 @@
 /**
  * src/metrics/commands/token.js
  *
- * Aggregate token/cache/cost metrics from spec flow.json files and output
- * text/json/csv reports.
+ * Aggregate token/cache/cost metrics from canonical Flow Version-1 records
+ * and output text/json/csv reports.
  */
 
 import fs from "node:fs/promises";
@@ -15,11 +15,11 @@ import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { PRODUCT } from "../../lib/product.js";
+import { CanonicalMetricsFlowIndex } from "../lib/canonical-flow-metrics.js";
 
-export const CACHE_VERSION = 4;
+export const CACHE_VERSION = 5;
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
-const MAX_FLOW_FILES = 5000;
 const DIFFICULTY_BASELINES = {
   specMdChars: 10000,
   requirementCount: 20,
@@ -412,35 +412,10 @@ export function formatCsv(rows) {
   return lines.join("\n");
 }
 
-async function listFlowFiles(specsDir) {
-  const files = [];
-  const stack = [specsDir];
-
-  while (stack.length > 0) {
-    const dir = stack.pop();
-    const entries = await fs.readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-        continue;
-      }
-      if (!entry.isFile() || entry.name !== "flow.json") continue;
-      files.push({ path: fullPath });
-      if (files.length > MAX_FLOW_FILES) {
-        throw new Error(`flow.json count exceeds limit (${MAX_FLOW_FILES})`);
-      }
-    }
-  }
-
-  return files;
-}
-
 function computeMaxFinalizedAt(flowEntries) {
   let max = null;
-  for (const entry of flowEntries) {
-    const iso = entry?.parsed?.state?.finalizedAt;
+  for (const flow of flowEntries) {
+    const iso = flow.finalizedAt();
     if (typeof iso !== "string") continue;
     if (max == null || iso > max) max = iso;
   }
@@ -566,52 +541,13 @@ function finalizeRow(row) {
   };
 }
 
-async function safeReadJson(filePath) {
-  try {
-    const text = await fs.readFile(filePath, "utf8");
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-async function countFilesRecursive(dirPath) {
-  try {
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
-    let count = 0;
-    for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
-      const fullPath = path.join(dirPath, entry.name);
-      if (entry.isDirectory()) {
-        const nestedCount = await countFilesRecursive(fullPath);
-        if (nestedCount == null) return null;
-        count += nestedCount;
-      } else if (entry.isFile()) {
-        count += 1;
-      }
-    }
-    return count;
-  } catch {
-    return null;
-  }
-}
-
-function sumReviewCount(reviewCount) {
-  if (!reviewCount || typeof reviewCount !== "object") return null;
-  const values = ["spec", "test", "impl"].map((k) => toNumberOrNull(reviewCount[k]));
-  if (values.some((v) => v == null)) return null;
-  return values[0] + values[1] + values[2];
-}
-
 function computeRequirementCount(spec) {
   if (Array.isArray(spec?.requirements)) return spec.requirements.length;
   return null;
 }
 
-function computeRequestChars(flowState) {
-  const explicit = toNumberOrNull(flowState.requestChars);
-  if (explicit != null) return explicit;
-  if (typeof flowState.request === "string") return flowState.request.length;
+function computeRequestChars(flow) {
+  if (typeof flow?.state?.request === "string") return flow.state.request.length;
   return null;
 }
 
@@ -627,37 +563,18 @@ function average(values) {
   return values.reduce((acc, n) => acc + n, 0) / values.length;
 }
 
-async function computeSpecDifficulty(flowState, specDir) {
-  // Post-T8: measure spec volume from spec.json via the shared validated load
-  // path. The metric name specMdChars is retained for historical series
-  // continuity. Historic specs without spec.json (pre-T11) are skipped via
-  // returning null — metrics.token iterates many past flows and must tolerate
-  // absent artifacts (spec 207 R2 carve-out for multi-spec iteration).
-  //   Malformed spec.json still throws via JSON.parse.
-  const specJsonPath = path.join(specDir, "spec.json");
-  let stat;
-  try {
-    stat = await fs.stat(specJsonPath);
-  } catch (err) {
-    if (err.code !== "ENOENT") throw err;
-    // Historical spec without spec.json — skip this entry rather than failing
-    // the whole metrics run. Spec 207 R2 carve-out for multi-spec iteration.
-    return null;
-  }
-  if (!stat.isFile()) return null;
-  const jsonText = await fs.readFile(specJsonPath, "utf8");
-  const spec = JSON.parse(jsonText);
-  const specMdChars = jsonText.length;
-
+function computeSpecDifficulty(flow) {
+  const spec = flow.specRecord();
+  // The historical metric label is retained for series continuity, while the
+  // value now comes from the cataloged canonical spec.record bytes.
+  const specMdChars = flow.artifactByteLength("spec.record");
   const requirementCount = computeRequirementCount(spec);
-  const testCountRaw = await countFilesRecursive(path.join(specDir, "tests"));
-  const testCount = testCountRaw == null ? 0 : testCountRaw;
-  const reviewCount = sumReviewCount(flowState.reviewCount);
-  const issueLog = await safeReadJson(path.join(specDir, "issue-log.json"));
+  const testCount = flow.testAssetCount();
+  const reviewCount = flow.reviewConfirmationCount();
+  const issueLog = flow.issueLog();
   const issueLogEntries = Array.isArray(issueLog?.entries) ? issueLog.entries.length : 0;
-  const qaCountRaw = toNumberOrNull(flowState?.metrics?.draft?.question);
-  const qaCount = qaCountRaw == null ? 0 : qaCountRaw;
-  const requestChars = computeRequestChars(flowState);
+  const qaCount = flow.countMetric({ phase: "draft", counter: "question" });
+  const requestChars = computeRequestChars(flow);
 
   const required = [specMdChars, requirementCount, reviewCount, requestChars];
   if (required.some((v) => v == null)) return null;
@@ -706,16 +623,15 @@ function normalizeMetrics(metrics) {
 
 async function buildRows(flowEntries) {
   const rows = new Map();
-  for (const entry of flowEntries) {
-    const { path: filePath, parsed } = entry;
-    const date = isoDateFromFinalizedAt(parsed?.state?.finalizedAt);
+  for (const flow of flowEntries) {
+    const finalizedAt = flow.finalizedAt();
+    const date = isoDateFromFinalizedAt(finalizedAt);
     if (!date) {
-      process.stderr.write(`sennel metrics token: skipping ${filePath} — missing state.finalizedAt\n`);
+      process.stderr.write(`sennel metrics token: skipping ${flow.specId} — missing flow_finalized Activity timing\n`);
       continue;
     }
-    const specDir = path.dirname(filePath);
-    const specDifficulty = await computeSpecDifficulty(parsed, specDir);
-    const metrics = parsed?.metrics;
+    const specDifficulty = computeSpecDifficulty(flow);
+    const metrics = flow.metricEntries();
     if (!metrics || typeof metrics !== "object") continue;
 
     const phaseMap = normalizeMetrics(metrics);
@@ -789,24 +705,18 @@ async function runToken(rawArgs, container) {
   }
   if (!specsStat.isDirectory()) throw new Error(`specs path is not a directory: ${specsDir}`);
 
-  const flowFiles = await listFlowFiles(specsDir);
-  const flowEntries = [];
-  for (const file of flowFiles) {
-    const text = await fs.readFile(file.path, "utf8");
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch (err) {
-      throw new Error(`invalid JSON in ${file.path}: ${err.message}`);
-    }
-    const relativePath = path.relative(specsDir, file.path).split(path.sep).join("/");
-    flowEntries.push({
-      path: file.path,
-      parsed,
-      input: new TokenMetricsInput(relativePath, text),
-    });
-  }
-  const inputFingerprint = TokenMetricsInputFingerprint.from(flowEntries.map((entry) => entry.input));
+  // Metrics must read the same Version Store and catalog authority as normal
+  // runtime. A main-root manager prevents a worktree-local binding from
+  // narrowing this aggregate query to one active Flow.
+  const flowManager = container.get("flowManager").forRoot(root);
+  const flowEntries = (await CanonicalMetricsFlowIndex.read({
+    flowManager,
+    specRoot: specsDir,
+  })).flows;
+  const inputFingerprint = TokenMetricsInputFingerprint.from(flowEntries.map((flow) => {
+    const input = flow.revisionInput();
+    return new TokenMetricsInput(input.relativePath, input.content);
+  }));
   const maxFinalizedAt = computeMaxFinalizedAt(flowEntries);
   let rows;
   const canReuseCache = await isCacheFresh(metricsOutputPath, inputFingerprint);

@@ -11,7 +11,6 @@ import {
   buildInitialNestedSteps,
   buildInitialTaskSteps,
 } from "../../../src/flow/definition.js";
-import { createInitialDraftArtifactRevision } from "../../../src/flow/lib/draft-artifact-promotion.js";
 import { FLOW_ARTIFACT_AUTHORITY_MATRIX } from "../../../src/flow/lib/flow-artifact-authority.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
@@ -24,7 +23,7 @@ import {
 } from "../../../src/flow/lib/worker-artifact-handoff.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { persistAgentInvocationMetric } from "../../../src/lib/agent-invocation-metric.js";
-import { makeFlowState, moveFlowToStep } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   validWorkerHandoffSpec as validSpec,
@@ -36,41 +35,41 @@ const WORKER_ARTIFACT_HANDOFF_SCHEMA_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../src/flow/schemas/next-action/worker-artifact-handoff.schema.json",
 );
-const PUBLICATION_FAULT_PHASES = Object.freeze([
-  "after-worker-handoff-journal",
-  "before-worker-handoff-publication-temp-open",
-  "before-worker-handoff-publication-temp-write",
-  "before-worker-handoff-publication-fsync",
-  "before-worker-handoff-publication-temp-close",
-  "before-worker-handoff-publication-rename",
-  "before-worker-handoff-publication-directory-fsync",
-  "after-worker-handoff-publication",
-]);
-
 function fixture(stepId = "draft", {
   worktree = true,
   runId = "run-worker-handoff",
   specId = "500-worker-handoff",
   issue = null,
+  issueSnapshot = null,
   request = "Create the target-bound worker artifact handoff.",
+  specRecord = null,
+  beforeActivate = null,
 } = {}) {
   const mainRoot = createTmpDir("worker-handoff-main-");
   const executionRoot = worktree ? path.join(mainRoot, "execution") : mainRoot;
   fs.mkdirSync(executionRoot, { recursive: true });
-  const state = moveFlowToStep(makeFlowState({
-    specId,
-    runId,
-    worktree,
-    ...(issue == null ? {} : { issue }),
-    ...(request == null ? {} : { request }),
-  }), stepId);
   const flowManager = new FlowManager({
     root: executionRoot,
     mainRoot,
     inWorktree: worktree,
     specId,
   });
-  flowManager.create(state);
+  const flow = new CanonicalFlowFixture({
+    flowManager,
+    specId,
+    runId,
+    // `flow.json.request` is required even when this fixture is exercising
+    // the draft-context failure caused by an empty user request.  The V1
+    // schema preserves that exact empty request; DraftInputAuthority then
+    // correctly rejects it as non-authoritative worker context.
+    request: request ?? "",
+    issue,
+    issueSnapshot,
+    execution: worktree
+      ? { mode: "worktree", baseBranch: "main", featureBranch: `feature/${specId}` }
+      : { mode: "direct", baseBranch: "main", featureBranch: null },
+    ...(specRecord === null ? {} : { specRecord }),
+  }).create().registerActive();
   const ctx = { root: executionRoot, executionRoot, mainRoot, specId, flowManager };
   const invocation = {
     id: "dispatch-worker-handoff",
@@ -83,11 +82,51 @@ function fixture(stepId = "draft", {
   const coordinator = new WorkerArtifactHandoffCoordinator({
     now: () => new Date("2026-08-04T00:00:00.000Z"),
   });
-  return { mainRoot, executionRoot, specId, flowManager, ctx, invocation, coordinator };
+  const value = { mainRoot, executionRoot, specId, flowManager, flow, ctx, invocation, coordinator };
+  if (beforeActivate !== null) {
+    if (typeof beforeActivate !== "function") throw new TypeError("worker handoff fixture beforeActivate must be a function");
+    beforeActivate(value);
+  }
+  if (flow.state().currentNodeId !== stepId) flow.activate(stepId);
+  return value;
 }
 
 function canonicalSpecDir(value) {
-  return path.join(value.mainRoot, "specs", value.specId);
+  return value.flowManager.specLocation(value.specId).directory;
+}
+
+function publishDraftBeforeTarget(value, draft) {
+  value.flow.activate("draft");
+  value.flowManager.publishArtifacts({
+    specId: value.specId,
+    nodeId: "draft",
+    artifactWrites: [{
+      logicalKey: "draft",
+      mediaType: "application/json",
+      bytes: Buffer.from(json(draft), "utf8"),
+    }],
+  });
+  value.flow.settle("draft");
+}
+
+function readCatalogJson(value, logicalKey, consumerNodeId) {
+  return JSON.parse(value.flowManager.readArtifact({
+    specId: value.specId,
+    logicalKey,
+    consumerNodeId,
+  }).bytes.toString("utf8"));
+}
+
+function writeScenarioRuntimeLog(value, text) {
+  value.flowManager.writeRuntimeArtifact({
+    specId: value.specId,
+    nodeId: "scenario-validity",
+    artifact: {
+      logicalKey: "scenario.validity.raw-log",
+      mediaType: "text/plain",
+      bytes: Buffer.from(text, "utf8"),
+    },
+  });
 }
 
 function initializeGitRepository(value) {
@@ -159,121 +198,6 @@ function rewriteSubmission(request, mutate) {
   fs.writeFileSync(request.submissionPath, `${JSON.stringify(document, null, 2)}\n`);
 }
 
-function prepareSpecRepairHandoff() {
-  const value = fixture("spec-repair");
-  const review = {
-    verdict: "REJECTED",
-    blockingFindings: [{ title: "Missing invariant", target: "requirements[0]" }],
-  };
-  const triage = {
-    version: 1,
-    phase: "spec-triage",
-    sourceReview: "spec-review.json",
-    summary: "Apply the required invariant.",
-    items: [{
-      title: "Missing invariant",
-      target: "requirements[0]",
-      decision: "apply",
-      rationale: "The invariant is required.",
-      evidence: "The review identifies the missing contract.",
-    }],
-  };
-  const repair = {
-    version: 1,
-    phase: "spec-repair",
-    sourceReview: "spec-triage.json",
-    summary: "Applied the required invariant.",
-    items: [{
-      title: "Missing invariant",
-      target: "requirements[0]",
-      decision: "applied",
-      rationale: "The specification now states the invariant.",
-      evidence: "requirements[0] contains the invariant.",
-      changedFields: ["requirements[0]"],
-    }],
-  };
-  fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
-  fs.writeFileSync(path.join(canonicalSpecDir(value), "spec-review.json"), json(review));
-  fs.writeFileSync(path.join(canonicalSpecDir(value), "spec-triage.json"), json(triage));
-  const request = value.coordinator.createRequest({
-    ctx: value.ctx,
-    state: value.flowManager.load(),
-    invocation: value.invocation,
-  });
-  const repairedSpec = { ...validSpec(), goal: "Repaired specification" };
-  fs.writeFileSync(request.payloadPath("spec-repair.json"), json(repair));
-  fs.writeFileSync(request.payloadPath("spec.json"), json(repairedSpec));
-  seal(request);
-  return { value, request, repair, repairedSpec };
-}
-
-function prepareDraftRepairHandoff() {
-  const value = fixture("draft-questions-repair");
-  const draftPath = path.join(canonicalSpecDir(value), "draft.json");
-  fs.writeFileSync(draftPath, json({ goal: "Repair the canonical draft." }));
-  value.flowManager.mutate((state) => {
-    state.draftArtifactRevision = createInitialDraftArtifactRevision({ state, draftPath }).toJSON();
-    state.draftArtifactRevision.sourceStepId = "draft";
-  });
-  const revision = value.flowManager.load().draftArtifactRevision;
-  const review = {
-    version: 2,
-    phase: "draft-questions",
-    sourceDraft: "draft.json",
-    sourceDraftRevision: revision,
-    generatedAt: "2026-08-04T00:00:00.000Z",
-    verdict: "ADVISORY",
-    summary: "One repair is required.",
-    blockingFindings: [],
-    advisoryFindings: [],
-    repairTargets: [{
-      title: "Publish through the parent",
-      target: "goal",
-      rationale: "The worker cannot write canonical artifacts.",
-      evidence: "The handoff contract assigns publication to the parent.",
-      classification: "repair_target",
-    }],
-  };
-  const triage = {
-    version: 1,
-    phase: "draft-questions-triage",
-    sourceReview: "draft-review-questions.json",
-    summary: "Apply the parent publication repair.",
-    items: [{
-      title: "Publish through the parent",
-      target: "goal",
-      decision: "apply",
-      rationale: "The review target is valid.",
-      evidence: "The parent owns canonical publication.",
-    }],
-  };
-  const repair = {
-    version: 1,
-    phase: "draft-questions-repair",
-    sourceTriage: "draft-questions-triage.json",
-    summary: "Applied the parent publication repair.",
-    items: [{
-      title: "Publish through the parent",
-      target: "goal",
-      rationale: "The repair uses the guarded handoff.",
-      evidence: "The parent publishes the sealed bytes.",
-      changedFieldPaths: ["goal"],
-    }],
-  };
-  fs.writeFileSync(path.join(canonicalSpecDir(value), "draft-review-questions.json"), json(review));
-  fs.writeFileSync(path.join(canonicalSpecDir(value), "draft-questions-triage.json"), json(triage));
-  const request = value.coordinator.createRequest({
-    ctx: value.ctx,
-    state: value.flowManager.load(),
-    invocation: value.invocation,
-  });
-  const repairedDraft = { goal: "Parent publication is canonical." };
-  fs.writeFileSync(request.payloadPath("draft-questions-repair.json"), json(repair));
-  fs.writeFileSync(request.payloadPath("draft.json"), json(repairedDraft));
-  seal(request);
-  return { value, request, repair, repairedDraft };
-}
-
 describe("worker artifact handoff", () => {
   it("defines one complete authority record for all 36 Flow leaves and 3 task leaves", () => {
     const flowLeaves = flattenSteps(buildInitialNestedSteps()).map((step) => step.id);
@@ -324,9 +248,12 @@ describe("worker artifact handoff", () => {
   });
 
   it("selects linked Issue content over a simultaneous Flow request", () => {
-    const value = fixture("draft", { issue: 501, request: "secondary Flow request" });
+    const value = fixture("draft", {
+      issue: 501,
+      issueSnapshot: "Authoritative Issue body.\n",
+      request: "secondary Flow request",
+    });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(value), "issue.md"), "Authoritative Issue body.\n");
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
         state: value.flowManager.load(),
@@ -419,16 +346,25 @@ describe("worker artifact handoff", () => {
 
       const result = value.coordinator.reconcile({ ctx: value.ctx, request });
       const state = value.flowManager.load();
+      const published = value.flowManager.readArtifact({
+        specId: value.specId,
+        logicalKey: "draft",
+        consumerNodeId: "draft-questions-review",
+      });
+      const activities = value.flowManager.activityLedger(value.specId);
 
       assert.equal(result.completed, true);
       assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
+        JSON.parse(published.bytes.toString("utf8")),
         { goal: "sealed draft" },
       );
       assert.equal(findStepById(state.steps, "draft").status, "done");
-      assert.match(state.draftArtifactRevision.digest, /^[a-f0-9]{64}$/);
-      assert.equal(state.workerArtifactReceipts.length, 1);
-      assert.equal(state.workerArtifactPublication, undefined);
+      assert.equal(findStepById(state.steps, "draft").result.artifactRefs[0].kind, "worker-handoff");
+      assert.equal(activities.at(-1).transition.operation, "confirm_attempt");
+      assert.equal(
+        value.flowManager.artifactCatalog(value.specId).resolve("steps/draft/result.json").logicalKey,
+        "draft",
+      );
       assert.equal(fs.existsSync(request.directory), false);
       assert.equal(
         value.coordinator.reconcile({ ctx: value.ctx, request }).replayed,
@@ -449,16 +385,16 @@ describe("worker artifact handoff", () => {
       });
       assert.ok(request);
       assert.equal(request.executionRoot, value.mainRoot);
-      assert.equal(request.directory.startsWith(path.join(value.mainRoot, ".sennel", "handoffs")), true);
+      assert.equal(
+        request.directory.startsWith(path.join(canonicalSpecDir(value), ".runtime", "worker-handoffs")),
+        true,
+      );
       fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "local handoff" }));
       seal(request);
 
       value.coordinator.reconcile({ ctx: value.ctx, request });
 
-      assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
-        { goal: "local handoff" },
-      );
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-questions-review"), { goal: "local handoff" });
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
     } finally {
       removeTmpDir(value.mainRoot);
@@ -488,9 +424,12 @@ describe("worker artifact handoff", () => {
   });
 
   it("validates and publishes spec and spec-test payload types", () => {
-    const specValue = fixture("spec");
+    const specValue = fixture("spec", {
+      beforeActivate(value) {
+        publishDraftBeforeTarget(value, { goal: "draft input" });
+      },
+    });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(specValue), "draft.json"), json({ goal: "draft input" }));
       const specRequest = specValue.coordinator.createRequest({
         ctx: specValue.ctx,
         state: specValue.flowManager.load(),
@@ -501,16 +440,15 @@ describe("worker artifact handoff", () => {
       specValue.coordinator.reconcile({ ctx: specValue.ctx, request: specRequest });
       assert.equal(findStepById(specValue.flowManager.load().steps, "spec").status, "done");
       assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(specValue), "spec.json"), "utf8")),
-        validSpec(),
+        JSON.parse(fs.readFileSync(specValue.flowManager.specLocation(specValue.specId).specFile, "utf8")),
+        { ...validSpec(), tasks: [] },
       );
     } finally {
       removeTmpDir(specValue.mainRoot);
     }
 
-    const testValue = fixture("test");
+    const testValue = fixture("test", { specRecord: validSpec() });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(testValue), "spec.json"), json(validSpec()));
       const testRequest = testValue.coordinator.createRequest({
         ctx: testValue.ctx,
         state: testValue.flowManager.load(),
@@ -527,8 +465,9 @@ describe("worker artifact handoff", () => {
       testValue.coordinator.reconcile({ ctx: testValue.ctx, request: testRequest });
       assert.equal(findStepById(testValue.flowManager.load().steps, "test").status, "done");
       assert.equal(
-        fs.existsSync(path.join(canonicalSpecDir(testValue), "tests", "handoff.test.js")),
-        true,
+        testValue.flowManager.artifactCatalog(testValue.specId)
+          .resolve("artifacts/tests/handoff.test.js").logicalKey,
+        "tests.source",
       );
     } finally {
       removeTmpDir(testValue.mainRoot);
@@ -536,15 +475,19 @@ describe("worker artifact handoff", () => {
   });
 
   it("preserves command-owned test evidence while replacing the worker-owned test tree", () => {
-    const value = fixture("test");
+    const value = fixture("test", { specRecord: validSpec() });
     try {
-      const specDir = canonicalSpecDir(value);
-      const testsDir = path.join(specDir, "tests");
-      const evidenceDir = path.join(testsDir, ".raw");
-      fs.mkdirSync(evidenceDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "spec.json"), json(validSpec()));
-      fs.writeFileSync(path.join(testsDir, "obsolete.test.js"), "// spec: R1\n");
-      fs.writeFileSync(path.join(evidenceDir, "scenario-validity.log"), "command-owned evidence\n");
+      value.flowManager.publishArtifacts({
+        specId: value.specId,
+        nodeId: "test",
+        artifactWrites: [{
+          logicalKey: "tests.source",
+          parameters: { testPath: "obsolete.test.js" },
+          mediaType: "text/javascript",
+          bytes: Buffer.from("// spec: R1\n", "utf8"),
+        }],
+      });
+      writeScenarioRuntimeLog(value, "command-owned evidence\n");
 
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
@@ -558,12 +501,17 @@ describe("worker artifact handoff", () => {
       seal(request);
       value.coordinator.reconcile({ ctx: value.ctx, request });
 
-      assert.equal(fs.existsSync(path.join(testsDir, "obsolete.test.js")), false);
-      assert.equal(fs.existsSync(path.join(testsDir, "current.test.js")), true);
+      assert.throws(() => value.flowManager.artifactCatalog(value.specId).resolve("artifacts/tests/obsolete.test.js"));
       assert.equal(
-        fs.readFileSync(path.join(evidenceDir, "scenario-validity.log"), "utf8"),
-        "command-owned evidence\n",
+        value.flowManager.artifactCatalog(value.specId)
+          .resolve("artifacts/tests/current.test.js").logicalKey,
+        "tests.source",
       );
+      assert.equal(value.flowManager.readRuntimeArtifact({
+        specId: value.specId,
+        logicalKey: "scenario.validity.raw-log",
+        consumerNodeId: "scenario-validity",
+      }).bytes.toString("utf8"), "command-owned evidence\n");
       assert.equal(findStepById(value.flowManager.load().steps, "test").status, "done");
     } finally {
       removeTmpDir(value.mainRoot);
@@ -571,9 +519,8 @@ describe("worker artifact handoff", () => {
   });
 
   it("rejects spec tests that statically import a missing execution module", () => {
-    const value = fixture("test");
+    const value = fixture("test", { specRecord: validSpec() });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
         state: value.flowManager.load(),
@@ -599,19 +546,16 @@ describe("worker artifact handoff", () => {
           && /missing pre-implementation module/.test(error.message),
       );
       assert.equal(findStepById(value.flowManager.load().steps, "test").status, "in_progress");
-      assert.equal(
-        fs.existsSync(path.join(canonicalSpecDir(value), "tests", "future-module.test.js")),
-        false,
-      );
+      assert.equal(value.flowManager.artifactCatalog(value.specId).artifacts
+        .some((entry) => entry.relativePath === "artifacts/tests/future-module.test.js"), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
   it("rejects worker output in the command-owned test evidence directory", () => {
-    const value = fixture("test");
+    const value = fixture("test", { specRecord: validSpec() });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
         state: value.flowManager.load(),
@@ -844,7 +788,7 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("rejects canonical-main mutations made outside the handoff payload authority", () => {
+  it("rejects canonical-main mutations made outside the handoff payload authority and keeps the catalog fail-closed", () => {
     const value = fixture("draft", { worktree: true });
     try {
       initializeGitRepository(value);
@@ -854,10 +798,8 @@ describe("worker artifact handoff", () => {
         invocation: value.invocation,
       });
       const authority = WorkerArtifactMutationAuthoritySnapshot.capture(request);
-      fs.writeFileSync(
-        path.join(canonicalSpecDir(value), "draft.json"),
-        json({ goal: "illicit canonical write" }),
-      );
+      const illicitPath = path.join(canonicalSpecDir(value), "draft.json");
+      fs.writeFileSync(illicitPath, json({ goal: "illicit canonical write" }));
 
       assert.throws(
         () => authority.assertUnchanged(),
@@ -866,6 +808,11 @@ describe("worker artifact handoff", () => {
           && error.data.authorities.includes("canonical")
           && error.data.changedPaths.some((entry) => entry.endsWith("draft.json")),
       );
+      assert.throws(
+        () => value.flowManager.load(),
+        /Version storage contains an unclassified artifact: draft\.json/,
+      );
+      fs.unlinkSync(illicitPath);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
     } finally {
       removeTmpDir(value.mainRoot);
@@ -877,7 +824,7 @@ describe("worker artifact handoff", () => {
     try {
       initializeGitRepository(value);
       const productPath = path.join(value.mainRoot, "product.js");
-      const untrackedPath = path.join(canonicalSpecDir(value), "preexisting.json");
+      const untrackedPath = path.join(value.mainRoot, "preexisting.json");
       fs.writeFileSync(productPath, "export const value = 2;\n");
       fs.writeFileSync(untrackedPath, json({ value: 1 }));
       const request = value.coordinator.createRequest({
@@ -1162,6 +1109,9 @@ describe("worker artifact handoff", () => {
             && error.code === "FLOW_ARTIFACT_HANDOFF_INVALID",
           kind,
         );
+        const unknownPath = path.join(request.payloadDirectory, kind === "directory" ? "unknown" : "unknown.js");
+        if (kind === "directory") fs.rmSync(unknownPath, { recursive: true });
+        else fs.unlinkSync(unknownPath);
         assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
         assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
       } finally {
@@ -1233,19 +1183,29 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("rejects canonical input changes made after sealing as stale", () => {
-    const value = fixture("spec");
+  it("rejects cataloged canonical input changes made after sealing as stale", () => {
+    const value = fixture("draft-refine", {
+      beforeActivate(candidate) {
+        publishDraftBeforeTarget(candidate, { goal: "sealed input" });
+      },
+    });
     try {
-      const draftPath = path.join(canonicalSpecDir(value), "draft.json");
-      fs.writeFileSync(draftPath, json({ goal: "sealed input" }));
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
         state: value.flowManager.load(),
         invocation: value.invocation,
       });
-      fs.writeFileSync(request.payloadPath("spec.json"), json(validSpec()));
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "worker output" }));
       seal(request);
-      fs.writeFileSync(draftPath, json({ goal: "stale input" }));
+      value.flowManager.publishArtifacts({
+        specId: value.specId,
+        nodeId: "draft-refine",
+        artifactWrites: [{
+          logicalKey: "draft",
+          mediaType: "application/json",
+          bytes: Buffer.from(json({ goal: "stale input" }), "utf8"),
+        }],
+      });
 
       assert.throws(
         () => value.coordinator.reconcile({ ctx: value.ctx, request }),
@@ -1253,8 +1213,8 @@ describe("worker artifact handoff", () => {
           && error.classification === "stale"
           && error.code === "FLOW_ARTIFACT_HANDOFF_STALE",
       );
-      assert.equal(findStepById(value.flowManager.load().steps, "spec").status, "in_progress");
-      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "spec.json")), false);
+      assert.equal(findStepById(value.flowManager.load().steps, "draft-refine").status, "in_progress");
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), { goal: "stale input" });
     } finally {
       removeTmpDir(value.mainRoot);
     }
@@ -1325,9 +1285,8 @@ describe("worker artifact handoff", () => {
   });
 
   it("retries one invalid pre-publication payload in a fresh handoff and preserves the first seal", async () => {
-    const value = fixture("draft");
+    const value = fixture("draft", { specRecord: validSpec() });
     try {
-      fs.writeFileSync(path.join(canonicalSpecDir(value), "spec.json"), json(validSpec()));
       const current = { value: draftWorkerAction() };
       let calls = 0;
       let firstHandoffDirectory = null;
@@ -1382,22 +1341,20 @@ describe("worker artifact handoff", () => {
         fs.readFileSync(path.join(firstHandoffDirectory, "payload", "draft.json")),
         firstPayloadBytes,
       );
-      assert.equal(value.flowManager.load().workerArtifactPublication, undefined);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
-      assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
-        { goal: "retry succeeded" },
-      );
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-questions-review"), { goal: "retry succeeded" });
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
   it("passes the guarded output schema and schema guidance to the spec artifact worker", async () => {
-    const value = fixture("spec");
+    const value = fixture("spec", {
+      beforeActivate(candidate) {
+        publishDraftBeforeTarget(candidate, { goal: "Create the specification." });
+      },
+    });
     try {
-      const specDir = canonicalSpecDir(value);
-      fs.writeFileSync(path.join(specDir, "draft.json"), json({ goal: "Create the specification." }));
       const current = { value: {
         ...draftWorkerAction(),
         step: "spec",
@@ -1462,10 +1419,8 @@ describe("worker artifact handoff", () => {
   });
 
   it("reports retry exhaustion after the second invalid output with durable diagnostics", async () => {
-    const value = fixture("draft");
+    const value = fixture("draft", { specRecord: validSpec() });
     try {
-      const specDir = canonicalSpecDir(value);
-      fs.writeFileSync(path.join(specDir, "spec.json"), json(validSpec()));
       const current = { value: draftWorkerAction() };
       const handoffDirectories = [];
       let calls = 0;
@@ -1515,11 +1470,10 @@ describe("worker artifact handoff", () => {
       assert.notEqual(result.data.first.handoffDirectory, result.data.second.handoffDirectory);
       assert.equal(result.data.first.classification, "invalid");
       assert.equal(result.data.second.classification, "invalid");
-      assert.equal(value.flowManager.load().workerArtifactPublication, undefined);
       assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
-      assert.equal(fs.existsSync(path.join(specDir, "draft.json")), false);
+      assert.equal(fs.existsSync(path.join(canonicalSpecDir(value), "draft.json")), false);
 
-      const issueLog = JSON.parse(fs.readFileSync(path.join(specDir, "issue-log.json"), "utf8"));
+      const issueLog = readCatalogJson(value, "issue.log", "impl-gate");
       const entry = issueLog.entries.find((candidate) => candidate.issueLogId === (
         `worker-handoff-${result.data.actionDigest}-invalid`
       ));
@@ -1537,13 +1491,15 @@ describe("worker artifact handoff", () => {
     const value = fixture();
     const outside = path.join(value.mainRoot, "outside-handoffs");
     try {
+      const state = value.flowManager.load();
       fs.mkdirSync(outside);
-      fs.mkdirSync(path.join(value.executionRoot, ".sennel"), { recursive: true });
-      fs.symlinkSync(outside, path.join(value.executionRoot, ".sennel", "handoffs"));
+      const handoffRoot = path.join(canonicalSpecDir(value), ".runtime", "worker-handoffs");
+      fs.mkdirSync(path.dirname(handoffRoot), { recursive: true });
+      fs.symlinkSync(outside, handoffRoot);
       assert.throws(
         () => value.coordinator.createRequest({
           ctx: value.ctx,
-          state: value.flowManager.load(),
+          state,
           invocation: value.invocation,
         }),
         (error) => error instanceof WorkerArtifactHandoffError
@@ -1556,8 +1512,12 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("classifies a concurrent canonical target change as a conflict", () => {
-    const value = fixture();
+  it("rejects a concurrent cataloged worker target update before publishing a stale handoff", () => {
+    const value = fixture("draft-refine", {
+      beforeActivate(candidate) {
+        publishDraftBeforeTarget(candidate, { goal: "before concurrent update" });
+      },
+    });
     try {
       const request = value.coordinator.createRequest({
         ctx: value.ctx,
@@ -1566,160 +1526,28 @@ describe("worker artifact handoff", () => {
       });
       fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "worker" }));
       seal(request);
-      fs.writeFileSync(path.join(canonicalSpecDir(value), "draft.json"), json({ goal: "concurrent" }));
+      value.flowManager.publishArtifacts({
+        specId: value.specId,
+        nodeId: "draft-refine",
+        artifactWrites: [{
+          logicalKey: "draft",
+          mediaType: "application/json",
+          bytes: Buffer.from(json({ goal: "concurrent" }), "utf8"),
+        }],
+      });
       assert.throws(
         () => value.coordinator.reconcile({ ctx: value.ctx, request }),
         (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "conflict"
-          && error.code === "FLOW_ARTIFACT_HANDOFF_CONFLICT",
+          && error.classification === "stale"
+          && error.code === "FLOW_ARTIFACT_HANDOFF_STALE",
       );
-      assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
-        { goal: "concurrent" },
-      );
+      assert.deepEqual(readCatalogJson(value, "draft", "draft-refine"), { goal: "concurrent" });
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
-  it("recovers every journal and atomic-publication interruption idempotently", () => {
-    for (const faultPhase of PUBLICATION_FAULT_PHASES) {
-      const value = fixture();
-      try {
-        const request = value.coordinator.createRequest({
-          ctx: value.ctx,
-          state: value.flowManager.load(),
-          invocation: value.invocation,
-        });
-        fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: faultPhase }));
-        seal(request);
-        const interrupted = new WorkerArtifactHandoffCoordinator({
-          now: () => new Date("2026-08-04T00:00:02.000Z"),
-          faultInjector({ phase }) {
-            if (phase === faultPhase) throw new Error("simulated crash");
-          },
-        });
-        assert.throws(
-          () => interrupted.reconcile({ ctx: value.ctx, request }),
-          (error) => error instanceof WorkerArtifactHandoffError
-            && error.classification === "recovery-required",
-          faultPhase,
-        );
-        assert.ok(value.flowManager.load().workerArtifactPublication);
-
-        const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
-        const state = value.flowManager.load();
-        assert.equal(recovered.completed, true, faultPhase);
-        assert.equal(findStepById(state.steps, "draft").status, "done", faultPhase);
-        assert.equal(state.workerArtifactPublication, undefined, faultPhase);
-        assert.equal(state.workerArtifactReceipts.length, 1, faultPhase);
-      } finally {
-        removeTmpDir(value.mainRoot);
-      }
-    }
-  });
-
-  it("retains guarded action identity when pending publication reconstruction fails", () => {
-    const value = fixture();
-    try {
-      const request = value.coordinator.createRequest({
-        ctx: value.ctx,
-        state: value.flowManager.load(),
-        invocation: value.invocation,
-      });
-      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "journal identity" }));
-      seal(request);
-      const interrupted = new WorkerArtifactHandoffCoordinator({
-        faultInjector({ phase }) {
-          if (phase === "after-worker-handoff-journal") throw new Error("simulated crash");
-        },
-      });
-      assert.throws(
-        () => interrupted.reconcile({ ctx: value.ctx, request }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "recovery-required",
-      );
-      fs.unlinkSync(request.requestPath);
-
-      assert.throws(
-        () => value.coordinator.recoverPending({ ctx: value.ctx }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "missing"
-          && error.data.stepId === "draft"
-          && error.data.actionDigest === ACTION_DIGEST
-          && error.data.dispatchInvocationId === value.invocation.id,
-      );
-    } finally {
-      removeTmpDir(value.mainRoot);
-    }
-  });
-
-  it("cleans a consumed handoff after interruption following the state transition", () => {
-    const value = fixture();
-    try {
-      const request = value.coordinator.createRequest({
-        ctx: value.ctx,
-        state: value.flowManager.load(),
-        invocation: value.invocation,
-      });
-      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "transition committed" }));
-      seal(request);
-      const interrupted = new WorkerArtifactHandoffCoordinator({
-        faultInjector({ phase }) {
-          if (phase === "after-worker-handoff-transition") throw new Error("simulated crash");
-        },
-      });
-      assert.throws(
-        () => interrupted.reconcile({ ctx: value.ctx, request }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "recovery-required",
-      );
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
-      assert.equal(fs.existsSync(request.directory), true);
-
-      const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
-      assert.equal(recovered.completed, true);
-      assert.equal(recovered.cleanedHandoffs, 1);
-      assert.equal(fs.existsSync(request.directory), false);
-      assert.equal(value.coordinator.recoverPending({ ctx: value.ctx }), null);
-    } finally {
-      removeTmpDir(value.mainRoot);
-    }
-  });
-
-  it("recovers transition cleanup after request metadata was partially deleted", () => {
-    const value = fixture();
-    try {
-      const request = value.coordinator.createRequest({
-        ctx: value.ctx,
-        state: value.flowManager.load(),
-        invocation: value.invocation,
-      });
-      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "transition committed" }));
-      seal(request);
-      const interrupted = new WorkerArtifactHandoffCoordinator({
-        faultInjector({ phase }) {
-          if (phase === "after-worker-handoff-transition") throw new Error("simulated crash");
-        },
-      });
-      assert.throws(
-        () => interrupted.reconcile({ ctx: value.ctx, request }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "recovery-required",
-      );
-      fs.unlinkSync(request.requestPath);
-
-      const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
-      assert.equal(recovered.completed, true);
-      assert.equal(recovered.cleanedHandoffs, 1);
-      assert.equal(fs.existsSync(request.directory), false);
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
-    } finally {
-      removeTmpDir(value.mainRoot);
-    }
-  });
-
-  it("recovers every post-transition cleanup interruption without reopening the step", () => {
+  it("recovers every V1 runtime cleanup interruption without reopening the Step", () => {
     const cleanupFaults = [
       "before-worker-handoff-cleanup-rename",
       "after-worker-handoff-cleanup-rename",
@@ -1765,58 +1593,19 @@ describe("worker artifact handoff", () => {
     }
   });
 
-  it("recovers every multi-artifact spec-repair publication boundary as one transaction", () => {
-    for (const faultPhase of PUBLICATION_FAULT_PHASES) {
-      const { value, request, repair, repairedSpec } = prepareSpecRepairHandoff();
-      try {
-        let injected = false;
-        const interrupted = new WorkerArtifactHandoffCoordinator({
-          faultInjector({ phase }) {
-            if (!injected && phase === faultPhase) {
-              injected = true;
-              throw new Error("simulated repair interruption");
-            }
-          },
-        });
-        assert.throws(
-          () => interrupted.reconcile({ ctx: value.ctx, request }),
-          (error) => error instanceof WorkerArtifactHandoffError
-            && error.classification === "recovery-required",
-          faultPhase,
-        );
-        assert.ok(value.flowManager.load().workerArtifactPublication);
-
-        value.coordinator.recoverPending({ ctx: value.ctx });
-        const state = value.flowManager.load();
-        assert.equal(findStepById(state.steps, "spec-repair").status, "done", faultPhase);
-        assert.equal(state.workerArtifactPublication, undefined, faultPhase);
-        assert.equal(state.specArtifactRevision.stepId, "spec-repair", faultPhase);
-        assert.deepEqual(
-          JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "spec.json"), "utf8")),
-          repairedSpec,
-          faultPhase,
-        );
-        assert.deepEqual(
-          JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "spec-repair.json"), "utf8")),
-          repair,
-          faultPhase,
-        );
-      } finally {
-        removeTmpDir(value.mainRoot);
-      }
-    }
-  });
-
-  it("recovers a partially visible draft repair and revision as one transaction", () => {
-    const { value, request, repair, repairedDraft } = prepareDraftRepairHandoff();
+  it("cleans a completed V1 runtime handoff when temporary request metadata is deleted", () => {
+    const value = fixture();
     try {
-      let injected = false;
+      const request = value.coordinator.createRequest({
+        ctx: value.ctx,
+        state: value.flowManager.load(),
+        invocation: value.invocation,
+      });
+      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "recover metadata cleanup" }));
+      seal(request);
       const interrupted = new WorkerArtifactHandoffCoordinator({
         faultInjector({ phase }) {
-          if (!injected && phase === "before-worker-handoff-publication-directory-fsync") {
-            injected = true;
-            throw new Error("simulated draft repair interruption");
-          }
+          if (phase === "before-worker-handoff-cleanup-rename") throw new Error("simulated cleanup interruption");
         },
       });
       assert.throws(
@@ -1824,25 +1613,21 @@ describe("worker artifact handoff", () => {
         (error) => error instanceof WorkerArtifactHandoffError
           && error.classification === "recovery-required",
       );
+      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "done");
+      fs.unlinkSync(request.requestPath);
 
-      value.coordinator.recoverPending({ ctx: value.ctx });
+      const recovered = value.coordinator.recoverPending({ ctx: value.ctx });
       const state = value.flowManager.load();
-      assert.equal(findStepById(state.steps, "draft-questions-repair").status, "done");
-      assert.equal(state.draftArtifactRevision.sourceStepId, "draft-questions-repair");
-      assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft.json"), "utf8")),
-        repairedDraft,
-      );
-      assert.deepEqual(
-        JSON.parse(fs.readFileSync(path.join(canonicalSpecDir(value), "draft-questions-repair.json"), "utf8")),
-        repair,
-      );
+      assert.equal(recovered.completed, true);
+      assert.equal(recovered.cleanedHandoffs, 1);
+      assert.equal(findStepById(state.steps, "draft").status, "done");
+      assert.equal(fs.existsSync(request.directory), false);
     } finally {
       removeTmpDir(value.mainRoot);
     }
   });
 
-  it("resumes the preserved guarded run identity through journal recovery", () => {
+  it("retains the guarded V1 run identity through cleanup recovery", () => {
     const runId = "b672ac1a-d8c7-4ea5-98c3-27431f6fbc8c";
     const value = fixture("draft", {
       runId,
@@ -1858,7 +1643,7 @@ describe("worker artifact handoff", () => {
       seal(request);
       const interrupted = new WorkerArtifactHandoffCoordinator({
         faultInjector({ phase }) {
-          if (phase === "after-worker-handoff-journal") throw new Error("simulated interruption");
+          if (phase === "before-worker-handoff-cleanup-rename") throw new Error("simulated interruption");
         },
       });
       assert.throws(
@@ -1871,44 +1656,9 @@ describe("worker artifact handoff", () => {
       const state = value.flowManager.load();
       assert.equal(state.runId, runId);
       assert.equal(findStepById(state.steps, "draft").status, "done");
-      assert.equal(state.workerArtifactReceipts.at(-1).runId, runId);
-    } finally {
-      removeTmpDir(value.mainRoot);
-    }
-  });
-
-  it("keeps a pending publication journal in the recovery path instead of retrying it", () => {
-    const value = fixture("draft");
-    try {
-      const request = value.coordinator.createRequest({
-        ctx: value.ctx,
-        state: value.flowManager.load(),
-        invocation: value.invocation,
-      });
-      fs.writeFileSync(request.payloadPath("draft.json"), json({ goal: "recover the journal" }));
-      seal(request);
-      const interrupted = new WorkerArtifactHandoffCoordinator({
-        faultInjector({ phase }) {
-          if (phase === "after-worker-handoff-journal") throw new Error("simulated journal interruption");
-        },
-      });
-      assert.throws(
-        () => interrupted.reconcile({ ctx: value.ctx, request }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "recovery-required",
-      );
-      const pendingBefore = structuredClone(value.flowManager.load().workerArtifactPublication);
-      fs.rmSync(request.submissionPath);
-
-      assert.throws(
-        () => value.coordinator.reconcile({ ctx: value.ctx, request }),
-        (error) => error instanceof WorkerArtifactHandoffError
-          && error.classification === "recovery-required"
-          && error.retryable === false
-          && error.code === "FLOW_ARTIFACT_HANDOFF_RECOVERY_REQUIRED",
-      );
-      assert.deepEqual(value.flowManager.load().workerArtifactPublication, pendingBefore);
-      assert.equal(findStepById(value.flowManager.load().steps, "draft").status, "in_progress");
+      assert.ok(findStepById(state.steps, "draft").result.artifactRefs.some((entry) => (
+        entry.kind === "worker-handoff"
+      )));
     } finally {
       removeTmpDir(value.mainRoot);
     }

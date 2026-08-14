@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
-import { makeFlowState, setStepDone, makeFlowManager } from "../../../helpers/flow-setup.js";
-import { findStepById } from "../../../../src/flow/lib/step-tree.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
 const FLOW_CMD = join(process.cwd(), "src/sennel.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
@@ -12,13 +11,19 @@ describe("flow get check impl", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
+  function createFixture() {
+    const manager = makeFlowManager(tmp);
+    return new CanonicalFlowFixture({
+      flowManager: manager,
+      specId: "001-test",
+      runId: "status-check",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+    }).create();
+  }
+
   it("PASS when spec-gate and test are both done", () => {
     tmp = createTmpDir();
-    const state = makeFlowState();
-    setStepDone(state, "spec-gate", "test");
-    findStepById(state.steps, "test-review").status = "skipped";
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "local");
+    createFixture().settleBefore("implement").registerActive();
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },
@@ -26,30 +31,22 @@ describe("flow get check impl", () => {
     assert.match(result, /pass.*true/is);
   });
 
-  it("PASS when spec-gate is done and test is skipped", () => {
+  it("does not construct a skipped test state when the canonical definition forbids it", () => {
     tmp = createTmpDir();
-    const state = makeFlowState();
-    setStepDone(state, "spec-gate");
-    findStepById(state.steps, "test").status = "skipped";
-    findStepById(state.steps, "test-review").status = "skipped";
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "local");
-    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp },
-    });
-    assert.match(result, /pass.*true/is);
+    const fixture = createFixture().settleBefore("test");
+    assert.throws(
+      () => fixture.settle("test", "skipped"),
+      /definition forbids transition in_progress:skipped for test/,
+    );
   });
 
   it("FAIL when test-review (last plan-branch leaf) is not done", () => {
     // In the definition-based model, the only cross-branch prerequisite for
     // `implement` is `test-review` (the last leaf of the preceding `plan` branch).
     tmp = createTmpDir();
-    const state = makeFlowState();
-    // spec-gate and test are done but test-review is NOT done → prereq not met.
-    setStepDone(state, "spec-gate", "test");
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "local");
+    // `test-review` is intentionally left pending after its legitimate
+    // definition predecessors have been confirmed.
+    createFixture().settleBefore("test-review").registerActive();
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },

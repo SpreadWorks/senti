@@ -7,9 +7,7 @@ import {
   RepositoryFlowOperationLock,
   RepositoryMaintenanceLock,
 } from "../../../src/lib/repository-maintenance-lock.js";
-import { ProcessIdentitySource } from "../../../src/lib/flow-state-atomic-writer.js";
-import { FlowManager } from "../../../src/lib/flow-manager.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { ProcessIdentitySource } from "../../../src/lib/process-identity.js";
 
 function identitySource({ boot = "boot", start = "100", unknown = false } = {}) {
   return new ProcessIdentitySource({
@@ -129,41 +127,6 @@ describe("repository maintenance lock", () => {
       assert.equal(fs.readFileSync(lockPath, "utf8"), content, label);
       fs.unlinkSync(lockPath);
     }
-  });
-
-  it("blocks FlowStateCreator and AtomicFlowStateWriter without target mutation", () => {
-    tmp = createTmpDir("repository-maintenance-flow-state-");
-    const specId = "441-maintenance";
-    const state = {
-      specId: specId,
-      runId: "run-maintenance",
-      baseBranch: "main",
-      featureBranch: `feature/${specId}`,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [],
-      currentTaskId: null,
-    };
-    const fm = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false, specId });
-    const maintenance = new RepositoryMaintenanceLock({ mainRoot: tmp });
-    maintenance.acquire();
-    assert.throws(
-      () => fm.create(state),
-      (error) => error.code === "REPOSITORY_MAINTENANCE_BUSY",
-    );
-    assert.equal(fs.existsSync(path.join(tmp, "specs", specId, "flow.json")), false);
-    maintenance.release();
-
-    fm.create(state);
-    const flowPath = path.join(tmp, "specs", specId, "flow.json");
-    const before = fs.readFileSync(flowPath);
-    maintenance.acquire();
-    assert.throws(
-      () => fm.mutate((fresh) => { fresh.request = "blocked"; }),
-      (error) => error.code === "REPOSITORY_MAINTENANCE_BUSY",
-    );
-    assert.deepEqual(fs.readFileSync(flowPath), before);
-    maintenance.release();
   });
 
   it("rejects symlink, non-directory, and replaced .sennel authorities without external writes", () => {

@@ -17,10 +17,11 @@ import {
   CurrentFlowState,
   CurrentFlowStateAdoptionBoundary,
   CurrentFlowStateConflictError,
-  CurrentFlowStateConversionPlan,
   CurrentFlowStateInvariantError,
   CurrentFlowStateSnapshot,
   CurrentFlowStateStore,
+  CurrentFlowStateSerializer,
+  CurrentFlowStateValidator,
   DefinitionFailurePolicy,
   FlowActivity,
   FlowActivityJournal,
@@ -88,6 +89,7 @@ function attemptFor(state, currentPath, id, sequence = null, {
     : previous.consumption.semantic + (tooling === previous.consumption.tooling ? 1 : 0));
   return new CurrentAttempt({
     id,
+    nodeId: currentPath.at(-1),
     sequence: nextSequence,
     startedAt: NOW,
     consumption: { semantic: semanticConsumption, tooling },
@@ -160,6 +162,7 @@ function flowActivity({
     record_failure: "failure_recorded",
     confirm_attempt: "result_confirmed",
     rewind: "recovery",
+    plan_gate_repair: "recovery",
     recover_attempt: "recovery",
   }[operation];
   return new FlowActivity({
@@ -170,7 +173,7 @@ function flowActivity({
     sequence: activityAttempt?.sequence ?? null,
     confirmationOrder,
     type,
-    transition: new ActivityTransition({ operation, path: currentPath, task, attempt, status }),
+    transition: new ActivityTransition({ operation, nodeId: node.id, task, attempt, status, policy: null, outbox: null, approval: null, nonblocking: null }),
     result,
     timing: { startedAt: NOW, finishedAt: LATER, durationMs: 60000 },
     failure,
@@ -262,6 +265,52 @@ describe("Current Flow state foundation", () => {
   let tmp = null;
   afterEach(() => tmp && removeTmpDir(tmp));
 
+  it("enforces the exact schemaRevision 3 wire contract through its dedicated serializer and validator", () => {
+    const currentDefinition = definition();
+    const validator = new CurrentFlowStateValidator({ definition: currentDefinition });
+    const serializer = new CurrentFlowStateSerializer({ validator });
+    const fresh = CurrentFlowState.create({
+      definition: currentDefinition,
+      flowId: "flow-a",
+      flowVersionId: "flow-a-v1",
+      runId: "run-a",
+      specId: "001-contract",
+      request: "Original request must persist.",
+    });
+    const wire = serializer.serialize(fresh);
+    assert.equal(wire.schemaRevision, 3);
+    assert.equal(wire.current, null);
+    assert.equal(wire.attempt, null);
+    assert.equal(wire.context, null);
+    assert.deepEqual(Object.keys(wire).sort(), [
+      "artifacts", "attempt", "attemptSequence", "confirmationOrder", "context", "current", "execution", "flowId",
+      "flowVersionId", "id", "issue", "key", "kind", "lifecycle", "outbox", "policy", "request", "result", "runId",
+      "schemaRevision", "specId", "status", "steps", "version",
+    ].sort());
+    assert.deepEqual(serializer.deserialize(JSON.parse(serializer.bytes(fresh).toString("utf8"))).toJSON(), wire);
+
+    const missingRequired = structuredClone(wire);
+    delete missingRequired.request;
+    assert.throws(() => validator.validate(missingRequired), /flow state.request is required/);
+    assert.throws(() => validator.validate({ ...wire, unknown: true }), /unsupported field/);
+    assert.throws(() => validator.validate({ ...wire, lifecycle: { state: "unknown" } }), /lifecycle.state is invalid/);
+    assert.deepEqual(wire.execution, { mode: "direct", baseBranch: null, featureBranch: null });
+    assert.throws(() => validator.validate({ ...wire, execution: { mode: "remote" } }), /execution.mode is invalid/);
+    const forgedNested = structuredClone(wire);
+    forgedNested.steps[0].steps[0].id = "forged-step";
+    assert.throws(() => validator.validate(forgedNested), /state node does not match definition/);
+    const completed = completeNext(fresh, "contract-branch").toJSON();
+    completed.steps[0].steps[0].result = { outcome: "unknown", summary: "bad", confirmedAt: LATER, artifactRefs: [] };
+    assert.throws(() => validator.validate(completed), /result.outcome is invalid/);
+    const active = fresh.startAttempt({
+      path: fresh.nextAction().path,
+      attempt: attemptFor(fresh, fresh.nextAction().path, "contract-attempt"),
+    }).toJSON();
+    delete active.attempt.nodeId;
+    assert.throws(() => validator.validate(active), /attempt.nodeId is required/);
+    assert.throws(() => validator.validate({ ...wire, current: ["flow"] }), /current must be a stable node id or null/);
+  });
+
   it("adapts every production leaf with normalized definition metadata and inserts dynamic Tasks before test execution", () => {
     const state = CurrentFlowState.create({ definition: definition(), execution: { mode: "worktree" } });
     const withFirst = state.addTask({ id: "task-1", key: "first-task" });
@@ -271,8 +320,8 @@ describe("Current Flow state foundation", () => {
       ["implement", "task-1", "task-2", "test-execute", "test-result-review", "impl-review", "impl-triage", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision", "final-regression", "report", "finalize"],
     );
     assert.ok(withBoth.findNode("task-1") instanceof TaskNode);
-    assert.deepEqual(withBoth.findNode("task-1").steps.map((step) => step.id), ["task-1/task-impl", "task-1/task-review", "task-1/task-gate"]);
-    const action = withBoth.definition.actionFor("task-1/task-review", withBoth.root);
+    assert.deepEqual(withBoth.findNode("task-1").steps.map((step) => step.id), ["task-1-impl", "task-1-review", "task-1-gate"]);
+    const action = withBoth.definition.actionFor("task-1-review", withBoth.root);
     assert.ok(action.failurePolicy instanceof DefinitionFailurePolicy);
     assert.equal(action.failurePolicy.value, "retry");
     assert.deepEqual(action.toJSON(), {
@@ -292,7 +341,7 @@ describe("Current Flow state foundation", () => {
     assert.equal(acceptancePolicy.value, "amend-spec");
     assert.equal(acceptancePolicy.targetNodeId, "spec");
     assert.deepEqual(
-      withBoth.definition.contractFor("task-1/task-review", withBoth.root).resourceContract.required,
+      withBoth.definition.contractFor("task-1-review", withBoth.root).resourceContract.required,
       ["task_spec", "diff", "testlog"],
     );
     const leaves = [];
@@ -325,11 +374,11 @@ describe("Current Flow state foundation", () => {
     const nestedState = CurrentFlowState.create({ definition: nested })
       .addTask({ id: "task-nested", key: "nested" });
     assert.deepEqual(
-      nestedState.findNode("task-nested/task-phase").steps.map((step) => step.id),
-      ["task-nested/task-phase/task-work"],
+      nestedState.findNode("task-nested-phase").steps.map((step) => step.id),
+      ["task-nested-phase-work"],
     );
     assert.equal(
-      nested.actionFor("task-nested/task-phase/task-work", nestedState.root).action,
+      nested.actionFor("task-nested-phase-work", nestedState.root).action,
       "run-task-work",
     );
 
@@ -339,10 +388,10 @@ describe("Current Flow state foundation", () => {
       .toJSON();
     const taskImpl = forged.steps.find((node) => node.id === "impl")
       .steps.find((node) => node.id === "task-forged")
-      .steps.find((node) => node.id === "task-forged/task-impl");
+      .steps.find((node) => node.id === "task-forged-impl");
     taskImpl.steps.push({
       kind: "step",
-      id: "task-forged/rogue",
+      id: "task-forged-rogue",
       key: "task.task-impl",
       status: "pending",
       result: null,
@@ -452,19 +501,19 @@ describe("Current Flow state foundation", () => {
     let state = CurrentFlowState.create({ definition: definition() })
       .addTask({ id: "task-1", key: "first" })
       .addTask({ id: "task-2", key: "second" });
-    const taskPath = ["flow", "impl", "task-1", "task-1/task-impl"];
+    const taskPath = ["flow", "impl", "task-1", "task-1-impl"];
     assert.equal(state.nextAction().nodeId, "branch");
     assert.throws(
       () => state.startAttempt({ path: taskPath, attempt: attemptFor(state, taskPath, "too-early") }),
       /definition-owned next executable leaf/,
     );
-    state = advanceUntil(state, "task-1/task-impl");
-    assert.equal(state.nextAction().nodeId, "task-1/task-impl");
+    state = advanceUntil(state, "task-1-impl");
+    assert.equal(state.nextAction().nodeId, "task-1-impl");
     state = completeNext(state, "task-1-impl");
-    assert.equal(state.nextAction().nodeId, "task-1/task-review");
+    assert.equal(state.nextAction().nodeId, "task-1-review");
     state = completeNext(state, "task-1-review");
     state = completeNext(state, "task-1-gate");
-    assert.equal(state.nextAction().nodeId, "task-2/task-impl");
+    assert.equal(state.nextAction().nodeId, "task-2-impl");
     state = completeNext(state, "task-2-impl");
     state = completeNext(state, "task-2-review");
     state = completeNext(state, "task-2-gate");
@@ -518,7 +567,7 @@ describe("Current Flow state foundation", () => {
 
   it("keeps active facts in an immutable typed Attempt replacement and covers required resources with claims or incomplete work", () => {
     let state = CurrentFlowState.create({ definition: definition() }).addTask({ id: "task-1", key: "first" });
-    state = advanceUntil(state, "task-1/task-review");
+    state = advanceUntil(state, "task-1-review");
     const pathToReview = state.nextAction().path;
     const initial = attemptFor(state, pathToReview, "review-1", 1, {
       blocker: { code: "waiting", message: "Waiting for evidence." },
@@ -648,10 +697,10 @@ describe("Current Flow state foundation", () => {
     const recordedExhaustion = semanticLimit.recordCurrentFailure({
       result: failedResult("Retry budget is exhausted."),
     });
-    assert.equal(recordedExhaustion.findNode("task-1/task-review").status, "failed");
-    assert.equal(recordedExhaustion.findNode("task-1/task-review").result.outcome, "failed");
+    assert.equal(recordedExhaustion.findNode("task-1-review").status, "failed");
+    assert.equal(recordedExhaustion.findNode("task-1-review").result.outcome, "failed");
     assert.equal(recordedExhaustion.current, null);
-    assert.equal(recordedExhaustion.nextAction().nodeId, "task-1/task-gate");
+    assert.equal(recordedExhaustion.nextAction().nodeId, "task-1-gate");
 
     const toolingAttempt = attemptFor(activeReview, pathToReview, "review-tooling-2", 2, { tooling: 1 });
     const toolingFailed = activeReview.failCurrentAttempt({ result: failedResult("Provider failed."), failure: {
@@ -674,7 +723,7 @@ describe("Current Flow state foundation", () => {
 
     let implementation = CurrentFlowState.create({ definition: definition() })
       .addTask({ id: "task-no-tooling", key: "no-tooling" });
-    implementation = advanceUntil(implementation, "task-no-tooling/task-impl", "no-tooling-prelude");
+    implementation = advanceUntil(implementation, "task-no-tooling-impl", "no-tooling-prelude");
     const implementationPath = implementation.nextAction().path;
     implementation = implementation.startAttempt({
       path: implementationPath,
@@ -800,7 +849,7 @@ describe("Current Flow state foundation", () => {
       /in_progress leaf must not retain a result/,
     );
     const nonLeafCursor = state.toJSON();
-    nonLeafCursor.current = ["flow", "phase"];
+    nonLeafCursor.current = "phase";
     assert.throws(
       () => new CurrentFlowState(nonLeafCursor, { definition: tiny }),
       /execution frontier active leaf must match current path/,
@@ -942,25 +991,25 @@ describe("Current Flow state foundation", () => {
     let state = CurrentFlowState.create({ definition: definition() })
       .addTask({ id: "task-a", key: "first" })
       .addTask({ id: "task-b", key: "second" });
-    state = advanceUntil(state, "task-a/task-impl", "scope-prelude");
+    state = advanceUntil(state, "task-a-impl", "scope-prelude");
     state = completeNext(state, "task-a-impl", { artifactRefs: taskArtifacts("task-a") });
     state = completeNext(state, "task-a-review", { artifactRefs: taskArtifacts("task-a") });
     state = completeNext(state, "task-a-gate", { artifactRefs: taskArtifacts("task-a") });
     state = completeNext(state, "task-b-impl", { artifactRefs: taskArtifacts("task-b") });
-    assert.equal(state.nextAction().nodeId, "task-b/task-review");
+    assert.equal(state.nextAction().nodeId, "task-b-review");
     const authority = state.artifactAuthority();
     assert.deepEqual(authority.requiredResources, ["task_spec", "diff", "testlog"]);
-    assert.ok(authority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b/task-impl"));
+    assert.ok(authority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b-impl"));
     assert.equal(
       authority.resolutions.some((resolution) => resolution.source?.path.includes("task-a")),
       false,
     );
-    const taskBImplPath = ["flow", "impl", "task-b", "task-b/task-impl"];
+    const taskBImplPath = ["flow", "impl", "task-b", "task-b-impl"];
     state = state.rewind({
       path: taskBImplPath,
       attempt: attemptFor(state, taskBImplPath, "task-b-impl-rewind"),
     });
-    assert.equal(state.findNode("task-b/task-review").status, "invalidated");
+    assert.equal(state.findNode("task-b-review").status, "invalidated");
     assert.equal(
       state.artifactAuthority().resolutions.some((resolution) => resolution.source?.path.includes("task-a")),
       false,
@@ -968,16 +1017,16 @@ describe("Current Flow state foundation", () => {
     state = state.confirmCurrentAttempt({
       result: passedResult("task-b repaired", taskArtifacts("task-b")),
     });
-    assert.equal(state.nextAction().nodeId, "task-b/task-review");
+    assert.equal(state.nextAction().nodeId, "task-b-review");
     const recoveryAuthority = state.artifactAuthority();
-    assert.ok(recoveryAuthority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b/task-impl"));
+    assert.ok(recoveryAuthority.resolutions.every((resolution) => resolution.source?.nodeId === "task-b-impl"));
     assert.equal(
       recoveryAuthority.resolutions.some((resolution) => resolution.source?.path.includes("task-a")),
       false,
     );
   });
 
-  it("uses typed update Activity and a JSONL-derived Markdown view without reading activities.md as control input", () => {
+  it("uses typed update Activity with JSONL as the only persisted activity authority", () => {
     tmp = createTmpDir("current-flow-activity-view-");
     const initial = CurrentFlowState.create({ definition: definition() });
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
@@ -1027,12 +1076,7 @@ describe("Current Flow state foundation", () => {
     assert.ok(journalEntries[0].references.findings[0] instanceof ActivityFindingReference);
     assert.ok(journalEntries[0].references.repairs[0] instanceof ActivityRepairReference);
     assert.ok(journalEntries[0].references.artifacts[0] instanceof ActivityArtifactReference);
-    const view = store.writeActivitiesView();
-    assert.match(view.toMarkdown(), /attempt_updated/);
-    assert.throws(() => store.writeActivitiesView(store.journal.filePath), /must not replace/);
-    assert.throws(() => store.writeActivitiesView(store.statePath), /must not replace/);
-    assert.throws(() => store.journal.writeMarkdown(store.journal.filePath), /must not replace/);
-    assert.throws(() => store.journal.writeMarkdown(store.statePath), /must not replace/);
+    assert.equal(fs.existsSync(path.join(tmp, "activities.md")), false);
     const markdownPath = path.join(tmp, "activities.md");
     fs.writeFileSync(markdownPath, "corrupt prose must not control state\n");
     assert.equal(store.load().attempt.id, "branch-1");
@@ -1046,8 +1090,7 @@ describe("Current Flow state foundation", () => {
       attempt: updatedAttempt.replaceFacts({ blocker: { code: "complete", message: "State persisted." } }),
     }) });
     assert.equal(afterMarkdown.attempt.blocker.code, "complete");
-    store.writeActivitiesView();
-    assert.match(fs.readFileSync(markdownPath, "utf8"), /generated from `activities\.jsonl`/);
+    assert.equal(fs.readFileSync(markdownPath, "utf8"), "corrupt prose must not control state\n");
   });
 
   it("enforces operation-specific transition payloads and distinct Activity reference types", () => {
@@ -1056,15 +1099,19 @@ describe("Current Flow state foundation", () => {
     const attempt = attemptFor(state, currentPath, "payload-attempt");
     const transition = (operation, overrides = {}) => new ActivityTransition({
       operation,
-      path: currentPath,
+      nodeId: currentPath.at(-1),
       task: null,
       attempt: null,
       status: null,
+      policy: null,
+      outbox: null,
+      approval: null,
+      nonblocking: null,
       ...overrides,
     });
 
     assert.ok(transition("add_task", { task: { id: "task-payload", key: "payload" } }));
-    for (const operation of ["start_attempt", "retry_attempt", "update_attempt", "rewind", "recover_attempt"]) {
+    for (const operation of ["start_attempt", "retry_attempt", "update_attempt", "rewind", "plan_gate_repair", "recover_attempt"]) {
       assert.ok(transition(operation, { attempt }));
       assert.throws(() => transition(operation), /requires an Attempt payload/);
     }
@@ -1232,7 +1279,7 @@ describe("Current Flow state foundation", () => {
     assert.equal(invalidStore.journal.read().length, 1);
   });
 
-  it("recovers idempotently from a journal-first crash and exposes the deferred conversion adoption boundary", () => {
+  it("recovers idempotently from journal-first and state-written crashes", () => {
     tmp = createTmpDir("current-flow-crash-");
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: definition() });
     const initial = boundary.createFresh();
@@ -1278,40 +1325,9 @@ describe("Current Flow state foundation", () => {
     assert.equal(store.load().confirmationOrder, 2);
     assert.equal(store.apply({ activity: confirmed }).confirmationOrder, 2);
     assert.equal(store.journal.read().length, 2);
-    const plan = boundary.conversionPlan({ sourceFormat: "legacy-flow-json", targetDirectory: tmp });
-    assert.deepEqual(plan.toJSON(), {
-      sourceFormat: "legacy-flow-json",
-      targetDirectory: tmp,
-      targetSchemaRevision: 2,
-      freshStateOnly: true,
-      conversionImplemented: false,
-      legacyRead: "deferred",
-      runtimeSwitch: "deferred",
-      doubleWrite: "forbidden",
-    });
-    assert.throws(() => plan.assertCurrentStateOnly({}), /conversion is deferred/);
-    const adoptedInitial = plan.assertCurrentStateOnly(initial);
-    assert.notEqual(adoptedInitial, initial);
-    assert.equal(adoptedInitial.definition, plan.definition);
-    assert.deepEqual(adoptedInitial.toJSON(), initial.toJSON());
-    assert.throws(
-      () => plan.assertCurrentStateOnly(initial.addTask({ id: "progressed-task", key: "progressed" })),
-      /freshStateOnly rejects progressed current state/,
-    );
-    assert.throws(
-      () => plan.assertCurrentStateOnly(completeNext(initial, "progressed-node")),
-      /freshStateOnly rejects progressed current state/,
-    );
-    assert.throws(
-      () => plan.assertCurrentStateOnly(initial.startAttempt({
-        path: branchPath,
-        attempt: attemptFor(initial, branchPath, "progressed-attempt"),
-      })),
-      /freshStateOnly rejects progressed current state/,
-    );
   });
 
-  it("rebinds raw and typed state to the boundary-owned definition before create or adoption", () => {
+  it("rebinds raw and typed state to the store-owned definition before create", () => {
     tmp = createTmpDir("current-flow-definition-binding-");
     const fixedDefinition = definition();
     const fixedAction = CurrentFlowState.create({ definition: fixedDefinition }).nextAction().action.action;
@@ -1343,19 +1359,6 @@ describe("Current Flow state foundation", () => {
     const rawCreated = rawStore.create(foreignFresh.toJSON());
     assert.equal(rawCreated.definition, fixedDefinition);
     assert.equal(rawCreated.nextAction().action.action, fixedAction);
-
-    const plan = new CurrentFlowStateConversionPlan({
-      definition: fixedDefinition,
-      sourceFormat: "current-flow-json",
-      targetDirectory: path.join(tmp, "adopted"),
-    });
-    const adopted = plan.assertCurrentStateOnly(foreignFresh);
-    assert.equal(adopted.definition, fixedDefinition);
-    assert.equal(adopted.nextAction().action.action, fixedAction);
-    assert.throws(
-      () => plan.assertCurrentStateOnly(completeNext(foreignFresh, "foreign-progress")),
-      /freshStateOnly rejects progressed current state/,
-    );
   });
 
   it("canonicalizes typed Activity before applying and journaling one transition", () => {
@@ -1710,6 +1713,7 @@ describe("Current Flow state foundation", () => {
     assert.throws(
       () => new CurrentAttempt({
         id: "bad",
+        nodeId: "branch",
         sequence: 1,
         startedAt: NOW,
         consumption: { semantic: 0, tooling: 0 },

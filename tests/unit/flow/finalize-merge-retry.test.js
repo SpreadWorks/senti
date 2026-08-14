@@ -22,9 +22,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
+  CanonicalFlowFixture,
   makeFlowManager,
-  makeLifecycleStepTransition,
-  setupFlow,
 } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 import { findStepById, flattenSteps } from "../../../src/flow/lib/step-tree.js";
@@ -49,18 +48,8 @@ function commitAll(root, message) {
 }
 
 function activateFinalizeMerge(fm) {
-  fm.mutate((state) => {
-    let reachedMerge = false;
-    for (const step of flattenSteps(state.steps)) {
-      if (step.id === "finalize-merge") {
-        step.status = "in_progress";
-        reachedMerge = true;
-      } else {
-        step.status = reachedMerge ? "pending" : "done";
-      }
-    }
-  });
-  return fm.load();
+  const fixture = new CanonicalFlowFixture({ flowManager: fm }).create().registerActive().activate("finalize-merge");
+  return fixture.state();
 }
 
 function beginFinalizeMergeOutbox(fm, state) {
@@ -71,14 +60,8 @@ function specIdFromState(state) {
   return state.specId;
 }
 
-function skipFinalizeStep(fm, specId, stepId) {
-  const transition = makeLifecycleStepTransition(
-    fm.loadReadOnly(specId),
-    stepId,
-    "skipped",
-    "definition:skip-steps",
-  );
-  fm.updateStepStatus(transition, { specId });
+function skipFinalizeSteps(fm, specId, stepIds) {
+  return fm.finalizeDownstream({ specId, action: "skip", stepIds });
 }
 
 describe("finalize-merge — failed merge retry contract (spec 251)", () => {
@@ -88,10 +71,9 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   it("onError marks finalize-sync and finalize-cleanup as skipped", async () => {
     tmp = createTmpDir("sennel-finalize-merge-retry-");
     initGitRepo(tmp);
-    setupFlow(tmp);
-    commitAll(tmp, "test: initial flow state");
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
+    commitAll(tmp, "test: initial flow state");
     const specId = specIdFromState(activeState);
     beginFinalizeMergeOutbox(fm, activeState);
 
@@ -112,15 +94,13 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
   it("pre hook resets skipped finalize-sync/cleanup back to pending before retry", async () => {
     tmp = createTmpDir("sennel-finalize-merge-retry-reset-");
     initGitRepo(tmp);
-    const state = setupFlow(tmp);
-    commitAll(tmp, "test: initial flow state");
     const fm = makeFlowManager(tmp);
-    const specId = specIdFromState(state);
     const activeState = activateFinalizeMerge(fm);
+    commitAll(tmp, "test: initial flow state");
+    const specId = specIdFromState(activeState);
 
     // Simulate prior failure leaving sync/cleanup skipped.
-    skipFinalizeStep(fm, specId, "finalize-sync");
-    skipFinalizeStep(fm, specId, "finalize-cleanup");
+    skipFinalizeSteps(fm, specId, ["finalize-sync", "finalize-cleanup"]);
 
     const entry = FLOW_COMMANDS.run["finalize-merge"];
     const ctx = {
@@ -138,14 +118,13 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("post hook on retry success normalizes finalize-merge to done and resets skipped downstream", async () => {
     tmp = createTmpDir("sennel-finalize-merge-retry-post-");
-    const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
     const activeState = activateFinalizeMerge(fm);
-    const specId = specIdFromState(state);
+    const specId = specIdFromState(activeState);
 
     // Simulate a stale skipped left over from an earlier failure that the
     // pre hook somehow missed (paranoia path covered by R6).
-    skipFinalizeStep(fm, specId, "finalize-cleanup");
+    skipFinalizeSteps(fm, specId, ["finalize-cleanup"]);
     beginFinalizeMergeOutbox(fm, activeState);
 
     const entry = FLOW_COMMANDS.run["finalize-merge"];
@@ -164,11 +143,9 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("post hook does nothing on failed status (no normalization)", async () => {
     tmp = createTmpDir("sennel-finalize-merge-retry-fail-");
-    const state = setupFlow(tmp);
     const fm = makeFlowManager(tmp);
-    const specId = specIdFromState(state);
-
     const activeState = activateFinalizeMerge(fm);
+    const specId = specIdFromState(activeState);
     beginFinalizeMergeOutbox(fm, activeState);
     const entry = FLOW_COMMANDS.run["finalize-merge"];
     const ctx = {

@@ -6,8 +6,7 @@ import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.js";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { AUTO_CHECK_SCHEMA } from "../../../src/flow/lib/run-auto-check.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 
@@ -50,18 +49,23 @@ function setupProject(tmp, { aiResponse } = {}) {
 }
 
 function seedFlowState(tmp, { request = "add a progress bar with bounded scope" } = {}) {
-  fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
-  makeFlowManager(tmp).create({
+  const manager = makeFlowManager(tmp);
+  new CanonicalFlowFixture({
+    flowManager: manager,
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
     request,
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  });
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    specRecord: { goal: "auto-check fixture", requirements: [] },
+  }).create().addTask({
+    id: "T-1",
+    title: "x",
+    goal: "x",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  }).registerActive();
 }
 
 function runCli(tmp, args) {
@@ -127,22 +131,22 @@ describe("flow run auto-check CLI", () => {
     assert.ok(envelope.data.score < envelope.data.threshold);
   });
 
-  it("persists result to flow.json autoCheck field when active flow exists", () => {
+  it("does not add an autoCheck cache field to the exact active V1 schema", () => {
     setupProject(tmp);
     seedFlowState(tmp);
     runCli(tmp, ["flow", "run", "auto-check"]);
     const state = makeFlowManager(tmp).load();
-    assert.ok(state.autoCheck, "autoCheck should be saved");
-    assert.equal(state.autoCheck.eligible, true);
-    assert.equal(state.autoCheck.maxScore, 24);
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
+    const raw = JSON.parse(fs.readFileSync(makeFlowManager(tmp).specLocation("001-test").flowStateFile, "utf8"));
+    assert.equal(Object.hasOwn(raw, "autoCheck"), false);
   });
 
-  it("does not persist autoCheck when eligible:false (spec 232 R5)", () => {
+  it("keeps the exact active V1 schema when auto-check is ineligible", () => {
     setupProject(tmp);
     seedFlowState(tmp, { request: "password migration release" });
     runCli(tmp, ["flow", "run", "auto-check"]);
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   // Spec 218: run auto-check must persist the verdict to the preparing flow

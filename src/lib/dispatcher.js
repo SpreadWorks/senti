@@ -38,7 +38,7 @@ import { AgentFailure } from "./agent-failure.js";
 
 function attachNonblockingContinuation(envelope, ctx, reason) {
   const state = ctx?.flowState;
-  if (!(envelope instanceof Envelope) || state?.nonblocking?.enabled !== true) return envelope;
+  if (!(envelope instanceof Envelope) || state?.policy?.nonblocking?.enabled !== true) return envelope;
   if (envelope.data?.actionPrompt || envelope.data?.continuation) return envelope;
   const binding = FlowTargetBinding.captureContext(ctx);
   return attachFlowContinuation(envelope, new FlowContinuation({
@@ -526,7 +526,15 @@ export async function dispatch({
   };
   const persistRuntimeLogMetadata = (result) => {
     const metadata = closedRuntimeLogMetadata;
-    const stepId = runtimeLogStepId(entry, hookCtx, result);
+    const requestedStepId = runtimeLogStepId(entry, hookCtx, result);
+    // Public task aliases name the current task leaf before it is confirmed.
+    // Persist metadata under that immutable node id so a successful command
+    // does not need a now-cleared current Attempt to resolve the alias again.
+    const stepId = runtimeLogActiveNode?.scope === "task"
+      && typeof requestedStepId === "string"
+      && requestedStepId.startsWith("task-")
+      ? runtimeLogActiveNode.stepId
+      : requestedStepId;
     if (metadata && stepId && hookCtx.flowManager && hookCtx.flowState) {
       hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), {
         ...(hookCtx.specId ? { specId: hookCtx.specId } : {}),

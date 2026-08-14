@@ -1,564 +1,196 @@
-/**
- * tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js
- *
- * Spec 226 / T-6: task-scope step 再編と手動制御 CLI。
- * TASK_STEPS_PLAN を 7 → 5 step に再編、approval / task-spec gate /
- * update-overview 独立 step を削除、update-overview 機能を impl に統合、
- * start-task / complete-task CLI の追加を検証する。
- *
- * REQ-15 / REQ-16 / REQ-17 / REQ-18 / REQ-19 / REQ-20 に対応。
- */
-
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-
 import { TASK_STEPS_PLAN, buildInitialTaskSteps } from "../../../src/lib/flow-helpers.js";
 import { collectTaskLeafIds, getTaskNode } from "../../../src/flow/definition.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, FreshFlowFixture, TaskLifecycleFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 
-// Resolve source root for file-existence checks.
-const SRC_ROOT = path.resolve(
-  new URL(import.meta.url).pathname,
-  "../../../../src",
-);
+const SRC_ROOT = path.resolve(new URL(import.meta.url).pathname, "../../../../src");
+
+function taskDocument(id, parent = null) {
+  return {
+    id,
+    title: `Task ${id}`,
+    goal: `Complete ${id}.`,
+    parent,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  };
+}
+
+function completedTaskFixture(tmp, taskDocuments, taskId) {
+  const fm = makeFlowManager(tmp);
+  const fixture = new TaskLifecycleFixture({ flowManager: fm, taskDocuments, taskId, targetStep: "task-gate" }).create();
+  fm.updateStepStatus({ stepId: `${taskId}-gate`, requestedStatus: "done" });
+  return { fm, fixture };
+}
 
 describe("T-6: task-scope step redesign and manual control CLI", () => {
-  // ── step redesign ──────────────────────────────────────────────────────────
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
 
   it("TASK_STEPS_PLAN is [task-impl, task-review, task-gate]", () => {
-    assert.deepEqual(TASK_STEPS_PLAN, [
-      "task-impl", "task-review", "task-gate",
-    ]);
+    assert.deepEqual(TASK_STEPS_PLAN, ["task-impl", "task-review", "task-gate"]);
   });
 
-  it("buildInitialTaskSteps returns 3 steps matching TASK_STEPS_PLAN", () => {
+  it("buildInitialTaskSteps returns 3 pending steps matching TASK_STEPS_PLAN", () => {
     const steps = buildInitialTaskSteps("plan");
-    assert.equal(steps.length, 3);
-    assert.deepEqual(
-      steps.map((s) => s.id),
-      TASK_STEPS_PLAN,
-    );
-    // All start as pending.
-    for (const s of steps) {
-      assert.equal(s.status, "pending");
+    assert.deepEqual(steps.map((step) => step.id), TASK_STEPS_PLAN);
+    assert.ok(steps.every((step) => step.status === "pending"));
+  });
+
+  it("TASK_DEFINITION excludes retired Task leaves", () => {
+    const taskIds = collectTaskLeafIds();
+    for (const retired of ["approval", "gate", "update-overview"]) {
+      assert.equal(taskIds.includes(retired), false, `${retired} must not be a Task leaf`);
     }
   });
 
-  it("TASK_DEFINITION has no approval/gate/update-overview entries", () => {
-    const taskIds = collectTaskLeafIds();
-    assert.ok(!taskIds.includes("approval"), "task scope must not contain approval");
-    assert.ok(!taskIds.includes("gate"), "task scope must not contain gate (task-spec gate)");
-    assert.ok(!taskIds.includes("update-overview"), "task scope must not contain update-overview");
+  it("TASK_DEFINITION retains the task-gate leaf", () => {
+    assert.ok(getTaskNode("task-gate"));
   });
 
-  it("TASK_DEFINITION has task-gate entry", () => {
-    const node = getTaskNode("task-gate");
-    assert.ok(node, "task scope must contain task-gate");
+  it("retired approval Task prompt file does not exist", () => {
+    assert.equal(fs.existsSync(path.join(SRC_ROOT, "flow/prompts/task", "approval.md")), false);
   });
 
-  // ── deleted prompts ────────────────────────────────────────────────────────
-
-  it("src/flow/prompts/task/approval.md does not exist", () => {
-    const p = path.join(SRC_ROOT, "flow/prompts/task/approval.md");
-    assert.equal(fs.existsSync(p), false, `${p} should not exist`);
+  it("retired gate Task prompt file does not exist", () => {
+    assert.equal(fs.existsSync(path.join(SRC_ROOT, "flow/prompts/task", "gate.md")), false);
   });
 
-  it("src/flow/prompts/task/gate.md does not exist", () => {
-    const p = path.join(SRC_ROOT, "flow/prompts/task/gate.md");
-    assert.equal(fs.existsSync(p), false, `${p} should not exist`);
+  it("retired update-overview Task prompt file does not exist", () => {
+    assert.equal(fs.existsSync(path.join(SRC_ROOT, "flow/prompts/task", "update-overview.md")), false);
   });
 
-  it("src/flow/prompts/task/update-overview.md does not exist", () => {
-    const p = path.join(SRC_ROOT, "flow/prompts/task/update-overview.md");
-    assert.equal(fs.existsSync(p), false, `${p} should not exist`);
+  it("task impl prompt owns overview updates", () => {
+    const prompt = fs.readFileSync(path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"), "utf8");
+    assert.ok(prompt.includes("sennel flow run update-overview"));
+    assert.ok(prompt.includes("canonical Version Store"));
+    assert.ok(prompt.includes("overview"));
   });
 
-  // ── impl prompt has overview update directive ──────────────────────────────
-
-  it("src/flow/prompts/task/task-impl.md contains overview update directive", () => {
-    const p = path.join(SRC_ROOT, "flow/prompts/task/task-impl.md");
-    const content = fs.readFileSync(p, "utf8");
-    assert.ok(
-      content.includes("persistOverviewUpdate") || content.includes("applyOverviewAdditions"),
-      "impl.md must reference persistOverviewUpdate or applyOverviewAdditions",
-    );
-    assert.ok(
-      content.includes("overview"),
-      "impl.md must mention overview update functionality",
-    );
+  it("start-task claims a pending Spec Task through the production primitive", async () => {
+    tmp = createTmpDir("t6-start-");
+    const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    fixture.prepareTaskFrontier();
+    const { RunStartTaskCommand } = await import("../../../src/flow/lib/run-start-task.js");
+    const env = await new RunStartTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-1" });
+    assert.equal(env.ok, true, JSON.stringify(env));
+    assert.deepEqual(env.data, { taskId: "T-1", currentTaskId: "T-1", status: "in_progress" });
+    const task = fm.loadReadOnly().tasks.find((entry) => entry.id === "T-1");
+    assert.equal(task.status, "in_progress");
   });
 
-  // ── start-task CLI ─────────────────────────────────────────────────────────
-
-  describe("start-task CLI", () => {
-    let tmp;
-    beforeEach(() => {
-      tmp = createTmpDir("t6-start-");
-    });
-
-    it("start-task CLI sets currentTaskId to the specified task", async () => {
-      const task = {
-        id: "T-1",
-        title: "Test task",
-        goal: "Test goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "pending",
-        steps: buildInitialTaskSteps("plan"),
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: null });
-
-      const { RunStartTaskCommand } = await import(
-        "../../../src/flow/lib/run-start-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunStartTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-1",
-      });
-
-      assert.equal(env.ok, true);
-      assert.equal(env.data.currentTaskId, "T-1");
-
-      // Verify persisted state.
-      const reloaded = fm.load();
-      assert.equal(reloaded.currentTaskId, "T-1");
-    });
-
-    it("start-task CLI transitions task status to in_progress", async () => {
-      const task = {
-        id: "T-1",
-        title: "Task",
-        goal: "Goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "pending",
-        steps: buildInitialTaskSteps("plan"),
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: null });
-
-      const { RunStartTaskCommand } = await import(
-        "../../../src/flow/lib/run-start-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunStartTaskCommand();
-      await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-1",
-      });
-
-      const reloaded = fm.load();
-      const t = reloaded.tasks.find((x) => x.id === "T-1");
-      assert.equal(t.status, "in_progress");
-    });
-
-    it("start-task CLI delegates validation to flow-store primitive (throws on unknown id)", async () => {
-      const task = {
-        id: "T-1",
-        title: "Task",
-        goal: "Goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "pending",
-        steps: buildInitialTaskSteps("plan"),
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: null });
-
-      const { RunStartTaskCommand } = await import(
-        "../../../src/flow/lib/run-start-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunStartTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-nonexistent",
-      });
-
-      assert.equal(env.ok, false);
-      assert.equal(env.errors[0].code, "UNKNOWN_TASK_ID");
-    });
-
-    it("start-task CLI returns proper envelope shape", async () => {
-      const task = {
-        id: "T-1",
-        title: "Task",
-        goal: "Goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "pending",
-        steps: buildInitialTaskSteps("plan"),
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: null });
-
-      const { RunStartTaskCommand } = await import(
-        "../../../src/flow/lib/run-start-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunStartTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-1",
-      });
-
-      assert.equal(env.ok, true);
-      assert.equal(env.type, "run");
-      assert.equal(env.key, "start-task");
-      assert.equal(env.data.taskId, "T-1");
-      assert.equal(env.data.status, "in_progress");
-    });
+  it("start-task returns the canonical unknown-Task envelope", async () => {
+    tmp = createTmpDir("t6-start-");
+    const fm = makeFlowManager(tmp);
+    new FreshFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    const { RunStartTaskCommand } = await import("../../../src/flow/lib/run-start-task.js");
+    const env = await new RunStartTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-missing" });
+    assert.equal(env.ok, false);
+    assert.equal(env.errors[0].code, "UNKNOWN_TASK_ID");
   });
 
-  // ── complete-task CLI ──────────────────────────────────────────────────────
-
-  describe("complete-task CLI", () => {
-    let tmp;
-    beforeEach(() => {
-      tmp = createTmpDir("t6-complete-");
-    });
-
-    it("complete-task CLI (no args) completes currentTaskId task", async () => {
-      const task = {
-        id: "T-1",
-        title: "Task",
-        goal: "Goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "in_progress",
-        steps: [
-          { id: "task-impl", status: "done" },
-          { id: "task-review", status: "done" },
-          { id: "task-gate", status: "done" },
-        ],
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: "T-1" });
-
-      const { RunCompleteTaskCommand } = await import(
-        "../../../src/flow/lib/run-complete-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunCompleteTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        // no taskId — should use currentTaskId
-      });
-
-      assert.equal(env.ok, true);
-      assert.equal(env.data.taskId, "T-1");
-      assert.equal(env.data.completed, true);
-
-      const reloaded = fm.load();
-      const t = reloaded.tasks.find((x) => x.id === "T-1");
-      assert.equal(t.status, "done");
-    });
-
-    it("complete-task CLI (with --task-id) completes specified task", async () => {
-      const tasks = [
-        {
-          id: "T-1",
-          title: "First",
-          goal: "Goal A",
-          parent: null,
-          origin: "plan",
-          added_round: 0,
-          status: "in_progress",
-          steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "done" },
-          ],
-        },
-        {
-          id: "T-2",
-          title: "Second",
-          goal: "Goal B",
-          parent: null,
-          origin: "plan",
-          added_round: 0,
-          status: "in_progress",
-          steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "done" },
-          ],
-        },
-      ];
-      setupFlow(tmp, { tasks, currentTaskId: "T-1" });
-
-      const { RunCompleteTaskCommand } = await import(
-        "../../../src/flow/lib/run-complete-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunCompleteTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-2",
-      });
-
-      assert.equal(env.ok, true);
-      assert.equal(env.data.taskId, "T-2");
-
-      const reloaded = fm.load();
-      const t2 = reloaded.tasks.find((x) => x.id === "T-2");
-      assert.equal(t2.status, "done");
-    });
-
-    it("complete-task CLI invokes completeTask then promoteNextPending (in this order)", async () => {
-      // T-1 is current and in_progress. T-2 is pending.
-      // After completing T-1, promoteNextPending should auto-promote T-2.
-      const tasks = [
-        {
-          id: "T-1",
-          title: "First",
-          goal: "Goal A",
-          parent: null,
-          origin: "plan",
-          added_round: 0,
-          status: "in_progress",
-          steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "done" },
-          ],
-        },
-        {
-          id: "T-2",
-          title: "Second",
-          goal: "Goal B",
-          parent: null,
-          origin: "plan",
-          added_round: 0,
-          status: "pending",
-          steps: [
-            { id: "task-impl", status: "pending" },
-            { id: "task-review", status: "pending" },
-            { id: "task-gate", status: "pending" },
-          ],
-        },
-      ];
-      setupFlow(tmp, { tasks, currentTaskId: "T-1" });
-
-      const { RunCompleteTaskCommand } = await import(
-        "../../../src/flow/lib/run-complete-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunCompleteTaskCommand();
-      const env = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        // uses currentTaskId = T-1
-      });
-
-      assert.equal(env.ok, true);
-      assert.equal(env.data.taskId, "T-1");
-      // promoteNextPending should have promoted T-2.
-      assert.equal(env.data.promoted, "T-2");
-
-      const reloaded = fm.load();
-      assert.equal(reloaded.currentTaskId, "T-2");
-      const t2 = reloaded.tasks.find((x) => x.id === "T-2");
-      assert.equal(t2.status, "in_progress");
-    });
-
-    it("complete-task CLI propagates to parent when all children done", async () => {
-      const tasks = [
-        {
-          id: "T-parent",
-          title: "Parent",
-          goal: "Parent goal",
-          parent: null,
-          origin: "plan",
-          added_round: 0,
-          status: "in_progress",
-          steps: [
-            { id: "task-impl", status: "pending" },
-            { id: "task-review", status: "pending" },
-            { id: "task-gate", status: "pending" },
-          ],
-        },
-        {
-          id: "T-child-1",
-          title: "Child 1",
-          goal: "Child 1 goal",
-          parent: "T-parent",
-          origin: "plan",
-          added_round: 0,
-          status: "done",
-          steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "done" },
-          ],
-        },
-        {
-          id: "T-child-2",
-          title: "Child 2",
-          goal: "Child 2 goal",
-          parent: "T-parent",
-          origin: "plan",
-          added_round: 0,
-          status: "in_progress",
-          steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "done" },
-          ],
-        },
-      ];
-      setupFlow(tmp, { tasks, currentTaskId: "T-child-2" });
-
-      const { RunCompleteTaskCommand } = await import(
-        "../../../src/flow/lib/run-complete-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunCompleteTaskCommand();
-      await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-child-2",
-      });
-
-      const reloaded = fm.load();
-      const child2 = reloaded.tasks.find((x) => x.id === "T-child-2");
-      assert.equal(child2.status, "done");
-      // Parent should also be done since all children are done.
-      const parent = reloaded.tasks.find((x) => x.id === "T-parent");
-      assert.equal(parent.status, "done");
-    });
-
-    it("complete-task CLI is a thin wrapper (no validation duplication)", async () => {
-      // Verify that the execute method body is concise by checking that
-      // attempting to complete an unknown task returns a fail envelope
-      // (validation is delegated), not an uncaught exception.
-      const task = {
-        id: "T-1",
-        title: "Task",
-        goal: "Goal",
-        parent: null,
-        origin: "plan",
-        added_round: 0,
-        status: "in_progress",
-        steps: [
-          { id: "task-impl", status: "done" },
-          { id: "task-review", status: "done" },
-          { id: "task-gate", status: "done" },
-        ],
-      };
-      setupFlow(tmp, { tasks: [task], currentTaskId: "T-1" });
-
-      const { RunCompleteTaskCommand } = await import(
-        "../../../src/flow/lib/run-complete-task.js"
-      );
-      const fm = makeFlowManager(tmp);
-      const state = fm.load();
-      const cmd = new RunCompleteTaskCommand();
-
-      // unknown task id → fail envelope
-      const envUnknown = await cmd.execute({
-        root: tmp,
-        flowManager: fm,
-        flowState: state,
-        taskId: "T-nonexistent",
-      });
-      assert.equal(envUnknown.ok, false);
-      assert.equal(envUnknown.errors[0].code, "UNKNOWN_TASK_ID");
-
-      // no target at all (no currentTaskId, no --task-id) → fail envelope
-      fm.mutate((current) => {
-        current.tasks = [task];
-        current.currentTaskId = null;
-      });
-      const fm2 = makeFlowManager(tmp);
-      const state2 = fm2.load();
-      const envNoTarget = await cmd.execute({
-        root: tmp,
-        flowManager: fm2,
-        flowState: state2,
-        // no taskId, no currentTaskId
-      });
-      assert.equal(envNoTarget.ok, false);
-      assert.equal(envNoTarget.errors[0].code, "NO_TASK_TARGET");
-    });
+  it("complete-task completes an explicitly selected Task after its typed child confirmations", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const { fm } = completedTaskFixture(tmp, [taskDocument("T-1")], "T-1");
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-1" });
+    assert.equal(env.ok, true, JSON.stringify(env));
+    assert.equal(env.data.taskId, "T-1");
+    assert.equal(env.data.completed, true);
+    assert.equal(fm.loadReadOnly().tasks.find((entry) => entry.id === "T-1").status, "done");
   });
 
-  // ── impl overview update integration ───────────────────────────────────────
-
-  it("impl step invokes applyOverviewAdditions via spec 207 helper", () => {
-    // The impl.md prompt instructs the agent to call persistOverviewUpdate
-    // (which internally uses applyOverviewAdditions). Verify the prompt
-    // references this helper, and that run-update-overview.js imports it.
-    const implPrompt = fs.readFileSync(
-      path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"),
-      "utf8",
-    );
-    assert.ok(
-      implPrompt.includes("persistOverviewUpdate"),
-      "impl.md must reference persistOverviewUpdate",
-    );
-
-    // Verify run-update-overview.js imports applyOverviewAdditions.
-    const updateOverviewSrc = fs.readFileSync(
-      path.join(SRC_ROOT, "flow/lib/run-update-overview.js"),
-      "utf8",
-    );
-    assert.ok(
-      updateOverviewSrc.includes("applyOverviewAdditions"),
-      "run-update-overview.js must import applyOverviewAdditions",
-    );
+  it("complete-task resolves the selected current Task when no task id is supplied", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const { fm } = completedTaskFixture(tmp, [taskDocument("T-1")], "T-1");
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly() });
+    assert.equal(env.ok, true, JSON.stringify(env));
+    assert.equal(env.data.taskId, "T-1");
+    assert.equal(env.data.completed, true);
+    assert.equal(fm.loadReadOnly().tasks.find((entry) => entry.id === "T-1").status, "done");
   });
 
-  it("impl overview update is performed in impl step (not as separate update-overview step)", () => {
-    // Verify that TASK_STEPS_PLAN does not include "update-overview"
-    // and that TASK_DEFINITION has no "update-overview" entry.
-    assert.ok(
-      !TASK_STEPS_PLAN.includes("update-overview"),
-      "TASK_STEPS_PLAN must not include update-overview as a separate step",
-    );
+  it("complete-task resolves the current Task and rejects it before child confirmation", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const fm = makeFlowManager(tmp);
+    new TaskLifecycleFixture({
+      flowManager: fm,
+      taskDocuments: [taskDocument("T-1")],
+      taskId: "T-1",
+      targetStep: "task-impl",
+    }).create();
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly() });
+    assert.equal(env.ok, false);
+    assert.equal(env.errors[0].code, "TASK_COMPLETE_INVALID");
+    assert.equal(fm.loadReadOnly().currentTaskId, "T-1");
+  });
 
-    const taskIds = collectTaskLeafIds();
-    assert.ok(
-      !taskIds.includes("update-overview"),
-      "TASK_DEFINITION must not include update-overview",
-    );
+  it("complete-task leaves the next Task pending for an explicit next claim", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const { fm } = completedTaskFixture(tmp, [taskDocument("T-1"), taskDocument("T-2")], "T-1");
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-1" });
+    assert.equal(env.ok, true, JSON.stringify(env));
+    assert.equal(env.data.nextTaskId, "T-2");
+    const state = fm.loadReadOnly();
+    assert.equal(state.currentTaskId, null);
+    assert.equal(state.tasks.find((entry) => entry.id === "T-2").status, "pending");
+  });
 
-    // Confirm the impl.md prompt contains the overview update directive.
-    const implPrompt = fs.readFileSync(
-      path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"),
-      "utf8",
-    );
-    assert.ok(
-      implPrompt.includes("overview") && implPrompt.includes("update-overview"),
-      "impl.md must describe that the standalone update-overview step has been removed and overview update is in impl",
-    );
+  it("complete-task propagates to a parent after the final child is completed", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const tasks = [taskDocument("T-parent"), taskDocument("T-child-1", "T-parent"), taskDocument("T-child-2", "T-parent")];
+    const { fm, fixture } = completedTaskFixture(tmp, tasks, "T-child-1");
+    fm.completeTask("T-child-1");
+    fixture.flow.flow.activateTask("T-child-2", { settlePredecessors: false });
+    for (const step of ["T-child-2-impl", "T-child-2-review", "T-child-2-gate"]) fixture.flow.flow.settle(step);
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-child-2" });
+    assert.equal(env.ok, true);
+    const state = fm.loadReadOnly();
+    assert.equal(state.tasks.find((entry) => entry.id === "T-child-2").status, "done");
+    assert.equal(state.tasks.find((entry) => entry.id === "T-parent").status, "done");
+  });
+
+  it("complete-task returns NO_TASK_TARGET without an active Task", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const fm = makeFlowManager(tmp);
+    new CanonicalFlowFixture({ flowManager: fm }).create().registerActive();
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly() });
+    assert.equal(env.ok, false);
+    assert.equal(env.errors[0].code, "NO_TASK_TARGET");
+  });
+
+  it("complete-task returns UNKNOWN_TASK_ID for an explicit absent Task", async () => {
+    tmp = createTmpDir("t6-complete-");
+    const fm = makeFlowManager(tmp);
+    new CanonicalFlowFixture({ flowManager: fm }).create().addTask(taskDocument("T-1")).registerActive();
+    const { RunCompleteTaskCommand } = await import("../../../src/flow/lib/run-complete-task.js");
+    const env = await new RunCompleteTaskCommand().execute({ root: tmp, flowManager: fm, flowState: fm.loadReadOnly(), taskId: "T-missing" });
+    assert.equal(env.ok, false);
+    assert.equal(env.errors[0].code, "UNKNOWN_TASK_ID");
+  });
+
+  it("impl overview update uses the canonical manager operation behind the impl prompt", () => {
+    const prompt = fs.readFileSync(path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"), "utf8");
+    const command = fs.readFileSync(path.join(SRC_ROOT, "flow/lib/run-update-overview.js"), "utf8");
+    assert.ok(prompt.includes("sennel flow run update-overview"));
+    assert.ok(command.includes("fm.updateTaskOverview"));
+    assert.doesNotMatch(command, /persistOverviewUpdate|getSpecDir|saveSpecJson/);
+  });
+
+  it("impl overview update remains in the impl prompt, not a separate Task leaf", () => {
+    const prompt = fs.readFileSync(path.join(SRC_ROOT, "flow/prompts/task/task-impl.md"), "utf8");
+    assert.ok(prompt.includes("sennel flow run update-overview"));
+    assert.equal(TASK_STEPS_PLAN.includes("update-overview"), false);
   });
 });

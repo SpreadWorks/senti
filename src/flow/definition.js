@@ -27,6 +27,7 @@ import {
   findStepById,
 } from "./lib/step-tree.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
+import { TaskStepIdentity } from "./lib/task-step-identity.js";
 
 const MAX_DEPTH = 3;
 
@@ -330,7 +331,6 @@ const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
   "retro.json",
   "acceptance-review.json",
   "report.json",
-  "tests/.raw/upgrade.log",
   "tests/.raw/scenario-validity.log",
   "tests/.raw/test-execution.log",
   "tests/.raw/requirement-summary.json",
@@ -372,13 +372,6 @@ function resolveDraftReviewLifecycle(input) {
   const verdict = input.result?.artifacts?.verdict;
   const actions = [];
   if (!["PASS", "ADVISORY", "REJECTED"].includes(verdict)) return actions;
-  if (verdict === "PASS") {
-    actions.push(new RunLifecycleHook({
-      module: "review",
-      handler: "commitDraftReviewPassArtifacts",
-      args: { retryPhase: route.retryPhase },
-    }));
-  }
   actions.push(new SetStepStatus({ step: route.reviewStepId, status: "done" }));
   if (verdict === "PASS") {
     actions.push(new SetStepStatus({ step: route.triageStepId, status: "done" }));
@@ -394,7 +387,7 @@ function resolvePlanReviewLifecycle(input) {
   const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
     const route = nonblockingRouteFor(draftReviewRouteForInput(input).reviewStepId);
-    if (input.flowState?.nonblocking?.enabled === true && route && (verdict === "REJECTED" || toolingOutcome)) {
+    if (input.flowState?.policy?.nonblocking?.enabled === true && route && (verdict === "REJECTED" || toolingOutcome)) {
       return [];
     }
     return resolveDraftReviewLifecycle(input);
@@ -402,7 +395,7 @@ function resolvePlanReviewLifecycle(input) {
   const actions = [];
   const recordRetry = !toolingOutcome;
   if (phase === "spec") {
-    if (input.flowState?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) return [];
+    if (input.flowState?.policy?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) return [];
     if (verdict === "PASS" || verdict === "ADVISORY") {
       actions.push(
         new SetStepStatus({ step: "spec-review", status: "done" }),
@@ -416,7 +409,7 @@ function resolvePlanReviewLifecycle(input) {
     return actions;
   }
   if (phase === "test") {
-    if (input.flowState?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) {
+    if (input.flowState?.policy?.nonblocking?.enabled === true && (verdict === "REJECTED" || toolingOutcome)) {
       // A test-review advisory decision must create the same durable
       // acceptance handoff as retry exhaustion before it can advance.
       return actions;
@@ -447,7 +440,7 @@ function resolveImplReviewLifecycle(input) {
   const toolingOutcome = input.result?.artifacts?.toolingOutcome;
   const proposalCount = input.result?.artifacts?.proposalCount ?? 0;
   const actions = [];
-  if (input.flowState?.nonblocking?.enabled === true && input.result?.artifacts?.phase === "impl" && (
+  if (input.flowState?.policy?.nonblocking?.enabled === true && input.result?.artifacts?.phase === "impl" && (
     verdict === "REJECTED" || toolingOutcome
   )) {
     // Evidence stays authoritative; the agent records repair/retry/continue
@@ -502,12 +495,15 @@ function resolveReviewLifecycle(input) {
 function resolveGateLifecycle(input) {
   const phase = input.result?.artifacts?.phase || input.phase;
   const active = findActiveNode(input.flowState || {});
-  const step = active?.stepId === "task-gate" ? "task-gate" : gateStepIdForPhase(phase);
+  const taskStep = TaskStepIdentity.fromStateNode(input.flowState, active?.stepId);
+  const step = phase === "task-impl" && taskStep?.definitionId === "task-gate"
+    ? taskStep.nodeId
+    : gateStepIdForPhase(phase);
   if (input.event === "gate:pre") {
     return [new SetStepStatus({ step, status: "in_progress" })];
   }
   if (input.result?.artifacts?.deferred === true) return [];
-  if (input.flowState?.nonblocking?.enabled === true && input.result?.result !== "pass" && nonblockingRouteFor(step)) {
+  if (input.flowState?.policy?.nonblocking?.enabled === true && input.result?.result !== "pass" && nonblockingRouteFor(step)) {
     return [];
   }
   const actions = [];
@@ -627,7 +623,18 @@ function resolveReportLifecycle(input) {
   ];
 }
 
+function resolveAcceptanceReviewLifecycle(input) {
+  if (input.event !== "acceptance-review:post") return [];
+  // A mechanically blocked review deliberately retains its active Attempt:
+  // it is evidence for a later retry/recovery, not a completed acceptance.
+  if (input.result?.verdict === "blocked") return [];
+  return [new SetStepStatus({ step: "acceptance-review", status: "done" })];
+}
+
 function resolveLifecycleForNode(node, input = {}) {
+  if (input.event === "acceptance-review:post" || node.id === "acceptance-review") {
+    return resolveAcceptanceReviewLifecycle(input);
+  }
   if (input.event === "review:post" || node.action === "run-review") return resolveReviewLifecycle(input);
   if (input.event === "gate:post" || node.action === "run-gate") return resolveGateLifecycle(input);
   if (String(input.event || "").startsWith("report:") || node.action === "run-report") {
@@ -662,9 +669,20 @@ export function resolveLifecycle(input = {}) {
     return [new SetStepStatus({ step: input.targetStepId, status: input.status })];
   }
   const stepId = input.currentStepId || resolveRuntimeStep(input);
-  const node = stepId ? (getFlowNode(stepId) || getTaskNode(stepId)) : null;
+  const taskStep = TaskStepIdentity.fromStateNode(input.flowState, stepId);
+  const definitionStepId = taskStep?.definitionId ?? stepId;
+  const node = definitionStepId ? (getFlowNode(definitionStepId) || getTaskNode(definitionStepId)) : null;
   if (!node) return [];
-  return node.resolveLifecycle(input);
+  const actions = node.resolveLifecycle({
+    ...input,
+    currentStepId: definitionStepId,
+  });
+  if (taskStep === null) return actions;
+  return actions.map((action) => (
+    action instanceof SetStepStatus && action.step === definitionStepId
+      ? action.forStep(taskStep.nodeId)
+      : action
+  ));
 }
 
 export function resolveLifecyclePlan(input = {}) {
@@ -1198,6 +1216,7 @@ const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "test"],
         outputSchemaRef: "next-action/final-regression.schema.json",
         maxAttempts: 2,
+        failurePolicy: "retry",
         definitionLifecycleOwned: true,
         executionCommand: new FlowExecutionCommand("final-regression"),
       }),
@@ -1245,6 +1264,10 @@ const FLOW_DEFINITION = Object.freeze([
             instructionsKey: "impl.finalize-sync",
             contextKinds: ["spec"],
             outputSchemaRef: "next-action/finalize.schema.json",
+            // An interrupted sync has no durable worker result to retry. The
+            // recovery path records its failed outbox Activity, then skips
+            // this leaf so cleanup can retain the persisted evidence.
+            skippable: true,
             definitionLifecycleOwned: true,
             executionCommand: new FlowExecutionCommand("finalize-sync"),
           }),
@@ -1373,10 +1396,34 @@ export function collectTaskNodes() {
  * legacy-schema fallback or a double-write bridge.
  */
 export function buildCurrentFlowDefinition() {
-  const transitionsFor = ({ skippable = false, failurePolicy = null } = {}) => [
+  // These leaves are bypassable only by the typed nonblocking continuation
+  // Activity, whose evidence-bound decision is recorded in the same ledger.
+  // Normal lifecycle callers still have no generic skip transition API.
+  const advisorySkippable = new Set([
+    "branch",
+    "draft-questions-triage", "draft-questions-repair",
+    "draft-coverage-triage", "draft-coverage-repair",
+    "spec-triage", "spec-repair", "impl-triage", "impl-repair",
+    "acceptance-decision",
+  ]);
+  // These two leaves may be bypassed only by the fixed,
+  // evidence-consuming preimplementation bootstrap Activity.  The reachable
+  // states remain part of the definition so journal replay can validate that
+  // Activity without accepting an unmodelled persistence exception.
+  const preimplementationBootstrapSkippable = new Set(["scenario-validity", "test-review"]);
+  const existingImplementationCompletion = new Set(["implement"]);
+  const finalizationRouteLeaves = new Set(["finalize-sync", "finalize-cleanup"]);
+  const transitionsFor = ({ skippable = false, preimplementationBootstrap = false, existingImplementation = false, finalizationRoute = false, failurePolicy = null } = {}) => [
     "pending:in_progress",
     "in_progress:done",
     ...(skippable ? ["in_progress:skipped"] : []),
+    ...(preimplementationBootstrap ? ["pending:skipped", "in_progress:skipped"] : []),
+    ...(existingImplementation ? ["pending:done"] : []),
+    // These suffix leaves are skipped/reset only by the typed
+    // finalization-downstream Activity while finalize-merge is active.  The
+    // definition still declares their reachable states so replay validation
+    // remains an authority check rather than a persistence exception.
+    ...(finalizationRoute ? ["pending:skipped", "skipped:pending"] : []),
     ...(["retry", "record"].includes(failurePolicy)
       ? ["in_progress:failed", "failed:in_progress", "failed:invalidated"]
       : []),
@@ -1394,7 +1441,13 @@ export function buildCurrentFlowDefinition() {
     semanticRetryLimit: node.resolveMaxAttempts({ autoApprove: false }) - 1,
     // null remains an explicit zero-budget tooling policy in NodeContract.
     toolingRetryLimit: node.resolveToolingMaxAttempts({ autoApprove: false }),
-    transitions: transitionsFor(node),
+    transitions: transitionsFor({
+      ...node,
+      skippable: node.skippable === true || advisorySkippable.has(node.id),
+      preimplementationBootstrap: preimplementationBootstrapSkippable.has(node.id),
+      existingImplementation: existingImplementationCompletion.has(node.id),
+      finalizationRoute: finalizationRouteLeaves.has(node.id),
+    }),
     // Context requirements stay definition-owned. Current Attempt claims may
     // cover them as completed operations or typed incomplete operations, but
     // never copy the contract into flow.json.

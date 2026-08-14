@@ -68,7 +68,7 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("task.review"), "steps/impl/:{taskId}/review/result.json");
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
-      ["flow.activities", "artifact.catalog", "task.review"],
+      ["flow.activities", "artifact.catalog", "acceptance.decision", "task.review", "runtime.step-metadata"],
     );
     assert.equal(paths.get("draft.gate.source"), "steps/draft-gate/source.json");
     assert.equal(paths.get("spec.gate.source"), "steps/spec-gate/source.json");
@@ -119,7 +119,7 @@ describe("Flow artifact contract registry", () => {
       }
     }
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("scenario.validity").ownership.consumers.includes("acceptance-review"), true);
-    for (const key of ["upgrade.result", "upgrade.recovery.audit"]) {
+    for (const key of ["upgrade.result"]) {
       assert.equal(FLOW_ARTIFACT_CONTRACTS.require(key).ownership.consumers.includes("acceptance-review"), true, key);
     }
     for (const key of ["draft.questions.repair", "draft.coverage.repair", "spec.repair"]) {
@@ -127,7 +127,7 @@ describe("Flow artifact contract registry", () => {
     }
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("draft.questions.triage").ownership.consumers.includes("draft-gate"), true);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("file.map").ownership.consumers, [
-      "implement", "test-execute", "test-result-review", "impl-review", "impl-gate",
+      "implement", "task-impl", "test-execute", "test-result-review", "impl-review", "impl-gate", "report",
     ]);
     assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("completion.overrides").ownership.consumers, [
       "test-review", "test-result-review", "impl-review", "impl-gate", "acceptance-review", "final-regression",
@@ -140,7 +140,8 @@ describe("Flow artifact contract registry", () => {
     assert.equal(noArtifact.has("acceptance-decision"), false);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("spec.record").ownership.updaters.includes("approval"), true);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("flow.state").ownership.updaters.includes("acceptance-decision"), true);
-    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("acceptance.review").ownership.updaters.includes("acceptance-decision"), true);
+    assert.deepEqual(FLOW_ARTIFACT_CONTRACTS.require("acceptance.decision").ownership.producers, ["acceptance-decision"]);
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.require("acceptance.review").ownership.updaters.includes("acceptance-decision"), false);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.log").ownership.updaters.includes("acceptance-decision"), true);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("issue.snapshot").ownership.consumers.includes("system"), true);
     assert.notEqual(FLOW_ARTIFACT_CONTRACTS.require("final.regression").contentContract, null);
@@ -238,10 +239,8 @@ describe("Flow artifact contract registry", () => {
     assert.deepEqual(targets.get("ideas").legacyPaths.map(String), ["ideas.json", "plugin-artifacts/workflow/ideas.json"]);
     assert.deepEqual(targets.get("plugin.lifecycle.artifact").legacyPatterns.map(String), ["plugin-artifacts/:{pluginArtifactPath}"]);
     assert.deepEqual(targets.get("review.evidence").legacyPatterns.map(String), ["review-evidence/:{digest}.json"]);
-    assert.deepEqual(targets.get("legacy.upgrade.log").legacyPaths.map(String), ["tests/.raw/upgrade.log"]);
     assert.deepEqual(targets.get("legacy.task.views").legacyPatterns.map(String), ["tasks/:{taskView}.md"]);
     assert.equal(targets.get("legacy.derived.views").legacyPaths.some((entry) => entry.toString() === "test.md"), true);
-    assert.equal(targets.get("legacy.upgrade.log").action, "remove");
     assert.equal(targets.get("flow.state").action, "switch");
     assert.equal(targets.get("draft").legacyPaths.some((entry) => entry.toString() === "draft.json"), true);
     for (const fabricated of ["draft-questions-review.json", "draft-coverage-review.json", "spec-gate.json", "impl-gate.json"]) {
@@ -277,7 +276,6 @@ describe("Flow artifact contract registry", () => {
       ["..artifact-catalog.lock.owner-1.owner.tmp", "runtime.lock.artifact-catalog-owner"],
       ["..retry-recovery.lock.owner-1.owner.tmp", "runtime.lock.retry-recovery-owner"],
       ["report-envelope.json", "legacy.finalize.envelopes"],
-      ["tests/.raw/upgrade.log", "legacy.upgrade.log"],
     ]);
     for (const [file, logicalKey] of samples) {
       assert.equal(FLOW_ARTIFACT_CONTRACTS.classifyKnownFile(file).logicalKey, logicalKey, file);
@@ -341,7 +339,14 @@ describe("Flow artifact contract registry", () => {
         "tests/.raw/post-report-full-regression.log", "tests/.raw/related-tests.log",
         "tests/.raw/run-review-advisory-regression.log", "tests/.raw/scenario-validity-preflight-blocked.log",
         "tests/.raw/spec-tests-only.log", "tests/.raw/spec253-tests.log", "tests/.raw/test-execution.pre-r8.log",
+        "upgrade-recovery-audit.json",
       ].map((relativePath) => new FlowArtifactInventoryExclusion({
+        relativePath, category: "historical-temporary", reason: "pre-contract diagnostic retained in Git under the board's index-cleanup exclusion",
+      })),
+      ...[...new Set(tracked.filter((relativePath) => (
+        relativePath.startsWith("tests/.raw/")
+        && relativePath.endsWith(["upgrade", "log"].join("."))
+      )))].map((relativePath) => new FlowArtifactInventoryExclusion({
         relativePath, category: "historical-temporary", reason: "pre-contract diagnostic retained in Git under the board's index-cleanup exclusion",
       })),
     ];
@@ -412,6 +417,8 @@ describe("Flow artifact contract registry", () => {
     assert.equal(draft.authoritySlot.authority.toString(), "canonical-flow-artifacts");
     assert.equal(tests.authoritySlot.authority.toString(), "canonical-flow-artifacts");
     assert.equal(fileMap.authoritySlot.authority.toString(), "execution-checkout");
+    assert.deepEqual(fileMap.ownership.producers, ["implement", "task-impl"]);
+    assert.equal(fileMap.ownership.consumers.includes("report"), true);
     assert.equal(FLOW_ARTIFACT_CONTRACTS.require("worker.handoff").authoritySlot.authority.toString(), "dispatcher-handoff");
     assert.throws(() => new FlowArtifactContract({
       logicalKey: "flow.state", canonicalPath: "flow.json", placement: "step-owner", retention: "permanent",

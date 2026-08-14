@@ -9,13 +9,12 @@ import RunFinalizeMergeCommand from "../../../src/flow/lib/run-finalize-merge.js
 import RunFinalizeSyncCommand from "../../../src/flow/lib/run-finalize-sync.js";
 import RunReportCommand from "../../../src/flow/lib/run-report.js";
 import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
-import { captureRepairBaseline } from "../../../src/flow/lib/repair-state-identity.js";
 import { runGit } from "../../../src/lib/git-helpers.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { container } from "../../../src/lib/container.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { checkoutNewBranch, commitAll, initGitRepo } from "../../helpers/git-repo.js";
-import { makeContainer, makeFlowManager, setupFlow } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeContainer, makeFlowManager } from "../../helpers/flow-setup.js";
 
 function pendingEntry(state, stepId) {
   const outbox = new FlowOutbox();
@@ -33,17 +32,21 @@ function setupFinalizationRepo(root, flowOverrides = {}) {
   writeFile(root, "README.md", "baseline\n");
   commitAll(root, "test: baseline");
   checkoutNewBranch(root, "feature/001-test");
-  const repairBaseline = captureRepairBaseline({
-    root,
-    baseRef: "main",
-    runId: flowOverrides.runId || "run-test",
-  });
-  const state = setupFlow(root, { repairBaseline: repairBaseline.toJSON(), ...flowOverrides });
-  const specPath = `specs/${state.specId}/spec.json`;
-  writeFile(root, specPath, JSON.stringify({ requirements: [] }, null, 2));
-  writeFile(root, path.join(path.dirname(specPath), "issue-log.json"), "{\n  \"entries\": []\n}\n");
+  const flowManager = makeFlowManager(root);
+  const state = new CanonicalFlowFixture({
+    flowManager,
+    specId: flowOverrides.specId ?? "001-test",
+    runId: flowOverrides.runId ?? "run-test",
+    request: flowOverrides.request ?? "finalization fixture",
+    issue: flowOverrides.issue ?? null,
+    execution: {
+      mode: flowOverrides.worktree === true ? "worktree" : "branch",
+      baseBranch: flowOverrides.baseBranch ?? "main",
+      featureBranch: flowOverrides.featureBranch ?? "feature/001-test",
+    },
+  }).create().registerActive().activate("report").state();
   writeFile(root, "src-change.js", "export const changed = true;\n");
-  return { state, flowManager: makeFlowManager(root) };
+  return { state, flowManager };
 }
 
 describe("finalization command crash resumption", () => {
@@ -97,7 +100,7 @@ describe("finalization command crash resumption", () => {
       });
 
       assert.strictEqual(receivedEntry, entry);
-      assert.equal(JSON.parse(stdout.join("")).ok, true);
+      assert.equal(JSON.parse(stdout.join("")).ok, true, stdout.join(""));
       assert.match(fs.readFileSync(ghLog, "utf8"), new RegExp(`sennel:${entry.idempotencyKey}`));
     } finally {
       process.env.PATH = originalPath;
@@ -113,14 +116,16 @@ describe("finalization command crash resumption", () => {
       const { state, flowManager } = setupFinalizationRepo(root);
       const entry = pendingEntry(state, "report");
       const ctx = { root, flowState: state, flowManager, flowOutboxEntry: entry };
-      const reportPath = path.join(root, "specs", state.specId, "report.json");
+      const reportPath = flowManager.specLocation(state.specId).reportFile;
 
       const first = await new RunReportCommand().execute(ctx);
       assert.equal(first.result, "ok");
+      flowManager.publishCurrentAttemptResult({ specId: state.specId, commandResult: first });
       const firstBytes = fs.readFileSync(reportPath);
 
       const resumed = await new RunReportCommand().execute(ctx);
       assert.equal(resumed.result, "ok");
+      flowManager.publishCurrentAttemptResult({ specId: state.specId, commandResult: resumed });
       assert.deepEqual(fs.readFileSync(reportPath), firstBytes);
     } finally {
       removeTmpDir(root);

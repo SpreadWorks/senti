@@ -5,15 +5,13 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import SetStepCommand from "../../../src/flow/lib/set-step.js";
-import { NormalStepTransition } from "../../../src/flow/lib/step-transition-policy.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set step", () => {
@@ -22,24 +20,14 @@ describe("flow set step", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = {
-      specId: specId,
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return state;
+    return new CanonicalFlowFixture({
+      flowManager: makeFlowManager(dir), specId, runId: "run-test",
+    }).create().registerActive();
   }
 
   it("updates step and returns JSON envelope", () => {
     tmp = createTmpDir();
-    setupFlowState(tmp);
+    setupFlowState(tmp).activate("branch");
     const result = execFileSync(
       "node", [FLOW_CMD, "set", "step", "branch", "done"],
       { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
@@ -71,73 +59,53 @@ describe("flow set step", () => {
   });
 
   it("passes explicit flow and task scope for the resolved active step", async () => {
-    const updates = [];
-    const flowManager = {
-      state: {
-        steps: [{ id: "draft", status: "in_progress" }],
-        tasks: [{
-          id: "T-1",
-          steps: [
-            { id: "task-impl", status: "pending" },
-            { id: "task-review", status: "pending" },
-            { id: "task-gate", status: "pending" },
-          ],
-        }],
-        currentTaskId: "T-1",
-      },
-      load() { return this.state; },
-      updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
-    };
+    tmp = createTmpDir();
+    const flowManager = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager, specId: "demo" })
+      .create()
+      .addTask({
+        id: "T-1", title: "task", goal: "task", parent: null,
+        origin: "plan", added_round: 0, status: "pending",
+      })
+      .activate("branch");
     const command = new SetStepCommand();
 
     await command.execute({
-      id: "draft",
-      status: "skipped",
+      id: "branch",
+      status: "done",
       specId: "demo",
       flowManager,
     });
-    flowManager.state.steps[0].status = "done";
-    flowManager.state.tasks[0].steps[0].status = "in_progress";
+    fixture.settleBefore("T-1-impl").activateTask("T-1", { settlePredecessors: false });
     await command.execute({
       id: "task-impl",
-      status: "skipped",
+      status: "done",
       specId: "demo",
       flowManager,
     });
 
-    assert.equal(updates.length, 2);
-    assert.ok(updates.every(({ transition }) => transition instanceof NormalStepTransition));
-    assert.deepEqual(updates.map(({ transition, opts }) => ({
-      stepId: transition.stepId,
-      status: transition.requestedStatus,
-      opts,
-    })), [
-      { stepId: "draft", status: "skipped", opts: { specId: "demo", taskId: null } },
-      { stepId: "task-impl", status: "skipped", opts: { specId: "demo", taskId: "T-1" } },
-    ]);
+    const state = flowManager.loadReadOnly("demo");
+    assert.equal(findStepById(state.steps, "branch").status, "done");
+    assert.equal(state.tasks[0].steps[0].id, "T-1-impl");
+    assert.equal(state.tasks[0].steps[0].status, "done");
   });
 
   it("rejects a current step whose completion is owned by a definition lifecycle", async () => {
-    const updates = [];
-    const state = {
-      specId: "demo",
-      currentTaskId: null,
-      steps: [{ id: "scenario-validity", status: "in_progress" }],
-      tasks: [],
-    };
+    tmp = createTmpDir();
+    const flowManager = makeFlowManager(tmp);
+    new CanonicalFlowFixture({ flowManager, specId: "demo" })
+      .create()
+      .activate("scenario-validity");
     const result = await new SetStepCommand().execute({
       id: "scenario-validity",
       status: "done",
       root: tmp,
-      flowManager: {
-        load() { return state; },
-        updateStepStatus(transition) { updates.push(transition); },
-      },
+      specId: "demo",
+      flowManager,
     });
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "FLOW_STEP_TRANSITION_INVALID");
-    assert.equal(updates.length, 0);
-    assert.equal(state.steps[0].status, "in_progress");
+    assert.equal(findStepById(flowManager.loadReadOnly("demo").steps, "scenario-validity").status, "in_progress");
   });
 });

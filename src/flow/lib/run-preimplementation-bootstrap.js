@@ -1,15 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
 import { Envelope } from "../../lib/flow-envelope.js";
-import { findActiveNode } from "../definition.js";
-import { findStepById } from "./step-tree.js";
 import { FlowCommand } from "./base-command.js";
-import { ExplicitRecoveryTransition } from "./step-transition-policy.js";
-
-const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
-const RECOVERY_ENTRYPOINT = "preimplementation-bootstrap";
+import {
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { findStepById } from "./step-tree.js";
 
 class PreimplementationBootstrapError extends Error {
   constructor(code, message) {
@@ -19,16 +14,18 @@ class PreimplementationBootstrapError extends Error {
   }
 }
 
+/** Immutable evidence selected from scenario-validity's producer Attempt. */
 export class PreimplementationBootstrapPlan {
-  constructor({ invalidPaths, transition }) {
+  constructor({ invalidPaths } = {}) {
     if (!Array.isArray(invalidPaths) || invalidPaths.length === 0) {
       throw new Error("preimplementation bootstrap plan requires invalid paths");
     }
-    if (!(transition instanceof ExplicitRecoveryTransition)) {
-      throw new Error("preimplementation bootstrap plan requires an explicit recovery transition");
-    }
-    this.invalidPaths = Object.freeze([...invalidPaths]);
-    this.transition = transition;
+    this.invalidPaths = Object.freeze(invalidPaths.map((value, index) => {
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new Error(`preimplementation bootstrap invalidPaths[${index}] must be a non-empty string`);
+      }
+      return value;
+    }));
     Object.freeze(this);
   }
 }
@@ -57,77 +54,56 @@ function requireExactGuards(ctx, state) {
   return null;
 }
 
-function readPreflightInvalidPaths(specDir) {
-  const file = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
-  let artifact;
-  try {
-    artifact = JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (error) {
-    reject(
-      "PREIMPLEMENTATION_BOOTSTRAP_EVIDENCE_INVALID",
-      `scenario-validity evidence is unavailable: ${error.message}`,
-    );
+function preflightPlan({ flowManager, state }) {
+  if (!isCanonicalFlowState(state)) {
+    reject("PREIMPLEMENTATION_BOOTSTRAP_LIFECYCLE_INVALID", "preimplementation bootstrap requires a Version-1 Flow");
   }
-  const invalidPaths = artifact?.preflight?.invalid_paths;
-  if (artifact?.result !== "block" || !Array.isArray(invalidPaths) || invalidPaths.length === 0) {
+  const artifact = new CanonicalTestArtifactStore({ flowManager, state }).readCurrentAttempt({
+    logicalKey: "scenario.validity",
+    consumerNodeId: "implement",
+    optional: true,
+  });
+  const invalidPaths = artifact?.payload?.preflight?.invalid_paths;
+  if (artifact?.payload?.result !== "block" || !Array.isArray(invalidPaths) || invalidPaths.length === 0) {
     reject(
       "PREIMPLEMENTATION_BOOTSTRAP_EVIDENCE_INVALID",
       "preimplementation bootstrap requires a scenario-validity preflight block with implementation-target changes",
     );
   }
-  return invalidPaths;
+  return new PreimplementationBootstrapPlan({ invalidPaths });
 }
 
-function buildRecoveryTransition(state) {
-  const active = findActiveNode(state);
-  if (active?.scope !== "flow" || active.stepId !== "scenario-validity") {
+function assertBootstrapRoute(state) {
+  if (state.currentNodeId !== "scenario-validity") {
     reject(
       "PREIMPLEMENTATION_BOOTSTRAP_LIFECYCLE_INVALID",
       "preimplementation bootstrap is available only while scenario-validity is active",
     );
   }
-  if (!state.repairBaseline?.ref) {
-    reject(
-      "PREIMPLEMENTATION_BOOTSTRAP_BASELINE_REQUIRED",
-      "preimplementation bootstrap requires the flow's immutable repair baseline",
-    );
-  }
-  const expected = [
-    ["scenario-validity", "in_progress", "skipped"],
-    ["test-review", "pending", "skipped"],
-    ["implement", "pending", "in_progress"],
-  ];
-  const changes = expected.map(([stepId, currentStatus, requestedStatus]) => {
-    const step = findStepById(state.steps || [], stepId);
-    if (!step || step.status !== currentStatus) {
+  for (const [stepId, expectedStatus] of [
+    ["scenario-validity", "in_progress"],
+    ["test-review", "pending"],
+    ["implement", "pending"],
+  ]) {
+    const step = findStepById(state.steps, stepId);
+    if (step?.status !== expectedStatus) {
       reject(
         "PREIMPLEMENTATION_BOOTSTRAP_LIFECYCLE_INVALID",
-        `preimplementation bootstrap requires ${stepId}=${currentStatus}`,
+        `preimplementation bootstrap requires ${stepId}=${expectedStatus}`,
       );
     }
-    return { stepId, currentStatus, requestedStatus };
-  });
-  return new ExplicitRecoveryTransition({
-    stepId: "scenario-validity",
-    currentStatus: "in_progress",
-    requestedStatus: "skipped",
-    entrypoint: RECOVERY_ENTRYPOINT,
-    changes,
-    clearRuntimeLog: true,
-  });
+  }
 }
 
-function buildPreimplementationBootstrapPlan({ root, state }) {
-  const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
-  return new PreimplementationBootstrapPlan({
-    invalidPaths: readPreflightInvalidPaths(specDir),
-    transition: buildRecoveryTransition(state),
-  });
+function buildPreimplementationBootstrapPlan({ flowManager, state }) {
+  const plan = preflightPlan({ flowManager, state });
+  assertBootstrapRoute(state);
+  return plan;
 }
 
-export function inspectPreimplementationBootstrap({ root, state }) {
+export function inspectPreimplementationBootstrap({ flowManager, state }) {
   try {
-    return buildPreimplementationBootstrapPlan({ root, state });
+    return buildPreimplementationBootstrapPlan({ flowManager, state });
   } catch (error) {
     if (error instanceof PreimplementationBootstrapError) return null;
     throw error;
@@ -140,11 +116,8 @@ export default class RunPreimplementationBootstrapCommand extends FlowCommand {
     const guardFailure = requireExactGuards(ctx, state);
     if (guardFailure) return guardFailure;
     try {
-      const plan = buildPreimplementationBootstrapPlan({ root: ctx.root, state });
-      ctx.flowManager.updateStepStatus(plan.transition, {
-        taskId: null,
-        expectedOriginal: state,
-      });
+      const plan = buildPreimplementationBootstrapPlan({ flowManager: ctx.flowManager, state });
+      ctx.flowManager.preimplementationBootstrap({ specId: state.specId });
       return Envelope.ok("run", "preimplementation-bootstrap", {
         recovered: true,
         skipped: ["scenario-validity", "test-review"],

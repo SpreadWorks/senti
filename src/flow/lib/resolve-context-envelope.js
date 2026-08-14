@@ -7,14 +7,12 @@
  */
 
 import fs from "fs";
-import path from "path";
 import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGhAvailable } from "../../lib/git-helpers.js";
 import { derivePhase } from "../../lib/flow-helpers.js";
-import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { flattenSteps } from "./step-tree.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { PRODUCT } from "../../lib/product.js";
+import { CanonicalSpecRecord } from "./canonical-spec-record.js";
 
 const SKILL_BY_PHASE = { sync: PRODUCT.skill("flow-sync") };
 const DEFAULT_SKILL = PRODUCT.skill("flow");
@@ -55,17 +53,15 @@ export function buildResolvedFlowContext(ctx) {
   const currentStep = leafSteps.find((s) => s.status === "in_progress");
   const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped");
 
-  let goal = null;
-  let scope = null;
+  const specRecord = new CanonicalSpecRecord({
+    flowManager,
+    state,
+    consumerNodeId: "system",
+  });
+  const spec = specRecord.document();
+  const goal = typeof spec.goal === "string" && spec.goal.trim() ? spec.goal.trim() : null;
+  const scope = spec.scope && typeof spec.scope === "object" ? spec.scope : null;
   const effectiveRoot = worktreePath && fs.existsSync(worktreePath) ? worktreePath : mainRepoPath;
-  const specPath = specLocation.specFile;
-  try {
-    const specJson = loadSpecJson(specPath, { validate: false });
-    goal = typeof specJson.goal === "string" && specJson.goal.trim() ? specJson.goal.trim() : null;
-    scope = specJson.scope && typeof specJson.scope === "object" ? specJson.scope : null;
-  } catch {
-    // Active flows may still be in prepare/draft before spec.json exists.
-  }
 
   const { dirty, dirtyFiles } = getWorktreeStatus(effectiveRoot);
   const currentBranch = getCurrentBranch(effectiveRoot);
@@ -89,7 +85,7 @@ export function buildResolvedFlowContext(ctx) {
     request: state.request || null,
     goal,
     scope,
-    requirements: loadSpecRequirements(mainRepoPath, relativeFlowSpecFile(state)),
+    requirements: specRecord.requirements(),
     notes: state.notes || [],
     dirty,
     dirtyFiles,

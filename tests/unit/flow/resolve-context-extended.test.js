@@ -5,14 +5,13 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow get resolve-context (extended fields)", () => {
@@ -20,21 +19,16 @@ describe("flow get resolve-context (extended fields)", () => {
   afterEach(() => tmp && removeTmpDir(tmp));
 
   function setupFlowState(dir) {
-    const specId = "001-test";
-    const state = {
-      specId: specId,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
+    const fixture = new CanonicalFlowFixture({
+      flowManager: makeFlowManager(dir),
+      specId: "001-test",
       runId: "run-001-test",
+      request: "Resolve the canonical flow context",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "feature/001-test" },
       issue: 429,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return state;
+      specRecord: specRecord(),
+    }).create().registerActive();
+    return fixture.state();
   }
 
   function runResolveContext(dir, args = []) {
@@ -44,10 +38,8 @@ describe("flow get resolve-context (extended fields)", () => {
     );
   }
 
-  function writeSpecJson(dir, specId, overrides = {}) {
-    const specDir = path.join(dir, "specs", specId);
-    fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
+  function specRecord(overrides = {}) {
+    return {
       goal: "JSON goal",
       background: "",
       scope: { in: ["JSON scope"], out: [] },
@@ -60,7 +52,7 @@ describe("flow get resolve-context (extended fields)", () => {
       alternatives_considered: [],
       open_questions: [],
       ...overrides,
-    }, null, 2));
+    };
   }
 
   it("returns dirty, currentBranch, aheadCount, ghAvailable fields", () => {
@@ -76,14 +68,9 @@ describe("flow get resolve-context (extended fields)", () => {
     assert.ok("lastCommit" in envelope.data, "should have lastCommit field");
   });
 
-  it("reads goal and scope from spec.json instead of spec.md", () => {
+  it("reads goal and scope from the cataloged spec.record", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
-    writeSpecJson(tmp, "001-test");
-    fs.writeFileSync(
-      join(tmp, "specs", "001-test", "spec.md"),
-      "# Spec\n## Goal\nstale markdown goal\n## Scope\nstale markdown scope\n",
-    );
 
     const result = runResolveContext(tmp);
     const envelope = JSON.parse(result);

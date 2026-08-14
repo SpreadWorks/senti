@@ -29,11 +29,7 @@ import {
 } from "./definition.js";
 import { findStepById, flattenSteps } from "./lib/step-tree.js";
 import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
-import { DraftReviewPassCommit } from "./lib/draft-review-pass-commit.js";
-import { assertStepCompletionTransitionAllowed } from "./lib/flow-judgment-contract.js";
-import { runFlowCommandHooks } from "../lib/plugin-registry.js";
-import { appendIssueLogEntry } from "./lib/set-issue-log.js";
-import { relativeFlowSpecFile } from "../lib/flow-workspace.js";
+import { discoverFlowCommandHooks, runFlowCommandHooks } from "../lib/plugin-registry.js";
 import {
   DecisionOutcome,
   DeferOutcome,
@@ -48,10 +44,9 @@ import {
 } from "./lib/step-transition-policy.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { FinalizeFlowStateOwner } from "./lib/finalize-flow-state-owner.js";
-import {
-  TaskGateCompletionError,
-  TaskGateCompletionIntent,
-} from "./lib/task-gate-completion.js";
+import { attachedCanonicalCommandResultPublications } from "./lib/canonical-command-result.js";
+import { CanonicalFlowArtifactWrite } from "./lib/current-flow-state.js";
+import { TaskStepIdentity } from "./lib/task-step-identity.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -131,17 +126,7 @@ function resetSkippedDownstreamSteps(stateOwner, stepIds = []) {
   const flat = flattenSteps(state.steps || []);
   const resetIds = stepIds.filter((id) => flat.find((step) => step.id === id)?.status === "skipped");
   if (resetIds.length === 0) return false;
-  stateOwner.updateStepStatus(new ExplicitRecoveryTransition({
-    stepId: resetIds[0],
-    currentStatus: "skipped",
-    requestedStatus: "pending",
-    entrypoint: "reset-skipped-downstream",
-    changes: resetIds.map((stepId) => ({
-      stepId,
-      currentStatus: "skipped",
-      requestedStatus: "pending",
-    })),
-  }));
+  stateOwner.finalizeDownstream({ action: "reset", stepIds: resetIds });
   return true;
 }
 
@@ -151,6 +136,42 @@ function resetSkippedDownstreamSteps(stateOwner, stepIds = []) {
 function deriveActivePhase(ctx) {
   const state = ctx.flowManager.load();
   return derivePhase(state);
+}
+
+/**
+ * A Version-1 command result is owned by one producing Attempt. Lifecycle
+ * plans may subsequently settle no-op triage/repair leaves, but those leaves
+ * must never republish the producer's history or immutable evidence.
+ */
+function canonicalResultProducerStep(provenance, result) {
+  const event = provenance?.event || "";
+  const phase = result?.artifacts?.phase;
+  if (event === "review:post") {
+    if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") {
+      return draftReviewRouteForRetryPhase(result?.artifacts?.retryPhase || phase)?.reviewStepId ?? null;
+    }
+    if (phase === "spec") return "spec-review";
+    if (phase === "test") return "test-review";
+    if (phase === "impl") {
+      return result?.artifacts?.taskId == null ? "impl-review" : `${result.artifacts.taskId}-review`;
+    }
+    return null;
+  }
+  if (event === "gate:post") {
+    if (phase === "draft") return "draft-gate";
+    if (phase === "spec" || phase === "task-spec") return "spec-gate";
+    if (phase === "integration") return "impl-gate";
+    if (phase === "task-impl") {
+      return result?.artifacts?.taskId == null ? "impl-gate" : `${result.artifacts.taskId}-gate`;
+    }
+  }
+  if (event === "test-execute:post") return "test-execute";
+  if (event === "scenario-validity:post") return "scenario-validity";
+  if (event === "test-result-review:post") return "test-result-review";
+  if (event === "final-regression:post") return "final-regression";
+  if (event === "retro:post") return "retro";
+  if (String(event).startsWith("report:")) return "report";
+  return null;
 }
 
 /**
@@ -183,10 +204,6 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
     }
   }
   try {
-    const skipTaskImplGateContract = stepId === "impl-gate" && target?.phase === "task-impl";
-    if (status === "done" && target?.root && !skipTaskImplGateContract) {
-      assertStepCompletionTransitionAllowed(target, stepId);
-    }
     let state;
     if (typeof fm.loadReadOnly === "function") {
       state = mutationOpts?.specId ? fm.loadReadOnly(mutationOpts.specId) : fm.loadReadOnly();
@@ -194,6 +211,9 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
       state = mutationOpts?.specId ? fm.load(mutationOpts.specId) : fm.load();
     } else if (isHookContext) {
       state = target.flowState;
+    }
+    if (state?.schemaRevision !== 3) {
+      throw new Error("flow lifecycle hooks require an active canonical Flow state");
     }
     const scope = mutationOpts?.taskId == null
       ? state
@@ -221,6 +241,18 @@ function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
       plan,
       currentStatus: targetStep.status,
     });
+    // V1 result histories are committed by the Version Store while the
+    // producing Attempt is still current.  The lifecycle adapter supplies
+    // the parsed command result here; it never writes a second state field.
+    if (
+      provenance.result !== undefined
+      && (
+        state.currentNodeId === stepId
+        || canonicalResultProducerStep(provenance, provenance.result) === stepId
+      )
+    ) {
+      mutationOpts.canonicalCommandResult = provenance.result;
+    }
     if (isFinalizeStateOwner) {
       target.updateStepStatus(transition, {
         taskId: mutationOpts?.taskId ?? null,
@@ -265,6 +297,14 @@ function gateRuntimeLogStepId(ctx) {
   return resolveScopedGateStepId(ctx.flowState, phase);
 }
 
+function setStepRuntimeLogStepId(ctx) {
+  if (!ctx.flowState || typeof ctx.id !== "string") return null;
+  const activeNode = findActiveNode(ctx.flowState);
+  const taskStep = TaskStepIdentity.fromStateNode(ctx.flowState, activeNode?.stepId);
+  if (taskStep?.definitionId === ctx.id) return taskStep.nodeId;
+  return findStepById(ctx.flowState.steps || [], ctx.id) ? ctx.id : null;
+}
+
 function terminalGateRevalidation(ctx) {
   if (ctx.phase == null || !ctx.flowState) return false;
   const stepId = resolveScopedGateStepId(ctx.flowState, ctx.phase);
@@ -280,18 +320,14 @@ function activeStepId(flowState, stepIds) {
   return steps.find((step) => allowed.has(step.id) && step.status === "in_progress")?.id || null;
 }
 
-// Resolve which review step the impl-phase post-hook should complete: flow scope
-// uses impl-review, task scope uses task-review. Defaults to impl-review (flow).
+// Resolve which materialized review node the impl-phase post-hook owns. Task
+// lifecycle nodes use stable IDs such as T-1-review; the definition alias
+// task-review is only a public command/action name.
 function activeImplReviewStepId(flowState) {
-  if (activeStepId(flowState, ["impl-review"]) === "impl-review") return "impl-review";
-  const taskId = flowState?.currentTaskId;
-  if (taskId && Array.isArray(flowState?.tasks)) {
-    const task = flowState.tasks.find((t) => t.id === taskId);
-    if (Array.isArray(task?.steps)
-      && task.steps.some((s) => s.id === "task-review" && s.status === "in_progress")) {
-      return "task-review";
-    }
-  }
+  const active = findActiveNode(flowState || {});
+  if (active?.stepId === "impl-review") return active.stepId;
+  const taskStep = TaskStepIdentity.fromStateNode(flowState, active?.stepId);
+  if (taskStep?.definitionId === "task-review") return taskStep.nodeId;
   return "impl-review";
 }
 
@@ -324,12 +360,12 @@ class RegistryLifecycleAdapter {
     this.err = err;
     this.phase = result?.artifacts?.phase || ctx.phase;
     const activeNode = this.ctx.flowState ? findActiveNode(this.ctx.flowState) : null;
+    const activeTaskStep = TaskStepIdentity.fromStateNode(this.ctx.flowState, activeNode?.stepId);
     this.gateStepId = this.phase === "task-impl"
-      ? resolveScopedGateStepId(this.ctx.flowState, this.phase)
+      && activeTaskStep?.definitionId === "task-gate"
+      ? activeTaskStep.nodeId
       : "impl-gate";
-    this.gateTaskId = this.gateStepId === "task-gate"
-      ? activeNode?.taskId || null
-      : null;
+    this.gateTaskId = activeTaskStep?.definitionId === "task-gate" ? activeTaskStep.taskId : null;
     this.plan = this.phase === "task-impl"
       ? plan.forStepAlias({ sourceStep: "impl-gate", targetStep: this.gateStepId })
       : plan;
@@ -375,34 +411,24 @@ class RegistryLifecycleAdapter {
           plan: this.plan,
           currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
           event: this.input.event,
+          result: this.result,
         },
       );
       return;
     }
-    const taskGateCompletion = step === "task-gate" && settledStatus === "done"
-      ? new TaskGateCompletionIntent({
-          runId: this.ctx.flowState.runId,
-          taskId: this.gateTaskId,
-        })
-      : null;
-    try {
-      tryUpdateStepStatus(
-        { ...this.ctx, phase: this.phase },
-        step,
-        settledStatus,
-        this.mutationOpts(step),
-        {
-          action,
-          plan: this.plan,
-          currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
-          event: this.input.event,
-          commitIntent: taskGateCompletion,
-        },
-      );
-    } catch (error) {
-      if (taskGateCompletion) throw new TaskGateCompletionError(error, this.gateTaskId);
-      throw error;
-    }
+    tryUpdateStepStatus(
+      { ...this.ctx, phase: this.phase },
+      step,
+      settledStatus,
+      this.mutationOpts(step),
+      {
+        action,
+        plan: this.plan,
+        currentStepId: this.input.currentStepId || resolveRuntimeStep(this.input),
+        event: this.input.event,
+        result: this.result,
+      },
+    );
   }
 
   refreshFlowState() {
@@ -501,32 +527,7 @@ class RegistryLifecycleAdapter {
 
   skipSteps(steps) {
     const stateOwner = this.finalizeStateOwner();
-    for (const id of steps) {
-      try {
-        tryUpdateStepStatus(
-          stateOwner,
-          id,
-          "skipped",
-          { specId: stateOwner.specId },
-          { event: "definition:skip-steps" },
-        );
-      } catch (e) {
-        process.stderr.write(`[sennel] finalize-merge onError: step-status update failed (${id}): ${e.message}\n`);
-      }
-    }
-  }
-
-  resetSteps(steps) {
-    this.ctx.flowManager.mutate((state) => {
-      const flat = flattenSteps(state.steps || []);
-      for (const id of steps) {
-        const step = flat.find((candidate) => candidate.id === id);
-        if (!step) continue;
-        step.status = "pending";
-        delete step.finishedAt;
-        delete step.startedAt;
-      }
-    });
+    stateOwner.finalizeDownstream({ action: "skip", stepIds: steps });
   }
 
   async runLifecycleHook(module, handler, args) {
@@ -540,17 +541,6 @@ class RegistryLifecycleAdapter {
   }
 
   async runReviewHook(handler, args) {
-    if (handler === "commitDraftReviewPassArtifacts") {
-      const route = draftReviewRouteForRetryPhase(args?.retryPhase);
-      if (!route) return;
-      const committed = new DraftReviewPassCommit({
-        root: this.ctx.root,
-        flowManager: this.ctx.flowManager,
-        route,
-      }).execute();
-      this.ctx.flowState = committed.state;
-      return;
-    }
     if (handler === "resetImplEvidenceAfterReviewProposals") {
       const reviewMod = await import("./lib/run-review.js");
       reviewMod.resetImplEvidenceAfterReviewProposals(this.ctx, this.result);
@@ -617,33 +607,16 @@ class RegistryLifecycleAdapter {
       return;
     }
     if (handler === "recordMergeOutcome") {
-      const strategy = this.result?.strategy === "skip" ? null : (this.result?.strategy ?? null);
-      const baseline = strategy === "squash" ? (this.result?.mergedFromSha ?? null) : null;
-      try {
-        const outcome = { mergeStrategy: strategy, featureBranchSquashedSha: baseline };
-        this.finalizeStateOwner().setMergeOutcome(outcome);
-      } catch (err) {
-        process.stderr.write(`[sennel] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
-      }
+      // The finalize producer artifact is the durable merge outcome.  The
+      // exact V1 state intentionally has no second mutable projection.
       return;
     }
     if (handler === "ensureFinalizeMergeInProgress") {
       const stateOwner = this.finalizeStateOwner();
       const current = stateOwner.loadReadOnly();
-      if (findStepById(current?.steps || [], "finalize-merge")?.status !== "pending") return;
-      // The base-side snapshot predates the in-memory merge execution. This
-      // is a constrained rehydration, not a user-initiated step transition.
-      // Its formerly active leaf must not coexist with finalize-merge as
-      // another in-progress leaf in the restored main-side state.
-      stateOwner.mutate((state) => {
-        const active = findActiveNode(state);
-        if (active?.stepId && active.stepId !== "finalize-merge") {
-          findStepById(state.steps || [], active.stepId).status = "done";
-        }
-        const commit = findStepById(state.steps || [], "finalize-commit");
-        if (commit?.status === "in_progress") commit.status = "done";
-        findStepById(state.steps || [], "finalize-merge").status = "in_progress";
-      });
+      if (current?.schemaRevision !== 3) {
+        throw new Error("finalize lifecycle hooks require an active canonical Flow state");
+      }
       return;
     }
     if (handler === "resetSkippedDownstreamSteps") {
@@ -679,11 +652,13 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
     await action.apply(adapter);
     if (action instanceof SetStepStatus) adapter.refreshFlowState();
   }
+  if (input?.pluginLifecycleHandled === true) return;
   const command = input?.command || input?.runtimeCommand || input?.key || result?.artifacts?.command;
-  const snapshot = Array.isArray(ctx.flowState?.plugins?.flowCommandHooks) ? ctx.flowState.plugins.flowCommandHooks : [];
-  if (!command || snapshot.length === 0) return;
+  if (!command) return;
+  const hooks = await discoverFlowCommandHooks(ctx.executionRoot || ctx.root);
+  if (hooks.length === 0) return;
   const hook = pluginHookForLifecycle(input?.event, err);
-  const hookResult = await runFlowCommandHooks(ctx.executionRoot || ctx.root, snapshot, {
+  const hookResult = await runFlowCommandHooks(ctx.executionRoot || ctx.root, hooks, {
     command: pluginCommandName(command),
     hook,
     flow: {
@@ -691,14 +666,31 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
       specRoot: ctx.specRoot?.toString(),
       issue: ctx.flowState?.issue,
       runId: ctx.flowState?.runId,
+      plugins: { flowCommandHooks: hooks },
     },
     result: result || { ok: false, error: err?.message },
     artifactRepositoryRoot: ctx.repositoryRoot || ctx.root,
+    artifactReader: ctx.flowState?.schemaRevision === 3
+      ? (request) => ctx.flowManager.readArtifact({
+          specId: ctx.flowState.specId,
+          consumerNodeId: "flow",
+          ...request,
+        })
+      : null,
   });
+  if (hookResult.artifactWrites.length > 0) {
+    if (ctx.flowState?.schemaRevision !== 3) {
+      throw new Error("plugin hook artifact publication requires an active canonical Flow state");
+    }
+    ctx.flowManager.publishPluginArtifacts({
+      specId: ctx.flowState.specId,
+      artifactWrites: hookResult.artifactWrites.map((write) => new CanonicalFlowArtifactWrite(write)),
+    });
+  }
   if (hookResult.issueLogEntries.length && ctx.flowState?.specId) {
     for (const entry of hookResult.issueLogEntries) {
       tryAppendIssueLog(() => {
-        appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), {
+        const issueEntry = {
           step: "plugin-hook",
           reason: entry.reason,
           trigger: `${command}.${hook}`,
@@ -706,6 +698,14 @@ async function applyLifecycleActionsFromRegistry(ctx, input, result = null, err 
           guardrailCandidate: "plugin hook run failures should be warning envelopes and issue-log candidates",
           pluginId: entry.pluginId,
           timestamp: new Date().toISOString(),
+        };
+        if (ctx.flowState.schemaRevision !== 3) {
+          throw new Error("plugin hook diagnostics require an active canonical Flow state");
+        }
+        ctx.flowManager.appendIssueLog({
+          specId: ctx.flowState.specId,
+          entry: issueEntry,
+          idempotencyKey: `plugin-hook-${entry.pluginId}-${command}-${hook}-${entry.reason}`,
         });
       });
     }
@@ -731,6 +731,8 @@ export const FLOW_COMMANDS = {
     helpKey: "flow.resume",
     helpPath: "sennel flow resume --help",
     requiresFlow: false,
+    explicitTargetResolution: true,
+    specOptionAsTarget: true,
     command: () => import("./lib/run-resume.js"),
     args: {
       flags: withTargetGuardFlags(),
@@ -779,6 +781,7 @@ export const FLOW_COMMANDS = {
       await applyLifecycleActionsFromRegistry(ctx, {
         event: "prepare:post",
         command: "prepare",
+        pluginLifecycleHandled: true,
       }, result);
     },
   },
@@ -808,6 +811,9 @@ export const FLOW_COMMANDS = {
     },
     "resolve-context": {
       helpKey: "flow.get.resolve-context",
+      explicitTargetResolution: true,
+      mismatchTargetResolution: true,
+      targetNotFoundAsMismatch: true,
       command: () => import("./lib/get-resolve-context.js"),
       args: { flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
@@ -827,6 +833,9 @@ export const FLOW_COMMANDS = {
     prompt: {
       helpKey: "flow.get.prompt",
       requiresFlow: false,
+      explicitTargetResolution: true,
+      mismatchTargetResolution: true,
+      targetNotFoundAsMismatch: true,
       command: () => import("./lib/get-prompt.js"),
       args: { positional: ["kind"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: [
@@ -930,7 +939,7 @@ export const FLOW_COMMANDS = {
     step: {
       helpKey: "flow.set.step",
       explicitTargetResolution: true,
-      runtimeLog: { stepId: (ctx) => ctx.id },
+      runtimeLog: { stepId: setStepRuntimeLogStepId },
       command: () => import("./lib/set-step.js"),
       args: { positional: ["id", "status"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
       help: "Usage: sennel flow set step <id> <status>\n\nUpdate a workflow step's status.",
@@ -967,9 +976,10 @@ export const FLOW_COMMANDS = {
     },
     summary: {
       helpKey: "flow.set.summary",
+      requiresFlow: false,
       command: () => import("./lib/set-summary.js"),
       args: { positional: ["json"], flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: sennel flow set summary '<json-array>'\n\nSet requirements list from a JSON string array.",
+      help: "Usage: sennel flow set summary '<json-array>'\n\nDeprecated: requirements are authoritative in spec.json.",
     },
     req: {
       helpKey: "flow.set.req",
@@ -1195,24 +1205,6 @@ export const FLOW_COMMANDS = {
         ...FLOW_TARGET_GUARD_HELP_LINES,
       ].join("\n"),
     },
-    "recover-task-gate-overview": {
-      helpKey: "flow.run.recover-task-gate-overview",
-      command: () => import("./lib/run-recover-task-gate-overview.js"),
-      args: {
-        flags: FLOW_TARGET_GUARD_FLAGS,
-        options: FLOW_RUN_OPTIONS,
-      },
-      help: [
-        `Usage: sennel flow run recover-task-gate-overview [--agent-work-dir <path>] ${FLOW_TARGET_GUARD_USAGE}`,
-        "",
-        "Resume the one incomplete task-gate overview outbox effect for the exact active Flow.",
-        "The task identity and idempotency key are read from durable CLI-owned state and are not re-entered by the agent.",
-        "",
-        "Options:",
-        "  --agent-work-dir <path>  Set the agent/tmp/log base directory for this invocation.",
-        ...FLOW_TARGET_GUARD_HELP_LINES,
-      ].join("\n"),
-    },
     "preimplementation-bootstrap": {
       helpKey: "flow.run.preimplementation-bootstrap",
       command: () => import("./lib/run-preimplementation-bootstrap.js"),
@@ -1296,6 +1288,38 @@ export const FLOW_COMMANDS = {
             && result?.artifacts?.evidenceRefresh?.recovered === true
           )
         ) return;
+        // A non-pass gate remains in_progress for retry, so its lifecycle
+        // does not confirm the Attempt.  V1 still records the exact result
+        // (and semantic failure source) through the same Store before the
+        // retry metric/issue-log actions run; never recreate a root sibling.
+        if (result?.result !== "pass") {
+          const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+          if (attachedCanonicalCommandResultArtifact(result) !== null) {
+            const specId = ctx.specId ?? ctx.flowState.specId;
+            if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
+              ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+            } else {
+              ctx.flowManager.failCurrentAttempt({
+                specId,
+                failure: {
+                  category: "semantic",
+                  code: "GATE_REJECTED",
+                  message: "Gate rejected the current Attempt.",
+                  retryable: true,
+                  retryKind: "semantic",
+                },
+                result: {
+                  outcome: "failed",
+                  summary: "Gate rejected the current Attempt.",
+                  confirmedAt: new Date().toISOString(),
+                  artifactRefs: [],
+                },
+                commandResult: result,
+              });
+            }
+            ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+          }
+        }
         await applyLifecycleActionsFromRegistry(ctx, {
           event: "gate:post",
           command: "run-gate",
@@ -1305,7 +1329,8 @@ export const FLOW_COMMANDS = {
       async nonblockingPost(ctx, result) {
         const phase = result?.artifacts?.phase || result?.data?.effectivePhase || ctx.phase;
         const active = findActiveNode(ctx.flowState || {});
-        const stepId = active?.stepId === "task-gate"
+        const taskStep = TaskStepIdentity.fromStateNode(ctx.flowState, active?.stepId);
+        const stepId = taskStep?.definitionId === "task-gate"
           ? "task-gate"
           : phase === "draft"
             ? "draft-gate"
@@ -1363,6 +1388,42 @@ export const FLOW_COMMANDS = {
           result?.result === "recovered"
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
+        // A rejected Task review closes the current Attempt as a retryable
+        // semantic failure. Its result and immutable evidence are committed
+        // in that same Store transaction so the next action can start a new
+        // Attempt without losing the finding-to-repair binding.
+        if (
+          result?.artifacts?.phase === "impl"
+          && result?.artifacts?.taskId != null
+          && !["PASS", "ADVISORY"].includes(result?.artifacts?.verdict)
+        ) {
+          const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+          if (attachedCanonicalCommandResultArtifact(result) !== null) {
+            const specId = ctx.specId ?? ctx.flowState.specId;
+            if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
+              ctx.flowManager.publishCurrentAttemptResult({ specId, commandResult: result });
+            } else {
+              ctx.flowManager.failCurrentAttempt({
+                specId,
+                failure: {
+                  category: "semantic",
+                  code: "REVIEW_REJECTED",
+                  message: "Task review rejected the current implementation Attempt.",
+                  retryable: true,
+                  retryKind: "semantic",
+                },
+                result: {
+                  outcome: "failed",
+                  summary: "Task review rejected the current implementation Attempt.",
+                  confirmedAt: new Date().toISOString(),
+                  artifactRefs: [],
+                },
+                commandResult: result,
+              });
+            }
+            ctx.flowState = ctx.flowManager.loadReadOnly(specId);
+          }
+        }
         try {
           await applyLifecycleActionsFromRegistry(ctx, {
             event: "review:post",
@@ -1372,25 +1433,7 @@ export const FLOW_COMMANDS = {
             dryRun: ctx.dryRun,
           }, result);
         } catch (error) {
-          const reviewMod = await import("./lib/run-review.js");
-          let persistenceFailure = null;
-          try {
-            reviewMod.persistReviewPostHookToolingFailure(ctx, result, error);
-          } catch (failure) {
-            persistenceFailure = failure;
-          }
-          const recovery = reviewMod.recoverFinalizedFlowReviewPostHookFailure(ctx, result, error);
-          if (recovery) {
-            await applyLifecycleActionsFromRegistry(ctx, {
-              event: "review:post",
-              command: "run-review",
-              phase: ctx.phase,
-              currentStepId: activeImplReviewStepId(ctx.flowState),
-              dryRun: ctx.dryRun,
-            }, result);
-            return;
-          }
-          throw persistenceFailure || error;
+          throw error;
         }
       },
       async nonblockingPost(ctx, result) {
@@ -1768,12 +1811,13 @@ export const FLOW_COMMANDS = {
         "  <configured-spec-root>/<spec>/test-execute-result.json (machine-readable summary)",
         "  <configured-spec-root>/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
       ].join("\n"),
-      async post(ctx) {
-        const path = await import("node:path");
-        const { readJsonStrict, validateTestExecuteResultV2 } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
-        validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
-        tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post" });
+      async post(ctx, result) {
+        const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+        const { validateTestExecuteResultV2 } = await import("./lib/test-artifacts.js");
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "test.execute") throw new Error("test-execute canonical result artifact is missing");
+        validateTestExecuteResultV2(attached.payload);
+        tryUpdateStepStatus(ctx, "test-execute", "done", undefined, { event: "test-execute:post", result });
       },
     },
     "scenario-validity": {
@@ -1792,7 +1836,10 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       post(ctx, result) {
         if (result?.result === "pass") {
-          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, { event: "scenario-validity:post" });
+          tryUpdateStepStatus(ctx, "scenario-validity", "done", { taskId: null }, {
+            event: "scenario-validity:post",
+            result,
+          });
         }
       },
       async nonblockingPost(ctx, result) {
@@ -1811,13 +1858,17 @@ export const FLOW_COMMANDS = {
         "Verify test-execute-result.json integrity against raw output and code.",
         "Persists test-result-review.json and test-result-review.md under the configured spec root.",
       ].join("\n"),
-      async post(ctx) {
-        const path = await import("node:path");
-        const { readJsonStrict, validateTestResultReview } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
-        const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
-        if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
-        tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post" });
+      async post(ctx, result) {
+        const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+        const { validateTestResultReview } = await import("./lib/test-artifacts.js");
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "test.result.review") throw new Error("test-result-review canonical result artifact is missing");
+        if (attached.payload.verdict !== "pass") {
+          ctx.flowManager.publishCurrentAttemptResult({ specId: ctx.specId, commandResult: result });
+          throw new Error("test-result-review verdict is not pass");
+        }
+        validateTestResultReview(attached.payload);
+        tryUpdateStepStatus(ctx, "test-result-review", "done", undefined, { event: "test-result-review:post", result });
       },
       async nonblockingPost(ctx, result) {
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
@@ -1846,12 +1897,12 @@ export const FLOW_COMMANDS = {
           result?.result === "recovered"
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
-        if (ctx.flowState?.nonblocking?.enabled === true) {
-          const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
-          const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "retro.json"), "utf8"));
+        if (ctx.flowState?.policy?.nonblocking?.enabled === true) {
+          const artifact = attachedCanonicalCommandResultPublications(result)
+            .find((publication) => publication.logicalKey === "retro")?.payload ?? null;
           if (Number(artifact?.summary?.not_done || 0) > 0) return;
         }
-        tryUpdateStepStatus(ctx, "retro", "done", undefined, { event: "retro:post" });
+        tryUpdateStepStatus(ctx, "retro", "done", undefined, { event: "retro:post", result });
       },
       async nonblockingPost(ctx, result) {
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
@@ -1878,10 +1929,11 @@ export const FLOW_COMMANDS = {
           result?.result === "recovered"
           && result?.artifacts?.evidenceRefresh?.recovered === true
         ) return;
-        const path = await import("node:path");
-        const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
-        const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(ctx.flowState)));
-        const artifact = validateFinalRegressionResult(readJsonStrict(path.join(specDir, "final-regression-result.json")));
+        const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+        const { validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "final.regression") throw new Error("final-regression canonical result artifact is missing");
+        const artifact = validateFinalRegressionResult(attached.payload);
         const failedRecorded = artifact.result === "fail"
           && result?.result === "fail"
           && result?.failedRecorded === true
@@ -1892,13 +1944,11 @@ export const FLOW_COMMANDS = {
         const completed = (artifact.result === "pass" && result?.result === "pass")
           || (artifact.result === "skipped" && result?.result === "skipped")
           || failedRecorded;
-        if (!completed && ctx.flowState?.nonblocking?.enabled === true && artifact.result === "fail") {
-          return;
-        }
+        if (!completed && artifact.result === "fail") return;
         if (!completed) {
           throw new Error("final-regression result is not pass, skipped, or failed-recorded");
         }
-        tryUpdateStepStatus(ctx, "final-regression", "done", undefined, { event: "final-regression:post" });
+        tryUpdateStepStatus(ctx, "final-regression", "done", undefined, { event: "final-regression:post", result });
       },
       async nonblockingPost(ctx, result) {
         const { recordEligibleNonblockingAttempt } = await import("./lib/nonblocking.js");
@@ -1916,6 +1966,58 @@ export const FLOW_COMMANDS = {
         "Evaluate original request satisfaction after retro and before final-regression.",
         "Persists acceptance-review.json under the configured spec root and routes pass/non-pass verdicts.",
       ].join("\n"),
+      async post(ctx, result) {
+        const { attachedCanonicalCommandResultArtifact } = await import("./lib/canonical-command-result.js");
+        const { validateAcceptanceReviewArtifact } = await import("./lib/acceptance-review-artifacts.js");
+        const attached = attachedCanonicalCommandResultArtifact(result);
+        if (attached?.logicalKey !== "acceptance.review") {
+          throw new Error("acceptance-review canonical result artifact is missing");
+        }
+        const spec = ctx.flowManager.readArtifact({
+          specId: ctx.flowState.specId,
+          logicalKey: "spec.record",
+          consumerNodeId: "acceptance-review",
+        });
+        const requirementIds = JSON.parse(spec.bytes.toString("utf8")).requirements
+          .map((entry) => entry.id);
+        const artifact = validateAcceptanceReviewArtifact(attached.payload, { requirementIds });
+        if (artifact.verdict === "blocked") {
+          ctx.flowManager.publishCurrentAttemptResult({
+            specId: ctx.flowState.specId,
+            commandResult: result,
+          });
+          ctx.flowState = ctx.flowManager.load(ctx.flowState.specId);
+          return;
+        }
+        tryUpdateStepStatus(ctx, "acceptance-review", "done", undefined, {
+          event: "acceptance-review:post",
+          result,
+        });
+        const specId = ctx.flowState.specId;
+        if (artifact.verdict === "pass") {
+          ctx.flowManager.updateStepStatus({
+            stepId: "acceptance-decision",
+            // The definition treats this approval leaf as non-skippable.
+            // A passing acceptance review settles its no-op Attempt as done;
+            // only an explicit risk choice owns acceptance.decision bytes.
+            requestedStatus: "done",
+          }, { specId });
+          ctx.flowManager.updateStepStatus({
+            stepId: "final-regression",
+            requestedStatus: "in_progress",
+          }, { specId });
+        } else if (artifact.verdict === "repair_required") {
+          ctx.flowManager.rewindTo("impl-triage", { specId });
+        } else if (artifact.verdict === "user_decision_required") {
+          ctx.flowManager.updateStepStatus({
+            stepId: "acceptance-decision",
+            requestedStatus: "in_progress",
+          }, { specId });
+        } else {
+          throw new Error(`unsupported canonical acceptance verdict: ${artifact.verdict}`);
+        }
+        ctx.flowState = ctx.flowManager.load(specId);
+      },
     },
     // report generates a work report from the current flow state.
     report: {

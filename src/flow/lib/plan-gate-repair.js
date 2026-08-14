@@ -39,6 +39,26 @@ function digest(value) {
   return crypto.createHash("sha256").update(stableStringify(value)).digest("hex");
 }
 
+function issueLogDocument(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value) || !Array.isArray(value.entries)) {
+    throw new Error("canonical plan gate repair issue-log must contain entries");
+  }
+  return value;
+}
+
+function repairIdentity(record) {
+  return {
+    version: record.version,
+    runId: record.runId,
+    specId: record.specId,
+    issue: record.issue,
+    phase: record.phase,
+    targetStepId: record.targetStepId,
+    sourceIssueLogId: record.sourceIssueLogId,
+    sourceEntryDigest: record.sourceEntryDigest,
+  };
+}
+
 export class PlanGateRepairLocation {
   constructor(input = {}) {
     this.file = requiredString(input.file, "plan gate repair location file", 1000);
@@ -219,11 +239,98 @@ export class PlanGateRepairRecord {
     return value instanceof PlanGateRepairRecord ? value : new PlanGateRepairRecord(value);
   }
 
-  static forTarget(state, stepId) {
-    if (state?.planGateRepair == null || !ROUTE_BY_TARGET.has(stepId)) return null;
-    const record = PlanGateRepairRecord.from(state.planGateRepair);
+  /**
+   * A stable issue-log identity permits crash replay without creating a second
+   * repair record.  The timestamp is an observation, not a second identity.
+   */
+  get idempotencyKey() {
+    return `plan-gate-repair-${digest(repairIdentity(this))}`;
+  }
+
+  /** Durable, cataloged evidence appended with the recovery Activity. */
+  issueLogEntry() {
+    return {
+      kind: "plan-gate-repair",
+      step: this.route.gateStepId,
+      phase: this.phase,
+      reason: `Guarded ${this.phase} gate repair rewound to ${this.targetStepId}.`,
+      observations: this.observations.map((observation) => observation.toJSON()),
+      timestamp: this.requestedAt,
+      planGateRepair: this.toJSON(),
+    };
+  }
+
+  /**
+   * Append this immutable repair fact to an already catalog-resolved issue
+   * log.  It is intentionally a document transformation only: the Version
+   * Store publishes it atomically with the rewind Activity.
+   */
+  appendToIssueLog(value) {
+    const document = issueLogDocument(value);
+    const entries = document.entries.map((entry) => structuredClone(entry));
+    const existing = entries.find((entry) => entry?.issueLogId === this.idempotencyKey) ?? null;
+    if (existing !== null) {
+      const restored = PlanGateRepairRecord.fromIssueLogEntry(existing);
+      if (stableStringify(repairIdentity(restored)) !== stableStringify(repairIdentity(this))) {
+        throw new Error("canonical plan gate repair issue-log identity conflicts with an existing record");
+      }
+      return Object.freeze({ entries: Object.freeze(entries) });
+    }
+    entries.push({ ...this.issueLogEntry(), issueLogId: this.idempotencyKey });
+    return Object.freeze({ entries: Object.freeze(entries) });
+  }
+
+  activityReference() {
+    return Object.freeze({ id: this.idempotencyKey, label: this.sourceIssueLogId });
+  }
+
+  static fromIssueLogEntry(value) {
+    if (value === null || typeof value !== "object" || Array.isArray(value) || value.kind !== "plan-gate-repair") {
+      throw new Error("canonical plan gate repair issue-log entry is invalid");
+    }
+    const record = PlanGateRepairRecord.from(value.planGateRepair);
+    if (value.issueLogId !== record.idempotencyKey) {
+      throw new Error("canonical plan gate repair issue-log identity is invalid");
+    }
+    return record;
+  }
+
+  /**
+   * Resolve the one repair record governing the currently active replacement
+   * Attempt.  A historical issue-log entry is never enough by itself: it
+   * must be referenced by that exact rewind Activity and its source evidence
+   * must still be present, which prevents stale repair context leaking into a
+   * later visit to the same Step.
+   */
+  static resolveCanonical({ state, targetStepId, activities, issueLog }) {
+    if (!ROUTE_BY_TARGET.has(targetStepId) || state?.current?.at(-1) !== targetStepId || state?.attempt == null) {
+      return null;
+    }
+    if (!Array.isArray(activities)) throw new Error("canonical plan gate repair requires an Activity ledger");
+    const document = issueLogDocument(issueLog);
+    const rewind = [...activities].reverse().find((activity) => (
+      activity?.transition?.operation === "plan_gate_repair"
+      && activity.nodeId === targetStepId
+      && activity.attemptId === state.attempt.id
+      && Array.isArray(activity.references?.repairs)
+      && activity.references.repairs.length === 1
+    )) ?? null;
+    if (rewind === null) return null;
+    const reference = rewind.references.repairs[0];
+    const entry = document.entries.find((candidate) => candidate?.issueLogId === reference?.id) ?? null;
+    if (entry === null) {
+      throw new Error("canonical plan gate repair Activity references missing issue-log evidence");
+    }
+    const record = PlanGateRepairRecord.fromIssueLogEntry(entry);
     record.assertFlow(state);
-    return record.targetStepId === stepId ? record : null;
+    if (record.targetStepId !== targetStepId || reference.label !== record.sourceIssueLogId) {
+      throw new Error("canonical plan gate repair Activity reference is inconsistent");
+    }
+    const source = document.entries.find((candidate) => candidate?.issueLogId === record.sourceIssueLogId) ?? null;
+    if (!record.matchesIssueLogEntry(source)) {
+      throw new Error("canonical plan gate repair source evidence changed or is missing");
+    }
+    return record;
   }
 
   assertFlow(state) {
@@ -265,4 +372,39 @@ export class PlanGateRepairRecord {
       observations: this.observations.map((observation) => observation.toJSON()),
     };
   }
+}
+
+/**
+ * Catalog-only lookup for the repair context injected into a replacement
+ * worker.  The caller's Step id is the consumer authorization; neither this
+ * resolver nor its callers infer a Version directory or read issue-log.json
+ * directly.
+ */
+export function canonicalPlanGateRepairForTarget({ flowManager, state, targetStepId } = {}) {
+  if (state?.schemaRevision !== 3 || !ROUTE_BY_TARGET.has(targetStepId)) return null;
+  if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.activityLedger !== "function") {
+    throw new Error("canonical plan gate repair requires the Version Store catalog and Activity readers");
+  }
+  const resolved = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "issue.log",
+    consumerNodeId: targetStepId,
+    optional: true,
+  });
+  if (resolved === null) return null;
+  let issueLog;
+  try {
+    issueLog = JSON.parse(resolved.bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`canonical plan gate repair issue-log must be JSON: ${error.message}`);
+  }
+  const typedState = typeof flowManager.canonicalState === "function"
+    ? flowManager.canonicalState(state.specId)
+    : state;
+  return PlanGateRepairRecord.resolveCanonical({
+    state: typedState,
+    targetStepId,
+    activities: flowManager.activityLedger(state.specId),
+    issueLog,
+  });
 }

@@ -7,6 +7,10 @@ import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { FLOW_STEPS } from "../../../../src/lib/flow-helpers.js";
 import { FlowManager } from "../../../../src/lib/flow-manager.js";
+import { emptySpecStub } from "../../../../src/lib/spec-json.js";
+import { CanonicalFlowCreateRequest } from "../../../../src/flow/lib/canonical-flow-manager-store.js";
+import { CurrentFlowSpecRecord } from "../../../../src/flow/lib/current-flow-state.js";
+import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
@@ -22,12 +26,13 @@ import {
   reviewArtifactFindingLists,
 } from "../../../../src/flow/lib/run-review.js";
 import {
-  applyReviewEvidenceTransition,
   artifactPhaseMatchesReviewTarget,
+  buildReviewHandoffFindings,
+  ReviewConvergenceState,
   ReviewDisposition,
   ReviewEvidence,
+  ReviewEvidenceReference,
 } from "../../../../src/flow/lib/review-convergence.js";
-import { ReviewFindingGateArtifact } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import {
   parseProposals,
   buildDraftReviewPrompt,
@@ -44,8 +49,6 @@ import {
   formatImplReviewMd,
   formatImplReviewJson,
   buildImplReviewPrompt,
-  runImplReview,
-  resolveReviewTarget,
   scopeTaskReviewTarget,
   createReviewExcludeMatcher,
   collectTestFiles,
@@ -60,7 +63,6 @@ import {
   TEST_REVIEW_PROMPT_CHAR_LIMIT,
   assertTestReviewPromptWithinLimit,
   runTestReviewWithDependencies,
-  runActiveImplReviewWithDependencies,
   runLoopReviewWithDependencies,
   resolveMergeBase,
   loopProposalsToImplReviewJson,
@@ -199,11 +201,24 @@ function recordCanonicalDraftEvidence({
     },
     disposition,
   });
-  const flowState = {};
-  const convergence = applyReviewEvidenceTransition(flowState, evidence, {
-    configuredSemanticMaxAttempts: 4,
+  const convergence = new ReviewConvergenceState({
+    phase,
+    taskId: null,
+    treeSha: evidence.treeSha,
+    semanticAttempts: 0,
+    semanticMaxAttempts: 4,
+    toolingAttempts: 0,
+    toolingMaxAttempts: 1,
+    evidence: new ReviewEvidenceReference({
+      evidenceId: evidence.identity.evidenceDigest,
+      disposition,
+    }),
+    finalizedEvidenceAvailable: true,
+    handoffFindings: buildReviewHandoffFindings(evidence),
+    blocker: null,
+    toolingOutcome: null,
   });
-  return { canonical, convergence, disposition, flowState };
+  return { canonical, convergence, disposition, evidence };
 }
 
 describe("draft repair target canonical classification", () => {
@@ -238,7 +253,7 @@ describe("draft repair target canonical classification", () => {
       assert.equal(recorded.disposition.value, "ADVISORY");
       assert.equal(recorded.disposition.advisoryFindings.length, 1);
       assert.equal(recorded.convergence.finalizedEvidenceAvailable, true);
-      assert.equal(recorded.flowState.reviewConvergence.records.length, 1);
+      assert.equal(recorded.convergence.evidence.evidenceId, recorded.evidence.identity.evidenceDigest);
     });
   }
 
@@ -382,27 +397,24 @@ describe("draft repair target checkpoint replay", () => {
     const agentCall = mock.method(Agent.prototype, "call", () => {
       throw new Error("review AI must not run while replaying finalized checkpoint evidence");
     });
-    const transitions = [];
-    const flowState = {
-      currentTaskId: null,
-      steps: [
-        { id: "draft-questions-review", status: "in_progress" },
-        { id: "draft-questions-triage", status: "pending" },
-        { id: "draft-questions-repair", status: "pending" },
-      ],
-      tasks: [],
-    };
-    const flowManager = {
-      appendMetric() {},
-      updateStepStatus(transition) {
-        transitions.push({
-          stepId: transition.stepId,
-          status: transition.requestedStatus,
-        });
-        flowState.steps.find((step) => step.id === transition.stepId).status =
-          transition.requestedStatus;
-      },
-    };
+    const flowManager = new FlowManager({ root: tmp, mainRoot: tmp, inWorktree: false });
+    const created = flowManager.createFresh(new CanonicalFlowCreateRequest({
+      specId: "demo",
+      runId: "draft-checkpoint-run",
+      request: "Replay canonical draft review evidence.",
+      execution: { mode: "direct" },
+      policy: { autoApprove: false, nonblocking: null },
+      flowId: "draft-checkpoint-flow",
+      flowVersionId: "draft-checkpoint-v1",
+      specRecord: new CurrentFlowSpecRecord({ ...emptySpecStub(), tasks: [] }, { specId: "demo" }),
+    }));
+    flowManager.addActiveFlow(created.specId, "direct");
+    const reviewIndex = flattenSteps(flowManager.load(created.specId).steps)
+      .findIndex((step) => step.id === "draft-questions-review");
+    for (const step of flattenSteps(flowManager.load(created.specId).steps).slice(0, reviewIndex)) {
+      flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "done" });
+    }
+    flowManager.updateStepStatus({ stepId: "draft-questions-review", requestedStatus: "in_progress" });
 
     try {
       assert.equal(checkpoint.disposition, "ADVISORY");
@@ -479,7 +491,9 @@ describe("draft repair target checkpoint replay", () => {
 
       await FLOW_COMMANDS.run.review.post({
         phase: "draft",
-        flowState,
+        root: tmp,
+        executionRoot: tmp,
+        flowState: flowManager.load(created.specId),
         flowManager,
       }, {
         artifacts: {
@@ -491,13 +505,10 @@ describe("draft repair target checkpoint replay", () => {
       });
 
       assert.equal(agentCall.mock.callCount(), 0);
-      assert.deepEqual(transitions, [{
-        stepId: "draft-questions-review",
-        status: "done",
-      }]);
-      assert.equal(flowState.steps[0].status, "done");
-      assert.equal(flowState.steps[1].status, "pending");
-      assert.equal(flowState.steps[2].status, "pending");
+      const steps = flattenSteps(flowManager.load(created.specId).steps);
+      assert.equal(steps.find((step) => step.id === "draft-questions-review").status, "done");
+      assert.equal(steps.find((step) => step.id === "draft-questions-triage").status, "pending");
+      assert.equal(steps.find((step) => step.id === "draft-questions-repair").status, "pending");
       assert.deepEqual(
         fs.readdirSync(path.join(specDir, "review-history")),
         ["draft-questions-attempt-001.json"],
@@ -1438,31 +1449,6 @@ describe("filterProposalsByScope (spec 201 R-P1/R-P3)", () => {
   });
 });
 
-function createMandatoryLoopReviewFixture(prefix, file) {
-  const root = createTmpDir(prefix);
-  fs.mkdirSync(path.join(root, "specs/demo"), { recursive: true });
-  fs.writeFileSync(path.join(root, "specs/demo/spec.json"), `${JSON.stringify({
-    requirements: [{ id: "R1", priority: "must", desc: "Keep the implementation maintainable." }],
-  }, null, 2)}\n`);
-  return {
-    root,
-    flow: { specId: "demo" },
-    reviewOutput: loopProposalsToImplReviewJson([new ImplReviewProposal({
-      title: "Extract shared branch",
-      file,
-      issue: "The branch is duplicated.",
-      suggestion: "Extract the duplicated branch.",
-      requirementId: "R1",
-    }, { requirementIds: new Set(["R1"]) })], new Set(["R1"])),
-  };
-}
-
-function persistSelectedImplReview({ root, flow, touchedFiles, taskSpec = null }) {
-  return (reviewOutput, persistence) => persistence
-    ? persistence.persist({ root, flow, reviewOutput, touchedFiles, taskSpec })
-    : runImplReview({ root, flow, reviewOutput, touchedFiles, taskSpec });
-}
-
 describe("impl review structured artifact helpers", () => {
   it("requires a typed disposition and rationale for every impl review finding", () => {
     const typedFinding = {
@@ -1616,104 +1602,6 @@ describe("impl review structured artifact helpers", () => {
     assert.match(md, /Optional cleanup/);
   });
 
-  it("persists explicit reject dispositions for advisory findings", async () => {
-    const tmp = createTmpDir();
-    try {
-      fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "src/example.js"), "export const value = 1;\n");
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), JSON.stringify({
-        requirements: [{ id: "R1", priority: "should" }],
-      }));
-      await runImplReview({
-        root: tmp,
-        flow: { specId: "demo" },
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({
-          blockingFindings: [],
-          nonBlockingImprovements: [{
-            findingKey: "optional-cleanup",
-            title: "Optional cleanup",
-            failureMode: "refactor",
-            file: "src/example.js",
-            requirementId: "R1",
-            issue: "The branch could be clearer.",
-            suggestion: "Rename the branch.",
-            disposition: "informational",
-            rationale: "Readability-only.",
-          }],
-        }),
-      });
-
-      const review = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-      const triage = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-triage.json"), "utf8"));
-      assert.equal(review.verdict, "ADVISORY");
-      assert.match(review.nonBlockingImprovements[0].findingId, /^[a-f0-9]{64}$/);
-      assert.deepEqual(
-        triage.items.map(({ findingId, decision }) => ({ findingId, decision })),
-        [{ findingId: review.nonBlockingImprovements[0].findingId, decision: "reject" }],
-      );
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
-
-  it("persists apply and reject dispositions for mixed FAIL findings", async () => {
-    const tmp = createTmpDir();
-    try {
-      fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "src/example.js"), "export const value = 1;\n");
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), JSON.stringify({
-        requirements: [
-          { id: "R1", priority: "must" },
-          { id: "R2", priority: "should" },
-        ],
-      }));
-      await runImplReview({
-        root: tmp,
-        flow: { specId: "demo" },
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({
-          blockingFindings: [{
-            findingKey: "behavior-mismatch",
-            title: "Behavior mismatch",
-            failureMode: "spec_behavior_contradiction",
-            file: "src/example.js",
-            requirementId: "R1",
-            issue: "The behavior contradicts R1.",
-            suggestion: "Implement R1.",
-            disposition: "must-fix",
-            rationale: "R1 is required.",
-          }],
-          nonBlockingImprovements: [{
-            findingKey: "optional-cleanup",
-            title: "Optional cleanup",
-            failureMode: "refactor",
-            file: "src/example.js",
-            requirementId: "R2",
-            issue: "The branch could be clearer.",
-            suggestion: "Rename the branch.",
-            disposition: "informational",
-            rationale: "Readability-only.",
-          }],
-        }),
-      });
-
-      const review = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-      const triage = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-triage.json"), "utf8"));
-      assert.deepEqual(
-        triage.items.map(({ findingId, decision }) => ({ findingId, decision })),
-        [
-          { findingId: review.blockingFindings[0].findingId, decision: "apply" },
-          { findingId: review.nonBlockingImprovements[0].findingId, decision: "reject" },
-        ],
-      );
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
-
   it("builds prompts with the blocking and non-blocking policy", () => {
     const prompt = buildImplReviewPrompt({
       requirementFileMap: { R1: ["src/flow/commands/review.js"] },
@@ -1770,395 +1658,6 @@ describe("impl review structured artifact helpers", () => {
     );
   });
 
-  it("persists trusted loop proposals as informational even when their requirement is mandatory", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-loop-review-authority-",
-      "src/example-0.js",
-    );
-    try {
-      const touchedFiles = new Set(Array.from(
-        { length: 10 },
-        (_, index) => `src/example-${index}.js`,
-      ));
-
-      const result = await runActiveImplReviewWithDependencies({
-        touchedFiles,
-        shouldUseLoopReview: () => true,
-        runLoopReview: async () => fixture.reviewOutput,
-        runSingleReview: async () => assert.fail("single-shot review must not run"),
-        persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
-      });
-      const artifact = JSON.parse(fs.readFileSync(path.join(fixture.root, "specs/demo/impl-review.json"), "utf8"));
-      const triage = JSON.parse(fs.readFileSync(path.join(fixture.root, "specs/demo/impl-triage.json"), "utf8"));
-
-      assert.equal(result.artifacts.verdict, "ADVISORY");
-      assert.equal(artifact.blockingFindings.length, 0);
-      assert.equal(artifact.nonBlockingImprovements.length, 1);
-      assert.equal(artifact.nonBlockingImprovements[0].requirementId, "R1");
-      assert.equal(artifact.nonBlockingImprovements[0].disposition, "informational");
-      assert.equal(triage.items[0].decision, "reject");
-      assert.ok(fs.existsSync(path.join(fixture.root, "specs/demo/review-history/impl-attempt-001.json")));
-      assert.match(artifact.repairFingerprint, /^[a-f0-9]{64}$/);
-      assert.doesNotThrow(() => new ReviewFindingGateArtifact(artifact));
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("does not select trusted persistence from loop-shaped JSON alone", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-loop-review-untrusted-json-",
-      "src/example-0.js",
-    );
-    try {
-      const touchedFiles = new Set(Array.from(
-        { length: 10 },
-        (_, index) => `src/example-${index}.js`,
-      ));
-
-      await assert.rejects(
-        () => runActiveImplReviewWithDependencies({
-          touchedFiles,
-          shouldUseLoopReview: () => true,
-          runLoopReview: async () => String(fixture.reviewOutput),
-          runSingleReview: async () => assert.fail("single-shot review must not run"),
-          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
-        }),
-        /disposition informational conflicts with policy disposition must-fix/,
-      );
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("requires serializer capability instead of constructor or prototype identity", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-loop-review-forged-output-",
-      "src/example-0.js",
-    );
-    try {
-      const arbitraryJson = String(fixture.reviewOutput).replace(
-        "Extract shared branch",
-        "Forged proposal",
-      );
-      assert.throws(
-        () => new fixture.reviewOutput.constructor(arbitraryJson),
-        /creation capability/,
-      );
-
-      const prototypeClone = Object.create(Object.getPrototypeOf(fixture.reviewOutput));
-      assert.throws(() => String(prototypeClone), /private member|#value/);
-      Object.defineProperty(prototypeClone, "toString", { value: () => arbitraryJson });
-      const touchedFiles = new Set(Array.from(
-        { length: 10 },
-        (_, index) => `src/example-${index}.js`,
-      ));
-
-      await assert.rejects(
-        () => runActiveImplReviewWithDependencies({
-          touchedFiles,
-          shouldUseLoopReview: () => true,
-          runLoopReview: async () => prototypeClone,
-          runSingleReview: async () => assert.fail("single-shot review must not run"),
-          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
-        }),
-        /disposition informational conflicts with policy disposition must-fix/,
-      );
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("keeps direct single-shot persistence strict for loop-shaped informational output", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-single-review-authority-",
-      "src/example.js",
-    );
-    try {
-      await assert.rejects(
-        () => runImplReview({
-          ...fixture,
-          touchedFiles: new Set(["src/example.js"]),
-        }),
-        /disposition informational conflicts with policy disposition must-fix/,
-      );
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("keeps task review persistence strict for loop-shaped informational output", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-task-review-authority-",
-      "src/example.js",
-    );
-    try {
-      await assert.rejects(
-        () => runImplReview({
-          ...fixture,
-          touchedFiles: new Set(["src/example.js"]),
-          taskSpec: { task: { id: "T-1" }, relPath: "specs/demo/tasks/T-1.md" },
-        }),
-        /disposition informational conflicts with policy disposition must-fix/,
-      );
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("downgrades unauthoritative task review must-fix proposals to informational", async () => {
-    const fixture = createTmpDir("impl-task-review-unauthoritative-");
-    try {
-      fs.mkdirSync(path.join(fixture, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(fixture, "specs/demo/spec.json"), `${JSON.stringify({
-        requirements: [{ id: "R1", priority: "must", desc: "Keep required behavior." }],
-      }, null, 2)}\n`);
-      const reviewOutput = JSON.stringify({
-        blockingFindings: [{
-          findingKey: "helper-name",
-          title: "Helper name could be clearer",
-          failureMode: "naming",
-          file: "src/example.js",
-          requirementId: null,
-          issue: "The helper name is vague.",
-          suggestion: "Rename the helper.",
-          disposition: "must-fix",
-          rationale: "This is a suggested cleanup, not a mandatory requirement.",
-        }],
-        nonBlockingImprovements: [],
-      });
-
-      const result = await runImplReview({
-        root: fixture,
-        flow: { specId: "demo" },
-        touchedFiles: new Set(["src/example.js"]),
-        taskSpec: { task: { id: "T-1" }, relPath: "specs/demo/tasks/T-1.md" },
-        reviewOutput,
-      });
-      const artifact = JSON.parse(fs.readFileSync(path.join(fixture, "specs/demo/impl-review.json"), "utf8"));
-
-      assert.equal(result.artifacts.verdict, "ADVISORY");
-      assert.equal(artifact.blockingFindings.length, 0);
-      assert.equal(artifact.nonBlockingImprovements.length, 1);
-      assert.equal(artifact.nonBlockingImprovements[0].disposition, "informational");
-    } finally {
-      removeTmpDir(fixture);
-    }
-  });
-
-  it("uses strict persistence when the active branch selects single-shot review", async () => {
-    const fixture = createMandatoryLoopReviewFixture(
-      "impl-single-review-branch-",
-      "src/example.js",
-    );
-    try {
-      const touchedFiles = new Set(["src/example.js"]);
-      let loopCalls = 0;
-      let singleCalls = 0;
-
-      await assert.rejects(
-        () => runActiveImplReviewWithDependencies({
-          touchedFiles,
-          shouldUseLoopReview: () => false,
-          runLoopReview: async () => {
-            loopCalls += 1;
-            return fixture.reviewOutput;
-          },
-          runSingleReview: async () => {
-            singleCalls += 1;
-            return fixture.reviewOutput;
-          },
-          persistImplReview: persistSelectedImplReview({ ...fixture, touchedFiles }),
-        }),
-        /disposition informational conflicts with policy disposition must-fix/,
-      );
-      assert.equal(loopCalls, 0);
-      assert.equal(singleCalls, 1);
-    } finally {
-      removeTmpDir(fixture.root);
-    }
-  });
-
-  it("aggregates a stable fingerprint while retaining the must-fix finding for acceptance disposition", async () => {
-    const tmp = createTmpDir("impl-review-disposition-");
-    try {
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-        requirements: [{ id: "R4", priority: "must", desc: "Write the review artifact." }],
-      }, null, 2)}\n`);
-      const finding = {
-        findingKey: "missing-artifact",
-        title: "Missing artifact",
-        failureMode: "missing_acceptance_requirement",
-        file: null,
-        requirementId: "R4",
-        issue: "impl-review.json is not written.",
-        suggestion: "Write impl-review.json.",
-        disposition: "must-fix",
-        rationale: "R4 requires a machine-readable artifact.",
-      };
-      const flow = { specId: "demo" };
-      const reviewOutput = JSON.stringify({
-        blockingFindings: [finding, { ...finding }],
-        nonBlockingImprovements: [],
-      });
-
-      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
-      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
-      await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
-      const result = await runImplReview({ root: tmp, flow, reviewOutput, touchedFiles: new Set() });
-      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-
-      assert.equal(result.artifacts.verdict, "REJECTED");
-      assert.equal(artifact.summary.total, 1);
-      assert.equal(artifact.nonBlockingImprovements.length, 0);
-      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
-      assert.equal(artifact.blockingFindings[0].repeatCount, 4);
-      assert.equal(artifact.blockingFindings[0].findingId, artifact.blockingFindings[0].fingerprint);
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
-
-  it("keeps one fingerprint across wording changes and rejects same-key collisions", async () => {
-    const tmp = createTmpDir("impl-review-finding-key-");
-    try {
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-        requirements: [{ id: "R1", priority: "must", desc: "Implement R1." }],
-      })}\n`);
-      const base = {
-        findingKey: "r1-missing-branch",
-        title: "Required branch is missing",
-        failureMode: "maintainability",
-        file: "src/example.js",
-        requirementId: "R1",
-        issue: "The R1 branch is absent.",
-        suggestion: "Add the R1 branch.",
-        disposition: "must-fix",
-        rationale: "R1 makes this branch mandatory.",
-      };
-      const flow = { specId: "demo" };
-      await runImplReview({
-        root: tmp,
-        flow,
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({ blockingFindings: [base], nonBlockingImprovements: [] }),
-      });
-      const first = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-      await runImplReview({
-        root: tmp,
-        flow,
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({
-          blockingFindings: [{
-            ...base,
-            title: "R1 still lacks its branch",
-            issue: "No R1-specific branch is present.",
-          }],
-          nonBlockingImprovements: [],
-        }),
-      });
-      const second = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-
-      assert.equal(second.blockingFindings[0].fingerprint, first.blockingFindings[0].fingerprint);
-      assert.equal(second.blockingFindings[0].repeatCount, 2);
-      await assert.rejects(
-        () => runImplReview({
-          root: tmp,
-          flow,
-          touchedFiles: new Set(["src/example.js"]),
-          reviewOutput: JSON.stringify({
-            blockingFindings: [
-              base,
-              { ...base, title: "Different defect", issue: "A separate R1 defect." },
-            ],
-            nonBlockingImprovements: [],
-          }),
-        }),
-        /findingKey collision/,
-      );
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
-
-  it("derives the blocking bucket from requirement authority instead of trusting the model bucket", async () => {
-    const tmp = createTmpDir("impl-review-policy-bucket-");
-    try {
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-        requirements: [{ id: "R1", priority: "must", desc: "Keep the implementation maintainable." }],
-      }, null, 2)}\n`);
-      const result = await runImplReview({
-        root: tmp,
-        flow: { specId: "demo" },
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({
-          blockingFindings: [],
-          nonBlockingImprovements: [{
-            findingKey: "duplicated-mandatory-branch",
-            title: "Duplicated mandatory branch",
-            failureMode: "maintainability",
-            file: "src/example.js",
-            requirementId: "R1",
-            issue: "The required branch is duplicated.",
-            suggestion: "Extract the shared branch.",
-            disposition: "must-fix",
-            rationale: "R1 makes the maintainability constraint mandatory.",
-          }],
-        }),
-      });
-      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-
-      assert.equal(result.artifacts.verdict, "REJECTED");
-      assert.equal(artifact.blockingFindings.length, 1);
-      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
-      assert.equal(artifact.nonBlockingImprovements.length, 0);
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
-
-  it("defaults an unprioritized requirement to mandatory and keeps distinct findings separate", async () => {
-    const tmp = createTmpDir("impl-review-distinct-authority-findings-");
-    try {
-      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
-      fs.writeFileSync(path.join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-        requirements: [{ id: "R1", desc: "Keep both required branches correct." }],
-      }, null, 2)}\n`);
-      const common = {
-        failureMode: "maintainability",
-        file: "src/example.js",
-        requirementId: "R1",
-        suggestion: "Repair the named branch.",
-        disposition: "must-fix",
-        rationale: "R1 makes both branches mandatory.",
-      };
-      await runImplReview({
-        root: tmp,
-        flow: { specId: "demo" },
-        touchedFiles: new Set(["src/example.js"]),
-        reviewOutput: JSON.stringify({
-          blockingFindings: [
-            { ...common, findingKey: "first-branch-missing", title: "First branch is missing", issue: "The first branch is absent." },
-            { ...common, findingKey: "second-branch-stale", title: "Second branch returns stale data", issue: "The second branch is stale." },
-          ],
-          nonBlockingImprovements: [],
-        }),
-      });
-      const artifact = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/impl-review.json"), "utf8"));
-
-      assert.equal(artifact.blockingFindings.length, 2);
-      assert.equal(artifact.blockingFindings[0].disposition, "must-fix");
-      assert.notEqual(
-        artifact.blockingFindings[0].fingerprint,
-        artifact.blockingFindings[1].fingerprint,
-      );
-    } finally {
-      removeTmpDir(tmp);
-    }
-  });
 });
 
 function initTestRepo(tmp, baseFiles) {
@@ -2200,78 +1699,6 @@ describe("collectTouchedFiles (spec 201 R-P4)", () => {
 
     const touched = collectTouchedFiles(tmp, baseSha);
     assert.ok(touched.has("c.js"), "includes staged file");
-  });
-});
-
-describe("resolveReviewTarget untracked spec tests", () => {
-  let tmp;
-  afterEach(() => tmp && removeTmpDir(tmp));
-
-  it("includes an active spec's untracked test source without flow artifacts", async () => {
-    tmp = createTmpDir();
-    fs.mkdirSync(join(tmp, "src"), { recursive: true });
-    initTestRepo(tmp, { "src/base.js": "export const base = true;\n" });
-    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    fs.mkdirSync(join(tmp, "specs/demo/tests"), { recursive: true });
-    fs.writeFileSync(join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-      goal: "Review untracked spec tests.",
-      scope: { in: [], out: [] },
-      constraints: [],
-      design_principles: [],
-      overview: { modules: [], data_flow: [], decisions: [] },
-      background: "Test fixture.",
-      requirements: [],
-      acceptance_criteria: [],
-      clarifications: [],
-      alternatives_considered: [],
-      open_questions: [],
-    })}\n`);
-    fs.writeFileSync(join(tmp, "specs/demo/tests/bounded-recovery.test.js"), "// spec: R1\n");
-    fs.writeFileSync(join(tmp, "specs/demo/issue-log.json"), '{"entries":[]}\n');
-
-    const target = await resolveReviewTarget(tmp, { specId: "demo" }, baseSha);
-
-    assert.ok(target.untrackedFiles.has("specs/demo/tests/bounded-recovery.test.js"));
-    assert.match(target.diff, /bounded-recovery\.test\.js/);
-    assert.doesNotMatch(target.diff, /issue-log\.json/);
-  });
-
-  it("applies configured exclusions to the fallback tracked diff", async () => {
-    tmp = createTmpDir();
-    fs.mkdirSync(join(tmp, "specs/demo"), { recursive: true });
-    initTestRepo(tmp, {
-      "base.js": "export const base = true;\n",
-      "specs/demo/flow.json": "{\"version\":1}\n",
-    });
-    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    fs.mkdirSync(join(tmp, "specs/demo"), { recursive: true });
-    fs.writeFileSync(join(tmp, "specs/demo/spec.json"), `${JSON.stringify({
-      goal: "Review configured exclusions.",
-      scope: { in: [], out: [] },
-      constraints: [],
-      design_principles: [],
-      overview: { modules: [], data_flow: [], decisions: [] },
-      background: "Test fixture.",
-      requirements: [],
-      acceptance_criteria: [],
-      clarifications: [],
-      alternatives_considered: [],
-      open_questions: [],
-    })}\n`);
-    fs.writeFileSync(join(tmp, "base.js"), "export const base = false;\n");
-    fs.writeFileSync(join(tmp, "specs/demo/flow.json"), "{\"version\":2}\n");
-
-    const exclusions = ["specs/"];
-    const target = await resolveReviewTarget(
-      tmp,
-      { specId: "demo" },
-      baseSha,
-      createReviewExcludeMatcher({ root: tmp, exclusions }),
-      exclusions,
-    );
-
-    assert.match(target.diff, /base\.js/);
-    assert.doesNotMatch(target.diff, /specs\/demo\/flow\.json/);
   });
 });
 

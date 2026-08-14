@@ -11,14 +11,10 @@
  * ctx.confirmedAt   — optional --confirmed-at value (ISO 8601)
  */
 
-import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadSpecJson, saveSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
-import { applySpecViewPlan, buildSpecViewPlan } from "./render-spec-view.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
-const NOTES_MAX_LENGTH = 2000;
+import { renderSpecView } from "./render-spec-view.js";
+import { CanonicalSpecApproval, MAX_APPROVAL_NOTES_LENGTH } from "./canonical-spec-approval.js";
 
 function isValidIso8601(value) {
   if (typeof value !== "string" || value.length === 0) return false;
@@ -38,8 +34,7 @@ export default class SetApprovalCommand extends FlowCommand {
       );
     }
 
-    const userApproval = { approved: true };
-
+    let confirmedAt;
     if (typeof ctx.confirmedAt === "string" && ctx.confirmedAt.length > 0) {
       if (!isValidIso8601(ctx.confirmedAt)) {
         return Envelope.fail(
@@ -49,35 +44,33 @@ export default class SetApprovalCommand extends FlowCommand {
           `--confirmed-at must be an ISO 8601 timestamp (got: ${ctx.confirmedAt})`,
         );
       }
-      userApproval.confirmed_at = ctx.confirmedAt;
+      confirmedAt = ctx.confirmedAt;
     } else {
-      userApproval.confirmed_at = new Date().toISOString();
+      confirmedAt = new Date().toISOString();
     }
 
-    if (typeof ctx.notes === "string" && ctx.notes.length > 0) {
-      if (ctx.notes.length > NOTES_MAX_LENGTH) {
+    const notes = typeof ctx.notes === "string" && ctx.notes.length > 0 ? ctx.notes : null;
+    if (notes !== null) {
+      if (notes.length > MAX_APPROVAL_NOTES_LENGTH) {
         return Envelope.fail(
           "set",
           "approval",
           "INVALID_ARG_VALUE",
-          `--notes exceeds ${NOTES_MAX_LENGTH} characters`,
+          `--notes exceeds ${MAX_APPROVAL_NOTES_LENGTH} characters`,
         );
       }
-      userApproval.notes = ctx.notes;
     }
 
-    const relativeSpecPath = relativeFlowSpecFile(ctx.flowState);
-    const specPath = path.resolve(ctx.root, relativeSpecPath);
-    const jsonPath = resolveSpecJsonPath(specPath);
-    const spec = loadSpecJson(jsonPath, { validate: false });
-    spec.user_approval = userApproval;
-    const renderPlan = buildSpecViewPlan({
-      root: ctx.root,
-      specPath: relativeSpecPath,
-      spec,
+    const approval = new CanonicalSpecApproval({ confirmedAt, notes });
+    const userApproval = ctx.flowManager.updateSpecApproval({
+      specId: ctx.flowState.specId,
+      approval,
     });
-    saveSpecJson(jsonPath, spec, { validate: false });
-    const rendered = applySpecViewPlan(renderPlan);
+    const rendered = renderSpecView({
+      root: ctx.root,
+      flowManager: ctx.flowManager,
+      flowState: ctx.flowState,
+    });
 
     return { user_approval: userApproval, rendered: rendered.changed };
   }

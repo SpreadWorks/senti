@@ -11,6 +11,7 @@ import path from "path";
 import crypto from "crypto";
 import { PRODUCT } from "../../lib/product.js";
 import { FlowTargetIdentityAuthority } from "../../lib/flow-target-identity-authority.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadConfig, managedConfigPath, managedOutputDir } from "../../lib/config.js";
@@ -18,13 +19,12 @@ import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
   FINAL_REGRESSION_RESULT_FILE,
   TESTS_RAW_DIR_RELATIVE,
-  matchUpgradeRequiredSourcePaths,
   validateFinalRegressionResult,
   validateFinalRegressionEvidence,
   validateExplicitFinalRegressionProceed,
   finalRegressionTestCount,
   FinalRegressionRepositoryBinding,
-  validateUpgradeEvidenceForGate,
+  validateCanonicalUpgradeEvidence,
 } from "./test-artifacts.js";
 import { contractFromFinalRegressionArtifact } from "./flow-judgment-contract.js";
 import {
@@ -43,23 +43,18 @@ import {
   runProcessDetailed,
   withChangedFileFingerprints,
 } from "./test-regression.js";
-import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
-import {
-  assertRepairFingerprint,
-  buildRepairFingerprint,
-  ensureRepairFingerprintContract,
-} from "./impl-repair-artifacts.js";
 import { RepairArtifactRegistry } from "./repair-state-identity.js";
-import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
 import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
 import {
-  ExternalBlockedOutcome,
-  StepAttemptLog,
   nextStepAttemptNumber,
   recordStepAttempt,
 } from "./step-outcome.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { FINAL_REGRESSION_MAX_ATTEMPTS } from "../../lib/flow-artifact-contract.js";
+import {
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
 
 const FAILURE_KINDS = Object.freeze({
   CURRENT_CHANGE: "caused_by_current_change",
@@ -141,17 +136,8 @@ class TextFailureClassifier {
 }
 const SKIP_KINDS = Object.freeze({
   COVERED_BY_TEST_EXECUTE: "covered_by_test_execute_full_regression",
-  RISK_BASED_STATIC_PROOF: "risk_based_static_proof",
   SKIPPED_BY_PROJECT_POLICY: "skipped_by_project_policy",
 });
-const SENSITIVE_PATH_CLASSES = Object.freeze([
-  "package-config",
-  "test-runner",
-  "dependency",
-  "runtime-source",
-  "external-integration",
-  "unknown",
-]);
 
 export class FinalRegressionRecoveryPolicy {
   constructor({ kind, retryable, nextAction, resumeInstruction = null }) {
@@ -745,23 +731,19 @@ function failureSummaryFor(result, failureKind) {
   return boundedText(text || `final-regression failed: ${failureKind}`, 2000);
 }
 
-function testExecuteArtifactPath(specDir) {
-  return path.join(specDir, "test-execute-result.json");
-}
-
 function currentChangedFilesWithFingerprints(root, changedFiles) {
   return withChangedFileFingerprints(root, changedFiles);
 }
 
 function finalRegressionGeneratedPath(filePath, state) {
-  const specDirRelative = path.posix.dirname(relativeFlowSpecFile(state));
-  return filePath === `${specDirRelative}/final-regression-result.json`
-    || filePath === `${specDirRelative}/issue-log.json`
-    || filePath === `${specDirRelative}/flow.json`
+  const location = flowStateSpecLocation(state);
+  if (location === null) {
+    throw new Error("final-regression freshness requires a manager-bound Version location");
+  }
+  return filePath.startsWith(`${location.relativeDirectory}/`)
     || filePath === PRODUCT.managedPath(".active-flow")
     || FlowTargetIdentityAuthority.managesRepositoryPath(filePath)
-    || filePath.startsWith(".tmp/logs/")
-    || filePath.startsWith(`${specDirRelative}/tests/.raw/final-regression-attempt-`);
+    || filePath.startsWith(".tmp/logs/");
 }
 
 function finalRegressionFreshnessFiles(changedFiles, state) {
@@ -769,138 +751,6 @@ function finalRegressionFreshnessFiles(changedFiles, state) {
     const filePath = changedFilePath(entry);
     return filePath && !finalRegressionGeneratedPath(filePath.split(path.sep).join("/"), state);
   });
-}
-
-function coveredByTestExecuteDecision({ root, artifactRoot = root, specDir, testExecute, commandIdentity, triggerRelevantChangedFiles }) {
-  const regression = testExecute?.regression;
-  if (testExecute?.version !== "2") return null;
-  if (!regression || regression.required !== true || regression.mode !== "full" || regression.result !== "pass") return null;
-  const evidenceIdentity = {
-    command: regression.command,
-    commandSource: regression.commandSource,
-    argv: regression.argv,
-    env: regression.env,
-    source: regression.source,
-    metadata: regression.metadata,
-    resolvedScriptDigest: regression.resolvedScriptDigest,
-    resolvedConfigDigest: regression.resolvedConfigDigest,
-  };
-  if (!commandIdentityEqual(commandIdentity, evidenceIdentity)) return null;
-  const evidenceFingerprints = regression.trigger_relevant_changed_files || [];
-  if (!fingerprintSetsEqual(triggerRelevantChangedFiles, evidenceFingerprints)) return null;
-  return {
-    skipKind: SKIP_KINDS.COVERED_BY_TEST_EXECUTE,
-    reason: "same-flow full regression evidence already covers current trigger-relevant changes",
-    changedFiles: triggerRelevantChangedFiles,
-    proof: new FinalRegressionSkipProof({
-      kind: SKIP_KINDS.COVERED_BY_TEST_EXECUTE,
-      data: {
-        reusedArtifactPath: repoRelative(artifactRoot, testExecuteArtifactPath(specDir)),
-        commandIdentity,
-        changedFileFingerprints: fingerprintSet(triggerRelevantChangedFiles),
-        staleCheck: {
-          sameFlow: true,
-          commandIdentityMatched: true,
-          changedFileFingerprintsMatched: true,
-        },
-      },
-    }),
-  };
-}
-
-function isCurrentSpecArtifactPath(filePath, specDirRelative) {
-  const normalized = path.posix.normalize(filePath);
-  return normalized === filePath && normalized.startsWith(`${specDirRelative}/`);
-}
-
-function isExplicitDocsPath(filePath) {
-  const base = path.posix.basename(filePath);
-  if (!/\.(md|mdx)$/i.test(base)) return false;
-  return !filePath.includes("/") || filePath.startsWith("docs/");
-}
-
-function isFlowPromptPath(filePath) {
-  return filePath.startsWith("src/flow/prompts/");
-}
-
-function isGenericTestOnlyPath(filePath) {
-  return filePath.startsWith("tests/")
-    || filePath.startsWith("test/")
-    || /\.test\.js$/i.test(filePath)
-    || /\.spec\.js$/i.test(filePath);
-}
-
-function exactEvidenceContainsPathFingerprint(regression, pathFingerprint) {
-  return Array.isArray(regression?.changed_files)
-    && regression.changed_files.some((entry) =>
-      entry?.path === pathFingerprint.path && entry?.fingerprint === pathFingerprint.fingerprint,
-    );
-}
-
-function hasTestExecuteCoverage(testExecute, pathFingerprint) {
-  const regression = testExecute?.regression;
-  return testExecute?.version === "2"
-    && regression?.result === "pass"
-    && ["targeted", "full"].includes(regression?.mode)
-    && exactEvidenceContainsPathFingerprint(regression, pathFingerprint);
-}
-
-function riskCategoryForPath({ filePath, specDirRelative, upgradePaths, testExecute, fingerprintEntry }) {
-  if (isCurrentSpecArtifactPath(filePath, specDirRelative)) return "spec-artifact-only";
-  if (isExplicitDocsPath(filePath)) return "docs-only";
-  if (isFlowPromptPath(filePath)) return "flow-prompt";
-  if (upgradePaths.includes(filePath)) return "upgrade-source";
-  if (isGenericTestOnlyPath(filePath) && hasTestExecuteCoverage(testExecute, fingerprintEntry)) return "test-only";
-  return null;
-}
-
-function riskBasedSkipDecision({ root, artifactRoot = root, state, specDir, changedFiles, testExecute }) {
-  if (!changedFiles.length) return null;
-  const specDirRelative = path.posix.dirname(relativeFlowSpecFile(state));
-  const fingerprinted = currentChangedFilesWithFingerprints(root, changedFiles);
-  const normalizedPaths = fingerprinted.map((entry) => entry.path);
-  const upgradePaths = matchUpgradeRequiredSourcePaths(normalizedPaths);
-  const upgradeEvidence = validateUpgradeEvidenceForGate({
-    root,
-    specDir,
-    baseBranch: state.baseBranch || "main",
-    currentRequiredPaths: upgradePaths,
-  });
-  if (upgradePaths.length > 0 && !upgradeEvidence.ok) return null;
-
-  const allowlistClassifications = [];
-  for (const entry of fingerprinted) {
-    const category = riskCategoryForPath({
-      filePath: entry.path,
-      specDirRelative,
-      upgradePaths,
-      testExecute,
-      fingerprintEntry: entry,
-    });
-    if (!category) return null;
-    allowlistClassifications.push({
-      path: entry.path,
-      category,
-      fingerprint: entry.fingerprint,
-    });
-  }
-  return {
-    skipKind: SKIP_KINDS.RISK_BASED_STATIC_PROOF,
-    reason: "all changed paths are explicit non-runtime paths with required evidence",
-    changedFiles: fingerprinted,
-    proof: new FinalRegressionSkipProof({
-      kind: SKIP_KINDS.RISK_BASED_STATIC_PROOF,
-      data: {
-        allowlistClassifications,
-        checkedSensitivePathClasses: [...SENSITIVE_PATH_CLASSES],
-        failClosedDecision: { eligible: true, fallbackReasons: [] },
-        upgradeEvidencePath: upgradePaths.length > 0 ? repoRelative(artifactRoot, path.join(specDir, "upgrade-result.json")) : null,
-        testExecuteEvidencePath: allowlistClassifications.some((entry) => entry.category === "test-only")
-          ? repoRelative(artifactRoot, testExecuteArtifactPath(specDir))
-          : null,
-      },
-    }),
-  };
 }
 
 function projectPolicySkipDecision({ err, changedFiles }) {
@@ -921,62 +771,6 @@ function projectPolicySkipDecision({ err, changedFiles }) {
         },
       },
     }),
-  };
-}
-
-function finalRegressionSkipDecision({ root, artifactRoot = root, state, config, specDir, changedFiles, rootCommand }) {
-  const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
-  if (testExecute) {
-    const fingerprint = buildRepairFingerprint({ root, artifactRoot, specPath: relativeFlowSpecFile(state), state });
-    assertRepairFingerprint({ artifact: testExecute, fingerprint, label: "test-execute-result.json" });
-  }
-  const commandIdentity = commandIdentityFor(rootCommand).toJSON();
-  const analysis = readAnalysisIfExists(root);
-  const classification = classifyRegression({ root, state, analysis, config, changedFiles });
-  const triggerRelevantChangedFiles = currentChangedFilesWithFingerprints(root, classification.triggerRelevantChangedFiles);
-  return coveredByTestExecuteDecision({
-    root,
-    artifactRoot,
-    specDir,
-    testExecute,
-    commandIdentity,
-    triggerRelevantChangedFiles,
-  }) || riskBasedSkipDecision({
-    root,
-    artifactRoot,
-    state,
-    specDir,
-    changedFiles,
-    testExecute,
-  });
-}
-
-function recoverStaleTestEvidence({ root, artifactRoot = root, state, specDir, flowManager }) {
-  const testExecute = readJsonIfExists(testExecuteArtifactPath(specDir));
-  if (!testExecute) return null;
-  const fingerprint = buildRepairFingerprint({ root, artifactRoot, specPath: relativeFlowSpecFile(state), state });
-  const mismatch = StaleTestEvidenceMismatch.detect({
-    artifacts: new Map([["test-execute-result.json", testExecute]]),
-    currentFingerprint: fingerprint.hash,
-  });
-  if (!mismatch) return null;
-  const refresh = mismatch.recover({
-    root,
-    state,
-    specDir,
-    flowManager,
-    reason: "final-regression detected stale fingerprint evidence",
-    sourceStep: "final-regression",
-    additionalArtifacts: [FINAL_REGRESSION_RESULT_FILE],
-  });
-  return {
-    result: "recovered",
-    changed: [...refresh.invalidatedArtifacts],
-    artifacts: {
-      staleArtifacts: [...mismatch.artifactNames],
-      evidenceRefresh: refresh.toJSON(),
-    },
-    next: refresh.activeStep,
   };
 }
 
@@ -1189,7 +983,7 @@ function latestAttemptIndex(rawDir) {
 }
 
 function previousFinalRegressionFailures(root, state) {
-  const issueLog = loadIssueLog(root, relativeFlowSpecFile(state));
+  const issueLog = retiredIssueReader(root, state.specPath);
   return issueLog.entries.filter((entry) => entry.step === "final-regression" && entry.result === "fail");
 }
 
@@ -1210,7 +1004,7 @@ function countFixAttempts({ failures, commandIdentity, currentFingerprints }) {
 }
 
 function recordFinalRegressionFailure(root, state, artifact) {
-  appendIssueLogEntry(root, relativeFlowSpecFile(state), {
+  retiredIssueWriter(root, state.specPath, {
     step: "final-regression",
     result: "fail",
     failureKind: artifact.failureKind,
@@ -1233,8 +1027,8 @@ function recordAndProceedInput(ctx) {
     return ctx.recordAndProceedEvidence;
   }
   return {
-    category: ctx.recordAndProceedCategory,
-    evidence: ctx.recordAndProceedEvidenceText || ctx.recordAndProceedEvidence || ctx.evidence,
+    category: ctx.recordCategory,
+    evidence: ctx.recordEvidence,
     remainingRisk: ctx.remainingRisk,
   };
 }
@@ -1255,560 +1049,373 @@ function validateRecordAndProceedInput(input, fallbackCategory) {
   return { category, evidence, remainingRisk };
 }
 
+class CanonicalFinalRegressionProceed {
+  constructor({ priorArtifact, input }) {
+    const prior = validateFinalRegressionResult(priorArtifact);
+    if (prior.result !== "fail" || prior.completed === true) {
+      throw new Error("record-and-proceed requires an uncompleted final-regression failure");
+    }
+    if (prior.executionBinding === null || typeof prior.executionBinding !== "object") {
+      throw new Error("record-and-proceed requires the prior execution binding");
+    }
+    const decision = validateRecordAndProceedInput(input, prior.failureCategory);
+    this.prior = prior;
+    this.category = decision.category;
+    this.evidence = decision.evidence;
+    this.remainingRisk = decision.remainingRisk;
+    this.operatorJustification = typeof input?.operatorJustification === "string" && input.operatorJustification.trim().length > 0
+      ? input.operatorJustification
+      : decision.evidence;
+    Object.freeze(this);
+  }
+
+  toArtifact() {
+    return {
+      ...this.prior,
+      completed: true,
+      failureCategory: this.category,
+      recordAndProceed: {
+        eligible: true,
+        validated: true,
+        evidence: this.evidence,
+        failureClassification: this.category,
+        operatorJustification: this.operatorJustification,
+        remainingRisk: this.remainingRisk,
+        executionBinding: this.prior.executionBinding,
+      },
+      selectedAction: "explicit-record-and-proceed",
+      remainingRisk: this.remainingRisk,
+      retryable: false,
+      nextAction: "report",
+      nextRecommendedAction: "record-and-proceed",
+    };
+  }
+}
+
 function recordAndProceedFailure(code, message, data = {}) {
   return Envelope.fail("run", "final-regression", code, message, data);
 }
 
-function readCurrentFinalRegressionArtifact(resultPath) {
-  if (!fs.existsSync(resultPath) || fs.statSync(resultPath).isDirectory()) {
-    return { error: "missing" };
+/**
+ * Run the normal project regression against V1 state. Inputs and output are
+ * resolved through the Version Store, and raw bytes live only in the typed
+ * transient contract.
+ */
+async function executeCanonicalFinalRegression(ctx) {
+  const artifactRoot = ctx.root;
+  const root = ctx.executionRoot || artifactRoot;
+  const state = ctx.flowState;
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state });
+  const canonical = ctx.flowManager.canonicalState(state.specId);
+  if (canonical.current?.at(-1) !== "final-regression" || canonical.attempt === null) {
+    throw new Error("canonical final-regression requires its active Attempt");
   }
-  try {
-    return { artifact: validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8"))) };
-  } catch (err) {
-    return { error: "invalid", message: err.message };
+  if (ctx.recordAndProceed) {
+    if (canonical.attempt.failure === null) {
+      throw new Error("canonical final-regression record-and-proceed requires a prior failed Attempt");
+    }
+    const prior = store.readCurrentAttempt({
+      logicalKey: "final.regression",
+      consumerNodeId: "final-regression",
+    });
+    const artifact = new CanonicalFinalRegressionProceed({
+      priorArtifact: prior.payload,
+      input: recordAndProceedInput(ctx),
+    }).toArtifact();
+    validateFinalRegressionResult(artifact);
+    const evidence = validateExplicitFinalRegressionProceed({
+      root,
+      artifact,
+      repositoryBindingOptions: {
+        pathspecExcludes: new RepairArtifactRegistry(store.location.relativeSpecFile).gitPathspecExcludes(),
+      },
+    });
+    if (!evidence.ok) {
+      throw new Error(`record-and-proceed evidence is invalid: ${evidence.reason}`);
+    }
+    const commandResult = attachCanonicalCommandResultArtifact({
+      result: "fail",
+      failedRecorded: true,
+      changed: [prior.relativePath],
+      artifacts: {
+        result_path: prior.relativePath,
+        raw_output_path: artifact.rawOutputPath,
+        completed: true,
+        result: "fail",
+        failureKind: artifact.failureKind,
+        failureCategory: artifact.failureCategory,
+        retryable: false,
+        nextAction: "report",
+      },
+      next: "report",
+    }, { logicalKey: "final.regression", payload: artifact });
+    ctx.flowManager.acceptFinalRegressionFailure({
+      specId: state.specId,
+      commandResult,
+    });
+    return commandResult;
   }
-}
-
-function failedRecordedArtifact(artifact) {
-  // Alpha artifacts created by auto-selected record-and-proceed are not resumable.
-  return artifact?.result === "fail"
-    && artifact.completed === true
-    && artifact.selectedAction === "explicit-record-and-proceed"
-    && artifact.recordAndProceed?.validated === true
-    && artifact.nextAction === "report";
-}
-
-function currentRecordAndProceedEvidence({ root, state, config, specDir }) {
+  if (canonical.attempt.failure !== null) {
+    const prior = store.readCurrentAttempt({
+      logicalKey: "final.regression",
+      consumerNodeId: "final-regression",
+    });
+    const artifact = validateFinalRegressionResult(prior.payload);
+    return attachCanonicalCommandResultArtifact({
+      result: artifact.result,
+      changed: [],
+      artifacts: {
+        result_path: prior.relativePath,
+        raw_output_path: artifact.rawOutputPath,
+        completed: artifact.completed,
+        result: artifact.result,
+        failureKind: artifact.failureKind,
+        ...(artifact.failureCategory ? { failureCategory: artifact.failureCategory } : {}),
+        retryable: artifact.retryable,
+        nextAction: artifact.nextAction,
+        replayed: true,
+      },
+      next: artifact.nextAction,
+    }, { logicalKey: "final.regression", payload: artifact });
+  }
+  const attempt = String(canonical.attempt.sequence).padStart(3, "0");
+  const rawOutputPathRelative = store.location.relativeArtifact("final.regression.raw-log", { attempt });
+  const resultPathRelative = store.location.relativeArtifact("final.regression");
+  const config = configForAuthorityRoot(root, ctx.config || {});
+  const repositoryBindingOptions = {
+    pathspecExcludes: new RepairArtifactRegistry(store.location.relativeSpecFile).gitPathspecExcludes(),
+  };
+  const beforeRepository = FinalRegressionRepositoryBinding.capture(root, repositoryBindingOptions);
+  const rawLines = [];
   const changedFiles = finalRegressionFreshnessFiles(
     expandChangedFileEntries(root, listRegressionChangedFiles({ root, state })),
     state,
   );
-  const rootCommand = discoverRegressionCommand(root, config);
-  const commandIdentity = commandIdentityFor(rootCommand).toJSON();
-  const changedFileFingerprints = fingerprintSet(currentChangedFilesWithFingerprints(root, changedFiles));
-  return {
-    changedFiles,
-    command: rootCommand.toString(),
-    commandSource: commandIdentity.commandSource,
-    commandIdentity,
-    changedFileFingerprints,
-    resultPath: path.join(specDir, FINAL_REGRESSION_RESULT_FILE),
+  const upgradeEvidence = validateCanonicalUpgradeEvidence({
+    flowManager: ctx.flowManager,
+    state,
+    consumerNodeId: "final-regression",
+    root,
+    currentRequiredPaths: changedFiles.map((entry) => changedFilePath(entry)),
+  });
+  if (!upgradeEvidence.ok) {
+    throw new Error(`canonical upgrade evidence validation failed: ${upgradeEvidence.reason}`);
+  }
+  let rootCommand;
+  let commandText = null;
+  let commandIdentity = null;
+  let commandSource = null;
+  let result;
+  let resultStatus;
+  let failure = null;
+  let discoveryError = null;
+  let childProcesses = [];
+  let childRecordError = null;
+  let streamEvidence = null;
+  let skipDecision = null;
+
+  try {
+    rootCommand = discoverRegressionCommand(root, config);
+    commandText = rootCommand.toString();
+    commandIdentity = commandIdentityFor(rootCommand).toJSON();
+    commandSource = commandIdentity.commandSource;
+    writeFinalRegressionProgressLine(`command: ${commandText}`);
+    writeFinalRegressionProgressLine(`raw log: ${rawOutputPathRelative}`);
+    result = await runProcessDetailed(rootCommand, {
+      cwd: root,
+      timeoutMs: (config?.test?.finalRegressionTimeout || resolveTestTimeoutSeconds(config)) * 1000,
+      heartbeatIntervalMs: ctx.finalRegressionProgress?.heartbeatMs ?? FINAL_REGRESSION_HEARTBEAT_MS,
+      onHeartbeat({ elapsedMs }) {
+        writeFinalRegressionProgressLine(`elapsed: ${formatElapsedMs(elapsedMs)}`);
+      },
+    });
+    resultStatus = processPassed(result) ? "pass" : "fail";
+  } catch (error) {
+    skipDecision = projectPolicySkipDecision({ err: error, changedFiles });
+    if (skipDecision) {
+      result = {
+        started: false,
+        exitCode: null,
+        signal: null,
+        timedOut: false,
+        spawnError: null,
+        stdout: "",
+        stderr: "",
+      };
+      resultStatus = "skipped";
+    } else {
+      discoveryError = error;
+      result = FinalRegressionProcessResultFactory.commandDiscovery(error);
+      resultStatus = "fail";
+    }
+  }
+
+  if (resultStatus !== "skipped") {
+    streamEvidence = { stdout: captureStream(result.stdout), stderr: captureStream(result.stderr) };
+    result = { ...result, stdout: streamEvidence.stdout.content, stderr: streamEvidence.stderr.content };
+    try {
+      childProcesses = decodeChildProcessRecords(result, rawOutputPathRelative);
+    } catch (error) {
+      childRecordError = error;
+    }
+    if (resultStatus === "fail") {
+      failure = classifyFinalRegressionFailure({
+        result,
+        discoveryError,
+        changedFiles,
+        childProcesses,
+        childRecordError,
+      });
+    }
+  }
+
+  const testCount = resultStatus === "skipped" ? 0 : finalRegressionTestCount(result.stdout);
+  const truncated = resultStatus !== "skipped"
+    && Boolean(streamEvidence?.stdout.truncated || streamEvidence?.stderr.truncated);
+  const repositoryChangedDuringRun = resultStatus === "pass"
+    && !beforeRepository.matches(FinalRegressionRepositoryBinding.capture(root, repositoryBindingOptions));
+  if (resultStatus === "pass" && (!result.started || result.exitCode !== 0 || testCount < 1 || truncated || repositoryChangedDuringRun)) {
+    resultStatus = "fail";
+    failure = new UnknownRegressionFailure();
+  }
+  const failureKind = failure?.kind || null;
+  const priorFailureCount = canonical.attempt.sequence - 1;
+  const decision = resultStatus === "pass"
+    ? FinalRegressionDecision.pass()
+    : resultStatus === "skipped"
+      ? FinalRegressionDecision.skipped()
+      : FinalRegressionDecision.fail(failure, priorFailureCount);
+  const fingerprintedChangedFiles = skipDecision?.changedFiles || currentChangedFilesWithFingerprints(root, changedFiles);
+  const failureProfile = resultStatus === "fail"
+    ? new FinalRegressionFailureProfile({
+      failure,
+      process: new FinalRegressionProcess(result),
+      childProcesses,
+      fixAttempts: priorFailureCount,
+      autoApprove: state.autoApprove === true,
+      canValidateProceed: Boolean(commandIdentity),
+    })
+    : null;
+
+  let range;
+  if (resultStatus === "skipped") {
+    const start = rawLines.length + 1;
+    rawLines.push(
+      "[sennel] final regression skipped",
+      `command: ${commandText || "<unresolved>"}`,
+      ...(commandSource ? [`commandSource: ${commandSource}`] : []),
+      "result: skipped",
+      `skipKind: ${skipDecision.skipKind}`,
+      `reason: ${skipDecision.reason}`,
+      `nextAction: ${decision.nextAction}`,
+    );
+    range = { start, end: rawLines.length };
+  } else {
+    range = appendRaw(rawLines, [
+      `[sennel] final regression start command=${commandText || "<unresolved>"}`,
+      `command: ${commandText || "<unresolved>"}`,
+      ...(commandSource ? [`commandSource: ${commandSource}`] : []),
+      ...processOutputLines(result),
+      ...(childRecordError ? [`childRecordError: ${childRecordError.message}`] : []),
+      `result: ${resultStatus}`,
+      ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
+      `[sennel] final regression end result=${resultStatus}`,
+    ]);
+    rawLines.push(
+      `evidence.command: ${commandText || "<unresolved>"}`,
+      `evidence.result: ${resultStatus}`,
+      `evidence.testCount: ${testCount}`,
+      `evidence.truncated: ${truncated}`,
+      `evidence.worktreeSha256: ${beforeRepository.worktreeSha256}`,
+      ...["stdout", "stderr"].flatMap((stream) => {
+        const evidence = streamEvidence[stream].toEvidenceJSON();
+        return [
+          `evidence.${stream}.originalByteLength: ${evidence.originalByteLength}`,
+          `evidence.${stream}.capturedByteLength: ${evidence.capturedByteLength}`,
+          `evidence.${stream}.truncated: ${evidence.truncated}`,
+          `evidence.${stream}.sha256: ${evidence.sha256}`,
+        ];
+      }),
+    );
+  }
+  const rawText = `${rawLines.join("\n")}\n`;
+  store.writeRaw({
+    nodeId: "final-regression",
+    logicalKey: "final.regression.raw-log",
+    parameters: { attempt },
+    bytes: rawText,
+  });
+  const executionBinding = resultStatus === "skipped" ? null : {
+    ...beforeRepository,
+    command: commandText,
+    rawOutputPath: rawOutputPathRelative,
+    rawOutputSha256: crypto.createHash("sha256").update(rawText).digest("hex"),
+    parsedResult: resultStatus,
+    testCount,
+    truncated,
+    stdout: streamEvidence?.stdout.toEvidenceJSON(),
+    stderr: streamEvidence?.stderr.toEvidenceJSON(),
   };
-}
+  const artifact = new FinalRegressionArtifact({
+    result: resultStatus,
+    command: commandText || "<unresolved>",
+    commandSource,
+    rawOutputPath: rawOutputPathRelative,
+    rawOutputLines: range,
+    process: new FinalRegressionProcess(result),
+    childProcesses,
+    changedFiles: fingerprintedChangedFiles,
+    decision,
+    skipKind: skipDecision?.skipKind || null,
+    reason: skipDecision?.reason || null,
+    proof: skipDecision?.proof || null,
+    commandIdentity,
+    changedFileFingerprints: fingerprintedChangedFiles,
+    failureProfile,
+    failureSummary: resultStatus === "fail" ? failureSummaryFor(result, failureKind) : null,
+    executionBinding,
+  });
+  const json = artifact.toJSON();
+  json.contractSummary = contractFromFinalRegressionArtifact(json, {
+    artifactPath: resultPathRelative,
+  }).summary.toJSON();
+  validateFinalRegressionResult(json);
+  const commandResult = attachCanonicalCommandResultArtifact({
+    result: resultStatus,
+    changed: [resultPathRelative, rawOutputPathRelative],
+    artifacts: artifact.toEnvelopeArtifacts(resultPathRelative),
+    next: resultStatus === "pass" || resultStatus === "skipped" ? "report" : decision.nextAction,
+  }, { logicalKey: "final.regression", payload: json });
+  if (resultStatus === "pass" || resultStatus === "skipped") return commandResult;
 
-function validateRecordAndProceedFreshness(artifact, current) {
-  return commandIdentityEqual(artifact.commandIdentity, current.commandIdentity)
-    && fingerprintSetsEqual(artifact.changedFileFingerprints, current.changedFileFingerprints);
-}
-
-function hasDurableNonRetryableFinalRegressionAttempt(state) {
-  if (typeof state?.runId !== "string" || state.runId.length === 0) return false;
-  try {
-    const attempts = new StepAttemptLog(state.stepAttempts || []);
-    const latest = attempts.entries.findLast((entry) => (
-      entry.runId === state.runId && entry.stepId === "final-regression"
-    ));
-    return latest?.outcome instanceof ExternalBlockedOutcome
-      && latest.outcome.retryable === false;
-  } catch (_) {
-    return false;
-  }
-}
-
-function unchangedNonRetryableFinalRegressionFailure({ root, state, config, specDir, resultPath, resultPathRelative }) {
-  if (!hasDurableNonRetryableFinalRegressionAttempt(state)) return null;
-  const read = readCurrentFinalRegressionArtifact(resultPath);
-  if (read.error || read.artifact.result !== "fail" || read.artifact.retryable !== false) return null;
-  let current;
-  try {
-    current = currentRecordAndProceedEvidence({ root, state, config, specDir });
-  } catch (_) {
-    // Command discovery itself is read-only. If it no longer resolves, the
-    // prior command identity cannot be proven unchanged and normal discovery
-    // produces fresh failure evidence without starting the project command.
-    return null;
-  }
-  if (!validateRecordAndProceedFreshness(read.artifact, current)) return null;
-  const recoveryHint = read.artifact.recoveryPolicy?.resumeInstruction
-    || "Change the regression input or record new repair evidence before starting a new final-regression attempt.";
-  return Envelope.fail(
-    "run",
-    "final-regression",
-    "FINAL_REGRESSION_NON_RETRYABLE_INPUT_UNCHANGED",
-    "final-regression is blocked by an unchanged non-retryable failure; the project command was not executed",
-    {
-      failureKind: read.artifact.failureKind,
-      failureCategory: read.artifact.failureCategory,
-      retryable: false,
-      recoveryHint,
-      result_path: resultPathRelative,
-      commandIdentity: current.commandIdentity,
-      changedFileFingerprints: current.changedFileFingerprints,
+  // Failure facts and the attempt-history bytes become durable together.
+  // A later restart can therefore make a definition-owned retry/recovery
+  // decision without relying on a raw log or a sibling result file.
+  ctx.flowManager.failCurrentAttempt({
+    specId: state.specId,
+    failure: {
+      category: failureProfile.failureCategory,
+      code: "FINAL_REGRESSION_FAILED",
+      message: `final-regression failed (${failureKind})`,
+      retryable: decision.retryable,
+      retryKind: decision.retryable ? "semantic" : null,
     },
-  );
+    result: {
+      outcome: "failed",
+      summary: `final-regression failed (${failureKind})`,
+      confirmedAt: new Date().toISOString(),
+      artifactRefs: [],
+    },
+    commandResult,
+  });
+  return commandResult;
 }
 
 export default class RunFinalRegressionCommand extends FlowCommand {
   async execute(ctx) {
-    const artifactRoot = ctx.root;
-    const root = ctx.executionRoot || artifactRoot;
-    const state = ctx.flowState;
-    ensureRepairFingerprintContract({ root, artifactRoot, state, flowManager: ctx.flowManager });
-    const config = configForAuthorityRoot(root, ctx.config || {});
-    const specDir = resolveSpecDir(path.resolve(artifactRoot, relativeFlowSpecFile(state)));
-    const repositoryBindingOptions = {
-      pathspecExcludes: new RepairArtifactRegistry(relativeFlowSpecFile(state)).gitPathspecExcludes(),
-    };
-    const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
-    const resultPathRelative = repoRelative(artifactRoot, resultPath);
-    if (ctx.recordAndProceed) {
-      return this.recordAndProceed(ctx, { artifactRoot, executionRoot: root, specDir, resultPath, resultPathRelative });
+    if (!isCanonicalFlowState(ctx.flowState)) {
+      throw new Error("final-regression requires a Version-1 Flow");
     }
-
-    const unchangedTerminalFailure = unchangedNonRetryableFinalRegressionFailure({
-      root,
-      state,
-      config,
-      specDir,
-      resultPath,
-      resultPathRelative,
-    });
-    if (unchangedTerminalFailure) return unchangedTerminalFailure;
-
-    const staleEvidenceRecovery = recoverStaleTestEvidence({
-      root,
-      artifactRoot,
-      state,
-      specDir,
-      flowManager: ctx.flowManager,
-    });
-    if (staleEvidenceRecovery) return staleEvidenceRecovery;
-
-    const attemptPath = nextFinalRegressionAttempt(specDir);
-    const rawOutputPathRelative = repoRelative(artifactRoot, attemptPath);
-    const beforeRepository = FinalRegressionRepositoryBinding.capture(root, repositoryBindingOptions);
-
-    const rawLines = [];
-    const previousFailures = previousFinalRegressionFailures(artifactRoot, state);
-    const expectedRoot = state.worktree
-      ? state.worktreePath ?? ctx.flowManager.resolveWorktreePaths(state).worktreePath
-      : null;
-    const rootPath = path.resolve(root);
-    const expectedRootPath = expectedRoot ? path.resolve(expectedRoot) : null;
-    const rootOk = !expectedRootPath || resolveRealPath(rootPath) === resolveRealPath(expectedRootPath);
-    let changedFiles = [];
-    let rootCommand;
-    let commandText = null;
-    let result;
-    let resultStatus;
-    let failure = null;
-    let commandIdentity = null;
-    let discoveryError = null;
-    let skipDecision = null;
-    let commandSource = null;
-    let childProcesses = [];
-    let childRecordError = null;
-    let streamEvidence = null;
-
-    if (rootOk) {
-        changedFiles = finalRegressionFreshnessFiles(
-          expandChangedFileEntries(root, listRegressionChangedFiles({ root, state })),
-          state,
-        );
-      try {
-        rootCommand = discoverRegressionCommand(root, config);
-        commandText = rootCommand.toString();
-        commandIdentity = commandIdentityFor(rootCommand).toJSON();
-        commandSource = commandIdentity.commandSource;
-        skipDecision = finalRegressionSkipDecision({ root, artifactRoot, state, config, specDir, changedFiles, rootCommand });
-        if (skipDecision) {
-          result = {
-            started: false,
-            exitCode: null,
-            signal: null,
-            timedOut: false,
-            spawnError: null,
-            stdout: "",
-            stderr: "",
-          };
-          resultStatus = "skipped";
-        } else {
-          writeFinalRegressionProgressLine(`command: ${commandText}`);
-          writeFinalRegressionProgressLine(`raw log: ${rawOutputPathRelative}`);
-          result = await runProcessDetailed(rootCommand, {
-            cwd: root,
-            timeoutMs: (config?.test?.finalRegressionTimeout || resolveTestTimeoutSeconds(config)) * 1000,
-            heartbeatIntervalMs: ctx.finalRegressionProgress?.heartbeatMs ?? FINAL_REGRESSION_HEARTBEAT_MS,
-            onHeartbeat({ elapsedMs }) {
-              writeFinalRegressionProgressLine(`elapsed: ${formatElapsedMs(elapsedMs)}`);
-            },
-          });
-        }
-      } catch (err) {
-        skipDecision = projectPolicySkipDecision({ err, changedFiles });
-        if (skipDecision) {
-          result = {
-            started: false,
-            exitCode: null,
-            signal: null,
-            timedOut: false,
-            spawnError: null,
-            stdout: "",
-            stderr: "",
-          };
-          resultStatus = "skipped";
-        } else {
-          discoveryError = err;
-          result = FinalRegressionProcessResultFactory.commandDiscovery(err);
-        }
-      }
-      if (!skipDecision) {
-        resultStatus = !discoveryError && processPassed(result) ? "pass" : "fail";
-      }
-    } else {
-      result = FinalRegressionProcessResultFactory.rootMismatch(
-        `final-regression worktree root mismatch: expected ${expectedRootPath || "<unresolved>"}, got ${rootPath}`,
-      );
-      resultStatus = "fail";
-      failure = new InfrastructureRegressionFailure();
-    }
-
-    if (rootOk && !skipDecision) {
-      streamEvidence = { stdout: captureStream(result.stdout), stderr: captureStream(result.stderr) };
-      result = { ...result, stdout: streamEvidence.stdout.content, stderr: streamEvidence.stderr.content };
-      try {
-        childProcesses = decodeChildProcessRecords(result, rawOutputPathRelative);
-      } catch (err) {
-        childRecordError = err;
-      }
-      failure = resultStatus === "pass"
-        ? null
-        : classifyFinalRegressionFailure({
-          result,
-          discoveryError,
-          root,
-          state,
-          config,
-          changedFiles,
-          childProcesses,
-          childRecordError,
-        });
-    }
-
-    const testCount = resultStatus === "skipped" ? 0 : finalRegressionTestCount(result.stdout);
-    const truncated = resultStatus !== "skipped" && Boolean(streamEvidence?.stdout.truncated || streamEvidence?.stderr.truncated);
-    const repositoryChangedDuringRun = resultStatus === "pass"
-      && !beforeRepository.matches(FinalRegressionRepositoryBinding.capture(root, repositoryBindingOptions));
-    if (resultStatus === "pass" && (!result.started || result.exitCode !== 0 || testCount < 1 || truncated || repositoryChangedDuringRun)) {
-      resultStatus = "fail";
-      failure = new UnknownRegressionFailure();
-    }
-
-    const failureKind = failure?.kind || null;
-    const decision = resultStatus === "pass"
-      ? FinalRegressionDecision.pass()
-      : resultStatus === "skipped"
-        ? FinalRegressionDecision.skipped()
-        : FinalRegressionDecision.fail(failure, previousFailures.length);
-    const fingerprintedChangedFiles = skipDecision?.changedFiles || currentChangedFilesWithFingerprints(root, changedFiles);
-    const failureProfile = resultStatus === "fail"
-      ? new FinalRegressionFailureProfile({
-        failure,
-        process: new FinalRegressionProcess(result),
-        childProcesses,
-        fixAttempts: countFixAttempts({
-          failures: previousFailures,
-          commandIdentity,
-          currentFingerprints: fingerprintedChangedFiles,
-        }),
-        autoApprove: state.autoApprove === true,
-        canValidateProceed: Boolean(commandIdentity) && rootOk,
-      })
-      : null;
-
-    let range;
-    if (resultStatus === "skipped") {
-      const start = rawLines.length + 1;
-      rawLines.push(
-        `[sennel] final regression skipped`,
-        `command: ${commandText || "<unresolved>"}`,
-        ...(commandSource ? [`commandSource: ${commandSource}`] : []),
-        `result: skipped`,
-        `skipKind: ${skipDecision.skipKind}`,
-        `reason: ${skipDecision.reason}`,
-        `nextAction: ${decision.nextAction}`,
-      );
-      range = { start, end: rawLines.length };
-    } else {
-      range = appendRaw(rawLines, [
-        `[sennel] final regression start command=${commandText || "<unresolved>"}`,
-        `command: ${commandText || "<unresolved>"}`,
-        ...(commandSource ? [`commandSource: ${commandSource}`] : []),
-        ...processOutputLines(result),
-        ...(childRecordError ? [`childRecordError: ${childRecordError.message}`] : []),
-        `result: ${resultStatus}`,
-        ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
-        `[sennel] final regression end result=${resultStatus}`,
-      ]);
-    }
-    const manifestStreams = resultStatus === "skipped"
-      ? null
-      : streamEvidence || { stdout: captureStream(result.stdout), stderr: captureStream(result.stderr) };
-    if (manifestStreams) {
-      rawLines.push(
-        "[sennel] final regression execution evidence",
-        `evidence.command: ${commandText || "<unresolved>"}`,
-        `evidence.result: ${resultStatus}`,
-        `evidence.testCount: ${testCount}`,
-        `evidence.truncated: ${truncated}`,
-        `evidence.worktreeSha256: ${beforeRepository.worktreeSha256}`,
-        ...["stdout", "stderr"].flatMap((name) => {
-          const stream = manifestStreams[name];
-          return [
-            `evidence.${name}.originalByteLength: ${stream.originalByteLength}`,
-            `evidence.${name}.capturedByteLength: ${stream.capturedByteLength}`,
-            `evidence.${name}.truncated: ${stream.truncated}`,
-            `evidence.${name}.sha256: ${crypto.createHash("sha256").update(stream.content).digest("hex")}`,
-          ];
-        }),
-      );
-    }
-    fs.writeFileSync(attemptPath, rawLines.join("\n") + "\n");
-    const executionBinding = resultStatus === "skipped" ? null : {
-      ...beforeRepository,
-      command: commandText,
-      rawOutputPath: rawOutputPathRelative,
-      rawOutputSha256: crypto.createHash("sha256").update(fs.readFileSync(attemptPath)).digest("hex"),
-      parsedResult: resultStatus,
-      testCount,
-      truncated,
-      stdout: manifestStreams?.stdout.toEvidenceJSON(),
-      stderr: manifestStreams?.stderr.toEvidenceJSON(),
-    };
-
-    const artifact = new FinalRegressionArtifact({
-      result: resultStatus,
-      command: commandText,
-      commandSource,
-      rawOutputPath: rawOutputPathRelative,
-      rawOutputLines: range,
-      process: new FinalRegressionProcess(result),
-      childProcesses,
-      changedFiles: fingerprintedChangedFiles,
-      decision,
-      skipKind: skipDecision?.skipKind || null,
-      reason: skipDecision?.reason || null,
-      proof: skipDecision?.proof || null,
-      commandIdentity,
-      changedFileFingerprints: fingerprintedChangedFiles,
-      failureProfile,
-      failureSummary: resultStatus === "fail" ? failureSummaryFor(result, failureKind) : null,
-      executionBinding,
-    });
-    const json = artifact.toJSON();
-    json.contractSummary = contractFromFinalRegressionArtifact(json, {
-      artifactPath: resultPathRelative,
-    }).summary.toJSON();
-    validateFinalRegressionResult(json);
-    fs.writeFileSync(resultPath, JSON.stringify(json, null, 2) + "\n");
-    if (resultStatus !== "skipped" && rootOk && result.started) {
-      const evidenceValidation = validateFinalRegressionEvidence({
-        root,
-        artifact: json,
-        repositoryBindingOptions,
-      });
-      if (!evidenceValidation.ok) throw new Error(`final-regression execution binding invalid: ${evidenceValidation.reason}`);
-    }
-
-    const envelopeArtifacts = artifact.toEnvelopeArtifacts(resultPathRelative);
-    if (resultStatus === "pass" || resultStatus === "skipped") {
-      return {
-        result: resultStatus,
-        changed: [
-          resultPathRelative,
-          rawOutputPathRelative,
-        ],
-        artifacts: envelopeArtifacts,
-        next: "report",
-      };
-    }
-
-    writeFinalRegressionProgressLine(`result artifact: ${resultPathRelative}`);
-    writeFinalRegressionProgressLine(`wrote raw log: ${rawOutputPathRelative}`);
-    recordFinalRegressionFailure(artifactRoot, state, json);
-    if (failedRecordedArtifact(json)) {
-      return {
-        result: "fail",
-        failedRecorded: true,
-        changed: [
-          resultPathRelative,
-          rawOutputPathRelative,
-        ],
-        artifacts: {
-          ...envelopeArtifacts,
-          completed: true,
-          nextAction: "report",
-          nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
-          selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
-        },
-        next: "report",
-      };
-    }
-    const failureResult = {
-      ...Envelope.fail(
-      "run",
-      "final-regression",
-      "FINAL_REGRESSION_FAILED",
-      `final-regression failed (${failureKind}); nextAction=${decision.nextAction}`,
-      envelopeArtifacts,
-      ),
-      result: "fail",
-    };
-    recordStepAttempt(ctx, {
-      stepId: "final-regression",
-      attempt: nextStepAttemptNumber(ctx.flowState, "final-regression"),
-      outcome: new ExternalBlockedOutcome({
-        reason: `final-regression failed (${failureKind})`,
-        resumeInstruction: failure.recoveryPolicy.resumeInstruction
-          || "Repair the preserved final-regression failure, then rerun final-regression.",
-        failureCode: "FINAL_REGRESSION_FAILED",
-        retryable: decision.retryable,
-        recoveryHint: failure.recoveryPolicy.resumeInstruction
-          || "Repair the preserved final-regression failure, then rerun final-regression.",
-      }),
-      result: failureResult,
-    });
-    recordEligibleNonblockingAttempt(ctx, "final-regression", failureResult);
-    return failureResult;
-  }
-
-  recordAndProceed(ctx, { artifactRoot, executionRoot: root, specDir, resultPath, resultPathRelative }) {
-    const state = ctx.flowState;
-    const config = configForAuthorityRoot(root, ctx.config || {});
-    const read = readCurrentFinalRegressionArtifact(resultPath);
-    if (read.error === "missing") {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_MISSING_ARTIFACT",
-        "final-regression failed artifact is missing",
-      );
-    }
-    if (read.error === "invalid") {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_ARTIFACT",
-        `final-regression failed artifact is invalid: ${read.message}`,
-      );
-    }
-    const artifact = read.artifact;
-    let input;
-    try {
-      input = validateRecordAndProceedInput(recordAndProceedInput(ctx), artifact.failureCategory);
-    } catch (err) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_EVIDENCE",
-        err.message,
-      );
-    }
-
-    const explicitCurrentChangeOverride = artifact.failureKind === FAILURE_KINDS.CURRENT_CHANGE
-      && input.category === FAILURE_CATEGORIES.OUT_OF_SCOPE;
-    if (
-      artifact.result !== "fail"
-      || (artifact.recordAndProceed?.eligible !== true && !explicitCurrentChangeOverride)
-    ) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
-        "final-regression artifact is not eligible for record-and-proceed",
-      );
-    }
-    let current;
-    try {
-      current = currentRecordAndProceedEvidence({ root, state, config, specDir });
-    } catch (err) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
-        `final-regression current evidence cannot be validated: ${err.message}`,
-      );
-    }
-    if (!validateRecordAndProceedFreshness(artifact, current)) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_STALE",
-        "final-regression failed artifact is stale",
-      );
-    }
-
-    const category = input.category || artifact.failureCategory;
-    if (!RECORD_AND_PROCEED_CATEGORIES.has(category)) {
-      return recordAndProceedFailure(
-        "FINAL_REGRESSION_RECORD_AND_PROCEED_INELIGIBLE",
-        `final-regression category is not eligible: ${category}`,
-      );
-    }
-    const operator = ctx.recordAndProceedEvidence || {};
-    const operatorBinding = operator.executionBinding;
-    const json = {
-      ...artifact,
-      completed: true,
-      result: "fail",
-      failureCategory: category,
-      selectedAction: "explicit-record-and-proceed",
-      remainingRisk: input.remainingRisk,
-      retryable: false,
-      nextAction: "report",
-      nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
-      recordAndProceed: {
-        eligible: true,
-        validated: true,
-        evidence: input.evidence,
-        failureClassification: operator.failureClassification,
-        operatorJustification: operator.operatorJustification,
-        remainingRisk: input.remainingRisk,
-        executionBinding: operatorBinding,
-      },
-      command: current.command,
-      commandSource: current.commandSource,
-      commandIdentity: current.commandIdentity,
-      changedFiles: current.changedFiles,
-      changedFileFingerprints: current.changedFileFingerprints,
-      currentDiffRelationship: category === FAILURE_CATEGORIES.CURRENT_CHANGE ? "current-diff" : "non-current-diff",
-    };
-    json.contractSummary = contractFromFinalRegressionArtifact(json, {
-      artifactPath: resultPathRelative,
-    }).summary.toJSON();
-    try {
-      validateFinalRegressionResult(json);
-    } catch (err) {
-      return recordAndProceedFailure("FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_ARTIFACT", err.message);
-    }
-    const explicitValidation = validateExplicitFinalRegressionProceed({
-      root,
-      artifact: json,
-      repositoryBindingOptions: {
-        pathspecExcludes: new RepairArtifactRegistry(relativeFlowSpecFile(state)).gitPathspecExcludes(),
-      },
-    });
-    if (!explicitValidation.ok) {
-      return recordAndProceedFailure("FINAL_REGRESSION_RECORD_AND_PROCEED_INVALID_EVIDENCE", explicitValidation.reason);
-    }
-    fs.writeFileSync(resultPath, JSON.stringify(json, null, 2) + "\n");
-    const artifacts = {
-      result_path: resultPathRelative,
-      raw_output_path: json.rawOutputPath,
-      completed: true,
-      result: "fail",
-      failureKind: json.failureKind,
-      failureCategory: json.failureCategory,
-      retryable: false,
-      nextAction: "report",
-      nextRecommendedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
-      selectedAction: NEXT_RECOMMENDED_ACTIONS.RECORD_AND_PROCEED,
-    };
-    return {
-      result: "fail",
-      failedRecorded: true,
-      changed: [resultPathRelative],
-      artifacts,
-      next: "report",
-    };
+    return executeCanonicalFinalRegression(ctx);
   }
 }

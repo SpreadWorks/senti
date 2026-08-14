@@ -1,52 +1,138 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { test } from "node:test";
+import { afterEach, test } from "node:test";
+
 import RunTestResultReviewCommand from "../../../src/flow/lib/run-test-result-review.js";
-import {
-  completeScenarioValidityArtifactChange,
-  completeTestExecuteArtifactChange,
-} from "../../../src/flow/lib/test-artifacts.js";
-import { createAcceptanceReviewFixture } from "../../helpers/acceptance-review-fixture.js";
+import { attachedCanonicalCommandResultArtifact } from "../../../src/flow/lib/canonical-command-result.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { buildRepairFingerprint } from "../../../src/flow/lib/repair-fingerprint.js";
 
-test("test-result review resumes from structured evidence when the transient execution log is absent", async (t) => {
-  const fixture = createAcceptanceReviewFixture({ specPath: "specs/001-test/spec.json" });
-  t.after(() => fixture.cleanup());
-  fs.rmSync(path.join(fixture.root, fixture.executionRaw), { force: true });
+const roots = [];
 
-  const result = await new RunTestResultReviewCommand().execute({
-    root: fixture.root,
-    executionRoot: fixture.root,
-    flowState: fixture.state,
-    flowManager: fixture.flowManager,
+function root() {
+  const value = createTmpDir("test-result-review-canonical-");
+  roots.push(value);
+  return value;
+}
+
+function testExecuteHistory(payload) {
+  return Buffer.from(`${JSON.stringify({
+    attempts: [{ attempt: 1, artifact: { logicalKey: "test.execute", payload } }],
+  }, null, 2)}\n`, "utf8");
+}
+
+function testExecutePayload(repairFingerprint) {
+  return {
+    version: "2",
+    repairFingerprint,
+    raw_output_path: "specs/001-test/001/artifacts/test.execute.raw-log",
+    summary: [{
+      id: "R1",
+      result: "pass",
+      evidence: {
+        test_file: "specs/001-test/001/artifacts/tests/fixture.test.js",
+        test_name: "R1: canonical fixture requirement",
+        command: "node --test specs/001-test/001/artifacts/tests/fixture.test.js",
+        raw_output_lines: { start_line: 1, end_line: 1 },
+      },
+    }],
+    regression: {
+      required: false,
+      result: "skipped",
+      mode: "none",
+      category: "spec-artifact-only",
+      reason: "canonical fixture regression not required",
+      classified_paths: [],
+      changed_files: [],
+      trigger_relevant_changed_files: [],
+    },
+  };
+}
+
+function fixture() {
+  const repository = root();
+  const flowManager = makeFlowManager(repository);
+  const flow = new CanonicalFlowFixture({
+    flowManager,
+    specId: "001-test",
+    runId: "run-test-result-review-clean-checkout",
+    specRecord: {
+      requirements: [{ id: "R1", desc: "Preserve the canonical completion contract.", priority: "must", status: "pending" }],
+    },
+  }).create().registerActive().activate("test");
+  flowManager.publishArtifacts({
+    specId: flow.specId,
+    nodeId: "test",
+    artifactWrites: [{
+      logicalKey: "tests.source",
+      parameters: { testPath: "fixture.test.js" },
+      mediaType: "text/javascript",
+      bytes: Buffer.from([
+        "// spec: R1",
+        "import test from 'node:test';",
+        "test('R1: canonical fixture requirement', () => {});",
+        "",
+      ].join("\n"), "utf8"),
+    }],
   });
+  flow.settle("test").activate("test-execute");
+  const repairFingerprint = buildRepairFingerprint({
+    root: repository,
+    artifactRoot: repository,
+    specPath: flow.location().relativeSpecFile,
+  }).hash;
+  flowManager.publishArtifacts({
+    specId: flow.specId,
+    nodeId: "test-execute",
+    artifactWrites: [
+      {
+        logicalKey: "test.execute",
+        mediaType: "application/json",
+        bytes: testExecuteHistory(testExecutePayload(repairFingerprint)),
+      },
+    ],
+  });
+  flow.settle("test-execute").activate("test-result-review");
+  return { repository, flowManager, flow };
+}
 
-  assert.equal(result.result, "ok");
-  const review = JSON.parse(fs.readFileSync(path.join(fixture.specDir, "test-result-review.json"), "utf8"));
-  assert.equal(review.verdict, "pass");
-  assert.equal(review.checked_items.every((entry) => entry.result === "pass"), true);
+afterEach(() => {
+  while (roots.length > 0) removeTmpDir(roots.pop());
 });
 
-test("completion decisions trust structured scenario and test results when transient logs are absent", async (t) => {
-  const fixture = createAcceptanceReviewFixture({ specPath: "specs/001-test/spec.json" });
-  t.after(() => fixture.cleanup());
-  fs.rmSync(path.join(fixture.root, fixture.scenarioRaw), { force: true });
-  fs.rmSync(path.join(fixture.root, fixture.executionRaw), { force: true });
-  fs.writeFileSync(path.join(fixture.specDir, "file-map.json"), `${JSON.stringify({ R1: [fixture.specPath] })}\n`);
-
-  const scenario = JSON.parse(fs.readFileSync(path.join(fixture.specDir, "scenario-validity-result.json"), "utf8"));
-  const execution = JSON.parse(fs.readFileSync(path.join(fixture.specDir, "test-execute-result.json"), "utf8"));
-  const scenarioDecision = await completeScenarioValidityArtifactChange({
-    root: fixture.root,
-    specDir: fixture.specDir,
-    artifact: scenario,
-  });
-  const executionDecision = await completeTestExecuteArtifactChange({
-    root: fixture.root,
-    specDir: fixture.specDir,
-    artifact: execution,
+test("test-result review trusts cataloged structured evidence when the transient execution log is absent", async () => {
+  const value = fixture();
+  const result = await new RunTestResultReviewCommand().execute({
+    root: value.repository,
+    executionRoot: value.repository,
+    flowState: value.flow.state(),
+    flowManager: value.flowManager,
   });
 
-  assert.equal(scenarioDecision.constructor.name, "ArtifactCompletionSuccess");
-  assert.equal(executionDecision.constructor.name, "ArtifactCompletionSuccess");
+  const publication = attachedCanonicalCommandResultArtifact(result);
+  assert.equal(result.result, "ok", JSON.stringify(publication?.payload));
+  assert.equal(result.artifacts.verdict, "pass");
+  assert.equal(publication.logicalKey, "test.result.review");
+  assert.equal(publication.payload.verdict, "pass");
+  assert.equal(publication.payload.checked_items.every((entry) => entry.result === "pass"), true);
+  assert.equal(publication.payload.raw_output_path.includes("test-execute"), true);
+});
+
+test("cataloged scenario and execution evidence remain complete without transient raw log bytes", () => {
+  const value = fixture();
+  const execution = value.flowManager.readArtifact({
+    specId: value.flow.specId,
+    logicalKey: "test.execute",
+    consumerNodeId: "test-result-review",
+  });
+  assert.ok(execution);
+  assert.equal(value.flowManager.readArtifact({
+    specId: value.flow.specId,
+    logicalKey: "test.execute.raw-log",
+    consumerNodeId: "test-result-review",
+    optional: true,
+  }), null);
+  const history = JSON.parse(execution.bytes.toString("utf8"));
+  assert.equal(history.attempts.length, 1);
+  assert.equal(history.attempts[0].artifact.payload.summary[0].result, "pass");
 });

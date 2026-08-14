@@ -1,25 +1,33 @@
-import fs from "node:fs";
-import path from "node:path";
-
 import { Envelope } from "../../lib/flow-envelope.js";
 import { missingExactTargetGuardNames } from "../../lib/flow-target-guard.js";
-import { findActiveNode, flowLeafIdsBetween } from "../definition.js";
-import { findStepById } from "./step-tree.js";
-import { completeTestEvidenceRefresh } from "./impl-repair-artifacts.js";
-import { latestPlanRewind } from "./plan-rewind.js";
 import { FlowCommand } from "./base-command.js";
-import { ExplicitRecoveryTransition } from "./step-transition-policy.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-
-const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
-const RECOVERY_ENTRYPOINT = "existing-implementation-revalidation";
-const RECOVERY_REASON = "Existing implementation revalidation recorded after an acceptance-review plan rewind blocked pre-implementation scenario validity.";
+import {
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { findStepById } from "./step-tree.js";
 
 class ExistingImplementationRecoveryError extends Error {
   constructor(code, message) {
     super(message);
     this.name = "ExistingImplementationRecoveryError";
     this.code = code;
+  }
+}
+
+/** Immutable scenario-validity fact accepted by the fixed recovery route. */
+export class ExistingImplementationRecoveryPlan {
+  constructor({ invalidPaths } = {}) {
+    if (!Array.isArray(invalidPaths) || invalidPaths.length === 0) {
+      throw new Error("existing implementation recovery requires invalid paths");
+    }
+    this.invalidPaths = Object.freeze(invalidPaths.map((value, index) => {
+      if (typeof value !== "string" || value.trim() === "") {
+        throw new Error(`existing implementation invalidPaths[${index}] must be a non-empty string`);
+      }
+      return value;
+    }));
+    Object.freeze(this);
   }
 }
 
@@ -40,86 +48,46 @@ function requireExactGuards(ctx, state) {
   return null;
 }
 
-function readScenarioValidityResult(specDir) {
-  const file = path.join(specDir, SCENARIO_VALIDITY_RESULT_FILE);
-  let artifact;
-  try {
-    artifact = JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (error) {
-    reject(
-      "EXISTING_IMPLEMENTATION_RECOVERY_EVIDENCE_INVALID",
-      `scenario-validity evidence is unavailable: ${error.message}`,
-    );
+function readScenarioValidityPlan({ flowManager, state }) {
+  if (!isCanonicalFlowState(state)) {
+    reject("EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID", "existing implementation recovery requires a Version-1 Flow");
   }
-  const invalidPaths = artifact?.preflight?.invalid_paths;
-  if (artifact?.result !== "block" || !Array.isArray(invalidPaths) || invalidPaths.length === 0) {
+  const artifact = new CanonicalTestArtifactStore({ flowManager, state }).readCurrentAttempt({
+    logicalKey: "scenario.validity",
+    consumerNodeId: "implement",
+    optional: true,
+  });
+  const invalidPaths = artifact?.payload?.preflight?.invalid_paths;
+  if (artifact?.payload?.result !== "block" || !Array.isArray(invalidPaths) || invalidPaths.length === 0) {
     reject(
       "EXISTING_IMPLEMENTATION_RECOVERY_EVIDENCE_INVALID",
       "scenario-validity evidence must be a preflight block with implementation-target changes",
     );
   }
-  return invalidPaths;
+  return new ExistingImplementationRecoveryPlan({ invalidPaths });
 }
 
-function recoveryTransition(state) {
-  const expected = [
-    ["scenario-validity", "in_progress", "skipped"],
-    ["test-review", "pending", "skipped"],
-    ["implement", "pending", "done"],
-    ["test-execute", "pending", "in_progress"],
-  ];
-  const changes = expected.map(([stepId, currentStatus, requestedStatus]) => {
-    const step = findStepById(state.steps || [], stepId);
-    if (!step || step.status !== currentStatus) {
-      reject(
-        "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
-        `existing implementation recovery requires ${stepId}=${currentStatus}`,
-      );
-    }
-    return { stepId, currentStatus, requestedStatus };
-  });
-  return new ExplicitRecoveryTransition({
-    stepId: "scenario-validity",
-    currentStatus: "in_progress",
-    requestedStatus: "skipped",
-    entrypoint: RECOVERY_ENTRYPOINT,
-    changes,
-    clearRuntimeLog: true,
-  });
-}
-
-function assertEligibility(state) {
-  const active = findActiveNode(state);
-  const pendingRecovery = state.implRepairTransaction?.sourceStep === RECOVERY_ENTRYPOINT;
-  if (pendingRecovery) {
-    if (active?.scope !== "flow" || active.stepId !== "test-execute") {
-      reject(
-        "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
-        "pending existing implementation recovery must remain at test-execute",
-      );
-    }
-    return { pendingRecovery: true };
-  }
-  if (active?.scope !== "flow" || active.stepId !== "scenario-validity") {
+function assertRecoveryRoute(state) {
+  if (state.currentNodeId !== "scenario-validity") {
     reject(
       "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
       "existing implementation recovery is available only while scenario-validity is active",
     );
   }
-  if (state.implRepairTransaction != null) {
-    reject(
-      "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
-      "existing implementation recovery cannot overlap an impl-repair transaction",
-    );
+  for (const [stepId, expectedStatus] of [
+    ["scenario-validity", "in_progress"],
+    ["test-review", "pending"],
+    ["implement", "pending"],
+    ["test-execute", "pending"],
+  ]) {
+    const step = findStepById(state.steps, stepId);
+    if (step?.status !== expectedStatus) {
+      reject(
+        "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
+        `existing implementation recovery requires ${stepId}=${expectedStatus}`,
+      );
+    }
   }
-  const rewind = latestPlanRewind(state);
-  if (rewind?.sourceStage !== "acceptance-review" || rewind.destinationStep !== "draft") {
-    reject(
-      "EXISTING_IMPLEMENTATION_RECOVERY_AUDIT_REQUIRED",
-      "existing implementation recovery requires the latest plan rewind to originate at acceptance-review",
-    );
-  }
-  return { pendingRecovery: false };
 }
 
 export default class RunRecoverExistingImplementationCommand extends FlowCommand {
@@ -128,38 +96,15 @@ export default class RunRecoverExistingImplementationCommand extends FlowCommand
     const guardFailure = requireExactGuards(ctx, state);
     if (guardFailure) return guardFailure;
     try {
-      const eligibility = assertEligibility(state);
-      const specDir = path.dirname(path.resolve(ctx.root, relativeFlowSpecFile(state)));
-      const invalidPaths = readScenarioValidityResult(specDir);
-      const result = completeTestEvidenceRefresh({
-        root: ctx.executionRoot || ctx.root,
-        state,
-        specDir,
-        flowManager: ctx.flowManager,
-        reason: RECOVERY_REASON,
-        sourceStep: RECOVERY_ENTRYPOINT,
-        resetStepIds: flowLeafIdsBetween("test-execute", "finalize-cleanup"),
-        ...(eligibility.pendingRecovery ? {} : { transition: recoveryTransition(state) }),
-      });
-      const refreshed = ctx.specId
-        ? ctx.flowManager.loadReadOnly(ctx.specId)
-        : ctx.flowManager.loadReadOnly();
-      const active = findActiveNode(refreshed);
-      if (active?.scope !== "flow" || active.stepId !== "test-execute") {
-        reject(
-          "EXISTING_IMPLEMENTATION_RECOVERY_LIFECYCLE_INVALID",
-          "existing implementation recovery did not promote test-execute",
-        );
-      }
+      const plan = readScenarioValidityPlan({ flowManager: ctx.flowManager, state });
+      assertRecoveryRoute(state);
+      ctx.flowManager.recoverExistingImplementation({ specId: state.specId });
       return Envelope.ok("run", "recover-existing-implementation", {
         recovered: true,
         skipped: ["scenario-validity", "test-review"],
         completed: "implement",
-        activeStep: active.stepId,
-        previousRepairFingerprint: result.previousFingerprint,
-        currentRepairFingerprint: result.currentFingerprint,
-        invalidatedArtifacts: result.invalidatedArtifacts,
-        preflightInvalidPaths: invalidPaths,
+        activeStep: "test-execute",
+        preflightInvalidPaths: plan.invalidPaths,
       });
     } catch (error) {
       if (error instanceof ExistingImplementationRecoveryError) {

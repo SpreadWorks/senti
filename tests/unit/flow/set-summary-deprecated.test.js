@@ -11,8 +11,6 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -55,17 +53,6 @@ function setup(tmp) {
   fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify(specJson, null, 2));
   fs.writeFileSync(path.join(specDir, "spec.md"), "# Spec\n");
 
-  const state = {
-    specId: specId,
-    runId: `run-${specId}`,
-    baseBranch: "main",
-    featureBranch: `feature/${specId}`,
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow(specId, "branch");
   return { specDir, specId };
 }
 

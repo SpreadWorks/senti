@@ -1,8 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlowConfig } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager, setupFlowConfig } from "../../helpers/flow-setup.js";
 import {
   resolveGateStepId,
   resolveGatePhaseFromState,
@@ -10,32 +9,7 @@ import {
 } from "../../../src/flow/lib/gate-step.js";
 import { VALID_GATE_PHASES } from "../../../src/lib/constants.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
-import { SetStepStatus } from "../../../src/flow/definition.js";
 import { DefinitionLifecycleTransition } from "../../../src/flow/lib/step-transition-policy.js";
-import { runUpgradeForRecovery } from "../../../src/flow/lib/run-gate.js";
-
-// spec: R3 R8
-it("runs canonical upgrade from the package entrypoint in the consuming project", () => {
-  const calls = [];
-  const consumerRoot = "/consumer/project";
-  const packageDir = "/installed/sennel/src";
-
-  runUpgradeForRecovery(consumerRoot, {
-    packageDir,
-    execFileSyncImpl(...args) {
-      calls.push(args);
-    },
-  });
-
-  assert.deepEqual(calls, [[
-    process.execPath,
-    [path.join(packageDir, "sennel.js"), "upgrade"],
-    {
-      cwd: consumerRoot,
-      stdio: "inherit",
-    },
-  ]]);
-});
 
 // -----------------------------------------------------------------------------
 // AC6 (R5): resolveGateStepId / STEP_TO_PHASE round-trip consistency
@@ -214,9 +188,9 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
           id: "T1",
           status: "in_progress",
           steps: [
-            { id: "task-impl", status: "done" },
-            { id: "task-review", status: "done" },
-            { id: "task-gate", status: "in_progress" },
+            { id: "T1-impl", status: "done" },
+            { id: "T1-review", status: "done" },
+            { id: "T1-gate", status: "in_progress" },
           ],
         },
       ],
@@ -228,7 +202,7 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     assert.deepEqual(result.staleSteps, []);
   });
 
-  it("picks task-spec when active task's gate step is in_progress, even if flow-level gate is too", () => {
+  it("does not mistake a Task for the flow-level task-spec validation route", () => {
     const state = {
       steps: [
         { id: "spec-gate", status: "in_progress" },
@@ -239,8 +213,9 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
           id: "T1",
           status: "in_progress",
           steps: [
-            { id: "spec-gate", status: "in_progress" },
-            { id: "approval", status: "pending" },
+            { id: "T1-impl", status: "done" },
+            { id: "T1-review", status: "pending" },
+            { id: "T1-gate", status: "pending" },
           ],
         },
       ],
@@ -248,78 +223,73 @@ describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () =
     };
     const result = resolveGatePhaseFromState(state);
     assert.ok(result);
-    assert.equal(result.phase, "task-spec");
-    // The flow-level gate step is considered stale in this situation.
-    assert.ok(result.staleSteps.includes("spec-gate"), `expected staleSteps to include flow-level 'gate', got ${JSON.stringify(result.staleSteps)}`);
+    assert.equal(result.phase, "spec");
+    assert.deepEqual(result.staleSteps, []);
   });
 
   it("passes explicit task scope to the task-gate lifecycle mutation", async () => {
-    const updates = [];
-    const storedState = {
-      currentTaskId: "T1",
-      steps: [{ id: "impl-gate", status: "pending" }],
-      tasks: [{
-        id: "T1",
-        steps: [
-          { id: "task-impl", status: "done" },
-          { id: "task-review", status: "done" },
-          { id: "task-gate", status: "pending" },
-        ],
-      }],
-    };
-    const flowState = structuredClone(storedState);
-    flowState.tasks[0].steps[2].status = "in_progress";
+    const root = createTmpDir("gate-phase-task-scope-");
+    try {
+      const flowManager = makeFlowManager(root);
+      const fixture = new CanonicalFlowFixture({
+        flowManager,
+        specId: "001-test",
+        runId: "run-task-gate-pre",
+      }).create().addTask({
+        id: "T1", title: "task", goal: "task", parent: null,
+        origin: "plan", added_round: 0, status: "pending",
+      }).registerActive();
+      fixture.settleBefore("T1-impl").activateTask("T1", { settlePredecessors: false });
+      fixture.settle("T1-impl").settle("T1-review").activate("T1-gate", { settlePredecessors: false });
+      const flowState = flowManager.loadReadOnly("001-test");
 
-    assert.equal(
-      FLOW_COMMANDS.run.gate.runtimeLog.stepId({ phase: "task-impl", flowState }),
-      "task-gate",
-    );
+      assert.equal(FLOW_COMMANDS.run.gate.runtimeLog.stepId({ phase: "task-impl", flowState }), "T1-gate");
+      await FLOW_COMMANDS.run.gate.pre({
+        phase: "task-impl",
+        flowState,
+        flowManager,
+        root,
+        mainRoot: root,
+        executionRoot: root,
+      });
 
-    await FLOW_COMMANDS.run.gate.pre({
-      phase: "task-impl",
-      flowState,
-      flowManager: {
-        load: () => storedState,
-        updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
-      },
-    });
-
-    assert.equal(updates.length, 1);
-    const [{ transition, opts }] = updates;
-    assert.ok(transition instanceof DefinitionLifecycleTransition);
-    assert.ok(transition.action instanceof SetStepStatus);
-    assert.equal(transition.stepId, "task-gate");
-    assert.equal(transition.action.step, "task-gate");
-    assert.equal(transition.currentStepId, "task-gate");
-    assert.equal(transition.requestedStatus, "in_progress");
-    assert.deepEqual(opts, { taskId: "T1" });
+      const updated = flowManager.loadReadOnly("001-test");
+      assert.equal(updated.tasks[0].steps[2].status, "in_progress");
+      assert.equal(updated.currentTaskId, "T1");
+      assert.equal(updated.steps.find((step) => step.id === "impl-gate")?.status ?? "pending", "pending");
+    } finally {
+      removeTmpDir(root);
+    }
   });
 
   it("keeps the flow-level integration gate lifecycle identity at impl-gate", async () => {
-    const updates = [];
-    const flowState = {
-      currentTaskId: null,
-      steps: [{ id: "impl-gate", status: "pending" }],
-      tasks: [],
-    };
+    const root = createTmpDir("gate-phase-flow-scope-");
+    try {
+      const flowManager = makeFlowManager(root);
+      const fixture = new CanonicalFlowFixture({
+        flowManager,
+        specId: "001-test",
+        runId: "run-impl-gate-pre",
+      }).create().registerActive();
+      fixture.settleBefore("impl-gate");
+      const flowState = flowManager.loadReadOnly("001-test");
 
-    await FLOW_COMMANDS.run.gate.pre({
-      phase: "integration",
-      flowState,
-      flowManager: {
-        load: () => flowState,
-        updateStepStatus(transition, opts) { updates.push({ transition, opts }); },
-      },
-    });
+      await FLOW_COMMANDS.run.gate.pre({
+        phase: "integration",
+        flowState,
+        flowManager,
+        root,
+        mainRoot: root,
+        executionRoot: root,
+      });
 
-    assert.equal(updates.length, 1);
-    const [{ transition, opts }] = updates;
-    assert.ok(transition instanceof DefinitionLifecycleTransition);
-    assert.equal(resolveGateStepId("integration"), "impl-gate");
-    assert.equal(transition.stepId, "impl-gate");
-    assert.equal(transition.action.step, "impl-gate");
-    assert.equal(transition.currentStepId, "impl-gate");
-    assert.deepEqual(opts, { taskId: null });
+      const updated = flowManager.loadReadOnly("001-test");
+      assert.equal(resolveGateStepId("integration"), "impl-gate");
+      assert.equal(updated.currentNodeId, "impl-gate");
+      assert.equal(updated.currentTaskId, null);
+    } finally {
+      removeTmpDir(root);
+    }
   });
 
   it("allows explicit terminal gate revalidation without reopening lifecycle state", async () => {

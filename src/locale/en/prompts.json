@@ -22,6 +22,9 @@
       "Do not wrap the entire output in a code block (```)",
       "Do not include section headings (#) — they already exist at the insertion point",
       "Describe only facts based on analysis data (avoid speculation)",
+      "Use only evidence from the current project's analysis data and source files; never reuse facts from another project or prior request",
+      "A declared dependency is not proof that the source code uses it; describe usage only when current-project source evidence confirms it",
+      "When evidence is missing or insufficient, omit the claim instead of inventing a plausible detail",
       "Start the body from the very first line (no blank lines or introductory text)"
     ],
     "batchInstruction": "Fill in all {{text: instruction}} directives in the following {{fileName}}.",
@@ -29,7 +32,10 @@
       "Generate markdown text for each directive following its prompt",
       "JSON values must contain only markdown body text (no preamble or meta-commentary)",
       "Do not include section headings (#, ##, ###) in values (they already exist at the insertion point)",
-      "State only facts based on analysis data (avoid speculation)"
+      "State only facts based on analysis data (avoid speculation)",
+      "Use only evidence from the current project's analysis data and source files; never reuse facts from another project or prior request",
+      "A declared dependency is not proof that the source code uses it; describe usage only when current-project source evidence confirms it",
+      "When evidence is missing or insufficient, omit the claim instead of inventing a plausible detail"
     ],
     "batchDefaultLimit": "For directives without specific limits, generate 3–15 lines of body text",
     "batchNoHr": "Do not use horizontal rules (---) for decoration",

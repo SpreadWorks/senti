@@ -4,8 +4,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalAutoCheckScenario, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   writeStubAgentScript,
   stubAgentConfig,
@@ -40,7 +39,6 @@ function passResponse() {
 function createTmpProject(agentResponse) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "verdict-persist-"));
   fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", agentResponse);
@@ -57,20 +55,14 @@ function createTmpProject(agentResponse) {
   return tmp;
 }
 
-function createFlowState(tmp, extra = {}) {
-  const state = {
+function createFlowState(tmp) {
+  return new CanonicalAutoCheckScenario({
+    flowManager: makeFlowManager(tmp),
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
     request: "add a progress bar",
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-    ...extra,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create();
 }
 
 function runCmd(tmp, ...args) {
@@ -91,16 +83,15 @@ describe("spec 232: failed verdict non-persistence (R5)", () => {
     createFlowState(tmp);
     runCmd(tmp, "flow", "set", "auto", "on");
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict");
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
-  it("persists autoCheck when set auto on is accepted", () => {
+  it("does not cache autoCheck when set auto on is accepted", () => {
     tmp = createTmpProject(passResponse());
     createFlowState(tmp);
     runCmd(tmp, "flow", "set", "auto", "on");
     const state = makeFlowManager(tmp).load();
-    assert.ok(state.autoCheck, "autoCheck must be persisted for eligible verdict");
-    assert.equal(state.autoCheck.eligible, true);
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   it("does not persist autoCheck when run auto-check returns ineligible (AC6)", () => {
@@ -108,15 +99,14 @@ describe("spec 232: failed verdict non-persistence (R5)", () => {
     createFlowState(tmp);
     runCmd(tmp, "flow", "run", "auto-check");
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed run auto-check");
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
-  it("persists autoCheck when run auto-check returns eligible", () => {
+  it("does not cache autoCheck when run auto-check returns eligible", () => {
     tmp = createTmpProject(passResponse());
     createFlowState(tmp);
     runCmd(tmp, "flow", "run", "auto-check");
     const state = makeFlowManager(tmp).load();
-    assert.ok(state.autoCheck, "autoCheck must be persisted for eligible run auto-check");
-    assert.equal(state.autoCheck.eligible, true);
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 });

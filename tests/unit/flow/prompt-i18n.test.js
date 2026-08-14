@@ -10,13 +10,13 @@ import fs from "fs";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager, setupFlowConfig } from "../../helpers/flow-setup.js";
 
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 const PROMPT_TEST_TIMEOUT_MS = 5000;
 
 function setupFlowState(dir, lang) {
-  setupFlow(dir);
+  new CanonicalFlowFixture({ flowManager: makeFlowManager(dir) }).create().registerActive();
   setupFlowConfig(dir, lang);
 }
 

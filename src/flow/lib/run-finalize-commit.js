@@ -8,7 +8,6 @@ import {
   outboxCommitMarker,
   runMigrationHook,
 } from "./run-finalize.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import { FinalizeCommitPathSet } from "./finalize-commit-paths.js";
 
 export class RunFinalizeCommitCommand extends FlowCommand {
@@ -55,9 +54,8 @@ export class RunFinalizeCommitCommand extends FlowCommand {
       };
     }
 
-    runMigrationHook(artifactRoot, relativeFlowSpecFile(state), root);
+    runMigrationHook(artifactRoot, ctx.flowManager.specLocation(state.specId).relativeSpecFile, root);
     const specId = state.specId;
-    ctx.flowManager.saveFinalizedAt(specId, new Date().toISOString());
 
     const commitPaths = new FinalizeCommitPathSet({
       repositoryRoot: artifactRoot,

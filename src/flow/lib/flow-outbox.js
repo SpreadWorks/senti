@@ -465,8 +465,13 @@ export class FlowOutbox {
 
 export class FlowOutboxStore {
   constructor(flowManager, { specId = null, operationOwnerToken = null } = {}) {
-    if (!flowManager || typeof flowManager.mutate !== "function") {
-      throw new Error("flowManager.mutate is required for the outbox");
+    if (!flowManager
+      || typeof flowManager.beginOutbox !== "function"
+      || typeof flowManager.completeOutbox !== "function"
+      || typeof flowManager.failOutbox !== "function"
+      || typeof flowManager.reopenOutboxExact !== "function"
+      || typeof flowManager.outboxStatus !== "function") {
+      throw new Error("canonical Flow outbox APIs are required for the outbox");
     }
     this.flowManager = flowManager;
     this.specId = specId;
@@ -474,45 +479,138 @@ export class FlowOutboxStore {
   }
 
   begin(identity) {
-    return this.#mutate((outbox) => outbox.begin(identity));
+    return this.#canonicalBegin(identity);
+  }
+
+  /**
+   * Resolve one operation through the manager boundary.  Callers that need to
+   * recover a known side effect must not deserialize `flow.json.outbox`
+   * themselves: Version 1 intentionally keeps only `{ id, operation }` for
+   * unfinished work and derives terminal history from Activities.
+   */
+  status(identity) {
+    if (!(identity instanceof FlowOutboxIdentity)) throw new Error("outbox identity is required");
+    const status = this.#canonicalStatus(identity);
+    return status.status === "missing" ? null : this.#entry(identity, status);
   }
 
   beginCommand(identity) {
-    return this.#mutate((outbox) => {
-      const current = outbox.find(identity);
-      if (current?.status === "failed") throw new FlowOutboxRecoveryRequiredError(current);
-      return outbox.begin(identity);
-    });
+    const status = this.#canonicalStatus(identity);
+    if (status.status === "failed") throw new FlowOutboxRecoveryRequiredError(this.#entry(identity, status));
+    return this.#canonicalBegin(identity);
   }
 
   complete(identity, result) {
-    return this.#mutate((outbox) => outbox.complete(identity, result));
+    const status = this.flowManager.completeOutbox({
+      ...(this.specId ? { specId: this.specId } : {}),
+      id: identity.idempotencyKey,
+      operation: identity.operation,
+      result: cloneJson(result),
+    });
+    return this.#entry(identity, status, result);
   }
 
   fail(identity, error) {
-    return this.#mutate((outbox) => outbox.fail(identity, error));
+    const failure = error instanceof Error ? error.message : String(error || "side effect failed");
+    const code = typeof error?.code === "string" && FAILURE_CODE.test(error.code)
+      ? error.code
+      : null;
+    const recovery = code === "MERGE_PRE_SYNC_CONFLICT" && error?.data?.recovery != null
+      ? PreSyncRebaseRecovery.fromError(error)?.toJSON() ?? null
+      : null;
+    const status = this.flowManager.failOutbox({
+      ...(this.specId ? { specId: this.specId } : {}),
+      id: identity.idempotencyKey,
+      operation: identity.operation,
+      failure,
+      failureCode: code,
+      recovery,
+    });
+    return this.#entry(identity, status);
   }
 
   touch(identity) {
-    return this.#mutate((outbox) => outbox.touch(identity));
+    const status = this.#canonicalStatus(identity);
+    if (status.status !== "pending") throw new Error(`outbox entry not found: ${identity.idempotencyKey}`);
+    return this.#entry(identity, status);
   }
 
   reopenFailedExact(claim) {
-    return this.#mutate((outbox) => outbox.reopenFailedExact(claim));
+    if (!(claim instanceof FlowOutboxRecoveryClaim)) throw new Error("exact recovery claim is required");
+    const status = this.flowManager.reopenOutboxExact({
+      ...(this.specId ? { specId: this.specId } : {}),
+      id: claim.identity.idempotencyKey,
+      operation: claim.identity.operation,
+      attempt: claim.attempt,
+      failure: claim.failure,
+      recoveryKey: claim.recoveryKey,
+    });
+    return this.#entry(claim.identity, status);
   }
 
-  #mutate(operation) {
-    let entry = null;
-    this.flowManager.mutate((state) => {
-      const outbox = new FlowOutbox(state.outbox || []);
-      entry = operation(outbox);
-      state.outbox = outbox.toJSON();
-    }, {
+  #canonicalStatus(identity) {
+    if (!(identity instanceof FlowOutboxIdentity)) throw new Error("outbox identity is required");
+    return this.flowManager.outboxStatus({
       ...(this.specId ? { specId: this.specId } : {}),
-      ...(this.operationOwnerToken ? { operationOwnerToken: this.operationOwnerToken } : {}),
+      id: identity.idempotencyKey,
+      operation: identity.operation,
     });
-    return entry;
   }
+
+  #canonicalBegin(identity) {
+    if (!(identity instanceof FlowOutboxIdentity)) throw new Error("outbox identity is required");
+    const status = this.flowManager.beginOutbox({
+      ...(this.specId ? { specId: this.specId } : {}),
+      id: identity.idempotencyKey,
+      operation: identity.operation,
+    });
+    return this.#entry(identity, status);
+  }
+
+  #entry(identity, status, result = undefined) {
+    const now = new Date().toISOString();
+    const startedAt = status.startedAt ?? now;
+    const updatedAt = status.updatedAt ?? now;
+    const attempt = status.attempt > 0 ? status.attempt : 1;
+    if (status.status === "pending") {
+      return new FlowOutboxEntry({
+        identity,
+        status: "pending",
+        attempt,
+        startedAt,
+        updatedAt,
+        exactRecoveryReceipt: status.exactRecoveryReceipt == null
+          ? null
+          : FlowOutboxRecoveryReceipt.fromStored(status.exactRecoveryReceipt),
+      });
+    }
+    if (status.status === "done") {
+      return new FlowOutboxEntry({
+        identity,
+        status: "done",
+        attempt,
+        startedAt,
+        updatedAt,
+        result: result === undefined ? status.result ?? null : result,
+      });
+    }
+    if (status.status === "failed") {
+      return new FlowOutboxEntry({
+        identity,
+        status: "failed",
+        attempt,
+        startedAt,
+        updatedAt,
+        failure: status.failure || "side effect failed",
+        failureHistory: status.failureHistory || [],
+        exactRecoveryReceipt: status.exactRecoveryReceipt == null
+          ? null
+          : FlowOutboxRecoveryReceipt.fromStored(status.exactRecoveryReceipt),
+      });
+    }
+    throw new Error(`outbox entry not found: ${identity.idempotencyKey}`);
+  }
+
 }
 
 export function finalizationOutboxIdentity(flowState, stepId) {

@@ -4,6 +4,20 @@
 
 ### Breaking Changes
 
+#### New Flows use the canonical Version 1 runtime exclusively
+
+New Flows are now created under `specs/<specId>/001/`. The Version root owns
+the exact schema-revision 3 `flow.json`, append-only `activities.jsonl`,
+authoritative `spec.json`, optional Issue snapshot/log, and
+`artifact-catalog.json`. Step artifacts are published through the coordinated
+Version Store; transient locks, work units, and raw logs are excluded from the
+catalog and completion commit.
+
+Root-level Flow state, `flow-version.json`, mutable state-blob updates, legacy
+artifact sidecars, and compatibility readers are no longer supported. Existing
+Flows require the separate migration workflow before the current runtime can
+resume them.
+
 #### Flow step ids unified under `<phase>-<concern>-<action>`; legacy names removed (spec 269)
 
 Flow definition leaf step ids were renamed to the `<phase>-<concern>-<action>` convention so a step id alone reveals its phase. The bare, context-dependent names are gone:
@@ -19,13 +33,10 @@ Flow definition leaf step ids were renamed to the `<phase>-<concern>-<action>` c
 
 This is a **breaking** change to the public CLI: `senti flow set step <id> <status>` and `flow run gate/review --phase <p>` now accept only the new ids. **No backward-compatible aliases are provided** (alpha policy) — the old step names are removed outright.
 
-**Migration of historical spec data:**
-
-- A migration tool ships at `src/scripts/rename-phase-steps.js`. Run `node src/scripts/rename-phase-steps.js` for a dry-run diff, then `node src/scripts/rename-phase-steps.js --apply` to convert `specs/*/flow.json` (structural step-id positions), `issue-log.json` (1:1 `step` ids; collision ids left as-is), and `report.json` / `retro.json` / `review.md` (path and code regions only). Free-text prose is left untouched.
-- `--apply` requires a clean git worktree and excludes any spec listed in `.senti/.active-flow`.
-- **Concurrent active flows are safe** when this change merges: although the `senti` CLI is symlinked to the repository source and a merge repoints flows that use it to the new definition, the on-load migration below auto-upgrades any pre-rename `flow.json` the next time it is loaded. A previously-documented hard "no other active flow" merge precondition is therefore **no longer required** — an in-flight flow whose `flow.json` still holds old ids self-heals on its next load instead of failing to resolve its in-progress step.
-- **On-load self-heal:** loading any pre-rename `flow.json` auto-migrates its step ids to the new convention (`src/lib/flow-store.js` `migrateFlowState`, sharing `src/lib/step-id-rename.js` with the tool) and persists the upgrade. So an in-flight flow — including the one that implements this rename — keeps working under the new definition without manual steps. Running the migration tool remains the way to clean up committed historical data (and `report.json` / `retro.json` / `review.md`) that is never reloaded.
-- **Existing PRs/branches that contain a `flow.json` must re-run the migration tool after merging** this change, since their committed flow state still carries the old step ids in source control (再走が必要); the on-load migration upgrades it the next time that flow is loaded.
+Historical Flow state is not migrated. During alpha, a Flow must be created with
+the current canonical definition and stored under its Version-1 authority. Old
+root-level `flow.json` documents and old Step ids fail closed instead of being
+rewritten or accepted through an on-load compatibility path.
 
 #### `flow run auto-check` input is now phase-aware; `--input` removed (spec 220)
 

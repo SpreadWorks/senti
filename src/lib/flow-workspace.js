@@ -4,6 +4,10 @@ import { FlowVersion, FlowVersionAuthorityScope, FlowVersionLocation } from "./f
 
 export const DEFAULT_FLOW_SPEC_DIR = "specs";
 const FLOW_STATE_LOCATIONS = new WeakMap();
+// Process-local command views receive a plain `relativeFlowSpecFile` string in
+// several consumers. Preserve the resolver provenance for that string so they
+// reopen the same Version authority rather than reconstructing a sibling path.
+const FLOW_SPEC_FILE_LOCATIONS = new Map();
 
 function canonicalRepositoryRoot(value, field) {
   if (typeof value !== "string" || !path.isAbsolute(value)) {
@@ -138,13 +142,16 @@ export function bindFlowStateLocation(state, location) {
   if (!state || typeof state !== "object" || Array.isArray(state)) {
     throw new Error("flow state object is required for spec location binding");
   }
-  if (!(location instanceof FlowSpecLocation)) {
-    throw new Error("FlowSpecLocation is required for flow state binding");
+  if (!(location instanceof FlowSpecLocation) && !(location instanceof FlowVersionLocation)) {
+    throw new Error("FlowSpecLocation or FlowVersionLocation is required for flow state binding");
   }
   if (state.specId !== location.specId.toString()) {
     throw new Error("flow state specId does not match its spec location");
   }
   FLOW_STATE_LOCATIONS.set(state, location);
+  if (location instanceof FlowVersionLocation) {
+    FLOW_SPEC_FILE_LOCATIONS.set(location.relativeSpecFile, location);
+  }
   return state;
 }
 
@@ -156,19 +163,20 @@ export function flowStateSpecLocation(state) {
   return FLOW_STATE_LOCATIONS.get(state) ?? null;
 }
 
+/** Resolve a Version location only when a manager-bound command view supplied it. */
+export function flowVersionLocationForSpecFile(specFile) {
+  if (typeof specFile !== "string" || specFile.trim() === "") return null;
+  return FLOW_SPEC_FILE_LOCATIONS.get(specFile) ?? null;
+}
+
 export function cloneLocatedFlowState(state) {
   const clone = structuredClone(state);
   const location = flowStateSpecLocation(state);
   return location ? bindFlowStateLocation(clone, location) : clone;
 }
 
-export function relativeFlowSpecFile(state, specRoot = null) {
+export function relativeFlowSpecFile(state) {
   const location = flowStateSpecLocation(state);
   if (location) return location.relativeSpecFile;
-  if (!state || typeof state !== "object") {
-    throw new Error("flow state is required to resolve the spec file");
-  }
-  const root = FlowSpecRoot.from(specRoot ?? DEFAULT_FLOW_SPEC_DIR);
-  const specId = FlowSpecId.from(state.specId).toString();
-  return path.posix.join(root.toString(), specId, "spec.json");
+  throw new Error("flow spec resolution requires a manager-bound Version location");
 }

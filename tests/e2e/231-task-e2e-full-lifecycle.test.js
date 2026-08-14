@@ -5,16 +5,11 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp-dir.js";
 import { initGitRepo, commitAll, checkoutNewBranch } from "../helpers/git-repo.js";
-import { setupFlow } from "../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../helpers/flow-setup.js";
 import { writePromptDispatchStubAgentScript } from "../helpers/stub-agent.js";
-import { buildInitialSteps, buildInitialTaskSteps } from "../../src/lib/flow-helpers.js";
-import { collectFlowLeafIds } from "../../src/flow/definition.js";
-import { captureRepairBaseline } from "../../src/flow/lib/repair-state-identity.js";
-import { findStepById } from "../../src/flow/lib/step-tree.js";
 
 const CMD = path.resolve("src/sennel.js");
 const SPEC_ID = "001-cli-lifecycle";
-const SPEC_PATH = `specs/${SPEC_ID}/spec.json`;
 const FEATURE_BRANCH = `feature/${SPEC_ID}`;
 
 const PASS_REVIEW = JSON.stringify({
@@ -24,6 +19,11 @@ const PASS_REVIEW = JSON.stringify({
 
 const PASS_GATE = JSON.stringify({
   evaluations: [{ guardrail_id: "R1", result: "pass", reason: "R1 is implemented." }],
+});
+
+const PASS_TEST_REVIEW = JSON.stringify({
+  blockingFindings: [],
+  advisoryFindings: [],
 });
 
 const PASS_ACCEPTANCE = JSON.stringify({
@@ -54,24 +54,6 @@ const FAIL_REVIEW = JSON.stringify({
   }],
   nonBlockingImprovements: [],
 });
-
-function stepsAtImplement() {
-  const steps = buildInitialSteps();
-  const order = collectFlowLeafIds();
-  const activeIndex = order.indexOf("implement");
-  assert.notEqual(activeIndex, -1);
-  for (let index = 0; index < order.length; index += 1) {
-    findStepById(steps, order[index]).status = index < activeIndex
-      ? "done"
-      : index === activeIndex
-        ? "in_progress"
-        : "pending";
-  }
-  findStepById(steps, "plan").status = "done";
-  findStepById(steps, "impl").status = "in_progress";
-  findStepById(steps, "finalize").status = "pending";
-  return steps;
-}
 
 function run(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
@@ -104,7 +86,11 @@ function runEnvelope(tmp, args) {
 
 function assertNext(tmp, step, taskId) {
   const envelope = runEnvelope(tmp, ["flow", "get", "next-action"]);
-  assert.equal(envelope.data.step, step);
+  assert.equal(
+    envelope.data.step,
+    step,
+    JSON.stringify(makeFlowManager(tmp).loadReadOnly(SPEC_ID), null, 2),
+  );
   assert.equal(envelope.data.taskId, taskId);
 }
 
@@ -128,6 +114,7 @@ function setupFixture(tmp) {
     ".stub-agent.js",
     [
       { includes: "if (!left || !right) return 0;", response: FAIL_REVIEW },
+      { includes: "one-shot static test reviewer", response: PASS_TEST_REVIEW },
       { includes: "guardrail_id MUST be one of the requirement ids", response: PASS_GATE },
       { includes: "## Guardrail Articles", response: JSON.stringify({ observations: [] }) },
       { includes: "semantic acceptance reviewer", response: PASS_ACCEPTANCE },
@@ -190,109 +177,56 @@ function setupFixture(tmp) {
   commitAll(tmp, "initial fixture");
   checkoutNewBranch(tmp, FEATURE_BRANCH);
 
-  writeJson(tmp, SPEC_PATH, {
-    goal: "Implement numeric addition through the complete CLI lifecycle.",
-    background: "CLI-only lifecycle fixture.",
-    scope: { in: ["src/value.js"], out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{
-      id: "R1",
-      desc: "add returns the arithmetic sum of two numeric operands",
-      priority: "must",
-      status: "in_progress",
-    }],
-    acceptance_criteria: ["add(2, 3) returns 5"],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-    user_approval: {
-      approved: true,
-      confirmed_at: "2026-01-01T00:00:00.000Z",
-      notes: "E2E fixture approval",
-    },
-    tasks: [{
-      id: "T-1",
-      title: "Implement addition",
-      goal: "Implement R1 in src/value.js.",
-      acceptance: ["Positive operands are added."],
-      test_strategy: "Run the spec-local R1 test.",
-      parent: null,
-      origin: "plan",
-      added_round: 0,
-      status: "in_progress",
-    }],
-  });
-  writeFile(tmp, `specs/${SPEC_ID}/spec.md`, [
-    "# CLI Lifecycle Fixture",
-    "",
-    "## Goal",
-    "Implement numeric addition.",
-    "",
-    "## Requirements",
-    "**R1** add returns the arithmetic sum of two numeric operands.",
-    "",
-  ].join("\n"));
-  writeFile(tmp, `specs/${SPEC_ID}/tasks/T-1.md`, [
-    "# T-1: Implement addition",
-    "",
-    "## Goal",
-    "Implement R1 in src/value.js.",
-    "",
-    "## Acceptance Criteria",
-    "- Positive operands are added.",
-    "",
-    "## Test Strategy",
-    "Run the spec-local R1 test.",
-    "",
-    "---",
-    "Status: in_progress | Parent: (root) | Added Round: 0",
-    "",
-  ].join("\n"));
-  writeFile(tmp, `specs/${SPEC_ID}/tests/r1.test.js`, [
-    "// spec: R1",
-    "import assert from \"node:assert/strict\";",
-    "import { test } from \"node:test\";",
-    "import { add } from \"../../../src/value.js\";",
-    "test(\"R1: adds two numeric operands\", () => assert.equal(add(2, 3), 5));",
-    "",
-  ].join("\n"));
-
-  const taskSteps = buildInitialTaskSteps("plan");
-  taskSteps[0].status = "in_progress";
-  const repairBaseline = captureRepairBaseline({
-    root: tmp,
-    baseRef: "main",
-    runId: `run-${SPEC_ID}`,
-  });
-  setupFlow(tmp, {
+  const fm = makeFlowManager(tmp);
+  const fixture = new CanonicalFlowFixture({
+    flowManager: fm,
     specId: SPEC_ID,
     runId: `run-${SPEC_ID}`,
     request: "Implement numeric addition through the complete CLI lifecycle.",
-    baseBranch: "main",
-    featureBranch: FEATURE_BRANCH,
-    worktree: false,
-    steps: stepsAtImplement(),
-    requirements: [{ id: "R1", status: "in_progress" }],
-    tasks: [{
-      id: "T-1",
-      title: "Implement addition",
-      goal: "Implement R1 in src/value.js.",
-      spec: `specs/${SPEC_ID}/tasks/T-1.md`,
-      parent: null,
-      origin: "plan",
-      added_round: 0,
-      status: "in_progress",
-      steps: taskSteps,
-      requirements: ["R1"],
-      summary: null,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: FEATURE_BRANCH },
+    specRecord: {
+      goal: "Implement numeric addition through the complete CLI lifecycle.",
+      background: "CLI-only lifecycle fixture.",
+      scope: { in: ["src/value.js"], out: [] },
+      requirements: [{ id: "R1", desc: "add returns the arithmetic sum of two numeric operands", priority: "must", status: "in_progress" }],
+      acceptance_criteria: ["add(2, 3) returns 5"],
+      user_approval: { approved: true, confirmed_at: "2026-01-01T00:00:00.000Z", notes: "E2E fixture approval" },
+    },
+  }).create().addTasks([{
+    id: "T-1",
+    title: "Implement addition",
+    goal: "Implement R1 in src/value.js.",
+    acceptance: ["Positive operands are added."],
+    test_strategy: "Run the spec-local R1 test.",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  }]).activate("test");
+  fm.publishArtifacts({
+    specId: SPEC_ID,
+    nodeId: "test",
+    artifactWrites: [{
+      logicalKey: "tests.source",
+      parameters: { testPath: "r1.test.js" },
+      mediaType: "text/javascript",
+      bytes: Buffer.from([
+        "// spec: R1",
+        "import assert from 'node:assert/strict';",
+        "import { test } from 'node:test';",
+        "import { add } from '../../../../../src/value.js';",
+        "test('R1: add returns the arithmetic sum', () => assert.equal(add(2, 3), 5));",
+        "",
+      ].join("\n"), "utf8"),
     }],
-    currentTaskId: "T-1",
-    repairBaseline: repairBaseline.toJSON(),
-    metrics: [],
-    outbox: [],
   });
+  fixture.settle("test").activate("scenario-validity", { settlePredecessors: false }).registerActive();
+  for (const segment of ["impl", "review", "gate"]) {
+    assert.equal(
+      fixture.location().taskArtifactLocation("T-1")[`${segment}Directory`],
+      path.join(fixture.location().directory, "steps", "impl", "T-1", segment),
+    );
+  }
 }
 
 describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
@@ -305,7 +239,23 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
 
     // The command creates both scenario-validity artifacts. The test never
     // writes generated flow artifacts or mutates flow.json directly.
-    runEnvelope(tmp, ["flow", "run", "scenario-validity"]);
+    const scenarioValidity = runEnvelope(tmp, ["flow", "run", "scenario-validity"]);
+    const scenarioValidityHistory = JSON.parse(makeFlowManager(tmp).readArtifact({
+      specId: SPEC_ID,
+      logicalKey: "scenario.validity",
+      consumerNodeId: "acceptance-review",
+    }).bytes.toString("utf8"));
+    assert.equal(
+      scenarioValidity.data.result,
+      "pass",
+      JSON.stringify({ scenarioValidity, scenarioValidityHistory }, null, 2),
+    );
+    assert.equal(scenarioValidityHistory.attempts.at(-1).artifact.payload.result, "pass");
+
+    assertNext(tmp, "test-review", null);
+    const testDesignReview = runEnvelope(tmp, ["flow", "run", "review", "--phase", "test"]);
+    assert.equal(testDesignReview.data.artifacts.verdict, "PASS");
+    assertNext(tmp, "implement", null);
 
     writeFile(tmp, "src/value.js", [
       "export function add(left, right) {",
@@ -314,6 +264,8 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
       "}",
       "",
     ].join("\n"));
+    runEnvelope(tmp, ["flow", "set", "step", "implement", "done"]);
+    assertNext(tmp, "task-impl", "T-1");
     runEnvelope(tmp, ["flow", "set", "files", "R1", "src/value.js"]);
     runEnvelope(tmp, ["flow", "set", "req", "R1", "done"]);
     runEnvelope(tmp, ["flow", "set", "step", "task-impl", "done"]);
@@ -323,6 +275,13 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assert.equal(failedReview.data.artifacts.verdict, "REJECTED");
     assert.equal(failedReview.data.artifacts.taskId, "T-1");
     assertNext(tmp, "task-review", "T-1");
+    const retryState = makeFlowManager(tmp).canonicalState(SPEC_ID);
+    const retryActivities = makeFlowManager(tmp).activityLedger(SPEC_ID).slice(-8);
+    assert.equal(
+      retryState.attempt.sequence,
+      2,
+      JSON.stringify({ next: retryState.nextAction().toJSON(), activities: retryActivities }, null, 2),
+    );
 
     // Repair mutates only the implementation source. Flow state and evidence
     // continue to move exclusively through CLI commands.
@@ -332,9 +291,13 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
       "}",
       "",
     ].join("\n"));
-    const failedFinding = JSON.parse(
-      fs.readFileSync(path.join(tmp, "specs/001-cli-lifecycle/impl-review.json"), "utf8"),
-    ).blockingFindings[0];
+    const failedTaskReview = JSON.parse(makeFlowManager(tmp).readProducerArtifact({
+      specId: "001-cli-lifecycle",
+      nodeId: "T-1-review",
+      logicalKey: "task.review",
+      parameters: { taskId: "T-1" },
+    }).bytes.toString("utf8"));
+    const failedFinding = failedTaskReview.attempts.at(-1).artifact.payload.blockingFindings[0];
     runEnvelope(tmp, [
       "flow", "set", "issue-log",
       "--step", "task-review",
@@ -348,8 +311,9 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     assertNext(tmp, "task-gate", "T-1");
 
     runEnvelope(tmp, ["flow", "run", "gate", "--phase", "task-impl"]);
-    assertNext(tmp, "implement", null);
-    runEnvelope(tmp, ["flow", "set", "step", "implement", "done"]);
+    // TaskLifecycleFixture enters task-impl after the flow-level implement
+    // leaf is confirmed. Completing the Task gate therefore advances the
+    // canonical definition directly to its next pending producer.
     assertNext(tmp, "test-execute", null);
 
     runOk(tmp, ["docs", "scan"]);
@@ -360,10 +324,14 @@ describe("231: CLI-only full lifecycle", { timeout: 180_000 }, () => {
     const passedFlowReview = runEnvelope(tmp, ["flow", "run", "review"]);
     assert.equal(passedFlowReview.data.artifacts.verdict, "PASS");
     assertNext(tmp, "impl-gate", null);
-    const reviewHistoryDir = path.join(tmp, "specs/001-cli-lifecycle/review-history");
-    const matchingHistory = fs.readdirSync(reviewHistoryDir)
-      .filter((name) => /^impl-attempt-\d{3}\.json$/.test(name))
-      .map((name) => JSON.parse(fs.readFileSync(path.join(reviewHistoryDir, name), "utf8")))
+    const taskReviewHistory = JSON.parse(makeFlowManager(tmp).readArtifact({
+      specId: "001-cli-lifecycle",
+      logicalKey: "task.review",
+      parameters: { taskId: "T-1" },
+      consumerNodeId: "task-gate",
+    }).bytes.toString("utf8"));
+    const matchingHistory = taskReviewHistory.attempts
+      .map((attempt) => attempt.artifact.payload)
       .filter((artifact) => artifact.blockingFindings?.some(
         (finding) => finding.findingId === failedFinding.findingId,
       ));

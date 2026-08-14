@@ -5,29 +5,21 @@
  * spec-local test files, and the project regression contract.
  */
 
-import fs from "fs";
-import path from "path";
-import { resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import {
   MAX_RAW_OUTPUT_BYTES,
   RAW_OUTPUT_RELATIVE,
-  TEST_EXECUTE_RESULT_FILE,
-  TEST_RESULT_REVIEW_FILE,
-  TEST_RESULT_REVIEW_MD_FILE,
-  readJsonStrict,
   validateSummaryEvidence,
   validateTestExecuteResultEvidence,
   validateTestExecuteResultV2,
+  IntegrationArtifactFingerprintAuthority,
 } from "./test-artifacts.js";
 import { contractFromTestResultReviewArtifact } from "./flow-judgment-contract.js";
 import {
-  assertRepairFingerprint,
-  buildRepairFingerprint,
-  ensureRepairFingerprintContract,
-  writeRepairEvidenceArtifact,
-} from "./impl-repair-artifacts.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+  CanonicalTestArtifactStore,
+  isCanonicalFlowState,
+} from "./canonical-test-artifacts.js";
+import { attachCanonicalCommandResultArtifact } from "./canonical-command-result.js";
 
 function pass(check, detail) {
   return { check, result: "pass", detail };
@@ -76,113 +68,95 @@ function validateProjectRegression(result, { root, rawOutputText, rawLines, requ
   return pass("project_regression_verification", "project regression evidence is valid; impl-gate owns blocking on regression.result fail");
 }
 
-function readRawOutputText(rawOutputPath) {
-  const stat = fs.statSync(rawOutputPath);
-  if (stat.size > MAX_RAW_OUTPUT_BYTES) {
-    throw new Error(`${RAW_OUTPUT_RELATIVE} exceeds max size ${MAX_RAW_OUTPUT_BYTES} bytes`);
-  }
-  return fs.readFileSync(rawOutputPath, "utf8");
-}
-
-function writeMarkdown(specDir, review) {
-  const lines = ["# Test Result Review", "", `**Verdict:** ${review.verdict}`, ""];
-  if (review.invalid_reason) lines.push(`**Invalid reason:** ${review.invalid_reason}`, "");
-  lines.push("## Checked Items", "");
-  for (const item of review.checked_items) {
-    lines.push(`- **${item.check}** — ${item.result}: ${item.detail}`);
-  }
-  lines.push("", `Result file: \`${review.result_file_path}\``, `Raw output: \`${review.raw_output_path}\``, "");
-  fs.writeFileSync(path.join(specDir, TEST_RESULT_REVIEW_MD_FILE), lines.join("\n"));
-}
-
-function writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint }) {
-  review.contractSummary = contractFromTestResultReviewArtifact(review, {
-    artifactPath: path.relative(root, reviewPath).split(path.sep).join("/"),
-  }).summary.toJSON();
-  writeRepairEvidenceArtifact({
-    specDir,
-    stepId: "test-result-review",
-    artifact: review,
-    fingerprint,
+/**
+ * Consume the durable test-execute attempts[] result and optional transient
+ * raw diagnostic through the Version Store.  No Markdown view is generated:
+ * the structured review attempt is the durable authority.
+ */
+function executeCanonicalTestResultReview(ctx) {
+  const store = new CanonicalTestArtifactStore({ flowManager: ctx.flowManager, state: ctx.flowState });
+  const repositoryRoot = store.location.repositoryRoot;
+  const spec = store.readSpec("test-result-review");
+  const execution = store.readCurrentAttempt({
+    logicalKey: "test.execute",
+    consumerNodeId: "test-result-review",
   });
-  writeMarkdown(specDir, review);
+  const loadedResult = execution.payload;
+  const raw = store.readRaw({
+    logicalKey: "test.execute.raw-log",
+    consumerNodeId: "test-result-review",
+    optional: true,
+  });
+  const rawOutputText = raw === null ? "" : readRawOutputBytes(raw.bytes);
+  const rawLines = raw === null ? [] : rawOutputText.split(/\r?\n/);
+  const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
+  const evidenceContext = {
+    root: repositoryRoot,
+    rawOutputText,
+    rawLines,
+    requirements,
+    hasRawOutput: raw !== null,
+  };
+  const resultRelativePath = execution.relativePath;
+  const rawRelativePath = raw?.relativePath ?? store.location.relativeArtifact("test.execute.raw-log");
+  let review;
+  try {
+    validateTestExecuteResultV2(loadedResult);
+  } catch (err) {
+    review = {
+      verdict: "fail",
+      checked_items: [fail("test_execute_artifact", `test artifact invalid: ${err.message}`)],
+      invalid_reason: `test artifact invalid: ${err.message}`,
+      result_file_path: resultRelativePath,
+      raw_output_path: rawRelativePath,
+    };
+  }
+  if (review === undefined) {
+    const checked_items = [
+      validateSummary(loadedResult, evidenceContext),
+      validateRegressionRawRange(loadedResult, rawLines, raw !== null),
+      validateProjectRegression(loadedResult, evidenceContext),
+    ];
+    const failed = checked_items.filter((item) => item.result !== "pass");
+    review = {
+      verdict: failed.length === 0 ? "pass" : "fail",
+      checked_items,
+      ...(failed.length ? { invalid_reason: failed.map((item) => item.detail).join("; ") } : {}),
+      result_file_path: resultRelativePath,
+      raw_output_path: rawRelativePath,
+    };
+  }
+  review.repairFingerprint = loadedResult.repairFingerprint;
+  new IntegrationArtifactFingerprintAuthority({ result: loadedResult, review });
+  review.contractSummary = contractFromTestResultReviewArtifact(review, {
+    artifactPath: store.location.relativeArtifact("test.result.review"),
+  }).summary.toJSON();
+  const reviewRelativePath = store.location.relativeArtifact("test.result.review");
+  return attachCanonicalCommandResultArtifact({
+    result: review.verdict === "pass" ? "ok" : "fail",
+    changed: [reviewRelativePath],
+    artifacts: {
+      verdict: review.verdict,
+      review_path: reviewRelativePath,
+    },
+    next: review.verdict === "pass" ? "impl-review" : null,
+  }, {
+    logicalKey: "test.result.review",
+    payload: review,
+  });
+}
+
+function readRawOutputBytes(bytes) {
+  if (!Buffer.isBuffer(bytes)) throw new Error("canonical raw output must be a Buffer");
+  if (bytes.length > MAX_RAW_OUTPUT_BYTES) {
+    throw new Error(`test-execute raw output exceeds max size ${MAX_RAW_OUTPUT_BYTES} bytes`);
+  }
+  return bytes.toString("utf8");
 }
 
 export default class RunTestResultReviewCommand extends FlowCommand {
   async execute(ctx) {
-    const { root } = ctx;
-    const executionRoot = ctx.executionRoot || root;
-    const state = ctx.flowState;
-    const specPath = relativeFlowSpecFile(state);
-    const specDir = resolveSpecDir(path.resolve(root, specPath));
-    const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
-    const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
-    if (!fs.existsSync(resultPath)) throw new Error(`${TEST_EXECUTE_RESULT_FILE} not found at ${resultPath}: test-execute step has not been run`);
-    ensureRepairFingerprintContract({ root: executionRoot, artifactRoot: root, state, flowManager: ctx.flowManager });
-
-    const spec = readJsonStrict(path.join(specDir, "spec.json"));
-    const loadedResult = readJsonStrict(resultPath);
-    const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
-    assertRepairFingerprint({ artifact: loadedResult, fingerprint, label: TEST_EXECUTE_RESULT_FILE });
-    const hasRawOutput = fs.existsSync(rawOutputPath);
-    const rawOutputText = hasRawOutput ? readRawOutputText(rawOutputPath) : "";
-    const rawLines = hasRawOutput ? rawOutputText.split(/\r?\n/) : [];
-    const requirements = spec.requirements || [];
-    const evidenceContext = { root, rawOutputText, rawLines, requirements, hasRawOutput };
-    const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
-    let result;
-    try {
-      result = validateTestExecuteResultV2(loadedResult);
-    } catch (err) {
-      const review = {
-        verdict: "fail",
-        checked_items: [fail("test_execute_artifact", `test artifact invalid: ${err.message}`)],
-        invalid_reason: `test artifact invalid: ${err.message}`,
-        result_file_path: path.relative(root, resultPath).split(path.sep).join("/"),
-        raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
-      };
-      writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint });
-      return {
-        result: "fail",
-        changed: [
-          path.relative(root, reviewPath),
-          path.relative(root, path.join(specDir, TEST_RESULT_REVIEW_MD_FILE)),
-        ],
-        artifacts: {
-          verdict: review.verdict,
-          review_path: path.relative(root, reviewPath),
-        },
-        next: null,
-      };
-    }
-
-    const checked_items = [
-      validateSummary(result, evidenceContext),
-      validateRegressionRawRange(result, rawLines, hasRawOutput),
-      validateProjectRegression(result, evidenceContext),
-    ];
-    const failed = checked_items.filter((item) => item.result !== "pass");
-    const review = {
-      verdict: failed.length === 0 ? "pass" : "fail",
-      checked_items,
-      ...(failed.length ? { invalid_reason: failed.map((item) => item.detail).join("; ") } : {}),
-      result_file_path: path.relative(root, resultPath).split(path.sep).join("/"),
-      raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
-    };
-
-    writeReviewArtifacts({ root, specDir, reviewPath, review, fingerprint });
-
-    return {
-      result: review.verdict === "pass" ? "ok" : "fail",
-      changed: [
-        path.relative(root, reviewPath),
-        path.relative(root, path.join(specDir, TEST_RESULT_REVIEW_MD_FILE)),
-      ],
-      artifacts: {
-        verdict: review.verdict,
-        review_path: path.relative(root, reviewPath),
-      },
-      next: review.verdict === "pass" ? "impl-review" : null,
-    };
+    if (isCanonicalFlowState(ctx.flowState)) return executeCanonicalTestResultReview(ctx);
+    throw new Error("test-result-review requires a Version-1 Flow");
   }
 }

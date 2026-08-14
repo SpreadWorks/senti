@@ -209,7 +209,7 @@
         "flow.final-regression"
       ],
       "state": [],
-      "body": "**MUST: `test-execute` / `test-result-review` / flow-level `impl-gate` / `retro` / `final-regression` の完了を手動で偽装してはならない。** これらは post-hook と deterministic validator が v2 `test-execute-result.json`、`test-result-review.json`、targeted regression evidence、final-regression artifact、raw log を検証してから進める。prerequisite failure は hard stop として修正してから再実行する。"
+      "body": "**MUST: `test-execute` / `test-result-review` / flow-level `impl-gate` / `retro` / `final-regression` の完了を手動で偽装してはならない。** これらは post-hook と deterministic validator が Artifact catalog から `test.execute`、`test.result.review`、targeted regression evidence、`final.regression` の構造化 attempt history を検証してから進める。raw log は補助的な一時物であり完了 authority にしない。prerequisite failure は hard stop として修正してから再実行する。"
     },
     {
       "id": "no-shared-repo-git-ops",

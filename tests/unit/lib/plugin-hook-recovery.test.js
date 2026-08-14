@@ -9,7 +9,7 @@ import {
 } from "../../../src/lib/plugin-registry.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
-function writeProject(root) {
+function writeProject(root, { enabled = true, marker = "initial", failurePolicy = null } = {}) {
   const pluginRoot = path.join(root, ".sennel", "plugins", "workflow");
   fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
   fs.writeFileSync(path.join(root, ".sennel", "config.json"), `${JSON.stringify({
@@ -18,7 +18,7 @@ function writeProject(root) {
     docs: { languages: ["en"], defaultLanguage: "en" },
     plugin: {
       sources: [{ id: "local", type: "local", path: "." }],
-      packages: [{ id: "workflow", source: "local", commit: "0".repeat(40) }],
+      packages: [{ id: "workflow", source: "local", commit: "0".repeat(40), enabled }],
     },
   }, null, 2)}\n`);
   fs.writeFileSync(path.join(pluginRoot, "hooks", "finalize-cleanup.js"), `
@@ -27,15 +27,16 @@ function writeProject(root) {
         static command = "finalize-cleanup";
         static hook = "post";
         static priority = 0;
+        ${failurePolicy === null ? "" : `static failurePolicy = ${JSON.stringify(failurePolicy)};`}
         async run(context) {
-          return context.envelope.ok("plugin-hook", "finalize-cleanup", { recovered: true });
+          return context.envelope.ok("plugin-hook", "finalize-cleanup", { marker: ${JSON.stringify(marker)} });
         }
       };
     }
   `);
 }
 
-test("persisted hook policy resumes cleanup when the installed hook predates policy metadata", async () => {
+test("hook execution rejects plans whose current module omits required policy metadata", async () => {
   const root = createTmpDir("sennel-persisted-hook-policy-");
   try {
     writeProject(root);
@@ -46,23 +47,54 @@ test("persisted hook policy resumes cleanup when the installed hook predates pol
       "new hook discovery must continue to require explicit policy metadata",
     );
 
-    const result = await runFlowCommandHooks(root, [{
-      apiVersion: 1,
-      pluginId: "workflow",
-      module: "hooks/finalize-cleanup.js",
-      className: "WorkflowFinalizeCleanupHook",
+    await assert.rejects(
+      () => runFlowCommandHooks(root, [{
+        apiVersion: 1,
+        pluginId: "workflow",
+        module: "hooks/finalize-cleanup.js",
+        className: "WorkflowFinalizeCleanupHook",
+        command: "finalize-cleanup",
+        hook: "post",
+        priority: 0,
+        failurePolicy: "required",
+      }], {
+        command: "finalize-cleanup",
+        hook: "post",
+        flow: { specId: "001-recovery" },
+        result: { ok: true },
+      }),
+      /failure policy.*missing/i,
+    );
+  } finally {
+    removeTmpDir(root);
+  }
+});
+
+test("hook enablement and module updates apply on the next command discovery", async () => {
+  const root = createTmpDir("sennel-current-hook-discovery-");
+  const execute = async () => {
+    const plans = await discoverFlowCommandHooks(root);
+    if (plans.length === 0) return null;
+    const result = await runFlowCommandHooks(root, plans, {
       command: "finalize-cleanup",
       hook: "post",
-      priority: 0,
-    }], {
-      command: "finalize-cleanup",
-      hook: "post",
-      flow: { specId: "001-recovery" },
+      flow: { specId: "001-current" },
       result: { ok: true },
     });
+    return result.hookData[0].data.marker;
+  };
+  try {
+    writeProject(root, { marker: "first", failurePolicy: "required" });
+    assert.equal(await execute(), "first");
 
-    assert.equal(result.ok, true);
-    assert.equal(result.hookData[0].data.recovered, true);
+    writeProject(root, { marker: "updated", failurePolicy: "required" });
+    assert.equal(await execute(), "updated");
+
+    writeProject(root, { enabled: false, marker: "disabled", failurePolicy: "required" });
+    assert.equal(await execute(), null);
+
+    writeProject(root, { marker: "re-enabled", failurePolicy: "required" });
+    assert.equal(await execute(), "re-enabled");
   } finally {
     removeTmpDir(root);
   }

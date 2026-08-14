@@ -1,24 +1,20 @@
 /**
- * Durable acceptance handoff for an evidence-backed checkpoint whose result
- * cannot be decomposed into the semantic findings emitted by review/gate.
+ * Catalog-backed acceptance handoff for a non-semantic checkpoint.
  *
- * The original artifact remains authoritative.  This small index gives the
- * acceptance finding protocol a stable, bounded source finding to cite; it
- * never copies the original failure text into flow-findings.json.
+ * The handoff is a bounded index, never a root sidecar: its source evidence,
+ * the index itself, and the deferred finding are all resolved through the
+ * active Version Store.
  */
 
 import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 import {
   appendDeferredFlowFinding,
   MAX_SOURCE_ARTIFACT_READ_BYTES,
   normalizeSourceArtifactPath,
-  readBoundedSourceArtifact,
-  specDirFromFlowState,
+  readCatalogedSourceArtifact,
 } from "./flow-findings.js";
 
-export const NONBLOCKING_HANDOFF_FILE = "nonblocking-handoffs.json";
+export const NONBLOCKING_HANDOFF_LOGICAL_KEY = "nonblocking.handoffs";
 
 function digest(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -27,6 +23,21 @@ function digest(value) {
 function requireString(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
   return value.trim();
+}
+
+function canonicalFlowState(flowState) {
+  if (flowState?.schemaRevision !== 3 || typeof flowState.specId !== "string" || flowState.specId === "") {
+    throw new Error("nonblocking handoff requires a Version-1 Flow state");
+  }
+  return flowState;
+}
+
+function jsonFromBytes(bytes, field) {
+  try {
+    return JSON.parse(bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`${field} must be JSON: ${error.message}`);
+  }
 }
 
 export class NonBlockingHandoffFinding {
@@ -73,50 +84,65 @@ export class NonBlockingHandoffArtifact {
   }
 }
 
-function sourceRefWithinSpec({ root, specDir, evidenceRef }) {
-  const absolute = path.resolve(root, evidenceRef);
-  const relative = path.relative(specDir, absolute).replaceAll("\\", "/");
-  if (relative === "" || relative === ".." || relative.startsWith("../") || path.isAbsolute(relative)) {
-    throw new Error("nonblocking evidence must be inside the active spec directory");
+/** Deep typed Store adapter for handoff publication and evidence validation. */
+export class CanonicalNonBlockingHandoffStore {
+  constructor({ flowManager, flowState, nodeId } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function" || typeof flowManager.readProducerArtifact !== "function" || typeof flowManager.publishArtifacts !== "function") {
+      throw new Error("canonical nonblocking handoff requires FlowManager catalog APIs");
+    }
+    this.flowManager = flowManager;
+    this.flowState = canonicalFlowState(flowState);
+    this.nodeId = requireString(nodeId, "nonblocking handoff nodeId");
+    Object.freeze(this);
   }
-  return relative;
-}
 
-function handoffSourcePath(specDir, sourceArtifact) {
-  const normalized = normalizeSourceArtifactPath(sourceArtifact, "sourceArtifact");
-  const absolute = path.resolve(specDir, normalized);
-  const relative = path.relative(specDir, absolute);
-  if (relative === "" || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    throw new Error("handoff sourceArtifact must be inside the active spec directory");
+  read() {
+    const resolved = this.flowManager.readArtifact({
+      specId: this.flowState.specId,
+      logicalKey: NONBLOCKING_HANDOFF_LOGICAL_KEY,
+      consumerNodeId: this.nodeId,
+      optional: true,
+    });
+    return new NonBlockingHandoffArtifact(resolved === null ? {} : jsonFromBytes(resolved.bytes, "canonical nonblocking handoff"));
   }
-  return absolute;
+
+  publish(artifact) {
+    const normalized = artifact instanceof NonBlockingHandoffArtifact ? artifact : new NonBlockingHandoffArtifact(artifact);
+    this.flowManager.publishArtifacts({
+      specId: this.flowState.specId,
+      nodeId: this.nodeId,
+      artifactWrites: [{
+        logicalKey: NONBLOCKING_HANDOFF_LOGICAL_KEY,
+        mediaType: "application/json",
+        bytes: Buffer.from(`${JSON.stringify(normalized.toJSON(), null, 2)}\n`, "utf8"),
+      }],
+    });
+    return normalized;
+  }
+
+  evidence(relativePath, { optional = false } = {}) {
+    const source = readCatalogedSourceArtifact({
+      flowManager: this.flowManager,
+      flowState: this.flowState,
+      nodeId: this.nodeId,
+      sourceArtifact: normalizeSourceArtifactPath(relativePath, "evidenceRef"),
+    });
+    if (source === null && !optional) {
+      throw new Error(`canonical handoff evidence is absent from catalog: ${relativePath}`);
+    }
+    return source;
+  }
 }
 
-function readHandoffArtifact(specDir) {
-  const stored = readBoundedSourceArtifact(specDir, NONBLOCKING_HANDOFF_FILE);
-  return new NonBlockingHandoffArtifact(stored || {});
-}
-
-function writeHandoffArtifact(specDir, artifact) {
-  fs.writeFileSync(
-    path.join(specDir, NONBLOCKING_HANDOFF_FILE),
-    `${JSON.stringify(artifact.toJSON(), null, 2)}\n`,
-  );
-}
-
-/**
- * A handoff index is not source evidence by itself. Acceptance must prove that
- * the immutable bytes it cites still exist before it can disposition the risk.
- */
-export function verifyNonblockingHandoffSource(specDir, value) {
+/** A handoff source must remain a cataloged artifact with the same digest. */
+export function verifyNonblockingHandoffSource({ flowManager, flowState, nodeId, value } = {}) {
   try {
     const handoff = value instanceof NonBlockingHandoffFinding
       ? value
       : new NonBlockingHandoffFinding(value);
-    const sourcePath = handoffSourcePath(specDir, handoff.sourceArtifact);
-    const stat = fs.lstatSync(sourcePath);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_SOURCE_ARTIFACT_READ_BYTES) return false;
-    return digest(fs.readFileSync(sourcePath, "utf8")) === handoff.evidenceDigest;
+    const source = new CanonicalNonBlockingHandoffStore({ flowManager, flowState, nodeId }).evidence(handoff.sourceArtifact, { optional: true });
+    if (source === null || source.bytes.length > MAX_SOURCE_ARTIFACT_READ_BYTES) return false;
+    return digest(source.bytes) === handoff.evidenceDigest;
   } catch {
     return false;
   }
@@ -124,11 +150,12 @@ export function verifyNonblockingHandoffSource(specDir, value) {
 
 /**
  * Materialize exactly one acceptance finding for a non-semantic checkpoint.
- * Idempotence is keyed to the source step and the immutable artifact digest.
+ * Idempotence is keyed to source step plus immutable catalog bytes.
  */
 export function materializeNonblockingAcceptanceHandoff({
-  root,
+  flowManager,
   flowState,
+  nodeId,
   sourceStep,
   evidenceRef,
   evidenceDigest,
@@ -144,10 +171,13 @@ export function materializeNonblockingAcceptanceHandoff({
   if (!["quality", "tooling", "unavailable"].includes(resultKind)) {
     throw new Error("nonblocking handoff resultKind is invalid");
   }
-  const specDir = specDirFromFlowState(root, flowState);
-  const sourceArtifact = sourceRefWithinSpec({ root, specDir, evidenceRef });
+  const store = new CanonicalNonBlockingHandoffStore({ flowManager, flowState, nodeId });
+  const source = store.evidence(evidenceRef);
+  if (source.bytes.length > MAX_SOURCE_ARTIFACT_READ_BYTES || digest(source.bytes) !== evidenceDigest) {
+    throw new Error("nonblocking handoff evidence digest does not match cataloged source");
+  }
   const fingerprint = digest(`${sourceStep}\u0000${evidenceDigest}`);
-  const artifact = readHandoffArtifact(specDir);
+  const artifact = store.read();
   let finding = artifact.findings.find((entry) => (
     entry.sourceStep === sourceStep && entry.evidenceDigest === evidenceDigest
   ));
@@ -156,25 +186,23 @@ export function materializeNonblockingAcceptanceHandoff({
       findingId: `NB-${fingerprint.slice(0, 16)}`,
       fingerprint,
       sourceStep,
-      sourceArtifact,
+      sourceArtifact: source.relativePath,
       evidenceDigest,
       resultKind,
     });
-    const next = new NonBlockingHandoffArtifact({
-      findings: [...artifact.findings, finding],
-    });
-    writeHandoffArtifact(specDir, next);
+    store.publish(new NonBlockingHandoffArtifact({ findings: [...artifact.findings, finding] }));
   }
-  appendDeferredFlowFinding({
-    root,
+  const deferred = appendDeferredFlowFinding({
+    flowManager,
     flowState,
+    nodeId,
     sourceStep,
-    sourceArtifact: NONBLOCKING_HANDOFF_FILE,
+    sourceArtifact: NONBLOCKING_HANDOFF_LOGICAL_KEY,
     sourceFindingId: finding.findingId,
     fingerprint,
     rationale: "An explicit nonblocking decision deferred this checkpoint to acceptance.",
     attempts,
     finalDisposition: "still_open",
   });
-  return { findingCount: 1, sourceArtifact: NONBLOCKING_HANDOFF_FILE, sourceFindingId: finding.findingId };
+  return { findingCount: 1, sourceArtifact: deferred.sourceArtifact, sourceFindingId: finding.findingId };
 }

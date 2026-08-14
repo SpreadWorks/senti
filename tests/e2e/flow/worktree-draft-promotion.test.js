@@ -39,6 +39,11 @@ function createProject() {
     type: "module",
   }, null, 2));
   fs.writeFileSync(path.join(root, ".gitignore"), ".sennel/*\n!.sennel/config.json\n");
+  const bin = path.join(root, ".fixture-bin");
+  fs.mkdirSync(bin, { recursive: true });
+  fs.writeFileSync(path.join(bin, "gh"), `#!/bin/sh
+printf '%s\\n' '{"title":"Offline fixture Issue","body":"Offline fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`, { mode: 0o755 });
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "test@example.com"]);
   git(root, ["config", "user.name", "Test User"]);
@@ -51,7 +56,11 @@ function runFlow(root, args) {
   const result = spawnSync("node", [cliPath, "flow", ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENNEL_WORK_ROOT: root },
+    env: {
+      ...process.env,
+      PATH: `${path.join(root, ".fixture-bin")}${path.delimiter}${process.env.PATH}`,
+      SENNEL_WORK_ROOT: root,
+    },
   });
   const stdout = result.stdout.trim();
   return { ...result, envelope: stdout.startsWith("{") ? JSON.parse(stdout) : null };
@@ -70,15 +79,12 @@ function prepareWorktree(root, issue, title) {
   const prepared = expectSuccess(runFlow(root, [
     "prepare", "--title", title, "--base", "main", "--worktree", "--run-id", initialized.runId,
   ]));
-  fs.writeFileSync(
-    path.join(root, "specs", prepared.specId, "issue.md"),
-    `Issue ${issue}: ${title}\n`,
-  );
   return prepared;
 }
 
 function canonicalDraft(root, flow) {
-  return path.join(root, "specs", flow.specId, "draft.json");
+  return new FlowManager({ root, mainRoot: root, inWorktree: false, specId: flow.specId })
+    .specLocation(flow.specId).artifact("draft");
 }
 
 function publishDraft(root, flow, value) {
@@ -88,6 +94,9 @@ function publishDraft(root, flow, value) {
     inWorktree: true,
     specId: flow.specId,
   });
+  if (flowManager.load().currentNodeId === null) {
+    flowManager.beginNextAction(flow.specId);
+  }
   const state = flowManager.load();
   const invocationId = `draft-promotion-${flow.runId}`;
   const coordinator = new WorkerArtifactHandoffCoordinator();
@@ -126,23 +135,29 @@ describe("worktree draft promotion", () => {
     const second = prepareWorktree(root, 498, "second canonical draft");
     const firstDraft = { goal: "first completed draft", qa: [] };
     const secondDraft = { goal: "second completed draft", qa: [] };
-    const secondPlaceholder = fs.readFileSync(canonicalDraft(root, second));
+    assert.equal(fs.existsSync(canonicalDraft(root, first)), false);
+    assert.equal(fs.existsSync(canonicalDraft(root, second)), false);
 
     const firstCompletion = publishDraft(root, first, firstDraft);
     assert.equal(firstCompletion.completed, true);
     assert.deepEqual(JSON.parse(fs.readFileSync(canonicalDraft(root, first), "utf8")), firstDraft);
-    assert.deepEqual(fs.readFileSync(canonicalDraft(root, second)), secondPlaceholder);
+    assert.equal(fs.existsSync(canonicalDraft(root, second)), false);
 
     const secondCompletion = publishDraft(root, second, secondDraft);
     assert.equal(secondCompletion.completed, true);
     assert.deepEqual(JSON.parse(fs.readFileSync(canonicalDraft(root, second), "utf8")), secondDraft);
 
     for (const flow of [first, second]) {
-      const state = JSON.parse(fs.readFileSync(path.join(root, "specs", flow.specId, "flow.json"), "utf8"));
+      const manager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId: flow.specId });
+      let state = manager.loadReadOnly(flow.specId);
       assert.equal(state.steps[0].children.find((step) => step.id === "draft").status, "done");
+      assert.equal(state.steps[0].children.find((step) => step.id === "draft-questions-review").status, "pending");
+      manager.beginNextAction(flow.specId);
+      state = manager.loadReadOnly(flow.specId);
       assert.equal(state.steps[0].children.find((step) => step.id === "draft-questions-review").status, "in_progress");
       assert.equal(state.draftArtifactPromotion, undefined);
-      assert.match(state.draftArtifactRevision.digest, /^[a-f0-9]{64}$/);
+      const descriptor = manager.artifactCatalog(flow.specId).artifacts.find((entry) => entry.logicalKey === "draft");
+      assert.match(descriptor.hash, /^[a-f0-9]{64}$/);
     }
   });
 });

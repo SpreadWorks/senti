@@ -4,8 +4,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   writeStubAgentScript,
   stubAgentConfig,
@@ -40,7 +39,6 @@ function passResponse() {
 function createTmpProject(agentResponse = lowResponse()) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-desired-"));
   fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", agentResponse);
@@ -57,20 +55,25 @@ function createTmpProject(agentResponse = lowResponse()) {
   return tmp;
 }
 
-function createFlowState(tmp, extra = {}) {
-  const state = {
+function createFlowState(tmp, { autoApprove = false } = {}) {
+  const manager = makeFlowManager(tmp);
+  new CanonicalFlowFixture({
+    flowManager: manager,
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
     request: "add a progress bar",
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-    ...extra,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    autoApprove,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    specRecord: { goal: "auto policy fixture", requirements: [] },
+  }).create().addTask({
+    id: "T-1",
+    title: "x",
+    goal: "x",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  }).registerActive();
 }
 
 function runSetAuto(tmp, value) {
@@ -87,22 +90,25 @@ describe("spec 232: autoDesired persistence (R1)", () => {
   let tmp;
   afterEach(() => { if (tmp) fs.rmSync(tmp, { recursive: true, force: true }); });
 
-  it("persists autoDesired=true when set auto on is rejected (AC1)", () => {
+  it("does not add retired autoDesired when active auto on is rejected", () => {
     tmp = createTmpProject(lowResponse());
     createFlowState(tmp);
     const res = runSetAuto(tmp, "on");
     assert.notEqual(res.status, 0, "should exit non-zero on reject");
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoDesired, true, "autoDesired must be true after reject");
+    assert.equal(Object.hasOwn(state, "autoDesired"), false);
+    const raw = JSON.parse(fs.readFileSync(makeFlowManager(tmp).specLocation("001-test").flowStateFile, "utf8"));
+    assert.equal(Object.hasOwn(raw, "autoDesired"), false);
   });
 
-  it("sets autoDesired=false when set auto off is called (AC2)", () => {
+  it("sets active policy autoApprove=false without retired autoDesired", () => {
     tmp = createTmpProject(passResponse());
-    createFlowState(tmp, { autoDesired: true });
+    createFlowState(tmp, { autoApprove: true });
     const res = runSetAuto(tmp, "off");
     assert.equal(res.status, 0, res.stderr);
     const state = makeFlowManager(tmp).load();
-    assert.equal(state.autoDesired, false, "autoDesired must be false after off");
+    assert.equal(state.autoApprove, false);
+    assert.equal(Object.hasOwn(state, "autoDesired"), false);
   });
 
   it("persists autoDesired=true in preparing mode when rejected (AC8)", () => {

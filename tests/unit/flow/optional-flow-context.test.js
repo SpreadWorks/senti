@@ -15,6 +15,12 @@ function makeContainerWithAmbiguousActiveFlows() {
   const flowManager = {
     load: () => null,
     forRoot: () => flowManager,
+    resolveExplicitFlowTarget: (expectation) => {
+      if (expectation.runId === "run-002") {
+        return { state: selectedState, specId: "002-demo", authorityRoot: "/repo", preparing: false };
+      }
+      throw new Error("selected active Flow is absent");
+    },
     resolveActiveFlow: (_flowState, opts = {}) => {
       if (opts.selectRunId === "run-002") {
         return { state: selectedState, specId: "002-demo", worktreePath: null };

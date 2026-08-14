@@ -1,7 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-import { resolveMergeBase, runGit } from "../../lib/git-helpers.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
@@ -13,26 +9,15 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowCommand } from "./base-command.js";
 import {
   AcceptanceEvidenceBindings,
-  applyAcceptanceReviewResult,
   artifactFromAcceptanceJudgments,
-  buildAcceptanceReviewContext,
 } from "./acceptance-review-artifacts.js";
 import {
-  buildRepairFingerprint,
-  ensureRepairFingerprintContract,
-} from "./impl-repair-artifacts.js";
-import { recordEligibleNonblockingAttempt } from "./nonblocking.js";
-import { RepairArtifactRegistry } from "./repair-state-identity.js";
-import {
-  ExternalBlockedOutcome,
-  nextStepAttemptNumber,
-  recordStepAttempt,
-} from "./step-outcome.js";
+  CanonicalAcceptanceArtifactStore,
+  CanonicalAcceptanceReviewPromotion,
+} from "./canonical-acceptance-artifacts.js";
 
 export const MAX_ACCEPTANCE_REQUEST_CHARS = 900_000;
 export const MAX_ACCEPTANCE_RESPONSE_CHARS = 900_000;
-const MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE = 1024 * 1024;
-const MAX_ACCEPTANCE_GIT_BUFFER_BYTES = (MAX_ACCEPTANCE_REQUEST_CHARS * 4) + 65_536;
 const MAX_ACCEPTANCE_SCHEMA_ITEMS = MAX_ACCEPTANCE_RESPONSE_CHARS;
 const MAX_ACCEPTANCE_SCHEMA_STRING_CHARS = MAX_ACCEPTANCE_RESPONSE_CHARS;
 export const MAX_ACCEPTANCE_DEFERRED_REPAIR_CALLS = 1;
@@ -110,82 +95,6 @@ export class AcceptanceReviewResponseSource {
   load(_context) {
     return null;
   }
-}
-
-function appendWithinDiffBudget(current, addition, component) {
-  const next = current + addition;
-  if (next.length > MAX_ACCEPTANCE_REQUEST_CHARS) {
-    throw new AcceptanceBudgetError("diff", {
-      trackedAndPreviousUntracked: current.length,
-      [component]: addition.length,
-      total: next.length,
-    }, MAX_ACCEPTANCE_REQUEST_CHARS);
-  }
-  return next;
-}
-
-function untrackedDiff(root, fingerprint, registry) {
-  let result = "";
-  const files = fingerprint.entries.filter((entry) => (
-    entry.statuses.includes("worktree:untracked") && !registry.owns(entry.path)
-  ));
-  for (const entry of files) {
-    const absolute = path.join(root, entry.path);
-    const stat = fs.lstatSync(absolute, { throwIfNoEntry: false });
-    if (!stat || (!stat.isFile() && !stat.isSymbolicLink())) continue;
-    if (stat.size > MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE) {
-      throw new AcceptanceBudgetError("diff", {
-        file: stat.size,
-        accumulated: result.length,
-      }, MAX_ACCEPTANCE_UNTRACKED_FILE_SIZE);
-    }
-    let body;
-    if (stat.isSymbolicLink()) {
-      body = `${fs.readlinkSync(absolute)}\n`;
-    } else {
-      const bytes = fs.readFileSync(absolute);
-      if (bytes.includes(0)) {
-        body = null;
-      } else {
-        const decoded = bytes.toString("utf8");
-        body = Buffer.from(decoded, "utf8").equals(bytes) ? decoded : null;
-      }
-    }
-    const header = `diff --git a/${entry.path} b/${entry.path}\nnew file mode ${entry.mode}\n`;
-    const patch = body == null
-      ? `${header}Binary files /dev/null and b/${entry.path} differ\n`
-      : `${header}--- /dev/null\n+++ b/${entry.path}\n@@ -0,0 +1,${body === "" ? 0 : body.split("\n").length - (body.endsWith("\n") ? 1 : 0)} @@\n${body.split("\n").map((line, index, lines) => (
-          index === lines.length - 1 && line === "" ? "" : `+${line}`
-        )).join("\n")}${body.endsWith("\n") || body === "" ? "" : "\n\\ No newline at end of file"}\n`;
-    result = appendWithinDiffBudget(result, patch, `untracked:${entry.path}`);
-  }
-  return result;
-}
-
-export function implementationDiff(root, state) {
-  const specPath = relativeFlowSpecFile(state);
-  const fingerprint = buildRepairFingerprint({ root, specPath, state });
-  const registry = new RepairArtifactRegistry(specPath);
-  const baseRef = resolveMergeBase(root, state.baseBranch);
-  const result = runGit([
-    "diff",
-    "--no-ext-diff",
-    "--no-color",
-    baseRef,
-    "--",
-    ".",
-    ...registry.gitPathspecExcludes(),
-  ], { cwd: root, maxBuffer: MAX_ACCEPTANCE_GIT_BUFFER_BYTES });
-  if (result.stdout.length > MAX_ACCEPTANCE_REQUEST_CHARS) {
-    throw new AcceptanceBudgetError("diff", { tracked: result.stdout.length }, MAX_ACCEPTANCE_REQUEST_CHARS);
-  }
-  if (!result.ok) throw new Error(`failed to build acceptance diff: ${result.stderr || result.stdout}`);
-  const diff = appendWithinDiffBudget(result.stdout, untrackedDiff(root, fingerprint, registry), "untrackedTotal");
-  const verified = buildRepairFingerprint({ root, specPath, state });
-  if (verified.hash !== fingerprint.hash) {
-    throw new Error("repair state changed while building acceptance diff");
-  }
-  return diff;
 }
 
 export function buildAcceptancePrompt(context) {
@@ -350,14 +259,14 @@ export class AcceptanceResponseBinding {
     return {
       requirementJudgments: response.requirementJudgments.map((judgment) => {
         const diffRefs = (judgment.diffRefs || []).filter((ref) => (
-          this.evidenceBindings.diffRefs.includes(ref)
+          this.evidenceBindings.diff.includes(ref)
         ));
         return {
           ...judgment,
           requestRefs: ["flow.request"],
           requirementRefs: [`spec.json#${judgment.requirementId}`],
           diffRefs: judgment.status !== "notVerifiable" && diffRefs.length === 0
-            ? [...this.evidenceBindings.diffRefs]
+            ? [...this.evidenceBindings.diff]
             : diffRefs,
           repairRefs: [repairRef],
           testRefs: judgment.status === "notVerifiable"
@@ -414,20 +323,113 @@ function acceptanceAgentFailure(ctx, failure) {
     failure.message,
     failure.toJSON(),
   );
-  const attempt = recordStepAttempt(ctx, {
-    stepId: "acceptance-review",
-    attempt: nextStepAttemptNumber(ctx.flowState, "acceptance-review"),
-    outcome: new ExternalBlockedOutcome({
-      reason: failure.kind,
-      resumeInstruction: failure.recoveryHint,
-      failureCode: failure.code,
-      retryable: failure.retryable,
-      recoveryHint: failure.recoveryHint,
-    }),
-    result: envelope,
+  ctx.flowManager.failCurrentAttempt({
+    specId: ctx.flowState.specId,
+    failure: {
+      category: "agent",
+      code: failure.code,
+      message: failure.message,
+      retryable: failure.retryable === true,
+      retryKind: failure.retryable === true ? "tooling" : null,
+    },
+    result: {
+      outcome: "failed",
+      summary: failure.message,
+      confirmedAt: new Date().toISOString(),
+      artifactRefs: [],
+    },
   });
-  if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
   return envelope;
+}
+
+async function resolveAcceptanceArtifact(ctx, context, responseSource) {
+  const fixture = responseSource.load(context);
+  if (fixture) {
+    return {
+      artifact: artifactFromAcceptanceJudgments({
+        context,
+        requirementJudgments: fixture.requirementJudgments || [],
+        deferredFindingDispositions: fixture.deferredFindingDispositions || [],
+      }),
+    };
+  }
+  if (context.mechanicalBlockers.length > 0) {
+    return { artifact: artifactFromAcceptanceJudgments({ context, requirementJudgments: [] }) };
+  }
+  const agent = container.get("agent");
+  let resolvedAgent;
+  try {
+    resolvedAgent = agent.resolve("flow.acceptance.review");
+  } catch (error) {
+    const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
+    return { response: acceptanceAgentFailure(ctx, failure) };
+  }
+  if (!resolvedAgent) {
+    return {
+      response: acceptanceAgentFailure(ctx, new AgentPermissionConfigurationFailure({
+        message: "no AI agent configured for flow.acceptance.review",
+      })),
+    };
+  }
+  try {
+    const parsed = await callAcceptanceAgent(agent, buildAcceptancePrompt(context));
+    const bound = bindAcceptanceResponse(context, parsed);
+    const deferredCoverage = new DeferredDispositionCoverage(
+      context,
+      bound.deferredFindingDispositions,
+    );
+    const missingFindings = deferredCoverage.missingFindings;
+    if (missingFindings.length > 0) {
+      const repairParsed = await callAcceptanceAgent(
+        agent,
+        buildDeferredDispositionRepairPrompt(context, missingFindings),
+      );
+      const repairBound = new AcceptanceResponseBinding(context)
+        .bindDeferredFindingDispositions(repairParsed.deferredFindingDispositions ?? []);
+      deferredCoverage.add(repairBound);
+    }
+    return {
+      artifact: artifactFromAcceptanceJudgments({
+        context,
+        requirementJudgments: bound.requirementJudgments,
+        deferredFindingDispositions: deferredCoverage.requireComplete(),
+      }),
+    };
+  } catch (error) {
+    if (error instanceof AgentFailure) return { response: acceptanceAgentFailure(ctx, error) };
+    throw error;
+  }
+}
+
+async function executeCanonicalAcceptanceReview(ctx) {
+  const state = ctx.flowState;
+  const store = new CanonicalAcceptanceArtifactStore({ flowManager: ctx.flowManager, state });
+  const context = await store.buildContext({ executionRoot: ctx.executionRoot || ctx.root });
+  const resolved = await resolveAcceptanceArtifact(ctx, context, this.responseSource);
+  if (resolved.response) return resolved.response;
+  const { artifact } = resolved;
+  const response = {
+    result: "ok",
+    verdict: artifact.verdict,
+    artifact_path: store.location.relativeArtifact("acceptance.review"),
+    repairFingerprint: artifact.repairFingerprint,
+    requirementJudgments: artifact.requirementJudgments,
+    deferredFindings: artifact.deferredFindings,
+    mechanicalBlockers: artifact.mechanicalBlockers,
+    hardBlockers: artifact.hardBlockers,
+    evidenceRefresh: null,
+    next: artifact.verdict === "pass"
+      ? "final-regression"
+      : artifact.verdict === "repair_required"
+        ? "impl-triage"
+        : artifact.verdict === "user_decision_required"
+          ? "acceptance-decision"
+          : null,
+  };
+  return new CanonicalAcceptanceReviewPromotion({
+    state,
+    requirementIds: context.requirementIds,
+  }).promote(response, artifact);
 }
 
 export default class RunAcceptanceReviewCommand extends FlowCommand {
@@ -441,98 +443,9 @@ export default class RunAcceptanceReviewCommand extends FlowCommand {
 
   async execute(ctx) {
     const state = ctx.flowManager.load();
-    const executionRoot = ctx.executionRoot || ctx.root;
-    ensureRepairFingerprintContract({
-      root: executionRoot,
-      artifactRoot: ctx.root,
-      state,
-      flowManager: ctx.flowManager,
-    });
-    const context = buildAcceptanceReviewContext({
-      root: ctx.root,
-      executionRoot,
-      state,
-      diff: implementationDiff(executionRoot, state),
-    });
-    const fixture = this.responseSource.load(context);
-    let artifact;
-    if (fixture) {
-      artifact = artifactFromAcceptanceJudgments({
-        context,
-        requirementJudgments: fixture.requirementJudgments || [],
-        deferredFindingDispositions: fixture.deferredFindingDispositions || [],
-      });
-    } else if (context.mechanicalBlockers.length > 0) {
-      artifact = artifactFromAcceptanceJudgments({ context, requirementJudgments: [] });
-    } else {
-      const agent = container.get("agent");
-      let resolvedAgent;
-      try {
-        resolvedAgent = agent.resolve("flow.acceptance.review");
-      } catch (error) {
-        const failure = error instanceof AgentFailure ? error : AgentFailure.from(error);
-        return acceptanceAgentFailure(ctx, failure);
-      }
-      if (!resolvedAgent) {
-        return acceptanceAgentFailure(ctx, new AgentPermissionConfigurationFailure({
-          message: "no AI agent configured for flow.acceptance.review",
-        }));
-      }
-      try {
-        const parsed = await callAcceptanceAgent(agent, buildAcceptancePrompt(context));
-        const bound = bindAcceptanceResponse(context, parsed);
-        const deferredCoverage = new DeferredDispositionCoverage(
-          context,
-          bound.deferredFindingDispositions,
-        );
-        const missingFindings = deferredCoverage.missingFindings;
-        if (missingFindings.length > 0) {
-          const repairParsed = await callAcceptanceAgent(
-            agent,
-            buildDeferredDispositionRepairPrompt(context, missingFindings),
-          );
-          const repairBound = new AcceptanceResponseBinding(context)
-            .bindDeferredFindingDispositions(repairParsed.deferredFindingDispositions ?? []);
-          deferredCoverage.add(repairBound);
-        }
-        artifact = artifactFromAcceptanceJudgments({
-          context,
-          requirementJudgments: bound.requirementJudgments,
-          deferredFindingDispositions: deferredCoverage.requireComplete(),
-        });
-      } catch (error) {
-        if (error instanceof AgentFailure) return acceptanceAgentFailure(ctx, error);
-        throw error;
-      }
+    if (state?.schemaRevision !== 3) {
+      throw new Error("acceptance review requires a Version-1 Flow");
     }
-    const result = applyAcceptanceReviewResult({
-      root: ctx.root,
-      executionRoot,
-      flowManager: ctx.flowManager,
-      artifact,
-      evidenceRefresh: context.evidenceRefresh,
-    });
-    const response = {
-      result: "ok",
-      verdict: result.verdict,
-      artifact_path: result.artifactPath,
-      repairFingerprint: result.artifact.repairFingerprint,
-      requirementJudgments: result.artifact.requirementJudgments,
-      deferredFindings: result.artifact.deferredFindings,
-      mechanicalBlockers: result.artifact.mechanicalBlockers,
-      hardBlockers: result.artifact.hardBlockers,
-      evidenceRefresh: result.evidenceRefresh || null,
-      next: result.evidenceRefresh
-        ? result.evidenceRefresh.activeStep
-        : result.verdict === "pass"
-        ? "final-regression"
-        : result.verdict === "repair_required"
-          ? "impl-triage"
-          : result.verdict === "user_decision_required"
-            ? "acceptance-decision"
-      : null,
-    };
-    recordEligibleNonblockingAttempt(ctx, "acceptance-review", response);
-    return response;
+    return executeCanonicalAcceptanceReview.call(this, { ...ctx, flowState: state });
   }
 }

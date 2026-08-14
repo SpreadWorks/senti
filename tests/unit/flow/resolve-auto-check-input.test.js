@@ -1,25 +1,23 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "fs";
-import path from "path";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import fs from "node:fs";
+
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
+import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
-  resolveAutoCheckInput,
+  CanonicalAutoCheckInputError,
   isSpecApproved,
+  resolveAutoCheckInputForFlow,
+  resolvePreparingAutoCheckInput,
 } from "../../../src/flow/lib/resolve-auto-check-input.js";
+import { CanonicalAutoCheckScenario, makeFlowManager } from "../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
-describe("resolve-auto-check-input — phase-aware input construction (spec 220)", () => {
-  let tmp;
+describe("resolve-auto-check-input — canonical and preparing authorities", () => {
+  let root;
 
-  beforeEach(() => {
-    tmp = createTmpDir("resolve-input-");
-  });
-
-  afterEach(() => {
-    removeTmpDir(tmp);
-  });
+  beforeEach(() => { root = createTmpDir("resolve-input-"); });
+  afterEach(() => { removeTmpDir(root); });
 
   function stepsWith(doneIds = []) {
     const steps = buildInitialSteps();
@@ -30,180 +28,130 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     return steps;
   }
 
-  // R1 — isSpecApproved detection
-  it("isSpecApproved returns true when approval step is done", () => {
-    const state = { steps: stepsWith(["approval"]) };
-    assert.equal(isSpecApproved(state), true);
+  function canonical({ issue = null, request = "implement X", draft = null, approval = false } = {}) {
+    const flowManager = makeFlowManager(root);
+    const scenario = new CanonicalAutoCheckScenario({
+      flowManager,
+      specId: "001-test",
+      runId: "run-001-test",
+      issue,
+      request,
+      execution: { mode: "direct" },
+    }).create();
+    if (draft !== null) scenario.draftGateDone(draft);
+    if (approval) scenario.approvalDone();
+    return { flowManager, scenario };
+  }
+
+  function resolveCanonical(fixture) {
+    return resolveAutoCheckInputForFlow({
+      flowManager: fixture.flowManager,
+      state: fixture.scenario.state(),
+    });
+  }
+
+  it("detects a completed approval Step", () => {
+    assert.equal(isSpecApproved({ steps: stepsWith(["approval"]) }), true);
   });
 
-  it("isSpecApproved returns false when approval step is pending", () => {
-    const state = { steps: stepsWith([]) };
-    assert.equal(isSpecApproved(state), false);
+  it("does not treat a pending approval Step as approved", () => {
+    assert.equal(isSpecApproved({ steps: stepsWith([]) }), false);
   });
 
-  it("isSpecApproved returns false when approval step is done on gate only (not approval)", () => {
-    const state = { steps: stepsWith(["gate"]) };
-    assert.equal(isSpecApproved(state), false);
+  it("does not confuse a completed gate with approval", () => {
+    assert.equal(isSpecApproved({ steps: stepsWith(["gate"]) }), false);
   });
 
-  it("isSpecApproved tolerates malformed state (no steps array)", () => {
+  it("treats malformed non-persisted input as unapproved", () => {
     assert.equal(isSpecApproved({}), false);
     assert.equal(isSpecApproved(null), false);
   });
 
-  // Phase 1 — set init phase: issue + request only
-  it("returns issue+request when no draft-gate, no approval", () => {
-    const state = {
-      issue: 42,
-      request: "add logging",
-      steps: stepsWith([]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-    assert.equal(out.skip, false);
-    assert.ok(out.text.includes("add logging"));
-    assert.ok(out.text.includes("42"));
+  it("reads request and linked Issue snapshot from the canonical catalog", () => {
+    const output = resolveCanonical(canonical({ issue: 42, request: "add logging" }));
+    assert.equal(output.skip, false);
+    assert.match(output.text, /add logging/);
+    assert.match(output.text, /Issue #42/);
   });
 
-  // Phase 2 — after draft-gate done: issue + request + draft body
-  it("returns issue+request+draft body when draft-gate is done and draft exists", () => {
-    const specDir = path.join(tmp, "specs/001-test");
-    fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({
-      goal: "DRAFT_MARKER 内容が続く",
+  it("appends the cataloged draft after draft-gate", () => {
+    const output = resolveCanonical(canonical({
+      issue: 10,
+      request: "implement X",
+      draft: JSON.stringify({ goal: "DRAFT_MARKER 内容が続く" }),
     }));
-
-    const state = {
-      issue: 10,
-      request: "implement X",
-      specId: "001-test",
-      steps: stepsWith(["draft-gate"]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp });
-    assert.equal(out.skip, false);
-    assert.ok(out.text.includes("DRAFT_MARKER"));
-    assert.ok(out.text.includes("implement X"));
+    assert.equal(output.skip, false);
+    assert.match(output.text, /implement X[\s\S]*DRAFT_MARKER/);
+    assert.deepEqual(output.goalGate, { checked: true, passed: true });
   });
 
-  // Phase 2 edge — draft-gate done but no draft file → fall back to issue+request
-  it("falls back to issue+request when draft-gate done but draft file missing", () => {
-    const state = {
-      issue: 10,
-      request: "implement X",
-      specId: "001-test",
-      steps: stepsWith(["draft-gate"]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp });
-    assert.equal(out.skip, false);
-    assert.ok(!out.text.includes("DRAFT_MARKER"));
-    assert.ok(out.text.includes("implement X"));
+  it("fails closed when a cataloged draft disappears", () => {
+    const fixture = canonical({ draft: JSON.stringify({ goal: "saved" }) });
+    const artifact = fixture.flowManager.readArtifact({
+      specId: fixture.scenario.specId,
+      logicalKey: "draft",
+      consumerNodeId: "spec",
+    });
+    fs.unlinkSync(fixture.scenario.flow.location().resolve(artifact.relativePath));
+    assert.throws(() => resolveCanonical(fixture), /Version authority path does not exist/);
   });
 
-  // Phase 3 — approval done: skip signal
-  it("returns skip=true when approval step is done", () => {
-    const state = {
-      issue: 10,
-      request: "implement X",
-      steps: stepsWith(["approval"]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-    assert.equal(out.skip, true);
-    assert.equal(out.reason, "spec approved");
+  it("skips evaluation after canonical approval", () => {
+    const output = resolveCanonical(canonical({ issue: 10, approval: true }));
+    assert.deepEqual(output, { skip: true, reason: "spec approved" });
   });
 
-  // Phase 3 dominates — approval wins even if draft-gate is also done
-  it("approval takes precedence over draft-gate (spec approved wins)", () => {
-    const specDir = path.join(tmp, "specs/001-test");
-    fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({ goal: "ignored-draft" }));
-
-    const state = {
+  it("approval takes precedence over an existing cataloged draft", () => {
+    const output = resolveCanonical(canonical({
       issue: 10,
-      request: "implement X",
-      specId: "001-test",
-      steps: stepsWith(["draft-gate", "approval"]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp });
-    assert.equal(out.skip, true);
+      draft: JSON.stringify({ goal: "ignored draft" }),
+      approval: true,
+    }));
+    assert.equal(output.skip, true);
   });
 
-  // Preparing mode (no specPath) — draft cannot be loaded
-  it("does not attempt draft load when specPath is null (preparing mode)", () => {
-    const state = {
-      issue: 10,
-      request: "implement X",
-      steps: stepsWith(["draft-gate"]),
-    };
-    const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-    assert.equal(out.skip, false);
-    assert.ok(out.text.includes("implement X"));
-    assert.ok(out.text.includes("10"));
+  it("uses request and Issue number for a pre-creation record", () => {
+    const output = resolvePreparingAutoCheckInput({ issue: 10, request: "implement X", steps: [] });
+    assert.equal(output.skip, false);
+    assert.match(output.text, /implement X[\s\S]*Issue #10/);
   });
 
-  // spec 225 R10 — Issue body integration
-  describe("spec 225 R10 — Issue body incorporation", () => {
-    it("preparing mode + state.issueBody: input contains issueBody instead of 'Issue #<n>' literal", () => {
-      const state = {
-        issue: 77,
-        request: "implement Y",
-        issueBody: "ISSUE_BODY_MARKER 詳細説明がここに入る",
-        steps: stepsWith([]),
-      };
-      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-      assert.equal(out.skip, false);
-      assert.ok(out.text.includes("ISSUE_BODY_MARKER"));
-      assert.ok(out.text.includes("implement Y"));
+  it("uses a captured preparing Issue body instead of the number literal", () => {
+    const output = resolvePreparingAutoCheckInput({
+      issue: 77,
+      request: "implement Y",
+      issueBody: "ISSUE_BODY_MARKER 詳細説明",
+      steps: [],
     });
+    assert.match(output.text, /implement Y[\s\S]*ISSUE_BODY_MARKER/);
+    assert.doesNotMatch(output.text, /Issue #77/);
+  });
 
-    it("active mode + issue.md file exists: input includes file contents", () => {
-      const specDir = path.join(tmp, "specs/225-test");
-      fs.mkdirSync(specDir, { recursive: true });
-      fs.writeFileSync(path.join(specDir, "issue.md"), "ISSUE_MD_MARKER 実ファイル内容");
-
-      const state = {
-        issue: 88,
-        request: "implement Z",
-        specId: "225-test",
-        steps: stepsWith([]),
-      };
-      const out = resolveAutoCheckInput(state, { root: tmp });
-      assert.equal(out.skip, false);
-      assert.ok(out.text.includes("ISSUE_MD_MARKER"));
-      assert.ok(out.text.includes("implement Z"));
+  it("fails closed when a canonical linked-Issue snapshot disappears", () => {
+    const fixture = canonical({ issue: 99, request: "implement W" });
+    const artifact = fixture.flowManager.readArtifact({
+      specId: fixture.scenario.specId,
+      logicalKey: "issue.snapshot",
+      consumerNodeId: "draft",
     });
+    fs.unlinkSync(fixture.scenario.flow.location().resolve(artifact.relativePath));
+    assert.throws(() => resolveCanonical(fixture), /Version authority path does not exist/);
+  });
 
-    it("active mode + issue.md absent: falls back to 'Issue #<n>' literal", () => {
-      const state = {
-        issue: 99,
-        request: "implement W",
-        specId: "225-test",
-        steps: stepsWith([]),
-      };
-      const out = resolveAutoCheckInput(state, { root: tmp });
-      assert.equal(out.skip, false);
-      assert.ok(out.text.includes("implement W"));
-      assert.ok(out.text.includes("99"));
-    });
+  it("falls back to the Issue number only before canonical creation", () => {
+    const output = resolvePreparingAutoCheckInput({ issue: 55, request: "implement V", steps: [] });
+    assert.match(output.text, /Issue #55/);
+  });
 
-    it("preparing mode without issueBody: falls back to 'Issue #<n>' literal", () => {
-      const state = {
-        issue: 55,
-        request: "implement V",
-        steps: stepsWith([]),
-      };
-      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-      assert.equal(out.skip, false);
-      assert.ok(out.text.includes("55"));
-    });
+  it("treats an empty preparing Issue body as absent", () => {
+    const output = resolvePreparingAutoCheckInput({ issue: 1, request: "rq", issueBody: "", steps: [] });
+    assert.match(output.text, /Issue #1/);
+  });
 
-    it("issueBody empty string is treated as absent", () => {
-      const state = {
-        issue: 1,
-        request: "rq",
-        issueBody: "",
-        steps: stepsWith([]),
-      };
-      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
-      assert.ok(out.text.includes("1"));
-    });
+  it("rejects routing a prepared Flow through the preparing input API", () => {
+    assert.throws(
+      () => resolvePreparingAutoCheckInput({ specId: "001-test", request: "invalid" }),
+      CanonicalAutoCheckInputError,
+    );
   });
 });

@@ -5,7 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
-import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager, setupFlowConfig } from "../../helpers/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 
@@ -13,13 +13,20 @@ function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
+    env: { ...process.env, PATH: `${path.join(tmp, ".fixture-bin")}:${process.env.PATH}`, SENNEL_WORK_ROOT: tmp },
   });
 }
 
 function setupProject(tmp) {
   setupFlowConfig(tmp, "ja");
   fs.writeFileSync(path.join(tmp, "package.json"), JSON.stringify({ name: "fixture", version: "0.0.0" }, null, 2));
+  const bin = path.join(tmp, ".fixture-bin");
+  fs.mkdirSync(bin, { recursive: true });
+  const gh = path.join(bin, "gh");
+  fs.writeFileSync(gh, `#!/bin/sh
+printf '%s\\n' '{"title":"Offline fixture Issue","body":"Offline fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`);
+  fs.chmodSync(gh, 0o755);
   initGitRepo(tmp);
   commitAll(tmp, "initial");
 }
@@ -97,13 +104,15 @@ describe("e2e — concurrent flow prelude isolation", () => {
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.runId, runId);
     assert.equal(envelope.data.issue, 12);
-    assert.equal(envelope.data.artifacts.mode, "spec-only");
+    // Board acceptance #14 defines the canonical no-branch execution mode as
+    // `direct`; `spec-only` was a retired pre-Version layout label.
+    assert.equal(envelope.data.artifacts.mode, "direct");
     assert.equal(envelope.data.worktreePath, null);
     const specDir = envelope.data.artifacts.specDir;
     assert.equal(
       fs.existsSync(path.join(tmp, specDir, "flow.json")),
       true,
-      "second flow must be prepared in the main repo",
+      "second flow must be prepared in the main repo canonical Version",
     );
     assert.equal(
       fs.existsSync(path.join(issue11Worktree, specDir, "flow.json")),
@@ -132,7 +141,11 @@ describe("e2e — concurrent flow prelude isolation", () => {
       "flow", "get", "next-action",
       ...targetArgs,
     ]);
-    assert.equal(nextAction.status, 0, nextAction.stderr);
+    assert.equal(
+      nextAction.status,
+      0,
+      `stdout:\n${nextAction.stdout}\nstderr:\n${nextAction.stderr}`,
+    );
     const nextActionEnvelope = JSON.parse(nextAction.stdout.trim());
     assert.equal(nextActionEnvelope.ok, true);
     assert.equal(nextActionEnvelope.data.step, "draft");
@@ -144,13 +157,15 @@ describe("e2e — concurrent flow prelude isolation", () => {
     assert.equal(noteRes.status, 0, noteRes.stderr);
     const noteEnvelope = JSON.parse(noteRes.stdout.trim());
     assert.equal(noteEnvelope.ok, true);
-    const issue12Flow = JSON.parse(fs.readFileSync(path.join(tmp, specDir, "flow.json"), "utf8"));
+    const issue12Flow = makeFlowManager(tmp).loadReadOnly(envelope.data.specId);
     assert.equal(
       issue12Flow.notes.some((note) => note.text === "target-bound dispatcher note"),
       true,
       "target-bound set command must mutate the second flow",
     );
-    const issue11Flow = JSON.parse(fs.readFileSync(path.join(tmp, issue11Data.artifacts.specDir, "flow.json"), "utf8"));
+    // Canonical Version state remains in the main repository; the managed
+    // worktree is only its execution binding.
+    const issue11Flow = makeFlowManager(tmp).loadReadOnly(issue11Data.specId);
     assert.equal(
       (issue11Flow.notes || []).some((note) => note.text === "target-bound dispatcher note"),
       false,
@@ -175,20 +190,22 @@ describe("e2e — concurrent flow prelude isolation", () => {
       "first worktree flow must remain active",
     );
     assert.equal(
-      activeFlows.some((entry) => entry.mode === "local" && entry.specId === envelope.data.specId),
+      activeFlows.some((entry) => entry.mode === "direct" && entry.specId === envelope.data.specId),
       true,
-      "second local flow must be registered active",
+      "second direct flow must be registered active",
     );
   });
 
   it("rejects bare prepare while another flow is active", () => {
     setupProject(tmp);
-    setupFlow(tmp, {
+    new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
       specId: "011-active",
-      featureBranch: "main",
-      issue: 11,
       runId: "issue-11-run",
-    });
+      issue: 11,
+      issueSnapshot: "# Issue #11\n\nActive fixture issue.\n",
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "main" },
+    }).create().registerActive();
 
     const prepareRes = runCli(tmp, [
       "flow", "prepare",

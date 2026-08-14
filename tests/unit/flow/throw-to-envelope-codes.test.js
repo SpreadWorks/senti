@@ -4,9 +4,12 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { writeStubAgentScript, stubAgentConfig } from "../../helpers/stub-agent.js";
+import {
+  FlowArtifactAttemptHistory,
+  FlowArtifactAttemptRecord,
+} from "../../../src/lib/flow-artifact-contract.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -51,19 +54,30 @@ function createTmpProject(agentResponse) {
 }
 
 function createFlowState(tmp, extra = {}) {
-  const state = {
+  const { requirements = [], activeStep = null, ...unsupported } = extra;
+  const fields = Object.keys(unsupported);
+  if (fields.length > 0) {
+    throw new Error(`createFlowState accepts only canonical Spec requirements: ${fields.join(", ")}`);
+  }
+  const manager = makeFlowManager(tmp);
+  const fixture = new CanonicalFlowFixture({
+    flowManager: manager,
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
     request: "add a progress bar",
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-    ...extra,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    specRecord: { goal: "x", requirements },
+  }).create().addTask({
+    id: "T-1",
+    title: "x",
+    goal: "x",
+    parent: null,
+    origin: "plan",
+    added_round: 0,
+    status: "pending",
+  });
+  if (activeStep !== null) fixture.activate(activeStep);
+  return fixture.registerActive().state();
 }
 
 function run(tmp, argv) {
@@ -104,32 +118,33 @@ describe("R1a: set auto on → AUTO_CHECK_INELIGIBLE on reject", () => {
 });
 
 // ---------------------------------------------------------------------------
-// R2a: RETRO_EXISTS
-// R2b: NO_CHANGES
+// R2a/R2b: canonical retro input preconditions
 // ---------------------------------------------------------------------------
 
-function writeMinimalSpec(tmp) {
-  const specJson = {
-    goal: "x",
-    background: "",
-    scope: { in: [], out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [{ id: "R1", desc: "x", priority: "must" }],
-    acceptance_criteria: [],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-  };
-  fs.writeFileSync(
-    path.join(tmp, "specs", "001-test", "spec.json"),
-    JSON.stringify(specJson, null, 2),
-  );
-  fs.writeFileSync(
-    path.join(tmp, "specs", "001-test", "spec.md"),
-    "# spec\n## Requirements\n- R1\n",
-  );
+/** Publish one producer-owned canonical attempts[] artifact for this scenario. */
+function publishCanonicalAttemptArtifact(tmp, { nodeId, logicalKey, payload }) {
+  const manager = makeFlowManager(tmp);
+  const state = manager.load();
+  const history = new FlowArtifactAttemptHistory([
+    new FlowArtifactAttemptRecord({
+      attempt: 1,
+      payload: {
+        nodeId,
+        outcome: "completed",
+        result: { result: "ok" },
+        artifact: { logicalKey, payload },
+      },
+    }),
+  ]);
+  manager.publishArtifacts({
+    specId: state.specId,
+    nodeId,
+    artifactWrites: [{
+      logicalKey,
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(history.toJSON(), null, 2)}\n`, "utf8"),
+    }],
+  });
 }
 
 describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
@@ -141,7 +156,6 @@ describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
     createFlowState(tmp, {
       requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
     });
-    writeMinimalSpec(tmp);
     // No upstream artifact prepared → retro must refuse to aggregate.
     const res = run(tmp, ["flow", "run", "retro"]);
     assert.notEqual(res.status, 0);
@@ -158,17 +172,20 @@ describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
     tmp = createTmpProject();
     createFlowState(tmp, {
       requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
+      activeStep: "test-result-review",
     });
-    writeMinimalSpec(tmp);
-    fs.writeFileSync(
-      path.join(tmp, "specs", "001-test", "test-result-review.json"),
-      JSON.stringify({
+    const manager = makeFlowManager(tmp);
+    const location = manager.specLocation("001-test");
+    publishCanonicalAttemptArtifact(tmp, {
+      nodeId: "test-result-review",
+      logicalKey: "test.result.review",
+      payload: {
         verdict: "pass",
-        checked_items: [],
-        result_file_path: path.join(tmp, "specs", "001-test", "test-execute-result.json"),
-        raw_output_path: path.join(tmp, "specs", "001-test", "tests", ".raw", "test-execution.log"),
-      }),
-    );
+        checked_items: [{ check: "project_regression_verification", result: "pass" }],
+        result_file_path: location.relativeArtifact("test.execute"),
+        raw_output_path: location.relativeArtifact("test.execute.raw-log"),
+      },
+    });
     const res = run(tmp, ["flow", "run", "retro"]);
     assert.notEqual(res.status, 0);
     const env = parseEnvelope(res);
@@ -235,14 +252,21 @@ describe("R1b: checkRetryBelowMax returns envelope with ESCALATE_RETRY_EXHAUSTED
     tmp = createTmpProject(null);
     const { checkRetryBelowMax } = await import("../../../src/flow/lib/run-gate.js");
     const phase = "task-impl";
+    const manager = makeFlowManager(tmp);
+    new CanonicalFlowFixture({
+      flowManager: manager,
+      specId: "001-test",
+      runId: "gate-retry-exhaustion",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+    }).create().activate("draft").registerActive();
+    for (let count = 0; count < 5; count += 1) {
+      manager.appendMetric({ phase, counter: "gateRetry", delta: 1 });
+    }
     // task-gate maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
     const ctx = {
       root: tmp,
       config: {},
-      flowState: {
-        specId: "001-test",
-        metrics: Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 })),
-      },
+      flowState: manager.load(),
     };
     const result = checkRetryBelowMax(ctx, phase);
     assert.ok(result, "expected envelope, got null");

@@ -9,7 +9,7 @@ import { dispatch } from "../../../src/lib/dispatcher.js";
 import { Envelope } from "../../../src/lib/flow-envelope.js";
 import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import { FatalPostHookError } from "../../../src/lib/post-hook-error.js";
-import { makeFlowState } from "../../helpers/flow-setup.js";
+import { CurrentFlowPolicy } from "../../../src/flow/lib/current-flow-state.js";
 
 describe("dispatcher (unified runner)", () => {
   let container;
@@ -86,14 +86,23 @@ describe("dispatcher (unified runner)", () => {
   it("binds dispatcher-generated nonblocking continuations to the current target authority", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "sennel-dispatcher-binding-"));
     try {
-      const state = makeFlowState({
-        nonblocking: {
+      const state = {
+        specId: "001-test",
+        runId: "run-test",
+        issue: null,
+        baseBranch: "main",
+        featureBranch: null,
+        execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+        policy: new CurrentFlowPolicy({
+          autoApprove: false,
+          nonblocking: {
           enabled: true,
           activatedAt: "2026-08-01T00:00:00.000Z",
           activatedStep: "impl-review",
           reason: "The normal recovery route exhausted its retry budget.",
-        },
-      });
+          },
+        }).toJSON(),
+      };
       const out = [];
       class FailingCommand extends Command {
         static outputMode = "envelope";
@@ -128,6 +137,7 @@ describe("dispatcher (unified runner)", () => {
       const binding = FlowTargetBinding.deserialize(token);
       assert.equal(binding.runId, state.runId);
       assert.equal(binding.authority.executionRoot, root);
+      assert.equal(binding.authority.featureBranch, null);
       assert.doesNotMatch(continuation.nextAction, /--expect-run-id|--expect-spec|--expect-issue/);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });

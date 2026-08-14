@@ -6,7 +6,8 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { FlowManager } from "../../src/lib/flow-manager.js";
-import { moveFlowToStep } from "../helpers/flow-setup.js";
+import { FlowOutboxStore, finalizationOutboxIdentity } from "../../src/flow/lib/flow-outbox.js";
+import { flattenSteps } from "../../src/flow/lib/step-tree.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const cliPath = path.join(repoRoot, "src/sennel.js");
@@ -40,6 +41,13 @@ function createProject() {
   git(root, ["config", "user.name", "Test User"]);
   git(root, ["add", ".sennel/config.json", ".gitignore", "package.json"]);
   git(root, ["commit", "-m", "fixture"]);
+  const bin = path.join(root, ".fixture-bin");
+  fs.mkdirSync(bin, { recursive: true });
+  const gh = path.join(bin, "gh");
+  fs.writeFileSync(gh, `#!/bin/sh
+printf '%s\\n' '{"title":"Offline fixture Issue","body":"Offline fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`);
+  fs.chmodSync(gh, 0o755);
   return root;
 }
 
@@ -47,7 +55,11 @@ function runSennel(root, args) {
   const result = spawnSync("node", [cliPath, ...args], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENNEL_WORK_ROOT: root },
+    env: {
+      ...process.env,
+      PATH: `${path.join(root, ".fixture-bin")}:${process.env.PATH}`,
+      SENNEL_WORK_ROOT: root,
+    },
   });
   assert.equal(result.error, undefined, result.error?.stack || result.error?.message);
   return {
@@ -89,14 +101,29 @@ function prepareWorktree(root, issue, title) {
 
 function completeManagedWorktreeFlow(root, flow) {
   const manager = new FlowManager({ root, mainRoot: root, inWorktree: false, specId: flow.specId });
-  manager.mutate((state) => {
-    moveFlowToStep(state, "finalize-cleanup");
-    state.state = {
-      ...(state.state || {}),
-      mergeStrategy: "squash",
-      featureBranchSquashedSha: git(root, ["rev-parse", "HEAD"]),
-    };
-  }, { specId: flow.specId });
+  const mergeState = manager.load(flow.specId);
+  const mergeIdentity = finalizationOutboxIdentity(mergeState, "finalize-merge");
+  const mergeOutbox = new FlowOutboxStore(manager, { specId: flow.specId });
+  mergeOutbox.begin(mergeIdentity);
+  mergeOutbox.complete(mergeIdentity, {
+    status: "done",
+    strategy: "squash",
+    mergedFromSha: git(root, ["rev-parse", mergeState.featureBranch]),
+  });
+  for (const step of flattenSteps(manager.load(flow.specId).steps)) {
+    if (step.id === "finalize-cleanup") {
+      if (step.status === "pending") {
+        manager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId: flow.specId });
+      }
+      break;
+    }
+    if (step.status === "pending") {
+      manager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId: flow.specId });
+    }
+    if (manager.load(flow.specId).currentNodeId === step.id) {
+      manager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId: flow.specId });
+    }
+  }
 
   const completed = runSennel(flow.worktreePath, [
     "flow", "run", "finalize-cleanup", ...targetArgs(flow),

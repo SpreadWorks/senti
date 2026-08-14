@@ -10,11 +10,8 @@
 
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
-import { syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
   findNextPendingTask,
   promoteNextPending,
@@ -24,12 +21,6 @@ import { checkSpecJson } from "../../../src/flow/lib/run-gate.js";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function writeSpecJson(tmp, specRel, specObj) {
-  const specPath = path.join(tmp, specRel);
-  fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, JSON.stringify(specObj, null, 2));
-}
 
 function baseSpec(tasks) {
   return {
@@ -53,22 +44,16 @@ function task(id, status = "pending", parent = null) {
   return { id, parent, status };
 }
 
-/** Build a flow task with required fields for FlowStore.completeTask tests. */
-function flowTask(id, status = "pending", parent = null, extras = {}) {
+/** Build a Spec Task document for canonical Task admission. */
+function taskDocument(id, parent = null, extras = {}) {
   return {
     id,
-    spec: `specs/226-test/tasks/${id}.md`,
+    title: `Task ${id}`,
+    goal: `Complete ${id}.`,
     origin: "plan",
     parent,
-    status,
-    steps: [
-      { id: "task-impl", status: "pending" },
-      { id: "task-review", status: "pending" },
-      { id: "task-gate", status: "pending" },
-    ],
-    requirements: [],
-    summary: null,
     added_round: 0,
+    status: "pending",
     ...extras,
   };
 }
@@ -79,36 +64,26 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   // ── sync-spec-tasks: parent transcription ──────────────────────────────────
 
-  it("sync-spec-tasks transcribes spec.json task.parent to flow.json task.parent", () => {
+  it("canonical Task admission persists the Spec Task parent", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, {
-      specId: "226-forest",
-      tasks: [flowTask("T-seed")],
-    });
-    writeSpecJson(tmp, "specs/226-forest/spec.json", baseSpec([
-      { id: "T-root", title: "Root", goal: "g", origin: "plan", added_round: 0, status: "pending", parent: null },
-      { id: "T-child", title: "Child", goal: "g", origin: "plan", added_round: 0, status: "pending", parent: "T-root" },
-    ]));
-    syncSpecTasksToFlow({ root: tmp });
-    const flow = JSON.parse(fs.readFileSync(path.join(tmp, "specs/226-forest/flow.json"), "utf8"));
+    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-forest" })
+      .create()
+      .addTasks([taskDocument("T-root"), taskDocument("T-child", "T-root")])
+      .registerActive();
+    const flow = fixture.state();
     const tRoot = flow.tasks.find((t) => t.id === "T-root");
     const tChild = flow.tasks.find((t) => t.id === "T-child");
     assert.equal(tRoot.parent, null);
     assert.equal(tChild.parent, "T-root");
   });
 
-  it("flat (parent=null) tasks are preserved as-is", () => {
+  it("canonical admission preserves flat (parent=null) Tasks", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, {
-      specId: "226-flat",
-      tasks: [flowTask("T-seed")],
-    });
-    writeSpecJson(tmp, "specs/226-flat/spec.json", baseSpec([
-      { id: "T-a", title: "A", goal: "g", origin: "plan", added_round: 0, status: "pending" },
-      { id: "T-b", title: "B", goal: "g", origin: "plan", added_round: 0, status: "pending" },
-    ]));
-    syncSpecTasksToFlow({ root: tmp });
-    const flow = JSON.parse(fs.readFileSync(path.join(tmp, "specs/226-flat/flow.json"), "utf8"));
+    const fixture = new CanonicalFlowFixture({ flowManager: makeFlowManager(tmp), specId: "226-flat" })
+      .create()
+      .addTasks([taskDocument("T-a"), taskDocument("T-b")])
+      .registerActive();
+    const flow = fixture.state();
     const tA = flow.tasks.find((t) => t.id === "T-a");
     const tB = flow.tasks.find((t) => t.id === "T-b");
     assert.equal(tA.parent, null);
@@ -201,8 +176,8 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
     assert.equal(r3.id, "L1");
   });
 
-  it("forest traversal handles flat (parent=null only) compatibility", () => {
-    // All tasks are roots — equivalent to pre-forest flat list.
+  it("forest traversal handles independent root Tasks", () => {
+    // All Tasks are roots.
     const tasks = [
       task("A", "pending", null),
       task("B", "pending", null),
@@ -226,17 +201,14 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("completeTask propagates to parent when all children are done", () => {
     tmp = createTmpDir();
-    const tasks = [
-      flowTask("P", "in_progress", null),
-      flowTask("C1", "done", "P"),
-      flowTask("C2", "in_progress", "P"),
-    ];
-    setupFlow(tmp, {
-      specId: "226-propagation",
-      tasks,
-      currentTaskId: "C2",
-    });
     const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-propagation" })
+      .create().addTasks([taskDocument("P"), taskDocument("C1", "P"), taskDocument("C2", "P")]).registerActive();
+    fixture.activateTask("C1");
+    for (const step of ["C1-impl", "C1-review", "C1-gate"]) fixture.settle(step);
+    fm.completeTask("C1", { specId: "226-propagation" });
+    fixture.activateTask("C2", { settlePredecessors: false });
+    for (const step of ["C2-impl", "C2-review", "C2-gate"]) fixture.settle(step);
     fm.completeTask("C2");
 
     const state = fm.load("226-propagation");
@@ -246,19 +218,11 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("completeTask propagation is recursive up to root", () => {
     tmp = createTmpDir();
-    // Three-level: Root -> Mid -> Leaf
-    // Root has one child (Mid), Mid has one child (Leaf).
-    const tasks = [
-      flowTask("Root", "pending", null),
-      flowTask("Mid", "pending", "Root"),
-      flowTask("Leaf", "in_progress", "Mid"),
-    ];
-    setupFlow(tmp, {
-      specId: "226-recursive",
-      tasks,
-      currentTaskId: "Leaf",
-    });
     const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-recursive" })
+      .create().addTasks([taskDocument("Root"), taskDocument("Mid", "Root"), taskDocument("Leaf", "Mid")]).registerActive();
+    fixture.activateTask("Leaf");
+    for (const step of ["Leaf-impl", "Leaf-review", "Leaf-gate"]) fixture.settle(step);
     fm.completeTask("Leaf");
 
     const state = fm.load("226-recursive");
@@ -269,16 +233,11 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("completeTask does NOT auto-promote (responsibility separation)", () => {
     tmp = createTmpDir();
-    const tasks = [
-      flowTask("T-1", "in_progress", null),
-      flowTask("T-2", "pending", null),
-    ];
-    setupFlow(tmp, {
-      specId: "226-no-promote",
-      tasks,
-      currentTaskId: "T-1",
-    });
     const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-no-promote" })
+      .create().addTasks([taskDocument("T-1"), taskDocument("T-2")]).registerActive();
+    fixture.activateTask("T-1");
+    for (const step of ["T-1-impl", "T-1-review", "T-1-gate"]) fixture.settle(step);
     fm.completeTask("T-1");
 
     const state = fm.load("226-no-promote");
@@ -290,17 +249,14 @@ describe("T-4: forest wiring (sync parent transcription + traversal + propagatio
 
   it("completeTask handles flat tasks (parent=null) without propagation", () => {
     tmp = createTmpDir();
-    const tasks = [
-      flowTask("A", "done", null),
-      flowTask("B", "in_progress", null),
-      flowTask("C", "pending", null),
-    ];
-    setupFlow(tmp, {
-      specId: "226-flat-complete",
-      tasks,
-      currentTaskId: "B",
-    });
     const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-flat-complete" })
+      .create().addTasks([taskDocument("A"), taskDocument("B"), taskDocument("C")]).registerActive();
+    fixture.activateTask("A");
+    for (const step of ["A-impl", "A-review", "A-gate"]) fixture.settle(step);
+    fm.completeTask("A");
+    fixture.activateTask("B", { settlePredecessors: false });
+    for (const step of ["B-impl", "B-review", "B-gate"]) fixture.settle(step);
     fm.completeTask("B");
 
     const state = fm.load("226-flat-complete");

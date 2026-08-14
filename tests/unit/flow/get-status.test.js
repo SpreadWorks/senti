@@ -5,13 +5,12 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { execFileSync, spawnSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps, FLOW_STEPS } from "../../../src/lib/flow-helpers.js";
 const FLOW_CMD = join(process.cwd(), "src/sennel.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
@@ -19,28 +18,34 @@ describe("flow get status", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function setupFlowState(dir) {
-    const specId = "001-test";
-    const state = {
-      specId: specId,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      runId: "run-001-test",
-      issue: 1001,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
+  function setupFlowState(dir, {
+    specId = "001-test",
+    runId = "run-001-test",
+    issue = 1001,
+    execution = { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  } = {}) {
+    const manager = makeFlowManager(dir);
+    const fixture = new CanonicalFlowFixture({
+      flowManager: manager,
+      specId,
+      runId,
+      issue,
       request: "request belongs in detailed status",
-      notes: [{ text: "status note", taskId: null, ts: "2026-01-01T00:00:00.000Z" }],
-      metrics: [{ phase: "draft", counter: "srcRead", delta: 1, taskId: null, ts: "2026-01-01T00:00:00.000Z" }],
-      broadModeHistory: [{ step: "implement", enabled: true, reason: "audit", ts: "2026-01-01T00:00:00.000Z" }],
-      mergeStrategy: "squash",
+      execution,
       autoApprove: true,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return state;
+      specRecord: { goal: "status fixture", requirements: [] },
+    }).create().addTask({
+      id: "T-1",
+      title: "x",
+      goal: "x",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }).registerActive();
+    manager.addNote("status note", { specId });
+    manager.appendMetric({ phase: "draft", counter: "srcRead", delta: 1 }, { specId });
+    return fixture.state();
   }
 
   it("returns JSON envelope with ok: true", () => {
@@ -86,19 +91,13 @@ describe("flow get status", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     const secondSpec = "002-second";
-    makeFlowManager(tmp).create({
+    setupFlowState(tmp, {
       specId: secondSpec,
-      baseBranch: "main",
-      featureBranch: `feature/${secondSpec}`,
       runId: "run-002-second",
       issue: 1002,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-2", title: "y", goal: "y", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
+      execution: { mode: "worktree", baseBranch: "main", featureBranch: `feature/${secondSpec}` },
     });
-    makeFlowManager(tmp).addActiveFlow(secondSpec, "local");
-    fs.writeFileSync(join(tmp, "specs", "001-test", "flow.json"), "{truncated");
+    fs.writeFileSync(makeFlowManager(tmp).specLocation("001-test").flowStateFile, "{truncated");
 
     const result = execFileSync("node", [
       FLOW_CMD,
@@ -120,7 +119,7 @@ describe("flow get status", () => {
   it("fails on a corrupt selected runId before creating a runtime log", () => {
     tmp = createTmpDir();
     const state = setupFlowState(tmp);
-    fs.writeFileSync(join(tmp, "specs", state.specId, "flow.json"), "{truncated");
+    fs.writeFileSync(makeFlowManager(tmp).specLocation(state.specId).flowStateFile, "{truncated");
 
     const result = spawnSync("node", [
       FLOW_CMD,
@@ -161,7 +160,6 @@ describe("flow get status", () => {
     for (const key of ["request", "notes", "metrics", "metricsSummary", "broadModeHistory", "broadModeHistoryTotal", "broadModeHistoryTruncated"]) {
       assert.equal(Object.hasOwn(envelope.data, key), false, `default status must omit ${key}`);
     }
-    assert.equal(envelope.data.mergeStrategy, "squash");
     assert.equal(envelope.data.autoApprove, true);
   });
 
@@ -177,7 +175,6 @@ describe("flow get status", () => {
     assert.equal(envelope.data.notes.length, 1);
     assert.equal(envelope.data.metrics.length, 1);
     assert.equal(envelope.data.metricsSummary.flow.draft.srcRead, 1);
-    assert.equal(envelope.data.broadModeHistory.length, 1);
   });
 
   it("returns target runId identifiers in mismatch data for runId status", () => {

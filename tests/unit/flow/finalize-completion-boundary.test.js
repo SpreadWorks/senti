@@ -7,7 +7,7 @@ import RunFinalizeCommitCommand from "../../../src/flow/lib/run-finalize-commit.
 import { commitFinalizeCompletion } from "../../../src/flow/lib/run-finalize.js";
 import { FlowManager } from "../../../src/lib/flow-manager.js";
 import { commitAll, initGitRepo } from "../../helpers/git-repo.js";
-import { makeFlowState } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 let root;
@@ -32,13 +32,18 @@ test("completion commit contains only target spec and docs while preserving unre
   initGitRepo(root);
   write("docs/overview.md", "before\n");
   write("AGENTS.md", "before\n");
-  write("specs/485-finalize/flow.json", "{\"status\":\"active\"}\n");
   write("unrelated.txt", "before\n");
   commitAll(root, "test: baseline");
 
+  const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+  const fixture = new CanonicalFlowFixture({
+    flowManager: manager,
+    specId: "485-finalize",
+    runId: "run-485",
+  }).create();
+  manager.addNote("Finalize completion evidence", { specId: fixture.specId });
   write("docs/overview.md", "after\n");
-  write("specs/485-finalize/flow.json", "{\"status\":\"done\"}\n");
-  write("specs/485-finalize/runtime-log.json", "{\"exitCode\":0}\n");
+  write("specs/485-finalize/001/.runtime/runtime-log.json", "{\"exitCode\":0}\n");
   write("unrelated.txt", "user staged change\n");
   git(["add", "unrelated.txt"]);
 
@@ -51,11 +56,13 @@ test("completion commit contains only target spec and docs while preserving unre
 
   assert.equal(result.status, "done");
   const committed = git(["show", "--pretty=format:", "--name-only", "HEAD"]).split("\n").filter(Boolean);
-  assert.deepEqual(committed.sort(), [
-    "docs/overview.md",
-    "specs/485-finalize/flow.json",
-    "specs/485-finalize/runtime-log.json",
-  ]);
+  assert.ok(committed.includes("docs/overview.md"));
+  assert.ok(committed.includes("specs/485-finalize/001/flow.json"));
+  assert.ok(committed.includes("specs/485-finalize/001/activities.jsonl"));
+  assert.ok(committed.includes("specs/485-finalize/001/spec.json"));
+  assert.ok(committed.includes("specs/485-finalize/001/artifact-catalog.json"));
+  assert.equal(committed.some((entry) => entry.includes("/.runtime/")), false);
+  assert.equal(committed.every((entry) => entry === "docs/overview.md" || entry.startsWith("specs/485-finalize/001/")), true);
   assert.equal(git(["diff", "--cached", "--name-only"]), "unrelated.txt");
 });
 
@@ -67,7 +74,17 @@ test("ignored configured spec root is left untracked while docs still commit", (
   commitAll(root, "test: baseline");
 
   write("docs/overview.md", "after\n");
-  write("flow-artifacts/specs/485-ignored/flow.json", "{\"status\":\"done\"}\n");
+  const manager = new FlowManager({
+    root,
+    mainRoot: root,
+    inWorktree: false,
+    specRoot: "flow-artifacts/specs",
+  });
+  new CanonicalFlowFixture({
+    flowManager: manager,
+    specId: "485-ignored",
+    runId: "run-485-ignored",
+  }).create();
 
   const result = commitFinalizeCompletion({
     root,
@@ -79,7 +96,7 @@ test("ignored configured spec root is left untracked while docs still commit", (
   assert.equal(result.status, "done");
   assert.equal(git(["show", "--pretty=format:", "--name-only", "HEAD"]), "docs/overview.md");
   assert.equal(git(["ls-files", "flow-artifacts/specs/485-ignored"]), "");
-  assert.equal(fs.existsSync(path.join(root, "flow-artifacts/specs/485-ignored/flow.json")), true);
+  assert.equal(fs.existsSync(path.join(root, "flow-artifacts/specs/485-ignored/001/flow.json")), true);
 });
 
 test("implementation commit excludes the shared spec root and documentation", async () => {
@@ -92,12 +109,16 @@ test("implementation commit excludes the shared spec root and documentation", as
 
   const specId = "485-implementation";
   const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
-  manager.create(makeFlowState({
+  new CanonicalFlowFixture({
+    flowManager: manager,
     specId,
     runId: "run-485-implementation",
-    featureBranch: `feature/${specId}`,
-  }));
-  write(`specs/${specId}/spec.json`, JSON.stringify({ requirements: [] }) + "\n");
+    execution: {
+      mode: "branch",
+      baseBranch: "main",
+      featureBranch: `feature/${specId}`,
+    },
+  }).create();
   write("src/feature.js", "export const value = 485;\n");
   write("docs/overview.md", "generated docs\n");
 
@@ -115,5 +136,5 @@ test("implementation commit excludes the shared spec root and documentation", as
   const dirty = git(["status", "--short"]);
   assert.match(dirty, /docs\/overview\.md/);
   assert.match(dirty, /\?\? specs\//);
-  assert.equal(fs.existsSync(path.join(root, "specs", specId, "flow.json")), true);
+  assert.equal(fs.existsSync(path.join(root, "specs", specId, "001", "flow.json")), true);
 });

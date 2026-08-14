@@ -30,12 +30,15 @@ import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
-import { IssueLogDocument, IssueLogStore } from "./issue-log-store.js";
-import { runFlowCommandHooks } from "../../lib/plugin-registry.js";
+import { IssueLogDocument } from "./issue-log-store.js";
+import { issueLogStoreForVersion } from "./set-issue-log.js";
+import { CanonicalFlowArtifactWrite } from "./current-flow-state.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
+import { discoverFlowCommandHooks, runFlowCommandHooks } from "../../lib/plugin-registry.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
 import { PRODUCT } from "../../lib/product.js";
 import {
-  FlowOutbox,
+  FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "./flow-outbox.js";
 import { FlowCompletion } from "./flow-completion.js";
@@ -47,15 +50,15 @@ import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../lib/worktree-flow-binding.js";
-import { deleteRepairBaselineForFlow } from "./repair-state-identity.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import {
   DEFAULT_FLOW_SPEC_DIR,
-  FlowSpecLocation,
   FlowSpecRoot,
+  FlowWorkspace,
   flowStateSpecLocation,
-  relativeFlowSpecFile,
 } from "../../lib/flow-workspace.js";
+import { FlowVersion } from "../../lib/flow-version.js";
+import { deleteRepairBaselineForFlow } from "./repair-state-identity.js";
 
 const ORPHAN_COMMIT_LIST_LIMIT = 50;
 const SUBMODULE_DIAGNOSTIC_LIMIT = 50;
@@ -85,6 +88,14 @@ function requiredSpecLocation(state) {
   const location = flowStateSpecLocation(state);
   if (!location) throw new Error("finalize cleanup spec location is unavailable");
   return location;
+}
+
+function canonicalFlowLocation(repositoryRoot, specRoot, specId) {
+  return new FlowWorkspace({
+    repositoryRoot,
+    executionRoot: repositoryRoot,
+    specRoot,
+  }).canonicalVersion(specId, new FlowVersion(1));
 }
 
 function assertExactObjectKeys(value, keys, label) {
@@ -314,11 +325,7 @@ function attachReport(env, mainRoot, specRoot) {
 class AutoRescueIssueLogAllowance {
   constructor({ mainRepoPath, specRoot, specId, idempotencyKey }) {
     this.mainRepoPath = mainRepoPath;
-    this.relativePath = new FlowSpecLocation({
-      repositoryRoot: mainRepoPath,
-      specRoot,
-      specId,
-    }).relativeArtifact("issue-log.json");
+    this.relativePath = canonicalFlowLocation(mainRepoPath, specRoot, specId).relativeIssueLogFile;
     this.idempotencyKey = idempotencyKey;
   }
 
@@ -334,7 +341,12 @@ class AutoRescueIssueLogAllowance {
     const ownedEntries = current.entries.filter((entry) => (
       entry?.issueLogId === this.idempotencyKey || entry?.grantId === this.idempotencyKey
     ));
-    if (ownedEntries.length !== 1 || !current.remove(this.idempotencyKey)) return false;
+    if (ownedEntries.length !== 1) return false;
+    current = new IssueLogDocument({
+      entries: current.entries.filter((entry) => (
+        entry?.issueLogId !== this.idempotencyKey && entry?.grantId !== this.idempotencyKey
+      )),
+    });
 
     const exists = runGit([
       "-C", this.mainRepoPath, "ls-tree", "--name-only", "--full-tree", "HEAD", "--", this.relativePath,
@@ -363,29 +375,35 @@ class FinalizeFlowMetadataAllowance {
   constructor({ mainRepoPath, specRoot, specId }) {
     this.mainRepoPath = mainRepoPath;
     this.specId = specId;
-    const location = new FlowSpecLocation({ repositoryRoot: mainRepoPath, specRoot, specId });
-    this.flowPath = location.relativeFlowStateFile;
-    this.issueLogPath = location.relativeArtifact("issue-log.json");
+    this.location = canonicalFlowLocation(mainRepoPath, specRoot, specId);
+    this.flowPaths = [
+      this.location.relativeFlowStateFile,
+      this.location.relativeActivitiesFile,
+      this.location.relativeCatalogFile,
+    ];
+    this.issueLogPath = this.location.relativeIssueLogFile;
   }
 
-  allowsCurrentFlowState() {
+  allowsCurrentFlowMetadata() {
     let current;
     try {
-      current = JSON.parse(fs.readFileSync(path.join(this.mainRepoPath, this.flowPath), "utf8"));
+      current = JSON.parse(fs.readFileSync(path.join(this.mainRepoPath, this.flowPaths[0]), "utf8"));
     } catch {
       return false;
     }
     return (
       current != null
       && typeof current === "object"
+      && current.schemaRevision === 3
       && current.runId != null
       && typeof current.runId === "string"
       && current.specId === this.specId
-      && !Object.hasOwn(current, "spec")
-      && !Object.hasOwn(current, "specPath")
-      && typeof current.baseBranch === "string"
-      && typeof current.featureBranch === "string"
+      && current.execution != null
+      && typeof current.execution === "object"
+      && typeof current.execution.baseBranch === "string"
+      && typeof current.execution.featureBranch === "string"
       && Array.isArray(current.steps)
+      && this.flowPaths.slice(1).every((relativePath) => fs.existsSync(path.join(this.mainRepoPath, relativePath)))
     );
   }
 
@@ -434,9 +452,13 @@ function listMainRepoDirtyFiles(
   allowedIssueLogId = null,
   { allowFinalizeMetadata = false, specRoot = DEFAULT_FLOW_SPEC_DIR } = {},
 ) {
-  const location = new FlowSpecLocation({ repositoryRoot: mainRepoPath, specRoot, specId });
-  const issueLogPath = location.relativeArtifact("issue-log.json");
-  const flowPath = location.relativeFlowStateFile;
+  const location = canonicalFlowLocation(mainRepoPath, specRoot, specId);
+  const issueLogPath = location.relativeIssueLogFile;
+  const flowPaths = [
+    location.relativeFlowStateFile,
+    location.relativeActivitiesFile,
+    location.relativeCatalogFile,
+  ];
   const res = runGit([
     "-C",
     mainRepoPath,
@@ -445,7 +467,7 @@ function listMainRepoDirtyFiles(
     "--",
     ".",
     `:!${issueLogPath}`,
-    `:!${flowPath}`,
+    ...flowPaths.map((flowPath) => `:!${flowPath}`),
   ]);
   if (!res.ok) {
     const error = new Error(`main repository status probe failed: ${res.stderr || res.stdout || "unknown Git error"}`);
@@ -460,22 +482,24 @@ function listMainRepoDirtyFiles(
   const metadataAllowance = allowFinalizeMetadata
     ? new FinalizeFlowMetadataAllowance({ mainRepoPath, specRoot, specId })
     : null;
-  const flowStatus = runGit([
-    "-C",
-    mainRepoPath,
-    "status",
-    "--porcelain",
-    "--untracked-files=all",
-    "--",
-    flowPath,
-  ]);
-  if (!flowStatus.ok) {
-    const error = new Error(`main repository flow-state status probe failed: ${flowStatus.stderr || flowStatus.stdout || "unknown Git error"}`);
-    error.code = "MAIN_REPO_STATUS_FAILED";
-    throw error;
-  }
-  if (flowStatus.stdout.trim() && !metadataAllowance?.allowsCurrentFlowState()) {
-    dirtyFiles.push(flowPath);
+  for (const flowPath of flowPaths) {
+    const flowStatus = runGit([
+      "-C",
+      mainRepoPath,
+      "status",
+      "--porcelain",
+      "--untracked-files=all",
+      "--",
+      flowPath,
+    ]);
+    if (!flowStatus.ok) {
+      const error = new Error(`main repository Flow metadata status probe failed: ${flowStatus.stderr || flowStatus.stdout || "unknown Git error"}`);
+      error.code = "MAIN_REPO_STATUS_FAILED";
+      throw error;
+    }
+    if (flowStatus.stdout.trim() && !metadataAllowance?.allowsCurrentFlowMetadata()) {
+      dirtyFiles.push(flowPath);
+    }
   }
   const issueStatus = runGit([
     "-C",
@@ -514,16 +538,12 @@ function listOtherDirtyFlowJsonPaths(mainRepoPath, specRoot, specId) {
     "--porcelain",
     "--untracked-files=all",
     "--",
-    `:(glob)${normalizedSpecRoot}/*/flow.json`,
+    `:(glob)${normalizedSpecRoot}/*/001/flow.json`,
   ]);
   if (!res.ok) {
     throw new Error(res.stderr || res.stdout || "git status failed");
   }
-  const targetPath = new FlowSpecLocation({
-    repositoryRoot: mainRepoPath,
-    specRoot: normalizedSpecRoot,
-    specId,
-  }).relativeFlowStateFile;
+  const targetPath = canonicalFlowLocation(mainRepoPath, normalizedSpecRoot, specId).relativeFlowStateFile;
   const paths = [];
   const seen = new Set();
   for (const line of res.stdout.split("\n")) {
@@ -760,11 +780,6 @@ function preflightWorktreeRemoval({ worktreePath, featureBranch, authorizedDirty
   };
 }
 
-function writeJsonFile(filePath, value) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-}
-
 function removeGitWorktreeForCleanup({
   mainRepoPath,
   worktreePath,
@@ -930,56 +945,70 @@ export function recordFinalizeCleanupPostCommandMetadata({
 } = {}) {
   if (!flowManager) throw new Error("flowManager is required");
   const specLocation = flowManager.specLocation(specId);
-  const mainRoot = specLocation.repositoryRoot;
   const writtenPaths = [];
   const surfaces = new Set();
   const callerVisible = {};
 
-  function writeSurface(surface, fileName, payload) {
-    if (payload == null) return null;
-    const filePath = specLocation.artifact(fileName);
-    writeJsonFile(filePath, payload);
-    writtenPaths.push(filePath);
-    surfaces.add(surface);
-    return filePath;
-  }
-
-  function appendSurfaceEntries(surface, fileName, key, entries) {
+  function appendCatalogedEntries(logicalKey, key, entries) {
     if (!Array.isArray(entries) || entries.length === 0) return null;
-    const filePath = specLocation.artifact(fileName);
+    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey);
+    const catalog = flowManager.artifactCatalog(specId);
     let existing = [];
-    if (fs.existsSync(filePath)) {
-      const current = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    try {
+      const descriptor = catalog.resolve(artifact.relativePath);
+      const current = JSON.parse(fs.readFileSync(specLocation.resolve(descriptor.relativePath), "utf8"));
       if (Array.isArray(current?.[key])) existing = current[key];
+    } catch (error) {
+      // An absent descriptor is normal for a first producer publication.  A
+      // present but corrupt descriptor/document is an authority failure and
+      // must not be silently replaced.
+      if (fs.existsSync(specLocation.resolve(artifact.relativePath))) throw error;
     }
-    writeJsonFile(filePath, { version: 1, [key]: [...existing, ...entries] });
-    writtenPaths.push(filePath);
-    surfaces.add(surface);
-    return filePath;
+    return new CanonicalFlowArtifactWrite({
+      logicalKey,
+      mediaType: "application/json",
+      bytes: `${JSON.stringify({ version: 1, [key]: [...existing, ...entries] }, null, 2)}\n`,
+    });
   }
 
-  if (metrics.length > 0) {
-    appendSurfaceEntries("agent-metrics", "agent-metrics.json", "entries", metrics);
+  const artifactWrites = [
+    appendCatalogedEntries("finalize.cleanup.agent-metrics", "entries", metrics),
+    appendCatalogedEntries("finalize.cleanup.notes", "entries", notes),
+    appendCatalogedEntries("finalize.cleanup.plugin-artifacts", "artifacts", pluginArtifacts),
+  ].filter(Boolean);
+  if (artifactWrites.length > 0) {
+    flowManager.publishArtifacts({
+      specId,
+      nodeId: "finalize-cleanup",
+      artifactWrites,
+    });
+    for (const write of artifactWrites) writtenPaths.push(specLocation.resolve(write.artifact.relativePath));
+    if (metrics.length > 0) surfaces.add("agent-metrics");
+    if (notes.length > 0) surfaces.add("notes");
   }
   if (runtimeLog) {
-    writeSurface("runtime-log", "runtime-log.json", { version: 1, runtimeLog });
-  }
-  if (notes.length > 0) {
-    appendSurfaceEntries("notes", "notes.json", "entries", notes);
+    flowManager.writeRuntimeArtifact({
+      specId,
+      nodeId: "finalize-cleanup",
+      artifact: {
+        logicalKey: "finalize.cleanup.runtime-log",
+        mediaType: "application/json",
+        bytes: `${JSON.stringify({ version: 1, runtimeLog }, null, 2)}\n`,
+      },
+    });
+    surfaces.add("runtime-log");
   }
   if (issueLogEntries.length > 0) {
-    const specPath = specLocation.relativeSpecFile;
     const timestamp = new Date().toISOString();
-    new IssueLogStore({ root: mainRoot, spec: specPath, operationOwnerToken }).appendMany(issueLogEntries.map((entry) => {
+    issueLogStoreForVersion(specLocation, { operationOwnerToken }).appendMany(issueLogEntries.map((entry) => {
       const normalized = { ...entry, timestamp: entry?.timestamp || timestamp };
       const idempotencyKey = finalizeLifecycleIssueLogId(entry);
       return { entry: normalized, idempotencyKey };
     }));
-    writtenPaths.push(specLocation.artifact("issue-log.json"));
+    writtenPaths.push(specLocation.issueLogFile);
     surfaces.add("issue-log");
   }
   if (pluginArtifacts.length > 0) {
-    appendSurfaceEntries("plugin-artifact", "plugin-artifacts.json", "artifacts", pluginArtifacts);
     callerVisible.plugin = {
       warnings: pluginArtifacts.flatMap((a) => a?.data?.warnings || []),
       followUps: pluginArtifacts.flatMap((a) => a?.data?.followUps || []),
@@ -988,11 +1017,11 @@ export function recordFinalizeCleanupPostCommandMetadata({
     surfaces.add("plugin-hook-output");
   }
   if (report) {
-    writeSurface("report-envelope", "report-envelope.json", { version: 1, report });
+    // Envelopes are command-return values, not Flow evidence.  Keeping them
+    // on disk created a second, non-catalog finalize authority.
     callerVisible.report = report;
   }
   if (recoveryEnvelope) {
-    writeSurface("recovery-envelope", "recovery-envelope.json", { version: 1, recoveryEnvelope });
     callerVisible.recoveryEnvelope = recoveryEnvelope;
   }
 
@@ -1023,8 +1052,11 @@ export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePat
     };
   }
 
-  const artifactDir = specLocation.artifact("plugin-artifacts");
-  const artifactPath = path.relative(mainRepoPath, artifactDir).split(path.sep).join("/");
+  // Plugin hooks retain their existing artifact-root input contract.  The
+  // bound Version location is already repository-relative; resolving a
+  // made-up `plugin-artifacts` logical key would bypass the catalog contract
+  // and fails for V1 because collection members require an exact path.
+  const artifactPath = specLocation.relativeDirectory;
   return {
     root: worktreePath,
     artifactRepositoryRoot: mainRepoPath,
@@ -1035,6 +1067,24 @@ export function finalizeCleanupPluginLifecycleContext({ root, state, worktreePat
 
 function finalizeCleanupPrePluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId }) {
   return finalizeCleanupPluginLifecycleContext({ root, state, worktreePath, mainRepoPath, specId });
+}
+
+function canonicalPluginArtifactContext(context, flowManager, specId) {
+  return {
+    ...context,
+    artifactReader: (request) => flowManager.readArtifact({
+      specId,
+      consumerNodeId: "flow",
+      ...request,
+    }),
+    publishArtifacts(writes) {
+      if (!Array.isArray(writes) || writes.length === 0) return;
+      flowManager.publishPluginArtifacts({
+        specId,
+        artifactWrites: writes.map((write) => new CanonicalFlowArtifactWrite(write)),
+      });
+    },
+  };
 }
 
 function finalizePluginLifecycleFailure(error) {
@@ -1079,12 +1129,14 @@ function composeFinalizePluginLifecycle(pre, post) {
 async function runFinalizePreHooks(pluginContext, state) {
   let pluginPre;
   try {
-    pluginPre = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
+    const hooks = await discoverFlowCommandHooks(pluginContext.root);
+    pluginPre = await runFlowCommandHooks(pluginContext.root, hooks, {
       command: "finalize-cleanup",
       hook: "pre",
       flow: pluginContext.flow,
       result: {},
       artifactRepositoryRoot: pluginContext.artifactRepositoryRoot || pluginContext.root,
+      artifactReader: pluginContext.artifactReader,
     });
   } catch (err) {
     return { ok: false, env: finalizePluginLifecycleFailure(err) };
@@ -1092,6 +1144,7 @@ async function runFinalizePreHooks(pluginContext, state) {
   if (!pluginPre.ok) {
     return { ok: false, env: finalizeRequiredPluginHookFailure(pluginPre) };
   }
+  pluginContext.publishArtifacts?.(pluginPre.artifactWrites);
   return { ok: true, pluginPre };
 }
 
@@ -1102,10 +1155,13 @@ async function runFinalizePreHooks(pluginContext, state) {
  */
 async function runFinalizePostHooks(pluginContext, state, pluginPre, result) {
   try {
-    const pluginPost = await runFlowCommandHooks(pluginContext.root, state.plugins?.flowCommandHooks || [], {
+    const hooks = await discoverFlowCommandHooks(pluginContext.root);
+    const pluginPost = await runFlowCommandHooks(pluginContext.root, hooks, {
       command: "finalize-cleanup", hook: "post", flow: pluginContext.flow, result,
       artifactRepositoryRoot: pluginContext.artifactRepositoryRoot || pluginContext.root,
+      artifactReader: pluginContext.artifactReader,
     });
+    if (pluginPost.ok) pluginContext.publishArtifacts?.(pluginPost.artifactWrites);
     return { ok: true, pluginLifecycle: composeFinalizePluginLifecycle(pluginPre, pluginPost) };
   } catch (err) {
     return { ok: false, env: finalizePluginLifecycleFailure(err) };
@@ -1150,30 +1206,27 @@ function readOrphanCommits(repoPath, baseline, featureBranch) {
  * unconditionally to the main repo (not the worktree, which may be deleted by
  * later teardown).
  */
-function appendIssueLog(mainRepoPath, specPath, entry, idempotencyKey, { operationOwnerToken = null } = {}) {
-  new IssueLogStore({ root: mainRepoPath, spec: specPath, operationOwnerToken }).append({
-    ...entry,
-    timestamp: entry.timestamp || new Date().toISOString(),
-  }, idempotencyKey);
-  return idempotencyKey;
-}
-
-function appendForcedFinalizeAudit(root, state, authorization, { operationOwnerToken = null } = {}) {
+function appendForcedFinalizeAudit(flowManager, state, authorization) {
   const droppedCommits = authorization.droppedCommits.map((commit) => commit.toJSON());
-  appendIssueLog(root, relativeFlowSpecFile(state), {
-    step: "finalize-cleanup",
-    reason: "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
-    trigger: "sennel flow run finalize-cleanup --force",
-    resolution: droppedCommits.length > 0
-      ? `dropped ${authorization.droppedCount} commit(s); top sha=${droppedCommits[0]?.sha?.slice(0, 12) || "n/a"}`
-      : authorization.diverged
-      ? "baseline diverged (history rewrite); branch deleted without rescue"
-      : "baseline missing; branch deleted without rescue",
-    droppedCommits,
-    droppedCount: authorization.droppedCount,
-    droppedTruncated: authorization.droppedTruncated,
-    taskId: null,
-  }, authorization.auditId, { operationOwnerToken });
+  flowManager.appendIssueLog({
+    specId: state.specId,
+    idempotencyKey: authorization.auditId,
+    entry: {
+      step: "finalize-cleanup",
+      reason: "FORCED_ORPHAN_DROP: feature branch deleted via --force despite orphan / divergent state",
+      trigger: "sennel flow run finalize-cleanup --force",
+      resolution: droppedCommits.length > 0
+        ? `dropped ${authorization.droppedCount} commit(s); top sha=${droppedCommits[0]?.sha?.slice(0, 12) || "n/a"}`
+        : authorization.diverged
+        ? "baseline diverged (history rewrite); branch deleted without rescue"
+        : "baseline missing; branch deleted without rescue",
+      droppedCommits,
+      droppedCount: authorization.droppedCount,
+      droppedTruncated: authorization.droppedTruncated,
+      taskId: null,
+      timestamp: new Date().toISOString(),
+    },
+  });
 }
 
 function attachForcedFinalizeContext(env, authorization) {
@@ -2285,10 +2338,12 @@ function cherryPickRange(repoPath, range, runGitFn = runGit) {
   return { ok: true };
 }
 
-function finalizeSyncWarning(state) {
-  const entry = new FlowOutbox(state.outbox || []).find(
-    finalizationOutboxIdentity(state, "finalize-sync"),
-  );
+function finalizeSyncWarning(state, outboxStore) {
+  if (!(outboxStore instanceof FlowOutboxStore)) {
+    throw new Error("finalize-sync warning requires the canonical outbox Store");
+  }
+  const identity = finalizationOutboxIdentity(state, "finalize-sync");
+  const entry = outboxStore.status(identity);
   if (entry?.status !== "failed") return null;
   const failure = entry.latestFailure;
   return {
@@ -2369,13 +2424,13 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       ]);
     }
 
-    const pluginContext = finalizeCleanupPrePluginLifecycleContext({
+    const pluginContext = canonicalPluginArtifactContext(finalizeCleanupPrePluginLifecycleContext({
       root,
       state,
       worktreePath,
       mainRepoPath,
       specId,
-    });
+    }), resolution.stateOwner.flowManager, specId);
     const preResult = await runFinalizePreHooks(pluginContext, state);
     if (!preResult.ok) return preResult.env;
     ctx = { ...ctx, finalizePluginContext: pluginContext, finalizePluginPre: preResult.pluginPre };
@@ -2408,8 +2463,10 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     }
 
     // ── Stage (B) — route routing ───────────────────────────────────────────
-    const persistedStrategy = state.state?.mergeStrategy ?? null;
-    const baseline = state.state?.featureBranchSquashedSha ?? null;
+    const mergeOutcome = new FlowOutboxStore(resolution.stateOwner.flowManager, { specId })
+      .status(finalizationOutboxIdentity(state, "finalize-merge"))?.result ?? null;
+    const persistedStrategy = mergeOutcome?.strategy ?? null;
+    const baseline = mergeOutcome?.mergedFromSha ?? null;
 
     if (persistedStrategy === "pr") {
       // PR route — orphan detection is out of scope (Issue #316). Proceed
@@ -2583,16 +2640,19 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       // Rescue failed — record audit log for CHERRY_PICK_CONFLICT, halt.
       if (rescue.code === "CHERRY_PICK_CONFLICT" && mainRepoPath) {
         try {
-          appendIssueLog(mainRepoPath, relativeFlowSpecFile(state), {
-            step: "finalize-cleanup",
-            reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
-            trigger: "sennel flow run finalize-cleanup --auto-rescue",
-            resolution: rescue.abortFailure
-              ? "cherry-pick abort failed; durable temporary-worktree cleanup authority retained for retry"
-              : "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
-            taskId: null,
-          }, finalizeAuditId("cherry-pick-conflict", state, { baseline, featureBranch }), {
-            operationOwnerToken: ctx.repositoryOperationOwnerToken,
+          ctx.flowManager.appendIssueLog({
+            specId: state.specId,
+            idempotencyKey: finalizeAuditId("cherry-pick-conflict", state, { baseline, featureBranch }),
+            entry: {
+              step: "finalize-cleanup",
+              reason: "cherry-pick conflict during auto-rescue (worktree retained for manual recovery)",
+              trigger: "sennel flow run finalize-cleanup --auto-rescue",
+              resolution: rescue.abortFailure
+                ? "cherry-pick abort failed; durable temporary-worktree cleanup authority retained for retry"
+                : "cherry-pick aborted; user must resolve manually via archive + individual cherry-pick",
+              taskId: null,
+              timestamp: new Date().toISOString(),
+            },
           });
         } catch (err) {
           return Envelope.fail(
@@ -2739,6 +2799,20 @@ function completeFinalizeCleanupStep(stateOwner, operationOwnerToken) {
   });
 }
 
+/**
+ * `finalize-cleanup` is the last definition-owned leaf.  Completing that
+ * Attempt is not itself a lifecycle transition: the Version Store keeps the
+ * lifecycle fact as a separate typed Activity so a restart can distinguish a
+ * completed cleanup from a finalized Flow.  Older fixture-only managers do
+ * not expose schemaRevision 3 and keep their historical completion surface.
+ */
+function finalizeCanonicalFlowIfComplete(stateOwner) {
+  const state = stateOwner.loadReadOnly();
+  if (state?.schemaRevision !== 3 || state.lifecycle === "finalized") return state;
+  stateOwner.flowManager.finalizeFlow(state.specId);
+  return stateOwner.loadReadOnly();
+}
+
 const SHARED_FINALIZE_CLEANUP_PHASES = Object.freeze([
   "prepared",
   "worktree-removed",
@@ -2756,7 +2830,12 @@ class SharedFinalizeCleanupJournal {
 
   static open(state) {
     const location = requiredSpecLocation(state);
-    const file = new AtomicJsonFile(location.artifact("finalize-cleanup.json"));
+    const journalPath = location.artifact("finalize.cleanup.journal");
+    // The journal is a transient Version artifact.  A fresh Version root owns
+    // `.runtime`, but not every producer-specific child directory; establish
+    // this typed artifact's parent before opening its atomic authority.
+    fs.mkdirSync(path.dirname(journalPath), { recursive: true, mode: 0o755 });
+    const file = new AtomicJsonFile(journalPath);
     const stored = file.read(null);
     if (stored) {
       assertExactObjectKeys(stored, [
@@ -2825,10 +2904,10 @@ function resolveFeatureSha(root, featureBranch) {
   return result.stdout.trim();
 }
 
-function sharedFinalizeCompletionData(state, pluginLifecycle) {
+function sharedFinalizeCompletionData(state, pluginLifecycle, outboxStore) {
   const completion = new FlowCompletion(state);
   const receipt = completion.toJSON();
-  const syncWarning = finalizeSyncWarning(state);
+  const syncWarning = finalizeSyncWarning(state, outboxStore);
   return {
     data: {
       status: "done",
@@ -2899,9 +2978,7 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
 
   if (authorization?.route === "forced" && !journal.atLeast("worktree-removed")) {
     try {
-      appendForcedFinalizeAudit(reportRoot, state, authorization, {
-        operationOwnerToken: ctx.repositoryOperationOwnerToken,
-      });
+      appendForcedFinalizeAudit(stateOwner.flowManager, state, authorization);
     } catch (error) {
       return Envelope.fail(
         "run",
@@ -2991,13 +3068,14 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
 
   if (!journal.atLeast("pointer-written")) {
     try {
+      deleteRepairBaselineForFlow(gitRoot, state);
       writeLastFinalizedPointer(reportRoot, specId);
     } catch (error) {
       return Envelope.fail(
         "run",
         "finalize-cleanup",
         "FINALIZE_POINTER_WRITE_FAILED",
-        `Finalize pointer publication failed: ${error.message}`,
+        `Finalize metadata cleanup failed: ${error.message}`,
         { causeCode: error.code || null },
       );
     }
@@ -3006,20 +3084,24 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
 
   let pluginLifecycle = { ok: true, warnings: [], issueLogEntries: [], data: {} };
   if (!journal.atLeast("completed")) {
-    const pluginContext = ctx.finalizePluginContext || finalizeCleanupPrePluginLifecycleContext({
+    const pluginContext = ctx.finalizePluginContext || canonicalPluginArtifactContext(finalizeCleanupPrePluginLifecycleContext({
       root: ctx.root,
       state,
       worktreePath,
       mainRepoPath,
       specId,
-    });
+    }), stateOwner.flowManager, specId);
     const preResult = ctx.finalizePluginPre
       ? { ok: true, pluginPre: ctx.finalizePluginPre }
       : await runFinalizePreHooks(pluginContext, state);
     if (!preResult.ok) return preResult.env;
     const pluginPre = preResult.pluginPre;
     const postResult = await runFinalizePostHooks(
-      finalizeCleanupPluginLifecycleContext({ root: ctx.root, state, worktreePath, mainRepoPath, specId }),
+      canonicalPluginArtifactContext(
+        finalizeCleanupPluginLifecycleContext({ root: ctx.root, state, worktreePath, mainRepoPath, specId }),
+        stateOwner.flowManager,
+        specId,
+      ),
       state,
       pluginPre,
       Envelope.ok("run", "finalize-cleanup", { status: "done" }),
@@ -3041,12 +3123,17 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
     completeFinalizeCleanupStep(stateOwner, ctx.repositoryOperationOwnerToken);
     const outbox = stateOwner.outbox({ operationOwnerToken: ctx.repositoryOperationOwnerToken });
     const identity = finalizationOutboxIdentity(state, "finalize-cleanup");
+    outbox.begin(identity);
     const { data: completionData } = sharedFinalizeCompletionData(
       stateOwner.loadReadOnly(),
       pluginLifecycle,
+      outbox,
     );
-    outbox.begin(identity);
     outbox.complete(identity, completionData);
+    // The last outbox receipt is durable before the Flow lifecycle becomes
+    // immutable. This makes a crash in this boundary resumable without
+    // reopening a finalized outbox or re-running the external teardown.
+    finalizeCanonicalFlowIfComplete(stateOwner);
     journal.advance("completed");
   }
 
@@ -3054,6 +3141,7 @@ async function runSharedSpecTeardown(ctx, { worktreePath, mainRepoPath, reportRo
   const { data: completionData, syncWarning } = sharedFinalizeCompletionData(
     completedState,
     pluginLifecycle,
+    stateOwner.outbox(),
   );
   const env = attachReport(
     Envelope.ok("run", "finalize-cleanup", completionData),
@@ -3080,7 +3168,7 @@ async function runTeardown(ctx, options) {
 }
 
 async function runPersistedTeardownIfPresent(ctx, options) {
-  const journalPath = requiredSpecLocation(ctx.flowState).artifact("finalize-cleanup.json");
+  const journalPath = requiredSpecLocation(ctx.flowState).artifact("finalize.cleanup.journal");
   return fs.existsSync(journalPath) ? runSharedSpecTeardown(ctx, options) : null;
 }
 
@@ -3107,7 +3195,6 @@ export function commitFinalizeCleanupPostCommandMetadata({ flowManager, specId, 
       idempotencyKey: identity.idempotencyKey,
       additionalPaths,
     });
-    deleteRepairBaselineForFlow(root, state);
     repositoryFlowManager.removeActiveFlow(specId, { operationOwnerToken });
     return result;
   } finally {

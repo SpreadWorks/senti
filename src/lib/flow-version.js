@@ -11,7 +11,6 @@ import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactReviewEvidence, FlowArtifactUpdate
 export { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
 export { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
 
-export const FLOW_VERSION_RECORD_SCHEMA_REVISION = 1;
 const CATALOG_SCHEMA_REVISION = 2;
 const MIGRATION_CLASSIFICATIONS = new Set(["fresh", "legacy", "versioned", "conflict"]);
 const MIGRATION_OPERATIONS = new Set(["copy", "transform", "generate", "exclude-runtime"]);
@@ -20,10 +19,33 @@ const MIGRATION_ARTIFACT_ROLES = new Set([
   "review-evidence", "artifact", "runtime",
 ]);
 const VERSION_AUTHORITY_SCOPES = new Set(["canonical", "execution"]);
-const VERSION_TRANSIENT_FILES = new Set([
-  ".issue-log.lock", ".current-flow-state.lock", ".artifact-catalog.lock",
+const TASK_ARTIFACT_SEGMENTS = new Set(["impl", "review", "gate"]);
+const TASK_ARTIFACT_SEGMENT_BY_LOGICAL_KEY = new Map([
+  ["task.review", "review"],
+  ["task.gate.source", "gate"],
+  ["task.gate", "gate"],
 ]);
+// Transient implementation state is allowed only below `.runtime/`.  Keeping
+// this empty deliberately makes a root-level lock or transaction marker an
+// invalid Version artifact instead of silently accepting a second layout.
+const VERSION_TRANSIENT_FILES = new Set();
 const STEP_OWNED_ARTIFACT_KINDS = new Set(["review-evidence"]);
+// Every typed Task transition updates the single state authority and appends
+// its Activity.  Those flow-wide records are intentionally associated with
+// the Task Activity for journal ordering, but are not Task-owned deliverables.
+// `issue.log` has the same ledger-wide ownership rule for task-gate facts.
+// A typed task-impl overview contribution likewise updates the one root Spec
+// record, rather than creating a task-local deliverable.
+const FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS = new Set([
+  "flow.state",
+  "flow.activities",
+  "spec.record",
+  "issue.log",
+  // Task implementation contributes the flow-wide requirement map.  Its
+  // bytes intentionally remain at the implementation owner path so every
+  // later task and the flow-level gate resolve one authoritative catalog key.
+  "file.map",
+]);
 const MIGRATION_CATALOG_INITIALIZATION = Symbol("migration-catalog-initialization");
 const CATALOG_LOCK_RETRY_ATTEMPTS = 3;
 const CATALOG_LOCK_RETRY_MS = 10;
@@ -120,7 +142,6 @@ function restoreBeforeImage(image) {
 }
 
 function catalogManagedPath(value) {
-  if (value === "flow-version.json") return true;
   if (value.startsWith("artifacts/legacy/")) return true; // migration materialization namespace only
   try { return FLOW_ARTIFACT_CONTRACTS.classify(value).cataloged; } catch { return false; }
 }
@@ -134,6 +155,17 @@ function managedFiles(location, current = location.directory, result = []) {
   for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
     const absolute = path.join(current, entry.name);
     const rel = path.relative(location.directory, absolute).split(path.sep).join("/");
+    // `.runtime/` is the sole explicitly transient subtree. Its contents
+    // include locks and untrusted worker handoff work units, so catalog
+    // verification must neither classify nor recursively inspect them. The
+    // root itself remains a real directory authority; a symlink there would
+    // still escape the Version and is rejected.
+    if (rel === ".runtime") {
+      if (!entry.isDirectory() || entry.isSymbolicLink()) {
+        throw new Error("Version runtime authority must be a real directory");
+      }
+      continue;
+    }
     if (entry.isSymbolicLink()) throw new Error(`Version storage must not contain symbolic links: ${rel}`);
     if (entry.isDirectory()) {
       managedFiles(location, absolute, result);
@@ -160,6 +192,12 @@ class VersionTreeSnapshot {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
       const relative = path.relative(this.location.directory, absolute).split(path.sep).join("/");
+      if (relative === ".runtime") {
+        if (!entry.isDirectory() || entry.isSymbolicLink()) {
+          throw new Error("Version runtime authority must be a real directory");
+        }
+        continue;
+      }
       if (entry.isSymbolicLink()) throw new Error(`Version storage must not contain symbolic links: ${relative}`);
       if (VERSION_TRANSIENT_FILES.has(relative) || knownNoncatalogedPath(relative)) continue;
       if (entry.isDirectory()) {
@@ -188,19 +226,27 @@ class VersionTreeSnapshot {
   restore() {
     const files = [];
     const directories = [];
-    const collect = (directory, preserveDirectories = false) => {
+    const collect = (directory) => {
+      let containsTransientEntry = false;
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         const absolute = path.join(directory, entry.name);
         const relative = path.relative(this.location.directory, absolute).split(path.sep).join("/");
-        if (VERSION_TRANSIENT_FILES.has(relative) || knownNoncatalogedPath(relative)) continue;
+        if (
+          relative === ".runtime"
+          || VERSION_TRANSIENT_FILES.has(relative)
+          || knownNoncatalogedPath(relative)
+        ) {
+          containsTransientEntry = true;
+          continue;
+        }
         if (entry.isDirectory() && !entry.isSymbolicLink()) {
-          const preserve = preserveDirectories || relative === ".runtime";
-          collect(absolute, preserve);
-          if (!preserve) directories.push(absolute);
+          if (collect(absolute)) containsTransientEntry = true;
+          else directories.push(absolute);
         } else {
           files.push(absolute);
         }
       }
+      return containsTransientEntry;
     };
     collect(this.location.directory);
     for (const file of files) fs.unlinkSync(file);
@@ -299,49 +345,6 @@ export class FlowVersionAuthorityScope {
   static from(value) { return value instanceof FlowVersionAuthorityScope ? value : new FlowVersionAuthorityScope(value); }
   toString() { return this.value; }
   toJSON() { return this.value; }
-}
-
-
-export class FlowVersionIdentity {
-  constructor({ flowId, flowVersionId, version, specId, runId } = {}) {
-    this.flowId = FlowId.from(flowId);
-    this.flowVersionId = FlowVersionId.from(flowVersionId);
-    this.version = FlowVersion.from(version);
-    this.specId = FlowSpecIdentity.from(specId);
-    this.runId = FlowRunId.from(runId);
-    Object.freeze(this);
-  }
-  toJSON() {
-    return {
-      flowId: this.flowId.toJSON(), flowVersionId: this.flowVersionId.toJSON(),
-      version: this.version.toJSON(), specId: this.specId.toJSON(), runId: this.runId.toJSON(),
-    };
-  }
-  equals(other) {
-    return other instanceof FlowVersionIdentity
-      && this.flowId.equals(other.flowId)
-      && this.flowVersionId.equals(other.flowVersionId)
-      && this.version.value === other.version.value
-      && this.specId.equals(other.specId)
-      && this.runId.equals(other.runId);
-  }
-}
-
-export class FlowVersionRecord {
-  constructor({ identity, schemaRevision = FLOW_VERSION_RECORD_SCHEMA_REVISION } = {}) {
-    this.identity = identity instanceof FlowVersionIdentity ? identity : new FlowVersionIdentity(identity);
-    if (schemaRevision !== FLOW_VERSION_RECORD_SCHEMA_REVISION) {
-      throw new Error(`unsupported Flow Version record schemaRevision: ${schemaRevision}`);
-    }
-    this.schemaRevision = schemaRevision;
-    Object.freeze(this);
-  }
-  toJSON() { return { ...this.identity.toJSON(), schemaRevision: this.schemaRevision }; }
-  equals(other) {
-    return other instanceof FlowVersionRecord
-      && this.schemaRevision === other.schemaRevision
-      && this.identity.equals(other.identity);
-  }
 }
 
 export class AuthoritativeSpecRecord {
@@ -456,7 +459,7 @@ export class FlowVersionConsumerPaths {
 }
 
 export class FlowVersionLocation {
-  constructor({ repositoryRoot, authorityScope, specRoot = "specs", specId, version } = {}) {
+  constructor({ repositoryRoot, authorityScope, specRoot = "specs", specId, version, storageRelativeDirectory = null } = {}) {
     if (typeof repositoryRoot !== "string" || !path.isAbsolute(repositoryRoot)) throw new Error("repositoryRoot must be an absolute path");
     this.repositoryRoot = path.resolve(repositoryRoot);
     const rootStat = fs.lstatSync(this.repositoryRoot);
@@ -467,7 +470,20 @@ export class FlowVersionLocation {
     this.specRoot = relativePath(specRoot, "specRoot");
     this.specId = FlowSpecIdentity.from(specId);
     this.version = FlowVersion.from(version);
-    this.relativeDirectory = path.posix.join(this.specRoot, this.specId.toString(), this.version.pathSegment);
+    const canonicalRelativeDirectory = path.posix.join(this.specRoot, this.specId.toString(), this.version.pathSegment);
+    if (storageRelativeDirectory !== null) {
+      const staged = relativePath(storageRelativeDirectory, "Version staging directory");
+      const expectedParent = path.posix.dirname(canonicalRelativeDirectory);
+      if (path.posix.dirname(staged) !== expectedParent || !path.posix.basename(staged).startsWith(`.${this.version.pathSegment}.`)) {
+        throw new Error("Version staging directory must be a sibling of its canonical Version root");
+      }
+      this.relativeDirectory = staged;
+      this.isStaging = true;
+    } else {
+      this.relativeDirectory = canonicalRelativeDirectory;
+      this.isStaging = false;
+    }
+    this.canonicalRelativeDirectory = canonicalRelativeDirectory;
     this.directory = path.join(this.repositoryRoot, ...this.relativeDirectory.split("/"));
     this.consumers = new FlowVersionConsumerPaths(this);
     Object.freeze(this);
@@ -475,6 +491,20 @@ export class FlowVersionLocation {
   requireScope(value) {
     if (this.authorityScope.value !== value) throw new Error(`${value} Version authority is required`);
     return this;
+  }
+  stagingSibling(token) {
+    const suffix = identifier(token, "Version staging token");
+    return new FlowVersionLocation({
+      repositoryRoot: this.repositoryRoot,
+      authorityScope: this.authorityScope,
+      specRoot: this.specRoot,
+      specId: this.specId,
+      version: this.version,
+      storageRelativeDirectory: path.posix.join(
+        path.posix.dirname(this.canonicalRelativeDirectory),
+        `.${this.version.pathSegment}.${suffix}.tmp`,
+      ),
+    });
   }
   assertAuthority(value = null, options = {}) {
     const target = value == null ? this.directory : this.resolve(value);
@@ -487,50 +517,92 @@ export class FlowVersionLocation {
   artifactPath(value) { return this.resolve(path.posix.join("artifacts/legacy", relativePath(value, "migration artifact path"))); }
   artifact(logicalKey, parameters = {}) { return this.resolve(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
   relativeArtifact(logicalKey, parameters = {}) { return this.relativePath(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
+  // State consumers need repository-relative paths, but must not reconstruct
+  // a Version directory themselves.  These accessors are the canonical
+  // counterpart of the retired FlowSpecLocation conveniences.
+  get relativeFlowStateFile() { return this.relativeArtifact("flow.state"); }
+  get relativeActivitiesFile() { return this.relativeArtifact("flow.activities"); }
+  get relativeSpecFile() { return this.relativeArtifact("spec.record"); }
+  get relativeCatalogFile() { return this.relativeArtifact("artifact.catalog"); }
+  get relativeIssueLogFile() { return this.relativeArtifact("issue.log"); }
+  get relativeIssueSnapshotFile() { return this.relativeArtifact("issue.snapshot"); }
   get flowStateFile() { return this.artifact("flow.state"); }
-  get identityFile() { return this.resolve("flow-version.json"); }
   get activitiesFile() { return this.artifact("flow.activities"); }
   get specFile() { return this.artifact("spec.record"); }
   get catalogFile() { return this.artifact("artifact.catalog"); }
   get issueLogFile() { return this.artifact("issue.log"); }
   get issueSnapshotFile() { return this.artifact("issue.snapshot"); }
   get reportFile() { return this.artifact("report"); }
+  taskArtifactLocation(taskId) {
+    return new FlowTaskArtifactLocation({ versionLocation: this, taskId });
+  }
   reviewEvidencePath({ reviewStep = null, taskId = null, digest } = {}) {
     return this.resolve(FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep, taskId, digest }).relativePath);
   }
 }
 
-// Transitional Version-foundation storage. This is deliberately absent from
-// the new canonical artifact registry and remains only until b9b4 removes it.
-export class FlowVersionIdentityStore {
-  constructor({ location } = {}) {
-    if (!(location instanceof FlowVersionLocation)) throw new Error("FlowVersionLocation is required for Flow Version identity storage");
-    location.requireScope("canonical");
-    location.assertAuthority();
-    this.location = location;
-    this.file = new AtomicJsonFile(location.identityFile);
+/**
+ * Typed location for one materialized Task's durable artifact topology.
+ *
+ * Task identifiers are never interpolated by callers into a Version path.
+ * This value owns the sole Version-layer mapping from a stable Task id to
+ * `steps/impl/<taskId>/{impl,review,gate}` and verifies that every task
+ * artifact it resolves is the artifact-contract member for that same id.
+ */
+export class FlowTaskArtifactLocation {
+  constructor({ versionLocation, taskId } = {}) {
+    if (!(versionLocation instanceof FlowVersionLocation)) {
+      throw new Error("task artifact location requires a FlowVersionLocation");
+    }
+    this.versionLocation = versionLocation;
+    this.taskId = identifier(taskId, "taskId");
+    this.relativeDirectory = path.posix.dirname(
+      FLOW_ARTIFACT_CONTRACTS.taskDirectory(this.taskId, "impl"),
+    );
+    this.directory = this.versionLocation.resolve(this.relativeDirectory);
     Object.freeze(this);
   }
-  create(record) {
-    if (!(record instanceof FlowVersionRecord)) throw new Error("FlowVersionRecord is required");
-    if (!record.identity.specId.equals(this.location.specId) || record.identity.version.value !== this.location.version.value) {
-      throw new Error("Flow Version identity does not match its Version location");
+
+  relativeDirectoryFor(segment) {
+    const resolved = identifier(segment, "task artifact segment");
+    if (!TASK_ARTIFACT_SEGMENTS.has(resolved)) {
+      throw new Error(`task artifact segment is invalid: ${resolved}`);
     }
-    this.location.assertAuthority();
-    if (fs.existsSync(this.location.identityFile)) throw new Error("Flow Version identity already exists");
-    fs.mkdirSync(this.location.directory, { recursive: true, mode: 0o755 });
-    this.file.write(record.toJSON());
-    return record;
+    return FLOW_ARTIFACT_CONTRACTS.taskDirectory(this.taskId, resolved);
   }
-  load() {
-    this.location.assertAuthority("flow-version.json");
-    const value = this.file.read(null);
-    if (value === null) return null;
-    const record = new FlowVersionRecord({ identity: value, schemaRevision: value.schemaRevision });
-    if (!record.identity.specId.equals(this.location.specId) || record.identity.version.value !== this.location.version.value) {
-      throw new Error("persisted Flow Version identity does not match its Version location");
+
+  directoryFor(segment) {
+    return this.versionLocation.resolve(this.relativeDirectoryFor(segment));
+  }
+
+  get implDirectory() { return this.directoryFor("impl"); }
+  get reviewDirectory() { return this.directoryFor("review"); }
+  get gateDirectory() { return this.directoryFor("gate"); }
+
+  relativeArtifact(logicalKey) {
+    return this.versionLocation.relativePath(this.#artifact(logicalKey).relativePath);
+  }
+
+  artifact(logicalKey) {
+    return this.versionLocation.resolve(this.#artifact(logicalKey).relativePath);
+  }
+
+  get reviewResultFile() { return this.artifact("task.review"); }
+  get gateSourceFile() { return this.artifact("task.gate.source"); }
+  get gateResultFile() { return this.artifact("task.gate"); }
+
+  #artifact(logicalKey) {
+    const key = text(logicalKey, "task artifact logicalKey");
+    const segment = TASK_ARTIFACT_SEGMENT_BY_LOGICAL_KEY.get(key);
+    if (segment === undefined) {
+      throw new Error(`task artifact location does not own logical key: ${key}`);
     }
-    return record;
+    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(key, { taskId: this.taskId });
+    const directory = this.relativeDirectoryFor(segment);
+    if (path.posix.dirname(artifact.relativePath) !== directory) {
+      throw new Error(`task artifact contract does not match its Task directory: ${key}`);
+    }
+    return artifact;
   }
 }
 
@@ -542,14 +614,11 @@ export class FlowArtifactDescriptor {
     if (kind != null && this.slot.kind !== kind) throw new Error("artifact kind does not match its authority slot");
     this.kind = this.slot.kind;
     this.relativePath = relativePath(file, "artifact relativePath");
-    const transitionalIdentity = this.relativePath === "flow-version.json" && (logicalKey === null || logicalKey === "transition.flow-version-identity");
     let contract = null;
-    if (!transitionalIdentity) {
-      if (logicalKey !== null) contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
-      else {
-        try { contract = FLOW_ARTIFACT_CONTRACTS.classify(this.relativePath); } catch (error) {
-          if (migrationMaterialization !== true || !this.relativePath.startsWith("artifacts/legacy/")) throw error;
-        }
+    if (logicalKey !== null) contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
+    else {
+      try { contract = FLOW_ARTIFACT_CONTRACTS.classify(this.relativePath); } catch (error) {
+        if (migrationMaterialization !== true || !this.relativePath.startsWith("artifacts/legacy/")) throw error;
       }
     }
     if (contract !== null && !contract.matchesCanonicalPath(this.relativePath)) {
@@ -559,7 +628,7 @@ export class FlowArtifactDescriptor {
       FlowArtifactReviewEvidence.fromCanonicalPath(contract, this.relativePath).assertAuthoritySlot(this.slot);
     }
     if (contract !== null) contract.assertAuthoritySlot(this.relativePath, this.slot);
-    this.logicalKey = contract?.logicalKey.toString() ?? (transitionalIdentity ? "transition.flow-version-identity" : null);
+    this.logicalKey = contract?.logicalKey.toString() ?? null;
     this.migrationMaterialization = migrationMaterialization === true;
     if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error("artifact hash must be a lowercase SHA-256 digest");
     if (!Number.isSafeInteger(size) || size < 0) throw new Error("artifact size must be a non-negative safe integer");
@@ -633,16 +702,27 @@ export class FlowArtifactActivityAssociation {
     if (!(artifact instanceof FlowArtifactDescriptor)) throw new Error("FlowArtifactDescriptor is required for an Activity association");
     if (artifact.activityId !== this.id) throw new Error("artifact Activity association id does not match the descriptor");
     if (artifact.logicalKey === null || artifact.logicalKey.startsWith("transition.")) return this;
-    if (this.updaterStep === null) throw new Error(`cataloged artifact related Activity has no node identity: ${artifact.relativePath}`);
-    if (artifact.slot.publicationStep !== this.updaterStep) {
+    let updaterStep;
+    try {
+      updaterStep = this.updaterStep;
+    } catch (error) {
+      // Task-scoped observations are anchored to the stable Task ID, not a
+      // synthetic producer Step. They only republish the flow-wide system
+      // records that make the Activity durable, so they must not be forced
+      // through an artifact producer actor.
+      if (FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS.has(artifact.logicalKey)) return this;
+      throw error;
+    }
+    if (updaterStep === null) throw new Error(`cataloged artifact related Activity has no node identity: ${artifact.relativePath}`);
+    if (artifact.slot.publicationStep !== updaterStep) {
       throw new Error(`cataloged artifact updater does not match its related Activity node: ${artifact.relativePath}`);
     }
-    if (this.updaterStep.startsWith("task-")) {
+    if (updaterStep.startsWith("task-") && !FLOW_WIDE_TASK_ACTIVITY_ARTIFACTS.has(artifact.logicalKey)) {
       const taskPath = artifact.relativePath.match(/^steps\/impl\/([^/]+)\/(?:impl|review|gate)(?:\/|$)/);
       if (taskPath === null) throw new Error(`task-scoped updater Activity is not bound to a task artifact: ${artifact.relativePath}`);
       const taskId = taskPath[1];
-      const taskLeaf = this.updaterStep.slice("task-".length);
-      if (this.nodeId !== `${taskId}/${this.updaterStep}` && this.nodeId !== `${taskId}-${taskLeaf}`) {
+      const taskLeaf = updaterStep.slice("task-".length);
+      if (this.nodeId !== `${taskId}-${taskLeaf}`) {
         throw new Error(`cataloged task artifact owner does not match its related Activity node: ${artifact.relativePath}`);
       }
     }
@@ -825,8 +905,8 @@ export class FlowArtifactCatalogStore {
   publishManySystem(options = {}) {
     return this.#publishMany(options, true);
   }
-  publishMany({ artifacts, publicationClaim, precondition = null, write } = {}) {
-    return this.#publishMany({ artifacts, publicationClaim, precondition, write }, false);
+  publishMany({ artifacts, removals = [], publicationClaim, precondition = null, write } = {}) {
+    return this.#publishMany({ artifacts, removals, publicationClaim, precondition, write }, false);
   }
   writeIssueSnapshot(text, publicationContext = null) {
     if (typeof text !== "string") throw new Error("issue snapshot text must be a string");
@@ -854,12 +934,20 @@ export class FlowArtifactCatalogStore {
   readIssueSnapshot() {
     return this.read({ relativePaths: [FLOW_ARTIFACT_CONTRACTS.resolve("issue.snapshot").relativePath], read: () => fs.readFileSync(this.location.issueSnapshotFile, "utf8") });
   }
-  #publishMany({ artifacts, publicationClaim = null, precondition = null, write } = {}, system) {
+  #publishMany({ artifacts, removals = [], publicationClaim = null, precondition = null, write } = {}, system) {
     if (typeof write !== "function") throw new Error("catalog publication requires a write function");
     if (!Array.isArray(artifacts) || artifacts.length === 0) throw new Error("catalog publication requires artifacts");
+    if (!Array.isArray(removals)) throw new Error("catalog publication removals must be an array");
     for (const artifact of artifacts) {
       if (!(artifact.authoritySlot instanceof ArtifactAuthoritySlot)) throw new Error("catalog publication requires explicit ArtifactAuthoritySlot values");
     }
+    const normalizedRemovals = removals.map((removal) => {
+      if (!isPlainObject(removal)) throw new Error("catalog publication removal must be an object");
+      return Object.freeze({
+        relativePath: relativePath(removal.relativePath, "artifact removal relativePath"),
+        logicalKey: removal.logicalKey == null ? null : text(removal.logicalKey, "artifact removal logicalKey"),
+      });
+    });
     if (system) this.#assertSystemSlots(artifacts.map((artifact) => artifact.authoritySlot));
     else {
       if (!(publicationClaim instanceof ArtifactPublicationClaim)) throw new Error("catalog publication requires an ArtifactPublicationClaim");
@@ -874,7 +962,13 @@ export class FlowArtifactCatalogStore {
     }
     if (precondition !== null && typeof precondition !== "function") throw new Error("catalog publication precondition must be a function");
     return this.#withPublicationLock(() => {
-      const paths = new Set(artifacts.map((artifact) => relativePath(artifact.relativePath, "artifact relativePath")));
+      const paths = new Set([
+        ...artifacts.map((artifact) => relativePath(artifact.relativePath, "artifact relativePath")),
+        ...normalizedRemovals.map((removal) => removal.relativePath),
+      ]);
+      if (paths.size !== artifacts.length + normalizedRemovals.length) {
+        throw new Error("catalog publication cannot write and remove the same artifact path");
+      }
       for (const file of paths) this.location.assertAuthority(file);
       this.location.assertAuthority(ARTIFACT_CATALOG_RELATIVE_PATH);
       const snapshot = new VersionTreeSnapshot(this.location);
@@ -888,6 +982,21 @@ export class FlowArtifactCatalogStore {
             publicationStep: artifact.authoritySlot.publicationStep,
           });
         }
+        for (const removal of normalizedRemovals) {
+          const prior = previous.artifacts.find((entry) => entry.relativePath === removal.relativePath);
+          if (prior === undefined) {
+            throw new Error(`catalog removal requires an existing artifact: ${removal.relativePath}`);
+          }
+          if (removal.logicalKey !== null && prior.logicalKey !== removal.logicalKey) {
+            throw new Error(`catalog removal logical key does not match its existing artifact: ${removal.relativePath}`);
+          }
+          if (prior.logicalKey !== null) {
+            const contract = FLOW_ARTIFACT_CONTRACTS.require(prior.logicalKey);
+            contract.assertPublicationRole({ exists: true, publicationStep: prior.slot.publicationStep });
+          }
+          if (system) this.#assertSystemSlots([prior.slot]);
+          else publicationClaim.assertSlot(prior.slot, { contractBound: prior.logicalKey !== null });
+        }
         const contentPublications = artifacts.flatMap((artifact) => {
           const contract = artifact.logicalKey === null ? null : FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey);
           return contract?.contentContract == null ? [] : [{ artifact, contract }];
@@ -899,6 +1008,11 @@ export class FlowArtifactCatalogStore {
         }
         const result = write();
         snapshot.assertOnlyDeclaredChanges(paths);
+        for (const removal of normalizedRemovals) {
+          if (fs.existsSync(this.location.resolve(removal.relativePath))) {
+            throw new Error(`catalog removal left its artifact visible: ${removal.relativePath}`);
+          }
+        }
         for (const { artifact, contract } of contentPublications) {
           contract.assertContentPublication(
             previousContent.get(artifact.relativePath) ?? null,
@@ -996,9 +1110,16 @@ export class FlowArtifactCatalogStore {
     this.location.assertAuthority(null, { mustExist: true });
     if (!fs.lstatSync(this.location.directory).isDirectory()) throw new Error("Version root must be an existing real directory");
     const directoryAuthority = new RealDirectoryAuthority(this.location.directory);
+    const runtimeDirectory = this.location.resolve(".runtime");
+    const lockDirectory = this.location.resolve(".runtime/locks");
+    // Establish the non-authoritative runtime branch before its identity is
+    // captured.  Publication never treats these files as catalog entries.
+    fs.mkdirSync(lockDirectory, { recursive: true, mode: 0o755 });
+    const runtimeAuthority = new RealDirectoryAuthority(runtimeDirectory, { parentAuthority: directoryAuthority });
+    const lockDirectoryAuthority = new RealDirectoryAuthority(lockDirectory, { parentAuthority: runtimeAuthority });
     const lock = new ProcessOwnedLock({
-      directoryAuthority, fileName: ".artifact-catalog.lock", kind: "artifact-catalog-publication",
-      authority: { directory: this.location.directory, catalog: this.location.catalogFile },
+      directoryAuthority: lockDirectoryAuthority, fileName: "artifact-catalog.lock", kind: "artifact-catalog-publication",
+      authority: { directory: this.location.directory, runtimeDirectory, catalog: this.location.catalogFile },
     });
     let acquired = false;
     for (let attempt = 0; attempt < CATALOG_LOCK_RETRY_ATTEMPTS; attempt += 1) {
@@ -1481,13 +1602,11 @@ export class FlowVersionMigrationClassifier {
       this.target.assertAuthority(null, { mustExist: true });
       if (!fs.lstatSync(this.target.directory).isDirectory()) throw new Error("Version target is not a directory");
       const catalog = new FlowArtifactCatalogStore({ location: this.target }).require();
-      for (const required of [FLOW_STATE_RELATIVE_PATH, "flow-version.json", FLOW_ACTIVITIES_RELATIVE_PATH, SPEC_RECORD_RELATIVE_PATH]) catalog.resolve(required);
-      const identity = new FlowVersionIdentityStore({ location: this.target }).load();
-      if (identity === null) throw new Error("Version identity is missing");
+      for (const required of [FLOW_STATE_RELATIVE_PATH, FLOW_ACTIVITIES_RELATIVE_PATH, SPEC_RECORD_RELATIVE_PATH]) catalog.resolve(required);
       const spec = new AuthoritativeSpecRecord(JSON.parse(fs.readFileSync(this.target.specFile, "utf8")));
       if (!spec.specId.equals(this.target.specId)) throw new Error("Version Spec identity does not match target");
       if (this.semanticValidator === null) throw new Error("Version target semantic validator is unavailable");
-      this.semanticValidator.validateMaterialized({ location: this.target, identity, spec });
+      this.semanticValidator.validateMaterialized({ location: this.target, spec });
       return { present: true, valid: true, blockers: [] };
     } catch (error) {
       return {
@@ -1597,12 +1716,7 @@ export class FlowVersionMigrationPlan {
       sources.add(artifact.sourcePath);
       if (artifact.targetPath !== null) targets.set(artifact.targetPath, artifact);
     }
-    const generated = [new FlowVersionGeneratedArtifact({
-      role: "flow-version-identity", targetPath: "flow-version.json", outputKey: "flow-version-identity",
-      mediaType: "application/json", authoritySlot: ArtifactAuthoritySlot.singleton({
-        kind: "flow-version-identity", authority: "repository-metadata", publicationStep: "system",
-      }), retention: "permanent", cataloged: true,
-    })];
+    const generated = [];
     if (!targets.has(FLOW_ACTIVITIES_RELATIVE_PATH)) {
       generated.push(new FlowVersionGeneratedArtifact({
         role: "activity-ledger", targetPath: FLOW_ACTIVITIES_RELATIVE_PATH,
@@ -1632,8 +1746,8 @@ export class FlowVersionMigrationPlan {
     ])].sort(codeUnitOrder));
     Object.freeze(this);
   }
-  outputFixture({ identity, state, spec } = {}) {
-    return new FlowVersionMigrationFixture({ plan: this, identity, state, spec });
+  outputFixture({ state, spec } = {}) {
+    return new FlowVersionMigrationFixture({ plan: this, state, spec });
   }
   toJSON() {
     return {
@@ -1647,24 +1761,24 @@ export class FlowVersionMigrationPlan {
 
 export class FlowVersionMigrationFixture {
   #state;
-  constructor({ plan, identity, state, spec } = {}) {
+  constructor({ plan, state, spec } = {}) {
     if (!(plan instanceof FlowVersionMigrationPlan)) throw new Error("FlowVersionMigrationPlan is required for migration fixture output");
-    if (!(identity instanceof FlowVersionRecord)) throw new Error("FlowVersionRecord is required for migration fixture output");
     if (!(spec instanceof AuthoritativeSpecRecord)) throw new Error("AuthoritativeSpecRecord is required for migration fixture output");
     const semanticValidator = plan.semanticValidator;
-    if (!identity.identity.specId.equals(plan.classification.target.specId) || identity.identity.version.value !== plan.classification.target.version.value) {
-      throw new Error("migration fixture identity does not match the target Version location");
-    }
     const validatedState = semanticValidator.validateState(state);
     if (!isPlainObject(validatedState)) throw new Error("semantic validator must return a plain Current Flow state document");
-    if (!Number.isSafeInteger(validatedState.schemaRevision) || validatedState.schemaRevision < 1 || validatedState.version !== identity.identity.version.value) {
-      throw new Error("migration fixture state revision must be positive and version must match its identity");
+    if (
+      !Number.isSafeInteger(validatedState.schemaRevision)
+      || validatedState.schemaRevision < 1
+      || validatedState.version !== plan.classification.target.version.value
+      || validatedState.specId !== plan.classification.target.specId.toString()
+    ) {
+      throw new Error("migration fixture state must use the target canonical identity and Version");
     }
-    if (!spec.specId.equals(identity.identity.specId)) throw new Error("migration fixture Spec record must match its identity specId");
+    if (!spec.specId.equals(plan.classification.target.specId)) throw new Error("migration fixture Spec record must match its target specId");
     const roles = new Set(plan.artifacts.map((artifact) => artifact.role));
     if (!roles.has("flow-state") || !roles.has("spec-record")) throw new Error("migration fixture requires flow-state and spec-record artifacts");
     this.plan = plan;
-    this.identity = identity;
     this.spec = spec;
     this.semanticValidator = semanticValidator;
     this.#state = structuredClone(validatedState);
@@ -1689,7 +1803,7 @@ export class FlowVersionMigrationFixture {
       throw new Error("migration source inventory changed after inspection");
     }
     const outputSet = this.plan.outputBuilder.build({
-      plan: this.plan, identity: this.identity, state: structuredClone(this.#state), spec: this.spec,
+      plan: this.plan, state: structuredClone(this.#state), spec: this.spec,
     });
     if (!(outputSet instanceof FlowVersionMigrationOutputSet)) throw new Error("migration output builder must return FlowVersionMigrationOutputSet");
     const expectedOutputs = new Map();
@@ -1753,7 +1867,7 @@ export class FlowVersionMigrationFixture {
       store.initialize(new FlowArtifactCatalog({ artifacts: descriptors }), MIGRATION_CATALOG_INITIALIZATION);
       const catalog = store.require();
       store.read({ relativePaths: this.toJSON().catalogPaths, read: () => null });
-      this.semanticValidator.validateMaterialized({ location, identity: this.identity, spec: this.spec });
+      this.semanticValidator.validateMaterialized({ location, spec: this.spec });
       return new FlowVersionMigrationMaterialization({ location, catalog });
     } catch (error) {
       if (!ownsVersionRoot) throw error;
@@ -1769,7 +1883,7 @@ export class FlowVersionMigrationFixture {
       ...this.plan.generatedArtifacts.filter((artifact) => artifact.cataloged).map((artifact) => artifact.targetPath),
     ].sort(codeUnitOrder);
     return {
-      format: this.format, directory: this.directory, identity: this.identity.toJSON(),
+      format: this.format, directory: this.directory,
       state: structuredClone(this.#state), spec: this.spec.toJSON(),
       artifacts: this.plan.artifacts.map((artifact) => artifact.toJSON()),
       generatedArtifacts: this.plan.generatedArtifacts.map((artifact) => artifact.toJSON()), catalogPaths,

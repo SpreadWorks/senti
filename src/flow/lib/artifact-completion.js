@@ -1,6 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 
 export class ArtifactCompletionSuccess {
   static [Symbol.hasInstance](value) {
@@ -236,7 +235,11 @@ export function getProducerCompletionAdapter(surface) {
 export function specDirFromInput({ root, state, specDir }) {
   if (specDir) return specDir;
   if (!state?.specId) throw new Error("state.specId is required");
-  return path.dirname(path.resolve(root, relativeFlowSpecFile(state)));
+  const location = flowStateSpecLocation(state);
+  if (location === null) {
+    throw new Error("artifact completion requires a manager-bound Version location");
+  }
+  return location.directory;
 }
 
 export function fileExists(file) {

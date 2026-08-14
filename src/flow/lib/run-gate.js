@@ -16,7 +16,6 @@
 
 import fs from "fs";
 import path from "path";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 import crypto from "crypto";
 import { execFile, execFileSync } from "child_process";
 import { promisify } from "util";
@@ -25,7 +24,6 @@ import { PKG_DIR } from "../../lib/cli.js";
 import { PRODUCT } from "../../lib/product.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { assessTaskGateRepairEvidence } from "./task-gate-recovery-evidence.js";
-import { TaskGateOverviewEffect } from "./task-gate-completion.js";
 
 const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
@@ -33,7 +31,6 @@ import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { validateConfiguredPresetChains } from "../../lib/presets.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { FatalPostHookError } from "../../lib/post-hook-error.js";
 import { AgentFailure } from "../../lib/agent-failure.js";
 import {
   enumerateUsableRequirementIds,
@@ -43,7 +40,7 @@ import {
   specJsonToPromptText,
   validateSpecJsonObject,
 } from "../../lib/spec-json.js";
-import { loadFileMap, reconcileFileMap } from "./req-map.js";
+import { reconcileFileMap } from "./req-map.js";
 import { buildAcknowledgedRationaleSection } from "./acknowledged-rationale.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
@@ -52,7 +49,10 @@ import {
   VALID_LEVEL_PHASE_COMBINATIONS,
 } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
-import { appendIssueLogEntry, loadIssueLog } from "./set-issue-log.js";
+import {
+  appendCanonicalIssueLogEntry,
+  loadCanonicalIssueLog,
+} from "./set-issue-log.js";
 import {
   resolveGatePhaseFromState,
   resolveGateStepId,
@@ -63,10 +63,10 @@ import { contractFromGateArtifact, repoRelative } from "./flow-judgment-contract
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import {
   IMPL_GATE_RESULT_FILE,
-  UpgradeEvidenceRecovery,
+  IntegrationArtifactFingerprintAuthority,
   listUpgradeRequiredChangedPaths,
   readJsonStrict,
-  validateIntegrationArtifactTrust,
+  validateCanonicalUpgradeEvidence,
 } from "./test-artifacts.js";
 import {
   Observation,
@@ -85,13 +85,6 @@ import {
   validateDraftReviewArtifacts,
 } from "./draft-review-artifacts.js";
 import { validateSpecRepairAudit as validateSpecRepairAuditInDirectory } from "./spec-review-artifacts.js";
-import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
-import {
-  deferExhaustedSemanticFindings,
-  readBoundedSourceArtifact,
-  sourceArtifactExists,
-  specDirFromFlowState,
-} from "./flow-findings.js";
 import {
   completeDraftArtifactChange,
   completeSpecArtifactChange,
@@ -110,24 +103,21 @@ import {
   ReviewFindingFingerprint,
   ReviewFindingGateArtifact,
 } from "./finding-disposition-policy.js";
-import {
-  assertRepairFingerprint,
-  buildRepairFingerprint,
-  ensureRepairFingerprintContract,
-  ImplRepairTargetIdentity,
-  readImplRepairLedger,
-  readRejectedImplReviewTriage,
-  stampRepairFingerprint,
-  writeRepairEvidenceArtifact,
-} from "./impl-repair-artifacts.js";
 import { createLifecycleStepTransition } from "./lifecycle-step-transition.js";
 import { GateMutationOwner } from "./gate-mutation-owner.js";
 import { flattenSteps } from "./step-tree.js";
 import { StaleTestEvidenceMismatch } from "./stale-test-evidence-refresh.js";
+import { buildRepairFingerprint } from "./repair-fingerprint.js";
 import {
   SPEC_TEST_COVERAGE_GUARDRAIL_ID,
   SpecTestCoverageDecision,
 } from "./spec-test-coverage.js";
+import {
+  CanonicalGateInputStore,
+  CanonicalGatePromotion,
+  canonicalGateNodeId,
+} from "./canonical-gate-artifacts.js";
+import { isCanonicalFlowState } from "./canonical-test-artifacts.js";
 
 export { resolveGateStepId };
 
@@ -181,26 +171,9 @@ export async function executeGateSideEffects(ctx, phase, {
   const sideEffects = derived?.sideEffects;
   if (!sideEffects || sideEffects.length === 0) return;
 
-  for (const effect of sideEffects) {
-    if (effect !== "mergeOverview") {
-      throw new FatalPostHookError(
-        "GATE_SIDE_EFFECT_UNSUPPORTED",
-        `Unsupported gate side effect: ${effect}`,
-      );
-    }
-    if (stepId !== "task-gate") {
-      throw new FatalPostHookError(
-        "GATE_SIDE_EFFECT_SCOPE_INVALID",
-        `Gate side effect ${effect} is not valid for ${stepId}`,
-      );
-    }
-    new TaskGateOverviewEffect({
-      root: ctx.root,
-      flowManager: fm,
-      specId: ctx.specId,
-      taskId,
-    }).execute();
-  }
+  // Task overview is published by the active task-impl Activity. No gate
+  // post-effect is permitted to recreate a source-era writer.
+  void sideEffects;
 }
 
 
@@ -219,143 +192,9 @@ export const PHASE_TO_LEVEL = Object.freeze({
   "integration": "integration",
 });
 
-class StaleIntegrationTestEvidence {
-  constructor(mismatch, flowState) {
-    this.mismatch = mismatch;
-    this.flowState = flowState;
-    this.artifactNames = mismatch.artifactNames;
-    Object.freeze(this);
-  }
-
-  recover(ctx, { level, phase, specDir }) {
-    const refresh = this.mismatch.recover({
-      root: ctx.executionRoot || ctx.root,
-      state: ctx.flowState || this.flowState,
-      specDir,
-      flowManager: ctx.flowManager,
-      reason: "integration gate detected stale fingerprint evidence",
-      sourceStep: "impl-gate",
-    });
-    ctx.gateEvidenceRefresh = true;
-    return {
-      result: "recovered",
-      changed: [...refresh.invalidatedArtifacts],
-      artifacts: {
-        level,
-        phase,
-        staleArtifacts: [...this.artifactNames],
-        evidenceRefresh: refresh.toJSON(),
-      },
-      next: refresh.activeStep,
-    };
-  }
-}
-
-export function runUpgradeForRecovery(root, {
-  execFileSyncImpl = execFileSync,
-  packageDir = PKG_DIR,
-} = {}) {
-  execFileSyncImpl(process.execPath, [path.join(packageDir, PRODUCT.entrypointBasename), "upgrade"], {
-    cwd: root,
-    stdio: "inherit",
-  });
-}
-
-/**
- * spec 251 R17 and spec 258: precheck for integration gate. Verifies the
- * full trust-input set produced by test-execute / test-result-review before
- * delegating to the AI guardrail pipeline. The validator also enforces
- * placeholder-permission.json before any detected placeholder artifact can be
- * tolerated.
- */
-export function checkIntegrationTestArtifacts(root, state, level, phase, config = {}, executionRoot = root) {
-  const specPath = relativeFlowSpecFile(state);
-  const specDir = path.dirname(path.resolve(root, specPath));
-  let fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
-  const target = ImplRepairTargetIdentity.fromState(state);
-  const artifacts = new Map();
-  let identityProbeError = null;
-  try {
-    for (const file of ["test-execute-result.json", "test-result-review.json"]) {
-      const artifactPath = path.join(specDir, file);
-      artifacts.set(file, readJsonStrict(artifactPath));
-    }
-    const mismatch = StaleTestEvidenceMismatch.detect({
-      artifacts,
-      currentFingerprint: fingerprint.hash,
-    });
-    if (mismatch) return new StaleIntegrationTestEvidence(mismatch, state);
-  } catch (error) {
-    // Full trust validation below owns malformed, missing, and oversized
-    // artifact diagnostics. Identity probing only enables stale-evidence
-    // refresh before obsolete semantic results can block regeneration.
-    identityProbeError = error;
-  }
-  const recovery = new UpgradeEvidenceRecovery({
-    specDir,
-    currentFingerprint: fingerprint.hash,
-    currentRequiredPaths: listUpgradeRequiredChangedPaths({
-      root: executionRoot,
-      baseBranch: state.baseBranch,
-    }),
-    target,
-  });
-  const recoveryResult = recovery.resolve({
-    runUpgrade() {
-      runUpgradeForRecovery(executionRoot);
-    },
-    refreshCurrentFingerprint() {
-      return buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state }).hash;
-    },
-  });
-  fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
-  if (recoveryResult.currentFingerprint !== fingerprint.hash) {
-    throw new Error("upgrade recovery authority changed before integration validation");
-  }
-  const postRecoveryMismatch = StaleTestEvidenceMismatch.detect({
-    artifacts,
-    currentFingerprint: fingerprint.hash,
-  });
-  if (postRecoveryMismatch) {
-    return new StaleIntegrationTestEvidence(postRecoveryMismatch, state);
-  }
-  const result = validateIntegrationArtifactTrust({
-    root,
-    executionRoot,
-    specDir,
-    phase,
-    specPath,
-    state,
-    currentFingerprint: fingerprint.hash,
-    target,
-    config,
-  });
-  if (!result.ok) {
-    return Envelope.fail("run", "gate", result.code, [
-      `test artifact validation failed: ${result.reason}`,
-    ], { phase, level, spec: specPath });
-  }
-  if (identityProbeError) throw identityProbeError;
-  const trustedArtifacts = result.fingerprintAuthority.toArtifactMap();
-  const trustedMismatch = StaleTestEvidenceMismatch.detect({
-    artifacts: trustedArtifacts,
-    currentFingerprint: fingerprint.hash,
-  });
-  if (trustedMismatch) return new StaleIntegrationTestEvidence(trustedMismatch, state);
-  for (const [file, artifact] of trustedArtifacts) {
-    assertRepairFingerprint({
-      artifact,
-      fingerprint,
-      label: file,
-    });
-  }
-  const outcome = result.evaluateOutcome();
-  if (!outcome.ok) {
-    return Envelope.fail("run", "gate", outcome.code, [
-      `test artifact validation failed: ${outcome.reason}`,
-    ], { phase, level, spec: specPath });
-  }
-  return null;
+export function checkIntegrationTestArtifacts({ artifacts, currentFingerprint } = {}) {
+  const values = artifacts instanceof Map ? artifacts : new Map(Object.entries(artifacts || {}));
+  return StaleTestEvidenceMismatch.detect({ artifacts: values, currentFingerprint }) || null;
 }
 
 /**
@@ -1812,30 +1651,6 @@ function readGateRetryCount(state, phase) {
   return countGateRetry(state?.metrics, phase);
 }
 
-function hasGateRecoveryBaseline(state, phase) {
-  if (!Array.isArray(state?.reviewRecoveryBaselines)) return false;
-  return state.reviewRecoveryBaselines.some((entry) => (
-    entry?.kind === "gate"
-    && entry?.canonicalPhase === phase
-  ));
-}
-
-function persistGateRecoveryBaseline(ctx, phase, trigger, options = {}) {
-  if (!GATE_RECOVERY_PHASES.has(phase)) return;
-  if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return;
-  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-  ctx.flowManager.mutate((state) => {
-    if (!state?.specId) return;
-    if (options.seedOnly === true && hasGateRecoveryBaseline(state, phase)) return;
-    persistCurrentRecoveryBaseline({
-      root: ctx.root,
-      flowState: state,
-      kind: "gate",
-      phase,
-      trigger,
-    });
-  }, owner.routeOptions());
-}
 
 // Set of step ids that represent gate evaluations. After the phase-prefix
 // rename every gate step ends in "-gate" (spec-gate, draft-gate, impl-gate,
@@ -1850,15 +1665,8 @@ function isRetryHistoryGateEntry(entry, phase) {
   return true;
 }
 
-function formatRetryHistory(root, specPath, limit, phase) {
-  let log;
-  try {
-    log = loadIssueLog(root, specPath);
-  } catch (err) {
-    process.stderr.write(`[sennel] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
-    return "";
-  }
-  const gateEntries = (log.entries || [])
+function formatRetryHistory(entries, limit, phase) {
+  const gateEntries = (entries || [])
     .filter((e) => isRetryHistoryGateEntry(e, phase))
     .slice(-limit);
   if (gateEntries.length === 0) return "";
@@ -2028,30 +1836,7 @@ function dispositionGateEvaluations(evaluations, {
   });
 }
 
-function priorGateFindingReportedAt({ root, state, sourceArtifact }) {
-  const reportedAt = new Map();
-  if (!root || !state?.specId || !sourceArtifact) return reportedAt;
-  try {
-    const specDir = specDirFromFlowState(root, state);
-    if (!sourceArtifactExists(specDir, sourceArtifact)) return reportedAt;
-    const artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
-    if (!new ReviewFindingCycle(state).matchesArtifact(artifact)) return reportedAt;
-    for (const finding of failedGateFindings(artifact)) {
-      if (
-        typeof finding?.fingerprint === "string"
-        && typeof finding?.reportedAt === "string"
-        && Number.isFinite(Date.parse(finding.reportedAt))
-      ) {
-        reportedAt.set(finding.fingerprint, finding.reportedAt);
-      }
-    }
-  } catch {
-    return new Map();
-  }
-  return reportedAt;
-}
-
-function gateRetryClassificationContext({ root = null, flowState = null, phase } = {}) {
+function gateRetryClassificationContext({ root = null, flowState = null, flowManager = null, phase } = {}) {
   if (!root || !flowState?.specId) {
     return {
       root,
@@ -2067,7 +1852,9 @@ function gateRetryClassificationContext({ root = null, flowState = null, phase }
     flowState,
     phase,
     taskId: flowState.currentTaskId ?? null,
-    issueLogEntries: loadIssueLog(root, relativeFlowSpecFile(flowState)).entries,
+    issueLogEntries: flowManager === null
+      ? []
+      : loadCanonicalIssueLog(flowManager, flowState, { consumerNodeId: flowState.currentNodeId }).entries,
     cycle: new ReviewFindingCycle(flowState),
   };
 }
@@ -2096,6 +1883,7 @@ export function classifyGateRetryExhaustionSource(input = {}) {
     const assessment = assessTaskGateRepairEvidence({
       root: merged.root,
       flowState: merged.flowState,
+      sourceArtifact: artifact,
       issueLogEntries: merged.issueLogEntries || [],
     });
     if (!assessment.valid) {
@@ -2150,202 +1938,56 @@ export function classifyGateRetryExhaustionSource(input = {}) {
   };
 }
 
-export function evaluateReviewFindingGateReadiness({ root, state, phase, taskId = null, issueLog = null } = {}) {
-  if (!root || !state?.specId) throw new Error("review finding gate readiness requires root and flow state specId");
-  const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(state)));
-  const reviewPath = path.join(specDir, "impl-review.json");
-  const historyDir = path.join(specDir, "review-history");
-  const candidates = [];
-  if (fs.existsSync(historyDir)) {
-    for (const name of fs.readdirSync(historyDir).filter((entry) => /^impl-attempt-\d{3}\.json$/.test(entry)).sort()) {
-      candidates.push({ file: path.join(historyDir, name), source: `review-history/${name}`, latest: false });
-    }
-  }
-  if (fs.existsSync(reviewPath)) candidates.push({ file: reviewPath, source: "impl-review.json", latest: true });
+export function evaluateReviewFindingGateReadiness({
+  reviewArtifacts = [], phase, taskId = null, issueLog = null,
+  triage = null, repairLedger = null, runId = null, supersedesHistory = false,
+} = {}) {
   const expectedTaskId = taskId == null ? null : String(taskId).trim();
-  const cycle = new ReviewFindingCycle(state);
-  const reviewedArtifacts = [];
-  let latestArtifact = null;
-  for (const candidate of candidates) {
-    const stat = fs.statSync(candidate.file);
-    if (!stat.isFile() || stat.size > 1024 * 1024) {
-      throw new Error(`${candidate.source} is not a bounded review artifact`);
-    }
-    const raw = JSON.parse(fs.readFileSync(candidate.file, "utf8"));
-    const rawTaskId = raw.taskId == null ? null : String(raw.taskId).trim();
-    if (rawTaskId !== expectedTaskId) continue;
-    if (!cycle.matchesArtifact(raw)) continue;
-    let artifact;
-    try {
-      artifact = new ReviewFindingGateArtifact(raw, { source: candidate.source });
-    } catch (error) {
-      // Historical advisory-only reports do not create repair obligations.
-      // They may have been persisted before stable finding identities were
-      // introduced, so let the current validated review remain authoritative.
-      if (!candidate.latest && raw.blockingFindings?.length === 0) continue;
-      throw error;
-    }
-    if (candidate.latest) latestArtifact = raw;
-    reviewedArtifacts.push({ artifact, raw });
-  }
-  if (latestArtifact === null) {
-    throw new Error(expectedTaskId === null
-      ? "flow-scoped implementation review artifact is missing"
-      : `task-scoped implementation review artifact is missing for ${expectedTaskId}`);
-  }
+  const artifacts = reviewArtifacts.filter((artifact) => (
+    (artifact?.taskId == null ? null : String(artifact.taskId).trim()) === expectedTaskId
+  ));
+  const latest = artifacts.at(-1) ?? null;
+  if (latest === null) throw new Error("cataloged implementation review artifact is missing");
   const obligations = new Map();
-  const latestFingerprint = latestArtifact.repairFingerprint || null;
-  for (const { artifact, raw } of reviewedArtifacts) {
-    if (
-      latestFingerprint !== null
-      && raw.repairFingerprint != null
-      && raw.repairFingerprint !== latestFingerprint
-    ) continue;
-    for (const finding of artifact.findings) obligations.set(finding.fingerprint, finding);
+  const latestFingerprint = latest.repairFingerprint ?? null;
+  for (const raw of artifacts) {
+    if (runId !== null && raw.runId != null && raw.runId !== runId) continue;
+    if (supersedesHistory && latestFingerprint !== null && raw.repairFingerprint != null && raw.repairFingerprint !== latestFingerprint) continue;
+    if (Array.isArray(raw.blockingFindings) && raw.blockingFindings.length === 0 && raw.verdict !== "REJECTED") continue;
+    const parsed = new ReviewFindingGateArtifact(raw, { source: "catalog:impl.review" });
+    for (const finding of parsed.findings) obligations.set(finding.fingerprint, finding);
   }
-  const ledger = readImplRepairLedger(specDir);
-  const repairDiff = ledger?.entries.at(-1)?.changedPathsDigest || null;
-  const rejectedTriage = taskId === null && latestArtifact.verdict === "REJECTED"
-    ? readRejectedImplReviewTriage(specDir)
-    : null;
-  const rejectedFindingIds = new Set(rejectedTriage?.items.map((item) => item.findingId) || []);
-  const findings = [...obligations.values()].map((finding) => {
-    if (!rejectedFindingIds.has(finding.findingId)) return finding;
-    return {
-      ...finding.toJSON(),
-      reportedAt: finding.reportedAt,
-      explicitDecision: {
-        kind: "allow",
-        findingFingerprint: finding.fingerprint,
-      },
-    };
-  });
+  const rejected = new Set((triage?.items || [])
+    .filter((item) => item?.decision === "reject")
+    .map((item) => item.findingId));
+  const findings = [...obligations.values()].map((finding) => (
+    rejected.has(finding.findingId)
+      ? { ...finding.toJSON(), explicitDecision: { kind: "allow", findingFingerprint: finding.fingerprint } }
+      : finding
+  ));
   const decision = new FindingDispositionPolicy({ maxOccurrences: 3 }).evaluateGate({
     findings,
-    issueLogEntries: issueLog?.entries || issueLog || [],
+    issueLogEntries: issueLog?.entries || [],
     phase,
-    taskId,
-    root,
-    reviewedTree: latestArtifact.reviewedTree || null,
-    reviewedHead: latestArtifact.reviewedHead || null,
-    repairDiff,
+    taskId: expectedTaskId,
+    repairDiff: repairLedger?.changedPathsDigest ?? null,
+    ...(runId === null ? {} : { runId }),
   });
-  return { artifact: latestArtifact, decision };
-}
-
-function reviewFindingGateFailure({ root, state, phase, taskId, issueLog, level, targetPath }) {
-  let readiness;
-  try {
-    readiness = evaluateReviewFindingGateReadiness({ root, state, phase, taskId, issueLog });
-  } catch (error) {
-    return gateFail(level, phase, targetPath, [], [`review finding readiness: ${error.message}`]);
-  }
-  if (readiness.decision.allowsPass()) return null;
-  return gateFail(level, phase, targetPath, [], readiness.decision.issues);
+  return { artifact: latest, decision };
 }
 
 export class DurableGateSemanticDeferralInspection {
-  constructor({ phase, sourceArtifact, deferAllowed, reason }) {
+  constructor({ phase, sourceArtifact = null, deferAllowed = false, reason = "catalog_result_required" } = {}) {
     this.phase = phase;
     this.sourceArtifact = sourceArtifact;
-    this.deferAllowed = deferAllowed === true;
+    this.deferAllowed = deferAllowed;
     this.reason = reason;
     Object.freeze(this);
   }
-
-  static nonDeferable({ phase, sourceArtifact, reason }) {
-    return new DurableGateSemanticDeferralInspection({
-      phase,
-      sourceArtifact,
-      deferAllowed: false,
-      reason,
-    });
-  }
 }
 
-export function inspectDurableGateSemanticDeferral({ root, flowState, phase } = {}) {
-  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase] || null;
-  if (!sourceArtifact || !root || !flowState?.specId) {
-    return DurableGateSemanticDeferralInspection.nonDeferable({
-      phase,
-      sourceArtifact,
-      reason: "missing_source",
-    });
-  }
-
-  const specDir = specDirFromFlowState(root, flowState);
-  if (!sourceArtifactExists(specDir, sourceArtifact)) {
-    return DurableGateSemanticDeferralInspection.nonDeferable({
-      phase,
-      sourceArtifact,
-      reason: "missing_source",
-    });
-  }
-
-  let artifact;
-  try {
-    artifact = readBoundedSourceArtifact(specDir, sourceArtifact);
-  } catch {
-    return DurableGateSemanticDeferralInspection.nonDeferable({
-      phase,
-      sourceArtifact,
-      reason: "malformed_artifact",
-    });
-  }
-  if (!artifact) {
-    return DurableGateSemanticDeferralInspection.nonDeferable({
-      phase,
-      sourceArtifact,
-      reason: "missing_source",
-    });
-  }
-
-  const classification = classifyGateRetryExhaustionSource({
-    sourceArtifact: artifact,
-    ...gateRetryClassificationContext({ root, flowState, phase }),
-  });
-  return new DurableGateSemanticDeferralInspection({
-    phase,
-    sourceArtifact,
-    deferAllowed: classification.deferAllowed && classification.reason === "semantic_findings",
-    reason: classification.reason,
-  });
-}
-
-function gateSourceFindingId(finding, index) {
-  return finding?.findingId || finding?.id || `gate-finding-${index + 1}`;
-}
-
-function persistGateSourceFindingIds(specDir, sourceArtifact, artifact) {
-  const normalized = JSON.parse(JSON.stringify(artifact));
-  const findings = failedGateFindings(normalized);
-  findings.forEach((finding, index) => {
-    if (!finding.findingId && !finding.id) {
-      finding.findingId = gateSourceFindingId(finding, index);
-    }
-  });
-  fs.writeFileSync(path.join(specDir, sourceArtifact), JSON.stringify(normalized, null, 2) + "\n");
-  return { artifact: normalized, findings };
-}
-
-function gateDeferredResult(phase, attempts, findingCount) {
-  return {
-    result: "deferred",
-    changed: ["flow-findings.json"],
-    artifacts: {
-      phase,
-      deferred: true,
-      retryExhausted: true,
-      attempts,
-      findingCount,
-      completionKind: "deferred",
-    },
-    next: null,
-  };
-}
-
-function gateRetryAction(phase) {
-  return `run-gate-${phase}`;
+export function inspectDurableGateSemanticDeferral({ phase } = {}) {
+  return new DurableGateSemanticDeferralInspection({ phase });
 }
 
 function gateExternalBlock(reason, details = {}) {
@@ -2359,6 +2001,10 @@ function gateExternalBlock(reason, details = {}) {
     recoveryHint,
     recoveryCommand: details.recoveryCommand || null,
   });
+}
+
+function gateRetryAction(phase) {
+  return `run-gate-${phase}`;
 }
 
 function gateExternalBlockForResult(result) {
@@ -2383,6 +2029,10 @@ function gateExhaustionOutcome(artifact, context = {}) {
 }
 
 function recordGateOutcome(ctx, result, phase, attempt, outcome) {
+  // Retry classification is also a pure command-planning API.  Only an
+  // actual dispatched Flow carries the Store boundary that may persist its
+  // outcome; callers without it still receive the identical decision.
+  if (!ctx?.flowManager) return null;
   const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
   return recordStepAttempt(ctx, {
     stepId: owner.stepId,
@@ -2407,7 +2057,17 @@ function recordRequiredGateFailureOutcome(ctx, result, phase) {
     nextStepAttemptNumber(ctx.flowState, owner.stepId),
     gateExternalBlockForResult(result),
   );
-  const recorded = attempt ? { ...result, stepAttempt: attempt.toJSON() } : result;
+  // recordStepAttempt decorates the existing command result in place. Keep
+  // that exact object so its non-enumerable canonical publication attachment
+  // reaches the registry confirmation transaction.
+  const recorded = result;
+  // Required external failures are returned as Envelope.fail, so the normal
+  // registry post hook does not own their persistence. Publish the producer
+  // attempt now while leaving the active gate Attempt open for recovery.
+  ctx.flowManager.publishCurrentAttemptResult({
+    specId: ctx.flowState.specId,
+    commandResult: recorded,
+  });
   // A required gate failure is converted to Envelope.fail by RunGateCommand.run,
   // so the dispatcher intentionally skips the ordinary post hook. Persist the
   // issue-log diagnosis here beside the durable StepAttempt instead.
@@ -2424,160 +2084,6 @@ function recordGateDeferral(ctx, result, phase, attempts) {
   return result;
 }
 
-function writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact) {
-  const full = path.join(specDir, sourceArtifact);
-  fs.mkdirSync(path.dirname(full), { recursive: true });
-  fs.writeFileSync(full, JSON.stringify({
-    version: 1,
-    ...(artifact.runId && { runId: artifact.runId }),
-    planRewindAt: artifact.planRewindAt ?? null,
-    generatedAt: artifact.generatedAt,
-    phase,
-    result: artifact.result || artifact.verdict || "fail",
-    evaluations: Array.isArray(artifact.evaluations) ? artifact.evaluations : [],
-    observations: artifact?.nextAction?.diagnosis?.observations || artifact?.observations || [],
-    command: artifact.command,
-    testEvidence: artifact.testEvidence,
-    toolingFailure: artifact.toolingFailure,
-    guardCode: artifact.guardCode,
-    sourceArtifactStatus: artifact.sourceArtifactStatus,
-    flowStateValid: artifact.flowStateValid,
-  }, null, 2) + "\n");
-}
-
-function resolveGateSourceForDefer({ root, flowState, phase }) {
-  const specDir = specDirFromFlowState(root, flowState);
-  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase];
-  if (!sourceArtifact) return null;
-  const resultArtifact = GATE_RESULT_ARTIFACT_BY_PHASE[phase];
-  if (sourceArtifactExists(specDir, sourceArtifact)) {
-    const source = readBoundedSourceArtifact(specDir, sourceArtifact);
-    return { specDir, sourceArtifact, artifact: source };
-  }
-  const artifact = resultArtifact ? readBoundedSourceArtifact(specDir, resultArtifact) : null;
-  const classificationContext = gateRetryClassificationContext({ root, flowState, phase });
-  if (artifact) {
-    if (!classifyGateRetryExhaustionSource({
-      sourceArtifact: artifact,
-      ...classificationContext,
-    }).deferAllowed) {
-      return { specDir, sourceArtifact: resultArtifact, artifact };
-    }
-    if (sourceArtifact === resultArtifact) {
-      return { specDir, sourceArtifact: resultArtifact, artifact };
-    }
-    writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
-    return { specDir, sourceArtifact, artifact: readBoundedSourceArtifact(specDir, sourceArtifact) };
-  }
-  if (resultArtifact) {
-    return { specDir, sourceArtifact: resultArtifact, artifact };
-  }
-  return null;
-}
-
-function gateRetryExhaustionDeferralPlan({ root, flowState, phase } = {}) {
-  if (!root || !flowState?.specId) return null;
-  const source = resolveGateSourceForDefer({ root, flowState, phase });
-  if (!source?.artifact) return null;
-  const outcome = gateExhaustionOutcome(source.artifact, gateRetryClassificationContext({
-    root,
-    flowState,
-    phase,
-  }));
-  if (!(outcome instanceof DeferOutcome)) return null;
-  return source;
-}
-
-export function canMaterializeGateRetryExhaustionDeferral(options = {}) {
-  try {
-    return gateRetryExhaustionDeferralPlan(options) !== null;
-  } catch {
-    return false;
-  }
-}
-
-export function materializeGateRetryExhaustionDeferral({
-  root,
-  flowState,
-  phase,
-  attempts,
-  sourceStep = null,
-} = {}) {
-  const source = gateRetryExhaustionDeferralPlan({ root, flowState, phase });
-  if (!source) return null;
-  const { findings } = persistGateSourceFindingIds(source.specDir, source.sourceArtifact, source.artifact);
-  if (findings.length === 0) return null;
-  deferExhaustedSemanticFindings({
-    root,
-    flowState,
-    sourceStep: sourceStep || resolveGateStepId(phase),
-    sourceArtifact: source.sourceArtifact,
-    attempts,
-  });
-  return { findingCount: findings.length };
-}
-
-function tryDeferGateRetryExhaustion(ctx, phase, attempts) {
-  if (!ctx?.root || !ctx?.flowState?.specId || typeof ctx?.flowManager?.updateStepStatus !== "function") return null;
-  const deferred = materializeGateRetryExhaustionDeferral({
-    root: ctx.root,
-    flowState: ctx.flowState,
-    phase,
-    attempts,
-  });
-  if (!deferred) return null;
-  const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-  owner.updateStepStatus(ctx.flowManager, {
-    status: "done",
-    event: "gate:defer",
-  });
-  return gateDeferredResult(phase, attempts, deferred.findingCount);
-}
-
-function persistGateSourceFromResult(ctx, result, phase) {
-  if (result?.result !== "fail" || result?.artifacts?.failureKind !== "ai_semantic_fail") return;
-  if (!ctx?.root || !ctx?.flowState?.specId) return;
-  const sourceArtifact = GATE_SOURCE_ARTIFACT_BY_PHASE[phase];
-  if (!sourceArtifact || sourceArtifact === IMPL_GATE_RESULT_FILE) return;
-  const generatedAt = new Date().toISOString();
-  const cycle = new ReviewFindingCycle(ctx.flowState);
-  const priorReportedAtByFingerprint = priorGateFindingReportedAt({
-    root: ctx.root,
-    state: ctx.flowState,
-    sourceArtifact,
-  });
-  const artifact = {
-    ...cycle.toJSON(),
-    phase,
-    generatedAt,
-    result: "fail",
-    evaluations: dispositionGateEvaluations(result?.artifacts?.evaluations || [], {
-      phase,
-      taskId: ctx.flowState.currentTaskId ?? null,
-      reportedAt: generatedAt,
-      priorReportedAtByFingerprint,
-    }),
-    observations: dispositionGateEvaluations(
-      result?.artifacts?.nextAction?.diagnosis?.observations || [],
-      {
-        phase,
-        taskId: ctx.flowState.currentTaskId ?? null,
-        reportedAt: generatedAt,
-        priorReportedAtByFingerprint,
-      },
-    ),
-    command: result?.artifacts?.command,
-    testEvidence: result?.artifacts?.testEvidence,
-    toolingFailure: result?.artifacts?.toolingFailure,
-    guardCode: result?.artifacts?.guardCode,
-    sourceArtifactStatus: result?.artifacts?.sourceArtifactStatus,
-    flowStateValid: result?.artifacts?.flowStateValid,
-  };
-  result.artifacts.evaluations = artifact.evaluations;
-  result.artifacts.generatedAt = generatedAt;
-  const specDir = specDirFromFlowState(ctx.root, ctx.flowState);
-  writeDurableGateSourceArtifact(specDir, phase, sourceArtifact, artifact);
-}
 
 /**
  * Returns a failure Envelope when the retry budget for the given phase is
@@ -2590,11 +2096,14 @@ export function checkRetryBelowMax(ctx, phase) {
   const count = readGateRetryCount(ctx.flowState, phase);
   const max = resolveRetryMax(ctx, phase);
   if (count < max) return null;
-  const deferred = tryDeferGateRetryExhaustion(ctx, phase, count);
-  if (deferred) return recordGateDeferral(ctx, deferred, phase, count);
-
-  const history = formatRetryHistory(ctx.root, relativeFlowSpecFile(ctx.flowState), max, phase);
-  persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED, { seedOnly: true });
+  const issueLog = ctx.issueLog ?? (ctx.flowManager
+    ? loadCanonicalIssueLog(
+      ctx.flowManager,
+      ctx.flowState,
+      { consumerNodeId: ctx.flowState.currentNodeId },
+    )
+    : null);
+  const history = formatRetryHistory(issueLog?.entries, max, phase);
   const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
     `Counter breakdown: AI-FAIL=${count}`,
@@ -2611,16 +2120,7 @@ export function checkRetryBelowMax(ctx, phase) {
     messages,
     { phase, attempts: count, max },
   );
-  const source = ctx.flowState?.specId
-    ? resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase })
-    : null;
-  const classifiedOutcome = source?.artifact ? gateExhaustionOutcome(
-    source.artifact,
-    gateRetryClassificationContext({ root: ctx.root, flowState: ctx.flowState, phase }),
-  ) : null;
-  const outcome = classifiedOutcome instanceof ExternalBlockedOutcome
-    ? classifiedOutcome
-    : gateExternalBlock(source?.artifact ? "defer_persistence_unavailable" : "missing_content_findings");
+  const outcome = gateExternalBlock("cataloged_gate_result_required");
   const attempt = recordGateOutcome(ctx, null, phase, count, outcome);
   if (attempt) envelope.data = { ...envelope.data, stepAttempt: attempt.toJSON() };
   return envelope;
@@ -2826,8 +2326,22 @@ async function evaluateImplRequirementsWithRetry({
  * Skipped when no spec is available (unit-level callers without flow state).
  */
 function appendGateEscalationIssueLog(ctx, phase, messages) {
-  if (!ctx?.flowState?.specId) return;
-  appendIssueLogFromGateError({ ...ctx, phase }, { message: messages.join("\n") });
+  // Pure retry classification callers have no persistence boundary.  A real
+  // command always carries the bound FlowManager and records this fact below.
+  if (!ctx?.flowManager || !ctx?.flowState?.specId) return;
+  const entry = {
+    step: resolveGateStepId(phase),
+    phase,
+    reason: messages.join("\n"),
+    trigger: "gate retry recovery baseline",
+    timestamp: new Date().toISOString(),
+    recoveryBaseline: {
+      kind: "gate",
+      phase,
+      trigger: GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED,
+    },
+  };
+  appendCanonicalIssueLogEntry(ctx.flowManager, ctx.flowState, entry);
 }
 
 /**
@@ -2848,7 +2362,6 @@ export function updateGateRetryCounter(ctx, result) {
     recordGateOutcome(ctx, result, phase, nextStepAttemptNumber(ctx?.flowState, stepId), outcome);
     return;
   }
-  persistGateSourceFromResult(ctx, result, phase);
   const mgr = ctx.flowManager;
   if (!mgr) return;
   const attemptsBefore = readGateRetryCount(ctx.flowState, phase);
@@ -2863,39 +2376,13 @@ export function updateGateRetryCounter(ctx, result) {
     const attempts = attemptsBefore + 1;
     const max = resolveRetryMax(ctx, phase);
     if (attempts >= max) {
-      const deferred = tryDeferGateRetryExhaustion(ctx, phase, attempts);
-      if (deferred) {
-        Object.assign(result, deferred);
-        recordGateDeferral(ctx, result, phase, attempts);
-        return;
-      }
-      const source = resolveGateSourceForDefer({ root: ctx.root, flowState: ctx.flowState, phase });
-      const sourceOutcome = source?.artifact ? gateExhaustionOutcome(
-        source.artifact,
-        gateRetryClassificationContext({ root: ctx.root, flowState: ctx.flowState, phase }),
-      ) : null;
-      const outcome = sourceOutcome instanceof ExternalBlockedOutcome
-        ? sourceOutcome
-        : gateExternalBlock("defer_persistence_unavailable");
+      const outcome = gateExternalBlock("cataloged_gate_result_required");
       recordGateOutcome(ctx, result, phase, attempts, outcome);
-      persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
       return;
     }
     recordGateOutcome(ctx, result, phase, attempts, new RetryOutcome({ nextAction: gateRetryAction(phase) }));
-    persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
   } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
     recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
-    mgr.mutate((state) => updateGateImplMemory({
-      root: ctx.root,
-      flowState: state,
-      phase,
-      round: nextGateImplMemoryRound(ctx.root, state, phase),
-      status: "advisory",
-      statusReason: "gate pass",
-      gitState: ctx.gitState,
-      passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
-      observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
-    }), owner.routeOptions());
   } else {
     recordGateOutcome(ctx, result, phase, attemptsBefore + 1, gateExternalBlockForResult(result));
   }
@@ -2962,13 +2449,15 @@ export class PlanGateEvidenceTarget {
     Object.freeze(this);
   }
 
-  static resolve({ root, flowState, phase, targetPath = null }) {
+  static resolve({ root, flowManager = null, flowState, phase, targetPath = null }) {
     const files = PLAN_GATE_EVIDENCE_FILES[phase];
     if (!files) return null;
     let specDir;
     if (phase === "spec" && targetPath) {
       const specJsonPath = resolveSpecJsonPath(path.resolve(root, targetPath));
       specDir = path.dirname(specJsonPath);
+    } else if (flowState?.schemaRevision === 3 && typeof flowManager?.specLocation === "function") {
+      specDir = flowManager.specLocation(flowState.specId).directory;
     } else {
       specDir = specDirFromFlowState(root, flowState);
     }
@@ -2991,6 +2480,7 @@ export class PlanGateEvidenceTarget {
 export function computeGateEvidenceState({
   root,
   executionRoot,
+  flowManager = null,
   flowState,
   phase,
   targetPath = null,
@@ -2999,7 +2489,7 @@ export function computeGateEvidenceState({
   if (!files) return computeGitState(executionRoot);
   const head = runGit(["rev-parse", "HEAD"], { cwd: executionRoot });
   assertOk(head, "failed to read HEAD sha");
-  const target = PlanGateEvidenceTarget.resolve({ root, flowState, phase, targetPath });
+  const target = PlanGateEvidenceTarget.resolve({ root, flowManager, flowState, phase, targetPath });
   return { headSha: head.stdout.trim(), worktreeHash: target.fingerprint() };
 }
 
@@ -3019,132 +2509,6 @@ function findPreviousFailEntry(issueLog, phase) {
   return null;
 }
 
-function resolveGateImplMemoryPaths(root, flowState) {
-  if (!flowState?.specId) throw new Error("flowState.specId is required");
-  const specPath = relativeFlowSpecFile(flowState);
-  const specDir = path.dirname(path.resolve(root, specPath));
-  const artifactPath = path.join(specDir, "gate-impl-memory.json");
-  return {
-    specDir,
-    artifactPath,
-    artifactRelPath: path.relative(root, artifactPath).split(path.sep).join("/"),
-  };
-}
-
-function readGateImplMemoryArtifact(root, flowState) {
-  const { artifactPath } = resolveGateImplMemoryPaths(root, flowState);
-  if (!fs.existsSync(artifactPath)) return { version: 1, entries: [] };
-  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-  if (!Array.isArray(artifact.entries)) return { version: 1, entries: [] };
-  return artifact;
-}
-
-function writeGateImplMemoryArtifact(root, flowState, artifact) {
-  const { specDir, artifactPath } = resolveGateImplMemoryPaths(root, flowState);
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
-}
-
-function gateImplMemoryForPhase(flowState, phase) {
-  const memory = flowState?.gateImplMemory;
-  if (!memory || memory.phase !== phase) return null;
-  return memory;
-}
-
-function samePhaseMemoryEntries(artifact, phase) {
-  return (Array.isArray(artifact?.entries) ? artifact.entries : [])
-    .filter((entry) => entry?.phase === phase);
-}
-
-function nextGateImplMemoryRound(root, flowState, phase) {
-  const artifact = readGateImplMemoryArtifact(root, flowState);
-  const rounds = samePhaseMemoryEntries(artifact, phase)
-    .map((entry) => Number(entry.round))
-    .filter((round) => Number.isInteger(round));
-  return rounds.length === 0 ? 1 : Math.max(...rounds) + 1;
-}
-
-export function updateGateImplMemory({
-  root,
-  flowState,
-  phase,
-  round = null,
-  status = "blocking",
-  statusReason = "",
-  gitState,
-  passedGuardrails = [],
-  observations = [],
-}) {
-  if (phase !== "task-impl" && phase !== "integration") return null;
-  const observedAt = new Date().toISOString();
-  const normalizedObservations = normalizeObservations(observations).map((entry) => entry.toJSON());
-  const artifact = readGateImplMemoryArtifact(root, flowState);
-  const { artifactRelPath } = resolveGateImplMemoryPaths(root, flowState);
-  const resolvedRound = round ?? nextGateImplMemoryRound(root, flowState, phase);
-  const entry = {
-    phase,
-    round: resolvedRound,
-    status,
-    statusReason,
-    updatedAt: observedAt,
-    headSha: gitState?.headSha || null,
-    worktreeHash: gitState?.worktreeHash || null,
-    passedGuardrails,
-    observations: normalizedObservations,
-  };
-  artifact.version = 1;
-  const otherPhaseEntries = (Array.isArray(artifact.entries) ? artifact.entries : [])
-    .filter((item) => item?.phase !== phase);
-  const retainedPhaseEntries = samePhaseMemoryEntries(artifact, phase)
-    .filter((item) => item.round !== resolvedRound);
-  const latestPhaseEntries = [...retainedPhaseEntries, entry]
-    .sort((a, b) => a.round - b.round)
-    .slice(-3);
-  artifact.entries = [...otherPhaseEntries, ...latestPhaseEntries]
-    .sort((a, b) => {
-      const phaseOrder = String(a.phase || "").localeCompare(String(b.phase || ""));
-      return phaseOrder || a.round - b.round;
-    });
-  writeGateImplMemoryArtifact(root, flowState, artifact);
-
-  const phaseEntries = samePhaseMemoryEntries(artifact, phase);
-  const latest = phaseEntries[phaseEntries.length - 1];
-  flowState.gateImplMemory = {
-    version: 1,
-    phase,
-    artifactPath: artifactRelPath,
-    roundsKept: 3,
-    lastUpdatedAt: observedAt,
-    headSha: latest.headSha,
-    worktreeHash: latest.worktreeHash,
-    passedGuardrails: latest.passedGuardrails,
-    entries: phaseEntries.map((item) => ({
-      signature: item.observations[0] ? Observation.fromJSON(item.observations[0]).signature() : "",
-      status: item.status,
-      observationRef: `${artifactRelPath}#round-${item.round}`,
-    })),
-  };
-  return flowState.gateImplMemory;
-}
-
-export function readGateImplMemoryForPrompt({ root, flowState, phase }) {
-  if (phase !== "task-impl" && phase !== "integration") return [];
-  return samePhaseMemoryEntries(readGateImplMemoryArtifact(root, flowState), phase).slice(-3);
-}
-
-export function buildGateImplPriorMemoryPrompt({ root, flowState, phase }) {
-  const entries = readGateImplMemoryForPrompt({ root, flowState, phase });
-  if (entries.length === 0) return "";
-  return [
-    "## Prior Gate Observations",
-    ...entries.map((entry) => [
-      `### Round ${entry.round} (${entry.status})`,
-      `Status reason: ${entry.statusReason || "n/a"}`,
-      `State: ${entry.headSha || "n/a"} / ${entry.worktreeHash || "n/a"}`,
-      ...entry.observations.map((observation) => Observation.fromJSON(observation).toMarkdown()),
-    ].join("\n")),
-  ].join("\n\n");
-}
 
 /**
  * Return the state identifiers of the most recent same-phase FAIL entry that
@@ -3158,13 +2522,6 @@ export function buildGateImplPriorMemoryPrompt({ root, flowState, phase }) {
 export function findPreviousFailState({ flowState, issueLog, phase }) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
   if (countGateRetry(flowState?.metrics, phase) === 0) return null;
-  const memory = gateImplMemoryForPhase(flowState, phase);
-  if (memory?.headSha && memory?.worktreeHash) {
-    return {
-      headSha: memory.headSha,
-      worktreeHash: memory.worktreeHash,
-    };
-  }
   const entry = findPreviousFailEntry(issueLog, phase);
   return entry ? { headSha: entry.headSha, worktreeHash: entry.worktreeHash } : null;
 }
@@ -3296,8 +2653,9 @@ function observationsFromGateEvaluations(evaluations) {
   ));
 }
 
-function priorGateImplObservations({ root, flowState, phase }) {
-  return readGateImplMemoryForPrompt({ root, flowState, phase })
+function priorGateObservations(issueLog, phase) {
+  return (issueLog?.entries || [])
+    .filter((entry) => entry?.phase === phase)
     .flatMap((entry) => Array.isArray(entry.observations) ? entry.observations : []);
 }
 
@@ -3394,14 +2752,6 @@ export function buildPassedGuardrails(evaluations) {
 }
 
 export function findPreviousPassedGuardrails({ issueLog, phase }) {
-  const memory = gateImplMemoryForPhase(arguments[0]?.flowState, phase);
-  if (memory) {
-    return {
-      passedGuardrails: memory.passedGuardrails || [],
-      headSha: memory.headSha,
-      worktreeHash: memory.worktreeHash,
-    };
-  }
   const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
   for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
@@ -4721,76 +4071,6 @@ function gateRequiredEvaluationFail(level, phase, targetPath, result) {
   return failure;
 }
 
-function persistIntegrationGateResult({ root, executionRoot = root, state, result }) {
-  if (!result || typeof result !== "object" || result.ok === false) return result;
-  if (result?.artifacts?.deferred === true) return result;
-  if (!state?.specId) return result;
-  const specPath = relativeFlowSpecFile(state);
-  const specDir = resolveSpecDir(path.resolve(root, specPath));
-  const artifactPath = path.join(specDir, IMPL_GATE_RESULT_FILE);
-  const artifactPathRelative = repoRelative(root, artifactPath);
-  const sourceArtifacts = result.artifacts || {};
-  const generatedAt = new Date().toISOString();
-  const cycle = new ReviewFindingCycle(state);
-  const priorReportedAtByFingerprint = priorGateFindingReportedAt({
-    root,
-    state,
-    sourceArtifact: IMPL_GATE_RESULT_FILE,
-  });
-  const evaluations = dispositionGateEvaluations(sourceArtifacts.evaluations, {
-    phase: "integration",
-    taskId: null,
-    reportedAt: generatedAt,
-    priorReportedAtByFingerprint,
-  });
-  const observations = dispositionGateEvaluations(
-    sourceArtifacts.nextAction?.diagnosis?.observations || [],
-    {
-      phase: "integration",
-      taskId: null,
-      reportedAt: generatedAt,
-      priorReportedAtByFingerprint,
-    },
-  );
-  const artifact = {
-    ...cycle.toJSON(),
-    generatedAt,
-    verdict: result.result === "pass" ? "pass" : "fail",
-    issues: Array.isArray(sourceArtifacts.issues) ? sourceArtifacts.issues : [],
-    nextAction: sourceArtifacts.nextAction ?? result.next ?? null,
-    level: sourceArtifacts.level || "integration",
-    phase: "integration",
-    evaluations,
-    observations,
-    reasons: Array.isArray(sourceArtifacts.reasons) ? sourceArtifacts.reasons : [],
-    // Preserve the execution classification from the authoritative gate
-    // result so nonblocking can distinguish a repairable semantic non-pass
-    // from tool, schema, and prerequisite failures without inferring it.
-    failureKind: sourceArtifacts.failureKind || null,
-  };
-  artifact.contractSummary = contractFromGateArtifact(artifact, {
-    phase: "integration",
-    artifactPath: artifactPathRelative,
-  }).summary.toJSON();
-  const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state });
-  const written = writeRepairEvidenceArtifact({
-    specDir,
-    stepId: "impl-gate",
-    artifact,
-    fingerprint,
-  });
-  result.changed = Array.from(new Set([...(Array.isArray(result.changed) ? result.changed : []), artifactPathRelative]));
-  result.artifacts = {
-    ...sourceArtifacts,
-    evaluations,
-    generatedAt,
-    verdict: artifact.verdict,
-    artifactPath: artifactPathRelative,
-    contractSummary: artifact.contractSummary,
-    repairFingerprint: written.artifact.repairFingerprint,
-  };
-  return result;
-}
 
 // ---------------------------------------------------------------------------
 // Common gate flow
@@ -4821,9 +4101,7 @@ export async function runGateFlow(args) {
     authoritativeEvaluations = [], structuralRecovery = null,
   } = args;
   const artifactRoot = args.artifactRoot || root;
-  const priorMemoryMarkdown = ctx?.flowState?.specId
-    ? buildGateImplPriorMemoryPrompt({ root: artifactRoot, flowState: ctx.flowState, phase })
-    : "";
+  const priorMemoryMarkdown = "";
 
   validateLevelPhase(level, phase);
 
@@ -4914,7 +4192,7 @@ export async function runGateFlow(args) {
         issueLog: ctx.issueLog,
         phase,
         currentEvaluations: evaluations,
-        priorObservations: priorGateImplObservations({ root: artifactRoot, flowState: ctx.flowState, phase }),
+        priorObservations: priorGateObservations(ctx.issueLog, phase),
         currentObservations: observationsFromGateEvaluations(evaluations),
       });
     }
@@ -5021,43 +4299,6 @@ export class InferredGateTransition {
   }
 }
 
-class GateArtifactCheckpoint {
-  constructor(file) {
-    this.file = file;
-    this.existed = fs.existsSync(file);
-    this.content = this.existed ? fs.readFileSync(file) : null;
-  }
-
-  restore() {
-    if (this.existed) {
-      fs.writeFileSync(this.file, this.content);
-    } else {
-      fs.rmSync(this.file, { force: true });
-    }
-  }
-}
-
-class GateDurableSurfaceCheckpoint {
-  constructor({ specDir, phase }) {
-    const files = new Set([
-      "issue-log.json",
-      "flow-findings.json",
-      "gate-impl-memory.json",
-      "impl-gate-source.json",
-      GATE_SOURCE_ARTIFACT_BY_PHASE[phase],
-      GATE_RESULT_ARTIFACT_BY_PHASE[phase],
-    ].filter(Boolean));
-    this.checkpoints = Object.freeze(
-      [...files].map((file) => new GateArtifactCheckpoint(path.join(specDir, file))),
-    );
-    Object.freeze(this);
-  }
-
-  restore() {
-    for (const checkpoint of this.checkpoints) checkpoint.restore();
-  }
-}
-
 function completedSemanticGateResult(result) {
   if (result?.result === "pass") return true;
   return result?.result === "fail" && result?.artifacts?.failureKind === "ai_semantic_fail";
@@ -5131,469 +4372,305 @@ export class RunGateCommand extends FlowCommand {
       );
     }
     const level = PHASE_TO_LEVEL[phase];
-    if (phase === "integration") {
-      const repairContract = ensureRepairFingerprintContract({
-        root: executionRoot,
-        artifactRoot: root,
-        state: ctx.flowState,
-        flowManager: ctx.flowManager,
-        continueAfterMigration: true,
-      });
-      if (repairContract.migrated) {
-        return {
-          result: "recovered",
-          changed: [],
-          artifacts: {
-            level,
-            phase,
-            evidenceRefresh: { recovered: true, migration: "repair-fingerprint-v2-to-v3" },
-          },
-          next: "test-execute",
-        };
-      }
+    if (!isCanonicalFlowState(ctx.flowState)) {
+      throw new Error("gate requires an active canonical Flow state");
     }
-
-    const skipGuardrail = ctx.skipGuardrail || false;
-    const flowManager = inferPhase ? (ctx.flowManager || container.get("flowManager")) : null;
-    const inferredTransition = inferPhase
-      ? new InferredGateTransition({
-          flowState: ctx.flowState,
-          resolution,
-          owner: new GateMutationOwner({ flowState: ctx.flowState, phase }),
-        })
-      : null;
-    const durableCheckpoint = inferredTransition
-      ? new GateDurableSurfaceCheckpoint({
-          specDir: resolveSpecDir(path.resolve(root, relativeFlowSpecFile(ctx.flowState))),
-          phase,
-        })
-      : null;
-    let transitionCommitted = false;
-
-    try {
-      let result;
-      if (phase === "draft") {
-        result = await this.executeDraft(ctx, root, executionRoot, level, skipGuardrail);
-      } else if (phase === "task-impl" || phase === "integration") {
-        result = await this.executeDiffBasedGate(
-          ctx,
-          root,
-          executionRoot,
-          level,
-          phase,
-          skipGuardrail,
-          { deferIntegrationPersistence: inferPhase },
-        );
-      } else if (phase === "task-spec") {
-        result = await this.executeTaskSpec(ctx, root, level, skipGuardrail);
-      } else {
-        // "spec" — parent spec.json
-        result = await this.executeSpec(ctx, root, executionRoot, level, skipGuardrail);
-      }
-      if (!inferredTransition) return recordRequiredGateFailureOutcome(ctx, result, phase);
-      if (!completedSemanticGateResult(result)) {
-        durableCheckpoint.restore();
-        return recordRequiredGateFailureOutcome(ctx, result, phase);
-      }
-      const persisted = phase === "integration"
-        ? persistIntegrationGateResult({ root, executionRoot, state: ctx.flowState, result })
-        : result;
-      const committed = inferredTransition.commit(flowManager);
-      transitionCommitted = true;
-      ctx.flowState = flowManager.load();
-      for (const transition of committed) {
-        process.stderr.write(
-          `[sennel] gate: stale in_progress step "${transition.stepId}" ` +
-            `transitioned to done (committed phase=${phase})\n`,
-        );
-      }
-      return recordRequiredGateFailureOutcome(ctx, persisted, phase);
-    } catch (err) {
-      if (!transitionCommitted) durableCheckpoint?.restore();
-      if (err instanceof EvaluationSchemaError) {
-        throw new GateOutputProtocolFailure({
-          phase,
-          originalError: err,
-          attempts: [{
-            attempt: 1,
-            repair: false,
-            cacheOutcome: "unknown",
-            fresh: false,
-            providerCalled: false,
-            error: err.message,
-          }],
-          classification: "tooling_provider_failure",
-        });
-      }
-      throw err;
-    }
-  }
-
-  async executeDraft(ctx, root, executionRoot, level, skipGuardrail) {
-    const state = ctx.flowState;
-    const specPath = state?.specId ? relativeFlowSpecFile(state) : null;
-    const specDir = specPath ? path.dirname(path.resolve(root, specPath)) : null;
-    if (!specDir) throw new Error("no active flow found");
-
-    const draftPath = path.join(specDir, "draft.json");
-    if (!fs.existsSync(draftPath)) {
-      throw new Error(`draft not found: ${draftPath}`);
-    }
-
-    const originalText = fs.readFileSync(draftPath, "utf8");
-    const relPath = path.relative(root, draftPath);
-
-    const completedDraft = await completeDraftArtifactChange({
-      root,
-      specDir,
-      state,
-      rawText: originalText,
-    });
-    if (completedDraft.constructor.name === "ArtifactCompletionMechanicalFailure") {
-      return gateFail(
-        level,
-        "draft",
-        relPath,
-        [],
-        completedDraft.issues,
-        DRAFT_GATE_REOPEN_RECOVERY,
-      );
-    }
-    const draftObj = completedDraft.artifact;
-    const targetText = JSON.stringify(draftObj, null, 2) + "\n";
-
-    const gitState = computeGateEvidenceState({
-      root,
-      executionRoot,
-      flowState: state,
-      phase: "draft",
-    });
-    ctx.gitState = gitState;
-    const issueLog = specPath ? loadIssueLog(root, specPath) : { entries: [] };
-
-    return runGateFlow({
-      root,
-      config: ctx.config,
-      level,
-      phase: "draft",
-      targetPath: relPath,
-      targetText,
-      textCheck: () => [
-        ...checkDraftJson(draftObj),
-        ...validateDraftReviewArtifacts(root, specPath, draftObj, state),
-      ],
-      checkerRole:
-        "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
-      skipGuardrail,
-      structuralRecovery: DRAFT_GATE_REOPEN_RECOVERY,
-      ctx: { ...ctx, issueLog, gitState },
-    });
-  }
-
-  async executeSpec(ctx, root, executionRoot, level, skipGuardrail) {
-    let specInput = ctx.spec || "";
-    if (!specInput) {
-      const state = ctx.flowState;
-      if (state?.specId) {
-        specInput = relativeFlowSpecFile(state);
-      } else {
-        throw new Error("no --spec provided and no active flow found");
-      }
-    }
-
-    // Resolve any input form (directory / spec.json / spec.md) to spec.json.
-    const absInput = path.resolve(root, specInput);
-    const jsonPath = resolveSpecJsonPath(absInput);
-    if (!fs.existsSync(jsonPath)) {
-      throw new Error(`spec.json not found: ${jsonPath}`);
-    }
-
-    const targetPath = path.relative(root, jsonPath);
-    const originalTargetText = fs.readFileSync(jsonPath, "utf8");
-
-    const completedSpec = await completeSpecArtifactChange({
-      root,
-      specDir: path.dirname(jsonPath),
-      state: ctx.flowState,
-      rawText: originalTargetText,
-      requireRepairAudit: false,
-      requireContent: false,
-    });
-    if (completedSpec.constructor.name === "ArtifactCompletionMechanicalFailure") {
-      return gateFail(level, "spec", targetPath, [], completedSpec.issues);
-    }
-
-    let spec;
-    let loadError = null;
-    try {
-      spec = validateSpecJsonObject(completedSpec.artifact);
-    } catch (err) {
-      loadError = err.message;
-      spec = completedSpec.artifact;
-    }
-    const targetText = JSON.stringify(spec, null, 2) + "\n";
-
-    // REQ-3 (spec 215): tasks[] monotonic check applies to the parent-level
-    // spec phase only.
-    const flowTasks = ctx.flowState?.tasks || [];
-    const monotonicIssues = checkTasksMonotonic({
-      flowTasks,
-      specTasks: spec?.tasks,
-    });
-
-    const gitState = computeGateEvidenceState({
-      root,
-      executionRoot,
-      flowState: ctx.flowState,
-      phase: "spec",
-      targetPath: jsonPath,
-    });
-    ctx.gateEvidenceTargetPath = jsonPath;
-    ctx.gitState = gitState;
-    const issueLog = ctx.flowState?.specId
-      ? loadIssueLog(root, relativeFlowSpecFile(ctx.flowState))
-      : { entries: [] };
-    const specGuardrails = filterByPhase(loadMergedGuardrails(root), "spec");
-    const specTestCoverageGuardrail = specGuardrails.find(
-      (guardrail) => guardrail.id === SPEC_TEST_COVERAGE_GUARDRAIL_ID,
-    );
-    const authoritativeEvaluations = specTestCoverageGuardrail
-      ? [new SpecTestCoverageDecision({
-          phase: "spec",
-          guardrail: specTestCoverageGuardrail,
-        }).toGateEvaluation()]
-      : [];
-    const acknowledgedRationale = buildAcknowledgedRationaleSection({
-      spec,
-      guardrails: specGuardrails,
-    });
-
-    return runGateFlow({
-      root,
-      config: ctx.config,
-      level,
-      phase: "spec",
-      targetPath,
-      targetText,
-      textCheck: () =>
-        loadError
-          ? [`schema: ${loadError}`, ...monotonicIssues]
-          : [
-            ...checkSpecJson(spec),
-            ...monotonicIssues,
-            ...validateSpecRepairAudit(root, targetPath),
-          ],
-      checkerRole: undefined,
-      skipGuardrail,
-      ctx: { ...ctx, issueLog, gitState },
-      guardrailPromptOptions: { acknowledgedRationale },
-      authoritativeEvaluations,
-    });
-  }
-
-  async executeTaskSpec(ctx, root, level, skipGuardrail) {
-    const spec = ctx.spec || "";
-    let specPath = spec;
-    if (!specPath) {
-      const state = ctx.flowState;
-      if (state?.specId) {
-        specPath = relativeFlowSpecFile(state);
-      } else {
-        throw new Error("no --spec provided and no active flow found");
-      }
-    }
-
-    const absPath = path.resolve(root, specPath);
-    if (!fs.existsSync(absPath)) {
-      throw new Error(`spec not found: ${absPath}`);
-    }
-
-    const text = fs.readFileSync(absPath, "utf8");
-
-    return runGateFlow({
-      root,
-      config: ctx.config,
-      level,
-      phase: "task-spec",
-      targetPath: specPath,
-      targetText: text,
-      textCheck: () => checkSpecText(text),
-      checkerRole: undefined,
-      skipGuardrail,
-    });
-  }
-
-  async executeDiffBasedGate(
-    ctx,
-    root,
-    executionRoot,
-    level,
-    phase,
-    skipGuardrail,
-    { deferIntegrationPersistence = false } = {},
-  ) {
-    const state = ctx.flowState;
-    if (!state?.specId) throw new Error("no active flow found");
-    const flowSpecPath = relativeFlowSpecFile(state);
-    if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
-    const finish = (result) => phase === "integration" && !deferIntegrationPersistence
-      ? persistIntegrationGateResult({ root, executionRoot, state, result })
-      : result;
-
-    const scopeDecision = evaluateTaskScope(state, "impl-gate");
-    if (phase === "task-impl") {
-      if (scopeDecision.kind === "task") {
-        return finish(await this.executeTaskImplGate(ctx, root, executionRoot, level, phase, skipGuardrail));
-      }
-      if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
-        return finish(taskCursorRequiredGateFailure(scopeDecision, phase, state));
-      }
-      if (scopeDecision.kind === "broad") {
-        assertAuditedBroadMode(scopeDecision, "impl-gate");
-      }
-    }
-    if (phase === "integration") {
-      if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
-        return finish(taskCursorRequiredGateFailure(scopeDecision, phase, state));
-      }
-      if (scopeDecision.kind === "broad") {
-        assertAuditedBroadMode(scopeDecision, "impl-gate");
-      }
-    }
-
-    // spec 251 R17: integration gate verifies the upstream test-execute /
-    // test-result-review artifacts before delegating to the AI guardrail
-    // pipeline. Missing / unverified results are treated as FAIL with no
-    // retry budget consumption, since the failure is structural.
-    let integrationExecutionEvidence = null;
-    if (phase === "integration") {
-      const integrationCheck = checkIntegrationTestArtifacts(
-        root,
-        state,
-        level,
-        phase,
-        ctx.config || {},
-        executionRoot,
-      );
-      if (integrationCheck instanceof StaleIntegrationTestEvidence) {
-        return integrationCheck.recover(ctx, {
-          level,
-          phase,
-          specDir: path.dirname(path.resolve(root, flowSpecPath)),
-        });
-      }
-      if (integrationCheck) {
-        const messages = (integrationCheck.errors || [])
-          .flatMap((entry) => entry?.messages || [])
-          .filter((message) => typeof message === "string" && message.trim() !== "");
-        const blocked = gateFail(
-          level,
-          phase,
-          flowSpecPath,
-          [],
-          messages.length > 0 ? messages : ["integration test artifact trust validation failed"],
-        );
-        blocked.artifacts.failureKind = "artifact_trust_failure";
-        blocked.artifacts.failureCode = integrationCheck.errors?.[0]?.code || null;
-        return finish(blocked);
-      }
-      const findingReadiness = reviewFindingGateFailure({
-        root,
-        state,
-        phase,
-        taskId: null,
-        issueLog: loadIssueLog(root, flowSpecPath),
-        level,
-        targetPath: flowSpecPath,
-      });
-      if (findingReadiness) return finish(findingReadiness);
-      const specDir = path.dirname(path.resolve(root, flowSpecPath));
-      integrationExecutionEvidence = new IntegrationExecutionEvidence({
-        result: readJsonStrict(path.join(specDir, "test-execute-result.json")),
-        review: readJsonStrict(path.join(specDir, "test-result-review.json")),
-      });
-    }
-
-    // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
-    // since the previous FAIL. Returns ok:false envelope before AI invocation,
-    // so gateRetry is not incremented (the registry post-hook never runs on
-    // an ok:false return).
-    const gitState = computeGitState(executionRoot);
-    const noProgressFail = checkNoProgressSinceLastFail({
-      flowState: state,
-      issueLog: loadIssueLog(root, flowSpecPath),
+    const result = await this.executeCanonical(ctx, {
       phase,
-      currentState: gitState,
-      ctx,
+      level,
+      skipGuardrail: ctx.skipGuardrail === true,
+      executionRoot,
     });
-    if (noProgressFail) return finish(noProgressFail);
-    // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
-    // can attach it to FAIL entries without re-running git.
-    ctx.gitState = gitState;
+    return recordRequiredGateFailureOutcome(ctx, result, phase);
+  }
 
-    const specPath = flowSpecPath;
-    const absSpecInput = path.resolve(root, specPath);
-    const specJsonPath = resolveSpecJsonPath(absSpecInput);
-    if (!fs.existsSync(specJsonPath)) {
-      throw new Error(`spec.json not found: ${specJsonPath}`);
+  /**
+   * Run the normal gate evaluator against Version-1 catalog inputs.  Gate
+   * prompts retain their existing target text and phase; only persistence is
+   * replaced by the Store-attached result returned at the end of this method.
+   */
+  async executeCanonical(ctx, { phase, level, skipGuardrail, executionRoot }) {
+    const flowManager = ctx.flowManager;
+    if (!flowManager || typeof flowManager.canonicalState !== "function") {
+      throw new Error("canonical gate requires FlowManager.canonicalState");
+    }
+    const state = flowManager.canonicalState(ctx.specId ?? ctx.flowState.specId);
+    if (state === null) throw new Error("canonical gate requires a loaded Version-1 Flow");
+    const activeTaskId = ctx.flowState.currentTaskId ?? null;
+    const nodeId = canonicalGateNodeId({ phase, taskId: activeTaskId });
+    if (state.current?.at(-1) !== nodeId) {
+      throw new Error(`canonical gate requires active ${nodeId}, found ${state.current?.at(-1) ?? "none"}`);
+    }
+    const inputs = new CanonicalGateInputStore({ flowManager, state: ctx.flowState, nodeId });
+    const specPath = flowManager.specLocation(ctx.flowState.specId).relativeSpecFile;
+    const issueLog = inputs.issueLog();
+    const canonicalCtx = { ...ctx, flowState: ctx.flowState, issueLog };
+    let result;
+
+    if (phase === "draft") {
+      const draft = inputs.draft();
+      const targetPath = path.posix.join(path.posix.dirname(specPath), "draft.json");
+      result = await runGateFlow({
+        root: executionRoot,
+        artifactRoot: executionRoot,
+        config: ctx.config,
+        level,
+        phase,
+        targetPath,
+        targetText: `${JSON.stringify(draft, null, 2)}\n`,
+        textCheck: () => checkDraftJson(draft),
+        checkerRole: "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
+        skipGuardrail,
+        ctx: canonicalCtx,
+      });
+    } else if (phase === "spec") {
+      const spec = inputs.spec();
+      let loadError = null;
+      try {
+        validateSpecJsonObject(spec);
+      } catch (error) {
+        loadError = error.message;
+      }
+      const guardrails = filterByPhase(loadMergedGuardrails(executionRoot), "spec");
+      const testCoverage = guardrails.find((guardrail) => guardrail.id === SPEC_TEST_COVERAGE_GUARDRAIL_ID);
+      const authoritativeEvaluations = testCoverage
+        ? [new SpecTestCoverageDecision({ phase: "spec", guardrail: testCoverage }).toGateEvaluation()]
+        : [];
+      result = await runGateFlow({
+        root: executionRoot,
+        artifactRoot: executionRoot,
+        config: ctx.config,
+        level,
+        phase,
+        targetPath: specPath,
+        targetText: `${JSON.stringify(spec, null, 2)}\n`,
+        textCheck: () => loadError ? [`schema: ${loadError}`] : checkSpecJson(spec),
+        checkerRole: undefined,
+        skipGuardrail,
+        ctx: canonicalCtx,
+        guardrailPromptOptions: { acknowledgedRationale: buildAcknowledgedRationaleSection({ spec, guardrails }) },
+        authoritativeEvaluations,
+      });
+    } else if (phase === "task-spec") {
+      // An explicit task-spec is a public command input, not a Flow artifact.
+      // Its producer remains the spec-gate Attempt, while its text is checked
+      // without consulting a source-era spec directory.
+      const targetPath = ctx.spec || specPath;
+      const absoluteTarget = path.resolve(executionRoot, targetPath);
+      if (!fs.existsSync(absoluteTarget)) throw new Error(`spec not found: ${absoluteTarget}`);
+      const text = fs.readFileSync(absoluteTarget, "utf8");
+      result = await runGateFlow({
+        root: executionRoot,
+        artifactRoot: executionRoot,
+        config: ctx.config,
+        level,
+        phase,
+        targetPath,
+        targetText: text,
+        textCheck: () => checkSpecText(text),
+        checkerRole: undefined,
+        skipGuardrail,
+        ctx: canonicalCtx,
+      });
+    } else if (phase === "task-impl" && activeTaskId !== null) {
+      result = await this.executeCanonicalTaskGate({
+        ctx: canonicalCtx,
+        inputs,
+        level,
+        phase,
+        executionRoot,
+        skipGuardrail,
+      });
+    } else {
+      result = await this.executeCanonicalImplementationGate({
+        ctx: canonicalCtx,
+        inputs,
+        level,
+        phase,
+        executionRoot,
+        skipGuardrail,
+      });
     }
 
-    let parentSpecForRationale;
-    try {
-      parentSpecForRationale = loadSpecJson(specJsonPath);
-    } catch (err) {
-      return finish(gateFail(level, phase, specPath, [], [`spec.json load failed: ${err.message}`]));
+    // No filesystem result/source writer is permitted here.  The registry
+    // confirms a pass with its lifecycle Activity; a non-pass is published
+    // before the retry lifecycle keeps the Attempt active.
+    if (result?.result === "pass" || result?.result === "fail") {
+      new CanonicalGatePromotion({ state: ctx.flowState, phase, nodeId }).promote(result);
     }
-    const specText = specJsonToPromptText(parentSpecForRationale, {
-      title: getSpecName(state),
-    });
-    const reqIds = enumerateUsableRequirementIds(parentSpecForRationale);
-    if (reqIds.length === 0) {
-      return finish(gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]));
-    }
-    const requirements = parentSpecForRationale.requirements
-      .filter((requirement) => reqIds.includes(requirement.id))
-      .map((requirement) => new RequirementPromptExcerpt(requirement));
+    return result;
+  }
 
+  async executeCanonicalTaskGate({ ctx, inputs, level, phase, executionRoot, skipGuardrail }) {
+    const state = ctx.flowState;
+    const task = inputs.task();
+    const spec = inputs.spec();
+    const specPath = ctx.flowManager.specLocation(state.specId).relativeSpecFile;
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", executionRoot);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", executionRoot);
     const untracked = await collectUntrackedDiff(executionRoot, {
       excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, specPath),
     });
-    const diff = buildGateEvaluationDiff({
-      committed,
-      uncommitted,
-      untracked,
-      specPath,
-    });
-
-    if (!diff.trim()) {
-      return finish(gateFail(level, phase, specPath, [], [
+    const diff = buildGateEvaluationDiff({ committed, uncommitted, untracked, specPath });
+    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath);
+    const targetPath = path.posix.join(path.posix.dirname(specPath), "tasks", `${task.id}.md`);
+    if (!guardrailDiff.trim()) {
+      return gateFail(level, phase, targetPath, [], [
         "no changes found (committed or uncommitted) against base branch",
-      ]));
+      ]);
     }
+    const diffBytes = Buffer.byteLength(guardrailDiff, "utf8");
+    if (diffBytes > TASK_IMPL_GATE_DIFF_MAX_BYTES) {
+      return gateFail(level, phase, targetPath, [], [
+        `task implementation diff is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
+      ]);
+    }
+    const gitState = computeGitState(executionRoot);
+    ctx.gitState = gitState;
+    const specification = specJsonToPromptText(spec, { title: getSpecName(state) });
+    return runGateFlow({
+      root: executionRoot,
+      artifactRoot: executionRoot,
+      config: ctx.config,
+      level,
+      phase,
+      targetPath,
+      targetText: `${task.markdown}\n\n## Authoritative Flow Specification\n${specification}\n\n## Git Diff\n${guardrailDiff}`,
+      textCheck: () => [],
+      checkerRole: "You are a task implementation compliance checker. Check this task specification against the implementation diff.",
+      skipGuardrail,
+      ctx,
+    });
+  }
 
-    // spec 209 REQ-6: surface remaining retry budget after current structural
-    // inputs have been validated, so stale semantic deferral cannot bypass
-    // missing/invalid spec or diff evidence.
+  async executeCanonicalImplementationGate({ ctx, inputs, level, phase, executionRoot, skipGuardrail }) {
+    const state = ctx.flowState;
+    const specPath = ctx.flowManager.specLocation(state.specId).relativeSpecFile;
+    const spec = inputs.spec();
+    if (!state.baseBranch) throw new Error("baseBranch not set in canonical Flow execution");
+    let integrationExecutionEvidence = null;
+    if (phase === "integration") {
+      const execution = inputs.attemptResult("test.execute", {
+        consumerNodeId: "impl-gate",
+        optional: true,
+      });
+      const review = inputs.attemptResult("test.result.review", {
+        consumerNodeId: "impl-gate",
+        optional: true,
+      });
+      if (execution === null || review === null) {
+        const blocked = gateFail(level, phase, specPath, [], [
+          "integration test artifact trust validation failed: test-execute and test-result-review are required",
+        ]);
+        blocked.artifacts.failureKind = "artifact_trust_failure";
+        blocked.artifacts.failureCode = "CANONICAL_TEST_EVIDENCE_MISSING";
+        return blocked;
+      }
+      const upgrade = validateCanonicalUpgradeEvidence({
+        flowManager: ctx.flowManager,
+        state,
+        consumerNodeId: "impl-gate",
+        root: executionRoot,
+      });
+      if (!upgrade.ok) {
+        const blocked = gateFail(level, phase, specPath, [], [
+          `integration upgrade evidence validation failed: ${upgrade.reason}`,
+        ]);
+        blocked.artifacts.failureKind = "artifact_trust_failure";
+        blocked.artifacts.failureCode = "CANONICAL_UPGRADE_EVIDENCE_INVALID";
+        return blocked;
+      }
+      try {
+        const fingerprintAuthority = new IntegrationArtifactFingerprintAuthority({
+          result: execution.payload,
+          review: review.payload,
+        });
+        integrationExecutionEvidence = new IntegrationExecutionEvidence({
+          result: execution.payload,
+          review: review.payload,
+        });
+        const currentFingerprint = buildRepairFingerprint({
+          root: executionRoot,
+          artifactRoot: ctx.root,
+          specPath,
+        });
+        const staleEvidence = StaleTestEvidenceMismatch.detect({
+          artifacts: fingerprintAuthority.toArtifactMap(),
+          currentFingerprint: currentFingerprint.hash,
+        });
+        if (staleEvidence !== null) {
+          const evidenceRefresh = staleEvidence.recoverFromCurrentAuthority({
+            state,
+            flowManager: ctx.flowManager,
+            reason: "integration gate detected implementation changes after test evidence was recorded",
+            sourceStep: "impl-gate",
+          });
+          return {
+            result: "recovered",
+            changed: [],
+            artifacts: {
+              phase,
+              staleArtifacts: [...staleEvidence.artifactNames],
+              evidenceRefresh: evidenceRefresh.toJSON(),
+            },
+            next: "test-execute",
+          };
+        }
+      } catch (error) {
+        const blocked = gateFail(level, phase, specPath, [], [
+          `integration test artifact trust validation failed: ${error.message}`,
+        ]);
+        blocked.artifacts.failureKind = "artifact_trust_failure";
+        blocked.artifacts.failureCode = "CANONICAL_TEST_EVIDENCE_INVALID";
+        return blocked;
+      }
+    }
+    const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", executionRoot);
+    const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", executionRoot);
+    const untracked = await collectUntrackedDiff(executionRoot, {
+      excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, specPath),
+    });
+    const diff = buildGateEvaluationDiff({ committed, uncommitted, untracked, specPath });
+    if (!diff.trim()) {
+      return gateFail(level, phase, specPath, [], [
+        "no changes found (committed or uncommitted) against base branch",
+      ]);
+    }
+    const gitState = computeGitState(executionRoot);
+    ctx.gitState = gitState;
+    const requirements = enumerateUsableRequirementIds(spec);
+    if (requirements.length === 0) {
+      return gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]);
+    }
+    const noProgressFail = checkNoProgressSinceLastFail({
+      flowState: state,
+      issueLog: ctx.issueLog,
+      phase,
+      currentState: gitState,
+      ctx,
+    });
+    if (noProgressFail) return noProgressFail;
     warnGateRetryBudget(ctx, phase);
-    // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     const retryFail = checkRetryBelowMax(ctx, phase);
-    if (retryFail) return finish(retryFail);
+    if (retryFail) return retryFail;
+
     const agent = container.get("agent");
     const agentResolutionFailure = requiredGateAgentResolutionFailure(agent);
     if (agentResolutionFailure) {
-      return finish(gateRequiredEvaluationFail(
-        level,
-        phase,
-        specPath,
-        agentResolutionFailure,
-      ));
+      return gateRequiredEvaluationFail(level, phase, specPath, agentResolutionFailure);
     }
-
-    const specDir = resolveSpecDir(specJsonPath);
-    const fileMap = loadFileMap(specDir);
-
+    const specification = specJsonToPromptText(spec, { title: getSpecName(state) });
+    const reqIds = requirements;
+    const requirementEntries = spec.requirements
+      .filter((requirement) => reqIds.includes(requirement.id))
+      .map((requirement) => new RequirementPromptExcerpt(requirement));
+    const fileMap = inputs.readJson("file.map", {
+      consumerNodeId: "impl-gate",
+      optional: true,
+    }) ?? {};
+    if (fileMap === null || typeof fileMap !== "object" || Array.isArray(fileMap)) {
+      return gateFail(level, phase, specPath, [], ["canonical file-map must be an object"]);
+    }
     let perReqDiffs = null;
     if (Object.keys(fileMap).length > 0) {
       const perFileDiffs = excludeGeneratedSpecArtifactsFromPerFileDiffs(
@@ -5602,266 +4679,114 @@ export class RunGateCommand extends FlowCommand {
       );
       perReqDiffs = buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, diff);
     }
-    const requirementContexts = new Map(requirements.map((requirement) => [
+    const requirementContexts = new Map(requirementEntries.map((requirement) => [
       requirement.id,
       buildRequirementGateContext({
-        spec: parentSpecForRationale,
+        spec,
         requirement,
         fileMap,
         relatedDiff: perReqDiffs?.get(requirement.id) ?? diff,
         executionEvidence: integrationExecutionEvidence,
       }),
     ]));
-
-    let reqEvaluations;
     const previousResult = findPreviousPassedGuardrails({
       flowState: state,
-      issueLog: loadIssueLog(root, specPath),
+      issueLog: ctx.issueLog,
       phase,
     });
-
     const requirementPlan = planRequirementGateCalls({
-      requirements,
+      requirements: requirementEntries,
       contexts: requirementContexts,
       relatedDiffs: perReqDiffs,
       previouslyPassed: new Set(previousResult?.passedGuardrails || []),
-      fullSpecText: specText,
+      fullSpecText: specification,
       fullDiff: diff,
       phase,
       maxChars: MAX_IMPL_REQUIREMENT_BATCH_CHARS,
-      structuredSpec: phase === "integration" ? parentSpecForRationale : null,
+      structuredSpec: phase === "integration" ? spec : null,
     });
-    reqEvaluations = [...requirementPlan.evaluations];
+    const reqEvaluations = [...requirementPlan.evaluations];
     try {
       for (const batch of requirementPlan.calls) {
-        const reqPb = batch.buildPrompt();
-        const reqBuilt = reqPb.build();
-        const { evaluations: reqResults } = await evaluateImplRequirementsWithRetry({
+        const built = batch.buildPrompt().build();
+        const { evaluations } = await evaluateImplRequirementsWithRetry({
           knownIds: batch.requirementIds,
           phase,
-          callAgent: (attempt) => callGateAgent(agent, reqBuilt, attempt),
+          callAgent: (attempt) => callGateAgent(agent, built, attempt),
         });
-        reqEvaluations.push(...reqResults.map((r) => ({
-          ...r,
-          title: r.guardrail_id,
+        reqEvaluations.push(...evaluations.map((entry) => ({
+          ...entry,
+          title: entry.guardrail_id,
           category: "requirements",
         })));
       }
     } catch (error) {
-      return finish(gateRequiredEvaluationFail(
+      return gateRequiredEvaluationFail(
         level,
         phase,
         specPath,
         requiredGateEvaluationFailure(error),
-      ));
+      );
     }
-
-    const reqPassed = reqEvaluations.every(
-      (r) => r.result === "pass" || r.result === "skip",
-    );
-    if (!reqPassed) {
-      // spec 212 REQ-1: escalate when the same requirement FAILs for the same
-      // reason as the previous attempt. Throws before gateFail return so the
-      // POST-hook retry counter increment never fires (REQ-2).
+    if (!reqEvaluations.every((entry) => entry.result === "pass" || entry.result === "skip")) {
       assertNoRepeatedFail({
-        issueLog: loadIssueLog(root, specPath),
+        issueLog: ctx.issueLog,
         phase,
         currentEvaluations: reqEvaluations,
-        priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
+        priorObservations: priorGateObservations(ctx.issueLog, phase),
         currentObservations: observationsFromGateEvaluations(reqEvaluations),
       });
-      return finish(gateFail(level, phase, specPath, reqEvaluations, []));
+      return gateFail(level, phase, specPath, reqEvaluations, []);
     }
-
-    // spec 241 R5: file-map reconciliation warnings
-    const fileMapWarnings = this.reconcileFileMapWarnings(root, executionRoot, state);
-
-    if (skipGuardrail) {
-      return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
-    }
-
-    const diffGuardrails = filterByPhase(loadMergedGuardrails(executionRoot), phase);
-    const acknowledgedRationale = buildAcknowledgedRationaleSection({
-      spec: parentSpecForRationale,
-      guardrails: diffGuardrails,
+    const fileMapWarnings = this.reconcileCanonicalFileMapWarnings({
+      executionRoot,
+      state,
+      fileMap,
     });
-    const previouslyPassedIds = previousResult?.passedGuardrails;
+    if (skipGuardrail) return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
+    const diffGuardrails = filterByPhase(loadMergedGuardrails(executionRoot), phase);
     const grResult = await checkGuardrail(
       executionRoot,
-      buildGuardrailTargetTextForPrompt(specText, diff),
+      buildGuardrailTargetTextForPrompt(specification, diff),
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
-      previouslyPassedIds,
-      { acknowledgedRationale },
+      previousResult?.passedGuardrails,
+      { acknowledgedRationale: buildAcknowledgedRationaleSection({ spec, guardrails: diffGuardrails }) },
     );
-    if (!grResult) {
-      return finish(gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings));
-    }
-    if (grResult.failureCode) {
-      return finish(gateRequiredEvaluationFail(level, phase, specPath, grResult));
-    }
+    if (!grResult) return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
+    if (grResult.failureCode) return gateRequiredEvaluationFail(level, phase, specPath, grResult);
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
-      // spec 212 REQ-1: escalate on repeated identical guardrail FAIL.
       assertNoRepeatedFail({
-        issueLog: loadIssueLog(root, specPath),
+        issueLog: ctx.issueLog,
         phase,
         currentEvaluations: combined,
-        priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
+        priorObservations: priorGateObservations(ctx.issueLog, phase),
         currentObservations: observationsFromGateEvaluations(combined),
       });
-      return finish(gateFail(level, phase, specPath, combined, []));
+      return gateFail(level, phase, specPath, combined, []);
     }
-    return finish(gatePass(level, phase, specPath, combined, fileMapWarnings));
+    return gatePass(level, phase, specPath, combined, fileMapWarnings);
   }
 
-  async executeTaskImplGate(ctx, root, executionRoot, level, phase, skipGuardrail) {
-    const state = ctx.flowState;
-    const taskSpec = resolveCurrentTaskSpec({ root, state });
-    const specPath = relativeFlowSpecFile(state);
-    const issueLog = loadIssueLog(root, specPath);
-    // Post-validation repair proof is owned by the integration gate after
-    // test-result-review; task gates deliberately remain pre-validation.
-    const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", executionRoot);
-    const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", executionRoot);
-    const untracked = await collectUntrackedDiff(executionRoot, {
-      excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, specPath),
-    });
-    const diff = buildGateEvaluationDiff({
-      committed,
-      uncommitted,
-      untracked,
-      specPath,
-    });
-    const guardrailDiff = excludeScenarioValidityEvidenceFromTaskGateDiff(diff, specPath);
-    if (!guardrailDiff.trim()) {
-      return gateFail(level, phase, taskSpec.relPath, [], [
-        "no changes found (committed or uncommitted) against base branch",
-      ]);
-    }
-    const diffBytes = Buffer.byteLength(guardrailDiff, "utf8");
-    if (diffBytes > TASK_IMPL_GATE_DIFF_MAX_BYTES) {
-      return gateFail(level, phase, taskSpec.relPath, [], [
-        `task implementation diff is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
-      ]);
-    }
-
-    const gitState = computeGitState(executionRoot);
-    ctx.gitState = gitState;
-    const specification = specJsonToPromptText(
-      loadSpecJson(path.resolve(root, specPath)),
-      { title: getSpecName(state) },
-    );
-    const targetText = `${taskSpec.text}\n\n## Authoritative Flow Specification\n${specification}\n\n## Git Diff\n${guardrailDiff}`;
-
-    return runGateFlow({
-      root: executionRoot,
-      artifactRoot: root,
-      config: ctx.config,
-      level,
-      phase,
-      targetPath: taskSpec.relPath,
-      targetText,
-      textCheck: () => [],
-      checkerRole:
-        "You are a task implementation compliance checker. Check this task specification against the implementation diff.",
-      skipGuardrail,
-      ctx: { ...ctx, issueLog, gitState },
-    });
-  }
-
-  reconcileFileMapWarnings(root, executionRoot, state) {
+  reconcileCanonicalFileMapWarnings({ executionRoot, state, fileMap }) {
     try {
-      const specDir = resolveSpecDir(path.resolve(root, relativeFlowSpecFile(state)));
-      const fileMap = loadFileMap(specDir);
       if (Object.keys(fileMap).length === 0) return [];
-
       const diffRes = runGit(["diff", "--name-only", `${state.baseBranch}...HEAD`], { cwd: executionRoot });
       if (!diffRes.ok) return [];
-      const diffFiles = diffRes.stdout.trim().split("\n").filter(Boolean);
-      const unrecorded = reconcileFileMap(fileMap, diffFiles);
-      if (unrecorded.length === 0) return [];
-      return [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
-    } catch (err) {
-      process.stderr.write(`[sennel] file-map reconciliation skipped: ${err.message}\n`);
+      const unrecorded = reconcileFileMap(fileMap, diffRes.stdout.trim().split("\n").filter(Boolean));
+      return unrecorded.length === 0
+        ? []
+        : [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
+    } catch (error) {
+      process.stderr.write(`[sennel] canonical file-map reconciliation skipped: ${error.message}\n`);
       return [];
     }
   }
+
 }
 
 export default RunGateCommand;
-async function runGatePhaseWithDependencies({
-  phase,
-  specDir,
-  root = null,
-  artifactRoot = null,
-  gateResult,
-  fingerprint = null,
-  transition = null,
-  flowManager = null,
-  executeGate = null,
-  writeArtifact = null,
-  onCommitted = null,
-}) {
-  const result = typeof executeGate === "function" ? await executeGate() : gateResult;
-  if (transition) {
-    if (!(transition instanceof InferredGateTransition)) {
-      throw new Error("transition must be an InferredGateTransition");
-    }
-    if (!completedSemanticGateResult(result)) {
-      throw new Error("gate result validation requires a completed semantic pass or fail");
-    }
-  }
-  const basename = phase === "integration" ? "impl-gate-result.json" : `${phase}-gate-result.json`;
-  const artifactPath = path.join(specDir, basename);
-  const durableCheckpoint = new GateDurableSurfaceCheckpoint({ specDir, phase });
-  let inferredFingerprint = null;
-  if (phase === "integration" && transition && fingerprint == null) {
-    if (!root || !artifactRoot) {
-      throw new Error("integration gate dependency runner requires root and artifactRoot");
-    }
-    inferredFingerprint = buildRepairFingerprint({
-      root,
-      artifactRoot,
-      specPath: relativeFlowSpecFile(transition.owner.flowState),
-      state: transition.owner.flowState,
-    });
-  }
-  const effectiveFingerprint = fingerprint || inferredFingerprint;
-  const artifact = effectiveFingerprint
-    ? stampRepairFingerprint({ artifact: result, fingerprint: effectiveFingerprint })
-    : result;
-  let committed = [];
-  try {
-    fs.mkdirSync(specDir, { recursive: true });
-    if (typeof writeArtifact === "function") {
-      writeArtifact(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
-    } else if (phase === "integration" && effectiveFingerprint) {
-      writeRepairEvidenceArtifact({
-        specDir,
-        stepId: "impl-gate",
-        artifact,
-        fingerprint: effectiveFingerprint,
-      });
-    } else {
-      fs.writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
-    }
-    committed = transition ? transition.commit(flowManager) : [];
-  } catch (err) {
-    durableCheckpoint.restore();
-    throw err;
-  }
-  if (transition) {
-    if (typeof onCommitted === "function") onCommitted(committed, result);
-  }
-  return {
-    ...result,
-    changed: Array.from(new Set([
-      ...(Array.isArray(result?.changed) ? result.changed : []),
-      basename,
-    ])),
-  };
-}
 
 export {
   checkSpecText,
@@ -5879,77 +4804,64 @@ export {
   compactDiffForGuardrailPrompt,
   collectPerFileDiffsForGate,
   buildPerRequirementDiffs,
-  runGatePhaseWithDependencies,
 };
+
+export class GateIssueLogEntry {
+  constructor({ ctx, result }) {
+    if (result?.result !== "pass" && result?.result !== "fail") {
+      throw new Error("gate issue-log entry requires a pass or fail result");
+    }
+    const phase = result?.artifacts?.phase || ctx.phase;
+    if (!phase) throw new Error("gate issue-log phase is unavailable");
+    const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
+    const needsProgressIdentity = result.result === "fail"
+      && (result?.artifacts?.failureKind === "ai_semantic_fail" || observations.length > 0);
+    const gitState = ctx.gitState || (needsProgressIdentity && RETRY_TRACKED_PHASES.includes(phase)
+      ? computeGateEvidenceState({
+          root: ctx.root,
+          executionRoot: ctx.executionRoot || ctx.root,
+          flowManager: ctx.flowManager,
+          flowState: ctx.flowState,
+          phase,
+          targetPath: ctx.gateEvidenceTargetPath || (phase === "spec" ? ctx.spec : null),
+        })
+      : null);
+    const reasons = result?.artifacts?.issues?.length
+      ? result.artifacts.issues.join("; ")
+      : observations.map((observation) => observation.observed).join("; ")
+        || (result?.artifacts?.reasons || []).map((reason) => reason.detail || reason).join("; ");
+    const entry = {
+      step: resolveGateStepId(phase),
+      level: result?.artifacts?.level,
+      phase,
+      reason: reasons || "gate FAIL (no details)",
+      trigger: "gate post hook (auto)",
+      timestamp: new Date().toISOString(),
+      passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
+    };
+    if (gitState && RETRY_TRACKED_PHASES.includes(phase)) {
+      entry.headSha = gitState.headSha;
+      entry.worktreeHash = gitState.worktreeHash;
+    }
+    if (observations.length > 0) entry.observations = observations;
+    const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
+    if (failedEvaluations.length > 0) entry.failedEvaluations = failedEvaluations;
+    this.value = Object.freeze(entry);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return structuredClone(this.value);
+  }
+}
 
 export function appendIssueLogFromGateResult(ctx, result) {
   if (result?.result !== "pass" && result?.result !== "fail") return;
-  const phase = result?.artifacts?.phase || ctx.phase;
-  if (!phase) throw new Error("gate issue-log phase is unavailable");
-  const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
-  const needsProgressIdentity = result.result === "fail"
-    && (result?.artifacts?.failureKind === "ai_semantic_fail" || observations.length > 0);
-  const gitState = ctx.gitState || (needsProgressIdentity && RETRY_TRACKED_PHASES.includes(phase)
-    ? computeGateEvidenceState({
-        root: ctx.root,
-        executionRoot: ctx.executionRoot || ctx.root,
-        flowState: ctx.flowState,
-        phase,
-        targetPath: ctx.gateEvidenceTargetPath || (phase === "spec" ? ctx.spec : null),
-      })
-    : null);
-  const reasons = result?.artifacts?.issues?.length
-    ? result.artifacts.issues.join("; ")
-    : observations.map((observation) => observation.observed).join("; ")
-      || (result?.artifacts?.reasons || []).map((r) => r.detail || r).join("; ");
-  const entry = {
-    step: resolveGateStepId(phase),
-    level: result?.artifacts?.level,
-    phase,
-    reason: reasons || "gate FAIL (no details)",
-    trigger: "gate post hook (auto)",
-    timestamp: new Date().toISOString(),
-  };
-  // spec 210 REQ-1: persist the state identifier captured before AI evaluation
-  // so a subsequent impl-gate run can reject unchanged re-execution. Only
-  // tracked phases carry gitState; gate it explicitly to document the invariant.
-  if (gitState && RETRY_TRACKED_PHASES.includes(phase)) {
-    entry.headSha = gitState.headSha;
-    entry.worktreeHash = gitState.worktreeHash;
-  }
-  if (observations.length > 0) {
-    entry.observations = observations;
-  }
-  const passedGuardrails = buildPassedGuardrails(result?.artifacts?.evaluations);
-  entry.passedGuardrails = passedGuardrails;
-  const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
-  if (failedEvaluations.length > 0) {
-    entry.failedEvaluations = failedEvaluations;
-  }
-
-  if (RETRY_TRACKED_PHASES.includes(phase) && observations.length > 0) {
-    const status = observations.some((observation) => observation.severity === "blocking")
-      ? "blocking"
-      : "advisory";
-    const update = (state) => updateGateImplMemory({
-      root: ctx.root,
-      flowState: state,
-      phase,
-      round: nextGateImplMemoryRound(ctx.root, state, phase),
-      status,
-      statusReason: entry.reason,
-      gitState,
-      passedGuardrails,
-      observations,
-    });
-    if (ctx.flowManager) {
-      const owner = new GateMutationOwner({ flowState: ctx.flowState, phase });
-      ctx.flowManager.mutate(update, owner.routeOptions());
-    } else {
-      update(ctx.flowState);
-    }
-  }
-  appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), entry);
+  appendCanonicalIssueLogEntry(
+    ctx.flowManager,
+    ctx.flowState,
+    new GateIssueLogEntry({ ctx, result }).toJSON(),
+  );
 }
 
 export function appendIssueLogFromGateError(ctx, err) {
@@ -5972,5 +4884,5 @@ export function appendIssueLogFromGateError(ctx, err) {
   if (Number.isInteger(evidence.freshRepairAttempts)) {
     entry.freshRepairAttempts = evidence.freshRepairAttempts;
   }
-  appendIssueLogEntry(ctx.root, relativeFlowSpecFile(ctx.flowState), entry);
+  appendCanonicalIssueLogEntry(ctx.flowManager, ctx.flowState, entry);
 }

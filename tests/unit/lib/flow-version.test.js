@@ -9,22 +9,15 @@ import {
   ArtifactAuthoritySlot,
   ArtifactPublicationClaim,
   AuthoritativeSpecRecord,
-  FLOW_VERSION_RECORD_SCHEMA_REVISION,
   FlowArtifactCatalog,
   FlowArtifactActivityAssociation,
   FlowArtifactCatalogStore,
   FlowArtifactDescriptor,
-  FlowArtifactPublicationContext,
   FlowActivityId,
-  FlowId,
-  FlowRunId,
-  FlowSpecIdentity,
   FlowVersion,
   FlowVersionAuthorityScope,
-  FlowVersionId,
-  FlowVersionIdentity,
-  FlowVersionIdentityStore,
   FlowVersionLocation,
+  FlowTaskArtifactLocation,
   FlowVersionMigrationArtifact,
   FlowVersionMigrationClassifier,
   FlowVersionMigrationMappingRule,
@@ -32,7 +25,6 @@ import {
   FlowVersionMigrationOutputSet,
   FlowVersionMigrationPlan,
   FlowVersionMigrationSourcePolicy,
-  FlowVersionRecord,
 } from "../../../src/lib/flow-version.js";
 import { buildCurrentFlowDefinition } from "../../../src/flow/definition.js";
 
@@ -73,18 +65,18 @@ function canonicalLocation({ root = temporaryRoot(), specId = "508-flow-version"
   });
 }
 function identity(overrides = {}) {
-  const values = {
+  return {
     flowId: "series-a",
     flowVersionId: "series-a-v1",
-    version: 1,
     specId: "508-flow-version",
     runId: "run-123",
+    request: "Keep this original request.",
+    version: 1,
     ...overrides,
   };
-  return new FlowVersionRecord({ identity: new FlowVersionIdentity(values) });
 }
 function specRecord(specId = "508-flow-version") {
-  return new AuthoritativeSpecRecord({ id: specId, title: "Version authority fixture" });
+  return new AuthoritativeSpecRecord({ id: specId, title: "Version authority fixture", tasks: [] });
 }
 function representativeMigrationPolicy() {
   const exact = (source) => new FlowVersionMigrationMappingRule({
@@ -107,7 +99,15 @@ function representativeMigrationPolicy() {
 function semanticValidator(definition = buildCurrentFlowDefinition()) {
   return new CurrentFlowVersionSemanticValidator({ definition });
 }
-function migrationOutputBuilder() { return new CurrentFlowVersionMigrationOutputBuilder(); }
+function freshState(boundary, location, overrides = {}) {
+  return boundary.createFresh({
+    ...identity({ specId: location.specId.toString() }),
+    ...overrides,
+  });
+}
+function migrationOutputBuilder(definition = buildCurrentFlowDefinition()) {
+  return new CurrentFlowVersionMigrationOutputBuilder({ semanticValidator: semanticValidator(definition) });
+}
 function singleton(kind, authority = "canonical-flow-artifacts") {
   return ArtifactAuthoritySlot.singleton({ kind, authority });
 }
@@ -128,22 +128,56 @@ function descriptor({ file, kind, authority = "canonical-flow-artifacts", member
 function saveCatalog(location, descriptors) {
   return new FlowArtifactCatalogStore({ location }).initialize(new FlowArtifactCatalog({ artifacts: descriptors }));
 }
-function appendCatalogActivity(location, { id, nodeId, confirmationOrder }) {
-  const ledger = FLOW_ARTIFACT_CONTRACTS.resolve("flow.activities");
-  return new FlowArtifactCatalogStore({ location }).publish({
-    ...ledger.publication({
-      updater: nodeId,
-      activityId: new FlowActivityId(id),
-      mediaType: "application/x-ndjson",
+function confirmationActivity(state, id) {
+  const node = state.findNode(state.current.at(-1));
+  return new FlowActivity({
+    id,
+    nodeId: node.id,
+    nodeKey: node.key,
+    attemptId: state.attempt.id,
+    sequence: state.attempt.sequence,
+    confirmationOrder: state.confirmationOrder + 1,
+    type: "result_confirmed",
+    transition: new ActivityTransition({
+      operation: "confirm_attempt",
+      nodeId: node.id,
+      task: null,
+      attempt: null,
+      status: "done",
+      policy: null,
+      outbox: null,
+      approval: null,
+      nonblocking: null,
     }),
-    publicationClaim: artifactPublicationClaimForStep(nodeId),
-    write: () => fs.appendFileSync(location.activitiesFile, `${JSON.stringify({
-      id,
-      nodeId,
-      nodeKey: `test.${nodeId}`,
-      confirmationOrder,
-    })}\n`),
+    result: {
+      outcome: "passed",
+      summary: `Completed ${node.id}.`,
+      confirmedAt: "2026-08-08T00:00:01.000Z",
+      artifactRefs: [],
+    },
+    timing: { startedAt: "2026-08-08T00:00:00.000Z", finishedAt: "2026-08-08T00:00:01.000Z", durationMs: 1000 },
+    failure: null,
+    provider: "test",
+    model: "test",
+    effort: "test",
+    usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
+    references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
   });
+}
+
+function appendCatalogActivity(location, { id, nodeId }) {
+  const definition = buildCurrentFlowDefinition();
+  const boundary = new CurrentFlowStateAdoptionBoundary({ definition });
+  const flow = boundary.openVersionStore({ location });
+  let state = flow.load();
+  let sequence = 0;
+  while (state.nextAction()?.nodeId !== nodeId) {
+    const started = startActivity(state, { id: `fixture-${nodeId}-start-${sequence}` });
+    state = flow.apply({ activity: started });
+    state = flow.apply({ activity: confirmationActivity(state, `fixture-${nodeId}-confirm-${sequence}`) });
+    sequence += 1;
+  }
+  return flow.apply({ activity: startActivity(state, { id }) });
 }
 function evidence(sequence) {
   return new ReviewEvidence({
@@ -159,19 +193,22 @@ function evidence(sequence) {
     disposition: new ReviewDisposition({ value: "PASS" }),
   });
 }
-function startActivity(state) {
+function startActivity(state, { id = "activity-1", attemptId = null } = {}) {
   const target = state.nextAction();
   const node = state.findNode(target.nodeId);
   const contract = state.definition.contractFor(target.nodeId, state.root);
   const attempt = new CurrentAttempt({
-    id: "attempt-1", sequence: 1, startedAt: "2026-08-08T00:00:00.000Z",
+    id: attemptId ?? (id === "activity-1" ? "attempt-1" : `${id}-attempt`),
+    nodeId: node.id,
+    sequence: node.attemptSequence + 1,
+    startedAt: "2026-08-08T00:00:00.000Z",
     consumption: { semantic: 0, tooling: 0 }, failure: null, blocker: null, incomplete: [],
     operationClaims: [{ operation: "execute", resources: [...contract.resourceContract.required] }],
   });
   return new FlowActivity({
-    id: "activity-1", nodeId: node.id, nodeKey: node.key, attemptId: attempt.id, sequence: attempt.sequence,
-    confirmationOrder: 1, type: "attempt_started",
-    transition: new ActivityTransition({ operation: "start_attempt", path: target.path, task: null, attempt, status: null }),
+    id, nodeId: node.id, nodeKey: node.key, attemptId: attempt.id, sequence: attempt.sequence,
+    confirmationOrder: state.confirmationOrder + 1, type: "attempt_started",
+    transition: new ActivityTransition({ operation: "start_attempt", nodeId: node.id, task: null, attempt, status: null, policy: null, outbox: null, approval: null, nonblocking: null }),
     result: null,
     timing: { startedAt: "2026-08-08T00:00:00.000Z", finishedAt: "2026-08-08T00:00:01.000Z", durationMs: 1000 },
     failure: null, provider: "test", model: "test", effort: "test",
@@ -185,7 +222,7 @@ function updateAttemptActivity(state) {
   return new FlowActivity({
     id: "activity-2", nodeId: node.id, nodeKey: node.key, attemptId: state.attempt.id, sequence: state.attempt.sequence,
     confirmationOrder: state.confirmationOrder + 1, type: "attempt_updated",
-    transition: new ActivityTransition({ operation: "update_attempt", path: state.current, task: null, attempt: state.attempt, status: null }),
+    transition: new ActivityTransition({ operation: "update_attempt", nodeId: node.id, task: null, attempt: state.attempt, status: null, policy: null, outbox: null, approval: null, nonblocking: null }),
     result: null,
     timing: { startedAt: "2026-08-08T00:00:02.000Z", finishedAt: "2026-08-08T00:00:03.000Z", durationMs: 1000 },
     failure: null, provider: "test", model: "test", effort: "test",
@@ -199,21 +236,20 @@ afterEach(() => {
 });
 
 describe("Flow Version identity, schema, and consumer paths", () => {
-  it("keeps all identity types and the Version-record schema independent", () => {
-    const value = new FlowVersionIdentity({
-      flowId: new FlowId("series-a"), flowVersionId: new FlowVersionId("series-a-v1"), version: new FlowVersion(1),
-      specId: new FlowSpecIdentity("508-flow-version"), runId: new FlowRunId("run-123"),
-    });
-    assert.deepEqual(value.toJSON(), {
-      flowId: "series-a", flowVersionId: "series-a-v1", version: 1, specId: "508-flow-version", runId: "run-123",
-    });
-    assert.notEqual(FLOW_VERSION_RECORD_SCHEMA_REVISION, CURRENT_FLOW_SCHEMA_REVISION);
-    assert.throws(() => new FlowVersionRecord({ identity: value, schemaRevision: 999 }), /unsupported Flow Version record schemaRevision/);
-    assert.throws(() => new FlowId(value.specId));
+  it("persists the complete Version 1 identity only inside canonical flow.json", () => {
     const location = canonicalLocation();
-    const store = new FlowVersionIdentityStore({ location });
-    store.create(new FlowVersionRecord({ identity: value }));
-    assert.equal(store.load().schemaRevision, FLOW_VERSION_RECORD_SCHEMA_REVISION);
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const store = boundary.openVersionStore({ location });
+    store.create(freshState(boundary, location), { specRecord: specRecord() });
+    assert.deepEqual(store.flowIdentity().toJSON(), {
+      flowId: "series-a",
+      flowVersionId: "series-a-v1",
+      runId: "run-123",
+      specId: "508-flow-version",
+      issue: null,
+    });
+    assert.equal(store.load().schemaRevision, CURRENT_FLOW_SCHEMA_REVISION);
+    assert.equal(fs.existsSync(path.join(location.directory, "flow-version.json")), false);
   });
 
   it("resolves the Flow state through its logical artifact key", () => {
@@ -230,6 +266,35 @@ describe("Flow Version identity, schema, and consumer paths", () => {
     assert.throws(() => location.artifact("review.evidence", { ownerPath: "impl/T-1/review", digest: REVIEW_DIGEST_A }), /typed registry/);
     assert.equal(location.reportFile.endsWith(path.join("artifacts", "report.json")), true);
     assert.throws(() => location.resolve("../flow.json"));
+  });
+
+  it("resolves a materialized Task topology through one typed Version location", () => {
+    const location = canonicalLocation();
+    const task = location.taskArtifactLocation("T-1");
+
+    assert.ok(task instanceof FlowTaskArtifactLocation);
+    assert.equal(task.taskId, "T-1");
+    assert.equal(task.relativeDirectory, "steps/impl/T-1");
+    assert.equal(task.directory, path.join(location.directory, "steps", "impl", "T-1"));
+    assert.equal(task.implDirectory, path.join(location.directory, "steps", "impl", "T-1", "impl"));
+    assert.equal(task.reviewDirectory, path.join(location.directory, "steps", "impl", "T-1", "review"));
+    assert.equal(task.gateDirectory, path.join(location.directory, "steps", "impl", "T-1", "gate"));
+    assert.equal(
+      task.relativeArtifact("task.review"),
+      "specs/508-flow-version/001/steps/impl/T-1/review/result.json",
+    );
+    assert.equal(task.reviewResultFile, location.artifact("task.review", { taskId: "T-1" }));
+    assert.equal(task.gateSourceFile, location.artifact("task.gate.source", { taskId: "T-1" }));
+    assert.equal(task.gateResultFile, location.artifact("task.gate", { taskId: "T-1" }));
+    assert.throws(() => task.artifact("impl.review"), /does not own logical key/);
+    assert.throws(() => task.relativeDirectoryFor("report"), /segment is invalid/);
+  });
+
+  it("rejects unsafe Task identities before resolving Version paths", () => {
+    const location = canonicalLocation();
+    for (const taskId of ["../escape", "T/1", "T 1", ""]) {
+      assert.throws(() => location.taskArtifactLocation(taskId), /taskId must be/);
+    }
   });
 
   it("requires explicit canonical authority for persistent stores", () => {
@@ -378,11 +443,29 @@ describe("Flow artifact catalog authority slots", () => {
       activityId: "activity-task-review",
     });
     assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
-      id: "activity-task-review", nodeId: "T-1/task-review", nodeKey: "impl.T-1.review", confirmationOrder: 1,
+      id: "activity-task-review", nodeId: "T-1-review", nodeKey: "impl.T-1.review", confirmationOrder: 1,
     }).assertRelatedArtifact(taskDescriptor));
     assert.throws(() => new FlowArtifactActivityAssociation({
-      id: "activity-task-review", nodeId: "T-2/task-review", nodeKey: "impl.T-2.review", confirmationOrder: 1,
+      id: "activity-task-review", nodeId: "T-2-review", nodeKey: "impl.T-2.review", confirmationOrder: 1,
     }).assertRelatedArtifact(taskDescriptor), /task artifact owner/);
+
+    // A Task Attempt owns a task-local Step, but its journal transition also
+    // updates the one flow.json authority.  That association must remain
+    // valid without pretending flow.json is a task-owned result artifact.
+    const flowState = FLOW_ARTIFACT_CONTRACTS.resolve("flow.state");
+    const flowStateDescriptor = new FlowArtifactDescriptor({
+      logicalKey: flowState.logicalKey,
+      authoritySlot: flowState.authoritySlotFor("task-impl"),
+      relativePath: flowState.relativePath,
+      hash: "b".repeat(64),
+      size: 1,
+      mediaType: "application/json",
+      retention: "permanent",
+      activityId: "activity-task-impl",
+    });
+    assert.doesNotThrow(() => new FlowArtifactActivityAssociation({
+      id: "activity-task-impl", nodeId: "T-1-impl", nodeKey: "task.task-impl", confirmationOrder: 1,
+    }).assertRelatedArtifact(flowStateDescriptor));
   });
 
   it("does not create a missing Version root on authoritative reads", () => {
@@ -421,7 +504,8 @@ describe("Flow artifact catalog authority slots", () => {
       location, authoritySlot: singleton("a"), relativePath: "artifacts/legacy/a.json",
       mediaType: "application/json", retention: "permanent", migrationMaterialization: true,
     })]);
-    fs.writeFileSync(location.resolve(".artifact-catalog.lock"), "corrupt");
+    fs.mkdirSync(location.resolve(".runtime/locks"), { recursive: true });
+    fs.writeFileSync(location.resolve(".runtime/locks/artifact-catalog.lock"), "corrupt");
     assert.throws(() => new FlowArtifactCatalogStore({ location }).load(), (error) => (
       error.code === "PROCESS_OWNED_LOCK_CORRUPT" && error.code !== "FLOW_ARTIFACT_CATALOG_BUSY"
     ));
@@ -506,7 +590,7 @@ describe("Flow artifact catalog authority slots", () => {
     assert.equal(fs.existsSync(location.artifactPath("new")), false);
   });
 
-  it("rejects hard links and arbitrary hidden subtrees", () => {
+  it("rejects hard links and arbitrary persistent hidden subtrees while excluding runtime work units", () => {
     const location = canonicalLocation();
     fs.mkdirSync(path.dirname(location.artifactPath("source.json")), { recursive: true });
     fs.writeFileSync(location.artifactPath("source.json"), "source");
@@ -526,7 +610,10 @@ describe("Flow artifact catalog authority slots", () => {
     fs.rmSync(location.resolve(".sennel"), { recursive: true });
     fs.mkdirSync(location.resolve(".runtime/unknown"), { recursive: true });
     fs.writeFileSync(location.resolve(".runtime/unknown/arbitrary.json"), "rogue");
-    assert.throws(() => saveCatalog(location, [source]), /unclassified artifact/);
+    // `.runtime/` is the only non-authoritative Version subtree. Its
+    // work-unit bytes must not become catalog evidence or make a valid Flow
+    // unreadable merely because a worker left transient state behind.
+    assert.doesNotThrow(() => saveCatalog(location, [source]));
   });
 
   it("only unpublishes an existing catalog-managed member", () => {
@@ -554,11 +641,12 @@ describe("Flow artifact catalog authority slots", () => {
 describe("Flow Version migration classification", () => {
   function coherentFixture(source, target, OutputBuilder = CurrentFlowVersionMigrationOutputBuilder) {
     const definition = buildCurrentFlowDefinition();
+    const validator = semanticValidator(definition);
     const plan = new FlowVersionMigrationClassifier({
-      target, semanticValidator: semanticValidator(definition), outputBuilder: new OutputBuilder(),
+      target, semanticValidator: validator, outputBuilder: new OutputBuilder({ semanticValidator: validator }),
     }).inspect(source).plan();
     return plan.outputFixture({
-      identity: identity(), state: new CurrentFlowStateAdoptionBoundary({ definition }).createFresh(), spec: specRecord(),
+      state: freshState(new CurrentFlowStateAdoptionBoundary({ definition }), target), spec: specRecord(),
     });
   }
 
@@ -709,8 +797,8 @@ describe("Flow Version migration classification", () => {
 
     const versionedTarget = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    boundary.openVersionStore({ location: versionedTarget, identity: identity() })
-      .create(boundary.createFresh(), { specRecord: specRecord() });
+    boundary.openVersionStore({ location: versionedTarget })
+      .create(freshState(boundary, versionedTarget), { specRecord: specRecord() });
     const versioned = new FlowVersionMigrationClassifier({ target: versionedTarget, semanticValidator: semanticValidator(boundary.definition) }).inspect(missing);
     assert.equal(versioned.classification.value, "versioned");
     assert.throws(() => versioned.plan(), /cannot plan a versioned source/);
@@ -719,8 +807,8 @@ describe("Flow Version migration classification", () => {
     fs.mkdirSync(source);
     fs.writeFileSync(path.join(source, "flow.json"), "{}");
     const conflictTarget = canonicalLocation();
-    boundary.openVersionStore({ location: conflictTarget, identity: identity() })
-      .create(boundary.createFresh(), { specRecord: specRecord() });
+    boundary.openVersionStore({ location: conflictTarget })
+      .create(freshState(boundary, conflictTarget), { specRecord: specRecord() });
     const conflict = new FlowVersionMigrationClassifier({ target: conflictTarget, semanticValidator: semanticValidator(boundary.definition) }).inspect(source);
     assert.equal(conflict.classification.value, "conflict");
     assert.throws(() => conflict.plan(), /cannot plan a conflict source/);
@@ -810,9 +898,9 @@ describe("Flow Version migration classification", () => {
     fs.writeFileSync(path.join(source, "spec.json"), "{}");
     const definition = buildCurrentFlowDefinition();
     const fixture = new FlowVersionMigrationClassifier({
-      target, semanticValidator: semanticValidator(definition), outputBuilder: migrationOutputBuilder(),
+      target, semanticValidator: semanticValidator(definition), outputBuilder: migrationOutputBuilder(definition),
     }).inspect(source).plan().outputFixture({
-      identity: identity(), state: new CurrentFlowStateAdoptionBoundary({ definition }).createFresh(), spec: specRecord(),
+      state: freshState(new CurrentFlowStateAdoptionBoundary({ definition }), target), spec: specRecord(),
     });
     fs.writeFileSync(path.join(source, "flow.json"), "changed");
     assert.throws(() => fixture.materialize(), /source inventory changed/);
@@ -859,45 +947,40 @@ describe("Flow Version migration classification", () => {
 });
 
 describe("Current Flow Version storage", () => {
-  it("requires a typed authoritative Spec and catalogs every root authority", () => {
+  it("requires a typed canonical Spec record and catalogs every root authority", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const store = boundary.openVersionStore({ location, identity: identity() });
-    assert.throws(() => store.create(boundary.createFresh()), /AuthoritativeSpecRecord is required/);
+    const store = boundary.openVersionStore({ location });
+    assert.throws(() => store.create(freshState(boundary, location)), /canonical spec\.json/);
     assert.equal(fs.existsSync(location.directory), false);
-    assert.throws(() => store.create(boundary.createFresh(), { specRecord: specRecord("other") }), /must match/);
-    assert.doesNotThrow(() => store.create(boundary.createFresh(), { specRecord: specRecord() }));
+    assert.throws(() => store.create(freshState(boundary, location), { specRecord: specRecord("other") }), /must match/);
+    assert.doesNotThrow(() => store.create(freshState(boundary, location), { specRecord: specRecord() }));
     assert.deepEqual(store.catalog().artifacts.map((artifact) => artifact.relativePath), [
-      "activities.jsonl", "flow-version.json", "flow.json", "spec.json",
+      "activities.jsonl", "flow.json", "spec.json",
     ]);
     assert.equal(store.load().schemaRevision, CURRENT_FLOW_SCHEMA_REVISION);
-    assert.equal(store.flowVersionIdentity().schemaRevision, FLOW_VERSION_RECORD_SCHEMA_REVISION);
+    assert.equal(fs.existsSync(location.resolve("flow-version.json")), false);
   });
 
-  it("exact-matches the complete opened identity on every authoritative operation", () => {
+  it("accepts identity only from flow.json and rejects an identity that cannot belong to its location", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const original = boundary.openVersionStore({ location, identity: identity() });
-    original.create(boundary.createFresh(), { specRecord: specRecord() });
-    for (const substituted of [
-      identity({ flowId: "series-b" }),
-      identity({ flowVersionId: "series-a-substitute" }),
-      identity({ runId: "run-substitute" }),
-    ]) {
-      const store = boundary.openVersionStore({ location, identity: substituted });
-      assert.throws(() => store.load(), /does not exactly match/);
-      assert.throws(() => store.loadSnapshot(), /does not exactly match/);
-      assert.throws(() => store.catalog(), /does not exactly match/);
-      assert.throws(() => store.flowVersionIdentity(), /does not exactly match/);
-      assert.throws(() => store.apply({ activity: startActivity(boundary.createFresh()) }), /does not exactly match/);
-    }
+    const store = boundary.openVersionStore({ location });
+    assert.throws(
+      () => store.create(freshState(boundary, location, { specId: "other-spec" }), { specRecord: specRecord() }),
+      /identity must match its Version location/,
+    );
+    store.create(freshState(boundary, location), { specRecord: specRecord() });
+    const reopened = boundary.openVersionStore({ location });
+    assert.deepEqual(reopened.flowIdentity().toJSON(), store.flowIdentity().toJSON());
+    assert.equal(fs.existsSync(location.resolve("flow-version.json")), false);
   });
 
   it("updates state and catalog atomically under exact identity", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const store = boundary.openVersionStore({ location, identity: identity() });
-    store.create(boundary.createFresh(), { specRecord: specRecord() });
+    const store = boundary.openVersionStore({ location });
+    store.create(freshState(boundary, location), { specRecord: specRecord() });
     const applied = store.apply({ activity: startActivity(store.load()) });
     assert.deepEqual(store.load().current, applied.current);
     assert.equal(store.loadSnapshot().state.attempt.id, "attempt-1");
@@ -910,8 +993,8 @@ describe("Version collection writers", () => {
   it("excludes declared transient step logs from catalog verification", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const rawLog = location.resolve("steps/scenario-validity/output.log");
     const runtimeTransaction = location.resolve(".runtime/retry-recovery/transaction.json");
     fs.mkdirSync(path.dirname(rawLog), { recursive: true });
@@ -929,8 +1012,8 @@ describe("Version collection writers", () => {
   it("stores two review evidence members without pretending their digests are Activity IDs", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const claim = artifactPublicationClaimForStep("impl-review");
     const review = ReviewEvidenceStore.forVersion({ location, publicationClaim: claim });
     const first = evidence(1);
@@ -965,17 +1048,13 @@ describe("Version collection writers", () => {
   it("serializes Issue-log publication through the same catalog authority", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const issueLog = IssueLogStore.forVersion({ location });
-    issueLog.append({ kind: "test" }, "issue-entry-1");
-    assert.throws(() => issueLog.append({ kind: "test" }, "issue-entry-2"), /requires its updater Activity/);
+    assert.throws(() => issueLog.append({ kind: "test" }, "issue-entry-1"), /active Flow leaf/);
     appendCatalogActivity(location, { id: "activity-test-execute-issue", nodeId: "test-execute", confirmationOrder: 1 });
-    issueLog.append({ kind: "test" }, "issue-entry-2", new FlowArtifactPublicationContext({
-      updater: "test-execute",
-      activityId: "activity-test-execute-issue",
-      publicationClaim: artifactPublicationClaimForStep("test-execute"),
-    }));
+    issueLog.append({ kind: "test" }, "issue-entry-1");
+    issueLog.append({ kind: "test" }, "issue-entry-2");
     assert.equal(issueLog.read().document.entries.length, 2);
     assert.equal(flow.catalog().resolve("issue-log.json").logicalKey, "issue.log");
   });
@@ -983,8 +1062,8 @@ describe("Version collection writers", () => {
   it("publishes same-digest evidence under distinct typed review owners without catalog collision", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const catalog = new FlowArtifactCatalogStore({ location });
     const impl = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "impl-review", digest: REVIEW_DIGEST_A });
     const spec = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep: "spec-review", digest: REVIEW_DIGEST_A });
@@ -1029,8 +1108,8 @@ describe("Version collection writers", () => {
   it("publishes and reads the issue snapshot through its logical contract", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const catalog = new FlowArtifactCatalogStore({ location });
     catalog.writeIssueSnapshot("# Issue");
     assert.equal(catalog.read({ relativePaths: ["issue.md"], read: (value) => value.resolve("issue.md").logicalKey }), "issue.snapshot");
@@ -1040,8 +1119,8 @@ describe("Version collection writers", () => {
   it("enforces append-only attempt history at the catalog publication boundary", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const catalog = new FlowArtifactCatalogStore({ location });
     const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("test.execute");
     const publish = (attempts, activityId = null) => catalog.publish({
@@ -1076,8 +1155,8 @@ describe("Version collection writers", () => {
   it("distinguishes first-publication producers from later updaters", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
-    const flow = boundary.openVersionStore({ location, identity: identity() });
-    flow.create(boundary.createFresh(), { specRecord: specRecord() });
+    const flow = boundary.openVersionStore({ location });
+    flow.create(freshState(boundary, location), { specRecord: specRecord() });
     const catalog = new FlowArtifactCatalogStore({ location });
     const artifact = FLOW_ARTIFACT_CONTRACTS.resolve("draft");
     const publish = (updater, content, activityId = null) => catalog.publish({

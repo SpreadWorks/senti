@@ -32,6 +32,7 @@ function captureInput(repository, overrides = {}) {
     featureBranch: "feature/482-cli-target-binding",
     baseBranch: "main",
     worktree: false,
+    execution: { mode: "branch" },
     ...overrides.flowState,
   };
   return {
@@ -48,7 +49,7 @@ test("FlowTargetBinding rejects a managed-worktree state captured as branch mode
 
   assert.throws(
     () => FlowTargetBinding.capture(captureInput(repository, {
-      flowState: { worktree: true },
+      flowState: { worktree: true, execution: { mode: "worktree" } },
     })),
     (error) => error.code === "ACTIVE_FLOW_MISMATCH"
       && error.data.expectedMode === "branch"
@@ -72,17 +73,18 @@ test("FlowTargetBinding rejects a branch state captured as worktree mode", () =>
   );
 });
 
-test("FlowTargetBinding derives local mode from equal feature and base branches", () => {
+test("FlowTargetBinding captures direct mode without a feature branch", () => {
   const repository = root();
   const binding = FlowTargetBinding.capture(captureInput(repository, {
-    mode: "local",
+    mode: "direct",
     flowState: {
-      featureBranch: "main",
+      featureBranch: null,
       baseBranch: "main",
+      execution: { mode: "direct" },
     },
   }));
 
-  assert.equal(binding.authority.mode, "local");
+  assert.equal(binding.authority.mode, "direct");
 });
 
 test("FlowTargetBinding command exposes no-Issue guard explicitly", () => {

@@ -5,41 +5,23 @@
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { FreshFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import GetPromptCommand from "../../../src/flow/lib/get-prompt.js";
+import { FlowTargetExpectation } from "../../../src/lib/flow-target-guard.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow get prompt", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function setupFlowState(dir) {
-    const specId = "001-test";
-    const state = {
-      specId: specId,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      runId: "run-001-test",
-      issue: 1001,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-  }
-
-  function writeSpecJson(dir, specId = "001-test") {
-    const specDir = path.join(dir, "specs", specId);
-    fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
+  function specRecord() {
+    return {
       goal: "Approval view goal",
       background: "",
       scope: { in: [], out: [] },
@@ -51,26 +33,33 @@ describe("flow get prompt", () => {
       clarifications: [],
       alternatives_considered: [],
       open_questions: [],
-      tasks: [{ id: "T-1", title: "Task one", goal: "Task goal", parent: null, origin: "plan", added_round: 0, status: "pending" }],
-    }, null, 2));
-    return specDir;
+      tasks: [],
+    };
   }
 
-  function addSecondFlowState(dir) {
-    const specId = "002-second";
-    const state = {
-      specId: specId,
-      baseBranch: "main",
-      featureBranch: "feature/002-second",
-      runId: "run-002-second",
-      issue: 1002,
-      steps: buildInitialSteps(),
-      requirements: [],
-      tasks: [{ id: "T-2", title: "y", goal: "y", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
+  function setupFlowState(dir, {
+    specId = "001-test",
+    runId = "run-001-test",
+    issue = 1001,
+    taskId = "T-1",
+  } = {}) {
+    return new FreshFlowFixture({
+      flowManager: makeFlowManager(dir),
+      specId,
+      runId,
+      issue,
+      issueSnapshot: `Issue ${issue} immutable fixture body`,
+      execution: { mode: "direct" },
+      specRecord: specRecord(),
+    }).create().addTask({
+      id: taskId,
+      title: "Task one",
+      goal: "Task goal",
+      parent: null,
+      origin: "plan",
+      added_round: 0,
+      status: "pending",
+    }).registerActive();
   }
 
   it("returns error for removed plan.approach kind", () => {
@@ -135,10 +124,10 @@ describe("flow get prompt", () => {
     assert.ok(envelope.data.choices.length >= 2);
   });
 
-  it("renders spec.md for the approval prompt from spec.json", () => {
+  it("renders the approval view below the Version runtime directory from cataloged spec.record", () => {
     tmp = createTmpDir();
-    setupFlowState(tmp);
-    const specDir = writeSpecJson(tmp);
+    const fixture = setupFlowState(tmp);
+    const specDir = fixture.location().directory;
 
     const result = execFileSync(
       "node", [
@@ -157,19 +146,18 @@ describe("flow get prompt", () => {
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
-    const md = fs.readFileSync(path.join(specDir, "spec.md"), "utf8");
+    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
     assert.match(md, /Approval view goal/);
     assert.match(md, /R1/);
     assert.deepEqual(envelope.data.artifacts.specView, [
-      "specs/001-test/spec.md",
-      "specs/001-test/tasks/T-1.md",
+      "specs/001-test/001/.runtime/spec-render/spec.md",
+      "specs/001-test/001/.runtime/spec-render/tasks/T-1.md",
     ]);
   });
 
   it("fails with ACTIVE_FLOW_MISMATCH when approval prompt target guard does not match", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
-    writeSpecJson(tmp);
 
     try {
       execFileSync(
@@ -201,34 +189,36 @@ describe("flow get prompt", () => {
     }
   });
 
-  it("selects the expected flow for approval prompt rendering when multiple flows are active", () => {
+  it("renders the explicitly selected canonical Flow when multiple flows are active", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
-    addSecondFlowState(tmp);
-    const specDir = writeSpecJson(tmp, "002-second");
+    const second = setupFlowState(tmp, {
+      specId: "002-second",
+      runId: "run-002-second",
+      issue: 1002,
+      taskId: "T-2",
+    });
+    const specDir = second.location().directory;
 
-    const result = execFileSync(
-      "node", [
-        FLOW_CMD,
-        "get",
-        "prompt",
-        "plan.approval",
-        "--expect-run-id",
-        "run-002-second",
-        "--expect-issue",
-        "1002",
-        "--expect-spec",
-        "002-second",
-      ],
-      { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
-    );
-    const envelope = JSON.parse(result);
-    assert.equal(envelope.ok, true);
-    assert.deepEqual(envelope.data.artifacts.specView, [
-      "specs/002-second/spec.md",
-      "specs/002-second/tasks/T-1.md",
+    const manager = makeFlowManager(tmp);
+    const target = manager.resolveExplicitFlowTarget(new FlowTargetExpectation({
+      expectRunId: "run-002-second",
+      expectIssue: 1002,
+      expectSpec: "002-second",
+    }));
+    assert.equal(target.specId, "002-second");
+    const result = new GetPromptCommand().execute({
+      kind: "plan.approval",
+      config: { lang: "en" },
+      root: tmp,
+      flowManager: manager.forRoot(tmp, { specId: target.specId }),
+      flowState: target.state,
+    });
+    assert.deepEqual(result.artifacts.specView, [
+      "specs/002-second/001/.runtime/spec-render/spec.md",
+      "specs/002-second/001/.runtime/spec-render/tasks/T-2.md",
     ]);
-    const md = fs.readFileSync(path.join(specDir, "spec.md"), "utf8");
+    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
     assert.match(md, /Approval view goal/);
   });
 

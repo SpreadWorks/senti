@@ -1,72 +1,46 @@
-import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import { spawnSync } from "node:child_process";
-import { replaceFlowState, setupFlow, setStepDone } from "../../helpers/flow-setup.js";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, it } from "node:test";
 
-function createTmp() {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-upgrade-na-"));
-  fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tmp, ".sennel", "config.json"),
-    JSON.stringify({
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+
+const SENNEL = path.resolve("src/sennel.js");
+
+describe("canonical next-action policy projection", () => {
+  let root = null;
+  afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
+
+  it("does not project the retired mutable autoUpgrade cache", () => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "canonical-next-action-policy-"));
+    fs.mkdirSync(path.join(root, ".sennel"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".sennel", "config.json"), JSON.stringify({
       lang: "ja",
       type: "base",
       docs: { languages: ["ja"], defaultLanguage: "ja" },
-    }),
-  );
-  fs.writeFileSync(path.join(tmp, "package.json"), JSON.stringify({ name: "fixture" }));
-  return tmp;
-}
+    }));
+    const flowManager = makeFlowManager(root);
+    new FlowAtStepFixture({
+      flowManager,
+      specId: "001-test",
+      runId: "run-next-action-policy",
+      request: "Create canonical test sources.",
+      targetStep: "test",
+      specRecord: { goal: "test fixture", requirements: [] },
+    }).create();
 
-function runNextAction(tmp) {
-  const script = path.resolve("src/sennel.js");
-  return spawnSync("node", [script, "flow", "get", "next-action"], {
-    encoding: "utf8",
-    cwd: tmp,
-    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
-  });
-}
-
-describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
-  let tmp;
-  afterEach(() => { if (tmp) fs.rmSync(tmp, { recursive: true, force: true }); });
-
-  it("includes autoUpgrade in envelope when available (AC5)", () => {
-    tmp = createTmp();
-    const state = setupFlow(tmp, {
-      autoUpgrade: { available: true, reason: "re-eval eligible" },
+    const result = spawnSync("node", [SENNEL, "flow", "get", "next-action"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENNEL_WORK_ROOT: root },
     });
-    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
-    const testStep = findStepById(state.steps, "test");
-    testStep.status = "in_progress";
-    replaceFlowState(tmp, state);
 
-    const res = runNextAction(tmp);
-    assert.equal(res.status, 0, res.stderr);
-    const envelope = JSON.parse(res.stdout.trim());
-    assert.ok(envelope.ok);
-    assert.ok(envelope.data.autoUpgrade, "autoUpgrade must be present");
-    assert.equal(envelope.data.autoUpgrade.available, true);
-  });
-
-  it("omits autoUpgrade from envelope when not set", () => {
-    tmp = createTmp();
-    const state = setupFlow(tmp);
-    setStepDone(state, "branch", "prepare-spec", "draft", "draft-gate", "spec", "spec-gate", "approval");
-    const testStep = findStepById(state.steps, "test");
-    testStep.status = "in_progress";
-    replaceFlowState(tmp, state);
-
-    const res = runNextAction(tmp);
-    assert.equal(res.status, 0, res.stderr);
-    const envelope = JSON.parse(res.stdout.trim());
-    assert.ok(envelope.ok);
-    assert.equal(envelope.data.autoUpgrade, undefined, "autoUpgrade must not be present when unset");
+    assert.equal(result.status, 0, result.stderr);
+    const envelope = JSON.parse(result.stdout.trim());
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.autoUpgrade, undefined);
+    assert.equal(flowManager.loadReadOnly("001-test").autoUpgrade, undefined);
   });
 });

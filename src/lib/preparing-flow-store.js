@@ -11,12 +11,11 @@ import crypto from "crypto";
 import { managedDir } from "./config.js";
 import { AtomicFile } from "./atomic-file.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
-import { FlowState } from "./flow-state.js";
+import { PreparingFlowState } from "./preparing-flow-state.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import {
   PREPARING_PREFIX,
   PREPARING_SCAN_LIMIT,
-  buildInitialSteps,
 } from "./flow-helpers.js";
 
 const MAX_RUN_ID_LENGTH = 200;
@@ -57,7 +56,7 @@ class PreparingFlowSnapshot {
       throw error;
     }
     this.revision = crypto.createHash("sha256").update(this.content).digest("hex");
-    this.state = new FlowState(JSON.parse(this.content.toString("utf8"))).toJSON();
+    this.state = new PreparingFlowState(JSON.parse(this.content.toString("utf8"))).toJSON();
     Object.freeze(this);
   }
 
@@ -101,14 +100,6 @@ export class PreparingFlowStore {
       runId,
       lifecycle: "preparing",
       specId: null,
-      baseBranch: null,
-      featureBranch: null,
-      worktree: null,
-      steps: buildInitialSteps({ tasks: [] }),
-      requirements: [],
-      tasks: [],
-      currentTaskId: null,
-      outbox: [],
       autoApprove: false,
       ...extra,
     };
@@ -122,7 +113,7 @@ export class PreparingFlowStore {
         error.code = "PREPARING_FLOW_ALREADY_EXISTS";
         throw error;
       }
-      const validState = new FlowState(state).toJSON();
+      const validState = new PreparingFlowState(state).toJSON();
       new AtomicJsonFile(p, { faultInjector: this._faultInjector }).write(validState);
       return p;
     });
@@ -186,7 +177,7 @@ export class PreparingFlowStore {
       if (state.runId !== runId || state.lifecycle !== "preparing" || state.specId !== null) {
         throw new Error("preparing flow mutation must preserve runId, preparing lifecycle, and null specId");
       }
-      const validState = new FlowState(state).toJSON();
+      const validState = new PreparingFlowState(state).toJSON();
       snapshot.assertCurrent();
       new AtomicJsonFile(p, { faultInjector: this._faultInjector }).write(validState);
       return validState;

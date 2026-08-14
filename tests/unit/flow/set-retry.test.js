@@ -1,266 +1,115 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import { afterEach, test } from "node:test";
+
 import SetRetryCommand from "../../../src/flow/lib/set-retry.js";
-import { RunReviewCommand } from "../../../src/flow/lib/run-review.js";
-import { buildRepairFingerprint } from "../../../src/flow/lib/impl-repair-artifacts.js";
-import { resolveCurrentReviewTreeSha } from "../../../src/flow/lib/review-evidence-store.js";
-import { buildCurrentRecoveryFingerprint, persistRecoveryBaseline } from "../../../src/flow/lib/retry-recovery.js";
-import { moveFlowToStep, makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 const roots = [];
-const SPEC_PATH = "specs/001-retry/spec.json";
 
 afterEach(() => {
-  for (const root of roots.splice(0)) removeTmpDir(root);
+  while (roots.length > 0) removeTmpDir(roots.pop());
 });
 
-function git(root, args) {
-  return execFileSync("git", args, { cwd: root, encoding: "utf8" });
-}
-
-function initializeRepository(root) {
-  git(root, ["init", "--initial-branch=main"]);
-  git(root, ["config", "user.email", "tests@example.invalid"]);
-  git(root, ["config", "user.name", "Sennel tests"]);
-  fs.mkdirSync(path.join(root, "specs", "001-retry", "tests"), { recursive: true });
-  fs.writeFileSync(path.join(root, "specs", "001-retry", "spec.json"), "{}\n");
-  fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 1;\n");
-  git(root, ["add", "."]);
-  git(root, ["commit", "-m", "initial fixture"]);
-}
-
-function initializeRepositoryWithUntrackedSpec(root) {
-  git(root, ["init", "--initial-branch=main"]);
-  git(root, ["config", "user.email", "tests@example.invalid"]);
-  git(root, ["config", "user.name", "Sennel tests"]);
-  fs.writeFileSync(path.join(root, "tracked.js"), "export const tracked = true;\n");
-  git(root, ["add", "."]);
-  git(root, ["commit", "-m", "initial fixture"]);
-  fs.mkdirSync(path.join(root, "specs", "001-retry"), { recursive: true });
-  fs.writeFileSync(path.join(root, "specs", "001-retry", "spec.json"), '{"revision":1}\n');
-}
-
-test("review retry reset includes an uncommitted target-state change in review identity", async () => {
-  const root = createTmpDir("set-retry-worktree-identity-");
+function retryFixture({ nodeId = "test-review", failureKind = "semantic" } = {}) {
+  const root = createTmpDir("set-retry-v1-");
   roots.push(root);
-  initializeRepository(root);
-
-  const state = moveFlowToStep(makeFlowState({
+  const manager = makeFlowManager(root);
+  const flow = new CanonicalFlowFixture({
+    flowManager: manager,
     specId: "001-retry",
-    runId: "retry-target-state",
-    metrics: Array.from({ length: 5 }, () => ({
-      phase: "test",
-      counter: "reviewRetry",
-      delta: 1,
-      taskId: null,
-    })),
-  }), "test-review");
-  const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
-  const targetState = buildRepairFingerprint({ root, specPath: SPEC_PATH, state });
-  const targetStateDigest = targetState.hash;
-  state.reviewConvergence = {
-    version: 1,
-    records: [{
-      phase: "test",
-      taskId: null,
-      treeSha,
-      semanticAttempts: 5,
-      semanticMaxAttempts: 5,
-      toolingAttempts: 0,
-      toolingMaxAttempts: 1,
-      evidence: { evidenceId: "a".repeat(64), disposition: "REJECTED" },
-      finalizedEvidenceAvailable: true,
-      handoffFindings: [],
-      blocker: null,
-      toolingOutcome: null,
-      targetStateDigest,
-      targetState: {
-        digest: targetState.hash,
-        entries: targetState.entries,
-      },
-    }],
-  };
-  persistRecoveryBaseline(state, {
-    kind: "review",
-    phase: "test",
-    fingerprint: buildCurrentRecoveryFingerprint({
-      root,
-      flowState: state,
-      kind: "review",
-      canonicalPhase: "test",
-      baseline: null,
-    }),
-    createdAt: "2026-07-25T00:00:00.000Z",
-  });
-  const flowManager = makeFlowManager(root);
-  flowManager.create(state);
-  git(root, ["add", "specs/001-retry/flow.json"]);
-  git(root, ["commit", "-m", "track flow state"]);
-
-  fs.writeFileSync(path.join(root, "specs", "001-retry", "tests", "retry.test.mjs"), "export const version = 2;\n");
-  const changedTreeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
-  assert.notEqual(changedTreeSha, treeSha);
-
-  const command = new SetRetryCommand();
-  const result = command.execute({
-    action: "reset",
-    kind: "review",
-    phase: "test",
-    reason: "The target test was corrected after the rejected review.",
-    yes: true,
-    root,
-    flowState: flowManager.load(),
-    flowManager,
-  });
-
-  assert.equal(result.reset, true, JSON.stringify(result));
-  const recovered = flowManager.load().reviewConvergence.records[0];
-  assert.equal(recovered.treeSha, changedTreeSha);
-  assert.notEqual(recovered.targetStateDigest, targetStateDigest);
-  assert.equal(recovered.semanticAttempts, 4);
-
-  const review = new RunReviewCommand({
-    finalizeResult: ({ parse }) => parse(),
-    runCommand() {
-      const flowPath = path.join(root, "specs", "001-retry", "flow.json");
-      const persisted = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-      fs.writeFileSync(flowPath, `${JSON.stringify({
-        ...persisted,
-        agentTelemetry: { calls: 1 },
-      }, null, 2)}\n`);
-      return {
-        ok: true,
-        status: 0,
-        stdout: "Test review PASS. No blocking test issues found.",
-        stderr: "[test-review] verdict=PASS blocking=0 advisory=0",
-        signal: null,
-        killed: false,
-      };
+    runId: `retry-${nodeId}-${failureKind}`,
+  }).create().registerActive().activate(nodeId);
+  manager.failCurrentAttempt({
+    specId: flow.specId,
+    failure: {
+      category: failureKind === "semantic" ? "semantic" : "provider",
+      code: failureKind === "semantic" ? "REVIEW_REJECTED" : "REVIEW_PROVIDER_UNAVAILABLE",
+      message: "The retryable command result is represented by the active typed Attempt.",
+      retryable: true,
+      retryKind: failureKind,
     },
   });
-  const reviewResult = await review.execute({
-    root,
-    phase: "test",
-    config: { agent: {} },
-    flowState: { ...flowManager.load(), metrics: [] },
-  });
-  assert.equal(reviewResult.result, "ok", JSON.stringify(reviewResult));
+  return { manager, flow };
+}
 
-  const unchanged = command.execute({
+function commandInput(flow, values = {}) {
+  return {
     action: "reset",
     kind: "review",
     phase: "test",
-    reason: "The target test was corrected after the rejected review.",
+    reason: "The failed Attempt is retried through the Version-1 lifecycle.",
     yes: true,
-    root,
-    flowState: flowManager.load(),
-    flowManager,
-  });
-  assert.equal(unchanged.ok, false);
-  assert.equal(unchanged.errors[0].code, "REVIEW_IDENTITY_UNCHANGED");
-
-  fs.writeFileSync(path.join(root, "unrelated.js"), "export const unrelated = true;\n");
-  const unrelated = command.execute({
-    action: "reset",
-    kind: "review",
-    phase: "test",
-    reason: "The target test was corrected after the rejected review.",
-    yes: true,
-    root,
-    flowState: flowManager.load(),
-    flowManager,
-  });
-  assert.equal(unrelated.ok, false);
-  assert.equal(unrelated.errors[0].code, "REVIEW_IDENTITY_UNCHANGED");
-});
-
-test("review retry reset accepts a changed canonical digest when the exhausted record has no target-state entries", () => {
-  const root = createTmpDir("set-retry-legacy-tooling-identity-");
-  roots.push(root);
-  initializeRepositoryWithUntrackedSpec(root);
-
-  const state = moveFlowToStep(makeFlowState({
-    specId: "001-retry",
-    runId: "retry-tooling-target-state",
-    metrics: Array.from({ length: 4 }, () => ({
-      phase: "spec",
-      counter: "reviewRetry",
-      delta: 1,
-      taskId: null,
-    })),
-  }), "spec-review");
-  const treeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
-  const targetState = buildRepairFingerprint({ root, specPath: SPEC_PATH, state });
-  state.reviewConvergence = {
-    version: 1,
-    records: [{
-      phase: "spec",
-      taskId: null,
-      treeSha,
-      semanticAttempts: 0,
-      semanticMaxAttempts: 4,
-      toolingAttempts: 1,
-      toolingMaxAttempts: 1,
-      evidence: null,
-      finalizedEvidenceAvailable: false,
-      handoffFindings: [],
-      blocker: { kind: "tooling_attempts_exhausted", reason: "provider-error" },
-      toolingOutcome: {
-        kind: "TOOLING_ERROR",
-        stage: "communication",
-        attempt: 2,
-        maxAttempts: 2,
-        remainingAttempts: 0,
-        reason: "provider-error",
-        permissionRelated: false,
-      },
-      provider: "independent-reviewer",
-      targetStateDigest: targetState.hash,
-    }],
+    flowState: flow.manager.load(flow.flow.specId),
+    flowManager: flow.manager,
+    ...values,
   };
-  persistRecoveryBaseline(state, {
-    kind: "review",
-    phase: "spec",
-    fingerprint: buildCurrentRecoveryFingerprint({
-      root,
-      flowState: state,
-      kind: "review",
-      canonicalPhase: "spec",
-      baseline: null,
-    }),
-    createdAt: "2026-07-31T00:00:00.000Z",
-  });
-  const flowManager = makeFlowManager(root);
-  flowManager.create(state);
+}
 
-  fs.writeFileSync(path.join(root, SPEC_PATH), '{"revision":2}\n');
-  const nextTreeSha = resolveCurrentReviewTreeSha(root, SPEC_PATH);
-  const nextTargetState = buildRepairFingerprint({
-    root,
-    specPath: SPEC_PATH,
-    state: flowManager.load(),
-  });
-  assert.equal(nextTreeSha, treeSha);
-  assert.notEqual(nextTargetState.hash, targetState.hash);
+test("retry reset appends exactly one canonical semantic retry Activity", () => {
+  const flow = retryFixture();
+  const command = new SetRetryCommand();
+  const before = flow.manager.activityLedger(flow.flow.specId).length;
 
-  const result = new SetRetryCommand().execute({
-    action: "reset",
-    kind: "review",
-    phase: "spec",
-    reason: "Canonical spec input changed after the provider tooling failure.",
-    yes: true,
-    root,
-    flowState: flowManager.load(),
-    flowManager,
-  });
+  const result = command.execute(commandInput(flow));
 
   assert.equal(result.reset, true, JSON.stringify(result));
-  const recovered = flowManager.load().reviewConvergence.records[0];
-  assert.equal(recovered.treeSha, treeSha);
-  assert.equal(recovered.targetStateDigest, nextTargetState.hash);
-  assert.equal(recovered.toolingAttempts, 0);
+  assert.equal(result.grants.length, 1);
+  assert.equal(result.grants[0].operation, "retry_attempt");
+  assert.equal(flow.manager.activityLedger(flow.flow.specId).length, before + 1);
+  const state = flow.manager.canonicalState(flow.flow.specId);
+  assert.equal(state.attempt.sequence, 2);
+  assert.equal(state.attempt.consumption.semantic, 1);
+  assert.equal(state.attempt.failure, null);
+  assert.equal(Object.hasOwn(flow.manager.load(flow.flow.specId), "retryRecovery"), false);
+});
+
+test("retry reset preserves tooling retry accounting in the replacement Attempt", () => {
+  const flow = retryFixture({ failureKind: "tooling" });
+
+  const result = new SetRetryCommand().execute(commandInput(flow));
+
+  assert.equal(result.grants[0].sequence, 2);
+  const state = flow.manager.canonicalState(flow.flow.specId);
+  assert.equal(state.attempt.consumption.semantic, 0);
+  assert.equal(state.attempt.consumption.tooling, 1);
+  assert.equal(flow.manager.activityLedger(flow.flow.specId).at(-1).transition.operation, "retry_attempt");
+});
+
+test("retry reset rejects a route that does not identify the active Attempt", () => {
+  const flow = retryFixture();
+  const before = flow.manager.activityLedger(flow.flow.specId);
+
+  const result = new SetRetryCommand().execute(commandInput(flow, { phase: "impl" }));
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, "RETRY_NOT_AVAILABLE");
+  assert.match(result.errors[0].messages.join(" "), /target is not active/);
+  assert.deepEqual(flow.manager.activityLedger(flow.flow.specId), before);
+});
+
+test("retry reset fails closed after the definition-owned retry budget is exhausted", () => {
+  const flow = retryFixture();
+  const command = new SetRetryCommand();
+  let result = null;
+  for (let retry = 0; retry < 10; retry += 1) {
+    result = command.execute(commandInput(flow));
+    if (result.ok === false) break;
+    flow.manager.failCurrentAttempt({
+      specId: flow.flow.specId,
+      failure: {
+        category: "semantic",
+        code: "REVIEW_REJECTED",
+        message: "The retry budget was consumed by the previous canonical Attempt.",
+        retryable: true,
+        retryKind: "semantic",
+      },
+    });
+  }
+  const before = flow.manager.activityLedger(flow.flow.specId);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, "RETRY_NOT_AVAILABLE");
+  assert.match(result.errors[0].messages.join(" "), /does not authorize retry/);
+  assert.deepEqual(flow.manager.activityLedger(flow.flow.specId), before);
 });

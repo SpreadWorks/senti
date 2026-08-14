@@ -120,7 +120,7 @@ flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.
 
 例: `spec-gate`（spec phase の gate）、`impl-review`（impl phase の review）、`test-review`（test phase の review）、`draft-questions-review`（draft phase の questions に対する review）、`draft-coverage-review`、`impl-gate`、`spec-review`。
 
-衝突しうる concern 名（`review` / `gate-impl` / `impl`）は flow scope では `impl-*` / `spec-gate`、task cursor scope では `task-*` に解決する。過去 spec データの旧名は `src/scripts/rename-phase-steps.js` で一括変換する。
+衝突しうる concern 名（`review` / `gate-impl` / `impl`）は flow scope では `impl-*` / `spec-gate`、task cursor scope では `task-*` に解決する。alpha 期間は旧 Step 名を受理・変換せず、canonical definition の stable ID だけを扱う。
 
 ### ドキュメント生成パイプライン
 

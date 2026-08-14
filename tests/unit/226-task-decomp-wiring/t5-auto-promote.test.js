@@ -1,393 +1,128 @@
-/**
- * tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js
- *
- * Spec 226 / T-5: タスク遷移の自動化と auto-promote。
- * auto-promote 関数の単一性、直接呼び出し境界、completeTask が
- * auto-promote を呼ばないこと、全 task done 時の flow-scope 遷移を検証する。
- *
- * REQ-4 / REQ-5 / REQ-7 に対応。
- */
-
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, setupFlowAtStep, makeFlowManager } from "../../helpers/flow-setup.js";
-import {
-  promoteNextPending,
-  findNextPendingTask,
-  buildInitialSteps,
-  buildInitialTaskSteps,
-} from "../../../src/lib/flow-helpers.js";
-import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
-import { syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
+import { CanonicalFlowFixture, TaskLifecycleFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import { promoteNextPending, findNextPendingTask } from "../../../src/lib/flow-helpers.js";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-function writeSpecJson(tmp, specRel, specObj) {
-  const specPath = path.join(tmp, specRel);
-  fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, JSON.stringify(specObj, null, 2));
+function pureTask(id, status = "pending", parent = null) {
+  return { id, status, parent };
 }
 
-function baseSpec(tasks) {
-  return {
-    goal: "",
-    scope: { in: [], out: [] },
-    constraints: [],
-    design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
-    background: "",
-    requirements: [],
-    acceptance_criteria: [],
-    clarifications: [],
-    alternatives_considered: [],
-    open_questions: [],
-    tasks,
-  };
+function taskDocument(id, parent = null) {
+  return { id, title: `Task ${id}`, goal: `Complete ${id}.`, parent, origin: "plan", added_round: 0, status: "pending" };
 }
 
-function makePendingTask(id, parent = null) {
-  return {
-    id,
-    title: `Task ${id}`,
-    goal: `Goal of ${id}`,
-    parent,
-    origin: "plan",
-    added_round: 0,
-    status: "pending",
-    steps: [
-      { id: "task-impl", status: "pending" },
-      { id: "task-review", status: "pending" },
-      { id: "task-gate", status: "pending" },
-    ],
-    requirements: [],
-    summary: null,
-  };
-}
-
-function makeDoneTask(id, parent = null) {
-  return { ...makePendingTask(id, parent), status: "done" };
-}
-
-// ── tests ────────────────────────────────────────────────────────────────────
-
-describe("T-5: auto-promote function and callers", () => {
+describe("T-5: Task selection and explicit claim boundaries", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("promoteNextPending is no-op when currentTaskId is non-null", () => {
-    const state = {
-      currentTaskId: "T-1",
-      tasks: [
-        makePendingTask("T-1"),
-        makePendingTask("T-2"),
-      ],
-    };
-    const result = promoteNextPending(state);
-    assert.equal(result, null);
-    // currentTaskId unchanged
+  it("promoteNextPending is a no-op while a Task is selected", () => {
+    const state = { currentTaskId: "T-1", tasks: [pureTask("T-1"), pureTask("T-2")] };
+    assert.equal(promoteNextPending(state), null);
     assert.equal(state.currentTaskId, "T-1");
   });
 
-  it("promoteNextPending selects first pending (forest leaf priority)", () => {
-    // Forest: root T-R has children T-C1 (done) and T-C2 (pending).
-    // T-C2 should be promoted because T-C1 is already done.
-    const state = {
-      currentTaskId: null,
-      tasks: [
-        makePendingTask("T-R"),       // root, pending
-        makeDoneTask("T-C1", "T-R"),  // child 1, done
-        makePendingTask("T-C2", "T-R"), // child 2, pending (leaf)
-      ],
-    };
-    const result = promoteNextPending(state);
-    assert.equal(result, "T-C2");
-    assert.equal(state.currentTaskId, "T-C2");
-    // The promoted task's status should change to in_progress
-    const promoted = state.tasks.find((t) => t.id === "T-C2");
-    assert.equal(promoted.status, "in_progress");
+  it("promoteNextPending uses forest leaf priority for its pure selection input", () => {
+    const state = { currentTaskId: null, tasks: [pureTask("T-root"), pureTask("T-done", "done", "T-root"), pureTask("T-leaf", "pending", "T-root")] };
+    assert.equal(promoteNextPending(state), "T-leaf");
+    assert.equal(state.currentTaskId, "T-leaf");
+    assert.equal(state.tasks.find((task) => task.id === "T-leaf").status, "in_progress");
   });
 
-  it("promoteNextPending is no-op when tasks[] is empty (flat compatibility)", () => {
-    // Empty tasks array — should return null without error.
-    const state = {
-      currentTaskId: null,
-      tasks: [],
-    };
-    const result = promoteNextPending(state);
-    assert.equal(result, null);
+  it("pure selection is a no-op for an empty forest", () => {
+    const empty = { currentTaskId: null, tasks: [] };
+    assert.equal(promoteNextPending(empty), null);
+    assert.equal(empty.currentTaskId, null);
+  });
+
+  it("pure selection is a no-op for a complete forest", () => {
+    const done = { currentTaskId: null, tasks: [pureTask("T-1", "done"), pureTask("T-2", "done")] };
+    assert.equal(findNextPendingTask(done.tasks), null);
+    assert.equal(promoteNextPending(done), null);
+    assert.equal(done.currentTaskId, null);
+  });
+
+  it("canonical Task admission records pending Tasks without mutable sync input", () => {
+    tmp = createTmpDir();
+    const fm = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-canonical-admission" })
+      .create().addTasks([taskDocument("T-1"), taskDocument("T-2")]).registerActive();
+    const state = fixture.state();
+    assert.deepEqual(state.tasks.map((task) => [task.id, task.status]), [["T-1", "pending"], ["T-2", "pending"]]);
     assert.equal(state.currentTaskId, null);
   });
 
-  it("promoteNextPending is no-op when all tasks are done", () => {
-    const state = {
-      currentTaskId: null,
-      tasks: [
-        makeDoneTask("T-1"),
-        makeDoneTask("T-2"),
-      ],
-    };
-    const result = promoteNextPending(state);
-    assert.equal(result, null);
-    assert.equal(state.currentTaskId, null);
-  });
-
-  it("sync-spec-tasks calls promoteNextPending at the end", () => {
+  it("a completed Task does not auto-claim the next pending Task", () => {
     tmp = createTmpDir();
-    // Set up a flow with no tasks synced yet (just a seed task).
-    setupFlow(tmp, {
-      specId: "226-test-sync",
-      tasks: [makeDoneTask("T-seed")],
-      currentTaskId: null,
-    });
-    // Write a spec.json with new tasks.
-    writeSpecJson(tmp, "specs/226-test-sync/spec.json", baseSpec([
-      { id: "T-1", title: "A", goal: "g", origin: "plan", added_round: 0, status: "pending" },
-      { id: "T-2", title: "B", goal: "g", origin: "plan", added_round: 0, status: "pending" },
-    ]));
-    syncSpecTasksToFlow({ root: tmp });
-
-    // After sync, the first new pending task should be auto-promoted
-    // into currentTaskId (promoteNextPending called at end of sync).
-    const flow = JSON.parse(
-      fs.readFileSync(path.join(tmp, "specs/226-test-sync/flow.json"), "utf8"),
-    );
-    assert.equal(flow.currentTaskId, "T-1");
-    const t1 = flow.tasks.find((t) => t.id === "T-1");
-    assert.equal(t1.status, "in_progress");
-  });
-
-  it("task-impl gate PASS side effects complete the current task and promote the next task", () => {
-    tmp = createTmpDir();
-    const specDir = path.join(tmp, "specs/226-gate-impl");
-    fs.mkdirSync(path.join(specDir, "tasks"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, "src"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, ".sennel/config.json"), JSON.stringify({
-      lang: "en",
-      type: "base",
-      docs: { languages: ["en"], defaultLanguage: "en" },
-      agent: {
-        default: "stub",
-        providers: {
-          stub: {
-            command: process.execPath,
-            args: ["-e", "process.stdout.write('{\"observations\":[]}')"],
-          },
-        },
-      },
-    }));
-    fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 1;\n");
-    fs.writeFileSync(path.join(specDir, "tasks/T-1.md"), "# T-1\n\nImplement the value change.\n");
-    fs.writeFileSync(path.join(specDir, "tasks/T-2.md"), "# T-2\n\nImplement the next change.\n");
-    writeSpecJson(tmp, "specs/226-gate-impl/spec.json", baseSpec([]));
-
-    execFileSync("git", ["init", "-q", "-b", "main"], { cwd: tmp });
-    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: tmp });
-    execFileSync("git", ["config", "user.name", "Test"], { cwd: tmp });
-    execFileSync("git", ["add", "-A"], { cwd: tmp });
-    execFileSync("git", ["commit", "-q", "-m", "initial"], { cwd: tmp });
-    execFileSync("git", ["checkout", "-q", "-b", "feature/226-gate-impl"], { cwd: tmp });
-
-    // Set up flow with two tasks: T-1 in_progress, T-2 pending.
-    const steps = buildInitialSteps();
-    const flowLeaves = flattenSteps(steps);
-    const implementIndex = flowLeaves.findIndex((step) => step.id === "implement");
-    for (let index = 0; index < flowLeaves.length; index += 1) {
-      flowLeaves[index].status = index < implementIndex
-        ? "done"
-        : index === implementIndex
-          ? "in_progress"
-          : "pending";
-    }
-    const tasks = [
-      {
-        ...makePendingTask("T-1"),
-        spec: "specs/226-gate-impl/tasks/T-1.md",
-        status: "in_progress",
-        steps: [
-          { id: "task-impl", status: "done" },
-          { id: "task-review", status: "done" },
-          { id: "task-gate", status: "in_progress" },
-        ],
-      },
-      {
-        ...makePendingTask("T-2"),
-        spec: "specs/226-gate-impl/tasks/T-2.md",
-      },
-    ];
-    setupFlow(tmp, {
-      specId: "226-gate-impl",
-      baseBranch: "main",
-      featureBranch: "feature/226-gate-impl",
-      steps,
-      tasks,
-      currentTaskId: "T-1",
-    });
-    fs.writeFileSync(path.join(specDir, "impl-review.json"), `${JSON.stringify({
-      version: 1,
-      phase: "impl",
-      runId: "run-test",
-      planRewindAt: null,
+    const fm = makeFlowManager(tmp);
+    const fixture = new TaskLifecycleFixture({
+      flowManager: fm,
+      specId: "226-complete-separation",
+      taskDocuments: [taskDocument("T-1"), taskDocument("T-2")],
       taskId: "T-1",
-      target: "specs/226-gate-impl/tasks/T-1.md",
-      generatedAt: new Date().toISOString(),
-      verdict: "PASS",
-      blockingFindings: [],
-      nonBlockingImprovements: [],
-      repairTargets: [],
-      summary: { blocking: 0, nonBlocking: 0, total: 0 },
-    }, null, 2)}\n`);
-    fs.writeFileSync(path.join(tmp, "src/value.js"), "export const value = 2;\n");
-    const fm = makeFlowManager(tmp);
-
-    const cli = path.join(process.cwd(), "src/sennel.js");
-    const result = spawnSync(process.execPath, [
-      cli,
-      "flow", "run", "gate",
-      "--phase", "task-impl",
-    ], {
-      cwd: tmp,
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp, SENNEL_SOURCE_ROOT: tmp },
-    });
-    assert.equal(result.status, 0, `gate failed: ${result.stderr}`);
-
-    const after = fm.load();
-    // T-1 completed, T-2 auto-promoted
-    const t1 = after.tasks.find((t) => t.id === "T-1");
-    assert.equal(t1.status, "done");
-    assert.equal(after.currentTaskId, "T-2");
-    const t2 = after.tasks.find((t) => t.id === "T-2");
-    assert.equal(t2.status, "in_progress");
-  });
-
-  it("auto-promote is called directly from exactly 3 production sites (grep verification)", () => {
-    // Grep src/ for actual invocations of promoteNextPending(
-    // excluding: definition, imports, comments, test files.
-    const srcRoot = path.join(process.cwd(), "src");
-    const result = execFileSync("grep", [
-      "-rn",
-      "promoteNextPending(",
-      srcRoot,
-      "--include=*.js",
-    ], { encoding: "utf8" });
-
-    const lines = result.trim().split("\n").filter((line) => {
-      // Exclude: the function definition, imports, and comment-only lines
-      if (line.includes("export function promoteNextPending")) return false;
-      if (line.includes("import")) return false;
-      if (/^\s*\/\//.test(line.split(":").slice(2).join(":"))) return false;
-      if (/^\s*\*/.test(line.split(":").slice(2).join(":"))) return false;
-      return true;
-    });
-
-    // There should be exactly 3 direct invocation lines:
-    //   Site 1: sync-spec-tasks.js (1 line)
-    //   Site 2: flow-helpers.js (1 line, atomic completion/promotion helper)
-    //   Site 3: get-next-action.js (1 line, spec 229 safety-net fallback)
-    assert.equal(lines.length, 3, `expected 3 invocation lines, got:\n${lines.join("\n")}`);
-
-    // Verify the files match the expected call sites.
-    const files = lines.map((l) => path.basename(l.split(":")[0]));
-    assert.ok(files.includes("sync-spec-tasks.js"), "site 1: sync-spec-tasks");
-    assert.ok(files.includes("flow-helpers.js"), "site 2: atomic completion/promotion helper");
-    assert.ok(files.includes("get-next-action.js"), "site 3: safety-net fallback (spec 229)");
-  });
-
-  it("completeTask does NOT call promoteNextPending (separation of concerns)", () => {
-    tmp = createTmpDir();
-    const task = { ...makePendingTask("T-1"), status: "in_progress" };
-    task.steps = buildInitialTaskSteps("plan");
-    for (const step of task.steps) {
-      step.status = step.id === "task-gate"
-        ? "in_progress"
-        : "done";
-    }
-    const tasks = [
-      task,
-      makePendingTask("T-2"),
-    ];
-    setupFlow(tmp, {
-      specId: "226-complete-sep",
-      tasks,
-      currentTaskId: "T-1",
-    });
-    const fm = makeFlowManager(tmp);
-
-    // Call completeTask only (no explicit promoteNextPending).
+      targetStep: "task-gate",
+    }).create();
+    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
     fm.completeTask("T-1");
-
-    // After completeTask, currentTaskId should be null — not auto-promoted.
-    const after = fm.load();
-    assert.equal(after.currentTaskId, null, "completeTask must NOT auto-promote");
-    // T-2 remains pending (not promoted to in_progress).
-    const t2 = after.tasks.find((t) => t.id === "T-2");
-    assert.equal(t2.status, "pending");
+    const state = fm.loadReadOnly();
+    assert.equal(state.currentTaskId, null);
+    assert.equal(state.tasks.find((task) => task.id === "T-2").status, "pending");
+    assert.equal(fixture.location().taskArtifactLocation("T-1").relativeDirectory, "steps/impl/T-1");
   });
 
-  it("get-next-action returns flow-scope finalize when all tasks done", () => {
+  it("the next pending Task is claimed only by the typed startTask transition", () => {
     tmp = createTmpDir();
-    // All tasks done, no currentTaskId. Flow-level finalize step in_progress.
-    const tasks = [
-      makeDoneTask("T-1"),
-      makeDoneTask("T-2"),
-    ];
-    const steps = buildInitialSteps();
-    // Mark flow steps up through impl-gate as done, finalize as in_progress.
-    const doneStepIds = [
-      "branch", "prepare-spec", "draft", "draft-gate", "spec",
-      "spec-gate", "approval", "test", "implement", "impl-review",
-      "impl-gate",
-    ];
-    for (const s of flattenSteps(steps)) {
-      if (doneStepIds.includes(s.id)) s.status = "done";
-      else if (s.id === "finalize-commit") s.status = "in_progress";
-    }
-    setupFlow(tmp, { tasks, currentTaskId: null, steps });
     const fm = makeFlowManager(tmp);
-    fm.mutate(() => {}); // persist through the shared writer to validate schema
-
-    const CLI = path.join(process.cwd(), "src/sennel.js");
-    const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
-      encoding: "utf8",
-      env: { ...process.env, SENNEL_WORK_ROOT: tmp },
-    });
-    const envelope = JSON.parse(out);
-    assert.equal(envelope.ok, true);
-    assert.equal(envelope.data.taskId, null, "flow-scope (not task-scope)");
-    assert.equal(envelope.data.step, "finalize-commit");
+    const fixture = new CanonicalFlowFixture({ flowManager: fm, specId: "226-explicit-claim" })
+      .create().addTasks([taskDocument("T-1")]).registerActive();
+    fixture.prepareTaskFrontier();
+    fm.startTask("T-1");
+    const state = fm.loadReadOnly();
+    assert.equal(state.currentTaskId, "T-1");
+    assert.equal(state.tasks[0].status, "in_progress");
   });
 
-  it("get-next-action keeps task-scope while pending tasks exist", () => {
+  it("get-next-action returns to Flow scope after every Task is completed", () => {
     tmp = createTmpDir();
-    // T-1 is current with impl step in_progress, T-2 still pending.
-    const t1 = {
-      ...makePendingTask("T-1"),
-      status: "in_progress",
-      steps: buildInitialTaskSteps("plan"),
-    };
-    // Set task-impl step to in_progress
-    for (const s of t1.steps) {
-      if (s.id === "task-impl") s.status = "in_progress";
-    }
-    const tasks = [t1, makePendingTask("T-2")];
-    setupFlowAtStep(tmp, "implement", {
-      tasks,
-      currentTaskId: "T-1",
-    });
-
-    const CLI = path.join(process.cwd(), "src/sennel.js");
-    const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
+    const fm = makeFlowManager(tmp);
+    const { flow } = new TaskLifecycleFixture({
+      flowManager: fm,
+      specId: "226-flow-frontier",
+      taskDocuments: [taskDocument("T-1")],
+      taskId: "T-1",
+      targetStep: "task-gate",
+    }).create();
+    fm.updateStepStatus({ stepId: "T-1-gate", requestedStatus: "done" });
+    fm.completeTask("T-1");
+    const out = execFileSync("node", [path.join(process.cwd(), "src/sennel.js"), "flow", "get", "next-action"], {
       encoding: "utf8",
       env: { ...process.env, SENNEL_WORK_ROOT: tmp },
     });
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);
-    assert.equal(envelope.data.taskId, "T-1", "task-scope target");
+    assert.equal(envelope.data.taskId, null, "completed Task forest must return to Flow scope");
+    assert.notEqual(envelope.data.step, "task-impl");
+    assert.ok(flow.location().relativeDirectory.endsWith("/001"));
+  });
+
+  it("get-next-action remains Task-scoped at an explicit Task lifecycle frontier", () => {
+    tmp = createTmpDir();
+    const fm = makeFlowManager(tmp);
+    new TaskLifecycleFixture({
+      flowManager: fm,
+      taskDocuments: [taskDocument("T-1"), taskDocument("T-2")],
+      taskId: "T-1",
+      targetStep: "task-impl",
+    }).create();
+    const out = execFileSync("node", [path.join(process.cwd(), "src/sennel.js"), "flow", "get", "next-action"], {
+      encoding: "utf8",
+      env: { ...process.env, SENNEL_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(out);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.taskId, "T-1");
     assert.equal(envelope.data.step, "task-impl");
   });
 });

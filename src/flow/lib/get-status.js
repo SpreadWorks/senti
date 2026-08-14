@@ -6,11 +6,8 @@
  */
 
 import { derivePhase } from "../../lib/flow-helpers.js";
-import fs from "node:fs";
-import path from "node:path";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
-import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { findLatestInProgressLeaf, resolveMaxAttempts } from "../definition.js";
 import { flattenSteps } from "./step-tree.js";
 import { FlowCommand } from "./base-command.js";
@@ -20,20 +17,18 @@ import {
   buildTargetMismatchEnvelope,
   targetMismatchEnvelopeForInput,
 } from "../../lib/flow-target-guard.js";
-import { reviewPhaseForStepId } from "./review-failure.js";
 import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
 import { buildStateRetryRecoveryView } from "./retry-recovery.js";
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
-import { buildDeferredFindingsSummary, specDirFromFlowState } from "./flow-findings.js";
+import { FlowFindingsArtifact } from "./flow-findings.js";
 import { validateFinalRegressionResult } from "./test-artifacts.js";
+import { CanonicalCommandAttemptArtifactHistory } from "./canonical-command-result.js";
 import { FlowCompletion } from "./flow-completion.js";
 import { advisorySummary } from "./nonblocking.js";
-import { resolveReviewActionForFlowState } from "./review-convergence.js";
-import { assertReviewRecoveryAuthority } from "./review-recovery-authority.js";
-import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
+import { CanonicalSpecRecord } from "./canonical-spec-record.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 
-/** Token sub-fields that the Logger / flow-store emit per agent entry. */
+/** Token sub-fields that the Logger / canonical command view emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
 
 /** Activity counter names consumed by the Report view (flat aggregates). */
@@ -159,37 +154,6 @@ function resolveActiveStepMaxAttempts(state, active) {
   return Number.isSafeInteger(maxAttempts) && maxAttempts >= 1 ? maxAttempts : null;
 }
 
-function activeReviewStep(state, flowActive) {
-  if (state.currentTaskId != null) {
-    const task = state.tasks?.find((entry) => entry.id === state.currentTaskId);
-    const taskReview = task?.steps?.find((step) => (
-      step.id === "task-review" && step.status === "in_progress"
-    ));
-    if (taskReview) return taskReview;
-  }
-  return flowActive;
-}
-
-function buildStatusReviewViews(state, active, root, executionRoot = root) {
-  const reviewPhase = reviewPhaseForStepId(active?.id);
-  if (!reviewPhase) return null;
-  const resolvedMax = resolveActiveStepMaxAttempts(state, active);
-  if (resolvedMax == null) return null;
-  assertReviewRecoveryAuthority({
-    root,
-    flowState: state,
-    phase: reviewPhase,
-    resolvedMax,
-  });
-  const taskId = active?.id === "task-review" ? state.currentTaskId : null;
-  const reviewAction = resolveReviewActionForFlowState(state, {
-    phase: reviewPhase,
-    taskId,
-    resolveTreeSha: () => resolveCurrentReviewTreeSha(executionRoot, relativeFlowSpecFile(state)),
-  });
-  return reviewAction ? { reviewAction } : null;
-}
-
 function buildStatusRetryRecoveryView(root, flowState, input) {
   return buildStateRetryRecoveryView({
     root,
@@ -198,11 +162,9 @@ function buildStatusRetryRecoveryView(root, flowState, input) {
   });
 }
 
-function buildFinalRegressionStatus(root, state) {
-  if (!state?.specId) return null;
-  const resultPath = path.join(path.dirname(path.resolve(root, relativeFlowSpecFile(state))), "final-regression-result.json");
-  if (!fs.existsSync(resultPath)) return null;
-  const artifact = validateFinalRegressionResult(JSON.parse(fs.readFileSync(resultPath, "utf8")));
+function finalRegressionStatus(artifact) {
+  if (artifact === null) return null;
+  validateFinalRegressionResult(artifact);
   return {
     result: artifact.result,
     completed: artifact.completed,
@@ -215,6 +177,63 @@ function buildFinalRegressionStatus(root, state) {
     nextAction: artifact.nextAction,
     nextRecommendedAction: artifact.nextRecommendedAction || null,
   };
+}
+
+class CanonicalStatusArtifacts {
+  constructor({ flowManager, state } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function") {
+      throw new Error("canonical status requires FlowManager.readArtifact");
+    }
+    if (state?.schemaRevision !== 3 || typeof state.specId !== "string" || state.specId === "") {
+      throw new Error("canonical status requires a Version-1 Flow state");
+    }
+    this.flowManager = flowManager;
+    this.specId = state.specId;
+    this.runId = state.runId;
+    Object.freeze(this);
+  }
+
+  #read(logicalKey, { optional = false } = {}) {
+    return this.flowManager.readArtifact({
+      specId: this.specId,
+      logicalKey,
+      consumerNodeId: "flow",
+      optional,
+    });
+  }
+
+  requirements() {
+    return new CanonicalSpecRecord({
+      flowManager: this.flowManager,
+      state: { schemaRevision: 3, specId: this.specId },
+      consumerNodeId: "system",
+    }).requirements();
+  }
+
+  finalRegression() {
+    const resolved = this.#read("final.regression", { optional: true });
+    if (resolved === null) return null;
+    return CanonicalCommandAttemptArtifactHistory.fromBytes({
+      logicalKey: "final.regression",
+      bytes: resolved.bytes,
+    }).current.payload;
+  }
+
+  deferredFindings() {
+    const resolved = this.#read("flow.findings", { optional: true });
+    if (resolved === null) return {
+      count: 0,
+      sourceSteps: [],
+      artifactPath: FLOW_ARTIFACT_CONTRACTS.resolve("flow.findings").relativePath,
+    };
+    const stored = new FlowFindingsArtifact(JSON.parse(resolved.bytes.toString("utf8")));
+    const entries = stored.entries.filter((entry) => entry.runId === this.runId);
+    return {
+      count: entries.length,
+      sourceSteps: [...new Set(entries.map((entry) => entry.sourceStep))],
+      artifactPath: resolved.relativePath,
+    };
+  }
 }
 
 function buildStatusGateViews(state, active, root) {
@@ -247,8 +266,10 @@ function validateRunId(runId) {
 }
 
 function buildStatusOutput(state, root, options = {}) {
-  const executionRoot = options.executionRoot || root;
   const details = options.details === true;
+  const artifacts = state?.schemaRevision === 3
+    ? new CanonicalStatusArtifacts({ flowManager: options.flowManager, state })
+    : null;
   const phase = state.steps ? derivePhase(state) : null;
   // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
   // children (test-execute, test-result-review, retro, finalize-*) are
@@ -257,15 +278,10 @@ function buildStatusOutput(state, root, options = {}) {
   const active = findLatestInProgressLeaf(leafSteps);
   const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
   const totalSteps = leafSteps.length;
-  const requirements = state.specId
-    ? loadSpecRequirements(root, relativeFlowSpecFile(state))
-    : [];
+  const requirements = artifacts ? artifacts.requirements() : [];
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;
-  const reviewViews = state.specId
-    ? buildStatusReviewViews(state, activeReviewStep(state, active), root, executionRoot)
-    : null;
-  const reviewAction = reviewViews?.reviewAction || null;
+  const reviewAction = null;
   const gateViews = state.specId ? buildStatusGateViews(state, active, root) : null;
   const retryRecovery = gateViews?.retryRecovery || null;
   const recoveryDiagnostics = (
@@ -280,10 +296,14 @@ function buildStatusOutput(state, root, options = {}) {
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
-  const deferredFindings = state.specId
-    ? buildDeferredFindingsSummary({ specDir: specDirFromFlowState(root, state), flowState: state })
-    : { count: 0, sourceSteps: [], artifactPath: "flow-findings.json" };
-  const finalRegression = buildFinalRegressionStatus(root, state);
+  const deferredFindings = artifacts
+    ? artifacts.deferredFindings()
+    : {
+      count: 0,
+      sourceSteps: [],
+      artifactPath: FLOW_ARTIFACT_CONTRACTS.resolve("flow.findings").relativePath,
+    };
+  const finalRegression = finalRegressionStatus(artifacts?.finalRegression() ?? null);
   const completion = new FlowCompletion(state);
   const advisory = advisorySummary(state);
 
@@ -307,7 +327,7 @@ function buildStatusOutput(state, root, options = {}) {
     autoApprove,
     completion: completion.toJSON(),
     assurance: advisory.length > 0 ? "advisory" : "strict",
-    ...(state.nonblocking?.enabled === true && { nonblocking: state.nonblocking }),
+    ...(state.policy?.nonblocking?.enabled === true && { nonblocking: state.policy.nonblocking }),
     ...(advisory.length > 0 && { advisorySummary: advisory }),
   };
 
@@ -361,6 +381,7 @@ export default class GetStatusCommand extends FlowCommand {
       const status = buildStatusOutput(state, ctx.root, {
         ...options,
         executionRoot: ctx.executionRoot || ctx.root,
+        flowManager: ctx.flowManager,
       });
       try {
         const positionalExpectation = new FlowTargetExpectation({ expectRunId: runId });
@@ -407,6 +428,7 @@ export default class GetStatusCommand extends FlowCommand {
     const status = buildStatusOutput(ctx.flowState, ctx.root, {
       ...options,
       executionRoot: ctx.executionRoot || ctx.root,
+      flowManager: ctx.flowManager,
     });
     return targetMismatchEnvelopeForInput({
       type: "get",

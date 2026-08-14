@@ -139,7 +139,7 @@ export class DefinitionLifecycleTransition {
     if (!LIFECYCLE_STATUSES.has(this.requestedStatus)) {
       transitionError(`definition lifecycle requested status is invalid: ${this.requestedStatus}`);
     }
-    if (!new Set(["pending", "in_progress"]).has(this.currentStatus)) {
+    if (!new Set(["pending", "in_progress", "invalidated"]).has(this.currentStatus)) {
       transitionError(`definition lifecycle source status is terminal: ${this.currentStatus}`);
     }
     Object.freeze(this);

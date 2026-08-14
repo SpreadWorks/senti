@@ -5,23 +5,16 @@
  * Aggregate review, guardrail, and repair-effectiveness artifacts across specs.
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
 import { DEFAULT_FLOW_SPEC_DIR } from "../../lib/flow-workspace.js";
+import { FlowManager } from "../../lib/flow-manager.js";
+import { CanonicalMetricsFlowIndex } from "../lib/canonical-flow-metrics.js";
 
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
 const REVIEW_PHASES = ["impl", "spec", "test", "draft-questions", "draft-coverage"];
-const LATEST_ARTIFACTS = new Map([
-  ["impl-review.json", "impl"],
-  ["spec-review.json", "spec"],
-  ["test-review.json", "test"],
-  ["draft-review-questions.json", "draft-questions"],
-  ["draft-review-coverage.json", "draft-coverage"],
-]);
 const ATTEMPT_LIMIT_THRESHOLD = 5;
 
 function formatUsage() {
@@ -48,9 +41,13 @@ function assertText(value, label) {
 }
 
 export class ReviewMetricsSpec {
-  constructor({ name, dir }) {
+  constructor({ name, flow = null }) {
     this.name = assertText(name, "spec name");
-    this.dir = assertText(dir, "spec dir");
+    if (flow !== null && (typeof flow !== "object" || flow.specId !== this.name)) {
+      throw new Error("review metrics spec Flow identity is invalid");
+    }
+    this.flow = flow;
+    Object.freeze(this);
   }
 
   toJSON() {
@@ -189,40 +186,6 @@ function increment(map, key, factory) {
   map.get(key).count += 1;
 }
 
-async function readJson(filePath) {
-  const text = await fs.readFile(filePath, "utf8");
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    throw new Error(`invalid JSON in ${filePath}: ${err.message}`);
-  }
-}
-
-async function maybeReadJson(filePath) {
-  try {
-    return await readJson(filePath);
-  } catch (err) {
-    if (err.code === "ENOENT") return null;
-    throw err;
-  }
-}
-
-async function listSpecDirs(root) {
-  const specsDir = root;
-  let stat;
-  try {
-    stat = await fs.stat(specsDir);
-  } catch (err) {
-    if (err.code === "ENOENT") return [];
-    throw err;
-  }
-  if (!stat.isDirectory()) throw new Error(`specs path is not a directory: ${specsDir}`);
-  const entries = await fs.readdir(specsDir, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => new ReviewMetricsSpec({ name: entry.name, dir: path.join(specsDir, entry.name) }));
-}
-
 function repairRefFromEntry(entry) {
   if (entry.repairRef && typeof entry.repairRef === "object") return entry.repairRef;
   return null;
@@ -269,18 +232,8 @@ function retryLimitRowsFromFlow(spec, flow) {
     seen.add(key);
     rows.push({ spec: spec.name, phase, source, count });
   };
-  const summary = flow?.metricsSummary?.flow || {};
-  for (const [phase, data] of Object.entries(summary)) {
-    if (!data || typeof data !== "object") continue;
-    for (const field of ["gateRetry", "reviewRetry"]) {
-      const value = Number(data[field] || 0);
-      if (value >= ATTEMPT_LIMIT_THRESHOLD) {
-        push(phase, "flow.json", value);
-      }
-    }
-  }
   const counters = new Map();
-  for (const entry of Array.isArray(flow?.metrics) ? flow.metrics : []) {
+  for (const entry of flow.metricEntries()) {
     if (!entry || !["gateRetry", "reviewRetry"].includes(entry.counter)) continue;
     const phase = entry.phase || "unknown";
     const key = rowKey(phase, entry.counter);
@@ -290,7 +243,7 @@ function retryLimitRowsFromFlow(spec, flow) {
   for (const [key, value] of counters.entries()) {
     if (value < ATTEMPT_LIMIT_THRESHOLD) continue;
     const [phase] = key.split("\u0000");
-    push(phase, "flow.json", value);
+    push(phase, "activities.jsonl", value);
   }
   return rows;
 }
@@ -314,78 +267,61 @@ function latestBuckets(artifact) {
   ];
 }
 
-function findingsFromLatest(spec, basename, artifact) {
-  const phase = LATEST_ARTIFACTS.get(basename);
+function findingsFromCanonicalHistory(spec, history) {
   const findings = [];
-  for (const [severity, items] of latestBuckets(artifact)) {
-    for (const item of items) {
-      const idx = findings.length + 1;
-      findings.push(new ReviewFinding({
-        id: `${phase}-latest-${severity}-${String(idx).padStart(3, "0")}`,
-        spec: spec.name,
-        phase,
-        sourceArtifact: basename,
-        severity,
-        title: item.title || "Untitled finding",
-        body: bodyFromFinding(item),
-        category: categoryForLatest(phase, item),
-      }));
+  for (const attempt of history.attempts) {
+    for (const [severity, items] of latestBuckets(attempt.payload)) {
+      for (const item of items) {
+        const idx = findings.length + 1;
+        const id = String(item.findingId || item.id || (
+          `${history.phase}-${attempt.attempt}-${severity}-${String(idx).padStart(3, "0")}`
+        ));
+        findings.push(new ReviewFinding({
+          id,
+          spec: spec.name,
+          phase: history.phase,
+          sourceArtifact: history.logicalKey,
+          attempt: attempt.attempt,
+          severity,
+          title: item.title || "Untitled finding",
+          body: bodyFromFinding(item),
+          category: categoryForLatest(history.phase, item),
+        }));
+      }
     }
   }
   return findings;
 }
 
-function findingsFromHistory(spec, artifact) {
-  const rawFindings = Array.isArray(artifact?.findings) ? artifact.findings : [];
-  return rawFindings.map((item, index) => new ReviewFinding({
-    id: item.id || `${artifact.phase}-${String(artifact.attempt || 0).padStart(3, "0")}-${String(index + 1).padStart(3, "0")}`,
-    spec: spec.name,
-    phase: item.phase || artifact.phase,
-    sourceArtifact: item.sourceArtifact || artifact.sourceArtifact,
-    attempt: item.attempt ?? artifact.attempt,
-    severity: item.severity || "blocking",
-    title: item.title || "Untitled finding",
-    body: item.body || "",
-    category: item.category || "unknown",
-  }));
+function canonicalIssueLogEntries(flow, spec) {
+  const issueLog = flow.issueLog();
+  if (!Array.isArray(issueLog.entries)) {
+    throw new Error(`canonical issue.log entries are invalid for ${spec.name}`);
+  }
+  return issueLog.entries;
 }
 
-async function loadReviewHistory(spec) {
-  const historyDir = path.join(spec.dir, "review-history");
-  let entries;
-  try {
-    entries = await fs.readdir(historyDir, { withFileTypes: true });
-  } catch (err) {
-    if (err.code === "ENOENT") return [];
-    throw err;
-  }
-  const findings = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
-    const artifact = await readJson(path.join(historyDir, entry.name));
-    findings.push(...findingsFromHistory(spec, artifact));
-  }
-  return findings;
-}
-
-async function loadLatestFindings(spec, historyFindings) {
-  const findings = [];
-  const historyKeys = new Set(historyFindings.map((finding) =>
-    rowKey(finding.phase, finding.sourceArtifact, finding.title, finding.body, finding.category, finding.severity),
-  ));
-  for (const basename of LATEST_ARTIFACTS.keys()) {
-    const artifact = await maybeReadJson(path.join(spec.dir, basename));
-    if (!artifact) continue;
-    for (const finding of findingsFromLatest(spec, basename, artifact)) {
-      const key = rowKey(finding.phase, finding.sourceArtifact, finding.title, finding.body, finding.category, finding.severity);
-      if (!historyKeys.has(key)) findings.push(finding);
-    }
-  }
-  return findings;
-}
-
-export async function loadReviewMetricsArtifacts(root, specRoot = DEFAULT_FLOW_SPEC_DIR) {
-  const specs = await listSpecDirs(path.join(root, specRoot));
+/**
+ * Read the aggregate review projection through the same V1 Store and
+ * artifact catalog used by normal Flow runtime.  Root-level review-history
+ * directories and copied latest JSON views are deliberately not candidates.
+ */
+export async function loadReviewMetricsArtifacts(
+  root,
+  specRoot = DEFAULT_FLOW_SPEC_DIR,
+  { flowManager = null } = {},
+) {
+  const manager = flowManager ?? new FlowManager({
+    root,
+    mainRoot: root,
+    inWorktree: false,
+    specRoot,
+  });
+  const index = await CanonicalMetricsFlowIndex.read({
+    flowManager: manager,
+    specRoot: manager.specRoot.resolve(root),
+  });
+  const specs = index.flows.map((flow) => new ReviewMetricsSpec({ name: flow.specId, flow }));
   const findings = [];
   const repairs = [];
   const guardrails = [];
@@ -394,11 +330,7 @@ export async function loadReviewMetricsArtifacts(root, specRoot = DEFAULT_FLOW_S
   const missingData = [];
 
   for (const spec of specs) {
-    const issueLog = await maybeReadJson(path.join(spec.dir, "issue-log.json"));
-    if (issueLog?.entries && !Array.isArray(issueLog.entries)) {
-      throw new Error(`invalid issue-log entries in ${path.join(spec.dir, "issue-log.json")}`);
-    }
-    for (const entry of issueLog?.entries || []) {
+    for (const entry of canonicalIssueLogEntries(spec.flow, spec)) {
       const phase = entry.step || entry.phase || "unknown";
       const guardrailIds = guardrailIdsFromEntry(entry);
       if (guardrailIds.length === 0) {
@@ -416,21 +348,19 @@ export async function loadReviewMetricsArtifacts(root, specRoot = DEFAULT_FLOW_S
         }));
       }
       if (entryShowsAttemptLimit(entry)) {
-        attemptLimitSpecs.push({ spec: spec.name, phase, source: "issue-log.json", count: 1 });
+        attemptLimitSpecs.push({ spec: spec.name, phase, source: "issue.log", count: 1 });
       }
     }
 
-    const flow = await maybeReadJson(path.join(spec.dir, "flow.json"));
-    if (flow) attemptLimitSpecs.push(...retryLimitRowsFromFlow(spec, flow));
+    attemptLimitSpecs.push(...retryLimitRowsFromFlow(spec, spec.flow));
 
-    const historyFindings = await loadReviewHistory(spec);
-    findings.push(...historyFindings);
-    findings.push(...await loadLatestFindings(spec, historyFindings));
-    if (historyFindings.length === 0) {
+    const histories = spec.flow.reviewHistories();
+    for (const history of histories) findings.push(...findingsFromCanonicalHistory(spec, history));
+    if (histories.length === 0) {
       missingData.push(new MissingDataEntry({
         spec: spec.name,
         status: "not recorded",
-        detail: "review-history artifacts not recorded",
+        detail: "cataloged review result artifacts not recorded",
       }));
     }
   }
@@ -699,9 +629,11 @@ async function runReviewMetrics(rawArgs, container) {
   if (opts.search != null && (search.length < 1 || search.length > 256)) {
     usageError("--search must be a trimmed string from 1 to 256 characters");
   }
+  const mainRoot = container.get("mainRoot");
   const loaded = await loadReviewMetricsArtifacts(
-    container.get("mainRoot"),
+    mainRoot,
     container.get("flowSpecRoot").toString(),
+    { flowManager: container.get("flowManager").forRoot(mainRoot) },
   );
   process.stdout.write(`${render(aggregateReviewMetrics(loaded, { search }), format)}\n`);
 }

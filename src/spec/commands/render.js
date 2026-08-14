@@ -15,9 +15,9 @@ import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { validateSchema } from "../../lib/schema-validate.js";
-import { getSpecDir } from "../../lib/flow-helpers.js";
 import {
   SpecRenderContext,
+  SpecRenderOutputLocation,
   TaskCollection,
   TaskRenderPlan,
 } from "../lib/render-contract.js";
@@ -36,7 +36,7 @@ function printHelp() {
       "",
       "Options:",
       "  --spec <path>    Directory containing spec.json (default: active flow spec dir)",
-      "  --out <path>     Output spec.md path (default: <spec dir>/spec.md)",
+      "  --out <path>     Output spec.md path (default: <spec dir>/.runtime/spec-render/spec.md)",
       "  -h, --help       Show this help",
     ].join("\n"),
   );
@@ -266,14 +266,34 @@ export function renderTaskMarkdown(task) {
 }
 
 function resolveActiveSpecDir(container) {
-  const root = container.get("root");
   const flowManager = container.get("flowManager");
   const state = flowManager.load();
-  const dir = getSpecDir(state, root);
-  if (!dir) {
-    throw new Error("no active flow (flow.json not found or spec path unset)");
+  if (!state?.specId) {
+    throw new Error("no active Flow is available for spec rendering");
   }
-  return dir;
+  // The active Flow is already resolved by FlowManager.  Reuse its Version
+  // location rather than reconstructing the retired `<specRoot>/<specId>`
+  // directory from an otherwise compatible command view.
+  return Object.freeze({ state, directory: flowManager.specLocation(state.specId).directory });
+}
+
+function isInside(directory, candidate) {
+  const relative = path.relative(path.resolve(directory), path.resolve(candidate));
+  return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
+}
+
+function canonicalSpecView(flowManager, state) {
+  if (state === null) return null;
+  const artifact = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "spec.record",
+    consumerNodeId: "system",
+  });
+  try {
+    return JSON.parse(artifact.bytes.toString("utf8"));
+  } catch (error) {
+    throw new Error(`canonical spec.json is invalid: ${error.message}`);
+  }
 }
 
 async function runSpecRender(rawArgs, container) {
@@ -291,9 +311,10 @@ async function runSpecRender(rawArgs, container) {
   const specDirArg = validatePathOption(cli.spec, "--spec");
   const outArg = validatePathOption(cli.out, "--out");
 
+  const active = specDirArg ? null : resolveActiveSpecDir(container);
   const specDir = specDirArg
     ? (path.isAbsolute(specDirArg) ? specDirArg : path.join(root, specDirArg))
-    : resolveActiveSpecDir(container);
+    : active.directory;
 
   if (!fs.existsSync(specDir) || !fs.statSync(specDir).isDirectory()) {
     process.stderr.write(`sennel spec render: spec directory not found: ${specDir}\n`);
@@ -306,7 +327,9 @@ async function runSpecRender(rawArgs, container) {
     process.exit(EXIT_ERROR);
   }
 
-  const spec = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
+  const spec = active === null
+    ? JSON.parse(fs.readFileSync(specJsonPath, "utf8"))
+    : canonicalSpecView(container.get("flowManager"), active.state);
   const schema = loadSchema();
   const errors = validateSchema(spec, schema);
   if (errors.length > 0) {
@@ -315,12 +338,24 @@ async function runSpecRender(rawArgs, container) {
     process.exit(EXIT_ERROR);
   }
 
-  const collection = new TaskCollection(spec.tasks ?? []);
-  const renderContext = new SpecRenderContext({ root, specDir, specJsonPath });
   const outPath = outArg
     ? (path.isAbsolute(outArg) ? outArg : path.join(root, outArg))
-    : path.join(specDir, "spec.md");
-  const tasksDir = path.join(specDir, "tasks");
+    : null;
+  const outputs = new SpecRenderOutputLocation({ specDir, specMarkdownFile: outPath });
+  if (outPath !== null && isInside(specDir, outputs.specMarkdownFile) && !isInside(outputs.runtimeDirectory, outputs.specMarkdownFile)) {
+    process.stderr.write(
+      "sennel spec render: persistent Markdown inside a canonical spec directory is retired; omit --out or use .runtime/\n",
+    );
+    process.exit(EXIT_ERROR);
+  }
+  const collection = new TaskCollection(spec.tasks ?? []);
+  const renderContext = new SpecRenderContext({
+    root,
+    specDir,
+    specJsonPath,
+    flowState: active?.state ?? null,
+  });
+  const tasksDir = outputs.tasksDirectory;
   const taskPlan = new TaskRenderPlan({
     collection,
     tasksDir,
@@ -328,8 +363,9 @@ async function runSpecRender(rawArgs, container) {
   });
   const output = renderSpecMarkdown(spec, renderContext.toRenderMeta());
 
-  fs.writeFileSync(outPath, output);
-  process.stdout.write(`rendered: ${path.relative(root, outPath)}\n`);
+  fs.mkdirSync(path.dirname(outputs.specMarkdownFile), { recursive: true });
+  fs.writeFileSync(outputs.specMarkdownFile, output);
+  process.stdout.write(`rendered: ${path.relative(root, outputs.specMarkdownFile)}\n`);
 
   // Spec 226: render tasks/<id>.md for each task entry. Additive only —
   // orphan files in tasks/ are NOT deleted (append-only principle per spec 215).

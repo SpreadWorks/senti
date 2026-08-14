@@ -19,13 +19,18 @@ import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
 import { emptySpecStub } from "../../lib/spec-json.js";
 import { onHook } from "../../lib/hooks.js";
 import { FlowCommand } from "./base-command.js";
-import { writeIssueMd } from "./issue-body-cache.js";
+import {
+  GitHubIssueSnapshotSource,
+  IssueSnapshot,
+  IssueSnapshotSource,
+} from "./issue-snapshot-source.js";
 import { discoverFlowCommandHooks, readProjectConfig, runFlowCommandWithPluginLifecycle } from "../../lib/plugin-registry.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { FlowSpecId } from "../../lib/flow-spec-id.js";
 import { bindFlowStateLocation } from "../../lib/flow-workspace.js";
-import { createInitialDraftArtifactRevision } from "./draft-artifact-promotion.js";
+import { CanonicalFlowCreateRequest } from "./canonical-flow-manager-store.js";
+import { CanonicalFlowArtifactWrite, CurrentFlowSpecRecord } from "./current-flow-state.js";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { RepositoryFlowOperationLock } from "../../lib/repository-maintenance-lock.js";
 import { ProcessIdentity, ProcessIdentitySource } from "../../lib/process-identity.js";
@@ -33,20 +38,12 @@ import {
   WorktreeFlowBindingStore,
   WorktreeFlowIdentity,
 } from "../../lib/worktree-flow-binding.js";
-import {
-  beginRepairBaselinePublication,
-  captureRepairBaseline,
-  completeRepairBaselinePublication,
-  recoverRepairBaselinePublications,
-  rollbackRepairBaselinePublication,
-} from "./repair-state-identity.js";
 
 const MAX_PLUGIN_RUNTIME_SYNC_FILES = 2000;
 const REQUIRED_WORKTREE_BRANCH_FILES = Object.freeze([PRODUCT.managedPath("config.json")]);
 const MAX_REQUIRED_WORKTREE_BRANCH_FILES = 16;
 const WORKTREE_FLOW_INTERNAL_IGNORES = Object.freeze([
   "flow-identity.json",
-  "flow-identity.issue-transaction.json",
   ".flow-identity.publication.json",
   ".flow-identity.publication.intent",
   ".flow-identity.publication.receipt.tmp",
@@ -392,13 +389,11 @@ function optionalBytes(filePath) {
 }
 
 function rollbackRequiredPrepareHookFailure(specDir, createdSourceFiles) {
-  fs.rmSync(path.join(specDir, "flow.json"), { force: true });
-  for (const filePath of createdSourceFiles) fs.rmSync(filePath, { force: true });
-  fs.rmSync(path.join(specDir, "plugin-artifacts"), { recursive: true, force: true });
-  if (fs.existsSync(specDir) && fs.readdirSync(specDir).length === 0) {
-    fs.rmdirSync(specDir);
-    fsyncDirectory(path.dirname(specDir));
-  }
+  // Fresh V1 publication is one atomic directory rename.  Required-hook
+  // rollback therefore owns the entire Version root rather than attempting
+  // to reconstruct a partially written root-file list.
+  fs.rmSync(specDir, { recursive: true, force: true });
+  fsyncDirectory(path.dirname(specDir));
 }
 
 function encodedBytes(bytes) {
@@ -740,12 +735,12 @@ class WorktreePrepareAttemptJournal {
     const flowBytes = optionalBytes(flowPath);
     if (flowBytes != null) {
       const flow = JSON.parse(flowBytes.toString("utf8"));
-      const flowIssue = Object.hasOwn(flow, "issue") ? flow.issue : null;
       if (
+        flow.schemaRevision !== 3
+        ||
         flow.runId !== record.runId
-        || flowIssue !== record.issue
         || flow.specId !== record.specId
-        || flow.worktree !== true
+        || flow.execution?.mode !== "worktree"
       ) {
         throw new Error("worktree prepare flow authority changed before rollback");
       }
@@ -806,24 +801,42 @@ function ensureWorktreeFlowIdentityIgnored(worktreePath, journal, record) {
   new AtomicFile(excludePath).write(`${current}${separator}${missing.join("\n")}\n`);
 }
 
-export async function runPrepareWithPluginHooks({ root, title, request, noBranch = true, issue = null }) {
+export async function runPrepareWithPluginHooks({
+  root,
+  title,
+  request,
+  noBranch = true,
+  issue = null,
+  issueSnapshotSource = new GitHubIssueSnapshotSource(),
+}) {
+  if (!(issueSnapshotSource instanceof IssueSnapshotSource)) {
+    throw new TypeError("issueSnapshotSource must be an IssueSnapshotSource");
+  }
+  const issueSnapshot = issue === null
+    ? null
+    : issueSnapshotSource.load({ number: Number(issue), root });
+  if (issue !== null && issueSnapshot === null) {
+    throw new Error("linked Issue requires an immutable issue.md snapshot before canonical Flow creation");
+  }
+  if (issueSnapshot !== null) {
+    if (!(issueSnapshot instanceof IssueSnapshot)) {
+      throw new TypeError("issueSnapshotSource must return an IssueSnapshot or null");
+    }
+    issueSnapshot.assertIdentity(Number(issue));
+  }
   const specId = "001-plugin-hook-snapshot-fixture";
   const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
   const location = manager.specLocation(specId);
-  const specDir = location.directory;
-  fs.mkdirSync(specDir, { recursive: true });
-  const flowPath = path.join(specDir, "flow.json");
+  const flowPath = location.flowStateFile;
   const plans = await hookSnapshotFor(root);
   let featureBranch = null;
   if (!noBranch) featureBranch = `feature/${specId}`;
   const runId = `fixture-${Date.now()}`;
-  const repairBaseline = captureRepairBaseline({ root, baseRef: "HEAD", runId });
   const state = {
     specId,
     baseBranch: "main",
     featureBranch,
     runId,
-    repairBaseline: repairBaseline.toJSON(),
     steps: [],
     requirements: [],
     tasks: [],
@@ -834,10 +847,20 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
     title,
     plugins: { flowCommandHooks: plans },
   };
-  manager.create(state);
+  manager.createFresh(new CanonicalFlowCreateRequest({
+    specId,
+    runId,
+    request,
+    execution: { mode: noBranch ? "direct" : "branch", baseBranch: "main", featureBranch },
+    policy: { autoApprove: false, nonblocking: null },
+    flowId: `flow-${runId}`,
+    flowVersionId: `flow-v1-${runId}`,
+    specRecord: new CurrentFlowSpecRecord({ ...emptySpecStub(), tasks: [] }, { specId }),
+    ...(issue ? { issue: Number(issue), issueSnapshot: issueSnapshot.body } : {}),
+  }));
   const lifecycle = await runFlowCommandWithPluginLifecycle(root, plans, {
     command: "prepare",
-    flow: { ...state, specRoot: location.relativeRoot },
+    flow: { ...state, specRoot: location.specRoot },
     artifactRepositoryRoot: root,
     main: async () => ({ ok: true, data: { issue: state.issue, specId: state.specId, runId: state.runId } }),
   });
@@ -845,8 +868,12 @@ export async function runPrepareWithPluginHooks({ root, title, request, noBranch
 }
 
 export class RunPrepareSpecCommand extends FlowCommand {
-  constructor() {
+  constructor({ issueSnapshotSource = new GitHubIssueSnapshotSource() } = {}) {
     super({ requiresFlow: false });
+    if (!(issueSnapshotSource instanceof IssueSnapshotSource)) {
+      throw new TypeError("issueSnapshotSource must be an IssueSnapshotSource");
+    }
+    this.issueSnapshotSource = issueSnapshotSource;
   }
 
   async execute(ctx) {
@@ -927,6 +954,28 @@ export class RunPrepareSpecCommand extends FlowCommand {
       throw new Error("--title is required");
     }
 
+    let resolvedIssueSnapshot = null;
+    if (!dryRun && issue) {
+      const cached = preparingState?.issueBody;
+      if (typeof cached === "string") {
+        resolvedIssueSnapshot = new IssueSnapshot({ number: Number(issue), body: cached });
+      } else {
+        const snapshot = this.issueSnapshotSource.load({ number: Number(issue), root: mainRoot });
+        if (snapshot === null) {
+          return Envelope.fail(
+            "run",
+            "prepare-spec",
+            "ISSUE_SNAPSHOT_UNAVAILABLE",
+            `cannot prepare linked Issue #${issue}: its immutable Issue snapshot could not be retrieved`,
+          );
+        }
+        if (!(snapshot instanceof IssueSnapshot)) {
+          throw new TypeError("issueSnapshotSource must return an IssueSnapshot or null");
+        }
+        resolvedIssueSnapshot = snapshot.assertIdentity(Number(issue));
+      }
+    }
+
     const config = ctx.config;
     if (!config) {
       throw new Error("config.json not found");
@@ -973,7 +1022,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const executionRoot = useWorktree ? worktreePath : currentExecutionRoot;
     const specLocation = flowManager.specLocation(specId);
     const specDir = specLocation.directory;
-    const draftPath = path.join(specDir, "draft.json");
 
     if (!dryRun && useWorktree) {
       const requiredFileIssues = checkRequiredWorktreeBranchFiles(currentExecutionRoot, resolvedBase);
@@ -983,7 +1031,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     if (dryRun) {
-      const mode = useWorktree ? "worktree" : skipBranch ? "spec-only" : "branch";
+      const mode = useWorktree ? "worktree" : skipBranch ? "direct" : "branch";
       return {
         result: "dry-run",
         changed: [],
@@ -1005,8 +1053,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
       }),
     });
     const operationOwnerToken = operationLock.acquire();
-    let repairBaselinePublication = null;
-    let repairBaselinePublished = false;
     try {
     // A branch-mode prepare must reject a competing active branch flow before
     // reporting incidental checkout dirtiness. Keep both checks under the
@@ -1030,46 +1076,18 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
     if (attemptJournal) attemptJournal.recoverStale(flowManager, operationOwnerToken);
 
-    // Helper: write planning source files. spec.json is the source of truth;
-    // spec.md is a generated view rendered later when human approval needs it.
-    function writeSpecFiles() {
-      const created = [];
-      fs.mkdirSync(specDir, { recursive: true });
-      const specJsonPath = path.join(specDir, "spec.json");
-      if (!fs.existsSync(specJsonPath)) {
-        fs.writeFileSync(specJsonPath, JSON.stringify(emptySpecStub(), null, 2) + "\n");
-        created.push(specJsonPath);
-      }
-      if (!fs.existsSync(draftPath)) {
-        fs.writeFileSync(draftPath, buildDraftTemplate());
-        created.push(draftPath);
-      }
-      if (preparingState?.issueBody && typeof preparingState.issueBody === "string") {
-        const issuePath = path.join(specDir, "issue.md");
-        if (!fs.existsSync(issuePath)) {
-          writeIssueMd(specDir, preparingState.issueBody);
-          created.push(issuePath);
-        }
-      }
-      return created;
+    // The Version Store atomically creates spec.json, flow.json, the ledger,
+    // catalog, and an optional Issue snapshot together.  No root-level
+    // pre-write is permitted: a failed prepare must never expose a partial
+    // Flow identity or a spec without its state authority.
+    function freshSpecRecord() {
+      return new CurrentFlowSpecRecord({
+        ...emptySpecStub(),
+        tasks: [],
+      }, { specId });
     }
 
-    // Helper: write flow.json state
-    recoverRepairBaselinePublications({
-      root: currentExecutionRoot,
-      mainRoot,
-      excludeRunId: flowRunId,
-    });
-    repairBaselinePublication = beginRepairBaselinePublication({
-      root: currentExecutionRoot,
-      mainRoot,
-      baseRef: resolvedBase,
-      runId: flowRunId,
-      useMergeBase: skipBranch,
-      statePath: path.join(specDir, "flow.json"),
-    });
-    const repairBaseline = repairBaselinePublication.baseline;
-    async function writeFlowState(extra, writePrepareFiles) {
+    async function writeFlowState(extra) {
       // At prepare time a fresh flow has no tasks. Integration steps
       // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
       // during the flow do not retroactively un-skip them — the skip
@@ -1092,7 +1110,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
         baseBranch: resolvedBase,
         featureBranch: branchName,
         runId: flowRunId,
-        repairBaseline: repairBaseline.toJSON(),
         steps,
         requirements: [],
         tasks: [],
@@ -1107,46 +1124,76 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...extra,
       };
       try {
-        bindFlowStateLocation(state, specLocation);
         state.plugins = { flowCommandHooks: await hookSnapshotFor(executionRoot) };
-        const createdSourceFiles = writePrepareFiles();
-        state.draftArtifactRevision = createInitialDraftArtifactRevision({
-          state,
-          draftPath,
-        }).toJSON();
         const lifecycle = await runFlowCommandWithPluginLifecycle(executionRoot, state.plugins.flowCommandHooks, {
           command: "prepare",
-          flow: { ...state, specRoot: specLocation.relativeRoot },
+          // This is command input only.  Its shape remains unchanged while
+          // persistence is owned by the V1 Store below.
+          flow: { ...state, specRoot: specLocation.specRoot },
           artifactRepositoryRoot: mainRoot,
           main: async () => {
-            flowManager.forRoot(executionRoot, { specId }).create(state, { operationOwnerToken });
+            flowManager.forRoot(executionRoot, { specId }).createFresh(new CanonicalFlowCreateRequest({
+              specId,
+              runId: flowRunId,
+              request: request ?? "",
+              execution: {
+                mode: extra.worktree === true ? "worktree" : skipBranch ? "direct" : "branch",
+                baseBranch: resolvedBase,
+                featureBranch: skipBranch ? null : branchName,
+              },
+              policy: { autoApprove: preparingState?.autoApprove === true, nonblocking: null },
+              issue: issue ? Number(issue) : null,
+              flowId: `flow-${flowRunId}`,
+              flowVersionId: `flow-v1-${flowRunId}`,
+              specRecord: freshSpecRecord(),
+              issueSnapshot: resolvedIssueSnapshot?.body ?? null,
+            }));
+            // The atomic fresh root intentionally materializes every known
+            // leaf as pending.  The prepare command has already completed the
+            // branch and preparation actions, so record those facts through
+            // the same Activity Store before exposing the Flow to its first
+            // worker.  Do not synthesize an active draft Attempt here: its
+            // command-context claim belongs to `get next-action`.
+            const canonicalManager = flowManager.forRoot(executionRoot, { specId });
+            for (const stepId of ["branch", "prepare-spec"]) {
+              canonicalManager.updateStepStatus({ stepId, requestedStatus: "in_progress" }, { specId });
+              canonicalManager.updateStepStatus({ stepId, requestedStatus: "done" }, { specId });
+            }
             return { ok: true, data: { issue: state.issue, specId: state.specId, runId: state.runId } };
           },
         });
+        const pluginArtifactWrites = lifecycle.data?.pluginArtifactWrites || [];
+        if (pluginArtifactWrites.length > 0) {
+          flowManager.forRoot(executionRoot, { specId }).publishPluginArtifacts({
+            specId,
+            artifactWrites: pluginArtifactWrites.map((write) => new CanonicalFlowArtifactWrite(write)),
+          });
+        }
         if (!lifecycle.ok) {
-          rollbackRequiredPrepareHookFailure(specDir, createdSourceFiles);
+          rollbackRequiredPrepareHookFailure(specDir);
           const error = new Error(lifecycle.outcome?.failure?.message || "required prepare hook failed");
           error.code = "PLUGIN_HOOK_REQUIRED_FAILED";
           error.pluginLifecycle = lifecycle;
           throw error;
         }
-        repairBaselinePublished = true;
-        completeRepairBaselinePublication({ mainRoot, publication: repairBaselinePublication });
       } catch (error) {
         throw error;
       }
     }
 
     const changed = [
-      specLocation.relativeSpecFile,
-      specLocation.relativeArtifact("draft.json"),
+      specLocation.relativeArtifact("flow.state"),
+      specLocation.relativeArtifact("flow.activities"),
+      specLocation.relativeArtifact("spec.record"),
+      specLocation.relativeArtifact("artifact.catalog"),
+      ...(issue ? [specLocation.relativeArtifact("issue.snapshot")] : []),
     ];
     const createdFileLines = [
-      `created spec source: ${specLocation.relativeSpecFile}`,
-      `created draft: ${specLocation.relativeArtifact("draft.json")}`,
+      `created canonical Flow: ${specLocation.relativeArtifact("flow.state")}`,
+      `created spec source: ${specLocation.relativeArtifact("spec.record")}`,
     ];
     const fillAndGateNext = [
-      `fill ${specLocation.relativeArtifact("draft.json")}`,
+      `fill ${specLocation.relativeArtifact("draft")}`,
       `run: sennel flow run gate --phase draft`,
       `start implementation`,
     ];
@@ -1178,7 +1225,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         reportWorktreePrepareCheckpoint(ctx, "after-exclusion-registration", worktreeAttempt);
         syncPluginRuntimeToWorktree(currentExecutionRoot, worktreePath);
         await onHook("PostWorktree", { CWD: worktreePath });
-        await writeFlowState({ worktree: true }, writeSpecFiles);
+        await writeFlowState({ worktree: true });
         reportWorktreePrepareCheckpoint(ctx, "after-planning-state-publication", worktreeAttempt);
         runDocsScanAndValidate(executionRoot);
         const identity = new WorktreeFlowIdentity({
@@ -1212,7 +1259,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
         if (attemptPublished) {
           try {
             attemptJournal.rollback(worktreeAttempt, flowManager, operationOwnerToken);
-            rollbackRepairBaselinePublication({ root: currentExecutionRoot, mainRoot, publication: repairBaselinePublication });
           } catch (rollbackError) {
             throw new AggregateError(
               [publicationError, rollbackError],
@@ -1234,9 +1280,9 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     } else if (skipBranch) {
       flowManager.cleanStaleFlows({ operationOwnerToken });
-      await writeFlowState({}, writeSpecFiles);
+      await writeFlowState({});
       runDocsScanAndValidate(executionRoot);
-      flowManager.addActiveFlow(specId, "local", { operationOwnerToken });
+      flowManager.addActiveFlow(specId, "direct", { operationOwnerToken });
       lines.push(
         ...createdFileLines,
         "",
@@ -1245,7 +1291,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       );
     } else {
       runGitTrim(currentExecutionRoot, ["checkout", "-b", branchName, resolvedBase]);
-      await writeFlowState({}, writeSpecFiles);
+      await writeFlowState({});
       runDocsScanAndValidate(executionRoot);
       flowManager.addActiveFlow(specId, "branch", { operationOwnerToken });
       lines.push(
@@ -1272,23 +1318,12 @@ export class RunPrepareSpecCommand extends FlowCommand {
         specDir: specLocation.relativeDirectory,
         branch: branchName,
         worktree: worktreePath,
-        mode: useWorktree ? "worktree" : (skipBranch ? "spec-only" : "branch"),
+        mode: useWorktree ? "worktree" : (skipBranch ? "direct" : "branch"),
       },
       next: "draft",
       output: lines.join("\n"),
     };
     } catch (error) {
-      if (repairBaselinePublication && !repairBaselinePublished) {
-        try {
-          rollbackRepairBaselinePublication({ root: currentExecutionRoot, mainRoot, publication: repairBaselinePublication });
-        } catch (cleanupError) {
-          throw new AggregateError(
-            [error, cleanupError],
-            "prepare failed before flow state publication and repair baseline cleanup also failed",
-            { cause: error },
-          );
-        }
-      }
       if (error.code === "PLUGIN_HOOK_REQUIRED_FAILED" && error.pluginLifecycle) {
         return Envelope.fail(
           "run",

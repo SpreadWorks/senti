@@ -10,9 +10,7 @@ import {
   writeCapturingStubAgentScript,
   stubAgentConfig,
 } from "../helpers/stub-agent.js";
-import { makeFlowManager } from "../helpers/flow-setup.js";
-import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
-import { findStepById } from "../../src/flow/lib/step-tree.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../helpers/flow-setup.js";
 
 const CMD = path.join(process.cwd(), "src/sennel.js");
 
@@ -40,6 +38,12 @@ function setupProject(tmp, { capturePath } = {}) {
     agent: stubAgentConfig(stubPath),
   });
   writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
+  const bin = path.join(tmp, ".fixture-bin");
+  fs.mkdirSync(bin, { recursive: true });
+  const gh = path.join(bin, "gh");
+  fs.writeFileSync(gh, `#!/bin/sh
+printf '%s\\n' '{"title":"Offline fixture Issue","body":"Offline fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`, { mode: 0o755 });
   initGitRepo(tmp);
   commitAll(tmp, "initial");
 }
@@ -48,7 +52,11 @@ function runCli(tmp, args) {
   return spawnSync("node", [CMD, ...args], {
     encoding: "utf8",
     cwd: tmp,
-    env: { ...process.env, SENNEL_WORK_ROOT: tmp },
+    env: {
+      ...process.env,
+      PATH: `${path.join(tmp, ".fixture-bin")}${path.delimiter}${process.env.PATH}`,
+      SENNEL_WORK_ROOT: tmp,
+    },
   });
 }
 
@@ -99,23 +107,19 @@ describe("e2e — phase-aware auto-check flow (spec 220)", () => {
     const capturePath = path.join(tmp, ".stub-agent-called");
     setupProject(tmp, { capturePath });
 
-    const specDir = path.join(tmp, "specs", "050-approved");
-    fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "spec.md"), "# placeholder");
-    const steps = buildInitialSteps();
-    findStepById(steps, "approval").status = "done";
-    makeFlowManager(tmp).create({
+    new CanonicalFlowFixture({
+      flowManager: makeFlowManager(tmp),
       specId: "050-approved",
       runId: "run-050-approved",
-      baseBranch: "main",
-      featureBranch: "feature/050-approved",
+      execution: {
+        mode: "branch",
+        baseBranch: "main",
+        featureBranch: "feature/050-approved",
+      },
       issue: 50,
+      issueSnapshot: "Offline fixture immutable Issue snapshot",
       request: "implement feature X",
-      steps,
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    });
-    makeFlowManager(tmp).addActiveFlow("050-approved", "branch");
+    }).create().settleBefore("approval").settle("approval").registerActive();
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);

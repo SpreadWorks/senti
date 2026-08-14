@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -23,7 +22,7 @@ import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { makeFlowManager, setupFlow } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 
 function finalizationIdentity(stepId) {
   return new FlowOutboxIdentity({
@@ -142,8 +141,16 @@ describe("resumable finalization outbox", () => {
   it("preserves the old durable state when exact recovery atomic write fails", () => {
     const root = createTmpDir("flow-outbox-exact-recovery-");
     try {
-      const state = setupFlow(root);
-      const flowManager = makeFlowManager(root);
+      let injectFailure = false;
+      const flowManager = makeFlowManager(root, {
+        versionStoreFaultInjector({ phase }) {
+          if (injectFailure && phase === "before-current-flow-state-temp-write") {
+            throw new Error("injected exact recovery write failure");
+          }
+        },
+      });
+      const fixture = new CanonicalFlowFixture({ flowManager }).create().registerActive();
+      const state = fixture.state();
       const identity = finalizationIdentity("report");
       const store = new FlowOutboxStore(flowManager);
       store.begin(identity);
@@ -151,16 +158,9 @@ describe("resumable finalization outbox", () => {
       store.begin(identity);
       const failure = "issue comment idempotencyKey is required";
       store.fail(identity, new Error(failure));
-      const flowPath = path.join(root, "specs", state.specId, "flow.json");
+      const flowPath = fixture.location().flowStateFile;
       const before = fs.readFileSync(flowPath);
-      const mutate = flowManager.mutate.bind(flowManager);
-      flowManager.mutate = (mutator, options = {}) => mutate(mutator, {
-        ...options,
-        faultInjector({ phase }) {
-          if (phase === "before-state-temp-write") throw new Error("injected exact recovery write failure");
-        },
-      });
-
+      injectFailure = true;
       assert.throws(
         () => store.reopenFailedExact(recoveryClaim(identity, 2, failure)),
         /injected exact recovery write failure/,

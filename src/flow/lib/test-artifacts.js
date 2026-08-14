@@ -2,28 +2,15 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { execFileSync } from "child_process";
-import { StringDecoder } from "string_decoder";
-import { managedOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
-import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
 import {
   ArtifactCompletionMechanicalFailure,
   ArtifactCompletionSuccess,
 } from "./artifact-completion.js";
-import { ImplRepairTargetIdentity } from "./impl-repair-artifacts.js";
-import {
-  UPGRADE_RAW_OUTPUT_RELATIVE,
-  UPGRADE_RECOVERY_AUDIT_FILE,
-  UPGRADE_RESULT_FILE,
-} from "./upgrade-evidence-paths.js";
-export {
-  UPGRADE_RAW_OUTPUT_RELATIVE,
-  UPGRADE_RECOVERY_AUDIT_FILE,
-  UPGRADE_RECOVERY_ARTIFACTS,
-  UPGRADE_RESULT_FILE,
-} from "./upgrade-evidence-paths.js";
+import { UPGRADE_RESULT_FILE } from "./upgrade-evidence-paths.js";
+export { UPGRADE_RESULT_FILE } from "./upgrade-evidence-paths.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -35,16 +22,9 @@ export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log
 // Public durable path pattern: tests/.raw/final-regression-attempt-*.log
 export const FINAL_REGRESSION_RAW_OUTPUT_PATTERN = `${TESTS_RAW_DIR_RELATIVE}/final-regression-attempt-*.log`;
 export const TEMP_SUMMARY_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/requirement-summary.json`;
-export const FILE_MAP_RELATIVE = "file-map.json";
-export const PLACEHOLDER_PERMISSION_FILE = "placeholder-permission.json";
+export const FILE_MAP_RELATIVE = "steps/impl/file-map.json";
 export const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
 export const SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/scenario-validity.log`;
-const ARTIFACT_PLACEHOLDER = "ARTIFACT_PLACEHOLDER";
-// Spec R3 intentionally limits sentinel scans to the first 200 entries even
-// when schema validation accepts larger bounded artifact arrays.
-const SUMMARY_SENTINEL_SCAN_LIMIT = 200;
-const REVIEW_SENTINEL_SCAN_LIMIT = 200;
-const SENTINEL_TEXT_SCAN_CHAR_LIMIT = 1024 * 1024;
 const MAX_JSON_ARTIFACT_BYTES = 16 * 1024 * 1024;
 export const MAX_RAW_OUTPUT_BYTES = 64 * 1024 * 1024;
 const MAX_RAW_OUTPUT_LINES = 200_000;
@@ -52,37 +32,16 @@ const MAX_EVIDENCE_RAW_OUTPUT_LINES = 2_000;
 const MAX_TEST_SOURCE_BYTES = 4 * 1024 * 1024;
 const MAX_SUMMARY_ITEMS = 500;
 const MAX_REVIEW_CHECKED_ITEMS = 500;
-const MAX_FILE_MAP_REQUIREMENTS = 500;
-const MAX_FILE_MAP_PATHS_PER_REQUIREMENT = 500;
 const MAX_ARTIFACT_PATTERN_COUNT = 500;
 const MAX_COLLECTED_ARTIFACTS = 10_000;
 const MAX_ARTIFACT_GLOB_ENTRIES = 10_000;
-const MAX_PLACEHOLDER_PERMISSION_PATHS = 50;
 const SUMMARY_RESULT_VALUES = Object.freeze(["pass", "fail", "not_applicable"]);
 const SUMMARY_NO_TESTS_REASON = "no_tests_declared";
 const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
   "covered_by_test_execute_full_regression",
-  "risk_based_static_proof",
   "skipped_by_project_policy",
 ]);
-// Spec R2 intentionally maps every impl-gate artifact trust failure to the
-// public ARTIFACT_PLACEHOLDER code, including malformed or missing inputs.
-const GATE_ARTIFACT_TRUST_FAILURE_CODE = ARTIFACT_PLACEHOLDER;
-const DEFAULT_PLACEHOLDER_SENTINELS = Object.freeze(["placeholder", "todo", "tbd"]);
 const REPAIR_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
-const UPGRADE_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse", "missing", "stale"]));
-const UPGRADE_AUTHORITY_RECOVERY_DECISIONS = Object.freeze(new Set(["preserve", "reuse"]));
-const PLACEHOLDER_JSON_HASHES = Object.freeze(new Set([
-  // A spec-local fixture writes this exact value to prove known hand-written
-  // artifact samples are rejected even when their schema shape is valid.
-  "09e1a0d50aa55acadc486dc5e9119809ca40405f9cb3ff3018dbcdd94ad95513",
-]));
-const INTEGRATION_TRUST_INPUTS = Object.freeze([
-  TEST_EXECUTE_RESULT_FILE,
-  TEST_RESULT_REVIEW_FILE,
-  FILE_MAP_RELATIVE,
-  RAW_OUTPUT_RELATIVE,
-]);
 
 export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
   "src/upgrade.js",
@@ -108,7 +67,6 @@ const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   FINAL_REGRESSION_RESULT_FILE,
   "retro.json",
   "report.json",
-  UPGRADE_RAW_OUTPUT_RELATIVE,
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   RAW_OUTPUT_RELATIVE,
   FINAL_REGRESSION_RAW_OUTPUT_PATTERN,
@@ -147,14 +105,6 @@ export function listUpgradeRequiredChangedPaths({ root, baseBranch }) {
   return matchUpgradeRequiredSourcePaths(files);
 }
 
-export function upgradeResultPath(specDir) {
-  return path.join(specDir, UPGRADE_RESULT_FILE);
-}
-
-export function upgradeRawLogPath(specDir) {
-  return path.join(specDir, UPGRADE_RAW_OUTPUT_RELATIVE);
-}
-
 function upgradeResultFailure(reason, extra = {}) {
   return { ok: false, reason, ...extra };
 }
@@ -169,66 +119,7 @@ function validateUpgradeSummary(summary) {
   }
 }
 
-function sha256(text) {
-  return crypto.createHash("sha256").update(text).digest("hex");
-}
-
-function sameJsonValue(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-export class UpgradeEvidenceAuthority {
-  constructor(authority) {
-    if (!authority || typeof authority !== "object" || Array.isArray(authority)) {
-      throw new Error("recoveryAuthority must be an object");
-    }
-    if (!REPAIR_FINGERPRINT_PATTERN.test(authority.fingerprint || "")) {
-      throw new Error("recoveryAuthority.fingerprint must be a 64-character SHA-256 digest");
-    }
-    if (!REPAIR_FINGERPRINT_PATTERN.test(authority.rawLogDigest || "")) {
-      throw new Error("recoveryAuthority.rawLogDigest must be a 64-character SHA-256 digest");
-    }
-    if (
-      authority.recoveryDecision != null
-      && !UPGRADE_RECOVERY_DECISIONS.has(authority.recoveryDecision)
-    ) {
-      throw new Error("recoveryAuthority.recoveryDecision is invalid");
-    }
-    this.fingerprint = authority.fingerprint;
-    this.rawLogDigest = authority.rawLogDigest;
-    this.target = authority.target instanceof ImplRepairTargetIdentity
-      ? authority.target
-      : new ImplRepairTargetIdentity(authority.target);
-    this.recoveryDecision = authority.recoveryDecision ?? null;
-    Object.freeze(this);
-  }
-
-  assertCurrent({ currentFingerprint = null, target = null } = {}) {
-    if (currentFingerprint != null && this.fingerprint !== currentFingerprint) {
-      throw new Error("upgrade recovery authority fingerprint mismatch");
-    }
-    if (target != null && !this.target.equals(target)) {
-      throw new Error("upgrade recovery authority target mismatch");
-    }
-  }
-
-  assertRawLog(rawPath) {
-    const rawLogDigest = sha256(fs.readFileSync(rawPath));
-    this.assertRawLogDigest(rawLogDigest);
-  }
-
-  assertRawLogDigest(rawLogDigest) {
-    if (rawLogDigest !== this.rawLogDigest) {
-      throw new Error("upgrade recovery authority rawLogDigest mismatch");
-    }
-  }
-}
-
-export function validateUpgradeResultArtifact(specDir, artifact, {
-  currentFingerprint = null,
-  target = null,
-  trustAuthority = false,
-} = {}) {
+export function validateUpgradeResultArtifact(artifact) {
   try {
     if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
       throw new Error(`${UPGRADE_RESULT_FILE} must be an object`);
@@ -249,9 +140,6 @@ export function validateUpgradeResultArtifact(specDir, artifact, {
     } else if (artifact.failureReason != null) {
       throw new Error("failureReason must be null for successful upgrade result");
     }
-    if (!REPAIR_FINGERPRINT_PATTERN.test(artifact.rawOutputSha256 || "")) {
-      throw new Error("rawOutputSha256 must be a 64-character SHA-256 digest");
-    }
     validateUpgradeSummary(artifact.summary);
     if (!Array.isArray(artifact.checkedPaths) || artifact.checkedPaths.some((p) => typeof p !== "string" || p.length === 0)) {
       throw new Error("checkedPaths must be an array of non-empty strings");
@@ -260,101 +148,97 @@ export function validateUpgradeResultArtifact(specDir, artifact, {
     if (JSON.stringify(sortedUnique) !== JSON.stringify(artifact.checkedPaths)) {
       throw new Error("checkedPaths must be sorted and unique");
     }
-    const rawPath = resolveRepoRelativePathInside({
-      root: specDir,
-      allowedBaseDir: specDir,
-      relPath: artifact.rawLogPath,
-      label: "rawLogPath",
-      mustExist: false,
-    });
-    const hasRawLog = fs.existsSync(rawPath);
-    if (hasRawLog && sha256(fs.readFileSync(rawPath)) !== artifact.rawOutputSha256) {
-      throw new Error("rawLogPath content does not match rawOutputSha256");
-    }
-    const authority = trustAuthority ? readUpgradeRecoveryAuthority(specDir) : null;
-    if (
-      trustAuthority
-      && (currentFingerprint != null || target != null)
-      && authority == null
-    ) {
-      throw new Error("upgrade recovery authority is missing");
-    }
-    if (authority) {
-      authority.assertCurrent({ currentFingerprint, target });
-      authority.assertRawLogDigest(artifact.rawOutputSha256);
-    }
-    return upgradeResultSuccess({ artifact, rawPath: hasRawLog ? rawPath : null, authority });
+    return upgradeResultSuccess({ artifact });
   } catch (err) {
     return upgradeResultFailure(err.message);
   }
 }
 
-function readUpgradeResultArtifact(specDir) {
-  const filePath = upgradeResultPath(specDir);
-  if (!fs.existsSync(filePath)) return upgradeResultFailure(`${UPGRADE_RESULT_FILE} missing`);
-  try {
-    return upgradeResultSuccess({ artifact: readBoundedJson(filePath, UPGRADE_RESULT_FILE).value });
-  } catch (err) {
-    return upgradeResultFailure(err.message);
+/** Immutable, agent-visible result of one `sennel upgrade` invocation. */
+export class UpgradeResultArtifact {
+  constructor({ command, dryRun, exitCode, result, summary, checkedPaths } = {}) {
+    if (typeof command !== "string" || command.length === 0) throw new Error("upgrade command is required");
+    if (typeof dryRun !== "boolean") throw new Error("upgrade dryRun must be boolean");
+    if (!Number.isInteger(exitCode)) throw new Error("upgrade exitCode must be integer");
+    if (!Array.isArray(checkedPaths)) throw new Error("upgrade checkedPaths must be an array");
+    this.command = command;
+    this.dryRun = dryRun;
+    this.exitCode = exitCode;
+    this.result = result;
+    this.summary = structuredClone(summary);
+    this.checkedPaths = Object.freeze([...checkedPaths]);
+    this.failureReason = result === "failed"
+      ? String(summary?.error || `upgrade command exited with code ${exitCode}`)
+      : null;
+    const validation = validateUpgradeResultArtifact(this.toJSON());
+    if (!validation.ok) throw new Error(`invalid upgrade result: ${validation.reason}`);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: 1,
+      command: this.command,
+      dryRun: this.dryRun,
+      exitCode: this.exitCode,
+      result: this.result,
+      summary: structuredClone(this.summary),
+      failureReason: this.failureReason,
+      checkedPaths: [...this.checkedPaths],
+    };
   }
 }
 
-export function writeUpgradeResultArtifact({
+export function createUpgradeResultArtifact({
   root,
-  specDir,
   baseBranch,
   command,
   dryRun,
   exitCode,
   result,
   summary,
-  rawOutput,
 }) {
   const checkedPaths = listUpgradeRequiredChangedPaths({ root, baseBranch });
-  const rawLog = upgradeRawLogPath(specDir);
-  fs.mkdirSync(path.dirname(rawLog), { recursive: true });
-  fs.writeFileSync(rawLog, String(rawOutput ?? ""), "utf8");
-
-  const artifact = {
-    version: 1,
-    command,
-    dryRun,
-    exitCode,
-    result,
-    summary,
-    failureReason: result === "failed"
-      ? String(summary?.error || `upgrade command exited with code ${exitCode}`)
-      : null,
-    checkedPaths,
-    rawLogPath: UPGRADE_RAW_OUTPUT_RELATIVE,
-    rawOutputSha256: sha256(String(rawOutput ?? "")),
-  };
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(upgradeResultPath(specDir), JSON.stringify(artifact, null, 2) + "\n", "utf8");
-  return { artifact, path: upgradeResultPath(specDir), rawLogPath: rawLog };
+  return new UpgradeResultArtifact({ command, dryRun, exitCode, result, summary, checkedPaths });
 }
 
-export function validateUpgradeEvidenceForGate({
+/**
+ * Resolve Version-1 upgrade evidence only through the active artifact
+ * catalog.  There is deliberately no sibling-file fallback for a canonical
+ * Flow: catalog absence is missing evidence.
+ */
+export function validateCanonicalUpgradeEvidence({
+  flowManager,
+  state,
+  consumerNodeId,
   root = null,
-  specDir,
-  baseBranch = null,
+  baseBranch = state?.baseBranch ?? null,
   currentRequiredPaths = null,
-  currentFingerprint = null,
-  target = null,
-}) {
+} = {}) {
+  if (!flowManager || typeof flowManager.readArtifact !== "function") {
+    throw new Error("canonical upgrade evidence requires FlowManager.readArtifact");
+  }
+  if (!state?.specId || state.schemaRevision !== 3) {
+    throw new Error("canonical upgrade evidence requires a Version-1 Flow state");
+  }
   const requiredPaths = currentRequiredPaths
     ? matchUpgradeRequiredSourcePaths(currentRequiredPaths)
     : listUpgradeRequiredChangedPaths({ root, baseBranch });
   if (requiredPaths.length === 0) return upgradeResultSuccess({ currentRequiredPaths: requiredPaths });
-
-  const loaded = readUpgradeResultArtifact(specDir);
-  if (!loaded.ok) return upgradeResultFailure(loaded.reason, { currentRequiredPaths: requiredPaths });
-
-  const validation = validateUpgradeResultArtifact(specDir, loaded.artifact, {
-    currentFingerprint,
-    target,
-    trustAuthority: true,
+  const resolved = flowManager.readArtifact({
+    specId: state.specId,
+    logicalKey: "upgrade.result",
+    consumerNodeId,
+    optional: true,
   });
+  if (resolved === null) return upgradeResultFailure(`${UPGRADE_RESULT_FILE} missing`, { currentRequiredPaths: requiredPaths });
+  let artifact;
+  try {
+    artifact = JSON.parse(resolved.bytes.toString("utf8"));
+  } catch (error) {
+    return upgradeResultFailure(`${UPGRADE_RESULT_FILE} must be JSON: ${error.message}`, { currentRequiredPaths: requiredPaths });
+  }
+  const validation = validateUpgradeResultArtifact(artifact);
   if (!validation.ok) return upgradeResultFailure(validation.reason, { currentRequiredPaths: requiredPaths });
   if (validation.artifact.result === "failed") {
     return upgradeResultFailure("upgrade-result.json result=failed", { currentRequiredPaths: requiredPaths });
@@ -365,212 +249,11 @@ export function validateUpgradeEvidenceForGate({
       checkedPaths: validation.artifact.checkedPaths,
     });
   }
-  return upgradeResultSuccess({ currentRequiredPaths: requiredPaths, artifact: validation.artifact });
-}
-
-function readUpgradeRecoveryAuthority(specDir) {
-  const auditPath = path.join(specDir, UPGRADE_RECOVERY_AUDIT_FILE);
-  if (!fs.existsSync(auditPath)) return null;
-  const audit = readBoundedJson(auditPath, UPGRADE_RECOVERY_AUDIT_FILE).value;
-  if (!audit || typeof audit !== "object" || Array.isArray(audit)) {
-    throw new Error(`${UPGRADE_RECOVERY_AUDIT_FILE} must be an object`);
-  }
-  if (!REPAIR_FINGERPRINT_PATTERN.test(audit.currentFingerprint || "")) {
-    throw new Error(`${UPGRADE_RECOVERY_AUDIT_FILE} currentFingerprint must be a 64-character SHA-256 digest`);
-  }
-  const recoveryDecision = UPGRADE_AUTHORITY_RECOVERY_DECISIONS.has(audit.decision)
-    ? audit.decision
-    : null;
-  return new UpgradeEvidenceAuthority({
-    fingerprint: audit.currentFingerprint,
-    rawLogDigest: audit.rawLogDigest,
-    target: audit.target,
-    recoveryDecision,
+  return upgradeResultSuccess({
+    currentRequiredPaths: requiredPaths,
+    artifact: validation.artifact,
+    relativePath: resolved.relativePath,
   });
-}
-
-export class UpgradeEvidenceRecovery {
-  constructor({
-    specDir,
-    currentFingerprint,
-    currentRequiredPaths = [],
-    target,
-  }) {
-    if (!specDir || typeof specDir !== "string") {
-      throw new Error("UpgradeEvidenceRecovery requires specDir");
-    }
-    if (!REPAIR_FINGERPRINT_PATTERN.test(currentFingerprint || "")) {
-      throw new Error("UpgradeEvidenceRecovery requires currentFingerprint");
-    }
-    this.specDir = specDir;
-    this.currentFingerprint = currentFingerprint;
-    this.currentRequiredPaths = matchUpgradeRequiredSourcePaths(currentRequiredPaths);
-    this.target = target instanceof ImplRepairTargetIdentity
-      ? target
-      : new ImplRepairTargetIdentity(target);
-    this.nextActiveStep = "impl-gate";
-    this.auditArtifactPath = path.join(specDir, UPGRADE_RECOVERY_AUDIT_FILE);
-    Object.freeze(this);
-  }
-
-  resolve({ runUpgrade, refreshCurrentFingerprint = null } = {}) {
-    const assessment = this.#assess();
-    let currentFingerprint = this.currentFingerprint;
-    if (assessment.action === "regenerate") {
-      if (typeof runUpgrade !== "function") {
-        throw new Error(`UpgradeEvidenceRecovery: ${assessment.reason}`);
-      }
-      runUpgrade();
-      if (refreshCurrentFingerprint != null) {
-        if (typeof refreshCurrentFingerprint !== "function") {
-          throw new Error("UpgradeEvidenceRecovery: refreshCurrentFingerprint must be a function");
-        }
-        currentFingerprint = refreshCurrentFingerprint();
-        if (!REPAIR_FINGERPRINT_PATTERN.test(currentFingerprint || "")) {
-          throw new Error("UpgradeEvidenceRecovery: refreshed fingerprint must be a 64-character SHA-256 digest");
-        }
-      }
-      this.#completeRegeneratedArtifact();
-    }
-
-    const validation = this.currentRequiredPaths.length === 0
-      ? null
-      : this.#loadValidatedArtifact({
-        currentFingerprint,
-        trustAuthority: assessment.action !== "regenerate",
-      });
-    if (
-      validation
-      && !sameJsonValue(validation.artifact.checkedPaths, this.currentRequiredPaths)
-    ) {
-      throw new Error("UpgradeEvidenceRecovery: upgrade-result.json checkedPaths is stale");
-    }
-
-    const checkedPaths = validation?.artifact.checkedPaths ?? [];
-    const artifactPaths = validation
-      ? [UPGRADE_RESULT_FILE, ...(validation.rawPath ? [UPGRADE_RAW_OUTPUT_RELATIVE] : [])]
-      : [];
-    const rawLogDigest = validation
-      ? validation.artifact.rawOutputSha256
-      : null;
-    return this.#recordResolution({
-      decision: assessment.decision,
-      action: assessment.action,
-      reason: assessment.reason,
-      currentFingerprint,
-      checkedPaths,
-      artifactPaths,
-      rawLogDigest,
-    });
-  }
-
-  #assess() {
-    if (this.currentRequiredPaths.length === 0) {
-      return { decision: "missing", action: "bypass", reason: "not-required" };
-    }
-
-    if (!fs.existsSync(upgradeResultPath(this.specDir))) {
-      return { decision: "missing", action: "regenerate", reason: "missing" };
-    }
-    let validation;
-    try {
-      validation = this.#loadValidatedArtifact();
-    } catch (error) {
-      return {
-        decision: "stale",
-        action: "regenerate",
-        reason: this.#staleReason(error.message),
-      };
-    }
-    if (!sameJsonValue(validation.artifact.checkedPaths, this.currentRequiredPaths)) {
-      return { decision: "stale", action: "regenerate", reason: "checkedPaths mismatch" };
-    }
-    return {
-      decision: validation.authority?.recoveryDecision ?? "reuse",
-      action: validation.authority?.recoveryDecision ?? "reuse",
-      reason: null,
-    };
-  }
-
-  #loadValidatedArtifact({
-    currentFingerprint = this.currentFingerprint,
-    target = this.target,
-    trustAuthority = true,
-  } = {}) {
-    const loaded = readUpgradeResultArtifact(this.specDir);
-    if (!loaded.ok) throw new Error(`UpgradeEvidenceRecovery: ${loaded.reason}`);
-    const validation = validateUpgradeResultArtifact(this.specDir, loaded.artifact, {
-      currentFingerprint,
-      target,
-      trustAuthority,
-    });
-    if (!validation.ok) throw new Error(`UpgradeEvidenceRecovery: ${validation.reason}`);
-    if (validation.artifact.result === "failed") {
-      throw new Error("UpgradeEvidenceRecovery: upgrade-result.json result=failed");
-    }
-    return validation;
-  }
-
-  #recordResolution({
-    decision,
-    action,
-    reason,
-    currentFingerprint,
-    checkedPaths,
-    artifactPaths,
-    rawLogDigest,
-  }) {
-    const audit = {
-      version: 1,
-      decision,
-      action,
-      reason,
-      currentFingerprint,
-      target: this.target.toJSON(),
-      checkedPaths,
-      artifactPaths,
-      ...(rawLogDigest && { rawLogDigest }),
-      nextActiveStep: this.nextActiveStep,
-    };
-    fs.mkdirSync(this.specDir, { recursive: true });
-    fs.writeFileSync(this.auditArtifactPath, `${JSON.stringify(audit, null, 2)}\n`, "utf8");
-    return {
-      ...audit,
-      audit,
-      auditArtifactPath: this.auditArtifactPath,
-    };
-  }
-
-  #completeRegeneratedArtifact() {
-    const validation = this.#loadValidatedArtifact({
-      currentFingerprint: null,
-      target: null,
-      trustAuthority: false,
-    });
-    const artifact = {
-      ...validation.artifact,
-      checkedPaths: this.currentRequiredPaths,
-    };
-    fs.writeFileSync(upgradeResultPath(this.specDir), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
-  }
-
-  #staleReason(reason) {
-    if (/fingerprint mismatch|target mismatch/.test(reason)) return "authority mismatch";
-    if (/checkedPaths/.test(reason)) return "checkedPaths mismatch";
-    return reason;
-  }
-}
-
-export function tempRequirementSummaryPath(specDir) {
-  return path.join(specDir, TEMP_SUMMARY_RELATIVE);
-}
-
-export function writeTempRequirementSummary(specDir, summary) {
-  fs.writeFileSync(tempRequirementSummaryPath(specDir), JSON.stringify(summary, null, 2) + "\n");
-}
-
-export function removeTempRequirementSummary(specDir) {
-  fs.rmSync(tempRequirementSummaryPath(specDir), { force: true });
 }
 
 function addCollectedArtifactPathspec(existing, pathspec) {
@@ -649,33 +332,6 @@ const MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS = 20 * 1024 * 1024;
 const MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES = 500;
 const SCENARIO_VALIDITY_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
-export class GateArtifactTrustContract {
-  constructor({ step, phase, requiredTrustInputs }) {
-    this.step = step;
-    this.phase = phase;
-    this.requiredTrustInputs = Object.freeze([...requiredTrustInputs]);
-    Object.freeze(this);
-  }
-}
-
-export class GateArtifactTrustSuccess {
-  constructor(extra = {}) {
-    Object.assign(this, extra);
-    this.ok = true;
-    Object.freeze(this);
-  }
-}
-
-export class GateArtifactTrustFailure {
-  constructor(reason, extra = {}) {
-    Object.assign(this, extra);
-    this.ok = false;
-    this.code = GATE_ARTIFACT_TRUST_FAILURE_CODE;
-    this.reason = reason;
-    Object.freeze(this);
-  }
-}
-
 export class IntegrationArtifactFingerprintAuthority {
   constructor({ result, review }) {
     const resultFingerprint = result?.repairFingerprint;
@@ -705,72 +361,6 @@ export class IntegrationArtifactFingerprintAuthority {
       [TEST_RESULT_REVIEW_FILE, this.review],
     ]);
   }
-}
-
-export class IntegrationArtifactLinkAuthority {
-  constructor({ root, specDir, result, review }) {
-    const specRelative = path.relative(root, specDir).split(path.sep).join("/");
-    const expectedResultPath = path.posix.join(specRelative, TEST_EXECUTE_RESULT_FILE);
-    const expectedRawOutputPath = path.posix.join(specRelative, RAW_OUTPUT_RELATIVE);
-    if (result.raw_output_path !== expectedRawOutputPath) {
-      throw new Error(
-        `${TEST_EXECUTE_RESULT_FILE} raw_output_path must be ${expectedRawOutputPath}`,
-      );
-    }
-    if (review.result_file_path !== expectedResultPath) {
-      throw new Error(
-        `${TEST_RESULT_REVIEW_FILE} result_file_path must be ${expectedResultPath}`,
-      );
-    }
-    if (review.raw_output_path !== expectedRawOutputPath) {
-      throw new Error(
-        `${TEST_RESULT_REVIEW_FILE} raw_output_path must be ${expectedRawOutputPath}`,
-      );
-    }
-    this.resultPath = expectedResultPath;
-    this.rawOutputPath = expectedRawOutputPath;
-    Object.freeze(this);
-  }
-}
-
-export class IntegrationArtifactTrustAssessment {
-  constructor({ root, specDir, contract, result, review }) {
-    if (!(contract instanceof GateArtifactTrustContract)) {
-      throw new Error("integration artifact trust contract is required");
-    }
-    this.ok = true;
-    this.contract = contract;
-    this.fingerprintAuthority = new IntegrationArtifactFingerprintAuthority({
-      result,
-      review,
-    });
-    this.linkAuthority = new IntegrationArtifactLinkAuthority({
-      root,
-      specDir,
-      result,
-      review,
-    });
-    Object.freeze(this);
-  }
-
-  evaluateOutcome() {
-    try {
-      assertIntegrationTestOutcome({
-        result: this.fingerprintAuthority.result,
-        review: this.fingerprintAuthority.review,
-      });
-      return new GateArtifactTrustSuccess({ contract: this.contract });
-    } catch (error) {
-      return new GateArtifactTrustFailure(error.message, { contract: this.contract });
-    }
-  }
-}
-
-export function buildGateArtifactTrustContract({ step, phase } = {}) {
-  const requiredTrustInputs = step === "impl-gate" && phase === "integration"
-    ? INTEGRATION_TRUST_INPUTS
-    : [];
-  return new GateArtifactTrustContract({ step, phase, requiredTrustInputs });
 }
 
 export function readJsonStrict(filePath) {
@@ -804,45 +394,9 @@ function readBoundedJson(filePath, label) {
   }
 }
 
-function loadJsonArtifact(specDir, relPath) {
-  return { relPath, ...readBoundedJson(path.join(specDir, relPath), relPath) };
-}
-
 function readBoundedText(filePath, label, maxBytes) {
   assertFileSizeWithinLimit(filePath, label, maxBytes);
   return fs.readFileSync(filePath, "utf8");
-}
-
-function readBoundedRawOutput(rawPath) {
-  assertFileSizeWithinLimit(rawPath, RAW_OUTPUT_RELATIVE, MAX_RAW_OUTPUT_BYTES);
-
-  const fd = fs.openSync(rawPath, "r");
-  const buffer = Buffer.allocUnsafe(64 * 1024);
-  const decoder = new StringDecoder("utf8");
-  const chunks = [];
-  let lineCount = 1;
-  try {
-    while (true) {
-      const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, null);
-      if (bytesRead === 0) break;
-      const text = decoder.write(buffer.subarray(0, bytesRead));
-      if (text.length === 0) continue;
-      chunks.push(text);
-      for (let index = text.indexOf("\n"); index !== -1; index = text.indexOf("\n", index + 1)) {
-        lineCount += 1;
-        if (lineCount > MAX_RAW_OUTPUT_LINES) {
-          throw new Error(`${RAW_OUTPUT_RELATIVE} exceeds max line count ${MAX_RAW_OUTPUT_LINES}`);
-        }
-      }
-    }
-    const tail = decoder.end();
-    if (tail.length > 0) chunks.push(tail);
-  } finally {
-    fs.closeSync(fd);
-  }
-
-  const rawOutputText = chunks.join("");
-  return { rawOutputText, rawLines: rawOutputText.split(/\r?\n/) };
 }
 
 function resolveRepoRelativePathInside({ root, allowedBaseDir, relPath, label, mustExist = true }) {
@@ -965,9 +519,9 @@ function assertScenarioValidityEvidence(evidence, label) {
   assertRange(evidence.raw_output_lines, `${label}.raw_output_lines`);
 }
 
-function assertScenarioValidityTestFilePath(root, specDir, testFile) {
+function assertScenarioValidityTestFilePath(root, specDir, testFile, testDirectory = "tests") {
   const testPath = path.resolve(root, testFile);
-  const testDir = path.join(specDir, "tests");
+  const testDir = path.join(specDir, testDirectory);
   const relative = path.relative(testDir, testPath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(`test file must be under the resolved spec tests directory: ${testFile}`);
@@ -983,7 +537,16 @@ function assertScenarioValiditySummaryEntry(entry) {
   if (typeof entry.id !== "string" || entry.id.length === 0) throw new Error("summary[].id is required");
 }
 
-export function validateScenarioValidityResult(result, { root, specDir, requirements = [], rawText = "", rawLines = [], testFileSources = new Map() } = {}) {
+export function validateScenarioValidityResult(result, {
+  root,
+  specDir,
+  requirements = [],
+  rawText = "",
+  rawLines = [],
+  testFileSources = new Map(),
+  expectedRawOutputPath = null,
+  testDirectory = "tests",
+} = {}) {
   if (!result || typeof result !== "object") throw new Error("scenario-validity-result.json must be an object");
   if (typeof root !== "string" || root.length === 0) throw new Error("root is required");
   if (typeof specDir !== "string" || specDir.length === 0) throw new Error("specDir is required");
@@ -999,8 +562,9 @@ export function validateScenarioValidityResult(result, { root, specDir, requirem
   if (rawText.length > MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS) {
     throw new Error(`scenario-validity raw output exceeds ${MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS} characters`);
   }
-  if (result.raw_output_path !== scenarioValidityRawOutputPath(root, specDir)) {
-    throw new Error("raw_output_path must point to tests/.raw/scenario-validity.log");
+  const expectedRaw = expectedRawOutputPath ?? scenarioValidityRawOutputPath(root, specDir);
+  if (result.raw_output_path !== expectedRaw) {
+    throw new Error(`raw_output_path must point to ${expectedRaw}`);
   }
   if (typeof result.command !== "string" || result.command.length === 0) {
     throw new Error("command is required");
@@ -1046,7 +610,7 @@ export function validateScenarioValidityResult(result, { root, specDir, requirem
       throw new Error(`${entry.id}: raw_output_lines is outside raw output`);
     }
     if (SCENARIO_VALIDITY_CLASSIFICATIONS_REQUIRING_TEST_FILE.has(entry.classification)) {
-      const testPath = assertScenarioValidityTestFilePath(root, specDir, evidence.test_file);
+      const testPath = assertScenarioValidityTestFilePath(root, specDir, evidence.test_file, testDirectory);
       const source = testFileSources.get(evidence.test_file) || testFileSources.get(testPath);
       if (source && !source.includes(evidence.test_name)) {
         throw new Error(`${entry.id}: test name not found in ${evidence.test_file}: ${evidence.test_name}`);
@@ -1243,19 +807,6 @@ function validateFinalRegressionSkipKind(result) {
       changedFileFingerprintsMatched: true,
     })) {
       throw new Error("final-regression staleCheck must prove same-flow matched evidence");
-    }
-  } else if (result.skipKind === "risk_based_static_proof") {
-    for (const field of ["allowlistClassifications", "checkedSensitivePathClasses", "failClosedDecision", "upgradeEvidencePath", "testExecuteEvidencePath"]) {
-      if (!Object.hasOwn(result.proof, field)) throw new Error(`final-regression risk proof missing ${field}`);
-    }
-    if (!Array.isArray(result.proof.allowlistClassifications)) {
-      throw new Error("final-regression allowlistClassifications must be array");
-    }
-    if (!Array.isArray(result.proof.checkedSensitivePathClasses)) {
-      throw new Error("final-regression checkedSensitivePathClasses must be array");
-    }
-    if (JSON.stringify(result.proof.failClosedDecision) !== JSON.stringify({ eligible: true, fallbackReasons: [] })) {
-      throw new Error("final-regression risk proof failClosedDecision must be eligible");
     }
   } else {
     const discovery = result.proof.commandDiscovery;
@@ -1745,67 +1296,6 @@ export function validateTestResultReview(review) {
   return review;
 }
 
-export function loadValidatedTestArtifacts(specDir) {
-  const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
-  const reviewPath = path.join(specDir, TEST_RESULT_REVIEW_FILE);
-  if (!fs.existsSync(resultPath)) throw new Error(`${TEST_EXECUTE_RESULT_FILE} missing`);
-  if (!fs.existsSync(reviewPath)) throw new Error(`${TEST_RESULT_REVIEW_FILE} missing`);
-  const result = validateTestExecuteResultV2(readJsonStrict(resultPath));
-  const review = validateTestResultReview(readJsonStrict(reviewPath));
-  return { result, review, resultPath, reviewPath };
-}
-
-export function buildTestResultsFromArtifacts(specDir) {
-  const { result, review } = loadValidatedTestArtifacts(specDir);
-  const finalRegressionPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
-  const finalRegression = fs.existsSync(finalRegressionPath)
-    ? validateFinalRegressionResult(readJsonStrict(finalRegressionPath))
-    : null;
-  return {
-    testExecute: {
-      status: "done",
-      version: result.version,
-      rawOutputPath: result.raw_output_path,
-      summary: result.summary,
-      projectRegression: result.regression,
-    },
-    testResultReview: {
-      status: "done",
-      verdict: review.verdict,
-      checkedItems: review.checked_items,
-      invalidReason: review.invalid_reason,
-    },
-    ...(finalRegression
-      ? {
-          finalRegression: {
-            status: "done",
-            result: finalRegression.result,
-            failureKind: finalRegression.failureKind,
-            failureCategory: finalRegression.failureCategory || null,
-            failureNature: finalRegression.failureNature || null,
-            skipKind: finalRegression.skipKind || null,
-            rawOutputPath: finalRegression.rawOutputPath,
-            command: finalRegression.command,
-            process: finalRegression.process,
-            exitCode: finalRegression.process?.exitCode ?? null,
-            failureSummary: finalRegression.failureSummary || null,
-            currentDiffRelationship: finalRegression.currentDiffRelationship || null,
-            changedFiles: finalRegression.changedFiles || [],
-            changedFileFingerprints: finalRegression.changedFileFingerprints || [],
-            fixAttempts: finalRegression.fixAttempts ?? null,
-            selectedAction: finalRegression.selectedAction || null,
-            remainingRisk: finalRegression.remainingRisk || null,
-            retryable: finalRegression.retryable,
-            nextAction: finalRegression.nextAction,
-            nextRecommendedAction: finalRegression.nextRecommendedAction || null,
-            recordAndProceed: finalRegression.recordAndProceed || null,
-            humanSummary: finalRegression.humanSummary || null,
-          },
-        }
-      : {}),
-  };
-}
-
 function completionFailure(artifactName, issueCodes, artifact = null) {
   return new ArtifactCompletionMechanicalFailure({
     artifactName,
@@ -2016,312 +1506,4 @@ export async function completeTestResultReviewArtifactChange({ specDir, artifact
   return issueCodes.length
     ? completionFailure(TEST_RESULT_REVIEW_FILE, issueCodes, artifact)
     : completionSuccess(TEST_RESULT_REVIEW_FILE, artifact);
-}
-
-function assertIntegrationTestOutcome({ result, review }) {
-  if (review.verdict !== "pass") {
-    const reason = review?.invalid_reason || "verdict is not 'pass'";
-    throw new Error(`test-result-review verdict='${review?.verdict}' (${reason}); test artifacts cannot be trusted`);
-  }
-
-  const failedSummary = result.summary.filter((entry) => entry.result === "fail");
-  if (failedSummary.length > 0) {
-    throw new Error(`spec-local requirement tests failed: ${failedSummary.map((entry) => entry.id).join(", ")}`);
-  }
-
-  const regression = result.regression;
-  if (regression.required && regression.result !== "pass") {
-    throw new Error(`project regression result='${regression.result}', expected 'pass'`);
-  }
-}
-
-function assertIntegrationRegressionAuthority({ root, state, specDir, config = {}, artifacts = null }) {
-  const { result, review } = artifacts || loadValidatedTestArtifacts(specDir);
-  const regression = result.regression;
-  if (regression.required) {
-    const savedChangedFiles = RegressionFileSnapshotList.fromJSON(
-      regression.changed_files,
-      "regression.changed_files",
-    );
-    const savedTriggerFiles = RegressionFileSnapshotList.fromJSON(
-      regression.trigger_relevant_changed_files,
-      "regression.trigger_relevant_changed_files",
-    );
-    const analysisPath = path.join(managedOutputDir(root), "analysis.json");
-    const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
-    const changedFiles = listRegressionChangedFiles({ root, state });
-    const current = classifyRegression({ root, state, analysis, config, changedFiles });
-    const currentChangedFiles = RegressionFileSnapshotList.fromChangedFiles(
-      root,
-      current.changedFiles,
-    );
-    const currentTriggerFiles = RegressionFileSnapshotList.fromChangedFiles(
-      root,
-      current.triggerRelevantChangedFiles,
-    );
-    if (!savedChangedFiles.equals(currentChangedFiles)) {
-      throw new Error("project regression changed_files snapshot is stale; rerun test-execute");
-    }
-    if (!savedTriggerFiles.equals(currentTriggerFiles)) {
-      throw new Error("project regression trigger_relevant_changed_files snapshot is stale; rerun test-execute");
-    }
-  }
-
-  return { result, review };
-}
-
-export function assertIntegrationRegressionEvidence(options) {
-  const artifacts = assertIntegrationRegressionAuthority(options);
-  assertIntegrationTestOutcome(artifacts);
-  return artifacts;
-}
-
-function nonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, (char) => `\\${char}`);
-}
-
-function configuredPlaceholderSentinels(config = {}) {
-  const configured = config?.flow?.placeholderSentinels || config?.placeholderSentinels;
-  if (!Array.isArray(configured) || configured.length === 0) return DEFAULT_PLACEHOLDER_SENTINELS;
-  return configured.filter(nonEmptyString);
-}
-
-function placeholderSentinelPatterns(config = {}) {
-  return configuredPlaceholderSentinels(config).map((sentinel) => new RegExp(escapeRegExp(sentinel), "i"));
-}
-
-function createSentinelScanBudget() {
-  return { remaining: SENTINEL_TEXT_SCAN_CHAR_LIMIT };
-}
-
-function hasPlaceholderSentinel(value, budget, patterns) {
-  if (typeof value !== "string") return false;
-  if (budget.remaining <= 0) return false;
-  const scanned = value.slice(0, budget.remaining);
-  budget.remaining -= scanned.length;
-  return patterns.some((pattern) => pattern.test(scanned));
-}
-
-function assertPlaceholderPermission(specDir, artifactPath, phase) {
-  const permissionPath = path.join(specDir, PLACEHOLDER_PERMISSION_FILE);
-  if (!fs.existsSync(permissionPath)) {
-    throw new Error(`placeholder permission missing for ${artifactPath}`);
-  }
-  let permission;
-  try {
-    permission = readBoundedJson(permissionPath, PLACEHOLDER_PERMISSION_FILE).value;
-  } catch (err) {
-    throw new Error(`placeholder permission invalid: ${err.message} for ${artifactPath}`);
-  }
-
-  if (permission?.version !== 1) throw new Error("placeholder permission version must be 1");
-  if (permission.phase !== phase) throw new Error(`placeholder permission phase must be ${phase}`);
-  if (permission.approvedByUser !== true) {
-    throw new Error("placeholder permission approvedByUser must be true");
-  }
-  if (!Array.isArray(permission.artifactPaths)) {
-    throw new Error("placeholder permission artifactPaths[] is required");
-  }
-  assertMaxItems("placeholder permission artifactPaths[]", permission.artifactPaths, MAX_PLACEHOLDER_PERMISSION_PATHS);
-  if (!permission.artifactPaths.includes(artifactPath)) {
-    throw new Error(`placeholder permission must include ${artifactPath}`);
-  }
-  for (const field of ["permissionText", "reason", "createdAt"]) {
-    if (!nonEmptyString(permission[field])) throw new Error(`placeholder ${field} is required`);
-  }
-}
-
-function enforcePlaceholderPermissionArtifactForHit(specDir, phase, hit) {
-  if (!hit) return null;
-  try {
-    // A detected placeholder is tolerated only when the spec-local permission
-    // artifact explicitly covers the same artifact path for integration gate.
-    assertPlaceholderPermission(specDir, hit.artifactPath, phase);
-    return null;
-  } catch (err) {
-    return new GateArtifactTrustFailure(`${hit.reason}; ${err.message}`);
-  }
-}
-
-function validateFileMap(fileMap, { root, requirements }) {
-  if (!fileMap || typeof fileMap !== "object" || Array.isArray(fileMap)) {
-    throw new Error("file-map.json must be an object");
-  }
-  assertMaxItems("requirements[]", requirements, MAX_FILE_MAP_REQUIREMENTS);
-  const entries = Object.keys(fileMap);
-  assertMaxItems("file-map.json requirement entries", entries, MAX_FILE_MAP_REQUIREMENTS);
-  const expected = requirements.filter((r) => r.testable !== false).map((r) => r.id);
-  const validIds = new Set(expected);
-  for (const id of entries) {
-    if (!validIds.has(id)) throw new Error(`file-map.json contains unknown requirement id: ${id}`);
-    if (!Array.isArray(fileMap[id]) || fileMap[id].length === 0) {
-      throw new Error(`file-map.json entry missing for ${id}`);
-    }
-    if (fileMap[id].length > MAX_FILE_MAP_PATHS_PER_REQUIREMENT) {
-      throw new Error(`file-map.json entry for ${id} exceeds max path count ${MAX_FILE_MAP_PATHS_PER_REQUIREMENT}`);
-    }
-    for (const filePath of fileMap[id]) {
-      if (typeof filePath !== "string" || filePath.trim().length === 0) {
-        throw new Error(`file-map.json entry for ${id} must contain non-empty paths`);
-      }
-      resolveRepoRelativePathInside({
-        root,
-        allowedBaseDir: root,
-        relPath: filePath,
-        label: `file-map.json entry for ${id}`,
-      });
-    }
-  }
-  const missing = expected.filter((id) => !Array.isArray(fileMap[id]) || fileMap[id].length === 0);
-  if (missing.length > 0) throw new Error(`file-map.json missing requirement entries: ${missing.join(",")}`);
-}
-
-function scanPlaceholderHashes(jsonArtifacts) {
-  for (const artifact of jsonArtifacts) {
-    const hash = crypto.createHash("sha256").update(artifact.text).digest("hex");
-    if (PLACEHOLDER_JSON_HASHES.has(hash)) {
-      return { artifactPath: artifact.relPath, reason: `${artifact.relPath} matches documented placeholder fixture hash` };
-    }
-  }
-  return null;
-}
-
-function findPlaceholderFieldHit(source, fields, artifactPath, reasonPrefix, budget, patterns) {
-  for (const field of fields) {
-    if (hasPlaceholderSentinel(source[field], budget, patterns)) {
-      return { artifactPath, reason: `${reasonPrefix}.${field}` };
-    }
-  }
-  return null;
-}
-
-function scanPlaceholderSentinels(result, review, config = {}) {
-  const patterns = placeholderSentinelPatterns(config);
-  const testExecuteBudget = createSentinelScanBudget();
-  for (const entry of result.summary.slice(0, SUMMARY_SENTINEL_SCAN_LIMIT)) {
-    const hit = findPlaceholderFieldHit(
-      entry.evidence || {},
-      ["command", "test_name", "test_file"],
-      TEST_EXECUTE_RESULT_FILE,
-      "placeholder sentinel found in test-execute-result.json summary[].evidence",
-      testExecuteBudget,
-      patterns
-    );
-    if (hit) return hit;
-  }
-
-  if (result.regression) {
-    const hit = findPlaceholderFieldHit(
-      result.regression,
-      ["command", "root_test_command"],
-      TEST_EXECUTE_RESULT_FILE,
-      "placeholder sentinel found in test-execute-result.json regression",
-      testExecuteBudget,
-      patterns
-    );
-    if (hit) return hit;
-  }
-
-  const reviewBudget = createSentinelScanBudget();
-  for (const item of review.checked_items.slice(0, REVIEW_SENTINEL_SCAN_LIMIT)) {
-    if (hasPlaceholderSentinel(item?.detail, reviewBudget, patterns)) {
-      return {
-        artifactPath: TEST_RESULT_REVIEW_FILE,
-        reason: "placeholder sentinel found in test-result-review.json checked_items[].detail",
-      };
-    }
-  }
-
-  return null;
-}
-
-function validateRequiredTrustInputs(specDir, requiredTrustInputs) {
-  for (const relPath of requiredTrustInputs) {
-    const artifactPath = path.join(specDir, relPath);
-    if (!fs.existsSync(artifactPath)) return new GateArtifactTrustFailure(`${relPath} missing`);
-  }
-  return new GateArtifactTrustSuccess();
-}
-
-export function validateIntegrationArtifactTrust({
-  root,
-  executionRoot = root,
-  specDir,
-  phase = "integration",
-  specPath = null,
-  state = {},
-  baseBranch = state?.baseBranch ?? null,
-  currentFingerprint = null,
-  target = null,
-  config = {},
-}) {
-  const contract = buildGateArtifactTrustContract({ step: "impl-gate", phase });
-  if (contract.requiredTrustInputs.length === 0) return new GateArtifactTrustSuccess({ contract });
-
-  try {
-    const upgradeEvidence = validateUpgradeEvidenceForGate({
-      root: executionRoot,
-      specDir,
-      baseBranch,
-      currentFingerprint,
-      target,
-    });
-    if (!upgradeEvidence.ok) return new GateArtifactTrustFailure(upgradeEvidence.reason);
-
-    const requiredInputsResult = validateRequiredTrustInputs(specDir, contract.requiredTrustInputs);
-    if (!requiredInputsResult.ok) return requiredInputsResult;
-
-    const specJsonPath = specPath ? path.resolve(root, specPath) : path.join(specDir, "spec.json");
-    const spec = readBoundedJson(specJsonPath, path.relative(root, specJsonPath)).value;
-    const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
-    const rawPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
-    const hasRawOutput = fs.existsSync(rawPath);
-    const { rawOutputText, rawLines } = hasRawOutput
-      ? readBoundedRawOutput(rawPath)
-      : { rawOutputText: "", rawLines: [] };
-
-    const resultArtifact = loadJsonArtifact(specDir, TEST_EXECUTE_RESULT_FILE);
-    const reviewArtifact = loadJsonArtifact(specDir, TEST_RESULT_REVIEW_FILE);
-    const fileMapArtifact = loadJsonArtifact(specDir, FILE_MAP_RELATIVE);
-
-    const result = validateTestExecuteResultV2(resultArtifact.value);
-    const review = validateTestResultReview(reviewArtifact.value);
-    validateFileMap(fileMapArtifact.value, { root: executionRoot, requirements });
-
-    const sentinelPermission = enforcePlaceholderPermissionArtifactForHit(specDir, phase, scanPlaceholderSentinels(result, review, config));
-    if (sentinelPermission) return sentinelPermission;
-
-    validateTestExecuteResultEvidence(result, {
-      root,
-      rawOutputText,
-      rawLines,
-      requirements,
-      specDir,
-      validateRawOutputRange: hasRawOutput,
-    });
-    assertIntegrationRegressionAuthority({
-      root: executionRoot,
-      state,
-      specDir,
-      config,
-      artifacts: { result, review },
-    });
-
-    const hashPermission = enforcePlaceholderPermissionArtifactForHit(specDir, phase, scanPlaceholderHashes([resultArtifact, reviewArtifact, fileMapArtifact]));
-    if (hashPermission) return hashPermission;
-
-    return new IntegrationArtifactTrustAssessment({
-      root,
-      specDir,
-      contract,
-      result,
-      review,
-    });
-  } catch (err) {
-    return new GateArtifactTrustFailure(err.message);
-  }
 }

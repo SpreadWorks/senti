@@ -302,6 +302,7 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
   for (let attempt = 0; attempt < attempts; attempt++) {
     const result = await invokeAgent(agent, prompt, [], systemPrompt, {
       retryCount: batchOptions.retryCount || 0,
+      executionWorkDir: batchOptions.srcRoot,
       jsonSchema,
       validateResponseForCache: (response) => isValidBatchJsonResponse(response, textFills),
     });
@@ -441,7 +442,10 @@ async function processTemplate(text, analysis, fileName, agent, dryRun, preamble
   const maxConcurrency = concurrency || DEFAULT_CONCURRENCY;
   const results = await mapWithConcurrency(tasks, maxConcurrency, async ({ directive: d, prompt }) => {
     logger.verbose(`Processing ${fileName}:${d.line + 1}: ${d.prompt.slice(0, 60)}...`);
-    const generated = await invokeAgent(agent, prompt, preamblePatterns, fileSystemPrompt, { retryCount: retryCount || 0 });
+    const generated = await invokeAgent(agent, prompt, preamblePatterns, fileSystemPrompt, {
+      retryCount: retryCount || 0,
+      executionWorkDir: srcRoot,
+    });
     if (typeof generated !== "string" || generated.trim() === "") {
       throw new Error(`empty agent response for ${fileName}:${d.line + 1}`);
     }

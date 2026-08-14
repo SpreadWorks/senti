@@ -68,6 +68,40 @@ describe("processTemplateFileBatch", () => {
     assert.ok(typeof result.filled === "number", "result.filled should be a number");
   });
 
+  it("binds the agent to the current source root", async () => {
+    tmp = createTmpDir();
+    const calls = [];
+    const agent = {
+      async call(_prompt, options) {
+        calls.push(options);
+        return JSON.stringify({ d0: "Grounded content." });
+      },
+    };
+    const templateContent = [
+      "# Test Document",
+      '<!-- {{text({prompt: "describe the project"})}} -->',
+      "<!-- {{/text}} -->",
+      "",
+    ].join("\n");
+
+    await processTemplateFileBatch(
+      templateContent,
+      { analyzedAt: "2026-08-14T00:00:00.000Z" },
+      "test.md",
+      agent,
+      false,
+      [],
+      "",
+      undefined,
+      undefined,
+      "en",
+      tmp,
+    );
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].executionWorkDir, tmp);
+  });
+
   it("replaces existing content between {{text}} tags without duplicating opening tag", async () => {
     tmp = createTmpDir();
 

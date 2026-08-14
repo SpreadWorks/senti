@@ -3,11 +3,8 @@
  *
  * Set the user request field.
  *
- * Dual-mode operation:
- *   - Active flow (flow.json present): mutate flow.json.
- *   - Preparing flow (.active-flow.<runId>): mutate the preparing state so
- *     prelude refinements can feed `flow run auto-check --run-id <id>` before
- *     `flow prepare` creates flow.json.
+ * The request is mutable only while a Flow is preparing.  Once the canonical
+ * Version has been created it is an immutable identity/input fact.
  *
  * ctx.text  — request text
  * ctx.runId — preparing-flow target (required in preparing mode)
@@ -15,7 +12,6 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 
 export default class SetRequestCommand extends FlowCommand {
@@ -47,8 +43,11 @@ export default class SetRequestCommand extends FlowCommand {
       return { request: text, runId: resolved.runId };
     }
 
-    flowManager.setRequest(text, resolveCommandRouteOptions(ctx));
-
-    return { request: text };
+    return Envelope.fail(
+      "set",
+      "request",
+      "REQUEST_IMMUTABLE",
+      "the active Flow request is immutable; use a preparing Flow before creation",
+    );
   }
 }

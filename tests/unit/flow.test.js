@@ -1,14 +1,14 @@
 import { describe, it, afterEach } from "node:test";
 import {
   makeFlowManager,
-  makeFlowState,
   makeLifecycleStepTransition,
   makeNormalStepTransition,
-  moveFlowToStep,
+  CanonicalFlowFixture,
+  FlowAtStepFixture,
 } from "../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../src/lib/flow-helpers.js";
@@ -92,67 +92,56 @@ describe("active-flow pointer", () => {
 
   it(".active-flow is stored as valid JSON", () => {
     tmp = createTmpDir();
-    makeFlowManager(tmp).addActiveFlow("086-migrate", "local");
+    makeFlowManager(tmp).addActiveFlow("086-migrate", "direct");
     const raw = fs.readFileSync(join(tmp, ".sennel", ".active-flow"), "utf8");
     const parsed = JSON.parse(raw);
     assert.ok(Array.isArray(parsed));
     assert.equal(parsed[0].specId, "086-migrate");
-    assert.equal(parsed[0].mode, "local");
+    assert.equal(parsed[0].mode, "direct");
   });
 });
 
-// ── flow.json storage in specs/NNN/ ─────────────────────────────────────────
+// ── flow.json storage in the canonical Version root ─────────────────────────
 
-describe("flow-state (specs-based storage)", () => {
+describe("flow-state (canonical Version-1 storage)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("saveFlowState writes to specs/NNN/flow.json", () => {
-    tmp = createTmpDir();
-    const specId = "001-test";
-    const state = makeFlowState({
+  function createCanonicalFixture(specId = "001-test") {
+    const manager = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({
+      flowManager: manager,
       specId,
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    makeFlowManager(tmp).create(state);
-    assert.ok(fs.existsSync(join(tmp, "specs", specId, "flow.json")));
+      runId: "flow-state-storage",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: null },
+    }).create();
+    return { fixture, manager, location: manager.specLocation(specId) };
+  }
+
+  it("fresh creation writes flow.json only to its resolved Version authority", () => {
+    tmp = createTmpDir();
+    const { fixture, manager, location } = createCanonicalFixture();
+    assert.ok(fs.existsSync(manager.pathFor(fixture.state().specId)));
+    assert.equal(manager.pathFor(fixture.state().specId), location.flowStateFile);
+    assert.equal(fs.existsSync(join(dirname(location.directory), "flow.json")), false);
   });
 
-  it("saveFlowState does NOT write to .sennel/flow.json", () => {
+  it("fresh creation does not write an unmanaged .sennel flow state", () => {
     tmp = createTmpDir();
-    const state = makeFlowState({
-      specId: "001-test",
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    makeFlowManager(tmp).create(state);
+    createCanonicalFixture();
     assert.ok(!fs.existsSync(join(tmp, ".sennel", "flow.json")));
   });
 
-  it("loadFlowState reads from specs/NNN/flow.json via .active-flow", () => {
+  it("does not read a retired root flow.json when resolving the active Flow", () => {
     tmp = createTmpDir();
-    const specId = "001-test";
-    const state = makeFlowState({
-      specId,
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    // Manually set up: write flow.json + .active-flow
-    const flowDir = join(tmp, "specs", specId);
-    fs.mkdirSync(flowDir, { recursive: true });
-    fs.writeFileSync(join(flowDir, "flow.json"), JSON.stringify(state, null, 2) + "\n");
-    makeFlowManager(tmp).addActiveFlow(specId, "local");
+    const { fixture, manager, location } = createCanonicalFixture();
+    fixture.registerActive();
+    fs.writeFileSync(join(dirname(location.directory), "flow.json"), "retired authority\n");
 
-    const loaded = makeFlowManager(tmp).load();
-    // Reads preserve the current-schema state without implicit migration.
-    assert.equal(loaded.specId, state.specId);
-    assert.equal(loaded.baseBranch, state.baseBranch);
-    assert.equal(loaded.featureBranch, state.featureBranch);
-    assert.equal(loaded.runId, state.runId);
+    const loaded = manager.load();
+    assert.equal(loaded.specId, fixture.state().specId);
+    assert.equal(loaded.runId, fixture.state().runId);
+    assert.equal(manager.pathFor(loaded.specId), location.flowStateFile);
   });
 
   it("loadFlowState returns null when no .active-flow exists", () => {
@@ -160,25 +149,18 @@ describe("flow-state (specs-based storage)", () => {
     assert.equal(makeFlowManager(tmp).load(), null);
   });
 
-  it("clearFlowState removes entry from .active-flow but keeps flow.json", () => {
+  it("clearFlowState removes the active entry but keeps the canonical flow.json", () => {
     tmp = createTmpDir();
-    const specId = "001-test";
-    const state = makeFlowState({
-      specId: specId,
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow(specId, "local");
+    const { fixture, manager, location } = createCanonicalFixture();
+    const specId = fixture.state().specId;
+    fixture.registerActive();
 
-    makeFlowManager(tmp).clearFlowState(specId);
+    manager.clearFlowState(specId);
 
     // .active-flow entry should be removed
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.equal(flows.length, 0);
-    // flow.json should still exist
-    assert.ok(fs.existsSync(join(tmp, "specs", specId, "flow.json")));
+    assert.ok(fs.existsSync(location.flowStateFile));
   });
 });
 
@@ -188,18 +170,15 @@ describe("flow-state steps and requirements", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  function setupFlow(dir, configure = () => {}) {
-    const specId = "001-test";
-    const state = makeFlowState({
-      specId: specId,
+  function atStep(dir, targetStep) {
+    const flowManager = makeFlowManager(dir);
+    return new FlowAtStepFixture({
+      flowManager,
+      specId: "001-test",
       runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    configure(state);
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return specId;
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+      targetStep,
+    }).create();
   }
 
   it("FLOW_STEPS does not contain 'archive'", () => {
@@ -219,7 +198,8 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus updates the correct step", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp);
+    const fixture = atStep(tmp, "spec-gate");
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
     fm.updateStepStatus(
       makeLifecycleStepTransition(fm.load(specId), "spec-gate", "done"),
@@ -230,66 +210,75 @@ describe("flow-state steps and requirements", () => {
     assert.equal(gate.status, "done");
   });
 
-  // ── spec 219 / REQ-1, REQ-2: auto-promote next pending on done transition ──
+  // ── canonical confirmation / explicit claim contract ───────────────────────
 
-  it("updateStepStatus auto-promotes first pending when transitioning to done (REQ-1)", () => {
+  it("leaves the next definition leaf pending until an explicit claim", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp);
+    const fixture = atStep(tmp, "branch");
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
     fm.updateStepStatus(makeNormalStepTransition(fm.load(specId), "branch"), { specId });
     const loaded = fm.load();
     const branch = findStepById(loaded.steps, "branch");
     assert.equal(branch.status, "done");
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
-    assert.equal(prepareSpec.status, "in_progress", "first pending step should be promoted to in_progress");
+    assert.equal(prepareSpec.status, "pending", "confirmation must not invent the next Attempt");
+    fm.updateStepStatus({ stepId: "prepare-spec", requestedStatus: "in_progress" }, { specId });
+    assert.equal(findStepById(fm.load().steps, "prepare-spec").status, "in_progress");
   });
 
-  it("updateStepStatus skips over already-done/skipped steps when promoting (REQ-1)", () => {
+  it("rejects a forbidden skipped transition without changing the active Attempt", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp);
+    const fixture = atStep(tmp, "prepare-spec");
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
-    // Manually set prepare-spec to skipped so the next promotion target is draft.
-    fm.updateStepStatus(
-      makeLifecycleStepTransition(fm.load(specId), "prepare-spec", "skipped"),
-      { specId },
+    assert.throws(
+      () => fm.updateStepStatus(
+        makeLifecycleStepTransition(fm.load(specId), "prepare-spec", "skipped"),
+        { specId },
+      ),
+      /forbids transition.*skipped/i,
     );
-    fm.updateStepStatus(makeNormalStepTransition(fm.load(specId), "branch"), { specId });
     const loaded = fm.load();
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
-    assert.equal(prepareSpec.status, "skipped", "skipped stays skipped");
+    assert.equal(prepareSpec.status, "in_progress", "rejected transition keeps the current Attempt authoritative");
     const draft = findStepById(loaded.steps, "draft");
-    assert.equal(draft.status, "in_progress", "first pending (draft) is promoted, skipped is bypassed");
+    assert.equal(draft.status, "pending", "no downstream Attempt is claimed");
   });
 
   it("updateStepStatus does NOT promote when another step is already in_progress (REQ-2)", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp, (state) => {
-      moveFlowToStep(state, "spec", { completePrevious: false });
-    });
+    const fixture = atStep(tmp, "spec");
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
-    // Keep `spec` in_progress while marking `branch` done.
-    fm.updateStepStatus(
-      makeLifecycleStepTransition(fm.load(specId), "branch", "done"),
-      { specId },
+    const before = structuredClone(fm.load(specId));
+    assert.throws(
+      () => fm.updateStepStatus(
+        makeLifecycleStepTransition(fm.load(specId), "branch", "done"),
+        { specId },
+      ),
+      /definition-authorized|current Attempt|transition/i,
     );
     const loaded = fm.load();
+    assert.deepEqual(loaded, before, "an invalid non-current transition does not alter canonical state");
     const spec = findStepById(loaded.steps, "spec");
     assert.equal(spec.status, "in_progress", "pre-existing in_progress step is not touched");
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
-    assert.equal(prepareSpec.status, "pending", "no new promotion happens when in_progress already exists");
+    assert.equal(prepareSpec.status, "done", "the fixture reached spec through typed predecessor confirmation");
     const draft = findStepById(loaded.steps, "draft");
-    assert.equal(draft.status, "pending", "no downstream promotion happens either");
+    assert.equal(draft.status, "done", "draft is a typed predecessor of the active spec Attempt");
+    const specGate = findStepById(loaded.steps, "spec-gate");
+    assert.equal(specGate.status, "pending", "the next leaf remains pending until explicitly claimed");
   });
 
-  it("updateStepStatus does NOT promote on non-done transitions (REQ-2)", () => {
+  it("rejects an already-active claim without advancing the next pending leaf", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp, (state) => {
-      for (const step of flattenSteps(state.steps)) step.status = "pending";
-    });
+    const fixture = atStep(tmp, "branch");
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
-    fm.updateStepStatus(
-      makeLifecycleStepTransition(fm.load(specId), "branch", "in_progress"),
-      { specId },
+    assert.throws(
+      () => fm.updateStepStatus({ stepId: "branch", requestedStatus: "in_progress" }, { specId }),
+      /cannot replace an active Attempt|already active|definition-authorized/i,
     );
     const loaded = fm.load();
     const prepareSpec = findStepById(loaded.steps, "prepare-spec");
@@ -298,12 +287,17 @@ describe("flow-state steps and requirements", () => {
 
   it("updateStepStatus does nothing when no pending steps remain (REQ-1 edge)", () => {
     tmp = createTmpDir();
-    const specId = setupFlow(tmp);
+    const flowManager = makeFlowManager(tmp);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-test",
+      runId: "run-test",
+      execution: { mode: "direct" },
+    }).create().registerActive();
+    for (const step of fixture.leaves()) fixture.settle(step.id);
+    const specId = fixture.state().specId;
     const fm = makeFlowManager(tmp);
-    // Mark every leaf done.
-    fm.mutate((state) => {
-      for (const step of flattenSteps(state.steps)) step.status = "done";
-    });
+    assert.equal(typeof fm.mutate, "undefined");
     const flat = flattenSteps(fm.load().steps);
     // A terminal retry is rejected and cannot promote a nonexistent pending step.
     const lastStep = flat[flat.length - 1];
@@ -313,42 +307,5 @@ describe("flow-state steps and requirements", () => {
     );
     const loaded = fm.load();
     for (const s of flattenSteps(loaded.steps)) assert.equal(s.status, "done");
-  });
-});
-
-// ── setIssue ─────────────────────────────────────────────────────────────────
-
-describe("setIssue", () => {
-  let tmp;
-  afterEach(() => tmp && removeTmpDir(tmp));
-
-  function setupFlow(dir) {
-    const specId = "001-test";
-    const state = makeFlowState({
-      specId: specId,
-      runId: "run-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-    });
-    makeFlowManager(dir).create(state);
-    makeFlowManager(dir).addActiveFlow(specId, "local");
-    return specId;
-  }
-
-  it("sets issue number in flow.json", () => {
-    tmp = createTmpDir();
-    setupFlow(tmp);
-    makeFlowManager(tmp).setIssue(17);
-    const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.issue, 17);
-  });
-
-  it("overwrites existing issue number", () => {
-    tmp = createTmpDir();
-    setupFlow(tmp);
-    makeFlowManager(tmp).setIssue(10);
-    makeFlowManager(tmp).setIssue(25);
-    const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.issue, 25);
   });
 });

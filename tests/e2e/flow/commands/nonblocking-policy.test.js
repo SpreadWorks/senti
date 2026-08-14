@@ -1,21 +1,15 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 
+import { FlowManager } from "../../../../src/lib/flow-manager.js";
+import { FlowArtifactAttemptHistory, FlowArtifactAttemptRecord } from "../../../../src/lib/flow-artifact-contract.js";
+import { CanonicalFlowFixture } from "../../../helpers/flow-setup.js";
+import { recordEligibleNonblockingAttempt } from "../../../../src/flow/lib/nonblocking.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
-import {
-  makeDefaultTask,
-  makeFlowManager,
-  makeFlowState,
-  moveFlowToStep,
-} from "../../../helpers/flow-setup.js";
-import { findStepById } from "../../../../src/flow/lib/step-tree.js";
-import { buildRepairFingerprint } from "../../../../src/flow/lib/impl-repair-artifacts.js";
-import { resolveCurrentReviewTreeSha } from "../../../../src/flow/lib/review-evidence-store.js";
 
 const SENNEL = path.resolve("src/sennel.js");
 
@@ -25,329 +19,142 @@ function invoke(root, args) {
     encoding: "utf8",
     env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
   });
-  let envelope;
-  try {
-    envelope = JSON.parse(result.stdout);
-  } catch {
-    assert.fail(`CLI did not return an envelope.\nstdout: ${result.stdout}\nstderr: ${result.stderr}`);
-  }
-  return { ...result, envelope };
+  return { ...result, envelope: JSON.parse(result.stdout) };
 }
 
-function guards(state) {
-  return [
-    "--expect-run-id", state.runId,
-    "--expect-no-issue",
-    "--expect-spec", state.specId,
-  ];
+function history(nodeId, logicalKey, payload, attempt = 1, prefix = []) {
+  return Buffer.from(`${JSON.stringify(new FlowArtifactAttemptHistory([
+    ...prefix,
+    new FlowArtifactAttemptRecord({ attempt, payload: {
+      nodeId, outcome: "completed", result: { result: "block" }, artifact: { logicalKey, payload },
+    } }),
+  ]).toJSON(), null, 2)}\n`, "utf8");
 }
 
-test("nonblocking policy keeps normal Flow ownership", () => {
-  const root = createTmpDir("sennel-nonblocking-policy-e2e-");
+function canonicalCliScenario({ specId, runId, step, logicalKey, payload }) {
+  const root = createTmpDir("sennel-canonical-nonblocking-e2e-");
+  writeJson(root, ".sennel/config.json", {
+    lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" }, commands: { gh: "disable" },
+  });
+  initGitRepo(root);
+  commitAll(root, "initial canonical fixture");
+  const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+  const fixture = new CanonicalFlowFixture({ flowManager: manager, specId, runId })
+    .create().registerActive().activate(step);
+  manager.publishArtifacts({
+    specId: fixture.specId, nodeId: step,
+    artifactWrites: [{ logicalKey, mediaType: "application/json", bytes: history(step, logicalKey, payload) }],
+  });
+  return { root, manager, fixture, guards: ["--expect-run-id", runId, "--expect-no-issue", "--expect-spec", specId] };
+}
+
+test("nonblocking policy reads cataloged V1 evidence and persists no legacy state fields", () => {
+  const root = createTmpDir("sennel-canonical-nonblocking-e2e-");
   try {
-    const specId = "477-nonblocking-e2e";
-    const spec = `specs/${specId}/spec.json`;
-    const evidence = JSON.stringify({ verdict: "REJECTED" }, null, 2) + "\n";
     writeJson(root, ".sennel/config.json", {
-      lang: "en",
-      type: "base",
-      docs: { languages: ["en"], defaultLanguage: "en" },
-      commands: { gh: "disable" },
+      lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" }, commands: { gh: "disable" },
     });
-    writeJson(root, spec, { requirements: [] });
-    fs.writeFileSync(path.join(root, `specs/${specId}/impl-review.json`), evidence);
-
-    const state = moveFlowToStep(makeFlowState({
-      specId,
-      runId: "run-477-nonblocking-e2e",
-      baseBranch: "main",
-      featureBranch: "main",
-    }), "impl-review");
-    writeJson(root, `specs/${specId}/flow.json`, state);
-    makeFlowManager(root).addActiveFlow(specId, "local");
     initGitRepo(root);
-    commitAll(root, "initial flow fixture");
+    commitAll(root, "initial canonical fixture");
+    const manager = new FlowManager({ root, mainRoot: root, inWorktree: false });
+    const fixture = new CanonicalFlowFixture({ flowManager: manager, specId: "477-nonblocking-e2e", runId: "run-477" })
+      .create().registerActive().activate("impl-review");
+    manager.publishArtifacts({
+      specId: fixture.specId,
+      nodeId: "impl-review",
+      artifactWrites: [{ logicalKey: "impl.review", mediaType: "application/json", bytes: history("impl-review", "impl.review", {
+        version: 1, phase: "impl", verdict: "REJECTED", summary: "Cataloged rejected review.",
+        blockingFindings: [], nonBlockingImprovements: [], canonicalEvidence: { phase: "impl", disposition: "REJECTED", findings: [] },
+      }) }],
+    });
 
-    const policy = invoke(root, [
-      "set", "policy", "nonblocking",
-      "--reason", "The strict implementation review has reached a user decision.",
-      ...guards(state),
-    ]);
-    assert.equal(policy.status, 0, policy.stderr || policy.stdout);
-    assert.equal(policy.envelope.ok, true);
-    assert.equal(policy.envelope.data.enabled, true);
-
-    const next = invoke(root, ["get", "next-action", ...guards(state)]);
-    assert.equal(next.status, 0, next.stderr || next.stdout);
-    assert.deepEqual(next.envelope.data.nonblockingDecision.allowedActions, ["repair", "continue"]);
-    const digest = next.envelope.data.nonblockingDecision.evidenceDigest;
-    assert.equal(digest, crypto.createHash("sha256").update(evidence).digest("hex"));
-
+    const guards = ["--expect-run-id", "run-477", "--expect-no-issue", "--expect-spec", fixture.specId];
+    const activated = invoke(root, ["set", "policy", "nonblocking", "--reason", "Explicit acceptance disposition is required.", ...guards]);
+    assert.equal(activated.status, 0, activated.stderr);
+    assert.equal(activated.envelope.data.activatedStep, "impl-review");
+    const persisted = manager.canonicalState(fixture.specId).toJSON();
+    const activities = manager.activityLedger(fixture.specId);
+    assert.equal(persisted.policy.nonblocking.enabled, true);
+    assert.equal(Object.hasOwn(persisted, "nonblocking"), false);
+    assert.equal(Object.hasOwn(persisted, "stepAttempts"), false);
+    assert.equal(activities.at(-1).transition.nonblocking.kind, "observation");
+    const decisionPayload = {
+      version: 1, phase: "impl", verdict: "REJECTED", summary: "Cataloged rejected review.",
+      blockingFindings: [], nonBlockingImprovements: [], canonicalEvidence: { phase: "impl", disposition: "REJECTED", findings: [] },
+    };
     const continued = invoke(root, [
-      "set", "nonblocking-decision",
-      "--choice", "continue",
+      "set", "nonblocking-decision", "--choice", "continue",
       "--reason", "The requested behavior is complete despite the review finding.",
-      "--remaining-risk", "The rejected review artifact remains in the completion evidence.",
-      "--expect-evidence-digest", digest,
-      ...guards(state),
+      "--remaining-risk", "The rejected review remains in the acceptance evidence.",
+      "--expect-evidence-digest", crypto.createHash("sha256").update(`${JSON.stringify(decisionPayload, null, 2)}\n`).digest("hex"),
+      ...guards,
     ]);
-    assert.equal(continued.status, 0, continued.stderr || continued.stdout);
-    assert.equal(continued.envelope.data.action, "continue");
-
-    const persisted = JSON.parse(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"));
-    assert.equal(findStepById(persisted.steps, "impl-review").status, "done");
-    assert.equal(findStepById(persisted.steps, "impl-gate").status, "in_progress");
-    assert.equal(
-      persisted.stepAttempts.some((entry) => entry.outcome?.kind === "nonblocking-decision" && entry.outcome.action === "continue"),
-      true,
-    );
+    assert.equal(continued.status, 0, continued.stderr);
+    const after = manager.load(fixture.specId);
+    assert.equal(after.steps.flatMap((entry) => entry.children || [entry]).find((entry) => entry.id === "impl-review").status, "done");
+    assert.equal(after.steps.flatMap((entry) => entry.children || [entry]).find((entry) => entry.id === "impl-triage").status, "skipped");
+    assert.equal(Object.hasOwn(after, "stepAttempts"), false);
   } finally {
     removeTmpDir(root);
   }
 });
 
-test("nonblocking test-review continuation creates an acceptance disposition handoff", () => {
-  const root = createTmpDir("sennel-nonblocking-test-review-e2e-");
+test("CLI rejects a stale nonblocking digest while retaining the catalog observation", () => {
+  const scenario = canonicalCliScenario({
+    specId: "478-nonblocking-stale", runId: "run-478", step: "impl-review", logicalKey: "impl.review",
+    payload: { verdict: "REJECTED" },
+  });
   try {
-    const specId = "477-test-review-nonblocking-e2e";
-    const spec = `specs/${specId}/spec.json`;
-    const evidence = JSON.stringify({
-      verdict: "REJECTED",
-      blockingFindings: [{
-        findingId: "missing-test-behavior",
-        fingerprint: "a".repeat(64),
-        disposition: "must-fix",
-        rationale: "The test design omits a required acceptance behavior.",
-        category: "semantic",
-        title: "Missing acceptance behavior test",
-      }],
-    }, null, 2) + "\n";
-    writeJson(root, ".sennel/config.json", {
-      lang: "en",
-      type: "base",
-      docs: { languages: ["en"], defaultLanguage: "en" },
-      commands: { gh: "disable" },
-    });
-    writeJson(root, spec, { requirements: [] });
-    fs.writeFileSync(path.join(root, `specs/${specId}/test-review.json`), evidence);
-
-    const state = moveFlowToStep(makeFlowState({
-      specId,
-      runId: "run-477-test-review-nonblocking-e2e",
-      baseBranch: "main",
-      featureBranch: "main",
-    }), "test-review");
-    writeJson(root, `specs/${specId}/flow.json`, state);
-    makeFlowManager(root).addActiveFlow(specId, "local");
-    initGitRepo(root);
-    commitAll(root, "initial test-review flow fixture");
-
-    const policy = invoke(root, [
-      "set", "policy", "nonblocking",
-      "--reason", "The strict test review reached a bounded continuation decision.",
-      ...guards(state),
+    const activated = invoke(scenario.root, ["set", "policy", "nonblocking", "--reason", "Evidence needs a guarded decision.", ...scenario.guards]);
+    assert.equal(activated.status, 0, activated.stderr);
+    const stale = invoke(scenario.root, [
+      "set", "nonblocking-decision", "--choice", "continue", "--reason", "This must remain guarded.",
+      "--remaining-risk", "The evidence is durable.", "--expect-evidence-digest", "b".repeat(64), ...scenario.guards,
     ]);
-    assert.equal(policy.status, 0, policy.stderr || policy.stdout);
-    assert.equal(policy.envelope.data.activatedStep, "test-review");
-
-    const next = invoke(root, ["get", "next-action", ...guards(state)]);
-    assert.equal(next.status, 0, next.stderr || next.stdout);
-    assert.deepEqual(next.envelope.data.nonblockingDecision.allowedActions, ["repair", "continue"]);
-    const digest = next.envelope.data.nonblockingDecision.evidenceDigest;
-    assert.equal(digest, crypto.createHash("sha256").update(evidence).digest("hex"));
-
-    const continued = invoke(root, [
-      "set", "nonblocking-decision",
-      "--choice", "continue",
-      "--reason", "Implementation can proceed while acceptance retains the finding.",
-      "--remaining-risk", "Acceptance review must disposition the deferred test-review finding.",
-      "--expect-evidence-digest", digest,
-      ...guards(state),
-    ]);
-    assert.equal(continued.status, 0, continued.stderr || continued.stdout);
-    assert.equal(continued.envelope.data.sourceStep, "test-review");
-
-    const specDir = path.join(root, `specs/${specId}`);
-    const persisted = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
-    assert.equal(findStepById(persisted.steps, "test-review").status, "done");
-    assert.equal(findStepById(persisted.steps, "implement").status, "in_progress");
-    const deferred = JSON.parse(fs.readFileSync(path.join(specDir, "flow-findings.json"), "utf8"));
-    assert.deepEqual(deferred.entries.map((entry) => ({
-      sourceStep: entry.sourceStep,
-      sourceArtifact: entry.sourceArtifact,
-      sourceFindingId: entry.sourceFindingId,
-      finalDisposition: entry.finalDisposition,
-    })), [{
-      sourceStep: "test-review",
-      sourceArtifact: "test-review.json",
-      sourceFindingId: "missing-test-behavior",
-      finalDisposition: "still_open",
-    }]);
-  } finally {
-    removeTmpDir(root);
-  }
+    assert.notEqual(stale.status, 0);
+    assert.equal(stale.envelope.errors[0].code, "NONBLOCKING_STALE_EVIDENCE");
+    assert.equal(scenario.manager.activityLedger(scenario.fixture.specId).filter((activity) => activity.transition.nonblocking?.kind === "observation").length, 1);
+  } finally { removeTmpDir(scenario.root); }
 });
 
-test("strict semantic exhaustion completes its acceptance handoff without advisory activation", () => {
-  const root = createTmpDir("sennel-strict-review-exhaustion-e2e-");
+test("CLI target guards reject a mismatched canonical Flow before policy mutation", () => {
+  const scenario = canonicalCliScenario({
+    specId: "479-nonblocking-guard", runId: "run-479", step: "impl-review", logicalKey: "impl.review",
+    payload: { verdict: "REJECTED" },
+  });
   try {
-    const specId = "481-strict-review-exhaustion-e2e";
-    const spec = `specs/${specId}/spec.json`;
-    const finding = {
-      findingId: "missing-test-behavior",
-      fingerprint: "a".repeat(64),
-      disposition: "must-fix",
-      rationale: "The test design omits a required acceptance behavior.",
-      category: "semantic",
-      title: "Missing acceptance behavior test",
-    };
-    writeJson(root, ".sennel/config.json", {
-      lang: "en",
-      type: "base",
-      docs: { languages: ["en"], defaultLanguage: "en" },
-      commands: { gh: "disable" },
-    });
-    writeJson(root, spec, { requirements: [] });
-    writeJson(root, `specs/${specId}/test-review.json`, {
-      verdict: "REJECTED",
-      blockingFindings: [finding],
-    });
-    const state = moveFlowToStep(makeFlowState({
-      specId,
-      runId: "run-481-strict-review-exhaustion-e2e",
-      baseBranch: "main",
-      featureBranch: "main",
-      currentTaskId: "T-1",
-      tasks: [makeDefaultTask({ id: "T-1", status: "in_progress" })],
-    }), "test-review");
-    writeJson(root, `specs/${specId}/flow.json`, state);
-    makeFlowManager(root).addActiveFlow(specId, "local");
-    initGitRepo(root);
-    commitAll(root, "initial exhausted review fixture");
-
-    const treeSha = resolveCurrentReviewTreeSha(root, spec);
-    const targetStateDigest = buildRepairFingerprint({
-      root,
-      specPath: spec,
-      state,
-    }).hash;
-    state.reviewConvergence = {
-      version: 1,
-      records: [{
-        phase: "test",
-        taskId: null,
-        treeSha,
-        semanticAttempts: 5,
-        semanticMaxAttempts: 5,
-        toolingAttempts: 1,
-        toolingMaxAttempts: 1,
-        evidence: {
-          evidenceId: "b".repeat(64),
-          disposition: "REJECTED",
-        },
-        finalizedEvidenceAvailable: false,
-        handoffFindings: [{ findingId: finding.findingId }],
-        blocker: {
-          kind: "tooling_attempts_exhausted",
-          reason: "A later review invocation could not record another result.",
-        },
-        toolingOutcome: {
-          kind: "TOOLING_ERROR",
-          stage: "result_recording",
-          attempt: 2,
-          maxAttempts: 2,
-          remainingAttempts: 0,
-          reason: "A later review invocation could not record another result.",
-          permissionRelated: false,
-        },
-        targetStateDigest,
-      }],
-    };
-    writeJson(root, `specs/${specId}/flow.json`, state);
-
-    const next = invoke(root, ["get", "next-action", ...guards(state)]);
-    assert.equal(next.status, 0, next.stderr || next.stdout);
-    assert.equal(next.envelope.data.directive.kind, "execute_command");
-    assert.equal(next.envelope.data.directive.actionId, "COMPLETE_REVIEW_LIFECYCLE");
-    assert.equal(next.envelope.data.directive.requiresUserAction, false);
-    assert.equal(next.envelope.data.directive.actionPrompt, undefined);
-
-    const completed = invoke(root, ["run", "review", "--phase", "test", ...guards(state)]);
-    assert.equal(completed.status, 0, completed.stderr || completed.stdout);
-    assert.equal(completed.envelope.data.result, "deferred");
-    assert.equal(completed.envelope.data.artifacts.attempts, 5);
-
-    const persisted = JSON.parse(fs.readFileSync(path.join(root, `specs/${specId}/flow.json`), "utf8"));
-    assert.equal(persisted.nonblocking, undefined);
-    assert.equal(findStepById(persisted.steps, "test-review").status, "done");
-    assert.equal(findStepById(persisted.steps, "implement").status, "in_progress");
-    assert.equal(
-      persisted.stepAttempts.filter((entry) => (
-        entry.stepId === "test-review" && entry.outcome?.kind === "defer"
-      )).length,
-      1,
-    );
-    const deferred = JSON.parse(fs.readFileSync(
-      path.join(root, `specs/${specId}/flow-findings.json`),
-      "utf8",
-    ));
-    assert.equal(deferred.entries[0].sourceFindingId, finding.findingId);
-    assert.equal(deferred.entries[0].finalDisposition, "still_open");
-  } finally {
-    removeTmpDir(root);
-  }
+    const rejected = invoke(scenario.root, [
+      "set", "policy", "nonblocking", "--reason", "Wrong target must not mutate.",
+      "--expect-run-id", "other-run", "--expect-no-issue", "--expect-spec", scenario.fixture.specId,
+    ]);
+    assert.notEqual(rejected.status, 0);
+    assert.equal(scenario.manager.load(scenario.fixture.specId).policy.nonblocking, null);
+  } finally { removeTmpDir(scenario.root); }
 });
 
-test("scenario-validity block records refreshed evidence after nonblocking activation", () => {
-  const root = createTmpDir("sennel-nonblocking-scenario-validity-e2e-");
+test("scenario-validity CLI activation records refreshed V1 evidence after a new producer publication", () => {
+  const scenario = canonicalCliScenario({
+    specId: "480-nonblocking-scenario", runId: "run-480", step: "scenario-validity", logicalKey: "scenario.validity",
+    payload: { result: "block", revision: 1 },
+  });
   try {
-    const specId = "477-scenario-validity-nonblocking-e2e";
-    const spec = `specs/${specId}/spec.json`;
-    writeJson(root, ".sennel/config.json", {
-      lang: "en",
-      type: "base",
-      docs: { languages: ["en"], defaultLanguage: "en" },
-      commands: { gh: "disable" },
+    const activated = invoke(scenario.root, ["set", "policy", "nonblocking", "--reason", "Scenario block requires a bounded retry.", ...scenario.guards]);
+    assert.equal(activated.status, 0, activated.stderr);
+    scenario.manager.publishArtifacts({
+      specId: scenario.fixture.specId, nodeId: "scenario-validity",
+      artifactWrites: [{ logicalKey: "scenario.validity", mediaType: "application/json", bytes: history(
+        "scenario-validity", "scenario.validity", { result: "block", revision: 2 }, 2,
+        [new FlowArtifactAttemptRecord({ attempt: 1, payload: {
+          nodeId: "scenario-validity", outcome: "completed", result: { result: "block" },
+          artifact: { logicalKey: "scenario.validity", payload: { result: "block", revision: 1 } },
+        } })],
+      ) }],
     });
-    writeJson(root, spec, { requirements: [] });
-    const state = moveFlowToStep(makeFlowState({
-      specId,
-      runId: "run-477-scenario-validity-nonblocking-e2e",
-      baseBranch: "main",
-      featureBranch: "main",
-    }), "scenario-validity");
-    writeJson(root, `specs/${specId}/flow.json`, state);
-    makeFlowManager(root).addActiveFlow(specId, "local");
-    initGitRepo(root);
-    commitAll(root, "initial flow fixture");
-
-    fs.mkdirSync(path.join(root, "src"));
-    fs.writeFileSync(path.join(root, "src", "blocked.js"), "export const blocked = true;\n");
-    const strictBlock = invoke(root, ["run", "scenario-validity", ...guards(state)]);
-    assert.notEqual(strictBlock.status, 0);
-    assert.equal(strictBlock.envelope.errors[0].code, "SCENARIO_VALIDITY_BLOCKED");
-    assert.equal(strictBlock.envelope.data.artifacts.result_path.endsWith("scenario-validity-result.json"), true);
-
-    const policy = invoke(root, [
-      "set", "policy", "nonblocking",
-      "--reason", "The durable pre-implementation block needs explicit acceptance disposition.",
-      ...guards(state),
-    ]);
-    assert.equal(policy.status, 0, policy.stderr || policy.stdout);
-    assert.equal(policy.envelope.data.activatedStep, "scenario-validity");
-
-    // Alter the authoritative artifact on the next run. The failed Envelope
-    // must still reach the nonblocking hook; otherwise next-action would see
-    // changed evidence with no durable observation.
-    fs.writeFileSync(path.join(root, "src", "another-blocked.js"), "export const anotherBlocked = true;\n");
-    const advisoryBlock = invoke(root, ["run", "scenario-validity", ...guards(state)]);
-    assert.notEqual(advisoryBlock.status, 0);
-    assert.equal(advisoryBlock.envelope.errors[0].code, "SCENARIO_VALIDITY_BLOCKED");
-
-    const next = invoke(root, ["get", "next-action", ...guards(state)]);
-    assert.equal(next.status, 0, next.stderr || next.stdout);
-    assert.deepEqual(next.envelope.data.nonblockingDecision.allowedActions, ["retry", "continue"]);
-  } finally {
-    removeTmpDir(root);
-  }
+    recordEligibleNonblockingAttempt({ root: scenario.root, flowManager: scenario.manager, flowState: scenario.manager.load(scenario.fixture.specId) }, "scenario-validity");
+    const observations = scenario.manager.activityLedger(scenario.fixture.specId)
+      .map((activity) => activity.transition.nonblocking)
+      .filter((record) => record?.kind === "observation");
+    assert.equal(observations.length, 2);
+    assert.equal(observations.at(-1).sourceAttempt, 2);
+  } finally { removeTmpDir(scenario.root); }
 });

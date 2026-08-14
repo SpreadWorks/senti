@@ -1,12 +1,10 @@
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalAutoCheckScenario, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
-import { findStepById } from "../../../src/flow/lib/step-tree.js";
 import {
   writeStubAgentScript,
   writeCapturingStubAgentScript,
@@ -42,7 +40,6 @@ function lowResponse() {
 function createTmpProject(agentResponse = passResponse()) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-"));
   fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-  fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", agentResponse);
@@ -60,18 +57,13 @@ function createTmpProject(agentResponse = passResponse()) {
 }
 
 function createFlowState(tmp, request = "add a progress bar") {
-  const state = {
+  return new CanonicalAutoCheckScenario({
+    flowManager: makeFlowManager(tmp),
     specId: "001-test",
     runId: "run-001-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
     request,
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create();
 }
 
 function runSetAuto(tmp, value, extraArgs = []) {
@@ -103,8 +95,7 @@ describe("flow set auto", () => {
     assert.equal(output.data.autoApprove, true);
     const state = makeFlowManager(tmp).load();
     assert.equal(state.autoApprove, true);
-    assert.ok(state.autoCheck, "autoCheck must be recorded");
-    assert.equal(state.autoCheck.eligible, true);
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   it("rejects 'on' with non-zero exit when auto-check is ineligible (AI scores)", () => {
@@ -120,7 +111,7 @@ describe("flow set auto", () => {
     );
     const state = makeFlowManager(tmp).load();
     assert.notEqual(state.autoApprove, true, "autoApprove must not be updated on reject");
-    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   it("rejects 'on' when static gate hits (no AI needed)", () => {
@@ -130,7 +121,7 @@ describe("flow set auto", () => {
     assert.notEqual(res.status, 0);
     const state = makeFlowManager(tmp).load();
     assert.notEqual(state.autoApprove, true);
-    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
+    assert.equal(Object.hasOwn(state, "autoCheck"), false);
   });
 
   it("sets autoApprove to false with 'off' without running auto-check", () => {
@@ -217,21 +208,7 @@ describe("flow set auto", () => {
 
   it("skips auto-check when approval step is done (R1/R2)", () => {
     tmp = createTmpProject(lowResponse()); // would reject if auto-check ran
-    const steps = buildInitialSteps();
-    const approvalStep = findStepById(steps, "approval");
-    approvalStep.status = "done";
-    const state = {
-      specId: "001-test",
-      runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      request: "reset password and run migration", // also hits static gate
-      steps,
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    createFlowState(tmp, "reset password and run migration").approvalDone();
 
     const res = runSetAuto(tmp, "on");
     assert.equal(res.status, 0, res.stderr);
@@ -241,15 +218,12 @@ describe("flow set auto", () => {
 
     const saved = makeFlowManager(tmp).load();
     assert.equal(saved.autoApprove, true);
-    assert.ok(saved.autoCheck, "autoCheck must be recorded");
-    assert.equal(saved.autoCheck.skipped, true, "skipped marker must be true");
-    assert.equal(saved.autoCheck.eligible, true);
+    assert.equal(Object.hasOwn(saved, "autoCheck"), false);
   });
 
   it("appends draft.json to auto-check input when draft-gate done (spec 220)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-draft-"));
     fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
     const capturePath = path.join(tmp, "captured-prompt.txt");
@@ -272,26 +246,14 @@ describe("flow set auto", () => {
 
     const DRAFT_MARKER = "UNIQUE_DRAFT_CONTENT_MARKER_QWERTY";
     const REQUEST_MARKER = "REQUEST_MARKER_APPENDED_ALONGSIDE_DRAFT";
-    fs.writeFileSync(
-      path.join(tmp, "specs", "001-test", "draft.json"),
-      JSON.stringify({ devType: "feature", goal: DRAFT_MARKER, analysis: { problem: "p", proposedApproach: "a", validation: "v" }, qa: [], approval: { approved: true } }),
-    );
-
-    // Mark draft-gate done (phase 2) per spec 220
-    const steps = buildInitialSteps();
-    findStepById(steps, "draft-gate").status = "done";
-    const state = {
+    const draftText = JSON.stringify({ devType: "feature", goal: DRAFT_MARKER, analysis: { problem: "p", proposedApproach: "a", validation: "v" }, qa: [], approval: { approved: true } });
+    new CanonicalAutoCheckScenario({
+      flowManager: makeFlowManager(tmp),
       specId: "001-test",
       runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
       request: REQUEST_MARKER,
-      steps,
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    }).create().draftGateDone(draftText);
 
     const res = runSetAuto(tmp, "on");
     assert.equal(res.status, 0, res.stderr);
@@ -302,39 +264,28 @@ describe("flow set auto", () => {
       captured.includes(REQUEST_MARKER),
       "spec 220: request must be included alongside draft (not replaced)",
     );
+    assert.ok(captured.indexOf(REQUEST_MARKER) < captured.indexOf(DRAFT_MARKER));
 
     const saved = makeFlowManager(tmp).load();
     assert.equal(saved.autoApprove, true);
-    assert.equal(saved.autoCheck.eligible, true);
-    assert.deepEqual(saved.autoCheck.goalGate, { checked: true, passed: true });
-    assert.notEqual(saved.autoCheck.skipped, true, "skipped must NOT be set on draft-input path");
+    assert.equal(Object.hasOwn(saved, "autoCheck"), false);
   });
 
   it("rejects auto mode when draft-gate is done but draft goal is missing", () => {
     tmp = createTmpProject(passResponse());
-    fs.writeFileSync(
-      path.join(tmp, "specs", "001-test", "draft.json"),
-      JSON.stringify({
-        devType: "feature",
-        goal: "",
-        analysis: { problem: "p", proposedApproach: "a", validation: "v" },
-        qa: [],
-        approval: { approved: true },
-      }),
-    );
-    const steps = buildInitialSteps();
-    findStepById(steps, "draft-gate").status = "done";
-    makeFlowManager(tmp).create({
+    new CanonicalAutoCheckScenario({
+      flowManager: makeFlowManager(tmp),
       specId: "001-test",
       runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
       request: "add a progress bar",
-      steps,
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    });
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    }).create().draftGateDone(JSON.stringify({
+      devType: "feature",
+      goal: "",
+      analysis: { problem: "p", proposedApproach: "a", validation: "v" },
+      qa: [],
+      approval: { approved: true },
+    }));
 
     const res = runSetAuto(tmp, "on");
     assert.notEqual(res.status, 0);
@@ -343,13 +294,12 @@ describe("flow set auto", () => {
     assert.match(JSON.stringify(envelope), /draft goal is missing/);
     const saved = makeFlowManager(tmp).load();
     assert.notEqual(saved.autoApprove, true);
-    assert.equal(saved.autoCheck, undefined);
+    assert.equal(Object.hasOwn(saved, "autoCheck"), false);
   });
 
   it("falls back to request+issue input when approval pending and no draft.json (R5)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-fallback-"));
     fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
-    fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", tmp], { stdio: "ignore" });
 
     const capturePath = path.join(tmp, "captured-prompt.txt");
@@ -371,18 +321,13 @@ describe("flow set auto", () => {
     fs.writeFileSync(path.join(tmp, "package.json"), JSON.stringify({ name: "fixture" }));
 
     const REQUEST_MARKER = "ORIGINAL_REQUEST_TEXT_MARKER_12345";
-    const state = {
+    new CanonicalAutoCheckScenario({
+      flowManager: makeFlowManager(tmp),
       specId: "001-test",
       runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
       request: `add a progress bar ${REQUEST_MARKER}`,
-      steps: buildInitialSteps(),
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-    };
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+    }).create();
 
     const res = runSetAuto(tmp, "on");
     assert.equal(res.status, 0, res.stderr);
@@ -482,17 +427,15 @@ describe("flow set auto", () => {
 
   // ---------------------------------------------------------------------------
   // Spec 218: Trust previously persisted autoCheck instead of re-invoking the AI.
-  // The split-brain between `run auto-check` (rich input) and `set auto on`
-  // (thin input rebuild) is resolved by making `set auto on` trust whatever
-  // verdict is already in state. These tests assert the trust path on both
-  // preparing and active flows, the rejection-on-trust path, and that the
-  // fallback (no verdict present) still invokes the agent.
+  // Preparing records exist before the exact V1 flow.json schema, so their
+  // auto-check result remains a pre-creation handoff. Active Flow state must
+  // instead reject that retired cache field rather than accepting a second
+  // schema dialect.
   // ---------------------------------------------------------------------------
 
   function createCapturingProject() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-trust-"));
     fs.mkdirSync(path.join(dir, ".sennel"), { recursive: true });
-    fs.mkdirSync(path.join(dir, "specs", "001-test"), { recursive: true });
     execFileSync("git", ["init", dir], { stdio: "ignore" });
     const capturePath = path.join(dir, "captured-prompt.txt");
     const stubPath = writeCapturingStubAgentScript(
@@ -512,6 +455,15 @@ describe("flow set auto", () => {
     );
     fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "fixture" }));
     return { dir, capturePath };
+  }
+
+  function writeRetiredActiveAutoCheck(dir, autoCheck) {
+    createFlowState(dir);
+    const manager = makeFlowManager(dir);
+    const location = manager.specLocation("001-test");
+    const state = JSON.parse(fs.readFileSync(location.flowStateFile, "utf8"));
+    state.autoCheck = autoCheck;
+    fs.writeFileSync(location.flowStateFile, `${JSON.stringify(state, null, 2)}\n`);
   }
 
   it("trusts persisted autoCheck on preparing flow without re-invoking the agent", () => {
@@ -589,96 +541,53 @@ describe("flow set auto", () => {
     assert.equal(preparing.autoCheck.reason, "persisted ineligible");
   });
 
-  it("trusts persisted autoCheck on active flow without re-invoking the agent", () => {
+  it("rejects a retired active autoCheck cache without invoking the agent", () => {
     const { dir, capturePath } = createCapturingProject();
     tmp = dir;
-    const state = {
-      specId: "001-test",
-      runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      request: "add a progress bar",
-      steps: buildInitialSteps(),
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-      autoCheck: {
-        eligible: true,
-        score: 20,
-        maxScore: 24,
-        threshold: 18,
-        breakdown: {},
-        staticGates: { G: false, H: false, I: false },
-        goalGate: { checked: true, passed: true },
-        reason: "persisted by run auto-check",
-      },
-    };
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
-
-    const res = runSetAuto(tmp, "on");
-    assert.equal(res.status, 0, res.stderr);
-    const output = JSON.parse(res.stdout.trim());
-    assert.equal(output.ok, true);
-    assert.equal(output.data.autoApprove, true);
-
-    assert.equal(
-      fs.existsSync(capturePath),
-      false,
-      "agent must not be invoked when a verdict is already persisted",
-    );
-
-    const saved = makeFlowManager(tmp).load();
-    assert.equal(saved.autoApprove, true);
-    assert.equal(saved.autoCheck.reason, "persisted by run auto-check");
-  });
-
-  it("rejects legacy persisted autoCheck without a passing goalGate marker", () => {
-    const { dir, capturePath } = createCapturingProject();
-    tmp = dir;
-    const state = {
-      specId: "001-test",
-      runId: "run-001-test",
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      request: "add a progress bar",
-      steps: buildInitialSteps(),
-      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-      currentTaskId: null,
-      autoCheck: {
-        eligible: true,
-        score: 20,
-        maxScore: 24,
-        threshold: 18,
-        breakdown: {},
-        staticGates: { G: false, H: false, I: false },
-        reason: "legacy persisted by run auto-check",
-      },
-    };
-    makeFlowManager(tmp).create(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+    writeRetiredActiveAutoCheck(tmp, {
+      eligible: true,
+      score: 20,
+      maxScore: 24,
+      threshold: 18,
+      breakdown: {},
+      staticGates: { G: false, H: false, I: false },
+      goalGate: { checked: true, passed: true },
+      reason: "retired active cache",
+    });
 
     const res = runSetAuto(tmp, "on");
     assert.notEqual(res.status, 0);
-    const envelope = JSON.parse(res.stdout.trim());
-    assert.equal(envelope.ok, false);
-    assert.ok(
-      envelope.errors?.some((e) => /AUTO_CHECK_INELIGIBLE/.test(e.code ?? "")),
-      "envelope must signal AUTO_CHECK_INELIGIBLE",
-    );
-    assert.match(
-      JSON.stringify(envelope),
-      /missing a passing goalGate marker/,
-      "legacy verdict must not be trusted without goalGate evidence",
-    );
+    assert.match(res.stderr, /artifact content does not match the catalog: flow\.json/);
 
     assert.equal(
       fs.existsSync(capturePath),
       false,
-      "agent must not be invoked when a persisted verdict is rejected",
+      "agent must not be invoked when active state violates the exact schema",
     );
+  });
 
-    const saved = makeFlowManager(tmp).load();
-    assert.notEqual(saved.autoApprove, true);
+  it("rejects a retired active cache missing goalGate as the same schema violation", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    writeRetiredActiveAutoCheck(tmp, {
+      eligible: true,
+      score: 20,
+      maxScore: 24,
+      threshold: 18,
+      breakdown: {},
+      staticGates: { G: false, H: false, I: false },
+      reason: "retired cache without goal gate",
+    });
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    assert.match(res.stderr, /artifact content does not match the catalog: flow\.json/);
+
+    assert.equal(
+      fs.existsSync(capturePath),
+      false,
+      "agent must not be invoked when active state violates the exact schema",
+    );
   });
 
   it("falls back to agent invocation on preparing flow when no autoCheck is persisted", () => {

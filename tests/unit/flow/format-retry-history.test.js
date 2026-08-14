@@ -1,7 +1,5 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { checkRetryBelowMax } from "../../../src/flow/lib/run-gate.js";
 
@@ -12,26 +10,19 @@ import { checkRetryBelowMax } from "../../../src/flow/lib/run-gate.js";
 // -----------------------------------------------------------------------------
 
 function setupCtx(tmp, { phase, metrics, baseBranch = "main" }) {
-  const specRel = "specs/0001-test/spec.json";
-  const specDir = path.join(tmp, "specs/0001-test");
-  fs.mkdirSync(specDir, { recursive: true });
-  fs.writeFileSync(path.join(specDir, "spec.json"), "{}");
   return {
     ctx: {
       root: tmp,
       phase,
       config: { flow: { retry: { max: 3 } } },
       flowState: { specId: "0001-test", baseBranch, metrics: metrics || [] },
+      issueLog: { entries: [] },
     },
-    specDir,
   };
 }
 
-function seedIssueLog(specDir, entries) {
-  fs.writeFileSync(
-    path.join(specDir, "issue-log.json"),
-    JSON.stringify({ entries }, null, 2),
-  );
+function seedIssueLog(ctx, entries) {
+  ctx.issueLog = { entries: structuredClone(entries) };
 }
 
 /**
@@ -55,9 +46,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "task-impl";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "draft-gate",
           phase: "draft",
@@ -88,9 +79,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "integration";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "impl-gate",
           phase: "task-impl",
@@ -120,9 +111,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "task-impl";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "impl-gate",
           phase: "task-impl",
@@ -152,9 +143,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "task-impl";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "impl-gate",
           // phase omitted
@@ -184,9 +175,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "task-impl";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "finalize",
           phase: "task-impl",
@@ -219,9 +210,9 @@ describe("formatRetryHistory (via checkRetryBelowMax) — spec 224", () => {
     const tmp = createTmpDir();
     try {
       const phase = "task-impl";
-      const { ctx, specDir } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
+      const { ctx } = setupCtx(tmp, { phase, metrics: exhaustedMetrics(phase) });
 
-      seedIssueLog(specDir, [
+      seedIssueLog(ctx, [
         {
           step: "spec-gate",
           phase: "spec",

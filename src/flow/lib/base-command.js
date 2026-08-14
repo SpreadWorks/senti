@@ -30,18 +30,21 @@ export class FlowCommand extends Command {
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
    * @param {boolean} [options.explicitTargetResolution=false] - Resolve guarded targets before ambient cwd authority
    * @param {boolean} [options.positionalRunIdTarget=false] - Treat a positional runId as the target when no runId guard is supplied
+   * @param {boolean} [options.specOptionAsTarget=false] - Treat a command's --spec selector as its explicit Flow target
    */
   constructor({
     requiresFlow = true,
     targetGuard = true,
     explicitTargetResolution = false,
     positionalRunIdTarget = false,
+    specOptionAsTarget = false,
   } = {}) {
     super();
     this.requiresFlow = requiresFlow;
     this.targetGuard = targetGuard;
     this.explicitTargetResolution = explicitTargetResolution;
     this.positionalRunIdTarget = positionalRunIdTarget;
+    this.specOptionAsTarget = specOptionAsTarget;
   }
 
   /**
@@ -54,17 +57,22 @@ export class FlowCommand extends Command {
    */
   async run(container, input = {}) {
     this.container = container;
+    const targetInput = this.specOptionAsTarget === true
+      && input.expectSpec == null
+      && input.spec != null
+      ? { ...input, expectSpec: input.spec }
+      : input;
     let targetExpectation;
     try {
       targetExpectation = flowTargetExpectation({
-        input,
+        input: targetInput,
         positionalRunIdTarget: this.positionalRunIdTarget,
       });
     } catch {
       return targetMismatchEnvelopeForInput({
         type: input._envelopeType || "run",
         key: input._envelopeKey || "flow",
-        input,
+        input: targetInput,
         flowState: null,
       });
     }

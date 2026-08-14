@@ -41,7 +41,8 @@ import {
 } from "../lib/impl-review-proposal.js";
 import {
   DraftArtifactRecoveryError,
-  inspectCanonicalDraftRevision,
+  DraftArtifactRevision,
+  DraftArtifactSnapshot,
 } from "../lib/draft-artifact-promotion.js";
 
 async function loadReqMap(root, flow, kind) {
@@ -88,9 +89,7 @@ import {
 } from "../lib/finding-disposition-policy.js";
 import {
   buildRepairFingerprint,
-  prepareImplTriageArtifact,
-  stampRepairFingerprint,
-} from "../lib/impl-repair-artifacts.js";
+} from "../lib/repair-fingerprint.js";
 import { ReviewToolingOutcome } from "../lib/review-convergence.js";
 import {
   collectUntrackedDiff,
@@ -151,6 +150,127 @@ class ReviewArtifactWritePolicy {
 
 let reviewArtifactWritePolicy = new ReviewArtifactWritePolicy({ enabled: true });
 
+// A Version-1 parent owns durable review evidence through its Store.  The
+// worker command still produces exactly the same review JSON/Markdown shape,
+// but writes it into the parent-created transient work unit.  Keeping this
+// switch at the command boundary avoids changing any prompt or agent input.
+const REVIEW_OUTPUT_DIRECTORY_ENV = PRODUCT.env("REVIEW_OUTPUT_DIR");
+const REVIEW_TEST_SOURCE_DIRECTORY_ENV = PRODUCT.env("REVIEW_TEST_SOURCE_DIR");
+const REVIEW_TEST_ARTIFACT_REVISION_ENV = PRODUCT.env("REVIEW_TEST_ARTIFACT_REVISION");
+const REVIEW_TASK_SPEC_SOURCE_ENV = PRODUCT.env("REVIEW_TASK_SPEC_SOURCE");
+const REVIEW_DRAFT_SOURCE_ENV = PRODUCT.env("REVIEW_DRAFT_SOURCE");
+
+function configuredReviewDirectory() {
+  const value = process.env[REVIEW_OUTPUT_DIRECTORY_ENV];
+  if (value == null || value.trim() === "") return null;
+  if (!path.isAbsolute(value)) {
+    throw new Error(`${REVIEW_OUTPUT_DIRECTORY_ENV} must be an absolute directory`);
+  }
+  return path.resolve(value);
+}
+
+function canonicalDraftReviewSource(outputDirectory) {
+  const serialized = process.env[REVIEW_DRAFT_SOURCE_ENV];
+  if (serialized == null || serialized.trim() === "") {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} is required for draft review`);
+  }
+  let value;
+  try {
+    value = JSON.parse(serialized);
+  } catch (error) {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} must be JSON: ${error.message}`);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} must be an object`);
+  }
+  const keys = Object.keys(value).sort();
+  if (JSON.stringify(keys) !== JSON.stringify(["logicalPath", "revision", "sourcePath"])) {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} has invalid fields`);
+  }
+  if (value.logicalPath !== "draft.json" || typeof value.sourcePath !== "string" || !path.isAbsolute(value.sourcePath)) {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} has an invalid draft source`);
+  }
+  const sourcePath = path.resolve(value.sourcePath);
+  if (path.dirname(sourcePath) !== outputDirectory || path.basename(sourcePath) !== "draft.json") {
+    throw new Error(`${REVIEW_DRAFT_SOURCE_ENV} must bind draft.json inside the review work unit`);
+  }
+  return Object.freeze({
+    logicalPath: value.logicalPath,
+    sourcePath,
+    revision: DraftArtifactRevision.from(value.revision),
+  });
+}
+
+function canonicalDraftSnapshot(source, flow, phase) {
+  const stat = fs.lstatSync(source.sourcePath);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error("canonical draft review source must be a regular unlinked file");
+  }
+  const snapshot = new DraftArtifactSnapshot({
+    filePath: source.sourcePath,
+    bytes: fs.readFileSync(source.sourcePath),
+  });
+  source.revision.assertFlow(flow);
+  source.revision.assertReviewSource(phase);
+  if (!source.revision.matchesSnapshot(snapshot)) {
+    throw new DraftArtifactRecoveryError(
+      "DRAFT_REVIEW_CANONICAL_STALE",
+      "canonical draft work-unit input does not match its catalog revision",
+    );
+  }
+  return snapshot;
+}
+
+function reviewOutputDirectory(root, flow) {
+  return configuredReviewDirectory() ?? path.dirname(path.resolve(root, relativeFlowSpecFile(flow)));
+}
+
+function reviewTestSourceDirectory(root, logicalSpecDirectory) {
+  const value = process.env[REVIEW_TEST_SOURCE_DIRECTORY_ENV];
+  if (value == null || value.trim() === "") return path.resolve(root, logicalSpecDirectory);
+  if (!path.isAbsolute(value)) {
+    throw new Error(`${REVIEW_TEST_SOURCE_DIRECTORY_ENV} must be an absolute directory`);
+  }
+  return path.resolve(value);
+}
+
+function reviewTestArtifactRevision(flow) {
+  const serialized = process.env[REVIEW_TEST_ARTIFACT_REVISION_ENV];
+  if (serialized == null || serialized.trim() === "") {
+    return WorkerArtifactRevision.from(flow.specTestArtifactRevision);
+  }
+  let revision;
+  try {
+    revision = JSON.parse(serialized);
+  } catch (error) {
+    throw new Error(`${REVIEW_TEST_ARTIFACT_REVISION_ENV} must be JSON: ${error.message}`);
+  }
+  return WorkerArtifactRevision.from(revision);
+}
+
+function reviewTaskSpecSource(logicalPath) {
+  const serialized = process.env[REVIEW_TASK_SPEC_SOURCE_ENV];
+  if (serialized == null || serialized.trim() === "") return null;
+  let value;
+  try {
+    value = JSON.parse(serialized);
+  } catch (error) {
+    throw new Error(`${REVIEW_TASK_SPEC_SOURCE_ENV} must be JSON: ${error.message}`);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${REVIEW_TASK_SPEC_SOURCE_ENV} must be an object`);
+  }
+  if (value.logicalPath !== logicalPath || typeof value.sourcePath !== "string" || !path.isAbsolute(value.sourcePath)) {
+    throw new Error(`${REVIEW_TASK_SPEC_SOURCE_ENV} does not match --task-spec`);
+  }
+  const outputDirectory = configuredReviewDirectory();
+  const sourcePath = path.resolve(value.sourcePath);
+  if (outputDirectory === null || (sourcePath !== outputDirectory && !sourcePath.startsWith(`${outputDirectory}${path.sep}`))) {
+    throw new Error(`${REVIEW_TASK_SPEC_SOURCE_ENV} sourcePath escapes the review work unit`);
+  }
+  return sourcePath;
+}
+
 function getReviewMaxAttempts(phase, attemptContext) {
   const nodeId = REVIEW_PHASE_NODE_MAP[phase];
   if (!nodeId) throw new Error(`unsupported review maxAttempts phase: ${phase}`);
@@ -200,7 +320,7 @@ for (const key of Object.keys(REVIEW_PHASES)) {
  * Resolve review target files from spec scope or git diff fallback.
  *
  * @param {string} root - repo root
- * @param {import("../../lib/flow-state.js").FlowState} flow - flow state
+ * @param {object} flow - canonical projected Flow state
  * @param {string} mergeBase - merge-base SHA resolved by resolveMergeBase
  * @returns {Promise<{diff: string, untrackedFiles: Set<string>}>} review diff and untracked paths
  */
@@ -568,7 +688,7 @@ function filterProposalsByScope(proposals, touchedFiles) {
  * @returns {string} absolute path of review.md
  */
 function writeReviewMd(root, flow, results) {
-  const specDir = path.dirname(path.resolve(root, relativeFlowSpecFile(flow)));
+  const specDir = reviewOutputDirectory(root, flow);
   const reviewPath = path.join(specDir, "review.md");
   if (reviewArtifactWritePolicy.enabled) {
     fs.writeFileSync(reviewPath, formatReviewMd(results));
@@ -954,7 +1074,7 @@ function formatImplReviewMd(input = {}) {
 }
 
 function loadPreviousImplReviewMemory(root, specPath, taskId = null) {
-  const specDir = path.dirname(path.resolve(root, specPath));
+  const specDir = configuredReviewDirectory() ?? path.dirname(path.resolve(root, specPath));
   const reviewJsonPath = path.join(specDir, "impl-review.json");
   if (!fs.existsSync(reviewJsonPath)) return null;
   const data = JSON.parse(fs.readFileSync(reviewJsonPath, "utf8"));
@@ -1236,7 +1356,7 @@ async function runImplReviewWithPersistence({
     requirementIds,
   });
   const specPath = relativeFlowSpecFile(flow);
-  const specDir = path.dirname(path.resolve(root, specPath));
+  const specDir = reviewOutputDirectory(root, flow);
   const dispositioned = applyImplReviewDispositionPolicy({
     root,
     flow,
@@ -1249,7 +1369,7 @@ async function runImplReviewWithPersistence({
   const artifact = new ImplReviewArtifact({ ...dispositioned, requirementIds });
   const reviewJsonPath = path.join(specDir, "impl-review.json");
   const fingerprint = buildRepairFingerprint({ root: executionRoot, artifactRoot: root, specPath, state: flow });
-  const artifactJson = stampRepairFingerprint({ artifact: artifact.toJSON(), fingerprint });
+  const artifactJson = { ...artifact.toJSON(), repairFingerprint: fingerprint.hash };
   const reviewedHead = runGit(["rev-parse", "HEAD"], { cwd: executionRoot });
   artifactJson.reviewedTree = fingerprint.hash;
   if (reviewedHead.ok) artifactJson.reviewedHead = reviewedHead.stdout.trim();
@@ -1287,27 +1407,11 @@ async function runImplReviewWithPersistence({
     })),
     ...artifactJson.nonBlockingImprovements.map((finding) => ({ ...finding, decision: "reject" })),
   ];
-  if (
-    reviewArtifactWritePolicy.enabled
-    && triageFindings.length > 0
-    && !taskSpec
-  ) {
-    prepareImplTriageArtifact({
-      specDir,
-      sourceStep: "impl-review",
-      sourceArtifact: "impl-review.json",
-      findings: triageFindings,
-      fingerprint,
-    });
-  }
   return {
     result: "ok",
     changed: [
       path.relative(root, reviewMdWrite.latestPath),
       path.relative(root, reviewJsonWrite.latestPath),
-      ...(triageFindings.length > 0 && !taskSpec
-        ? [path.relative(root, path.join(specDir, "impl-triage.json"))]
-        : []),
     ],
     artifacts: {
       phase: "impl",
@@ -1507,7 +1611,8 @@ function buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs) {
 function resolveTaskReviewSpec(root, taskSpecPath) {
   const relPath = String(taskSpecPath || "").trim();
   if (!relPath) return null;
-  const absPath = path.resolve(root, relPath);
+  const transientSource = reviewTaskSpecSource(relPath);
+  const absPath = transientSource ?? path.resolve(root, relPath);
   if (!absPath.startsWith(root + path.sep)) {
     throw new Error(`task spec path escapes repository root: ${relPath}`);
   }
@@ -2023,12 +2128,12 @@ const TEST_REVIEW_PROMPT_CHAR_LIMIT = 1_000_000;
  * @param {string} specDir - relative spec directory
  * @returns {{ name: string, content: string, source: string }[]}
  */
-function collectTestFiles(root, specDir) {
+function collectTestFiles(root, specDir, { sourceDirectory = null, sourcePrefix = null } = {}) {
   const files = new Map();
 
-  const specTestDir = path.resolve(root, specDir, "tests");
+  const specTestDir = sourceDirectory ?? path.resolve(root, specDir, "tests");
   if (fs.existsSync(specTestDir)) {
-    collectTestsRecursive(specTestDir, specTestDir, files, `${specDir}/tests/`);
+    collectTestsRecursive(specTestDir, specTestDir, files, sourcePrefix ?? `${specDir}/tests/`);
   }
 
   return Array.from(files.values());
@@ -2847,7 +2952,9 @@ async function runTestReview(root, flow, config, dryRun) {
   const specPath = relativeFlowSpecFile(flow);
   const specDir = path.dirname(specPath);
   const specInput = path.resolve(root, specPath);
-  const sourceTestArtifactRevision = WorkerArtifactRevision.from(flow.specTestArtifactRevision);
+  const outputDirectory = reviewOutputDirectory(root, flow);
+  const testSourceDirectory = reviewTestSourceDirectory(root, specDir);
+  const sourceTestArtifactRevision = reviewTestArtifactRevision(flow);
   sourceTestArtifactRevision.assertFlow(flow);
   if (sourceTestArtifactRevision.stepId !== "test") {
     throw new Error("test-review requires a canonical test-step artifact revision");
@@ -2867,7 +2974,7 @@ async function runTestReview(root, flow, config, dryRun) {
   let artifactPaths;
   try {
     const { validateTestHeaders, collectFileHeaders, formatValidationMessages } = await import("../lib/test-headers.js");
-    const absoluteSpecDir = path.resolve(root, specDir);
+    const absoluteSpecDir = testSourceDirectory;
     const headerResult = validateTestHeaders({
       specDir: absoluteSpecDir,
       spec,
@@ -2881,7 +2988,7 @@ async function runTestReview(root, flow, config, dryRun) {
       sourceTestArtifactRevision,
     });
     artifactPaths = {
-      coveragePath: writeTestCoverageArtifact({ root, specDir, coverageArtifact }),
+      coveragePath: writeTestCoverageArtifact({ root, specDir: outputDirectory, coverageArtifact }),
     };
     headerBlockingFindings = buildHeaderBlockingFindings(headerResult);
     if (headerBlockingFindings.length > 0) {
@@ -2896,7 +3003,7 @@ async function runTestReview(root, flow, config, dryRun) {
       coverageRelPath,
       sourceTestArtifactRevision,
     });
-    artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+    artifactPaths = writeTestReviewArtifacts({ root, specDir: outputDirectory, reviewArtifact, coverageArtifact });
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
     console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
     console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
@@ -2905,7 +3012,10 @@ async function runTestReview(root, flow, config, dryRun) {
     return;
   }
 
-  const testFiles = collectTestFiles(root, specDir);
+  const testFiles = collectTestFiles(root, specDir, {
+    sourceDirectory: path.join(testSourceDirectory, "tests"),
+    sourcePrefix: `${specDir}/tests/`,
+  });
   let aiFindings;
   try {
     const agent = ensureAgent("flow.test.review");
@@ -2927,7 +3037,7 @@ async function runTestReview(root, flow, config, dryRun) {
       coverageRelPath: artifactPaths.coveragePath,
       sourceTestArtifactRevision,
     });
-    artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+    artifactPaths = writeTestReviewArtifacts({ root, specDir: outputDirectory, reviewArtifact, coverageArtifact });
     console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
     console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
     console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
@@ -2951,7 +3061,7 @@ async function runTestReview(root, flow, config, dryRun) {
     blocking: blockingFindings,
     advisory: advisoryFindings,
   });
-  artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+  artifactPaths = writeTestReviewArtifacts({ root, specDir: outputDirectory, reviewArtifact, coverageArtifact });
   console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
   console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
   console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
@@ -3513,7 +3623,7 @@ async function runSpecReview(root, flow, config, dryRun) {
       );
     }
   }
-  const reviewDir = path.resolve(root, specDir);
+  const reviewDir = reviewOutputDirectory(root, flow);
   const reviewPath = path.join(reviewDir, "spec-review.md");
   const reviewJsonPath = path.join(reviewDir, "spec-review.json");
   let previousReview = null;
@@ -3967,22 +4077,13 @@ export function writeReviewAttemptHistory({ specDir, phase, latestBasename, arti
 }
 
 async function runDraftReview(root, flow, config, dryRun) {
-  const specDir = path.dirname(relativeFlowSpecFile(flow));
-  const specPath = path.resolve(root, specDir);
-  const draftPath = path.resolve(specPath, "draft.json");
+  const specPath = configuredReviewDirectory();
+  if (specPath === null) throw new Error("canonical draft review requires a transient output directory");
+  const source = canonicalDraftReviewSource(specPath);
+  const draftPath = source.sourcePath;
   const stage = resolveDraftReviewStage(flow);
-  const draftInspection = inspectCanonicalDraftRevision({
-    root,
-    state: flow,
-    phase: stage.retryPhase,
-  });
-
-  if (!fs.existsSync(draftPath)) {
-    console.error("Error: draft.json not found");
-    process.exit(EXIT_ERROR);
-  }
-
-  const draftJson = draftInspection.snapshot.document;
+  const draftInspection = canonicalDraftSnapshot(source, flow, stage.retryPhase);
+  const draftJson = draftInspection.document;
 
   const requestText = [
     flow.request || "",
@@ -4015,12 +4116,7 @@ async function runDraftReview(root, flow, config, dryRun) {
     agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
   );
 
-  inspectCanonicalDraftRevision({
-    root,
-    state: container.get("flowManager").load(),
-    phase: stage.retryPhase,
-    expectedRevision: draftInspection.revision,
-  });
+  canonicalDraftSnapshot(source, container.get("flowManager").load(), stage.retryPhase);
 
   const proposals = raw.includes("NO_PROPOSALS")
     ? []
@@ -4029,8 +4125,8 @@ async function runDraftReview(root, flow, config, dryRun) {
   const reviewPath = path.join(specPath, stage.artifact);
   const reviewArtifact = buildDraftReviewArtifact({
     raw,
-    draftPath: path.relative(specPath, draftPath),
-    draftRevision: draftInspection.revision,
+    draftPath: source.logicalPath,
+    draftRevision: source.revision,
     proposals,
     stage,
   });

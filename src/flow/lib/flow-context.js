@@ -120,7 +120,11 @@ function resolveAuthorityFlowState(container, baseFlowManager, mainRoot, options
   if (preparingAuthority) return preparingAuthority;
 
   const selection = resolveTargetSelection(targetExpectation);
-  if (options.explicitTargetResolution === true && selection) {
+  // Any parsed target guard is an exact authority selection, including
+  // ordinary commands such as `set note`.  Resolving the unscoped active
+  // manager first is invalid when concurrent Flows exist and lets hook setup
+  // observe a different Flow than the command itself.
+  if (selection) {
     let target;
     try {
       const resolver = options.mismatchTargetResolution === true

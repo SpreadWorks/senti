@@ -1,11 +1,10 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFileSync } from "node:child_process";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 function createTmpProject() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "flow-auto-"));
   fs.mkdirSync(path.join(tmp, ".sennel"), { recursive: true });
@@ -15,18 +14,10 @@ function createTmpProject() {
 }
 
 function createFlowState(tmp) {
-  const state = {
-    specId: "001-test",
-    runId: "run-test",
-    baseBranch: "main",
-    featureBranch: "feature/001-test",
-    steps: buildInitialSteps(),
-    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
-    currentTaskId: null,
-  };
-  makeFlowManager(tmp).create(state);
-  makeFlowManager(tmp).addActiveFlow("001-test", "branch");
-  return state;
+  return new CanonicalFlowFixture({
+    flowManager: makeFlowManager(tmp), specId: "001-test", runId: "run-test",
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create().registerActive();
 }
 
 describe("flow-state autoApprove", () => {
@@ -41,41 +32,30 @@ describe("flow-state autoApprove", () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
-  it("sets autoApprove to true via mutateFlowState", () => {
-    makeFlowManager(tmp).mutate((state) => {
-      state.autoApprove = true;
-    });
+  it("sets autoApprove to true through the typed policy Activity", () => {
+    makeFlowManager(tmp).setAutoApprove(true);
     const loaded = makeFlowManager(tmp).load();
     assert.equal(loaded.autoApprove, true);
   });
 
-  it("sets autoApprove to false via mutateFlowState", () => {
-    // First set to true
-    makeFlowManager(tmp).mutate((state) => {
-      state.autoApprove = true;
-    });
-    // Then set to false
-    makeFlowManager(tmp).mutate((state) => {
-      state.autoApprove = false;
-    });
+  it("sets autoApprove to false through the typed policy Activity", () => {
+    makeFlowManager(tmp).setAutoApprove(true);
+    makeFlowManager(tmp).setAutoApprove(false);
     const loaded = makeFlowManager(tmp).load();
     assert.equal(loaded.autoApprove, false);
   });
 
-  it("autoApprove defaults to undefined when not set", () => {
+  it("autoApprove defaults to false when not set", () => {
     const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.autoApprove, undefined);
+    assert.equal(loaded.autoApprove, false);
   });
 
-  it("preserves autoApprove across other mutations", () => {
-    makeFlowManager(tmp).mutate((state) => {
-      state.autoApprove = true;
-    });
-    makeFlowManager(tmp).mutate((state) => {
-      state.request = "test request";
-    });
+  it("preserves autoApprove across independent typed observations", () => {
+    makeFlowManager(tmp).setAutoApprove(true);
+    makeFlowManager(tmp).addNote("policy remains active");
     const loaded = makeFlowManager(tmp).load();
     assert.equal(loaded.autoApprove, true);
-    assert.equal(loaded.request, "test request");
+    assert.equal(loaded.request, "Fixture request");
+    assert.equal(loaded.notes.at(-1).text, "policy remains active");
   });
 });

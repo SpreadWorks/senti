@@ -2,7 +2,7 @@
  * src/lib/flow-manager.js
  *
  * Facade for Spec-Driven Development flow state management. Owns:
- *   - FlowStore             : configured spec-root flow.json I/O + mutations
+ *   - CanonicalFlowManagerStore : Version-1 flow.json I/O + typed Activities
  *   - ActiveFlowRegistry    : .sennel/.active-flow pointer
  *   - PreparingFlowStore    : .sennel/.active-flow.<runId> transient state
  *
@@ -13,7 +13,6 @@
 import fs from "fs";
 import path from "path";
 import { managedDir } from "./config.js";
-import { FlowStore } from "./flow-store.js";
 import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
@@ -21,8 +20,13 @@ import { FlowTargetExpectation } from "./flow-target-guard.js";
 import { findInProgressLeaf } from "../flow/lib/step-tree.js";
 import { WorktreeFlowBindingStore } from "./worktree-flow-binding.js";
 import { RepositoryFlowOperationLock } from "./repository-maintenance-lock.js";
-import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
+import { bindFlowStateLocation, DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "./flow-workspace.js";
 import { FlowVersion } from "./flow-version.js";
+import {
+  CanonicalFlowCreateRequest,
+  CanonicalFlowManagerStore,
+  canonicalFlowVersionLocation,
+} from "../flow/lib/canonical-flow-manager-store.js";
 import {
   FlowTargetAuthorityError,
   FlowTargetIdentity,
@@ -30,7 +34,7 @@ import {
   FlowTargetRecoveryError,
 } from "./flow-target-identity-authority.js";
 
-const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "local"]);
+const ACTIVE_FLOW_MODES = new Set(["worktree", "branch", "direct"]);
 
 export class ResolvedFlowTarget {
   constructor({ state, specId = null, worktreePath = null, mainRoot, authorityRoot, preparing = false }) {
@@ -203,25 +207,6 @@ class ActiveFlowMismatchError extends Error {
   }
 }
 
-class CapturedFlowTargetMutation {
-  constructor(expectation, mutate) {
-    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.specId == null) {
-      throw new Error("captured flow target mutation requires an exact target with a spec");
-    }
-    if (typeof mutate !== "function") {
-      throw new Error("captured flow target mutation requires a mutation function");
-    }
-    this.expectation = expectation;
-    this._mutate = mutate;
-    Object.freeze(this);
-  }
-
-  mutate(mutator, opts) {
-    if (typeof mutator !== "function") throw new Error("captured flow target mutator is required");
-    return this._mutate(mutator, opts);
-  }
-}
-
 function isManagedFlowWorktree(root, mainRoot, inWorktree) {
   if (!inWorktree || !root || !mainRoot) return false;
   const resolvedRoot = path.resolve(root);
@@ -265,6 +250,7 @@ export class FlowManager {
     specRoot = DEFAULT_FLOW_SPEC_DIR,
     bindingFaultInjector = () => {},
     targetIdentityFaultInjector = () => {},
+    versionStoreFaultInjector = null,
     processIdentitySource,
   }) {
     this._root = root;
@@ -274,6 +260,7 @@ export class FlowManager {
     this._workspace = new FlowWorkspace({ repositoryRoot: mainRoot, executionRoot: root, specRoot });
     this._bindingFaultInjector = bindingFaultInjector;
     this._targetIdentityFaultInjector = targetIdentityFaultInjector;
+    this._versionStoreFaultInjector = versionStoreFaultInjector;
     this._processIdentitySource = processIdentitySource;
     this._usesWorktreeFlowBinding = isManagedFlowWorktree(root, mainRoot, inWorktree);
     this._activeFlows = new ActiveFlowRegistry({
@@ -291,12 +278,12 @@ export class FlowManager {
       faultInjector: targetIdentityFaultInjector,
       ...(processIdentitySource && { processIdentitySource }),
     });
-    this._store = new FlowStore({
+    this._store = new CanonicalFlowManagerStore({
       root,
       mainRoot,
-      inWorktree,
       specRoot: this._workspace.specRoot,
       activeFlowsProvider: () => this._activeFlows,
+      versionStoreFaultInjector,
     });
     this._worktreeBinding = this._usesWorktreeFlowBinding
       ? new WorktreeFlowBindingStore({
@@ -311,7 +298,7 @@ export class FlowManager {
     return this._workspace.specRoot;
   }
 
-  // ── flow.json (FlowStore) ───────────────────────────────────────────────────
+  // ── canonical Version-1 flow.json ───────────────────────────────────────────
 
   load(specId) {
     const state = this._worktreeBinding
@@ -325,59 +312,34 @@ export class FlowManager {
       : this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
     return this.#bindLoadedState(state);
   }
-  create(state, options) {
-    const created = this._store.create(state, options);
-    // A non-worktree manager that creates a flow owns that exact target for
-    // the rest of its creation session. This keeps subsequent CAS operations
-    // target-bound without publishing the flow in the shared active registry.
-    // Managed worktrees continue to derive authority from their binding file.
+  /**
+   * Create the one canonical Version-1 root.  Fresh runtime callers use this
+   * explicit request rather than assembling a mutable flow.json document.
+   */
+  createFresh(request) {
+    const created = this._store.createFresh(
+      request instanceof CanonicalFlowCreateRequest
+        ? request
+        : new CanonicalFlowCreateRequest(request),
+    );
     if (!this._worktreeBinding && this._boundSpecId == null) {
-      this._boundSpecId = state.specId;
+      this._boundSpecId = created.specId;
     }
-    return created;
+    return this.#bindLoadedState(created);
   }
-  saveAtomic(state, options = {}) {
-    return this._store.saveAtomic(state, { ...options, boundSpecId: this._boundSpecId });
-  }
-
   #bindLoadedState(state) {
     if (state != null && this._boundSpecId == null) {
       this._boundSpecId = state.specId;
     }
+    if (state != null) {
+      bindFlowStateLocation(state, this.specLocation(state.specId));
+    }
     return state;
   }
-  mutate(mutator, opts) {
-    const resolved = withSpecIdDefault(opts, this._boundSpecId) || {};
-    if (!this._worktreeBinding && resolved.allowIssueTransition === true) {
-      return this.#mutateIndexedActiveIssue(mutator, resolved);
-    }
-    return this._store.mutate(mutator, resolved);
-  }
-  captureExactTarget(expectation) {
-    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty || expectation.specId == null) {
-      throw new Error("exact flow target with a spec is required for capture");
-    }
-    this.resolveExplicitFlowTargetForRead(expectation);
-    return new CapturedFlowTargetMutation(
-      expectation,
-      (mutator, opts) => this.#mutateCapturedTarget(expectation, mutator, opts),
-    );
-  }
-  mutateExactTarget(expectation, mutator, opts) {
-    if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
-      throw new Error("exact flow target expectation is required for mutation");
-    }
-    this.resolveExplicitFlowTargetForRead(expectation);
-    return this.#mutateCapturedTarget(expectation, mutator, opts);
-  }
-  #mutateCapturedTarget(expectation, mutator, opts) {
-    return this.mutate((current) => {
-      if (expectation.mismatchAgainst(current)) throw new ActiveFlowMismatchError(expectation, current);
-      return mutator(current);
-    }, { ...opts, specId: expectation.specId });
-  }
   pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
-  specLocation(specId) { return this._workspace.forSpec(withSpecIdArgDefault(specId, this._boundSpecId)); }
+  specLocation(specId) {
+    return canonicalFlowVersionLocation(this._store, withSpecIdArgDefault(specId, this._boundSpecId));
+  }
   canonicalVersionLocation(version, { specId } = {}) {
     return this._workspace.canonicalVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
   }
@@ -385,10 +347,9 @@ export class FlowManager {
     return this._workspace.executionVersion(withSpecIdArgDefault(specId, this._boundSpecId), FlowVersion.from(version));
   }
   pathForCurrent() { return this._store.pathForCurrent(); }
-  /** Alias preserved for parity with the legacy `flowStatePath` public export. */
+  /** Alias for the canonical Version-1 flow.json path. */
   flowStatePath() { return this._store.pathForCurrent(); }
   resolveWorktreePaths(state) { return this._store.resolveWorktreePaths(state); }
-  saveFinalizedAt(specId, iso) { return this._store.saveFinalizedAt(specId, iso); }
 
   /**
    * Construct a FlowManager scoped to a different root (e.g. a freshly-created
@@ -407,6 +368,7 @@ export class FlowManager {
       specRoot: this._workspace.specRoot,
       bindingFaultInjector: opts.bindingFaultInjector ?? this._bindingFaultInjector,
       targetIdentityFaultInjector: opts.targetIdentityFaultInjector ?? this._targetIdentityFaultInjector,
+      versionStoreFaultInjector: opts.versionStoreFaultInjector ?? this._versionStoreFaultInjector,
       ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
     });
   }
@@ -418,7 +380,6 @@ export class FlowManager {
     if (expectation instanceof FlowTargetExpectation && !expectation.empty) {
       return this.#resolveGuardedWorktreeBinding(expectation);
     }
-    this.#recoverBoundIssueTransition();
     return this._worktreeBinding.load();
   }
 
@@ -446,39 +407,240 @@ export class FlowManager {
   updateStepStatus(transition, opts, commitIntent = null) {
     return this._store.updateStepStatus(transition, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
   }
-  completeStepTransitionIntent(commitIntent, opts) {
-    return this._store.completeStepTransitionIntent(
-      commitIntent,
-      withSpecIdDefault(opts, this._boundSpecId),
-    );
-  }
   updateStepStatuses(transitions, opts, commitIntent = null) {
     return this._store.updateStepStatuses(transitions, withSpecIdDefault(opts, this._boundSpecId), commitIntent);
+  }
+  finalizeDownstream(input = {}) {
+    return this._store.finalizeDownstream({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  canonicalState(specId = this._boundSpecId) {
+    return this._store.canonicalState(specId);
+  }
+  activityLedger(specId = this._boundSpecId) {
+    return this._store.activityLedger(specId);
+  }
+  beginNextAction(specId = this._boundSpecId) {
+    return this._store.beginNextAction(specId);
+  }
+  beginInterruptedFinalizeSyncCleanup(input = {}) {
+    return this._store.beginInterruptedFinalizeSyncCleanup({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  confirmCurrentAttempt(input = {}) {
+    return this._store.confirmCurrentAttempt({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  failCurrentAttempt(input = {}) {
+    return this._store.failCurrentAttempt({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  publishCurrentAttemptResult(input = {}) {
+    return this._store.publishCurrentAttemptResult({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  publishArtifacts(input = {}) {
+    return this._store.publishArtifacts({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  publishUpgradeResult(input = {}) {
+    return this._store.publishUpgradeResult({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  publishPluginArtifacts(input = {}) {
+    return this._store.publishPluginArtifacts({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  activateNonblockingPolicy(input = {}) {
+    return this._store.activateNonblockingPolicy({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  recordNonblocking(input = {}) {
+    return this._store.recordNonblocking({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  applyNonblockingDecision(input = {}) {
+    return this._store.applyNonblockingDecision({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Apply a typed Task overview contribution through the canonical Store. */
+  updateTaskOverview(input = {}) {
+    return this._store.updateTaskOverview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  updateSpecApproval(input = {}) {
+    return this._store.updateSpecApproval({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  appendIssueLog(input = {}) {
+    return this._store.appendIssueLog({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  updateFileMap(input = {}) {
+    return this._store.updateFileMap({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  updateRequirementStatus(input = {}) {
+    return this._store.updateRequirementStatus({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Resolve a durable consumer input through the canonical artifact catalog. */
+  readArtifact(input = {}) {
+    return this._store.readArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  readActiveProducerArtifact(input = {}) {
+    return this._store.readActiveProducerArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Read an artifact published by the active producer, including shared producer contracts. */
+  readProducerArtifact(input = {}) {
+    return this._store.readProducerArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Resolve a producer-referenced catalog entry without reconstructing a path. */
+  readCatalogArtifact(input = {}) {
+    return this._store.readCatalogArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  recordDispatchApproval(input = {}) {
+    return this._store.recordDispatchApproval({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  beginOutbox(input = {}) {
+    return this._store.beginOutbox({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  completeOutbox(input = {}) {
+    return this._store.completeOutbox({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  failOutbox(input = {}) {
+    return this._store.failOutbox({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  reopenOutboxExact(input = {}) {
+    return this._store.reopenOutboxExact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  outboxStatus(input = {}) {
+    return this._store.outboxStatus({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
   }
   setStepRuntimeLog(stepId, runtimeLog, opts) {
     return this._store.setStepRuntimeLog(stepId, runtimeLog, withSpecIdDefault(opts, this._boundSpecId));
   }
-  setMergeOutcome(outcome, opts) {
-    return this._store.setMergeOutcome(outcome, withSpecIdDefault(opts, this._boundSpecId));
-  }
-  setRequest(text, opts) { return this._store.setRequest(text, withSpecIdDefault(opts, this._boundSpecId)); }
-  setIssue(issue, opts) {
-    if (!this._worktreeBinding) {
-      return this.mutate(
-        (state) => { state.issue = issue; },
-        { ...withSpecIdDefault(opts, this._boundSpecId), allowIssueTransition: true },
-      );
-    }
-    return this.#setBoundWorktreeIssue(issue, withSpecIdDefault(opts, this._boundSpecId));
-  }
-  rewindPlan(transition, opts) {
-    return this._store.rewindPlan(transition, withSpecIdDefault(opts, this._boundSpecId));
-  }
-  saveRecoveryAtomic(transition, opts) {
-    return this._store.saveRecoveryAtomic(transition, {
-      ...opts,
-      boundSpecId: this._boundSpecId,
+  writeRuntimeArtifact(input = {}) {
+    return this._store.writeRuntimeArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
     });
+  }
+  readRuntimeArtifact(input = {}) {
+    return this._store.readRuntimeArtifact({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  /** Atomically persist cataloged gate evidence and rewind to its repair target. */
+  repairPlanGate(input = {}) {
+    return this._store.repairPlanGate({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  rewindTo(nodeId, opts) { return this._store.rewindTo(nodeId, withSpecIdDefault(opts, this._boundSpecId)); }
+  rewindTestEvidence(input = {}) {
+    return this._store.rewindTestEvidence({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  repairTestReview(input = {}) {
+    return this._store.repairTestReview({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  preimplementationBootstrap(input = {}) {
+    return this._store.preimplementationBootstrap({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  recoverExistingImplementation(input = {}) {
+    return this._store.recoverExistingImplementation({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  reopenDraft(input = {}) {
+    return this._store.reopenDraft({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  retryCurrentAttempt(opts) { return this._store.retryCurrentAttempt(withSpecIdDefault(opts, this._boundSpecId)); }
+  acceptFinalRegressionFailure(input = {}) {
+    return this._store.acceptFinalRegressionFailure({
+      ...input,
+      specId: input.specId ?? this._boundSpecId,
+    });
+  }
+  setAutoApprove(autoApprove, opts) {
+    return this._store.setAutoApprove(autoApprove, withSpecIdDefault(opts, this._boundSpecId));
   }
   addNote(text, opts) { return this._store.addNote(text, withSpecIdDefault(opts, this._boundSpecId)); }
   incrementMetric(phase, counter, opts) {
@@ -492,8 +654,22 @@ export class FlowManager {
 
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────
 
-  /** Add a new task and set it as the current task. */
+  /** Add a canonical Task; current Task is derived from the active Attempt. */
   addTask(task, opts) { return this._store.addTask(task, withSpecIdDefault(opts, this._boundSpecId)); }
+
+  /** Start the next definition-owned Step of one canonical Task. */
+  startTask(taskId, opts) { return this._store.startTask(taskId, withSpecIdDefault(opts, this._boundSpecId)); }
+
+  /** Apply one already-validated canonical Activity through the Version Store. */
+  applyActivity(activity, opts) {
+    return this._store.applyActivity(activity, withSpecIdDefault(opts, this._boundSpecId));
+  }
+
+  parkFlow(specId = this._boundSpecId) { return this._store.park(specId); }
+  resumeFlow(specId = this._boundSpecId) { return this._store.resume(specId); }
+  finalizeFlow(specId = this._boundSpecId) { return this._store.finalize(specId); }
+  restartFlow(specId = this._boundSpecId) { return this._store.restart(specId); }
+  artifactCatalog(specId = this._boundSpecId) { return this._store.catalog(specId); }
 
   /** Mark a task done; clears currentTaskId if it pointed at this task. */
   completeTask(taskId, opts) {
@@ -512,11 +688,6 @@ export class FlowManager {
     const task = this.getCurrentTask();
     if (!task) return null;
     return (task.steps || []).find((s) => s.status === "in_progress") ?? null;
-  }
-
-  /** Update a step status on the current task. */
-  setCurrentTaskStep(stepId, status, opts) {
-    return this._store.setCurrentTaskStep(stepId, status, withSpecIdDefault(opts, this._boundSpecId));
   }
 
   /**
@@ -676,9 +847,11 @@ export class FlowManager {
   clearFlowState(specId, options) {
     if (!specId) {
       const flows = this._activeFlows.load();
-      const current = this._store._resolveCurrentFlow(flows);
-      if (!current) return;
-      specId = current.specId;
+      if (flows.length === 0) return;
+      if (flows.length !== 1) {
+        throw new Error("multiple active Flows require an explicit specId for removal");
+      }
+      specId = flows[0].specId;
     }
     this.removeActiveFlow(specId, options);
   }
@@ -834,7 +1007,24 @@ export class FlowManager {
     if (!(expectation instanceof FlowTargetExpectation) || expectation.empty) {
       throw new Error("explicit flow target expectation is required");
     }
-    return this.#resolveExplicitIdentity(expectation);
+    const identities = this.#targetIdentityEntries();
+    const exact = identities.filter((identity) => identity.matches(expectation));
+    if (exact.length > 0) {
+      return this.#loadTargetIdentity(resolveUniqueFlowTarget(expectation, exact));
+    }
+
+    // Read-only commands need the selected authority in order to return a
+    // complete mismatch envelope.  A stable run/spec selector may identify
+    // that authority even when a secondary Issue guard is intentionally
+    // wrong.  Mutating resolution never uses this fallback.
+    const runId = expectation.effectiveRunId;
+    const specId = expectation.effectiveSpecId;
+    const candidates = identities.filter((identity) => (
+      (runId == null || identity.runId === runId)
+      && (specId == null || identity.specId === specId)
+    ));
+    const target = this.#loadTargetIdentity(resolveUniqueFlowTarget(expectation, candidates));
+    return target;
   }
 
   #resolveExplicitIdentity(expectation, lifecycle = null) {
@@ -931,7 +1121,7 @@ export class FlowManager {
     if (flowState) {
       const specId = flowState.specId;
       let worktreePath = null;
-      if (flowState.worktree) {
+      if (flowState.worktree || flowState.execution?.mode === "worktree") {
         const candidate = this._store.resolveWorktreePaths(flowState).worktreePath;
         if (candidate && fs.existsSync(candidate)) worktreePath = candidate;
       }
@@ -995,7 +1185,7 @@ export class FlowManager {
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
   _loadActiveFlowState(specId) {
-    const state = this._store.load(specId);
+    const state = this.#bindLoadedState(this._store.load(specId));
     if (!state) {
       const statePath = this._store.pathFor(specId);
       const error = new Error(
@@ -1029,7 +1219,6 @@ export class FlowManager {
   }
 
   #loadBoundWorktreeState(specId, readOnly) {
-    this.#recoverBoundIssueTransition();
     return this._worktreeBinding.withLock(() => {
       const identity = this._worktreeBinding.loadOwned().identity;
       const requested = withSpecIdArgDefault(specId, this._boundSpecId);
@@ -1045,253 +1234,6 @@ export class FlowManager {
     });
   }
 
-  #mutateIndexedActiveIssue(mutator, opts = {}) {
-    const requestedSpecId = withSpecIdArgDefault(opts.specId, this._boundSpecId);
-    return this.#withRepositoryOperation(opts, (operationOwnerToken) => {
-      const activeIdentities = this.#targetIdentityEntries("active");
-      const identity = requestedSpecId
-        ? activeIdentities.find((entry) => entry.specId === requestedSpecId) ?? null
-        : activeIdentities.length === 1 ? activeIdentities[0] : null;
-      if (!identity) {
-        const registryEntry = requestedSpecId
-          ? this._activeFlows.load().find((entry) => entry.specId === requestedSpecId)
-          : null;
-        if (requestedSpecId && !registryEntry) {
-          return this._store.mutate(mutator, {
-            ...opts,
-            specId: requestedSpecId,
-            operationOwnerToken,
-            allowIssueTransition: true,
-          });
-        }
-        throw new FlowTargetAuthorityError(
-          requestedSpecId
-            ? `active flow identity is missing for ${requestedSpecId}`
-            : "Issue mutation requires one active flow identity",
-        );
-      }
-      const specId = identity.specId;
-      const original = this._store.load(specId);
-      if (!original) {
-        throw new FlowTargetRecoveryError(
-          identity,
-          `selected active flow state is missing: ${identity.runId}`,
-          { reason: "ACTIVE_FLOW_STATE_AUTHORITY_MISSING" },
-        );
-      }
-      identity.assertState(original);
-      const mutationResult = this._store.mutate((state, context) => {
-        mutator(state, context);
-        if (state.runId !== identity.runId || state.specId !== identity.specId) {
-          throw new Error("Issue mutation must preserve active runId and specId");
-        }
-      }, {
-        ...opts,
-        specId,
-        operationOwnerToken,
-        allowIssueTransition: true,
-      });
-      const updated = this._store.load(specId);
-      try {
-        this._targetIdentities.replaceActive(updated, identity.mode, {
-          ...opts,
-          operationOwnerToken,
-        });
-      } catch (authorityError) {
-        try {
-          this._store.saveAtomic(original, {
-            ...opts,
-            boundSpecId: specId,
-            expectedOriginal: updated,
-            operationOwnerToken,
-            allowIssueTransition: true,
-          });
-        } catch (rollbackError) {
-          throw new AggregateError(
-            [authorityError, rollbackError],
-            "active flow identity update and Issue state rollback both failed",
-            { cause: authorityError },
-          );
-        }
-        throw authorityError;
-      }
-      return mutationResult;
-    }, "active flow Issue mutation and repository lock release both failed");
-  }
-
-  #setBoundWorktreeIssue(issue, opts = {}) {
-    if (typeof issue !== "number" || !Number.isSafeInteger(issue) || issue < 1) {
-      throw new Error(`worktree flow identity issue must be a positive integer: ${issue}`);
-    }
-    const operationLock = this.#repositoryOperationLock(opts);
-    const operationOwnerToken = operationLock.acquire();
-    let result;
-    let primary = null;
-    try {
-      result = this._worktreeBinding.withLock((bindingOwnerToken) => {
-        this.#recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken);
-        const identity = this._worktreeBinding.loadOwned().identity;
-        if (opts.specId != null && opts.specId !== identity.specId) {
-          throw new Error(`worktree flow binding specId mismatch: ${opts.specId} != ${identity.specId}`);
-        }
-        const currentState = this._store.load(identity.specId);
-        identity.assertFlowState(currentState);
-        const targetIdentity = this.#targetIdentityEntries("active")
-          .find((entry) => entry.specId === identity.specId) ?? null;
-        if (!targetIdentity) {
-          throw new FlowTargetAuthorityError(`active flow identity is missing for ${identity.specId}`);
-        }
-        targetIdentity.assertState(currentState);
-        if (identity.issue === issue) return { identity, state: currentState };
-        const nextState = structuredClone(currentState);
-        nextState.issue = issue;
-        const nextIdentity = identity.withIssue(issue);
-        const writeOptions = {
-          boundSpecId: identity.specId,
-          expectedOriginal: currentState,
-          faultInjector: opts.faultInjector,
-          processIdentitySource: opts.processIdentitySource,
-          maintenanceOwnerToken: opts.maintenanceOwnerToken,
-          operationOwnerToken,
-          allowIssueTransition: true,
-        };
-        const transition = this._worktreeBinding.beginIssueTransition(
-          identity,
-          nextIdentity,
-          bindingOwnerToken,
-        );
-        writeOptions.transitionId = transition.transitionId;
-        writeOptions.writerOwnerToken = transition.writerOwnerToken;
-        writeOptions.writerOwnerTempName = transition.writerOwnerTempName;
-        try {
-          this._store.saveAtomic(nextState, writeOptions);
-        } catch (flowError) {
-          try {
-            this.#recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken);
-          } catch (recoveryError) {
-            throw new AggregateError(
-              [flowError, recoveryError],
-              "worktree Issue state update and recovery both failed",
-              { cause: flowError },
-            );
-          }
-          throw flowError;
-        }
-        try {
-          this._worktreeBinding.replace(identity, nextIdentity, bindingOwnerToken);
-          this._targetIdentities.replaceActive(nextState, targetIdentity.mode, {
-            ...opts,
-            operationOwnerToken,
-          });
-        } catch (transactionError) {
-          const rollbackErrors = [];
-          try {
-            const visibleTarget = this._targetIdentities.snapshot().entries.find((entry) => (
-              entry.lifecycle === "active" && entry.specId === targetIdentity.specId
-            ));
-            const nextTarget = FlowTargetIdentity.active(
-              nextState,
-              targetIdentity.mode,
-              this._workspace.specRoot,
-            );
-            if (visibleTarget?.revision === nextTarget.revision) {
-              this._targetIdentities.replaceActive(currentState, targetIdentity.mode, {
-                ...opts,
-                operationOwnerToken,
-              });
-            } else if (visibleTarget?.revision !== targetIdentity.revision) {
-              throw new Error("flow target identity has an unknown revision after failed Issue update");
-            }
-          } catch (error) {
-            rollbackErrors.push(error);
-          }
-          try {
-            const visibleIdentity = this._worktreeBinding.loadOwned().identity;
-            if (visibleIdentity.equals(nextIdentity)) {
-              this._worktreeBinding.replace(nextIdentity, identity, bindingOwnerToken);
-            } else if (!visibleIdentity.equals(identity)) {
-              throw new Error("worktree flow binding has an unknown identity after failed Issue update");
-            }
-          } catch (error) {
-            rollbackErrors.push(error);
-          }
-          try {
-            this._store.saveAtomic(currentState, {
-              ...writeOptions,
-              expectedOriginal: nextState,
-            });
-          } catch (error) {
-            rollbackErrors.push(error);
-          }
-          if (rollbackErrors.length === 0) {
-            try {
-              this._worktreeBinding.clearIssueTransition(bindingOwnerToken);
-            } catch (error) {
-              rollbackErrors.push(error);
-            }
-          }
-          if (rollbackErrors.length > 0) {
-            throw new AggregateError(
-              [transactionError, ...rollbackErrors],
-              "worktree Issue binding update and rollback failed",
-              { cause: transactionError },
-            );
-          }
-          throw transactionError;
-        }
-        this._worktreeBinding.clearIssueTransition(bindingOwnerToken);
-        return { identity: nextIdentity, state: nextState };
-      });
-    } catch (error) {
-      primary = error;
-    }
-    let releaseError = null;
-    try {
-      operationLock.release();
-    } catch (error) {
-      releaseError = error;
-    }
-    if (primary && releaseError) {
-      throw new AggregateError(
-        [primary, releaseError],
-        "worktree Issue binding transaction and repository lock release both failed",
-        { cause: primary },
-      );
-    }
-    if (primary) throw primary;
-    if (releaseError) throw releaseError;
-    return result;
-  }
-
-  #recoverBoundIssueTransition() {
-    if (!this._worktreeBinding?.issueTransitionExists) return;
-    const operationLock = this.#repositoryOperationLock();
-    const operationOwnerToken = operationLock.acquire();
-    let primary = null;
-    try {
-      this._worktreeBinding.withLock((bindingOwnerToken) => {
-        this.#recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken);
-      });
-    } catch (error) {
-      primary = error;
-    }
-    let releaseError = null;
-    try {
-      operationLock.release();
-    } catch (error) {
-      releaseError = error;
-    }
-    if (primary && releaseError) {
-      throw new AggregateError(
-        [primary, releaseError],
-        "worktree Issue recovery and repository lock release both failed",
-        { cause: primary },
-      );
-    }
-    if (primary) throw primary;
-    if (releaseError) throw releaseError;
-  }
-
   #resolveGuardedWorktreeBinding(expectation) {
     const operationLock = this.#repositoryOperationLock();
     const operationOwnerToken = operationLock.acquire();
@@ -1300,19 +1242,12 @@ export class FlowManager {
     try {
       result = this._worktreeBinding.withLock((bindingOwnerToken) => {
         const binding = this._worktreeBinding.loadOwned().identity;
-        const transition = this._worktreeBinding.loadIssueTransitionOwned();
-        const authorities = transition ? [transition.original, transition.next] : [binding];
-        const matchesAuthority = authorities.some((identity) => (
-          expectation.mismatchAgainst(identity.toJSON()) == null
-        ));
-        if (!matchesAuthority) throw new ActiveFlowMismatchError(expectation, binding.toJSON());
-        if (transition) {
-          this.#recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken);
+        if (expectation.mismatchAgainst(binding.toJSON()) != null) {
+          throw new ActiveFlowMismatchError(expectation, binding.toJSON());
         }
-        const resolved = this._worktreeBinding.loadOwned().identity;
-        const state = this._store.load(resolved.specId);
-        resolved.assertFlowState(state);
-        return resolved;
+        const state = this._store.load(binding.specId);
+        binding.assertFlowState(state);
+        return binding;
       });
     } catch (error) {
       primary = error;
@@ -1333,77 +1268,6 @@ export class FlowManager {
     if (primary) throw primary;
     if (releaseError) throw releaseError;
     return result;
-  }
-
-  #recoverBoundIssueTransitionOwned(bindingOwnerToken, operationOwnerToken) {
-    const transition = this._worktreeBinding.loadIssueTransitionOwned();
-    if (!transition) return;
-    const binding = this._worktreeBinding.loadOwned().identity;
-    const state = this._store.load(transition.original.specId);
-    const originalState = this.#identityMatchesFlowState(transition.original, state);
-    const nextState = this.#identityMatchesFlowState(transition.next, state);
-    const originalBinding = binding.equals(transition.original);
-    const nextBinding = binding.equals(transition.next);
-
-    if ((originalState || nextState) && (originalBinding || nextBinding)) {
-      this._store.recoverCommittedAtomicWrite(transition.original.specId, {
-        operationOwnerToken,
-        transitionId: transition.transitionId,
-        writerOwnerToken: transition.writerOwnerToken,
-        writerOwnerTempName: transition.writerOwnerTempName,
-        ...(this._processIdentitySource && { processIdentitySource: this._processIdentitySource }),
-      });
-    }
-
-    if (originalState && nextBinding) {
-      this._worktreeBinding.replace(transition.next, transition.original, bindingOwnerToken);
-    } else if (nextState && originalBinding) {
-      this._worktreeBinding.replace(transition.original, transition.next, bindingOwnerToken);
-    } else if (!(originalState && originalBinding) && !(nextState && nextBinding)) {
-      throw new Error("worktree flow Issue transition cannot reconcile the visible flow and binding identities");
-    }
-    const targetIdentity = this._targetIdentities.snapshot().entries.find((entry) => (
-      entry.lifecycle === "active" && entry.specId === transition.original.specId
-    ));
-    if (!targetIdentity) {
-      throw new FlowTargetAuthorityError(
-        `active flow identity is missing for ${transition.original.specId}`,
-      );
-    }
-    const settledIdentity = FlowTargetIdentity.active(
-      state,
-      targetIdentity.mode,
-      this._workspace.specRoot,
-    );
-    const originalTarget = FlowTargetIdentity.active(
-      { ...state, issue: transition.original.issue },
-      targetIdentity.mode,
-      this._workspace.specRoot,
-    );
-    const nextTarget = FlowTargetIdentity.active(
-      { ...state, issue: transition.next.issue },
-      targetIdentity.mode,
-      this._workspace.specRoot,
-    );
-    if (![originalTarget.revision, nextTarget.revision].includes(targetIdentity.revision)) {
-      throw new FlowTargetAuthorityError(
-        `active flow identity cannot reconcile Issue transition for ${targetIdentity.specId}`,
-        { data: targetIdentity.toErrorData() },
-      );
-    }
-    if (targetIdentity.revision !== settledIdentity.revision) {
-      this._targetIdentities.replaceActive(state, targetIdentity.mode, { operationOwnerToken });
-    }
-    this._worktreeBinding.clearIssueTransition(bindingOwnerToken);
-  }
-
-  #identityMatchesFlowState(identity, state) {
-    try {
-      identity.assertFlowState(state);
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   #withRepositoryOperation(options, body, aggregateMessage) {

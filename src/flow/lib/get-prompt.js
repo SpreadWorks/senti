@@ -10,7 +10,6 @@
 
 import { FlowCommand } from "./base-command.js";
 import { renderSpecView } from "./render-spec-view.js";
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
 
 /**
  * @typedef {{ id: number, label: string, description: string, recommended: boolean }} Choice
@@ -288,7 +287,7 @@ function validKinds() {
 
 export default class GetPromptCommand extends FlowCommand {
   constructor() {
-    super({ requiresFlow: false });
+    super({ requiresFlow: false, explicitTargetResolution: true });
   }
 
   execute(ctx) {
@@ -319,8 +318,8 @@ export default class GetPromptCommand extends FlowCommand {
     if (kind === "plan.approval" && state?.specId) {
       const rendered = renderSpecView({
         root: ctx.root,
-        specPath: relativeFlowSpecFile(state),
-        optional: true,
+        flowManager: ctx.flowManager,
+        flowState: state,
       });
       if (rendered.rendered) artifacts.specView = rendered.changed;
     }

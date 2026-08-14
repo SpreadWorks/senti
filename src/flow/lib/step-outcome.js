@@ -342,20 +342,19 @@ export class StepAttemptLog {
 }
 
 export function persistStepAttempt(ctx, attempt, routeOptions) {
+  void ctx;
+  void routeOptions;
   if (!(attempt instanceof StepAttempt)) throw new Error("StepAttempt is required");
-  if (typeof ctx?.flowManager?.mutate !== "function") {
-    throw new Error("flowManager.mutate is required to persist StepAttempt");
-  }
-  ctx.flowManager.mutate((state) => {
-    const log = new StepAttemptLog(state.stepAttempts || []);
-    log.record(attempt);
-    state.stepAttempts = log.toJSON();
-  }, routeOptions);
+  // Attempt history is producer-owned catalog content. The Store publishes it
+  // with the command result; this adapter only exposes the typed value to the
+  // lifecycle envelope.
   return attempt;
 }
 
 export function recordStepAttempt(ctx, { stepId, attempt, outcome, result = null, routeOptions = undefined }) {
-  if (!ctx?.flowState?.runId || typeof ctx?.flowManager?.mutate !== "function") return null;
+  if (ctx?.flowState?.schemaRevision !== 3 || !ctx.flowState.runId) {
+    throw new Error("recordStepAttempt requires an active canonical Flow state");
+  }
   const record = new StepAttempt({
     runId: ctx.flowState.runId,
     taskId: ctx.flowState.currentTaskId ?? null,
@@ -389,14 +388,21 @@ export function retryResetTimestampForStep(flowState, stepId) {
 }
 
 export function nextStepAttemptNumber(flowState, stepId) {
-  if (!flowState?.runId) return 1;
-  const log = new StepAttemptLog(flowState.stepAttempts || []);
-  const resetAt = retryResetTimestampForStep(flowState, stepId);
-  const matching = log.entries.filter((entry) => (
-    entry.runId === flowState.runId
-    && entry.taskId === (flowState.currentTaskId ?? null)
-    && entry.stepId === stepId
-    && Date.parse(entry.recordedAt) >= resetAt
-  ));
-  return matching.reduce((max, entry) => Math.max(max, entry.attempt), 0) + 1;
+  if (flowState?.schemaRevision !== 3) {
+    throw new Error("nextStepAttemptNumber requires an active canonical Flow state");
+  }
+  const find = (steps) => {
+    for (const step of steps || []) {
+      if (step.id === stepId) return step;
+      const nested = find(step.children || step.steps || []);
+      if (nested) return nested;
+    }
+    return null;
+  };
+  const node = find(flowState.steps)
+    || flowState.tasks?.map((task) => find(task.steps)).find(Boolean)
+    || null;
+  // A post-hook runs after its confirmation Activity, so the authoritative
+  // node sequence is the just-recorded attempt rather than a mutable counter.
+  return node?.attemptSequence || 1;
 }

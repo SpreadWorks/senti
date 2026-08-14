@@ -1,0 +1,888 @@
+/**
+ * Canonical Flow Version 1 runtime.
+ *
+ * This is the production-facing boundary for a persisted Flow.  It owns the
+ * Version resolver and turns lifecycle requests into typed Activities; command
+ * code never derives a root flow.json path or writes a state document itself.
+ */
+
+import { DEFAULT_FLOW_SPEC_DIR, FlowWorkspace } from "../../lib/flow-workspace.js";
+import { FlowVersion } from "../../lib/flow-version.js";
+import {
+  ActivityTransition,
+  CurrentFlowDefinition,
+  CurrentFlowState,
+  CurrentFlowStateInvariantError,
+  CurrentFlowVersionStore,
+  FlowActivity,
+} from "./current-flow-state.js";
+
+const TYPE_FOR_OPERATION = Object.freeze({
+  add_task: "task_added",
+  start_attempt: "attempt_started",
+  retry_attempt: "attempt_retried",
+  update_attempt: "attempt_updated",
+  fail_attempt: "attempt_failed",
+  record_failure: "failure_recorded",
+  confirm_attempt: "result_confirmed",
+  rewind: "recovery",
+  rewind_test_evidence: "recovery",
+  repair_test_review: "recovery",
+  preimplementation_bootstrap: "recovery",
+  recover_existing_implementation: "recovery",
+  reopen_draft_preimplementation: "recovery",
+  reopen_draft_task_addition: "recovery",
+  reopen_draft_spec_correction: "recovery",
+  plan_gate_repair: "recovery",
+  recover_attempt: "recovery",
+  park_flow: "flow_parked",
+  resume_flow: "flow_resumed",
+  finalize_flow: "flow_finalized",
+  set_policy: "policy_updated",
+  publish_artifacts: "artifacts_published",
+  publish_plugin_artifacts: "artifacts_published",
+  publish_upgrade_result: "artifacts_published",
+  update_spec_record: "spec_record_updated",
+  begin_outbox: "outbox_started",
+  reopen_outbox: "outbox_reopened",
+  complete_outbox: "outbox_completed",
+  fail_outbox: "outbox_failed",
+  record_dispatch_approval: "dispatch_approval_recorded",
+  record_metric: "metric_recorded",
+  record_note: "note_recorded",
+  record_nonblocking: "nonblocking_recorded",
+  continue_nonblocking: "nonblocking_recorded",
+  accept_final_regression_failure: "failure_accepted",
+  skip_finalize_downstream: "finalization_downstream_updated",
+  reset_finalize_downstream: "finalization_downstream_updated",
+});
+
+function requiredText(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new CurrentFlowStateInvariantError(`${field} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requiredAttempt(value, field) {
+  if (value === null || value === undefined) {
+    throw new CurrentFlowStateInvariantError(`${field} requires an Attempt`);
+  }
+  return value;
+}
+
+function requiredPositiveInteger(value, field) {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new CurrentFlowStateInvariantError(`${field} must be a positive integer`);
+  }
+  return value;
+}
+
+/**
+ * Resolves only `<specRoot>/<specId>/001`.  Version selection is deliberately
+ * not a caller option: production Flow Version 1 has one canonical current
+ * authority, and migration code uses the same `CurrentFlowVersionStore` API.
+ */
+export class CanonicalFlowRuntime {
+  constructor({ repositoryRoot, executionRoot = repositoryRoot, specRoot = DEFAULT_FLOW_SPEC_DIR, definition, versionStoreFaultInjector = null } = {}) {
+    if (!(definition instanceof CurrentFlowDefinition)) {
+      throw new CurrentFlowStateInvariantError("CanonicalFlowRuntime requires a CurrentFlowDefinition");
+    }
+    this.workspace = new FlowWorkspace({ repositoryRoot, executionRoot, specRoot });
+    this.definition = definition;
+    if (versionStoreFaultInjector !== null && typeof versionStoreFaultInjector !== "function") {
+      throw new CurrentFlowStateInvariantError("CanonicalFlowRuntime version Store fault injector must be a function or null");
+    }
+    this.versionStoreFaultInjector = versionStoreFaultInjector;
+    Object.freeze(this);
+  }
+
+  location(specId) {
+    return this.workspace.canonicalVersion(requiredText(specId, "specId"), new FlowVersion(1));
+  }
+
+  store(specId) {
+    return new CurrentFlowVersionStore({
+      location: this.location(specId),
+      definition: this.definition,
+      ...(this.versionStoreFaultInjector && { faultInjector: this.versionStoreFaultInjector }),
+    });
+  }
+
+  createFresh({ specId, flowId, flowVersionId, runId, request, issue = null, execution, lifecycle, policy, specRecord, issueSnapshot = null } = {}) {
+    return this.store(specId).createFresh({
+      flowId,
+      flowVersionId,
+      runId,
+      request,
+      issue,
+      execution,
+      lifecycle,
+      policy,
+      specRecord,
+      issueSnapshot,
+    });
+  }
+
+  load(specId) {
+    return this.store(specId).load();
+  }
+
+  loadSnapshot(specId) {
+    return this.store(specId).loadSnapshot();
+  }
+
+  assertWritable(specId) {
+    return this.store(specId).assertWritable();
+  }
+
+  activities(specId) {
+    return this.store(specId).activities();
+  }
+
+  catalog(specId) {
+    return this.store(specId).catalog();
+  }
+
+  apply(specId, activity, { taskSpec, specRecord, artifactWrites, artifactRemovals, testSourceBaseline } = {}) {
+    return this.store(specId).apply({
+      activity: FlowActivity.canonical(activity),
+      ...(taskSpec !== undefined && { taskSpec }),
+      ...(specRecord !== undefined && { specRecord }),
+      ...(artifactWrites !== undefined && { artifactWrites }),
+      ...(artifactRemovals !== undefined && { artifactRemovals }),
+      ...(testSourceBaseline !== undefined && { testSourceBaseline }),
+    });
+  }
+
+  addTask({ specId, activityId, taskId, key, taskSpec = undefined } = {}) {
+    const state = this.#state(specId);
+    const nodeId = state.definition.dynamicTaskContainerId;
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId,
+      transition: {
+        operation: "add_task",
+        nodeId,
+        task: { id: requiredText(taskId, "taskId"), key: requiredText(key, "task key") },
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { taskSpec });
+  }
+
+  startAttempt({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "start_attempt",
+      attempt: requiredAttempt(attempt, "startAttempt"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      artifactWrites,
+    });
+  }
+
+  retryAttempt({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "retry_attempt",
+      attempt: requiredAttempt(attempt, "retryAttempt"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  updateAttempt({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "update_attempt",
+      attempt: requiredAttempt(attempt, "updateAttempt"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  failAttempt({ specId, activityId, failure, result, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined, artifactRemovals = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "fail_attempt",
+      attempt: null,
+      failure,
+      result,
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      artifactWrites,
+      artifactRemovals,
+    });
+  }
+
+  recordFailure({ specId, activityId, result, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "record_failure",
+      attempt: null,
+      result,
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  confirmAttempt({ specId, activityId, result, status = "done", timing = null, provider = null, model = null, effort = null, usage = null, references, specRecord, artifactWrites, artifactRemovals, testSourceBaseline } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: this.#currentNodeId(state),
+      operation: "confirm_attempt",
+      attempt: null,
+      result,
+      status,
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      specRecord,
+      artifactWrites,
+      artifactRemovals,
+      testSourceBaseline,
+    });
+  }
+
+  rewind({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "rewind",
+      attempt: requiredAttempt(attempt, "rewind"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      artifactWrites,
+    });
+  }
+
+  /** Reset the fixed retro test-evidence route in one Version Store Activity. */
+  rewindTestEvidence({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "test-execute",
+      operation: "rewind_test_evidence",
+      attempt: requiredAttempt(attempt, "rewindTestEvidence"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  /** Atomically replace rejected test-review evidence with a new test Attempt. */
+  repairTestReview({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "test",
+      operation: "repair_test_review",
+      attempt: requiredAttempt(attempt, "repairTestReview"),
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  /** Atomically apply the definition-owned scenario-validity bootstrap route. */
+  preimplementationBootstrap({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "implement",
+      operation: "preimplementation_bootstrap",
+      attempt: requiredAttempt(attempt, "preimplementationBootstrap"),
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  /** Atomically revalidate an existing implementation and start test execution. */
+  recoverExistingImplementation({ specId, activityId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "test-execute",
+      operation: "recover_existing_implementation",
+      attempt: requiredAttempt(attempt, "recoverExistingImplementation"),
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  /** Apply one fixed draft-reopen route; route selection remains Store-owned. */
+  reopenDraft({ specId, activityId, route, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    if (!new Set(["preimplementation", "task-addition", "spec-correction"]).has(route)) {
+      throw new CurrentFlowStateInvariantError("canonical draft reopen route is invalid");
+    }
+    const now = new Date().toISOString();
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "draft",
+      operation: route === "task-addition"
+        ? "reopen_draft_task_addition"
+        : route === "spec-correction"
+          ? "reopen_draft_spec_correction"
+          : `reopen_draft_${route}`,
+      attempt: requiredAttempt(attempt, "reopenDraft"),
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  /** Atomically record guarded evidence and replace an active gate Attempt. */
+  planGateRepair({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "plan_gate_repair",
+      attempt: requiredAttempt(attempt, "planGateRepair"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      artifactWrites,
+    });
+  }
+
+  recover({ specId, activityId, nodeId, attempt, timing = null, provider = null, model = null, effort = null, usage = null, references } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId,
+      operation: "recover_attempt",
+      attempt: requiredAttempt(attempt, "recover"),
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+    });
+  }
+
+  park({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "park_flow"); }
+  resume({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "resume_flow"); }
+  finalize({ specId, activityId } = {}) { return this.#applyLifecycle(specId, activityId, "finalize_flow"); }
+
+  setPolicy({ specId, activityId, policy } = {}) {
+    const state = this.#state(specId);
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      policy,
+      transition: {
+        operation: "set_policy",
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }));
+  }
+
+  /**
+   * Publish durable producer output without inventing a second state update.
+   * The Version Store atomically appends this Activity, writes the bytes, and
+   * replaces their catalog descriptors under the active leaf's ownership.
+   */
+  publishArtifacts({ specId, activityId, nodeId, artifactWrites, artifactRemovals = undefined, testSourceBaseline = undefined } = {}) {
+    const state = this.#state(specId);
+    const target = requiredText(nodeId, "artifact publication nodeId");
+    if (!Array.isArray(artifactWrites) || artifactWrites.length === 0) {
+      throw new CurrentFlowStateInvariantError("artifact publication requires one or more artifact writes");
+    }
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: target,
+      transition: {
+        operation: "publish_artifacts",
+        nodeId: target,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { artifactWrites, artifactRemovals, testSourceBaseline });
+  }
+
+  /**
+   * Publish the one system-owned upgrade result.  Unlike a Step producer,
+   * upgrade is an external command and therefore records its Activity at the
+   * Flow root while the Version Store supplies the `system` catalog claim.
+   */
+  publishUpgradeResult({ specId, activityId, artifactWrite } = {}) {
+    const state = this.#state(specId);
+    if (artifactWrite?.logicalKey !== "upgrade.result") {
+      throw new CurrentFlowStateInvariantError("canonical upgrade publication requires upgrade.result");
+    }
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      transition: {
+        operation: "publish_upgrade_result",
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { artifactWrites: [artifactWrite] });
+  }
+
+  publishPluginArtifacts({ specId, activityId, artifactWrites } = {}) {
+    const state = this.#state(specId);
+    if (!Array.isArray(artifactWrites) || artifactWrites.length === 0) {
+      throw new CurrentFlowStateInvariantError("plugin artifact publication requires one or more artifact writes");
+    }
+    if (artifactWrites.some((write) => write?.artifact?.logicalKey !== "plugin.lifecycle.artifact")) {
+      throw new CurrentFlowStateInvariantError("plugin artifact publication accepts only plugin.lifecycle.artifact writes");
+    }
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      transition: {
+        operation: "publish_plugin_artifacts",
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { artifactWrites });
+  }
+
+  /**
+   * Replace the authoritative Spec through its narrow typed writer. The
+   * Store validates both the active Task leaf and the exact Spec record;
+   * callers cannot turn this into a generic flow.json mutation.
+   */
+  updateSpecRecord({ specId, activityId, nodeId, specRecord } = {}) {
+    const state = this.#state(specId);
+    const target = requiredText(nodeId, "canonical Spec update nodeId");
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: target,
+      transition: {
+        operation: "update_spec_record",
+        nodeId: target,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }), { specRecord });
+  }
+
+  /**
+   * Persist only an unfinished side effect in flow.json.  The matching
+   * Activity retains its durable history and protects crash recovery from a
+   * second, callback-defined outbox format.
+   */
+  beginOutbox({ specId, activityId, outbox } = {}) {
+    return this.#applyOutbox(specId, activityId, "begin_outbox", outbox);
+  }
+
+  reopenOutbox({ specId, activityId, outbox } = {}) {
+    return this.#applyOutbox(specId, activityId, "reopen_outbox", outbox);
+  }
+
+  completeOutbox({ specId, activityId, outbox } = {}) {
+    return this.#applyOutbox(specId, activityId, "complete_outbox", outbox);
+  }
+
+  failOutbox({ specId, activityId, outbox, failure } = {}) {
+    return this.#applyOutbox(specId, activityId, "fail_outbox", {
+      ...outbox,
+      failure: failure ?? outbox?.failure ?? null,
+    });
+  }
+
+  finalizeDownstream({ specId, activityId, operation, stepIds } = {}) {
+    if (!["skip_finalize_downstream", "reset_finalize_downstream"].includes(operation)) {
+      throw new CurrentFlowStateInvariantError("finalization downstream operation is invalid");
+    }
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      timing: { startedAt: now, finishedAt: now, durationMs: 0 },
+      transition: {
+        operation,
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+        finalizeSteps: stepIds,
+      },
+    }));
+  }
+
+  /** Record one exact explicit-dispatch receipt in the durable Activity ledger. */
+  recordDispatchApproval({ specId, activityId, approval } = {}) {
+    const state = this.#state(specId);
+    if (approval === null || typeof approval !== "object" || Array.isArray(approval)) {
+      throw new CurrentFlowStateInvariantError("dispatch approval requires a receipt object");
+    }
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      timing: (() => {
+        const now = new Date().toISOString();
+        return { startedAt: now, finishedAt: now, durationMs: 0 };
+      })(),
+      transition: {
+        operation: "record_dispatch_approval",
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        approval,
+        nonblocking: null,
+      },
+    }));
+  }
+
+  /** Persist a non-state-changing observation in the authoritative ledger. */
+  recordMetric({ specId, activityId, nodeId = null, metric, timing = null } = {}) {
+    return this.#recordObservation(specId, activityId, "record_metric", { nodeId, metric, timing });
+  }
+
+  /** Persist a human note in the same ledger and recovery order as metrics. */
+  recordNote({ specId, activityId, nodeId = null, note, timing = null } = {}) {
+    return this.#recordObservation(specId, activityId, "record_note", { nodeId, note, timing });
+  }
+
+  /** Persist one immutable advisory evidence fact without creating flow.json state. */
+  recordNonblocking({ specId, activityId, nodeId, nonblocking, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    const target = requiredText(nodeId, "nonblocking nodeId");
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: target,
+      timing: (() => {
+        const now = new Date().toISOString();
+        return { startedAt: now, finishedAt: now, durationMs: 0 };
+      })(),
+      transition: {
+        operation: "record_nonblocking",
+        nodeId: target,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+        nonblocking,
+      },
+    }), { artifactWrites });
+  }
+
+  continueNonblocking({ specId, activityId, nodeId, nonblocking, skippedNodeIds = [] } = {}) {
+    const state = this.#state(specId);
+    const target = requiredText(nodeId, "nonblocking continuation nodeId");
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: target,
+      operation: "continue_nonblocking",
+      result: {
+        outcome: "passed",
+        summary: "explicit nonblocking continuation",
+        confirmedAt: new Date().toISOString(),
+        artifactRefs: [],
+      },
+      references: { evaluations: [], findings: [], repairs: skippedNodeIds.map((id) => ({ id, label: "nonblocking route skip" })), artifacts: [] },
+      nonblocking,
+    });
+  }
+
+  acceptFinalRegressionFailure({ specId, activityId, attempt, result, artifactWrites = undefined } = {}) {
+    const state = this.#state(specId);
+    return this.#applyAttemptTransition(specId, state, {
+      id: activityId,
+      nodeId: "final-regression",
+      operation: "accept_final_regression_failure",
+      attempt: requiredAttempt(attempt, "final-regression acceptance"),
+      result,
+      artifactWrites,
+    });
+  }
+
+  /** Read-only restart resolution; callers decide whether a resume Activity is needed. */
+  restart(specId) {
+    const state = this.#state(specId);
+    return Object.freeze({
+      state,
+      lifecycle: state.lifecycle.state,
+      nextAction: state.lifecycle.state === "active" ? state.nextAction() : null,
+      resumable: state.lifecycle.state === "parked",
+      finalized: state.lifecycle.state === "finalized",
+    });
+  }
+
+  #applyLifecycle(specId, activityId, operation) {
+    const state = this.#state(specId);
+    // Lifecycle facts need an ordered durable timestamp.  In particular,
+    // completed-Flow consumers must derive their date axis from the
+    // flow_finalized Activity rather than from a mutable flow.json field or
+    // filesystem metadata.
+    const now = new Date().toISOString();
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      timing: { startedAt: now, finishedAt: now, durationMs: 0 },
+      transition: {
+        operation,
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+      },
+    }));
+  }
+
+  #applyOutbox(specId, activityId, operation, outbox) {
+    const state = this.#state(specId);
+    if (outbox === null || typeof outbox !== "object" || Array.isArray(outbox)) {
+      throw new CurrentFlowStateInvariantError("outbox transition requires an outbox object");
+    }
+    const normalized = {
+      id: requiredText(outbox.id, "outbox id"),
+      operation: requiredText(outbox.operation, "outbox operation"),
+      attempt: requiredPositiveInteger(outbox.attempt, "outbox attempt"),
+      result: outbox.result ?? null,
+      failure: outbox.failure ?? null,
+      failureCode: outbox.failureCode ?? null,
+      recovery: outbox.recovery ?? null,
+      exactRecoveryReceipt: outbox.exactRecoveryReceipt ?? null,
+    };
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: state.root.id,
+      timing: (() => {
+        const now = new Date().toISOString();
+        return { startedAt: now, finishedAt: now, durationMs: 0 };
+      })(),
+      transition: {
+        operation,
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        outbox: normalized,
+        nonblocking: null,
+      },
+    }));
+  }
+
+  #recordObservation(specId, activityId, operation, { nodeId = null, metric = null, note = null, timing = null } = {}) {
+    const state = this.#state(specId);
+    const now = new Date().toISOString();
+    const target = nodeId === null ? state.root.id : requiredText(nodeId, "observation nodeId");
+    return this.apply(specId, this.#activity(state, {
+      id: activityId,
+      nodeId: target,
+      timing: timing ?? { startedAt: now, finishedAt: now, durationMs: 0 },
+      metric,
+      note,
+      transition: {
+        operation,
+        nodeId: target,
+        task: null,
+        attempt: null,
+        status: null,
+        nonblocking: null,
+      },
+    }));
+  }
+
+  #applyAttemptTransition(specId, state, {
+    id,
+    nodeId,
+    operation,
+    attempt,
+    result = null,
+    failure = null,
+    status = null,
+    timing,
+    provider,
+    model,
+    effort,
+    usage,
+    references,
+    specRecord = undefined,
+    artifactWrites = undefined,
+    artifactRemovals = undefined,
+    testSourceBaseline = undefined,
+    nonblocking = null,
+  }) {
+    const target = requiredText(nodeId, "transition nodeId");
+    const node = state.findNode(target);
+    if (node === null) throw new CurrentFlowStateInvariantError(`transition node is not part of this Flow: ${target}`);
+    const transitionAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "retry_attempt", "update_attempt", "accept_final_regression_failure"].includes(operation)
+      ? attempt
+      : null;
+    const activityAttempt = ["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(operation)
+      ? attempt
+      : state.attempt;
+    if (activityAttempt === null) {
+      throw new CurrentFlowStateInvariantError(`${operation} requires a current Attempt`);
+    }
+    return this.apply(specId, this.#activity(state, {
+      id,
+      nodeId: target,
+      result,
+      failure,
+      timing,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      attemptId: activityAttempt.id,
+      sequence: activityAttempt.sequence,
+      transition: {
+        operation,
+        nodeId: target,
+        task: null,
+        attempt: transitionAttempt,
+        status,
+        nonblocking,
+      },
+    }), { specRecord, artifactWrites, artifactRemovals, testSourceBaseline });
+  }
+
+  #activity(state, {
+    id,
+    nodeId,
+    attemptId = null,
+    sequence = null,
+    result = null,
+    failure = null,
+    timing = null,
+    provider = null,
+    model = null,
+    effort = null,
+    usage = null,
+    metric = null,
+    note = null,
+    policy = null,
+    outbox = null,
+    approval = null,
+    nonblocking = null,
+    references = { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    transition,
+  }) {
+    const parsedTransition = transition instanceof ActivityTransition
+      ? transition
+      : new ActivityTransition({
+        ...transition,
+        policy: transition.policy ?? policy,
+        outbox: transition.outbox ?? outbox,
+        approval: transition.approval ?? approval,
+        nonblocking: transition.nonblocking ?? nonblocking,
+      });
+    const node = state.findNode(nodeId);
+    if (node === null) throw new CurrentFlowStateInvariantError(`Activity node is not part of this Flow: ${nodeId}`);
+    return new FlowActivity({
+      id: requiredText(id, "activityId"),
+      nodeId,
+      nodeKey: node.key,
+      attemptId,
+      sequence,
+      confirmationOrder: state.confirmationOrder + 1,
+      type: TYPE_FOR_OPERATION[parsedTransition.operation],
+      transition: parsedTransition,
+      result,
+      timing,
+      failure,
+      provider,
+      model,
+      effort,
+      usage,
+      references,
+      metric,
+      note,
+    });
+  }
+
+  #state(specId) {
+    const state = this.load(specId);
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("canonical Flow Version state is missing");
+    }
+    return state;
+  }
+
+  #currentNodeId(state) {
+    if (state.current === null) throw new CurrentFlowStateInvariantError("operation requires a current Flow node");
+    return state.current.at(-1);
+  }
+}

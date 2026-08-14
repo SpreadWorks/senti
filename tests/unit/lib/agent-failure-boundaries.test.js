@@ -13,7 +13,6 @@ import {
   UnknownProviderFailure,
 } from "../../../src/lib/agent-failure.js";
 import {
-  FlowOutbox,
   FlowOutboxStore,
   finalizationOutboxIdentity,
 } from "../../../src/flow/lib/flow-outbox.js";
@@ -27,6 +26,8 @@ import {
   ExternalBlockedOutcome,
   StepOutcome,
 } from "../../../src/flow/lib/step-outcome.js";
+import { FlowAtStepFixture, makeFlowManager } from "../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 function providerError(message, fields = {}) {
   return Object.assign(new Error(message), fields);
@@ -140,23 +141,29 @@ describe("terminal replay guards", () => {
   });
 
   it("blocks direct begin of a failed outbox entry without changing it", () => {
-    const state = { outbox: [] };
-    const flowManager = {
-      mutate(operation) {
-        operation(state);
-      },
-    };
-    const store = new FlowOutboxStore(flowManager);
-    const identity = finalizationOutboxIdentity({ runId: "run-487" }, "finalize-sync");
-    store.begin(identity);
-    store.fail(identity, new Error("push permission denied"));
-    const before = structuredClone(state.outbox);
+    const root = createTmpDir("agent-failure-outbox-v1-");
+    try {
+      const manager = makeFlowManager(root);
+      const fixture = new FlowAtStepFixture({
+        flowManager: manager,
+        specId: "487-outbox",
+        runId: "run-487",
+        targetStep: "finalize-sync",
+      }).create();
+      const store = new FlowOutboxStore(manager, { specId: fixture.state().specId });
+      const identity = finalizationOutboxIdentity({ runId: "run-487" }, "finalize-sync");
+      store.begin(identity);
+      store.fail(identity, new Error("push permission denied"));
+      const before = store.status(identity).toJSON();
 
-    assert.throws(
-      () => store.beginCommand(identity),
-      (error) => error.code === "FINALIZATION_OUTBOX_RECOVERY_REQUIRED" && error.retryable === false,
-    );
-    assert.deepEqual(state.outbox, before);
-    assert.equal(new FlowOutbox(state.outbox).find(identity).status, "failed");
+      assert.throws(
+        () => store.beginCommand(identity),
+        (error) => error.code === "FINALIZATION_OUTBOX_RECOVERY_REQUIRED" && error.retryable === false,
+      );
+      assert.deepEqual(store.status(identity).toJSON(), before);
+      assert.equal(store.status(identity).status, "failed");
+    } finally {
+      removeTmpDir(root);
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
@@ -34,7 +34,7 @@ function setupProject(command) {
 }
 
 function runPrepare(root, title = "post-worktree", extraArgs = []) {
-  const output = execFileSync("node", [
+  const result = spawnSync("node", [
     SENNEL,
     "flow",
     "prepare",
@@ -47,9 +47,14 @@ function runPrepare(root, title = "post-worktree", extraArgs = []) {
   ], {
     cwd: root,
     encoding: "utf8",
-    env: { ...process.env, SENNEL_WORK_ROOT: root },
+    env: {
+      ...process.env,
+      SENNEL_WORK_ROOT: root,
+      PATH: `${path.join(root, ".fixture-bin")}${path.delimiter}${process.env.PATH}`,
+    },
   });
-  return JSON.parse(output);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return JSON.parse(result.stdout);
 }
 
 describe("flow prepare PostWorktree hook", () => {
@@ -87,6 +92,10 @@ describe("flow prepare PostWorktree hook", () => {
   it("mirrors ignored plugin runtime into worktree before plugin prepare hooks are discovered", () => {
     tmp = setupProject("");
     writeFile(tmp, ".gitignore", ".sennel/*\n!.sennel/config.json\n!.sennel/output/\n");
+    writeFile(tmp, ".fixture-bin/gh", `#!/bin/sh
+printf '%s\\n' '{"title":"Plugin fixture Issue","body":"Plugin fixture immutable Issue snapshot","labels":[],"state":"OPEN"}'
+`);
+    fs.chmodSync(path.join(tmp, ".fixture-bin", "gh"), 0o755);
     writeJson(tmp, ".sennel/config.local.json", {
       plugin: {
         sources: [{ id: "workflow-src", type: "local", path: ".sennel/plugins/workflow" }],
@@ -135,14 +144,18 @@ export default function register(api) {
     const worktreePath = envelope.data.artifacts.worktree;
     const specDir = path.join(tmp, envelope.data.artifacts.specDir);
     const flow = JSON.parse(fs.readFileSync(path.join(specDir, "flow.json"), "utf8"));
-    const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8"));
+    const catalog = JSON.parse(fs.readFileSync(path.join(specDir, "artifact-catalog.json"), "utf8"));
+    const pluginDescriptor = catalog.artifacts.find((entry) => entry.logicalKey === "plugin.lifecycle.artifact");
+    const artifact = JSON.parse(fs.readFileSync(path.join(specDir, "artifacts", "plugin-artifacts", "workflow", "prepare-seen.json"), "utf8"));
 
     assert.equal(fs.existsSync(path.join(worktreePath, ".sennel", "config.local.json")), true);
     assert.equal(fs.existsSync(path.join(worktreePath, ".sennel", "plugins", "workflow", "hooks", "prepare.js")), true);
-    assert.ok(flow.plugins.flowCommandHooks.some((hook) => hook.pluginId === "workflow" && hook.command === "prepare"));
+    assert.equal(Object.hasOwn(flow, "plugins"), false);
+    assert.equal(pluginDescriptor.relativePath, "artifacts/plugin-artifacts/workflow/prepare-seen.json");
+    assert.equal(typeof pluginDescriptor.activityId, "string");
     assert.deepEqual(artifact, {
       issue: 123,
-      snapshot: flow.plugins.flowCommandHooks.length,
+      snapshot: 1,
       flowIntegration: "enable",
     });
   });

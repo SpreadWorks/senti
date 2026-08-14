@@ -1,11 +1,11 @@
 /**
  * src/flow/lib/run-start-task.js
  *
- * FlowCommand: `flow run start-task --task-id <id>` — manually promote a
- * pending task into `currentTaskId` and transition it to in_progress.
+ * FlowCommand: `flow run start-task --task-id <id>` — claim the
+ * definition-owned first Step of a pending Task through a typed Attempt.
  *
  * Spec 226: thin wrapper. Validation (unknown id / invalid status transition)
- * is delegated to the flow-store primitive via `throw`. The CLI layer only
+ * is delegated to the canonical Version Store primitive via `throw`. The CLI layer only
  * resolves arguments and formats the envelope.
  */
 
@@ -46,12 +46,11 @@ export class RunStartTaskCommand extends FlowCommand {
       );
     }
 
-    fm.mutate((s) => {
-      const t = (s.tasks || []).find((x) => x.id === taskId);
-      if (!t) return; // defensive — validated above
-      s.currentTaskId = taskId;
-      if (t.status === "pending") t.status = "in_progress";
-    });
+    try {
+      fm.startTask(taskId, { ...(ctx.specId ? { specId: ctx.specId } : {}) });
+    } catch (error) {
+      return Envelope.fail("run", "start-task", error.code || "TASK_START_INVALID", error.message);
+    }
 
     return Envelope.ok("run", "start-task", {
       taskId,

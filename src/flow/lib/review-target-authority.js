@@ -1,8 +1,8 @@
 import path from "node:path";
 
-import { relativeFlowSpecFile } from "../../lib/flow-workspace.js";
-import { draftReviewTargetState } from "./draft-artifact-promotion.js";
-import { buildRepairFingerprint } from "./impl-repair-artifacts.js";
+import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
+import { CanonicalDraftReviewSource } from "./canonical-review-artifacts.js";
+import { buildRepairFingerprint } from "./repair-fingerprint.js";
 import { ReviewTargetState } from "./review-convergence.js";
 import { resolveCurrentReviewTreeSha } from "./review-evidence-store.js";
 
@@ -18,14 +18,19 @@ function requireRoot(value, field) {
  * Flow artifacts under the base-side artifact authority.
  */
 export class ReviewTargetAuthority {
-  constructor({ executionRoot, artifactRoot, flowState } = {}) {
+  constructor({ executionRoot, artifactRoot, flowState, flowManager } = {}) {
     if (!flowState || typeof flowState !== "object" || Array.isArray(flowState)) {
       throw new Error("review target authority requires flowState");
     }
     this.executionRoot = requireRoot(executionRoot, "executionRoot");
     this.artifactRoot = requireRoot(artifactRoot, "artifactRoot");
     this.flowState = flowState;
-    this.specPath = relativeFlowSpecFile(flowState);
+    this.flowManager = flowManager;
+    const location = flowStateSpecLocation(flowState);
+    if (location === null) {
+      throw new Error("review target authority requires a manager-bound Version location");
+    }
+    this.specPath = location.relativeSpecFile;
     Object.freeze(this);
   }
 
@@ -34,6 +39,7 @@ export class ReviewTargetAuthority {
       executionRoot: ctx.executionRoot || ctx.root,
       artifactRoot: ctx.root,
       flowState: ctx.flowState,
+      flowManager: ctx.flowManager,
     });
   }
 
@@ -55,8 +61,13 @@ export class ReviewTargetAuthority {
   }
 
   captureTargetStateForPhase(phase, fingerprint = null) {
-    const draftState = draftReviewTargetState(this.flowState, phase);
-    if (draftState) return new ReviewTargetState(draftState);
+    if (String(phase || "").startsWith("draft-")) {
+      return new CanonicalDraftReviewSource({
+        flowManager: this.flowManager,
+        state: this.flowState,
+        phase,
+      }).targetState();
+    }
     return this.captureTargetState(fingerprint || this.captureFingerprint());
   }
 }

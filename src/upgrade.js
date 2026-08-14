@@ -30,14 +30,13 @@ import {
   MAIN_SKILLS_DIR,
 } from "./lib/skills.js";
 import { deployPresetCopies } from "./lib/preset-deploy.js";
-import { writeUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
+import { createUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
 import {
   AGENT_CONFIG_FILE_NAMES,
   AGENTS_FLOW_DIRECTIVE_RE,
   refreshAgentFlowFile,
 } from "./lib/agent-config-files.js";
 import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.js";
-import { relativeFlowSpecFile } from "./lib/flow-workspace.js";
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -51,14 +50,15 @@ export function parseUpgradeArgs(argv) {
   });
 }
 
-function resolveActiveUpgradeFlow(root) {
+function resolveActiveUpgradeFlow() {
   if (!container.has("flowManager")) return null;
   try {
-    const state = container.get("flowManager").load();
-    if (!state?.specId || !state.baseBranch) return null;
+    const flowManager = container.get("flowManager");
+    const state = flowManager.load();
+    if (state?.schemaRevision !== 3 || !state.specId || !state.baseBranch) return null;
     return {
       state,
-      specDir: path.dirname(path.resolve(root, relativeFlowSpecFile(state))),
+      flowManager,
     };
   } catch (_) {
     return null;
@@ -66,20 +66,14 @@ function resolveActiveUpgradeFlow(root) {
 }
 
 function createUpgradeLogger() {
-  const lines = [];
   return {
     log(message = "") {
       const text = String(message);
-      lines.push(text);
       console.log(text);
     },
     error(message = "") {
       const text = String(message);
-      lines.push(text);
       console.error(text);
-    },
-    rawOutput() {
-      return lines.length === 0 ? "" : `${lines.join("\n")}\n`;
     },
   };
 }
@@ -89,18 +83,24 @@ function resultFromSummary(exitCode, hasChanges) {
   return hasChanges ? "success-updated" : "success-no-change";
 }
 
-function writeActiveUpgradeArtifact({ root, activeFlow, command, dryRun, exitCode, result, summary, rawOutput }) {
+function writeActiveUpgradeArtifact({ root, activeFlow, command, dryRun, exitCode, result, summary }) {
   if (!activeFlow) return;
-  writeUpgradeResultArtifact({
+  const artifact = createUpgradeResultArtifact({
     root,
-    specDir: activeFlow.specDir,
     baseBranch: activeFlow.state.baseBranch,
     command,
     dryRun,
     exitCode,
     result,
     summary,
-    rawOutput,
+  });
+  activeFlow.flowManager.publishUpgradeResult({
+    specId: activeFlow.state.specId,
+    artifact: {
+      logicalKey: "upgrade.result",
+      mediaType: "application/json",
+      bytes: Buffer.from(`${JSON.stringify(artifact.toJSON(), null, 2)}\n`, "utf8"),
+    },
   });
 }
 
@@ -181,7 +181,7 @@ function previewNormalUpgrade(root, migration, logger) {
 
 async function runNormalUpgrade(cli) {
   const root = repoRoot();
-  const activeFlow = resolveActiveUpgradeFlow(root);
+  const activeFlow = resolveActiveUpgradeFlow();
   const logger = createUpgradeLogger();
   const command = ["sennel", "upgrade", ...process.argv.slice(2)].join(" ");
   const dryRun = cli.dryRun;
@@ -214,7 +214,6 @@ async function runNormalUpgrade(cli) {
         exitCode: EXIT_ERROR,
         result: "failed",
         summary: { ...summary, error: e.message },
-        rawOutput: logger.rawOutput(),
       });
       process.exit(EXIT_ERROR);
     }
@@ -253,7 +252,6 @@ async function runNormalUpgrade(cli) {
       exitCode: EXIT_ERROR,
       result: "failed",
       summary: { ...summary, error: `upgrade failed: ${e.message}` },
-      rawOutput: logger.rawOutput(),
     });
     process.exit(EXIT_ERROR);
   }
@@ -287,7 +285,6 @@ async function runNormalUpgrade(cli) {
       exitCode: EXIT_ERROR,
       result: "failed",
       summary: { ...summary, error: `legacy agent artifact cleanup failed: ${e.message}` },
-      rawOutput: logger.rawOutput(),
     });
     process.exit(EXIT_ERROR);
   }
@@ -340,7 +337,6 @@ async function runNormalUpgrade(cli) {
       exitCode: 0,
       result: resultFromSummary(0, hasChanges),
       summary,
-      rawOutput: logger.rawOutput(),
     });
   } catch (e) {
     logger.error(`upgrade artifact write failed: ${e.message}`);

@@ -1,16 +1,23 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { setupFlow, setupFlowConfig } from "../../helpers/flow-setup.js";
+import { CanonicalFlowFixture, makeFlowManager, setupFlowConfig } from "../../helpers/flow-setup.js";
 
 // -----------------------------------------------------------------------------
 // spec 201: retry counter plumbing (P2-R1, P2-R4)
 // -----------------------------------------------------------------------------
 
 const SENNEL_CMD = path.join(process.cwd(), "src/sennel.js");
+
+function activeFixture(root) {
+  const flowManager = makeFlowManager(root);
+  return new CanonicalFlowFixture({
+    flowManager,
+    execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/001-test" },
+  }).create().registerActive();
+}
 
 describe("VALID_METRIC_COUNTERS includes gateRetry (P2-R1)", () => {
   it("exports gateRetry as a valid counter name", async () => {
@@ -26,10 +33,10 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("accepts gateRetry counter and appends an entry to flow.json metrics", () => {
+  it("accepts gateRetry counter and appends an entry to canonical metrics", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
-    setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
+    activeFixture(tmp);
 
     const out = execFileSync(
       "node",
@@ -40,9 +47,7 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
     assert.equal(res.ok, true);
     assert.equal(res.data.counter, "gateRetry");
 
-    const flow = JSON.parse(
-      fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
-    );
+    const flow = makeFlowManager(tmp).loadReadOnly();
     assert.ok(Array.isArray(flow.metrics));
     const hits = flow.metrics.filter((e) => e.phase === "task-impl" && e.counter === "gateRetry");
     assert.equal(hits.length, 1);
@@ -51,7 +56,7 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
   it("appends an entry per invocation", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
-    setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
+    activeFixture(tmp);
 
     for (let i = 0; i < 3; i++) {
       execFileSync(
@@ -60,9 +65,7 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
         { encoding: "utf8", env: { ...process.env, SENNEL_WORK_ROOT: tmp } },
       );
     }
-    const flow = JSON.parse(
-      fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
-    );
+    const flow = makeFlowManager(tmp).loadReadOnly();
     const hits = flow.metrics.filter((e) => e.phase === "task-impl" && e.counter === "gateRetry");
     assert.equal(hits.length, 3);
   });

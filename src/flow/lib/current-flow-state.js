@@ -1,10 +1,10 @@
 /**
  * The next-generation Flow state foundation.
  *
- * This module deliberately has no dependency on FlowStore or FlowManager.  The
- * currently shipped runtime has a different persisted contract; converting or
- * switching that runtime belongs to the later migration work.  Consumers of
- * this module must supply a definition and construct a fresh CurrentFlowState.
+ * This module deliberately has no dependency on the retired root-level
+ * retired mutable state storage. Production callers enter through CurrentFlowVersionStore (or
+ * CanonicalFlowRuntime), which owns the canonical Version-1 root and this
+ * schema-bound state machine.
  */
 
 import crypto from "node:crypto";
@@ -12,11 +12,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
-import { ArtifactAuthoritySlot, AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowVersionIdentityStore, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRecord, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
+import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
 import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
 import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
+import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
 
-export const CURRENT_FLOW_SCHEMA_REVISION = 2;
+/**
+ * The production Flow Version 1 record.  This is deliberately independent
+ * from result-format versions and from the definition that supplies runtime
+ * behaviour.  `flow.json` is the sole persisted identity authority.
+ */
+export const CURRENT_FLOW_SCHEMA_REVISION = 3;
 // `version` is the result-generation version persisted in flow.json.  It is
 // intentionally independent from the structural schemaRevision above.
 export const CURRENT_FLOW_RESULT_VERSION = 1;
@@ -24,6 +30,7 @@ export const CURRENT_FLOW_RESULT_VERSION = 1;
 const NODE_KINDS = new Set(["flow", "step", "task"]);
 const NODE_STATUSES = new Set(["pending", "in_progress", "done", "skipped", "failed", "invalidated"]);
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
+const LIFECYCLE_STATES = new Set(["active", "parked", "finalized"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
 const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
@@ -36,17 +43,75 @@ const ATTEMPT_TYPES = new Set([
   "failure_recorded",
   "result_confirmed",
   "recovery",
+  "flow_parked",
+  "flow_resumed",
+  "flow_finalized",
+  "policy_updated",
+  "artifacts_published",
+  "spec_record_updated",
+  "outbox_started",
+  "outbox_reopened",
+  "outbox_completed",
+  "outbox_failed",
+  "dispatch_approval_recorded",
+  "metric_recorded",
+  "note_recorded",
+  "nonblocking_recorded",
+  "failure_accepted",
+  "finalization_downstream_updated",
 ]);
 const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "start_attempt",
   "retry_attempt",
   "update_attempt",
   "rewind",
+  "rewind_test_evidence",
+  "repair_test_review",
+  "preimplementation_bootstrap",
+  "recover_existing_implementation",
+  "reopen_draft_preimplementation",
+  "reopen_draft_task_addition",
+  "reopen_draft_spec_correction",
+  "plan_gate_repair",
   "recover_attempt",
+  "accept_final_regression_failure",
 ]);
+const LIFECYCLE_TRANSITION_OPERATIONS = new Set(["park_flow", "resume_flow", "finalize_flow"]);
+// Policy is authoritative flow state.  Its mutations use the same journal as
+// lifecycle and Attempt transitions; a command must never patch flow.json.
+const POLICY_TRANSITION_OPERATIONS = new Set(["set_policy"]);
+// Publishing a producer-owned durable artifact is an Activity in its own
+// right. It does not alter the lifecycle tree, but it must share the state
+// journal and catalog transaction with the descriptor that makes the bytes
+// consumable. `update_spec_record` is deliberately separate from generic
+// artifact publication: its bytes are validated by CurrentFlowSpecRecord and
+// may only be produced by the dedicated typed Store API.
+const ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS = new Set([
+  "publish_artifacts",
+  "publish_plugin_artifacts",
+  "publish_upgrade_result",
+  "update_spec_record",
+]);
+// flow.json retains only outstanding side effects. Their successful and
+// failed outcomes belong to the append-only Activity ledger, so a restart
+// cannot mistake historical work for another active operation.
+const OUTBOX_TRANSITION_OPERATIONS = new Set(["begin_outbox", "reopen_outbox", "complete_outbox", "fail_outbox"]);
+// Explicit dispatch approval is a durable authorization fact, not a mutable
+// field on flow.json.  Its append-only Activity can be replayed and checked
+// against the exact action digest on a later dispatcher process.
+const DISPATCH_APPROVAL_TRANSITION_OPERATIONS = new Set(["record_dispatch_approval"]);
+// Metrics and notes are durable observations, not fields on flow.json.  Their
+// append-only home is the same Activity ledger that records every state
+// transition, which preserves a single recovery and ordering mechanism.
+const OBSERVATION_TRANSITION_OPERATIONS = new Set(["record_metric", "record_note"]);
+// Advisory policy evidence is a first-class ledger fact.  It deliberately
+// stays out of flow.json so a resumed Flow replays the same immutable
+// observation/decision history rather than a mutable side-channel.
+const NONBLOCKING_TRANSITION_OPERATIONS = new Set(["record_nonblocking", "continue_nonblocking"]);
+const FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS = new Set(["skip_finalize_downstream", "reset_finalize_downstream"]);
 
-function resolvedArtifact(logicalKey) {
-  return FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey);
+function resolvedArtifact(logicalKey, parameters = {}) {
+  return FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters);
 }
 
 function descriptorFor(location, logicalKey, mediaType) {
@@ -56,6 +121,302 @@ function descriptorFor(location, logicalKey, mediaType) {
 
 function publicationFor(logicalKey, mediaType, { updater = null, activityId = null } = {}) {
   return resolvedArtifact(logicalKey).publication({ mediaType, updater, activityId });
+}
+
+/**
+ * One durable payload that is committed with its owning Activity and catalog
+ * descriptor.  Commands pass this value object to the Version Store instead
+ * of guessing a path under a Spec directory.  The Store supplies the updater
+ * from the Activity node, so producers cannot claim another Step's slot.
+ */
+export class CanonicalFlowArtifactWrite {
+  constructor({ logicalKey, parameters = {}, mediaType, bytes } = {}) {
+    if (!isPlainObject(parameters)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact parameters must be an object");
+    }
+    this.artifact = resolvedArtifact(requireString(logicalKey, "canonical artifact logicalKey"), parameters);
+    if (["flow.state", "flow.activities", "artifact.catalog"].includes(this.artifact.logicalKey)) {
+      throw new CurrentFlowStateInvariantError("canonical state and catalog authorities are Store-owned");
+    }
+    if (!this.artifact.contract.cataloged) {
+      throw new CurrentFlowStateInvariantError(
+        "transient artifacts must use CanonicalFlowRuntimeArtifactWrite rather than the cataloged Store boundary",
+      );
+    }
+    this.mediaType = requireString(mediaType, "canonical artifact mediaType");
+    if (typeof bytes === "string") this.bytes = Buffer.from(bytes, "utf8");
+    else if (Buffer.isBuffer(bytes)) this.bytes = Buffer.from(bytes);
+    else throw new CurrentFlowStateInvariantError("canonical artifact bytes must be a string or Buffer");
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    if (value instanceof CanonicalFlowArtifactWrite || value instanceof CanonicalFlowReviewEvidenceWrite) {
+      return value;
+    }
+    if (value?.logicalKey === "review.evidence") return new CanonicalFlowReviewEvidenceWrite(value);
+    return new CanonicalFlowArtifactWrite(value);
+  }
+
+  publication(activity) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact publication requires a typed FlowActivity");
+    }
+    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+    return this.artifact.publication({
+      mediaType: this.mediaType,
+      updater,
+      activityId: FlowActivityId.from(activity.id),
+    });
+  }
+
+  write(location) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact write requires a FlowVersionLocation");
+    }
+    const target = location.resolve(this.artifact.relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
+    return new AtomicFile(target, { phaseNamespace: "canonical-flow-artifact" }).write(this.bytes);
+  }
+}
+
+/**
+ * A typed removal from the one worker-owned test-source collection.  Test
+ * handoff replaces a complete declared test tree, so retaining catalog
+ * descriptors for files omitted from the new tree would create false
+ * consumer authority.  Other durable artifacts are never removed through
+ * this narrow production operation.
+ */
+export class CanonicalFlowArtifactRemoval {
+  constructor({ logicalKey, parameters = {} } = {}) {
+    if (!isPlainObject(parameters)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact removal parameters must be an object");
+    }
+    this.artifact = resolvedArtifact(requireString(logicalKey, "canonical artifact removal logicalKey"), parameters);
+    if (this.artifact.logicalKey !== "tests.source") {
+      throw new CurrentFlowStateInvariantError("canonical artifact removal supports only worker-owned test sources");
+    }
+    if (!this.artifact.contract.cataloged) {
+      throw new CurrentFlowStateInvariantError("canonical artifact removal requires a cataloged artifact");
+    }
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof CanonicalFlowArtifactRemoval
+      ? value
+      : new CanonicalFlowArtifactRemoval(value);
+  }
+
+  removal(activity) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact removal requires a typed FlowActivity");
+    }
+    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+    if (updater !== "test") {
+      throw new CurrentFlowStateInvariantError("only the test Step may remove worker-owned test sources");
+    }
+    return Object.freeze({
+      logicalKey: this.artifact.logicalKey,
+      relativePath: this.artifact.relativePath,
+    });
+  }
+
+  remove(location) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical artifact removal requires a FlowVersionLocation");
+    }
+    const target = location.resolve(this.artifact.relativePath);
+    return new AtomicFile(target, { phaseNamespace: "canonical-flow-artifact-removal" }).remove();
+  }
+}
+
+/**
+ * The catalog snapshot guarded by a complete worker test-tree replacement.
+ *
+ * Test handoff is the sole producer that replaces a collection rather than
+ * one named artifact.  Keeping its precondition as a value object at the
+ * Store boundary makes the check part of the same catalog lock that writes
+ * the next tree and removes stale members; callers cannot race a separately
+ * read directory or silently turn a full replacement into a partial merge.
+ */
+export class CanonicalFlowTestSourceBaseline {
+  constructor(entries = []) {
+    if (!Array.isArray(entries)) {
+      throw new CurrentFlowStateInvariantError("canonical test-source baseline must be an array");
+    }
+    this.entries = Object.freeze(entries.map((entry) => {
+      if (!isPlainObject(entry)) {
+        throw new CurrentFlowStateInvariantError("canonical test-source baseline entry must be an object");
+      }
+      const workerPath = requireString(entry.targetRelativePath, "canonical test-source baseline targetRelativePath")
+        .replaceAll("\\", "/");
+      if (
+        !workerPath.startsWith("tests/")
+        || workerPath.length === "tests/".length
+        || path.posix.normalize(workerPath) !== workerPath
+        || workerPath.split("/").some((part) => part === "" || part === "." || part === "..")
+      ) {
+        throw new CurrentFlowStateInvariantError("canonical test-source baseline target must be below tests/");
+      }
+      const artifact = resolvedArtifact("tests.source", { testPath: workerPath.slice("tests/".length) });
+      const hash = requireString(entry.digest, "canonical test-source baseline digest");
+      if (!/^[a-f0-9]{64}$/.test(hash)) {
+        throw new CurrentFlowStateInvariantError("canonical test-source baseline digest must be a SHA-256 digest");
+      }
+      const size = requirePositiveInteger(entry.byteLength, "canonical test-source baseline byteLength", { allowZero: true });
+      return Object.freeze({ relativePath: artifact.relativePath, hash, size });
+    }).sort((left, right) => left.relativePath.localeCompare(right.relativePath)));
+    if (new Set(this.entries.map((entry) => entry.relativePath)).size !== this.entries.length) {
+      throw new CurrentFlowStateInvariantError("canonical test-source baseline must not duplicate a source");
+    }
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof CanonicalFlowTestSourceBaseline
+      ? value
+      : new CanonicalFlowTestSourceBaseline(value);
+  }
+
+  /** Assert that the requested writes/removals really describe one full tree. */
+  assertReplacement(activity, writes, removals) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("canonical test-source baseline requires a typed FlowActivity");
+    }
+    if (FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString() !== "test") {
+      throw new CurrentFlowStateInvariantError("only the test Step may replace the worker-owned test-source collection");
+    }
+    const written = new Set(writes
+      .filter((entry) => entry.artifact.logicalKey === "tests.source")
+      .map((entry) => entry.artifact.relativePath));
+    const removed = new Set(removals.map((entry) => entry.artifact.relativePath));
+    for (const entry of this.entries) {
+      if (!written.has(entry.relativePath) && !removed.has(entry.relativePath)) {
+        throw new CurrentFlowStateInvariantError(
+          `canonical test-source replacement omits baseline source: ${entry.relativePath}`,
+        );
+      }
+    }
+    for (const relativePath of removed) {
+      if (!this.entries.some((entry) => entry.relativePath === relativePath)) {
+        throw new CurrentFlowStateInvariantError(
+          `canonical test-source replacement removes a source absent from its baseline: ${relativePath}`,
+        );
+      }
+    }
+  }
+
+  /** Compare the complete collection while FlowArtifactCatalogStore holds its lock. */
+  assertCatalog(catalog) {
+    if (!(catalog instanceof FlowArtifactCatalog)) {
+      throw new CurrentFlowStateInvariantError("canonical test-source baseline requires a FlowArtifactCatalog");
+    }
+    const actual = catalog.artifacts
+      .filter((entry) => entry.logicalKey === "tests.source")
+      .map((entry) => Object.freeze({ relativePath: entry.relativePath, hash: entry.hash, size: entry.size }))
+      .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+    if (
+      actual.length !== this.entries.length
+      || actual.some((entry, index) => (
+        entry.relativePath !== this.entries[index].relativePath
+        || entry.hash !== this.entries[index].hash
+        || entry.size !== this.entries[index].size
+      ))
+    ) {
+      throw new CurrentFlowStateConflictError("canonical worker test-source collection changed after handoff capture");
+    }
+  }
+}
+
+/**
+ * Immutable review evidence has a typed owner+digest address rather than the
+ * generic parameterized artifact spelling.  Keeping it separate prevents a
+ * review step from publishing evidence below another producer's directory.
+ */
+export class CanonicalFlowReviewEvidenceWrite {
+  constructor({ logicalKey, reviewStep = null, taskId = null, digest, mediaType, bytes } = {}) {
+    if (logicalKey !== "review.evidence") {
+      throw new CurrentFlowStateInvariantError("canonical review evidence logicalKey must be review.evidence");
+    }
+    this.artifact = FLOW_ARTIFACT_CONTRACTS.reviewEvidence({ reviewStep, taskId, digest });
+    this.mediaType = requireString(mediaType, "canonical review evidence mediaType");
+    if (typeof bytes === "string") this.bytes = Buffer.from(bytes, "utf8");
+    else if (Buffer.isBuffer(bytes)) this.bytes = Buffer.from(bytes);
+    else throw new CurrentFlowStateInvariantError("canonical review evidence bytes must be a string or Buffer");
+    Object.freeze(this);
+  }
+
+  publication(activity) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("canonical review evidence publication requires a typed FlowActivity");
+    }
+    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+    if (updater !== this.artifact.publicationStep()) {
+      throw new CurrentFlowStateInvariantError(
+        `canonical review evidence producer does not own this evidence path: ${updater}`,
+      );
+    }
+    return this.artifact.publication({
+      mediaType: this.mediaType,
+      updater,
+      activityId: FlowActivityId.from(activity.id),
+    });
+  }
+
+  write(location) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical review evidence write requires a FlowVersionLocation");
+    }
+    const target = location.resolve(this.artifact.relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
+    return new AtomicFile(target, { phaseNamespace: "canonical-review-evidence" }).write(this.bytes);
+  }
+}
+
+/**
+ * A typed, non-authoritative runtime payload.  Unlike durable artifacts it is
+ * intentionally absent from artifact-catalog.json and cannot become evidence
+ * or a consumer input.  The contract still determines its path and producer,
+ * so callers never reconstruct `.runtime` paths themselves.
+ */
+export class CanonicalFlowRuntimeArtifactWrite {
+  constructor({ logicalKey, parameters = {}, mediaType, bytes } = {}) {
+    if (!isPlainObject(parameters)) {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact parameters must be an object");
+    }
+    this.artifact = resolvedArtifact(requireString(logicalKey, "canonical runtime artifact logicalKey"), parameters);
+    if (this.artifact.contract.cataloged || this.artifact.contract.retention.toString() !== "transient") {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact must use a transient non-catalog contract");
+    }
+    this.mediaType = requireString(mediaType, "canonical runtime artifact mediaType");
+    if (typeof bytes === "string") this.bytes = Buffer.from(bytes, "utf8");
+    else if (Buffer.isBuffer(bytes)) this.bytes = Buffer.from(bytes);
+    else throw new CurrentFlowStateInvariantError("canonical runtime artifact bytes must be a string or Buffer");
+    Object.freeze(this);
+  }
+
+  static from(value) {
+    return value instanceof CanonicalFlowRuntimeArtifactWrite
+      ? value
+      : new CanonicalFlowRuntimeArtifactWrite(value);
+  }
+
+  write(location, nodeId) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical runtime artifact write requires a FlowVersionLocation");
+    }
+    const updater = FlowArtifactUpdater.fromActivityNodeId(requireString(nodeId, "runtime artifact nodeId")).toString();
+    const publication = this.artifact.publication({ mediaType: this.mediaType, updater });
+    const target = location.resolve(this.artifact.relativePath);
+    this.artifact.contract.assertPublicationRole({
+      exists: fs.existsSync(target),
+      publicationStep: publication.authoritySlot.publicationStep,
+    });
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
+    new AtomicFile(target, { phaseNamespace: "canonical-flow-runtime-artifact" }).write(this.bytes);
+    return target;
+  }
 }
 const TERMINAL_NODE_STATUSES = new Set(["done", "skipped", "failed"]);
 const AUTHORITATIVE_NODE_STATUSES = new Set(["done", "skipped"]);
@@ -76,8 +437,16 @@ const FORBIDDEN_TOP_LEVEL_FIELDS = new Set([
 ]);
 const STATE_FIELDS = new Set([
   "schemaRevision",
+  "flowId",
+  "flowVersionId",
+  "runId",
+  "specId",
+  "issue",
+  "request",
   "version",
+  "lifecycle",
   "execution",
+  "policy",
   "kind",
   "id",
   "key",
@@ -88,6 +457,9 @@ const STATE_FIELDS = new Set([
   "current",
   "attempt",
   "confirmationOrder",
+  "artifacts",
+  "outbox",
+  "context",
 ]);
 const NODE_FIELDS = new Set(["kind", "id", "key", "status", "result", "attemptSequence", "steps"]);
 const JOURNAL_WRITER_AUTHORITY = Symbol("current-flow-state-store-writer");
@@ -113,6 +485,11 @@ function requirePositiveInteger(value, field, { allowZero = false } = {}) {
   return value;
 }
 
+function nullableIssue(value, field) {
+  if (value === null) return null;
+  return requirePositiveInteger(value, field);
+}
+
 function requireIso(value, field) {
   requireString(value, field);
   if (Number.isNaN(Date.parse(value))) {
@@ -133,6 +510,38 @@ function requireExactFields(value, fields, label) {
 
 function rootNodeValue(value) {
   return Object.fromEntries([...NODE_FIELDS].map((field) => [field, value[field]]));
+}
+
+/**
+ * Re-materialize the only state that may be persisted before any Activity.
+ *
+ * The definition owns the step graph, while the flow record owns its identity
+ * and command-level inputs.  Keeping this in one place is important for
+ * journal replay: reconstructing a fresh state must never silently invent a
+ * second identity, request, or execution policy.
+ */
+function freshStateLike(state, definition) {
+  if (!(state instanceof CurrentFlowState)) {
+    throw new CurrentFlowStateInvariantError("fresh state reconstruction requires CurrentFlowState");
+  }
+  if (!(definition instanceof CurrentFlowDefinition)) {
+    throw new CurrentFlowStateInvariantError("fresh state reconstruction requires CurrentFlowDefinition");
+  }
+  return CurrentFlowState.create({
+    definition,
+    execution: state.execution.toJSON(),
+    version: state.version,
+    ...state.identity.toJSON(),
+    request: state.request,
+    // Every journal starts from a live, unmodified Flow. Lifecycle changes
+    // are Activities, so retaining the current lifecycle here would replay a
+    // park/finalize transition twice.
+    lifecycle: { state: "active" },
+    policy: state.policy.toJSON(),
+    artifacts: state.artifacts.toJSON(),
+    outbox: state.outbox.toJSON(),
+    context: state.context.toJSON(),
+  });
 }
 
 function jsonEqual(left, right) {
@@ -240,6 +649,433 @@ export class CurrentFlowStateConflictError extends Error {
     super(message);
     this.name = "CurrentFlowStateConflictError";
     this.code = "CURRENT_FLOW_STATE_CONFLICT";
+  }
+}
+
+/**
+ * Immutable identity embedded in the canonical `flow.json` record.  Keeping
+ * it here, rather than in a sibling identity file, makes every state read a
+ * single-authority read and gives migration code the same serializer as the
+ * normal runtime.
+ */
+export class CurrentFlowIdentity {
+  constructor({ flowId, flowVersionId, runId, specId, issue = null } = {}) {
+    this.flowId = FlowId.from(flowId);
+    this.flowVersionId = FlowVersionId.from(flowVersionId);
+    this.runId = FlowRunId.from(runId);
+    this.specId = FlowSpecIdentity.from(specId);
+    // The Issue number selects a Flow just like runId/specId.  The immutable
+    // Issue body remains `issue.md`; retaining this nullable identity scalar
+    // lets target selection survive restart without deriving identity from a
+    // human-readable snapshot.
+    this.issue = nullableIssue(issue, "issue");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      flowId: this.flowId.toJSON(),
+      flowVersionId: this.flowVersionId.toJSON(),
+      runId: this.runId.toJSON(),
+      specId: this.specId.toJSON(),
+      issue: this.issue,
+    };
+  }
+
+  matchesLocation(location) {
+    return location instanceof FlowVersionLocation
+      && this.specId.equals(location.specId)
+      && location.version.value === 1;
+  }
+}
+
+/** A narrow lifecycle value; completed state is not inferred from a path. */
+export class CurrentFlowLifecycle {
+  constructor(value) {
+    requireExactFields(value, new Set(["state"]), "lifecycle");
+    if (!LIFECYCLE_STATES.has(value.state)) {
+      throw new CurrentFlowStateInvariantError(`lifecycle.state is invalid: ${value.state}`);
+    }
+    this.state = value.state;
+    Object.freeze(this);
+  }
+
+  toJSON() { return { state: this.state }; }
+}
+
+/** Policy records user-selected execution policy only; definition policy stays external. */
+export class CurrentFlowPolicy {
+  constructor(value) {
+    requireExactFields(value, new Set(["autoApprove", "nonblocking"]), "policy");
+    if (typeof value.autoApprove !== "boolean") {
+      throw new CurrentFlowStateInvariantError("policy.autoApprove must be boolean");
+    }
+    this.autoApprove = value.autoApprove;
+    this.nonblocking = value.nonblocking == null
+      ? null
+      : new CurrentFlowNonBlockingPolicy(value.nonblocking);
+    Object.freeze(this);
+  }
+
+  toJSON() { return { autoApprove: this.autoApprove, nonblocking: this.nonblocking?.toJSON() ?? null }; }
+}
+
+/** One-way advisory policy fact owned by the policy Activity. */
+export class CurrentFlowNonBlockingPolicy {
+  constructor(value) {
+    requireExactFields(value, new Set(["enabled", "activatedAt", "activatedStep", "reason"]), "policy.nonblocking");
+    if (value.enabled !== true) throw new CurrentFlowStateInvariantError("policy.nonblocking must be enabled");
+    this.enabled = true;
+    this.activatedAt = requireString(value.activatedAt, "policy.nonblocking.activatedAt");
+    this.activatedStep = requireString(value.activatedStep, "policy.nonblocking.activatedStep");
+    this.reason = requireString(value.reason, "policy.nonblocking.reason");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      enabled: true,
+      activatedAt: this.activatedAt,
+      activatedStep: this.activatedStep,
+      reason: this.reason,
+    };
+  }
+}
+
+/**
+ * Flow-level artifact references are catalog keys, never filesystem guesses.
+ * Runtime-specific records remain in their dedicated artifacts or `.runtime`
+ * namespaces and are not accumulated in flow.json history.
+ */
+export class CurrentFlowArtifacts {
+  constructor(value) {
+    if (!Array.isArray(value)) throw new CurrentFlowStateInvariantError("artifacts must be an array");
+    this.values = Object.freeze(value.map((entry) => entry instanceof ArtifactReference ? entry : new ArtifactReference(entry)));
+    const keys = this.values.map((entry) => `${entry.kind}\u0000${entry.id}`);
+    if (new Set(keys).size !== keys.length) {
+      throw new CurrentFlowStateInvariantError("artifacts must not contain duplicate catalog references");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return this.values.map((entry) => entry.toJSON()); }
+}
+
+/**
+ * Only unfinished operation descriptors live in the state.  The actual
+ * operation history belongs to the append-only Activity ledger.
+ */
+export class CurrentFlowOutbox {
+  constructor(value) {
+    if (!Array.isArray(value)) throw new CurrentFlowStateInvariantError("outbox must be an array");
+    this.values = Object.freeze(value.map((entry) => (
+      entry instanceof CurrentFlowOutboxEntry ? entry : new CurrentFlowOutboxEntry(entry)
+    )));
+    const ids = this.values.map((entry) => entry.id);
+    if (new Set(ids).size !== ids.length) throw new CurrentFlowStateInvariantError("outbox entry ids must be unique");
+    Object.freeze(this);
+  }
+
+  find(id) { return this.values.find((entry) => entry.id === id) ?? null; }
+
+  begin(entry) {
+    const next = entry instanceof CurrentFlowOutboxEntry ? entry : new CurrentFlowOutboxEntry(entry);
+    const existing = this.find(next.id);
+    if (existing !== null) {
+      if (existing.operation !== next.operation) {
+        throw new CurrentFlowStateInvariantError("outbox id cannot change its operation");
+      }
+      return this;
+    }
+    return new CurrentFlowOutbox([...this.values, next]);
+  }
+
+  settle(entry) {
+    const expected = entry instanceof CurrentFlowOutboxEntry ? entry : new CurrentFlowOutboxEntry(entry);
+    const existing = this.find(expected.id);
+    if (existing === null) {
+      throw new CurrentFlowStateInvariantError("outbox settlement requires an outstanding operation");
+    }
+    if (existing.operation !== expected.operation) {
+      throw new CurrentFlowStateInvariantError("outbox settlement operation does not match its outstanding operation");
+    }
+    return new CurrentFlowOutbox(this.values.filter((candidate) => candidate.id !== expected.id));
+  }
+
+  toJSON() { return this.values.map((entry) => entry.toJSON()); }
+}
+
+/** The current-state representation of one unfinished side effect. */
+export class CurrentFlowOutboxEntry {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("outbox entry must be an object");
+    requireExactFields(value, new Set(["id", "operation"]), "outbox entry");
+    this.id = requireString(value.id, "outbox entry.id");
+    this.operation = requireString(value.operation, "outbox entry.operation");
+    Object.freeze(this);
+  }
+
+  toJSON() { return { id: this.id, operation: this.operation }; }
+}
+
+/** Activity-owned facts for an outbox operation and its terminal outcome. */
+export class ActivityOutbox {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("activity.outbox must be an object");
+    requireExactFields(value, new Set([
+      "id", "operation", "attempt", "result", "failure", "failureCode", "recovery", "exactRecoveryReceipt",
+    ]), "activity.outbox");
+    this.entry = new CurrentFlowOutboxEntry({ id: value.id, operation: value.operation });
+    this.attempt = requirePositiveInteger(value.attempt, "activity.outbox.attempt");
+    this.result = value.result === null ? null : new ActivityOutboxResult(value.result);
+    if (value.failure !== null) requireString(value.failure, "activity.outbox.failure");
+    this.failure = value.failure;
+    if (value.failureCode !== null) {
+      requireString(value.failureCode, "activity.outbox.failureCode");
+      if (!/^[A-Z][A-Z0-9_]{2,199}$/.test(value.failureCode)) {
+        throw new CurrentFlowStateInvariantError("activity.outbox.failureCode is invalid");
+      }
+    }
+    this.failureCode = value.failureCode;
+    this.recovery = value.recovery === null ? null : new ActivityOutboxRecovery(value.recovery);
+    this.exactRecoveryReceipt = value.exactRecoveryReceipt === null
+      ? null
+      : new ActivityOutboxRecoveryReceipt(value.exactRecoveryReceipt);
+    Object.freeze(this);
+  }
+
+  get id() { return this.entry.id; }
+  get operation() { return this.entry.operation; }
+  toEntry() { return this.entry; }
+  toJSON() {
+    return {
+      ...this.entry.toJSON(),
+      attempt: this.attempt,
+      result: this.result?.toJSON() ?? null,
+      failure: this.failure,
+      failureCode: this.failureCode,
+      recovery: this.recovery?.toJSON() ?? null,
+      exactRecoveryReceipt: this.exactRecoveryReceipt?.toJSON() ?? null,
+    };
+  }
+}
+
+/** JSON command result retained by a terminal outbox Activity for restart-safe recovery. */
+export class ActivityOutboxResult {
+  constructor(value) {
+    if (!isPlainObject(value)) {
+      throw new CurrentFlowStateInvariantError("activity.outbox.result must be an object or null");
+    }
+    let serialized;
+    try {
+      serialized = JSON.stringify(value);
+    } catch (error) {
+      throw new CurrentFlowStateInvariantError(`activity.outbox.result must be JSON-serializable: ${error.message}`);
+    }
+    if (serialized === undefined) {
+      throw new CurrentFlowStateInvariantError("activity.outbox.result must be JSON-serializable");
+    }
+    this.value = Object.freeze(JSON.parse(serialized));
+    Object.freeze(this);
+  }
+
+  toJSON() { return structuredClone(this.value); }
+}
+
+/** Immutable merge pre-sync recovery evidence retained with an outbox failure. */
+export class ActivityOutboxRecovery {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("activity.outbox.recovery must be an object");
+    requireExactFields(value, new Set(["baseRef", "baseHead"]), "activity.outbox.recovery");
+    this.baseRef = requireString(value.baseRef, "activity.outbox.recovery.baseRef");
+    this.baseHead = requireString(value.baseHead, "activity.outbox.recovery.baseHead");
+    if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(this.baseHead)) {
+      throw new CurrentFlowStateInvariantError("activity.outbox.recovery.baseHead must be a Git object id");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() { return { baseRef: this.baseRef, baseHead: this.baseHead }; }
+}
+
+/** The one recovery claim consumed when a failed outbox side effect reopens. */
+export class ActivityOutboxRecoveryReceipt {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("activity.outbox.exactRecoveryReceipt must be an object");
+    requireExactFields(value, new Set(["idempotencyKey", "attempt", "failure", "recoveryKey"]), "activity.outbox.exactRecoveryReceipt");
+    this.idempotencyKey = requireString(value.idempotencyKey, "activity.outbox.exactRecoveryReceipt.idempotencyKey");
+    this.attempt = requirePositiveInteger(value.attempt, "activity.outbox.exactRecoveryReceipt.attempt");
+    this.failure = requireString(value.failure, "activity.outbox.exactRecoveryReceipt.failure");
+    this.recoveryKey = value.recoveryKey === null
+      ? null
+      : requireString(value.recoveryKey, "activity.outbox.exactRecoveryReceipt.recoveryKey");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      idempotencyKey: this.idempotencyKey,
+      attempt: this.attempt,
+      failure: this.failure,
+      recoveryKey: this.recoveryKey,
+    };
+  }
+}
+
+/** Immutable receipt for one explicit user authorization of a dispatch action. */
+export class ActivityDispatchApproval {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("activity.dispatchApproval must be an object");
+    requireExactFields(value, new Set(["version", "runId", "actionDigest", "approvalToken", "approvedAt"]), "activity.dispatchApproval");
+    if (value.version !== 1) {
+      throw new CurrentFlowStateInvariantError("activity.dispatchApproval.version must be exactly 1");
+    }
+    this.version = value.version;
+    this.runId = requireString(value.runId, "activity.dispatchApproval.runId");
+    for (const field of ["actionDigest", "approvalToken"]) {
+      this[field] = requireString(value[field], `activity.dispatchApproval.${field}`);
+      if (!/^[a-f0-9]{64}$/.test(this[field])) {
+        throw new CurrentFlowStateInvariantError(`activity.dispatchApproval.${field} must be SHA-256`);
+      }
+    }
+    this.approvedAt = requireIso(value.approvedAt, "activity.dispatchApproval.approvedAt");
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      runId: this.runId,
+      actionDigest: this.actionDigest,
+      approvalToken: this.approvalToken,
+      approvedAt: this.approvedAt,
+    };
+  }
+}
+
+/**
+ * Context is intentionally bounded to resumable command authority.  It is
+ * nullable so a fresh Flow does not invent an execution context.
+ */
+export class CurrentFlowContext {
+  constructor(value) {
+    if (value !== null) {
+      requireExactFields(value, new Set(["operation", "resumeToken"]), "context");
+      requireString(value.operation, "context.operation");
+      requireString(value.resumeToken, "context.resumeToken");
+    }
+    this.value = value === null ? null : Object.freeze({ operation: value.operation, resumeToken: value.resumeToken });
+    Object.freeze(this);
+  }
+
+  toJSON() { return this.value === null ? null : { ...this.value }; }
+}
+
+/**
+ * The canonical Spec record for Flow Version 1.  Task instructions belong
+ * here, never in flow.json or in a task-local runtime copy.  The document is
+ * otherwise intentionally open so product-specific Spec fields remain owned
+ * by the Spec schema rather than by persistence plumbing.
+ */
+export class CurrentFlowSpecRecord {
+  constructor(document, { specId = null } = {}) {
+    if (!isPlainObject(document)) {
+      throw new CurrentFlowStateInvariantError("canonical spec.json must be an object");
+    }
+    const identity = document.id ?? document.specId ?? specId;
+    this.record = new AuthoritativeSpecRecord({ ...document, id: identity });
+    // The identity belongs to flow.json/location authority.  Existing Spec
+    // schemas need not carry a duplicate `id` field merely for persistence.
+    this.document = Object.freeze(structuredClone(document));
+    this.specId = this.record.specId;
+    if (!Array.isArray(document.tasks)) {
+      throw new CurrentFlowStateInvariantError("canonical spec.json.tasks must be an array");
+    }
+    const ids = new Set();
+    this.tasks = Object.freeze(document.tasks.map((task, index) => {
+      if (!isPlainObject(task)) {
+        throw new CurrentFlowStateInvariantError(`canonical spec.json.tasks[${index}] must be an object`);
+      }
+      const id = requireString(task.id, `canonical spec.json.tasks[${index}].id`);
+      // `key` is runtime semantic identity. Existing Spec task documents are
+      // authoritative without needing a persistence-only duplicate field.
+      const key = requireString(task.key ?? id, `canonical spec.json.tasks[${index}].key`);
+      if (ids.has(id)) {
+        throw new CurrentFlowStateInvariantError(`canonical spec.json.tasks duplicates id: ${id}`);
+      }
+      ids.add(id);
+      return Object.freeze({ id, key, document: Object.freeze(structuredClone(task)) });
+    }));
+    Object.freeze(this);
+  }
+
+  static from(value, options = {}) {
+    if (value instanceof CurrentFlowSpecRecord) return value;
+    if (value instanceof AuthoritativeSpecRecord) return new CurrentFlowSpecRecord(value.toJSON(), options);
+    return new CurrentFlowSpecRecord(value, options);
+  }
+
+  toJSON() { return structuredClone(this.document); }
+  get canonicalText() { return `${JSON.stringify(this.document, null, 2)}\n`; }
+
+  withTask(task) {
+    if (!isPlainObject(task)) {
+      throw new CurrentFlowStateInvariantError("canonical Task specification must be an object");
+    }
+    const id = requireString(task.id, "canonical Task specification.id");
+    const key = requireString(task.key ?? id, "canonical Task specification.key");
+    const existing = this.tasks.find((entry) => entry.id === id) ?? null;
+    if (existing !== null) {
+      if (existing.key !== key) {
+        throw new CurrentFlowStateInvariantError(`canonical spec.json Task key does not match existing Task: ${id}`);
+      }
+      return this;
+    }
+    const next = this.toJSON();
+    const document = structuredClone(task);
+    delete document.key;
+    next.tasks = [...next.tasks, { ...document, id }];
+    return new CurrentFlowSpecRecord(next, { specId: this.specId.toString() });
+  }
+
+  task(id) {
+    const stableId = requireString(id, "canonical Task id");
+    return this.tasks.find((entry) => entry.id === stableId) ?? null;
+  }
+}
+
+/**
+ * Boundary serializer for the unchanged worker `spec.json` output contract.
+ *
+ * Workers still produce the established Spec-schema document, which has no
+ * runtime-owned `tasks` member. Version 1 persists that member as the sole
+ * Task-spec authority, so this serializer carries forward current typed Task
+ * documents and rejects a worker attempt to mutate them. It is intentionally
+ * distinct from CurrentFlowSpecRecord, whose constructor accepts only the
+ * exact persisted schema.
+ */
+export class CanonicalWorkerSpecPublication {
+  constructor(document) {
+    if (!isPlainObject(document)) {
+      throw new CurrentFlowStateInvariantError("canonical worker spec publication must be an object");
+    }
+    if (Object.hasOwn(document, "tasks")) {
+      throw new CurrentFlowStateInvariantError(
+        "canonical worker spec publication must not mutate runtime-owned spec.json.tasks",
+      );
+    }
+    this.document = Object.freeze(structuredClone(document));
+    Object.freeze(this);
+  }
+
+  materialize(previous, { specId } = {}) {
+    if (!(previous instanceof CurrentFlowSpecRecord)) {
+      throw new CurrentFlowStateInvariantError("canonical worker spec publication requires the current typed Spec record");
+    }
+    return new CurrentFlowSpecRecord({
+      ...structuredClone(this.document),
+      tasks: previous.tasks.map((task) => structuredClone(task.document)),
+    }, { specId });
   }
 }
 
@@ -375,9 +1211,10 @@ export class ActivityFailure {
 
 export class CurrentAttempt {
   constructor(value) {
-    requireExactFields(value, new Set(["id", "sequence", "startedAt", "consumption", "failure", "blocker", "incomplete", "operationClaims"]), "attempt");
-    const { id, sequence, startedAt, consumption, failure, blocker, incomplete, operationClaims } = value;
+    requireExactFields(value, new Set(["id", "nodeId", "sequence", "startedAt", "consumption", "failure", "blocker", "incomplete", "operationClaims"]), "attempt");
+    const { id, nodeId, sequence, startedAt, consumption, failure, blocker, incomplete, operationClaims } = value;
     this.id = requireString(id, "attempt.id");
+    this.nodeId = requireString(nodeId, "attempt.nodeId");
     this.sequence = requirePositiveInteger(sequence, "attempt.sequence");
     this.startedAt = requireIso(startedAt, "attempt.startedAt");
     this.consumption = consumption instanceof AttemptConsumption ? consumption : new AttemptConsumption(consumption);
@@ -396,6 +1233,7 @@ export class CurrentAttempt {
   toJSON() {
     return {
       id: this.id,
+      nodeId: this.nodeId,
       sequence: this.sequence,
       startedAt: this.startedAt,
       consumption: this.consumption.toJSON(),
@@ -409,6 +1247,7 @@ export class CurrentAttempt {
   replaceFacts({ failure = this.failure, blocker = this.blocker, incomplete = this.incomplete, operationClaims = this.operationClaims } = {}) {
     return new CurrentAttempt({
       id: this.id,
+      nodeId: this.nodeId,
       sequence: this.sequence,
       startedAt: this.startedAt,
       consumption: this.consumption,
@@ -1049,22 +1888,28 @@ function assertStaticShape(definition, state, dynamicContainerId, taskTemplate, 
   }
 }
 
+function materializedTaskStepId(parentId, definitionId) {
+  const suffix = definitionId.startsWith("task-") ? definitionId.slice("task-".length) : definitionId;
+  return `${parentId}-${suffix}`;
+}
+
 function materializeTaskStep(definition, parentId) {
+  const id = materializedTaskStepId(parentId, definition.id);
   return new StepNode({
     kind: "step",
-    id: `${parentId}/${definition.id}`,
+    id,
     key: definition.key,
     status: "pending",
     result: null,
     attemptSequence: 0,
-    steps: definition.steps.map((child) => materializeTaskStep(child, `${parentId}/${definition.id}`)),
+    steps: definition.steps.map((child) => materializeTaskStep(child, id)),
   });
 }
 
 function assertTaskStepShape(definition, state, parentId) {
   if (
     !(state instanceof StepNode)
-    || state.id !== `${parentId}/${definition.id}`
+    || state.id !== materializedTaskStepId(parentId, definition.id)
     || state.key !== definition.key
     || state.steps.length !== definition.steps.length
   ) {
@@ -1091,16 +1936,32 @@ function findPathInRoot(root, nodeId, trail = []) {
 
 export class FlowExecution {
   constructor(value) {
-    requireExactFields(value, new Set(["mode"]), "execution");
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("execution must be an object");
+    const allowed = new Set(["mode", "baseBranch", "featureBranch"]);
+    for (const field of Object.keys(value)) {
+      if (!allowed.has(field)) throw new CurrentFlowStateInvariantError(`execution contains unsupported field: ${field}`);
+    }
+    if (!Object.hasOwn(value, "mode")) throw new CurrentFlowStateInvariantError("execution.mode is required");
     const { mode } = value;
     if (!EXECUTION_MODES.has(mode)) {
       throw new CurrentFlowStateInvariantError(`execution.mode is invalid: ${mode}`);
     }
+    for (const field of ["baseBranch", "featureBranch"]) {
+      if (value[field] !== undefined && value[field] !== null) requireString(value[field], `execution.${field}`);
+    }
     this.mode = mode;
+    this.baseBranch = value.baseBranch ?? null;
+    this.featureBranch = value.featureBranch ?? null;
     Object.freeze(this);
   }
 
-  toJSON() { return { mode: this.mode }; }
+  toJSON() {
+    return {
+      mode: this.mode,
+      baseBranch: this.baseBranch,
+      featureBranch: this.featureBranch,
+    };
+  }
 }
 
 export class CurrentCursor {
@@ -1431,11 +2292,17 @@ function assertNodeLifecycle(node) {
 
 function assertExecutionFrontier(definition, root, currentPath) {
   const leaves = definition.orderedLeaves(root);
+  const finalizationDownstreamRoute = currentPath?.at(-1) === "finalize-merge";
   let frontier = null;
   let suffixStatus = null;
   for (const [index, leaf] of leaves.entries()) {
     if (TERMINAL_NODE_STATUSES.has(leaf.status)) {
       if (frontier !== null) {
+        if (finalizationDownstreamRoute
+          && leaf.status === "skipped"
+          && ["finalize-sync", "finalize-cleanup"].includes(leaf.id)) {
+          continue;
+        }
         throw new CurrentFlowStateInvariantError("execution frontier cannot contain a terminal leaf after unfinished work");
       }
       continue;
@@ -1473,37 +2340,89 @@ export class CurrentFlowState {
     if (value.schemaRevision !== CURRENT_FLOW_SCHEMA_REVISION) {
       throw new CurrentFlowStateInvariantError(`unsupported schemaRevision: ${value.schemaRevision}`);
     }
-    requirePositiveInteger(value.version, "version");
+    if (value.version !== 1) throw new CurrentFlowStateInvariantError("flow Version must be exactly 1");
     this.schemaRevision = value.schemaRevision;
+    this.identity = new CurrentFlowIdentity(value);
+    this.flowId = this.identity.flowId.toString();
+    this.flowVersionId = this.identity.flowVersionId.toString();
+    this.runId = this.identity.runId.toString();
+    this.specId = this.identity.specId.toString();
+    this.issue = this.identity.issue;
+    if (typeof value.request !== "string") {
+      throw new CurrentFlowStateInvariantError("request must be a string");
+    }
+    this.request = value.request;
     this.version = value.version;
+    this.lifecycle = value.lifecycle instanceof CurrentFlowLifecycle
+      ? value.lifecycle
+      : new CurrentFlowLifecycle(value.lifecycle);
     this.execution = value.execution instanceof FlowExecution ? value.execution : new FlowExecution(value.execution);
+    this.policy = value.policy instanceof CurrentFlowPolicy ? value.policy : new CurrentFlowPolicy(value.policy);
     this.root = new FlowRootNode(rootNodeValue(value));
     definition.assertStateShape(this.root);
-    if (value.current !== null && (!Array.isArray(value.current) || value.current.length === 0)) {
-      throw new CurrentFlowStateInvariantError("current must be a non-empty stable-id array or null");
+    this.definition = definition;
+    if (value.current !== null && typeof value.current !== "string") {
+      throw new CurrentFlowStateInvariantError("current must be a stable node id or null");
     }
-    this.current = value.current == null ? null : Object.freeze(value.current.map((id) => requireString(id, "current id")));
+    this.current = value.current == null
+      ? null
+      : this.definitionPathForCurrent(value.current);
     this.attempt = value.attempt == null ? null : value.attempt instanceof CurrentAttempt ? value.attempt : new CurrentAttempt(value.attempt);
     this.confirmationOrder = requirePositiveInteger(value.confirmationOrder, "confirmationOrder", { allowZero: true });
-    this.definition = definition;
+    this.artifacts = value.artifacts instanceof CurrentFlowArtifacts ? value.artifacts : new CurrentFlowArtifacts(value.artifacts);
+    this.outbox = value.outbox instanceof CurrentFlowOutbox ? value.outbox : new CurrentFlowOutbox(value.outbox);
+    this.context = value.context instanceof CurrentFlowContext ? value.context : new CurrentFlowContext(value.context);
     this.#assertCurrent();
     Object.freeze(this);
   }
 
-  static create({ definition, execution = { mode: "direct" }, version = CURRENT_FLOW_RESULT_VERSION }) {
+  static create({
+    definition,
+    execution = { mode: "direct" },
+    version = CURRENT_FLOW_RESULT_VERSION,
+    flowId = "flow",
+    flowVersionId = "flow-v1",
+    runId = "run",
+    specId = "spec",
+    issue = null,
+    request = "",
+    lifecycle = { state: "active" },
+    policy = { autoApprove: false, nonblocking: null },
+    artifacts = [],
+    outbox = [],
+    context = null,
+  }) {
     if (!(definition instanceof CurrentFlowDefinition)) {
       throw new CurrentFlowStateInvariantError("CurrentFlowState.create requires a CurrentFlowDefinition");
     }
     const root = definition.materializeRoot();
     return new CurrentFlowState({
       schemaRevision: CURRENT_FLOW_SCHEMA_REVISION,
+      flowId,
+      flowVersionId,
+      runId,
+      specId,
+      issue,
+      request,
       version,
+      lifecycle,
       execution,
+      policy,
       ...root.toJSON(),
       current: null,
       attempt: null,
       confirmationOrder: 0,
+      artifacts,
+      outbox,
+      context,
     }, { definition });
+  }
+
+  definitionPathForCurrent(currentId) {
+    const id = requireString(currentId, "current id");
+    const pathFor = this.definition?.pathFor?.(this.root, id);
+    if (!pathFor) throw new CurrentFlowStateInvariantError("current must identify a state node");
+    return Object.freeze([...pathFor]);
   }
 
   #assertCurrent() {
@@ -1520,6 +2439,17 @@ export class CurrentFlowState {
     }
     assertNodeLifecycle(this.root);
     assertExecutionFrontier(this.definition, this.root, this.current);
+    if (this.lifecycle.state === "finalized") {
+      if (this.current !== null || this.attempt !== null) {
+        throw new CurrentFlowStateInvariantError("finalized Flow must not retain an active Attempt");
+      }
+      if (this.outbox.values.length !== 0) {
+        throw new CurrentFlowStateInvariantError("finalized Flow must not retain unfinished outbox operations");
+      }
+      if (all.some((node) => node.steps.length === 0 && !TERMINAL_NODE_STATUSES.has(node.status))) {
+        throw new CurrentFlowStateInvariantError("finalized Flow requires every leaf to be terminal");
+      }
+    }
     const activeLeaves = all.filter((node) => node.steps.length === 0 && node.status === "in_progress");
     if (this.current == null) {
       if (this.attempt !== null) throw new CurrentFlowStateInvariantError("attempt requires a current path");
@@ -1532,6 +2462,9 @@ export class CurrentFlowState {
     if (leaf.status !== "in_progress") throw new CurrentFlowStateInvariantError("current leaf must be in_progress");
     if (leaf.attemptSequence !== this.attempt.sequence) {
       throw new CurrentFlowStateInvariantError("current Attempt sequence must match the active leaf cursor");
+    }
+    if (this.attempt.nodeId !== leaf.id) {
+      throw new CurrentFlowStateInvariantError("current Attempt nodeId must match the active leaf cursor");
     }
     this.#assertAttemptContractForLeaf(leaf, this.attempt);
     if (activeLeaves.length !== 1 || activeLeaves[0].id !== leaf.id) {
@@ -1548,7 +2481,102 @@ export class CurrentFlowState {
     return findNodeInRoot(this.root, id);
   }
 
+  park() {
+    if (this.lifecycle.state !== "active") {
+      throw new CurrentFlowStateInvariantError("only an active Flow may be parked");
+    }
+    return this.#replaceLifecycle("parked");
+  }
+
+  resume() {
+    if (this.lifecycle.state !== "parked") {
+      throw new CurrentFlowStateInvariantError("only a parked Flow may be resumed");
+    }
+    return this.#replaceLifecycle("active");
+  }
+
+  withPolicy(policy) {
+    if (this.lifecycle.state === "finalized") {
+      throw new CurrentFlowStateInvariantError("finalized Flow policy is immutable");
+    }
+    const next = policy instanceof CurrentFlowPolicy ? policy : new CurrentFlowPolicy(policy);
+    return new CurrentFlowState({
+      ...this.toJSON(),
+      policy: next.toJSON(),
+    }, { definition: this.definition });
+  }
+
+  withOutbox(outbox) {
+    if (this.lifecycle.state === "finalized") {
+      throw new CurrentFlowStateInvariantError("finalized Flow outbox is immutable");
+    }
+    const next = outbox instanceof CurrentFlowOutbox ? outbox : new CurrentFlowOutbox(outbox);
+    return new CurrentFlowState({
+      ...this.toJSON(),
+      outbox: next.toJSON(),
+    }, { definition: this.definition });
+  }
+
+  /**
+   * Apply the definition-authorized finalization suffix transition while the
+   * finalize-merge Attempt remains active.  This is one journaled operation,
+   * not a sequence of foreign Step patches that would violate Attempt owner
+   * authority.
+   */
+  finalizeDownstream({ stepIds, status, confirmedAt }) {
+    this.#assertExecutionActive();
+    if (this.current?.at(-1) !== "finalize-merge") {
+      throw new CurrentFlowStateInvariantError("finalization downstream transition requires the active finalize-merge Attempt");
+    }
+    if (!Array.isArray(stepIds) || stepIds.length === 0 || !["skipped", "pending"].includes(status)) {
+      throw new CurrentFlowStateInvariantError("finalization downstream transition is invalid");
+    }
+    if (status === "skipped") requireIso(confirmedAt, "finalization downstream confirmedAt");
+    let root = this.root;
+    for (const stepId of stepIds) {
+      const node = findNodeInRoot(root, stepId);
+      if (node === null) throw new CurrentFlowStateInvariantError(`finalization downstream Step is absent: ${stepId}`);
+      if (!["finalize-sync", "finalize-cleanup"].includes(stepId)) {
+        throw new CurrentFlowStateInvariantError(`finalization downstream Step is not authorized: ${stepId}`);
+      }
+      const allowed = status === "skipped" ? ["pending"] : ["skipped"];
+      if (!allowed.includes(node.status)) {
+        throw new CurrentFlowStateInvariantError(`finalization downstream ${stepId} must be ${allowed[0]}, got ${node.status}`);
+      }
+      // This pair is a definition-owned finalization route, not an ordinary
+      // worker result transition.  Its dedicated Activity is the authority
+      // that permits the otherwise-illegal pending↔skipped recovery pair.
+      root = replaceNode(root, stepId, status === "skipped"
+        ? node.with({
+            status,
+            attemptSequence: node.attemptSequence + 1,
+            result: new NodeResult({
+              outcome: "skipped",
+              summary: "finalize-merge downstream route skipped",
+              confirmedAt,
+              artifactRefs: [],
+            }),
+          })
+        : node.with({ status, attemptSequence: 0, result: null }));
+    }
+    return this.#replaceRoot(reconcileCompletedParents(root, this.definition), this.current, this.attempt);
+  }
+
+  finalize() {
+    if (this.lifecycle.state !== "active") {
+      throw new CurrentFlowStateInvariantError("only an active Flow may be finalized");
+    }
+    if (this.current !== null || this.attempt !== null) {
+      throw new CurrentFlowStateInvariantError("cannot finalize a Flow with an active Attempt");
+    }
+    if (collectNodes(this.root).some((node) => node.steps.length === 0 && !TERMINAL_NODE_STATUSES.has(node.status))) {
+      throw new CurrentFlowStateInvariantError("cannot finalize a Flow with unfinished leaves");
+    }
+    return this.#replaceLifecycle("finalized");
+  }
+
   addTask({ id, key }) {
+    this.#assertExecutionActive();
     const container = this.findNode(this.definition.dynamicTaskContainerId);
     if (!container) throw new CurrentFlowStateInvariantError("dynamic Task container is missing");
     if (this.findNode(id)) throw new CurrentFlowStateInvariantError(`dynamic Task duplicates stable id: ${id}`);
@@ -1582,6 +2610,7 @@ export class CurrentFlowState {
   }
 
   retryCurrentAttempt({ attempt, kind }) {
+    this.#assertExecutionActive();
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("retryCurrentAttempt requires an active Attempt");
     }
@@ -1596,12 +2625,16 @@ export class CurrentFlowState {
     if (kind !== this.attempt.failure.retryKind) {
       throw new CurrentFlowStateInvariantError("retry kind must match the active Attempt failure decision");
     }
+    if (next.nodeId !== leaf.id) {
+      throw new CurrentFlowStateInvariantError("retry Attempt nodeId must match the active leaf");
+    }
     this.#assertAttemptForLeaf(leaf, next, { previous: this.attempt, kind });
     const root = replaceNode(this.root, leaf.id, leaf.with({ attemptSequence: next.sequence }));
     return this.#replaceRoot(root, this.current, next);
   }
 
   failCurrentAttempt({ failure, result }) {
+    this.#assertExecutionActive();
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("failCurrentAttempt requires an active Attempt");
     }
@@ -1626,6 +2659,7 @@ export class CurrentFlowState {
   }
 
   recordCurrentFailure({ result }) {
+    this.#assertExecutionActive();
     if (this.current === null || this.attempt === null || this.attempt.failure === null) {
       throw new CurrentFlowStateInvariantError("recordCurrentFailure requires a failed active Attempt");
     }
@@ -1647,6 +2681,7 @@ export class CurrentFlowState {
   }
 
   replaceCurrentAttempt({ attempt }) {
+    this.#assertExecutionActive();
     if (this.current == null || this.attempt == null) {
       throw new CurrentFlowStateInvariantError("replaceCurrentAttempt requires an active Attempt");
     }
@@ -1657,6 +2692,7 @@ export class CurrentFlowState {
     }
     if (
       replacement.id !== this.attempt.id
+      || replacement.nodeId !== this.attempt.nodeId
       || replacement.sequence !== this.attempt.sequence
       || replacement.startedAt !== this.attempt.startedAt
       || replacement.consumption.semantic !== this.attempt.consumption.semantic
@@ -1670,6 +2706,7 @@ export class CurrentFlowState {
   }
 
   confirmCurrentAttempt({ result, status = "done" }) {
+    this.#assertExecutionActive();
     if (this.current == null) throw new CurrentFlowStateInvariantError("confirmCurrentAttempt requires an active Attempt");
     if (this.attempt.failure !== null) {
       throw new CurrentFlowStateInvariantError("a failed Attempt cannot be confirmed without a new retry Attempt");
@@ -1696,7 +2733,75 @@ export class CurrentFlowState {
     return this.#replaceRoot(root, null, null);
   }
 
+  /**
+   * Complete final-regression from an explicit, evidence-bound operator
+   * acceptance.  The accepted result is a new Attempt episode so the failed
+   * producer Attempt and its immutable artifact history are never rewritten.
+   */
+  acceptFinalRegressionFailure({ attempt, result }) {
+    this.#assertExecutionActive();
+    if (this.current === null || this.current.at(-1) !== "final-regression" || this.attempt?.failure === null) {
+      throw new CurrentFlowStateInvariantError(
+        "final-regression acceptance requires its failed active Attempt",
+      );
+    }
+    const leaf = nodeAtPath(this.root, this.current);
+    const acceptedAttempt = attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
+    if (
+      acceptedAttempt.nodeId !== leaf.id
+      || acceptedAttempt.sequence !== this.attempt.sequence + 1
+      || acceptedAttempt.sequence !== leaf.attemptSequence + 1
+      || acceptedAttempt.id === this.attempt.id
+      || acceptedAttempt.failure !== null
+      || acceptedAttempt.consumption.semantic !== 0
+      || acceptedAttempt.consumption.tooling !== 0
+    ) {
+      throw new CurrentFlowStateInvariantError("final-regression acceptance Attempt identity is invalid");
+    }
+    this.#assertAttemptContractForLeaf(leaf, acceptedAttempt);
+    const accepted = result instanceof NodeResult ? result : new NodeResult(result);
+    if (accepted.outcome !== "passed") {
+      throw new CurrentFlowStateInvariantError("final-regression acceptance requires a passed lifecycle result");
+    }
+    const root = reconcileCompletedParents(
+      replaceNode(this.root, leaf.id, transitionNode(leaf, "done", this.definition, {
+        attemptSequence: acceptedAttempt.sequence,
+        result: accepted,
+      })),
+      this.definition,
+    );
+    return this.#replaceRoot(root, null, null);
+  }
+
+  /** Apply the route-specific skips authorized by an immutable advisory decision. */
+  continueNonblockingAttempt({ result, skippedNodeIds }) {
+    const continuationResult = result instanceof NodeResult ? result : new NodeResult(result);
+    const confirmed = this.confirmCurrentAttempt({ result: continuationResult, status: "done" });
+    if (!Array.isArray(skippedNodeIds)) {
+      throw new CurrentFlowStateInvariantError("nonblocking continuation skipped nodes must be an array");
+    }
+    let root = confirmed.root;
+    for (const id of skippedNodeIds) {
+      const node = findNodeInRoot(root, requireString(id, "nonblocking continuation skipped nodeId"));
+      if (node === null || node.steps.length !== 0 || node.status !== "pending") {
+        throw new CurrentFlowStateInvariantError("nonblocking continuation may skip only pending route leaves");
+      }
+      root = replaceNode(root, node.id, node.with({
+        status: "skipped",
+        attemptSequence: node.attemptSequence + 1,
+        result: new NodeResult({
+          outcome: "skipped",
+          summary: "explicit nonblocking continuation",
+          confirmedAt: continuationResult.confirmedAt,
+          artifactRefs: [],
+        }),
+      }));
+    }
+    return confirmed.#replaceRoot(reconcileCompletedParents(root, confirmed.definition), null, null);
+  }
+
   rewind({ path: currentPath, attempt }) {
+    this.#assertExecutionActive();
     const recovery = this.recoveryTarget(currentPath).assertLegal();
     if (recovery.operation !== "rewind") {
       throw new CurrentFlowStateInvariantError("rewind requires a terminal recovery target");
@@ -1721,7 +2826,275 @@ export class CurrentFlowState {
     });
   }
 
+  /**
+   * Replace stale test evidence at the integration gate or retro. This route
+   * is fixed by the definition: callers cannot use it as a generic state
+   * mutator.
+   * Historical producer artifacts remain in the catalog; the replacement
+   * test-execute Attempt publishes the current evidence on its own history.
+   */
+  rewindTestEvidence({ path: currentPath, attempt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "test-execute") {
+      throw new CurrentFlowStateInvariantError("test evidence rewind target must be test-execute");
+    }
+    const sourceId = this.current?.at(-1) ?? null;
+    if (this.current === null || this.attempt === null || !new Set(["impl-gate", "retro"]).has(sourceId)) {
+      throw new CurrentFlowStateInvariantError("test evidence rewind requires an active impl-gate or retro Attempt");
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const targetIndex = leaves.findIndex((node) => node.id === target.id);
+    const sourceIndex = leaves.findIndex((node) => node.id === sourceId);
+    if (targetIndex < 0 || sourceIndex < targetIndex) {
+      throw new CurrentFlowStateInvariantError("test evidence rewind route is absent from the Flow definition");
+    }
+    let root = this.root;
+    for (const id of leaves.slice(targetIndex).map((node) => node.id)) {
+      const node = findNodeInRoot(root, id);
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    root = reconcileInvalidatedParents(root, this.definition);
+    const state = this.#replaceRoot(root, null, null);
+    return state.#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["invalidated"],
+      initial: true,
+      operation: "rewindTestEvidence",
+    });
+  }
+
+  /**
+   * Re-open the test-design worker from a rejected test-review Attempt.  The
+   * route is fixed and invalidates the definition suffix so the execution
+   * frontier remains a single active leaf followed by one uniform state.
+   */
+  repairTestReview({ path: currentPath, attempt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "test") {
+      throw new CurrentFlowStateInvariantError("test-review repair target must be test");
+    }
+    if (this.current === null || this.attempt === null || this.current.at(-1) !== "test-review") {
+      throw new CurrentFlowStateInvariantError("test-review repair requires an active test-review Attempt");
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const targetIndex = leaves.findIndex((node) => node.id === "test");
+    const sourceIndex = leaves.findIndex((node) => node.id === "test-review");
+    if (targetIndex < 0 || sourceIndex < targetIndex) {
+      throw new CurrentFlowStateInvariantError("test-review repair route is absent from the Flow definition");
+    }
+    let root = this.root;
+    for (const id of leaves.slice(targetIndex).map((node) => node.id)) {
+      const node = findNodeInRoot(root, id);
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    root = reconcileInvalidatedParents(root, this.definition);
+    return this.#replaceRoot(root, null, null).#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["invalidated"],
+      initial: true,
+      operation: "repairTestReview",
+    });
+  }
+
+  /**
+   * Enter implementation after scenario-validity classified existing
+   * implementation changes.  The fixed route keeps this exception out of a
+   * generic status-patching surface and preserves its source artifact in the
+   * producer Attempt history.
+   */
+  preimplementationBootstrap({ path: currentPath, attempt, confirmedAt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "implement") {
+      throw new CurrentFlowStateInvariantError("preimplementation bootstrap target must be implement");
+    }
+    if (this.current === null || this.attempt === null || this.current.at(-1) !== "scenario-validity") {
+      throw new CurrentFlowStateInvariantError("preimplementation bootstrap requires an active scenario-validity Attempt");
+    }
+    const scenario = this.findNode("scenario-validity");
+    const testReview = this.findNode("test-review");
+    if (scenario?.status !== "in_progress" || testReview?.status !== "pending" || target.status !== "pending") {
+      throw new CurrentFlowStateInvariantError(
+        "preimplementation bootstrap requires scenario-validity=in_progress, test-review=pending, implement=pending",
+      );
+    }
+    const now = requireIso(confirmedAt, "preimplementation bootstrap confirmedAt");
+    const skippedResult = (stepId) => new NodeResult({
+      outcome: "skipped",
+      summary: `preimplementation bootstrap bypassed ${stepId}`,
+      confirmedAt: now,
+      artifactRefs: [],
+    });
+    let root = replaceNode(this.root, scenario.id, transitionNode(scenario, "skipped", this.definition, {
+      result: skippedResult(scenario.id),
+    }));
+    const pendingReview = findNodeInRoot(root, testReview.id);
+    root = replaceNode(root, pendingReview.id, transitionNode(pendingReview, "skipped", this.definition, {
+      attemptSequence: pendingReview.attemptSequence + 1,
+      result: skippedResult(pendingReview.id),
+    }));
+    root = reconcileCompletedParents(root, this.definition);
+    const state = this.#replaceRoot(root, null, null);
+    return state.#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["pending"],
+      initial: true,
+      operation: "preimplementationBootstrap",
+    });
+  }
+
+  /**
+   * Revalidate implementation that already exists after scenario-validity
+   * recorded it as a preflight block.  This fixed route cannot be repurposed
+   * as a generic completion or skip operation.
+   */
+  recoverExistingImplementation({ path: currentPath, attempt, confirmedAt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "test-execute") {
+      throw new CurrentFlowStateInvariantError("existing implementation recovery target must be test-execute");
+    }
+    if (this.current === null || this.attempt === null || this.current.at(-1) !== "scenario-validity") {
+      throw new CurrentFlowStateInvariantError("existing implementation recovery requires an active scenario-validity Attempt");
+    }
+    const scenario = this.findNode("scenario-validity");
+    const testReview = this.findNode("test-review");
+    const implementation = this.findNode("implement");
+    if (
+      scenario?.status !== "in_progress"
+      || testReview?.status !== "pending"
+      || implementation?.status !== "pending"
+      || target.status !== "pending"
+    ) {
+      throw new CurrentFlowStateInvariantError(
+        "existing implementation recovery requires scenario-validity=in_progress, test-review=pending, implement=pending, test-execute=pending",
+      );
+    }
+    const now = requireIso(confirmedAt, "existing implementation recovery confirmedAt");
+    const skippedResult = (stepId) => new NodeResult({
+      outcome: "skipped",
+      summary: `existing implementation recovery bypassed ${stepId}`,
+      confirmedAt: now,
+      artifactRefs: [],
+    });
+    const completedImplementation = new NodeResult({
+      outcome: "passed",
+      summary: "existing implementation revalidated from scenario-validity preflight evidence",
+      confirmedAt: now,
+      artifactRefs: [],
+    });
+    let root = replaceNode(this.root, scenario.id, transitionNode(scenario, "skipped", this.definition, {
+      result: skippedResult(scenario.id),
+    }));
+    const pendingReview = findNodeInRoot(root, testReview.id);
+    root = replaceNode(root, pendingReview.id, transitionNode(pendingReview, "skipped", this.definition, {
+      attemptSequence: pendingReview.attemptSequence + 1,
+      result: skippedResult(pendingReview.id),
+    }));
+    const pendingImplementation = findNodeInRoot(root, implementation.id);
+    root = replaceNode(root, pendingImplementation.id, transitionNode(pendingImplementation, "done", this.definition, {
+      attemptSequence: pendingImplementation.attemptSequence + 1,
+      result: completedImplementation,
+    }));
+    const implementationBranch = findNodeInRoot(root, "impl");
+    root = replaceNode(root, implementationBranch.id, transitionNode(
+      implementationBranch,
+      "in_progress",
+      this.definition,
+      { steps: implementationBranch.steps },
+    ));
+    root = reconcileCompletedParents(root, this.definition);
+    const state = this.#replaceRoot(root, null, null);
+    return state.#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["pending"],
+      initial: true,
+      operation: "recoverExistingImplementation",
+    });
+  }
+
+  /** Definition-owned replacement of all planning and implementation leaves. */
+  reopenDraft({ path: currentPath, attempt, route }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    if (target.id !== "draft") throw new CurrentFlowStateInvariantError("draft reopen target must be draft");
+    if (this.current === null || this.attempt === null || this.current.at(-1) === "draft") {
+      throw new CurrentFlowStateInvariantError("draft reopen requires a later active Attempt");
+    }
+    if (!new Set(["preimplementation", "task-addition", "spec-correction"]).has(route)) {
+      throw new CurrentFlowStateInvariantError("draft reopen route is invalid");
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const targetIndex = leaves.findIndex((node) => node.id === "draft");
+    if (targetIndex < 0) throw new CurrentFlowStateInvariantError("draft reopen route is absent from the Flow definition");
+    let root = this.root;
+    for (const id of leaves.slice(targetIndex).map((node) => node.id)) {
+      const node = findNodeInRoot(root, id);
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    root = reconcileInvalidatedParents(root, this.definition);
+    const state = this.#replaceRoot(root, null, null);
+    return state.#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["invalidated"],
+      initial: true,
+      operation: `reopenDraft:${route}`,
+    });
+  }
+
+  /**
+   * The guarded plan-gate route is an explicit recovery transition, not a
+   * mutable status patch.  It may leave an active gate only after the route
+   * has recorded blocking evidence in the same Version Store operation.
+   */
+  repairPlanGate({ path: currentPath, attempt }) {
+    this.#assertExecutionActive();
+    const target = nodeAtPath(this.root, currentPath);
+    const route = planGateRepairRouteForTargetStep(target.id);
+    if (route === null) {
+      throw new CurrentFlowStateInvariantError(`plan gate repair has no route for ${target.id}`);
+    }
+    if (this.current === null || this.attempt === null || this.current.at(-1) !== route.gateStepId) {
+      throw new CurrentFlowStateInvariantError("plan gate repair requires its mapped active gate Attempt");
+    }
+    for (const stepId of route.resetStepIds) {
+      const node = this.findNode(stepId);
+      if (node === null) throw new CurrentFlowStateInvariantError(`plan gate repair route node is missing: ${stepId}`);
+      const expected = stepId === route.gateStepId ? "in_progress" : "done";
+      if (node.status !== expected) {
+        throw new CurrentFlowStateInvariantError(
+          `plan gate repair requires ${stepId}=${expected}, got ${node.status}`,
+        );
+      }
+    }
+    const leaves = this.definition.orderedLeaves(this.root);
+    const targetIndex = leaves.findIndex((node) => node.id === target.id);
+    if (targetIndex < 0) throw new CurrentFlowStateInvariantError("plan gate repair target is not a Flow leaf");
+    let root = this.root;
+    for (const id of leaves.slice(targetIndex).map((node) => node.id)) {
+      const node = findNodeInRoot(root, id);
+      root = replaceNode(root, id, transitionNode(node, "invalidated", this.definition, { result: null }));
+    }
+    root = reconcileInvalidatedParents(root, this.definition);
+    const state = this.#replaceRoot(root, null, null);
+    return state.#activateAttempt({
+      path: currentPath,
+      attempt,
+      allowedLeafStatuses: ["invalidated"],
+      initial: true,
+      operation: "planGateRepair",
+    });
+  }
+
   recover({ path: currentPath, attempt }) {
+    this.#assertExecutionActive();
     const recovery = this.recoveryTarget(currentPath).assertLegal();
     if (recovery.operation !== "recover") {
       throw new CurrentFlowStateInvariantError("recover requires the next invalidated recovery target");
@@ -1910,6 +3283,7 @@ export class CurrentFlowState {
   }
 
   #activateAttempt({ path: currentPath, attempt, allowedLeafStatuses, initial, operation }) {
+    this.#assertExecutionActive();
     if (this.current != null) throw new CurrentFlowStateInvariantError("a current Attempt is already active");
     const leaf = nodeAtPath(this.root, currentPath);
     if (leaf.steps.length !== 0) throw new CurrentFlowStateInvariantError("Attempt target must be a leaf");
@@ -1932,6 +3306,9 @@ export class CurrentFlowState {
   }
 
   #assertAttemptForLeaf(leaf, next, { initial = false, previous = null, kind = null } = {}) {
+    if (next.nodeId !== leaf.id) {
+      throw new CurrentFlowStateInvariantError("Attempt nodeId must match its target leaf");
+    }
     this.#assertAttemptContractForLeaf(leaf, next);
     if (initial) {
       if (next.sequence !== leaf.attemptSequence + 1 || next.consumption.semantic !== 0 || next.consumption.tooling !== 0) {
@@ -1986,21 +3363,90 @@ export class CurrentFlowState {
     return new CurrentFlowState({
       ...this.toJSON(),
       ...root.toJSON(),
-      current: current == null ? null : [...current],
+      current: current == null ? null : current.at(-1),
       attempt: attempt?.toJSON?.() ?? attempt,
     }, { definition: this.definition });
+  }
+
+  #replaceLifecycle(state) {
+    return new CurrentFlowState({
+      ...this.toJSON(),
+      lifecycle: new CurrentFlowLifecycle({ state }).toJSON(),
+    }, { definition: this.definition });
+  }
+
+  #assertExecutionActive() {
+    if (this.lifecycle.state !== "active") {
+      throw new CurrentFlowStateInvariantError("step transitions require an active Flow lifecycle");
+    }
   }
 
   toJSON() {
     return {
       schemaRevision: this.schemaRevision,
+      ...this.identity.toJSON(),
+      request: this.request,
       version: this.version,
+      lifecycle: this.lifecycle.toJSON(),
       execution: this.execution.toJSON(),
+      policy: this.policy.toJSON(),
       ...this.root.toJSON(),
-      current: this.current == null ? null : [...this.current],
+      current: this.current == null ? null : this.current.at(-1),
       attempt: this.attempt?.toJSON() ?? null,
       confirmationOrder: this.confirmationOrder,
+      artifacts: this.artifacts.toJSON(),
+      outbox: this.outbox.toJSON(),
+      context: this.context.toJSON(),
     };
+  }
+}
+
+/**
+ * The schema boundary for canonical flow.json.  Callers never deserialize
+ * through a generic JSON helper: the validator is definition-bound so state
+ * shape and lifecycle semantics are checked together.
+ */
+export class CurrentFlowStateValidator {
+  constructor({ definition } = {}) {
+    if (!(definition instanceof CurrentFlowDefinition)) {
+      throw new CurrentFlowStateInvariantError("CurrentFlowStateValidator requires a CurrentFlowDefinition");
+    }
+    this.definition = definition;
+    Object.freeze(this);
+  }
+
+  validate(value) {
+    const serialized = value instanceof CurrentFlowState
+      ? CurrentFlowState.prototype.toJSON.call(value)
+      : value;
+    return new CurrentFlowState(serialized, { definition: this.definition });
+  }
+}
+
+/**
+ * Canonical serializer paired with CurrentFlowStateValidator.  It intentionally
+ * emits every field, including nullable fields, so schema revision 3 has one
+ * exact wire representation instead of an implicit optional-field dialect.
+ */
+export class CurrentFlowStateSerializer {
+  constructor({ validator } = {}) {
+    if (!(validator instanceof CurrentFlowStateValidator)) {
+      throw new CurrentFlowStateInvariantError("CurrentFlowStateSerializer requires a CurrentFlowStateValidator");
+    }
+    this.validator = validator;
+    Object.freeze(this);
+  }
+
+  deserialize(value) {
+    return this.validator.validate(value);
+  }
+
+  serialize(state) {
+    return this.validator.validate(state).toJSON();
+  }
+
+  bytes(state) {
+    return Buffer.from(`${JSON.stringify(this.serialize(state), null, 2)}\n`, "utf8");
   }
 }
 
@@ -2062,23 +3508,274 @@ export class ActivityTask {
   toJSON() { return { id: this.id, key: this.key }; }
 }
 
+/**
+ * A structured metric observation carried by an Activity rather than a
+ * mutable `flow.json.metrics` array.  The shape intentionally mirrors the
+ * public metric view so existing reports can derive that view from the ledger
+ * without making it another persistence authority.
+ */
+export class ActivityMetric {
+  constructor(value) {
+    requireExactFields(value, new Set([
+      "phase", "counter", "delta", "reset", "kind", "provider", "profileKey",
+      "callCount", "responseChars", "durationMs", "model", "tokens", "cost",
+      "cachedResponse", "costIncomplete",
+    ]), "activity.metric");
+    this.phase = requireString(value.phase, "activity.metric.phase");
+    if (value.counter !== null) requireString(value.counter, "activity.metric.counter");
+    this.counter = value.counter;
+    if (value.delta !== null) {
+      this.delta = requirePositiveInteger(value.delta, "activity.metric.delta", { allowZero: true });
+    } else {
+      this.delta = null;
+    }
+    if (typeof value.reset !== "boolean") throw new CurrentFlowStateInvariantError("activity.metric.reset must be boolean");
+    this.reset = value.reset;
+    for (const field of ["kind", "provider", "profileKey", "model"]) {
+      if (value[field] !== null) requireString(value[field], `activity.metric.${field}`);
+      this[field] = value[field];
+    }
+    for (const field of ["callCount", "responseChars", "durationMs"]) {
+      if (value[field] !== null) {
+        this[field] = requirePositiveInteger(value[field], `activity.metric.${field}`, { allowZero: true });
+      } else {
+        this[field] = null;
+      }
+    }
+    if (value.tokens !== null) {
+      requireExactFields(value.tokens, new Set(["input", "output", "cacheRead", "cacheCreation"]), "activity.metric.tokens");
+      this.tokens = Object.freeze(Object.fromEntries(
+        ["input", "output", "cacheRead", "cacheCreation"].map((field) => [
+          field,
+          requirePositiveInteger(value.tokens[field], `activity.metric.tokens.${field}`, { allowZero: true }),
+        ]),
+      ));
+    } else {
+      this.tokens = null;
+    }
+    if (value.cost !== null && (typeof value.cost !== "number" || !Number.isFinite(value.cost) || value.cost < 0)) {
+      throw new CurrentFlowStateInvariantError("activity.metric.cost must be a non-negative number or null");
+    }
+    this.cost = value.cost;
+    for (const field of ["cachedResponse", "costIncomplete"]) {
+      if (typeof value[field] !== "boolean") {
+        throw new CurrentFlowStateInvariantError(`activity.metric.${field} must be boolean`);
+      }
+      this[field] = value[field];
+    }
+    if (this.counter === null && this.kind === null) {
+      throw new CurrentFlowStateInvariantError("activity.metric requires a counter or kind");
+    }
+    if (this.counter !== null && this.delta === null) {
+      throw new CurrentFlowStateInvariantError("activity.metric counter requires delta");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      phase: this.phase,
+      counter: this.counter,
+      delta: this.delta,
+      reset: this.reset,
+      kind: this.kind,
+      provider: this.provider,
+      profileKey: this.profileKey,
+      callCount: this.callCount,
+      responseChars: this.responseChars,
+      durationMs: this.durationMs,
+      model: this.model,
+      tokens: this.tokens === null ? null : { ...this.tokens },
+      cost: this.cost,
+      cachedResponse: this.cachedResponse,
+      costIncomplete: this.costIncomplete,
+    };
+  }
+
+  /** Rehydrate the historical command-view shape from its canonical ledger value. */
+  toMetricEntry({ taskId, timestamp }) {
+    return {
+      phase: this.phase,
+      ...(this.counter === null ? {} : { counter: this.counter, delta: this.delta }),
+      ...(this.reset ? { reset: true } : {}),
+      ...(this.kind === null ? {} : { kind: this.kind }),
+      ...(this.provider === null ? {} : { provider: this.provider }),
+      ...(this.profileKey === null ? {} : { profileKey: this.profileKey }),
+      ...(this.callCount === null ? {} : { callCount: this.callCount }),
+      ...(this.responseChars === null ? {} : { responseChars: this.responseChars }),
+      ...(this.durationMs === null ? {} : { durationMs: this.durationMs }),
+      ...(this.model === null ? {} : { model: this.model }),
+      ...(this.tokens === null ? {} : { tokens: { ...this.tokens } }),
+      ...(this.cost === null ? {} : { cost: this.cost }),
+      ...(this.cachedResponse ? { cachedResponse: true } : {}),
+      ...(this.costIncomplete ? { costIncomplete: true } : {}),
+      taskId,
+      ts: timestamp,
+    };
+  }
+}
+
+/** A durable human note with the same Activity-owned ordering as metrics. */
+export class ActivityNote {
+  constructor(value) {
+    requireExactFields(value, new Set(["text"]), "activity.note");
+    this.text = requireString(value.text, "activity.note.text");
+    Object.freeze(this);
+  }
+
+  toJSON() { return { text: this.text }; }
+
+  toNoteEntry({ taskId, timestamp }) {
+    return { text: this.text, taskId, ts: timestamp };
+  }
+}
+
+/** Immutable advisory evidence fact recorded in the canonical Activity ledger. */
+export class ActivityNonBlockingRecord {
+  constructor(value) {
+    requireExactFields(value, new Set([
+      "kind", "sourceStep", "sourceAttempt", "evidenceRef", "evidenceDigest", "resultKind",
+      "action", "rationale", "remainingRisk",
+    ]), "activity.nonblocking");
+    if (!["observation", "decision"].includes(value.kind)) {
+      throw new CurrentFlowStateInvariantError("activity.nonblocking.kind is invalid");
+    }
+    this.kind = value.kind;
+    this.sourceStep = requireString(value.sourceStep, "activity.nonblocking.sourceStep");
+    this.sourceAttempt = requirePositiveInteger(value.sourceAttempt, "activity.nonblocking.sourceAttempt");
+    this.evidenceRef = requireString(value.evidenceRef, "activity.nonblocking.evidenceRef");
+    if (!/^[a-f0-9]{64}$/.test(value.evidenceDigest || "")) {
+      throw new CurrentFlowStateInvariantError("activity.nonblocking.evidenceDigest must be SHA-256");
+    }
+    this.evidenceDigest = value.evidenceDigest;
+    if (!["quality", "tooling", "unavailable"].includes(value.resultKind)) {
+      throw new CurrentFlowStateInvariantError("activity.nonblocking.resultKind is invalid");
+    }
+    this.resultKind = value.resultKind;
+    if (this.kind === "observation") {
+      if (value.action !== null || value.rationale !== null || value.remainingRisk !== null) {
+        throw new CurrentFlowStateInvariantError("nonblocking observation cannot carry a decision");
+      }
+      this.action = null;
+      this.rationale = null;
+      this.remainingRisk = null;
+    } else {
+      if (!["repair", "retry", "continue"].includes(value.action)) {
+        throw new CurrentFlowStateInvariantError("activity.nonblocking decision action is invalid");
+      }
+      this.action = value.action;
+      this.rationale = requireString(value.rationale, "activity.nonblocking.rationale");
+      this.remainingRisk = value.remainingRisk == null ? null : requireString(value.remainingRisk, "activity.nonblocking.remainingRisk");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      kind: this.kind,
+      sourceStep: this.sourceStep,
+      sourceAttempt: this.sourceAttempt,
+      evidenceRef: this.evidenceRef,
+      evidenceDigest: this.evidenceDigest,
+      resultKind: this.resultKind,
+      action: this.action,
+      rationale: this.rationale,
+      remainingRisk: this.remainingRisk,
+    };
+  }
+}
+
 export class ActivityTransition {
   constructor(value) {
-    requireExactFields(value, new Set(["operation", "path", "task", "attempt", "status"]), "activity.transition");
-    const { operation, path: currentPath, task, attempt, status } = value;
-    if (!["add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "recover_attempt"].includes(operation)) {
+    const normalized = isPlainObject(value) && !Object.hasOwn(value, "finalizeSteps")
+      ? { ...value, finalizeSteps: null }
+      : value;
+    requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
+    const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
+    if (!["add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
-    if (!Array.isArray(currentPath) || currentPath.length === 0) {
-      throw new CurrentFlowStateInvariantError("activity.transition.path must be a non-empty stable-id array");
-    }
     this.operation = operation;
-    this.path = Object.freeze(currentPath.map((id) => requireString(id, "activity.transition.path id")));
+    this.nodeId = requireString(nodeId, "activity.transition.nodeId");
     this.task = task == null ? null : task instanceof ActivityTask ? task : new ActivityTask(task);
     this.attempt = attempt == null ? null : attempt instanceof CurrentAttempt ? attempt : new CurrentAttempt(attempt);
     const taskRequired = operation === "add_task";
     if (taskRequired !== (this.task !== null)) {
       throw new CurrentFlowStateInvariantError("add_task is the only transition that requires a Task payload");
+    }
+    this.policy = policy == null ? null : policy instanceof CurrentFlowPolicy ? policy : new CurrentFlowPolicy(policy);
+    const policyRequired = operation === "set_policy";
+    if (policyRequired !== (this.policy !== null)) {
+      throw new CurrentFlowStateInvariantError("set_policy is the only transition that requires a policy payload");
+    }
+    this.outbox = outbox == null ? null : outbox instanceof ActivityOutbox ? outbox : new ActivityOutbox(outbox);
+    const outboxRequired = OUTBOX_TRANSITION_OPERATIONS.has(operation);
+    if (outboxRequired !== (this.outbox !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        outboxRequired
+          ? `activity.transition ${operation} requires an outbox payload`
+          : `activity.transition ${operation} forbids an outbox payload`,
+      );
+    }
+    if (this.outbox !== null) {
+      if (operation === "fail_outbox" && this.outbox.failure === null) {
+        throw new CurrentFlowStateInvariantError("fail_outbox requires its failure fact in the Activity ledger");
+      }
+      if (operation !== "fail_outbox" && this.outbox.failure !== null) {
+        throw new CurrentFlowStateInvariantError("only fail_outbox may carry an outbox failure fact");
+      }
+      if (operation !== "complete_outbox" && this.outbox.result !== null) {
+        throw new CurrentFlowStateInvariantError("only complete_outbox may carry an outbox result");
+      }
+      if (operation !== "fail_outbox" && (this.outbox.failureCode !== null || this.outbox.recovery !== null)) {
+        throw new CurrentFlowStateInvariantError("only fail_outbox may carry outbox failure recovery facts");
+      }
+      if (this.outbox.recovery !== null && this.outbox.failureCode !== "MERGE_PRE_SYNC_CONFLICT") {
+        throw new CurrentFlowStateInvariantError("outbox pre-sync recovery requires MERGE_PRE_SYNC_CONFLICT");
+      }
+      if (operation === "reopen_outbox" && this.outbox.exactRecoveryReceipt === null) {
+        throw new CurrentFlowStateInvariantError("reopen_outbox requires an exact recovery receipt");
+      }
+      if (operation === "begin_outbox" && this.outbox.exactRecoveryReceipt !== null) {
+        throw new CurrentFlowStateInvariantError("begin_outbox cannot consume an exact recovery receipt");
+      }
+      if (this.outbox.exactRecoveryReceipt !== null) {
+        const receipt = this.outbox.exactRecoveryReceipt;
+        if (receipt.idempotencyKey !== this.outbox.id || receipt.attempt !== this.outbox.attempt) {
+          throw new CurrentFlowStateInvariantError("outbox exact recovery receipt must bind this outbox identity and attempt");
+        }
+      }
+    }
+    this.approval = approval == null ? null : (
+      approval instanceof ActivityDispatchApproval ? approval : new ActivityDispatchApproval(approval)
+    );
+    const approvalRequired = DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(operation);
+    if (approvalRequired !== (this.approval !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        approvalRequired
+          ? `activity.transition ${operation} requires an approval receipt`
+          : `activity.transition ${operation} forbids an approval receipt`,
+      );
+    }
+    this.nonblocking = nonblocking == null ? null : new ActivityNonBlockingRecord(nonblocking);
+    const nonblockingRequired = NONBLOCKING_TRANSITION_OPERATIONS.has(operation);
+    if (nonblockingRequired !== (this.nonblocking !== null)) {
+      throw new CurrentFlowStateInvariantError(
+        nonblockingRequired
+          ? "record_nonblocking requires a nonblocking ledger fact"
+          : `activity.transition ${operation} forbids a nonblocking ledger fact`,
+      );
+    }
+    const finalizationRequired = FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(operation);
+    if (finalizationRequired) {
+      if (!Array.isArray(finalizeSteps) || finalizeSteps.length === 0 || finalizeSteps.some((step) => typeof step !== "string" || step === "")) {
+        throw new CurrentFlowStateInvariantError(`${operation} requires non-empty finalize Steps`);
+      }
+      this.finalizeSteps = Object.freeze([...new Set(finalizeSteps)]);
+    } else if (finalizeSteps !== null) {
+      throw new CurrentFlowStateInvariantError(`${operation} forbids finalize Steps`);
+    } else {
+      this.finalizeSteps = null;
     }
     const attemptRequired = TRANSITION_ATTEMPT_OPERATIONS.has(operation);
     if (attemptRequired !== (this.attempt !== null)) {
@@ -2087,6 +3784,9 @@ export class ActivityTransition {
           ? `activity.transition ${operation} requires an Attempt payload`
           : `activity.transition ${operation} forbids an Attempt payload`,
       );
+    }
+    if ((LIFECYCLE_TRANSITION_OPERATIONS.has(operation) || POLICY_TRANSITION_OPERATIONS.has(operation) || OUTBOX_TRANSITION_OPERATIONS.has(operation) || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(operation) || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(operation) || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(operation)) && this.nodeId !== "flow") {
+      throw new CurrentFlowStateInvariantError("Flow lifecycle, policy, outbox, and dispatch approval transitions must target only the Flow root id");
     }
     if (operation === "confirm_attempt") {
       if (!["done", "skipped"].includes(status)) {
@@ -2100,25 +3800,127 @@ export class ActivityTransition {
   }
 
   apply(state, activity) {
-    const targetId = this.path.at(-1);
-    if (activity.nodeId !== targetId) throw new CurrentFlowStateInvariantError("Activity nodeId must match transition path leaf");
-    const target = nodeAtPath(state.root, this.path);
+    const targetId = this.nodeId;
+    if (activity.nodeId !== targetId) throw new CurrentFlowStateInvariantError("Activity nodeId must match transition nodeId");
+    const currentPath = state.definition.pathFor(state.root, targetId);
+    if (currentPath === null) throw new CurrentFlowStateInvariantError("Activity transition nodeId must identify a current-state node");
+    const target = nodeAtPath(state.root, currentPath);
+    if (LIFECYCLE_TRANSITION_OPERATIONS.has(this.operation)) {
+      if (target.id !== state.root.id) {
+        throw new CurrentFlowStateInvariantError("Flow lifecycle transition must target the Flow root");
+      }
+      if (this.operation === "park_flow") return state.park();
+      if (this.operation === "resume_flow") return state.resume();
+      return state.finalize();
+    }
+    if (POLICY_TRANSITION_OPERATIONS.has(this.operation)) {
+      if (target.id !== state.root.id) {
+        throw new CurrentFlowStateInvariantError("Flow policy transition must target the Flow root");
+      }
+      return state.withPolicy(this.policy);
+    }
+    if (OUTBOX_TRANSITION_OPERATIONS.has(this.operation)) {
+      if (target.id !== state.root.id) {
+        throw new CurrentFlowStateInvariantError("Flow outbox transition must target the Flow root");
+      }
+      return ["begin_outbox", "reopen_outbox"].includes(this.operation)
+        ? state.withOutbox(state.outbox.begin(this.outbox.toEntry()))
+        : state.withOutbox(state.outbox.settle(this.outbox.toEntry()));
+    }
+    if (FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(this.operation)) {
+      return state.finalizeDownstream({
+        stepIds: this.finalizeSteps,
+        status: this.operation === "skip_finalize_downstream" ? "skipped" : "pending",
+        confirmedAt: activity.timing?.finishedAt ?? null,
+      });
+    }
+    if (OBSERVATION_TRANSITION_OPERATIONS.has(this.operation)
+      || this.operation === "record_nonblocking"
+      || ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.operation)
+      || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(this.operation)) {
+      // Observations and producer artifact publications deliberately do not
+      // alter the state tree.  Their confirmation order still advances
+      // through the same journal, so a crash cannot reorder durable evidence
+      // around a lifecycle transition.
+      if (this.operation === "publish_artifacts"
+        && state.current?.at(-1) !== target.id) {
+        throw new CurrentFlowStateInvariantError("artifact publication Activity must target the active current leaf");
+      }
+      return state;
+    }
+    if (this.operation === "continue_nonblocking") {
+      if (this.nonblocking?.kind !== "decision" || this.nonblocking.action !== "continue") {
+        throw new CurrentFlowStateInvariantError("continue_nonblocking requires a continue decision");
+      }
+      if (state.current == null || state.current.at(-1) !== targetId) {
+        throw new CurrentFlowStateInvariantError("continue_nonblocking Activity must target the active current leaf");
+      }
+      if (activity.result == null) throw new CurrentFlowStateInvariantError("continue_nonblocking Activity requires a result");
+      return state.continueNonblockingAttempt({
+        result: activity.result,
+        skippedNodeIds: activity.references.repairs.map((reference) => reference.id),
+      });
+    }
+    if (this.operation === "accept_final_regression_failure") {
+      if (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence) {
+        throw new CurrentFlowStateInvariantError(
+          "accept_final_regression_failure Activity must identify its acceptance Attempt",
+        );
+      }
+      if (activity.result == null) {
+        throw new CurrentFlowStateInvariantError("accept_final_regression_failure Activity requires a result");
+      }
+      return state.acceptFinalRegressionFailure({ attempt: this.attempt, result: activity.result });
+    }
     if (this.operation === "add_task") {
       if (target.id !== state.definition.dynamicTaskContainerId) {
         throw new CurrentFlowStateInvariantError("add_task Activity must target the definition dynamic Task container");
       }
       return state.addTask(this.task);
     }
-    if (["start_attempt", "rewind", "recover_attempt"].includes(this.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt"].includes(this.operation)) {
       if (activity.attemptId !== this.attempt.id || activity.sequence !== this.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
       }
       if (this.operation === "start_attempt") {
-        return state.startAttempt({ path: this.path, attempt: this.attempt });
+        return state.startAttempt({ path: currentPath, attempt: this.attempt });
       }
-      return this.operation === "rewind"
-        ? state.rewind({ path: this.path, attempt: this.attempt })
-        : state.recover({ path: this.path, attempt: this.attempt });
+      if (this.operation === "rewind") return state.rewind({ path: currentPath, attempt: this.attempt });
+      if (this.operation === "rewind_test_evidence") {
+        return state.rewindTestEvidence({ path: currentPath, attempt: this.attempt });
+      }
+      if (this.operation === "repair_test_review") {
+        return state.repairTestReview({ path: currentPath, attempt: this.attempt });
+      }
+      if (this.operation === "preimplementation_bootstrap") {
+        return state.preimplementationBootstrap({
+          path: currentPath,
+          attempt: this.attempt,
+          confirmedAt: activity.timing?.finishedAt,
+        });
+      }
+      if (this.operation === "recover_existing_implementation") {
+        return state.recoverExistingImplementation({
+          path: currentPath,
+          attempt: this.attempt,
+          confirmedAt: activity.timing?.finishedAt,
+        });
+      }
+      if (this.operation.startsWith("reopen_draft_")) {
+        return state.reopenDraft({
+          path: currentPath,
+          attempt: this.attempt,
+          route: this.operation === "reopen_draft_task_addition"
+            ? "task-addition"
+            : this.operation === "reopen_draft_spec_correction"
+              ? "spec-correction"
+              : this.operation.slice("reopen_draft_".length),
+        });
+      }
+      if (this.operation === "plan_gate_repair") {
+        return state.repairPlanGate({ path: currentPath, attempt: this.attempt });
+      }
+      return state.recover({ path: currentPath, attempt: this.attempt });
     }
     if (this.operation === "retry_attempt") {
       if (state.current == null || state.current.at(-1) !== targetId) {
@@ -2173,24 +3975,36 @@ export class ActivityTransition {
   toJSON() {
     return {
       operation: this.operation,
-      path: [...this.path],
+      nodeId: this.nodeId,
       task: this.task?.toJSON() ?? null,
       attempt: this.attempt?.toJSON() ?? null,
       status: this.status,
+      policy: this.policy?.toJSON() ?? null,
+      outbox: this.outbox?.toJSON() ?? null,
+      approval: this.approval?.toJSON() ?? null,
+      nonblocking: this.nonblocking?.toJSON() ?? null,
+      finalizeSteps: this.finalizeSteps,
     };
   }
 }
 
 export class FlowActivity {
   constructor(value) {
-    requireExactFields(value, new Set([
+    // V1 writers always serialize the observation slots.  Normalizing an
+    // in-memory Activity constructed by an older unit fixture keeps that
+    // fixture from becoming a second wire format; any persisted rewrite emits
+    // the one canonical representation below.
+    const normalized = isPlainObject(value) && (!Object.hasOwn(value, "metric") || !Object.hasOwn(value, "note"))
+      ? { ...value, metric: value.metric ?? null, note: value.note ?? null }
+      : value;
+    requireExactFields(normalized, new Set([
       "id", "nodeId", "nodeKey", "attemptId", "sequence", "confirmationOrder", "type", "transition",
-      "result", "timing", "failure", "provider", "model", "effort", "usage", "references",
+      "result", "timing", "failure", "provider", "model", "effort", "usage", "references", "metric", "note",
     ]), "activity");
     const {
       id, nodeId, nodeKey, attemptId, sequence, confirmationOrder, type, transition,
-      result, timing, failure, provider, model, effort, usage, references,
-    } = value;
+      result, timing, failure, provider, model, effort, usage, references, metric, note,
+    } = normalized;
     this.id = requireString(id, "activity.id");
     this.nodeId = requireString(nodeId, "activity.nodeId");
     this.nodeKey = requireString(nodeKey, "activity.nodeKey");
@@ -2211,36 +4025,83 @@ export class FlowActivity {
       record_failure: "failure_recorded",
       confirm_attempt: "result_confirmed",
       rewind: "recovery",
+      rewind_test_evidence: "recovery",
+      repair_test_review: "recovery",
+      preimplementation_bootstrap: "recovery",
+      recover_existing_implementation: "recovery",
+      reopen_draft_preimplementation: "recovery",
+      reopen_draft_task_addition: "recovery",
+      reopen_draft_spec_correction: "recovery",
+      plan_gate_repair: "recovery",
       recover_attempt: "recovery",
+      park_flow: "flow_parked",
+      resume_flow: "flow_resumed",
+      finalize_flow: "flow_finalized",
+      set_policy: "policy_updated",
+      publish_artifacts: "artifacts_published",
+      publish_plugin_artifacts: "artifacts_published",
+      publish_upgrade_result: "artifacts_published",
+      update_spec_record: "spec_record_updated",
+      begin_outbox: "outbox_started",
+      reopen_outbox: "outbox_reopened",
+      complete_outbox: "outbox_completed",
+      fail_outbox: "outbox_failed",
+      record_dispatch_approval: "dispatch_approval_recorded",
+      record_metric: "metric_recorded",
+      record_note: "note_recorded",
+      record_nonblocking: "nonblocking_recorded",
+      continue_nonblocking: "nonblocking_recorded",
+      accept_final_regression_failure: "failure_accepted",
+      skip_finalize_downstream: "finalization_downstream_updated",
+      reset_finalize_downstream: "finalization_downstream_updated",
     };
     if (typeForOperation[this.transition.operation] !== this.type) {
       throw new CurrentFlowStateInvariantError("activity.type must match its deterministic transition operation");
     }
+    if (this.transition.nodeId !== this.nodeId) {
+      throw new CurrentFlowStateInvariantError("Activity nodeId must match transition nodeId");
+    }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
-    if (["confirm_attempt", "fail_attempt", "record_failure"].includes(this.transition.operation) && this.result == null) {
+    if (["confirm_attempt", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
     }
-    if (!["confirm_attempt", "fail_attempt", "record_failure"].includes(this.transition.operation) && this.result !== null) {
+    if (!["confirm_attempt", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure"].includes(this.transition.operation) && this.result !== null) {
       throw new CurrentFlowStateInvariantError("only completed Attempt Activity may carry a result");
     }
     if (["fail_attempt", "record_failure"].includes(this.transition.operation) && !["failed", "incomplete"].includes(this.result.outcome)) {
       throw new CurrentFlowStateInvariantError(`${this.transition.operation} Activity result must be failed or incomplete`);
     }
-    if (this.transition.operation === "add_task") {
+    if (
+      this.transition.operation === "add_task"
+      || LIFECYCLE_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || POLICY_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || OUTBOX_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || OBSERVATION_TRANSITION_OPERATIONS.has(this.transition.operation)
+      || this.transition.operation === "record_nonblocking"
+    ) {
       if (this.attemptId !== null || this.sequence !== null) {
-        throw new CurrentFlowStateInvariantError("add_task Activity must not carry Attempt identity or sequence");
+        throw new CurrentFlowStateInvariantError("Task, Flow lifecycle/policy/outbox/dispatch approval, artifact publication, and observation Activities must not carry Attempt identity or sequence");
       }
     } else if (this.attemptId === null || this.sequence === null) {
       throw new CurrentFlowStateInvariantError("Attempt Activity requires Attempt identity and sequence");
     }
-    if (["start_attempt", "rewind", "recover_attempt"].includes(this.transition.operation)) {
+    if (["start_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"].includes(this.transition.operation)) {
       if (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("Activity attemptId/sequence must match its transition Attempt");
+      }
+      if (this.transition.attempt.nodeId !== this.nodeId) {
+        throw new CurrentFlowStateInvariantError("Activity transition Attempt nodeId must match the Activity nodeId");
       }
     }
     if (this.transition.operation === "update_attempt") {
       if (this.attemptId !== this.transition.attempt.id || this.sequence !== this.transition.attempt.sequence) {
         throw new CurrentFlowStateInvariantError("update_attempt Activity attemptId/sequence must match its replacement Attempt");
+      }
+      if (this.transition.attempt.nodeId !== this.nodeId) {
+        throw new CurrentFlowStateInvariantError("update_attempt replacement Attempt nodeId must match the Activity nodeId");
       }
     }
     this.timing = timing == null ? null : new ActivityTiming(timing);
@@ -2258,6 +4119,19 @@ export class FlowActivity {
     this.effort = effort;
     this.usage = usage == null ? null : new ActivityUsage(usage);
     this.references = references instanceof ActivityReferences ? references : new ActivityReferences(references);
+    this.metric = metric == null ? null : metric instanceof ActivityMetric ? metric : new ActivityMetric(metric);
+    this.note = note == null ? null : note instanceof ActivityNote ? note : new ActivityNote(note);
+    if (this.transition.operation === "record_metric") {
+      if (this.metric === null || this.note !== null || this.timing === null) {
+        throw new CurrentFlowStateInvariantError("record_metric Activity requires metric facts and timing only");
+      }
+    } else if (this.transition.operation === "record_note") {
+      if (this.note === null || this.metric !== null || this.timing === null) {
+        throw new CurrentFlowStateInvariantError("record_note Activity requires note facts and timing only");
+      }
+    } else if (this.metric !== null || this.note !== null) {
+      throw new CurrentFlowStateInvariantError("only observation Activities may carry metric or note facts");
+    }
     Object.freeze(this);
   }
 
@@ -2286,6 +4160,8 @@ export class FlowActivity {
       effort: this.effort,
       usage: this.usage?.toJSON() ?? null,
       references: this.references.toJSON(),
+      metric: this.metric?.toJSON() ?? null,
+      note: this.note?.toJSON() ?? null,
     };
   }
 }
@@ -2333,7 +4209,7 @@ function assertJournalAttemptIdentities(entries) {
     }
     identities.set(attemptId, { sequence, nodeId });
   };
-  const introductions = new Set(["start_attempt", "retry_attempt", "rewind", "recover_attempt"]);
+  const introductions = new Set(["start_attempt", "retry_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure"]);
   for (const entry of entries) {
     if (entry.transition.operation === "record_failure") {
       const failureActivity = lastActivityByAttempt.get(entry.attemptId);
@@ -2348,6 +4224,9 @@ function assertJournalAttemptIdentities(entries) {
     }
     if (introductions.has(entry.transition.operation)) {
       const introduced = entry.transition.attempt;
+      if (introduced.nodeId !== entry.nodeId) {
+        throw new CurrentFlowStateInvariantError("introduced Attempt nodeId must match its Activity nodeId");
+      }
       const previousSequence = lastSequenceByNode.get(entry.nodeId) ?? 0;
       if (introduced.sequence !== previousSequence + 1) {
         throw new CurrentFlowStateInvariantError(`Attempt sequence must be contiguous for node ${entry.nodeId}`);
@@ -2363,6 +4242,9 @@ function assertJournalAttemptIdentities(entries) {
       registerIdentity(entry.attemptId, entry.sequence, entry.nodeId);
     }
     if (entry.transition.operation === "update_attempt") {
+      if (entry.transition.attempt.nodeId !== entry.nodeId) {
+        throw new CurrentFlowStateInvariantError("updated Attempt nodeId must match its Activity nodeId");
+      }
       registerIdentity(entry.transition.attempt.id, entry.transition.attempt.sequence, entry.nodeId);
     }
     if (entry.attemptId !== null) lastActivityByAttempt.set(entry.attemptId, entry);
@@ -2440,17 +4322,6 @@ export class FlowActivityJournal {
     this.#assertVisibleIdentity(opened.identity);
     if (opened.created) fsyncDirectory(path.dirname(this.filePath));
     return { appended: true, activity: next };
-  }
-
-  writeMarkdown(viewPath = path.join(path.dirname(this.filePath), "activities.md")) {
-    const resolvedViewPath = path.resolve(requireString(viewPath, "activity markdown viewPath"));
-    if (resolvedViewPath === this.filePath || resolvedViewPath === path.join(path.dirname(this.filePath), "flow.json")) {
-      throw new CurrentFlowStateInvariantError("activity markdown view must not replace flow.json or activities.jsonl");
-    }
-    const view = new ActivityMarkdownView(this.read());
-    new AtomicFile(resolvedViewPath, { phaseNamespace: "current-flow-activity-view" })
-      .write(Buffer.from(view.toMarkdown()));
-    return view;
   }
 
   #openExisting(flags) {
@@ -2536,42 +4407,8 @@ export class FlowActivityJournal {
   }
 }
 
-export class ActivityMarkdownView {
-  constructor(entries) {
-    if (!Array.isArray(entries) || entries.some((entry) => !(entry instanceof FlowActivity))) {
-      throw new CurrentFlowStateInvariantError("activity markdown view requires typed Activity entries");
-    }
-    this.entries = Object.freeze([...entries]);
-    Object.freeze(this);
-  }
-
-  toMarkdown() {
-    const escape = (value) => String(value ?? "").replaceAll("|", "\\|").replaceAll("\n", " ");
-    const lines = [
-      "# Flow activities",
-      "",
-      "This view is generated from `activities.jsonl`; it is not Flow control input.",
-      "",
-      "| Order | Type | Node | Attempt | Result | Failure | Artifacts |",
-      "| ---: | --- | --- | --- | --- | --- | --- |",
-    ];
-    for (const entry of this.entries) {
-      lines.push([
-        `| ${entry.confirmationOrder}`,
-        escape(entry.type),
-        escape(`${entry.nodeKey} (${entry.nodeId})`),
-        escape(entry.attemptId === null ? "—" : `${entry.attemptId} #${entry.sequence}`),
-        escape(entry.result?.outcome ?? "—"),
-        escape(entry.failure?.code ?? "—"),
-        escape(entry.references.artifacts.map((artifact) => artifact.id).join(", ") || "—"),
-      ].join(" | ") + " |");
-    }
-    return `${lines.join("\n")}\n`;
-  }
-}
-
 export class CurrentFlowStateSnapshot {
-  constructor({ state, revision }) {
+  constructor({ state, revision, activities = [] }) {
     if (!(state instanceof CurrentFlowState)) {
       throw new CurrentFlowStateInvariantError("flow state snapshot requires a typed current state");
     }
@@ -2580,6 +4417,13 @@ export class CurrentFlowStateSnapshot {
     }
     this.state = state;
     this.revision = revision;
+    if (!Array.isArray(activities) || activities.some((entry) => !(entry instanceof FlowActivity))) {
+      throw new CurrentFlowStateInvariantError("flow state snapshot activities must be typed Activities");
+    }
+    // A journal-first crash can leave one pending Activity after flow.json.
+    // Exposing only the confirmed prefix makes read views match the sole
+    // state authority until recovery replays that pending Activity.
+    this.activities = Object.freeze(activities.slice(0, state.confirmationOrder));
     Object.freeze(this);
   }
 }
@@ -2597,22 +4441,41 @@ export class CurrentFlowStateStore {
     fs.mkdirSync(this.directory, { recursive: true, mode: 0o755 });
     const lockErrorFactory = (status, message, { lockPath, cause } = {}) => {
       const error = new CurrentFlowStateConflictError(message);
-      error.code = `CURRENT_FLOW_STATE_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
+      error.code = status === "live"
+        ? "FLOW_STATE_ATOMIC_BUSY"
+        : `CURRENT_FLOW_STATE_LOCK_${status.replace(/-/g, "_").toUpperCase()}`;
       error.lockPath = lockPath;
       if (cause) error.cause = cause;
       return error;
     };
     this.definition = definition;
+    this.validator = new CurrentFlowStateValidator({ definition });
+    this.serializer = new CurrentFlowStateSerializer({ validator: this.validator });
     this.faultInjector = faultInjector;
     this.statePath = path.join(this.directory, "flow.json");
     this.journal = new FlowActivityJournal(path.join(this.directory, "activities.jsonl"));
+    // Runtime state is deliberately a real, non-authoritative subtree.  Create
+    // it before capturing lock directory identities so nested authorities do
+    // not have a creation race with their parent directory.
+    fs.mkdirSync(path.join(this.directory, ".runtime", "locks"), { recursive: true, mode: 0o755 });
     this.directoryAuthority = new RealDirectoryAuthority(this.directory, { errorFactory: lockErrorFactory });
+    this.runtimeAuthority = new RealDirectoryAuthority(path.join(this.directory, ".runtime"), {
+      create: true,
+      parentAuthority: this.directoryAuthority,
+      errorFactory: lockErrorFactory,
+    });
+    this.lockDirectoryAuthority = new RealDirectoryAuthority(path.join(this.directory, ".runtime", "locks"), {
+      create: true,
+      parentAuthority: this.runtimeAuthority,
+      errorFactory: lockErrorFactory,
+    });
     this.lock = new ProcessOwnedLock({
-      directoryAuthority: this.directoryAuthority,
-      fileName: ".current-flow-state.lock",
+      directoryAuthority: this.lockDirectoryAuthority,
+      fileName: "current-flow-state.lock",
       kind: "current-flow-state",
       authority: {
         directory: this.directory,
+        runtimeDirectory: path.join(this.directory, ".runtime"),
         statePath: this.statePath,
         activityPath: this.journal.filePath,
       },
@@ -2623,17 +4486,13 @@ export class CurrentFlowStateStore {
   }
 
   create(state) {
-    const next = this.definition.bindState(state);
+    const next = this.serializer.deserialize(state);
     return this.#withLock(() => {
       if (fs.existsSync(this.statePath)) throw new CurrentFlowStateConflictError("current flow state already exists");
       if (next.confirmationOrder !== 0 || next.current !== null || next.attempt !== null) {
         throw new CurrentFlowStateInvariantError("current flow store creation requires a fresh state without Activity progress");
       }
-      const fresh = CurrentFlowState.create({
-        definition: this.definition,
-        execution: next.execution.toJSON(),
-        version: next.version,
-      });
+      const fresh = freshStateLike(next, this.definition);
       if (!jsonEqual(next.toJSON(), fresh.toJSON())) {
         throw new CurrentFlowStateInvariantError("current flow store creation requires the definition's fresh materialized state");
       }
@@ -2661,17 +4520,32 @@ export class CurrentFlowStateStore {
         return null;
       }
       const state = this.#parse(bytes);
-      this.#assertJournalConsistency(state, this.journal.read());
-      return new CurrentFlowStateSnapshot({ state, revision: digest(bytes) });
+      const activities = this.journal.read();
+      this.#assertJournalConsistency(state, activities);
+      return new CurrentFlowStateSnapshot({ state, revision: digest(bytes), activities });
     });
   }
 
-  writeActivitiesView(viewPath = path.join(this.directory, "activities.md")) {
-    const resolvedViewPath = path.resolve(requireString(viewPath, "store activity viewPath"));
-    if (resolvedViewPath === this.statePath || resolvedViewPath === this.journal.filePath) {
-      throw new CurrentFlowStateInvariantError("activity markdown view must not replace flow.json or activities.jsonl");
+  /**
+   * Probe the authoritative writer lock without changing Flow state.  Cleanup
+   * uses this before it begins any destructive repository action, so a live
+   * Version writer is surfaced while every teardown side effect is still
+   * avoidable.
+   */
+  assertWritable() {
+    try {
+      this.#withLock(() => undefined);
+    } catch (error) {
+      if (error?.code === "CURRENT_FLOW_STATE_LOCK_LIVE") {
+        const busy = new Error(error.message, { cause: error });
+        busy.name = "FlowStateAtomicSaveError";
+        busy.code = "FLOW_STATE_ATOMIC_BUSY";
+        busy.lockPath = error.lockPath;
+        throw busy;
+      }
+      throw error;
     }
-    return this.#withLock(() => this.journal.writeMarkdown(resolvedViewPath));
+    return this.statePath;
   }
 
   apply({ activity, expectedRevision = null }) {
@@ -2711,7 +4585,7 @@ export class CurrentFlowStateStore {
   }
 
   #parse(bytes) {
-    try { return this.definition.bindState(JSON.parse(bytes.toString("utf8"))); } catch (error) {
+    try { return this.serializer.deserialize(JSON.parse(bytes.toString("utf8"))); } catch (error) {
       if (error instanceof CurrentFlowStateInvariantError) throw error;
       throw new CurrentFlowStateInvariantError(`invalid flow.json: ${error.message}`);
     }
@@ -2725,11 +4599,7 @@ export class CurrentFlowStateStore {
     if (journalOrder > state.confirmationOrder + 1) {
       throw new CurrentFlowStateConflictError("Activity journal is more than one transition ahead of flow state");
     }
-    let replayed = CurrentFlowState.create({
-      definition: this.definition,
-      execution: state.execution.toJSON(),
-      version: state.version,
-    });
+    let replayed = freshStateLike(state, this.definition);
     try {
       for (const entry of entries.slice(0, state.confirmationOrder)) {
         replayed = this.#applyActivity(replayed, entry);
@@ -2758,7 +4628,7 @@ export class CurrentFlowStateStore {
   }
 
   #write(state, expectedBytes) {
-    const content = Buffer.from(`${JSON.stringify(state.toJSON(), null, 2)}\n`);
+    const content = this.serializer.bytes(state);
     const file = new AtomicFile(this.statePath, {
       phaseNamespace: "current-flow-state",
       faultInjector: this.faultInjector,
@@ -2817,54 +4687,6 @@ export class CurrentFlowStateStore {
   }
 }
 
-export class CurrentFlowStateConversionPlan {
-  constructor({ definition, sourceFormat, targetDirectory }) {
-    if (!(definition instanceof CurrentFlowDefinition)) {
-      throw new CurrentFlowStateInvariantError("conversion plan requires a fixed CurrentFlowDefinition");
-    }
-    this.definition = definition;
-    this.sourceFormat = requireString(sourceFormat, "conversion plan sourceFormat");
-    this.targetDirectory = path.resolve(requireString(targetDirectory, "conversion plan targetDirectory"));
-    this.targetSchemaRevision = CURRENT_FLOW_SCHEMA_REVISION;
-    this.legacyRead = "deferred";
-    this.runtimeSwitch = "deferred";
-    this.doubleWrite = "forbidden";
-    Object.freeze(this);
-  }
-
-  get freshStateOnly() { return true; }
-  get conversionImplemented() { return false; }
-
-  assertCurrentStateOnly(value) {
-    if (!(value instanceof CurrentFlowState)) {
-      throw new CurrentFlowStateInvariantError("conversion is deferred; only a freshly constructed CurrentFlowState may enter this boundary");
-    }
-    const bound = this.definition.bindState(value);
-    const fresh = CurrentFlowState.create({
-      definition: this.definition,
-      execution: bound.execution.toJSON(),
-      version: bound.version,
-    });
-    if (!jsonEqual(bound.toJSON(), fresh.toJSON())) {
-      throw new CurrentFlowStateInvariantError("freshStateOnly rejects progressed current state");
-    }
-    return bound;
-  }
-
-  toJSON() {
-    return {
-      sourceFormat: this.sourceFormat,
-      targetDirectory: this.targetDirectory,
-      targetSchemaRevision: this.targetSchemaRevision,
-      freshStateOnly: this.freshStateOnly,
-      conversionImplemented: this.conversionImplemented,
-      legacyRead: this.legacyRead,
-      runtimeSwitch: this.runtimeSwitch,
-      doubleWrite: this.doubleWrite,
-    };
-  }
-}
-
 export class CurrentFlowStateAdoptionBoundary {
   constructor({ definition }) {
     if (!(definition instanceof CurrentFlowDefinition)) {
@@ -2874,8 +4696,11 @@ export class CurrentFlowStateAdoptionBoundary {
     Object.freeze(this);
   }
 
-  createFresh({ execution = { mode: "direct" }, version = CURRENT_FLOW_RESULT_VERSION } = {}) {
-    return CurrentFlowState.create({ definition: this.definition, execution, version });
+  createFresh(options = {}) {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      throw new CurrentFlowStateInvariantError("fresh Flow options must be an object");
+    }
+    return CurrentFlowState.create({ definition: this.definition, ...options });
   }
 
   openStore({ directory, faultInjector, processIdentitySource } = {}) {
@@ -2887,71 +4712,138 @@ export class CurrentFlowStateAdoptionBoundary {
     });
   }
 
-  openVersionStore({ location, identity, faultInjector, processIdentitySource } = {}) {
+  openVersionStore({ location, faultInjector, processIdentitySource } = {}) {
     if (!(location instanceof FlowVersionLocation)) throw new CurrentFlowStateInvariantError("FlowVersionLocation is required for Version storage");
-    return new CurrentFlowVersionStore({ location, identity, definition: this.definition, ...(faultInjector && { faultInjector }), ...(processIdentitySource && { processIdentitySource }) });
+    return new CurrentFlowVersionStore({ location, definition: this.definition, ...(faultInjector && { faultInjector }), ...(processIdentitySource && { processIdentitySource }) });
   }
 
-  conversionPlan({ sourceFormat, targetDirectory }) {
-    return new CurrentFlowStateConversionPlan({
-      definition: this.definition,
-      sourceFormat,
-      targetDirectory,
-    });
-  }
 }
 
 /** Version-1-only persistence facade. It has no legacy-layout lookup. */
 export class CurrentFlowVersionStore {
   #stateStore = null;
-  constructor({ location, identity, definition, faultInjector, processIdentitySource } = {}) {
+  constructor({ location, definition, faultInjector, processIdentitySource, allowStaging = false } = {}) {
     if (!(location instanceof FlowVersionLocation)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a FlowVersionLocation");
     location.requireScope("canonical");
-    if (!(identity instanceof FlowVersionRecord)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a FlowVersionRecord");
-    if (location.version.value !== 1 || identity.identity.version.value !== 1) {
-      throw new CurrentFlowStateInvariantError("Current Flow Version store supports Version 1 only");
+    if (location.isStaging && allowStaging !== true) {
+      throw new CurrentFlowStateInvariantError("staging Version locations are internal to atomic creation");
     }
-    if (
-      !identity.identity.specId.equals(location.specId)
-      || identity.identity.version.value !== location.version.value
-    ) {
-      throw new CurrentFlowStateInvariantError("Current Flow Version identity must match its Version location");
+    if (location.version.value !== 1) {
+      throw new CurrentFlowStateInvariantError("Current Flow Version store supports Version 1 only");
     }
     if (!(definition instanceof CurrentFlowDefinition)) throw new CurrentFlowStateInvariantError("Current Flow Version store requires a CurrentFlowDefinition");
     this.location = location;
-    this.identity = identity;
     this.definition = definition;
     this.faultInjector = faultInjector;
     this.processIdentitySource = processIdentitySource;
+    this.allowStaging = allowStaging === true;
     this.catalogStore = new FlowArtifactCatalogStore({ location });
-    this.identityStore = new FlowVersionIdentityStore({ location });
     Object.freeze(this);
   }
-  create(state, { specRecord } = {}) {
-    if (state?.version !== 1 || state.version !== this.location.version.value) throw new CurrentFlowStateInvariantError("current Flow state version must match Version 1 storage");
-    if (!(specRecord instanceof AuthoritativeSpecRecord)) {
-      throw new CurrentFlowStateInvariantError("AuthoritativeSpecRecord is required to create a Version root");
+  /** Create one fresh canonical Version root without exposing a partial tree. */
+  createFresh({
+    flowId,
+    flowVersionId,
+    runId,
+    request,
+    issue = null,
+    execution = { mode: "direct" },
+    lifecycle = { state: "active" },
+    policy = { autoApprove: false, nonblocking: null },
+    specRecord,
+    issueSnapshot = null,
+  } = {}) {
+    return this.create(CurrentFlowState.create({
+      definition: this.definition,
+      flowId,
+      flowVersionId,
+      runId,
+      specId: this.location.specId.toString(),
+      issue,
+      request,
+      execution,
+      lifecycle,
+      policy,
+    }), { specRecord, issueSnapshot });
+  }
+
+  create(state, { specRecord, issueSnapshot = null } = {}) {
+    const canonical = this.definition.bindState(state);
+    if (canonical.version !== 1 || canonical.version !== this.location.version.value) throw new CurrentFlowStateInvariantError("current Flow state version must match Version 1 storage");
+    if (!canonical.identity.matchesLocation(this.location)) {
+      throw new CurrentFlowStateInvariantError("flow.json identity must match its Version location");
     }
-    if (!specRecord.specId.equals(this.location.specId)) {
+    const canonicalSpec = CurrentFlowSpecRecord.from(specRecord);
+    if (!canonicalSpec.specId.equals(this.location.specId)) {
       throw new CurrentFlowStateInvariantError("Version spec record must match its Version location specId");
+    }
+    if ((canonical.identity.issue === null) !== (issueSnapshot === null)) {
+      throw new CurrentFlowStateInvariantError(
+        "canonical Flow Issue identity and immutable issue.md snapshot must be present together",
+      );
     }
     this.location.assertAuthority();
     if (fs.existsSync(this.location.directory)) throw new CurrentFlowStateConflictError("Current Flow Version root must be absent before creation");
+    const parentDirectory = path.dirname(this.location.directory);
+    fs.mkdirSync(parentDirectory, { recursive: true, mode: 0o755 });
+    const staging = this.location.stagingSibling(crypto.randomBytes(12).toString("hex"));
+    let published = false;
+    try {
+      const stagingStore = new CurrentFlowVersionStore({
+        location: staging,
+        definition: this.definition,
+        ...(this.faultInjector && { faultInjector: this.faultInjector }),
+        ...(this.processIdentitySource && { processIdentitySource: this.processIdentitySource }),
+        allowStaging: true,
+      });
+      stagingStore.#createMaterialized(canonical, canonicalSpec, issueSnapshot);
+      if (fs.existsSync(this.location.directory)) {
+        throw new CurrentFlowStateConflictError("Current Flow Version root appeared during atomic creation");
+      }
+      fs.renameSync(staging.directory, this.location.directory);
+      fsyncDirectory(parentDirectory);
+      published = true;
+      return this.load();
+    } catch (error) {
+      if (published) throw error;
+      try {
+        fs.rmSync(staging.directory, { recursive: true, force: true });
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "Current Flow Version staging cleanup failed", { cause: error });
+      }
+      throw error;
+    }
+  }
+  #createMaterialized(canonical, specRecord, issueSnapshot) {
+    if (!this.allowStaging) {
+      throw new CurrentFlowStateInvariantError("only an atomic staging store may materialize a Version root");
+    }
+    if (issueSnapshot !== null && typeof issueSnapshot !== "string") {
+      throw new CurrentFlowStateInvariantError("linked Issue snapshot must be a string or null");
+    }
     let ownsVersionRoot = false;
     try {
       fs.mkdirSync(path.dirname(this.location.directory), { recursive: true, mode: 0o755 });
       fs.mkdirSync(this.location.directory, { recursive: false, mode: 0o755 });
       ownsVersionRoot = true;
+      fs.mkdirSync(this.location.resolve("steps"), { recursive: true, mode: 0o755 });
+      fs.mkdirSync(this.location.resolve("artifacts/tests"), { recursive: true, mode: 0o755 });
       fs.writeFileSync(this.location.specFile, specRecord.canonicalText, { flag: "wx", mode: 0o600 });
       fs.writeFileSync(this.location.activitiesFile, "", { flag: "wx", mode: 0o600 });
-      this.identityStore.create(this.identity);
-      const created = this.#store().create(state);
+      if (issueSnapshot !== null) {
+        fs.writeFileSync(
+          this.location.issueSnapshotFile,
+          issueSnapshot.endsWith("\n") ? issueSnapshot : `${issueSnapshot}\n`,
+          { flag: "wx", mode: 0o600 },
+        );
+      }
+      const created = this.#store().create(canonical);
       const artifacts = [
         descriptorFor(this.location, "flow.state", "application/json"),
-        FlowArtifactDescriptor.fromFile({ location: this.location, authoritySlot: ArtifactAuthoritySlot.singleton({ kind: "flow-version-identity", authority: "repository-metadata" }), relativePath: "flow-version.json", mediaType: "application/json", retention: "permanent" }),
         descriptorFor(this.location, "flow.activities", "application/x-ndjson"),
         descriptorFor(this.location, "spec.record", "application/json"),
       ];
+      if (issueSnapshot !== null) artifacts.push(descriptorFor(this.location, "issue.snapshot", "text/markdown"));
       this.catalogStore.initialize(new FlowArtifactCatalog({ artifacts }));
       return created;
     } catch (error) {
@@ -2967,48 +4859,264 @@ export class CurrentFlowVersionStore {
   }
   load() {
     return this.catalogStore.read({
-      relativePaths: [resolvedArtifact("flow.state").relativePath, "flow-version.json"],
-      read: () => { this.#assertPersistedIdentity(); return this.#store().load(); },
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: () => this.#assertPersistedIdentity(this.#store().load()),
     });
   }
   loadSnapshot() {
     return this.catalogStore.read({
-      relativePaths: [resolvedArtifact("flow.state").relativePath, "flow-version.json"],
-      read: () => { this.#assertPersistedIdentity(); return this.#store().loadSnapshot(); },
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: () => {
+        const snapshot = this.#store().loadSnapshot();
+        if (snapshot === null) return null;
+        this.#assertPersistedIdentity(snapshot.state);
+        return snapshot;
+      },
     });
+  }
+
+  /** Verify that the Version-authoritative Flow state can be updated now. */
+  assertWritable() {
+    return this.#store().assertWritable();
+  }
+  /**
+   * Read the committed Activity prefix paired with the current state.  This
+   * avoids exposing a journal-first pending line as a completed metric/note
+   * before its state confirmation is durable.
+   */
+  activities() {
+    const snapshot = this.loadSnapshot();
+    return snapshot === null ? Object.freeze([]) : snapshot.activities;
   }
   apply(input) {
     const activity = FlowActivity.canonical(input?.activity);
-    const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
     const activityId = FlowActivityId.from(activity.id);
-    return this.catalogStore.publishMany({
-      artifacts: [
-        publicationFor("flow.state", "application/json", { updater, activityId }),
-        publicationFor("flow.activities", "application/x-ndjson", { updater, activityId }),
-      ],
-      publicationClaim: artifactPublicationClaimForStep(updater),
-      precondition: () => this.#assertPersistedIdentity(),
-      write: () => this.#store().apply(input),
-    }).result;
+    const artifactWrites = this.#artifactWrites(input?.artifactWrites, activity);
+    const artifactRemovals = this.#artifactRemovals(input?.artifactRemovals, activity);
+    const testSourceBaseline = this.#testSourceBaseline(
+      input?.testSourceBaseline,
+      activity,
+      artifactWrites,
+      artifactRemovals,
+    );
+    const taskAddition = activity.transition.operation === "add_task";
+    const taskSpec = taskAddition
+      ? this.#nextTaskSpec(activity, input?.taskSpec)
+      : null;
+    if (!taskAddition && input?.taskSpec !== undefined) {
+      throw new CurrentFlowStateInvariantError("only add_task Activity may update canonical spec.json.tasks");
+    }
+    const replacementSpec = this.#replacementSpec(input?.specRecord, activity, taskAddition);
+    const systemActivity = LIFECYCLE_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || POLICY_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(activity.transition.operation)
+      || OUTBOX_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || OBSERVATION_TRANSITION_OPERATIONS.has(activity.transition.operation)
+      || taskAddition;
+    const stateArtifacts = systemActivity
+      ? [
+          publicationFor("flow.state", "application/json", { activityId }),
+          publicationFor("flow.activities", "application/x-ndjson", { activityId }),
+          ...(taskSpec === null ? [] : [publicationFor("spec.record", "application/json", { activityId })]),
+        ]
+      : (() => {
+          const updater = FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString();
+          return [
+            publicationFor("flow.state", "application/json", { updater, activityId }),
+          publicationFor("flow.activities", "application/x-ndjson", { updater, activityId }),
+        ];
+      })();
+    const artifacts = [
+      ...stateArtifacts,
+      ...(replacementSpec === null
+        ? []
+        : [publicationFor("spec.record", "application/json", {
+            updater: FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString(),
+            activityId,
+          })]),
+      ...artifactWrites.map((artifact) => artifact.publication(activity)),
+    ];
+    const removals = artifactRemovals.map((artifact) => artifact.removal(activity));
+    const paths = new Set([
+      ...artifacts.map((artifact) => artifact.relativePath),
+      ...removals.map((artifact) => artifact.relativePath),
+    ]);
+    if (paths.size !== artifacts.length + removals.length) {
+      throw new CurrentFlowStateInvariantError("canonical Activity cannot write and remove the same artifact path");
+    }
+    const options = {
+      artifacts,
+      precondition: (catalog) => {
+        this.#assertPersistedIdentity(this.#store().load());
+        testSourceBaseline?.assertCatalog(catalog);
+      },
+      write: () => {
+        if (taskSpec !== null) this.#materializeTaskWorkspace(activity.transition.task);
+        const result = this.#store().apply(input);
+        if (taskSpec !== null) {
+          this.#writeSpecRecord(taskSpec);
+        }
+        if (replacementSpec !== null) this.#writeSpecRecord(replacementSpec);
+        for (const artifact of artifactWrites) artifact.write(this.location);
+        for (const artifact of artifactRemovals) artifact.remove(this.location);
+        return result;
+      },
+      removals,
+    };
+    const publication = systemActivity
+      ? this.catalogStore.publishManySystem(options)
+      : this.catalogStore.publishMany({
+          ...options,
+          publicationClaim: artifactPublicationClaimForStep(FlowArtifactUpdater.fromActivityNodeId(activity.nodeId).toString()),
+        });
+    return publication.result;
   }
   catalog() {
     return this.catalogStore.read({
-      relativePaths: ["flow-version.json"],
-      read: (catalog) => { this.#assertPersistedIdentity(); return catalog; },
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: (catalog) => { this.#assertPersistedIdentity(this.#store().load()); return catalog; },
     });
   }
-  flowVersionIdentity() {
+  flowIdentity() {
     return this.catalogStore.read({
-      relativePaths: ["flow-version.json"],
-      read: () => { this.#assertPersistedIdentity(); return this.identityStore.load(); },
+      relativePaths: [resolvedArtifact("flow.state").relativePath],
+      read: () => this.#assertPersistedIdentity(this.#store().load()).identity,
     });
   }
-  #assertPersistedIdentity() {
-    const persisted = this.identityStore.load();
-    if (!(persisted instanceof FlowVersionRecord) || !persisted.equals(this.identity)) {
-      throw new CurrentFlowStateInvariantError("persisted Flow Version identity does not exactly match the opened store identity");
+  #assertPersistedIdentity(state) {
+    if (!(state instanceof CurrentFlowState) || !state.identity.matchesLocation(this.location)) {
+      throw new CurrentFlowStateInvariantError("persisted flow.json identity does not match the opened Version location");
     }
-    return persisted;
+    return state;
+  }
+  #nextTaskSpec(activity, supplied) {
+    const task = activity.transition.task;
+    const nextTask = supplied == null
+      ? { id: task.id, key: task.key }
+      : supplied;
+    if (!isPlainObject(nextTask)) {
+      throw new CurrentFlowStateInvariantError("add_task canonical Task specification must be an object");
+    }
+    if (nextTask.id !== task.id || (nextTask.key != null && nextTask.key !== task.key)) {
+      throw new CurrentFlowStateInvariantError("add_task canonical Task specification must match the Activity Task id and key");
+    }
+    return this.#readSpecRecord().withTask(nextTask);
+  }
+  #replacementSpec(value, activity, taskAddition) {
+    if (value === undefined) {
+      if (activity.transition.operation === "update_spec_record") {
+        throw new CurrentFlowStateInvariantError("canonical overview update requires a replacement spec.json");
+      }
+      return null;
+    }
+    if (taskAddition) {
+      throw new CurrentFlowStateInvariantError("add_task cannot replace canonical spec.json");
+    }
+    const isTypedSpecUpdate = activity.transition.operation === "update_spec_record";
+    if (!isTypedSpecUpdate && !["spec", "spec-repair"].includes(activity.nodeId)) {
+      throw new CurrentFlowStateInvariantError("only spec and spec-repair Activities may replace canonical spec.json");
+    }
+    if (isTypedSpecUpdate && !this.#isActiveTaskImplementation(activity) && activity.nodeId !== "approval") {
+      throw new CurrentFlowStateInvariantError("canonical Spec update must target approval or the active Task implementation Step");
+    }
+    const next = value instanceof CanonicalWorkerSpecPublication
+      ? value.materialize(this.#readSpecRecord(), { specId: this.location.specId.toString() })
+      : CurrentFlowSpecRecord.from(value, { specId: this.location.specId.toString() });
+    if (!next.specId.equals(this.location.specId)) {
+      throw new CurrentFlowStateInvariantError("canonical replacement spec.json must match the Version specId");
+    }
+    return next;
+  }
+  #isActiveTaskImplementation(activity) {
+    const state = this.#assertPersistedIdentity(this.#store().load());
+    if (state.current?.at(-1) !== activity.nodeId) return false;
+    const nodePath = state.definition.pathFor(state.root, activity.nodeId);
+    if (nodePath === null) return false;
+    const task = nodePath
+      .map((id) => state.findNode(id))
+      .find((node) => node instanceof TaskNode) ?? null;
+    return task !== null && activity.nodeId === `${task.id}-impl`;
+  }
+  #artifactWrites(value, activity) {
+    if (value === undefined) return Object.freeze([]);
+    if (!Array.isArray(value)) {
+      throw new CurrentFlowStateInvariantError("canonical artifactWrites must be an array");
+    }
+    const writes = value.map((entry) => CanonicalFlowArtifactWrite.from(entry));
+    const paths = new Set(writes.map((entry) => entry.artifact.relativePath));
+    if (paths.size !== writes.length) {
+      throw new CurrentFlowStateInvariantError("canonical artifactWrites must not duplicate a path");
+    }
+    // `spec.json` is a root authority with a separate typed serializer.  It
+    // changes only through the dedicated Task/spec APIs, never an arbitrary
+    // byte payload smuggled through a worker completion.
+    if (writes.some((entry) => entry.artifact.logicalKey === "spec.record")) {
+      throw new CurrentFlowStateInvariantError("spec.record requires the typed canonical Spec writer");
+    }
+    // Resolve publication eagerly, before the state journal changes. This
+    // makes an unauthorized producer fail closed without appending an
+    // Activity that cannot be cataloged.
+    for (const write of writes) write.publication(activity);
+    return Object.freeze(writes);
+  }
+  #artifactRemovals(value, activity) {
+    if (value === undefined) return Object.freeze([]);
+    if (!Array.isArray(value)) {
+      throw new CurrentFlowStateInvariantError("canonical artifactRemovals must be an array");
+    }
+    const removals = value.map((entry) => CanonicalFlowArtifactRemoval.from(entry));
+    const paths = new Set(removals.map((entry) => entry.artifact.relativePath));
+    if (paths.size !== removals.length) {
+      throw new CurrentFlowStateInvariantError("canonical artifactRemovals must not duplicate a path");
+    }
+    for (const removal of removals) removal.removal(activity);
+    return Object.freeze(removals);
+  }
+  #testSourceBaseline(value, activity, writes, removals) {
+    if (value === undefined) {
+      if (removals.length > 0) {
+        throw new CurrentFlowStateInvariantError(
+          "canonical artifact removals require a complete test-source catalog baseline",
+        );
+      }
+      return null;
+    }
+    const baseline = CanonicalFlowTestSourceBaseline.from(value);
+    baseline.assertReplacement(activity, writes, removals);
+    return baseline;
+  }
+  #readSpecRecord() {
+    try {
+      return new CurrentFlowSpecRecord(
+        JSON.parse(fs.readFileSync(this.location.specFile, "utf8")),
+        { specId: this.location.specId.toString() },
+      );
+    } catch (error) {
+      if (error instanceof CurrentFlowStateInvariantError) throw error;
+      throw new CurrentFlowStateInvariantError(`invalid canonical spec.json: ${error.message}`);
+    }
+  }
+  #writeSpecRecord(specRecord) {
+    if (!(specRecord instanceof CurrentFlowSpecRecord)) {
+      throw new CurrentFlowStateInvariantError("canonical spec.json writer requires CurrentFlowSpecRecord");
+    }
+    new AtomicFile(this.location.specFile, { phaseNamespace: "current-flow-spec" })
+      .write(Buffer.from(specRecord.canonicalText, "utf8"));
+  }
+  #materializeTaskWorkspace(task) {
+    if (!(task instanceof ActivityTask)) {
+      throw new CurrentFlowStateInvariantError("Task workspace requires the typed add_task payload");
+    }
+    // Task result files are produced and cataloged by their owning Steps.
+    // Creation reserves only the canonical directory topology; it never
+    // creates empty result/file-map authorities that a later producer could
+    // mistake for evidence.
+    const taskLocation = this.location.taskArtifactLocation(task.id);
+    for (const directory of [taskLocation.implDirectory, taskLocation.reviewDirectory, taskLocation.gateDirectory]) {
+      fs.mkdirSync(directory, { recursive: true, mode: 0o755 });
+    }
   }
   #store() {
     if (!fs.existsSync(this.location.directory)) throw new CurrentFlowStateConflictError("Current Flow Version root does not exist");
@@ -3029,30 +5137,54 @@ export class CurrentFlowVersionSemanticValidator extends FlowVersionSemanticVali
     super();
     if (!(definition instanceof CurrentFlowDefinition)) throw new CurrentFlowStateInvariantError("CurrentFlowDefinition is required for Version semantic validation");
     this.definition = definition;
+    this.stateValidator = new CurrentFlowStateValidator({ definition });
+    this.stateSerializer = new CurrentFlowStateSerializer({ validator: this.stateValidator });
     Object.freeze(this);
   }
   validateState(state) {
     if (!(state instanceof CurrentFlowState)) throw new CurrentFlowStateInvariantError("a validated complete CurrentFlowState is required for migration");
-    return state.toJSON();
+    return this.stateSerializer.serialize(state);
   }
-  validateMaterialized({ location, identity, spec } = {}) {
-    if (!(location instanceof FlowVersionLocation) || !(identity instanceof FlowVersionRecord) || !(spec instanceof AuthoritativeSpecRecord)) {
-      throw new CurrentFlowStateInvariantError("Version semantic validation requires typed location, identity, and Spec record");
+  serializeState(state) {
+    return this.stateSerializer.bytes(state);
+  }
+  openStore(location) {
+    return new CurrentFlowVersionStore({ location, definition: this.definition });
+  }
+  validateMaterialized({ location, spec } = {}) {
+    if (
+      !(location instanceof FlowVersionLocation)
+      || (!(spec instanceof AuthoritativeSpecRecord) && !(spec instanceof CurrentFlowSpecRecord))
+    ) {
+      throw new CurrentFlowStateInvariantError("Version semantic validation requires typed location and Spec record");
     }
-    if (!spec.specId.equals(identity.identity.specId)) throw new CurrentFlowStateInvariantError("Version semantic Spec identity mismatch");
-    const store = new CurrentFlowVersionStore({ location, identity, definition: this.definition });
-    store.load();
+    const canonicalSpec = spec instanceof CurrentFlowSpecRecord
+      ? spec
+      : CurrentFlowSpecRecord.from(spec.toJSON());
+    const store = this.openStore(location);
+    const state = store.load();
+    if (!state.specId || !canonicalSpec.specId.equals(new FlowSpecIdentity(state.specId))) {
+      throw new CurrentFlowStateInvariantError("Version semantic Spec identity mismatch");
+    }
     store.loadSnapshot();
     return store;
   }
 }
 
 export class CurrentFlowVersionMigrationOutputBuilder extends FlowVersionMigrationOutputBuilder {
-  build({ plan, identity, state, spec } = {}) {
+  constructor({ semanticValidator } = {}) {
+    super();
+    if (!(semanticValidator instanceof CurrentFlowVersionSemanticValidator)) {
+      throw new CurrentFlowStateInvariantError("migration output builder requires the production CurrentFlowVersionSemanticValidator");
+    }
+    this.semanticValidator = semanticValidator;
+    Object.freeze(this);
+  }
+  build({ plan, state, spec } = {}) {
     const outputs = [];
     for (const artifact of plan.artifacts.filter((entry) => entry.operation.value === "transform")) {
       let bytes;
-      if (artifact.outputKey === "current-flow-state") bytes = Buffer.from(`${JSON.stringify(state, null, 2)}\n`, "utf8");
+      if (artifact.outputKey === "current-flow-state") bytes = this.semanticValidator.serializeState(state);
       else if (artifact.outputKey === "authoritative-spec-record") bytes = Buffer.from(spec.canonicalText, "utf8");
       else throw new CurrentFlowStateInvariantError(`unsupported Current Flow migration transform: ${artifact.outputKey}`);
       outputs.push(new FlowVersionMigrationOutput({
@@ -3063,8 +5195,7 @@ export class CurrentFlowVersionMigrationOutputBuilder extends FlowVersionMigrati
     }
     for (const artifact of plan.generatedArtifacts) {
       let bytes;
-      if (artifact.outputKey === "flow-version-identity") bytes = Buffer.from(`${JSON.stringify(identity.toJSON(), null, 2)}\n`, "utf8");
-      else if (artifact.outputKey === "activity-ledger") bytes = Buffer.alloc(0);
+      if (artifact.outputKey === "activity-ledger") bytes = Buffer.alloc(0);
       else throw new CurrentFlowStateInvariantError(`unsupported Current Flow generated output: ${artifact.outputKey}`);
       outputs.push(new FlowVersionMigrationOutput({
         outputKey: artifact.outputKey, targetPath: artifact.targetPath, operation: artifact.operation,
