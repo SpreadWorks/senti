@@ -1,4 +1,4 @@
-# Sennel
+# <!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} -->
 
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 [日本語](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/README.md) | **English**
@@ -55,13 +55,13 @@ Documentation is automatically refreshed during the merge phase, so docs and cod
 ### Install
 
 <pre>
-npm install -g sennel
+npm install -g <!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} -->
 </pre>
 
 ### Setup
 
 <pre>
-sennel setup
+<!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} --> setup
 </pre>
 
 An interactive wizard configures your project type (preset) and AI agent.
@@ -71,7 +71,7 @@ An interactive wizard configures your project type (preset) and AI agent.
 If you already have source code, generate documentation to get a complete picture of the system. Especially useful for onboarding onto legacy codebases.
 
 <pre>
-sennel docs build
+<!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} --> docs build
 </pre>
 
 ### Develop with the Spec-Driven Development flow
@@ -119,11 +119,11 @@ See the [configuration reference](docs/configuration.md) for details.
 <!-- {{data("cli.docs.chapters", {header: "", labels: "Chapter|Summary", ignoreError: true})}} -->
 | Chapter | Summary |
 | --- | --- |
-| [Tool Overview and Architecture](https://github.com/SpreadWorks/sennel/blob/main/docs/overview.md) | This chapter introduces sennel, a CLI tool that automates documentation generation from source code analysis and e… |
-| [Technology Stack and Operations](https://github.com/SpreadWorks/sennel/blob/main/docs/stack_and_ops.md) | This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the sent… |
-| [Project Structure](https://github.com/SpreadWorks/sennel/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sennel project, which is structured around seven … |
+| [Tool Overview and Architecture](https://github.com/SpreadWorks/sennel/blob/main/docs/overview.md) | This chapter introduces sennel, a CLI tool that automates documentation generation from source code analysis and enfo… |
+| [Technology Stack and Operations](https://github.com/SpreadWorks/sennel/blob/main/docs/stack_and_ops.md) | This project is a JavaScript codebase for Node.js, delivered as an ECMAScript module CLI and library through the senn… |
+| [Project Structure](https://github.com/SpreadWorks/sennel/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sennel project, which is structured around seven maj… |
 | [CLI Command Reference](https://github.com/SpreadWorks/sennel/blob/main/docs/cli_commands.md) | The CLI is organized as command groups that dispatch subcommands from registries, with docs, flow, metrics, spec, and… |
-| [Configuration and Customization](https://github.com/SpreadWorks/sennel/blob/main/docs/configuration.md) | sennel is configured through a single project-level JSON file (.sennel/config.json) and optionally extended by … |
+| [Configuration and Customization](https://github.com/SpreadWorks/sennel/blob/main/docs/configuration.md) | sennel is configured through a single project-level JSON file (.sennel/config.json) and optionally extended by projec… |
 | [Internal Design](https://github.com/SpreadWorks/sennel/blob/main/docs/internal_design.md) | This project is organized around three main areas: src/docs for documentation analysis and generation, src/flow for S… |
 | [Preset Creation Guide](https://github.com/SpreadWorks/sennel/blob/main/docs/creating_presets.md) |  |
 <!-- {{/data}} -->

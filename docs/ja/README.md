@@ -55,13 +55,13 @@ Spec-Driven Development フローの終了処理でドキュメントが自動�
 ### インストール
 
 <pre>
-npm install -g <!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} -->
+npm install -g <!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} -->
 </pre>
 
 ### セットアップ
 
 <pre>
-<!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} --> setup
+<!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} --> setup
 </pre>
 
 対話形式でプロジェクトタイプ（プリセット）と AI エージェントを設定します。
@@ -71,7 +71,7 @@ npm install -g <!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} -->
 既にソースコードがあるプロジェクトでは、ドキュメントを生成してシステムの全体像を把握できます。レガシーシステムの保守・引き継ぎにも有効です。
 
 <pre>
-<!-- {{data("cli.project.name")}} -->sennel<!-- {{/data}} --> docs build
+<!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} --> docs build
 </pre>
 
 ### Spec-Driven Development フローで開発する
