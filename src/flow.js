@@ -24,6 +24,30 @@ const flowCommandSuggestionByGroup = {
   status: "sennel flow get status",
 };
 
+function isolatedArtifactHookContext(container, flowResolutionError = null) {
+  const paths = container.get("paths");
+  const mainRoot = container.get("mainRoot");
+  return {
+    root: mainRoot,
+    mainRoot,
+    config: container.get("config"),
+    paths,
+    flowManager: container.get("flowManager"),
+    flowState: null,
+    preparingFlowState: null,
+    specId: null,
+    specLocation: null,
+    executionRoot: paths.root,
+    flowResolutionError,
+  };
+}
+
+function artifactContextReadFailure(cause) {
+  const error = new Error(cause?.message || String(cause), { cause });
+  error.code = "ARTIFACT_VIEW_READ_FAILED";
+  return error;
+}
+
 if (!group || group === "-h" || group === "--help") {
   console.log(flowDefinition.renderHelp());
   if (!group) process.exit(EXIT_ERROR);
@@ -34,7 +58,10 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
   const resolvedEntry = entry?.helpPath
     ? entry
     : { ...entry, helpPath: helpPathOverride || `sennel flow ${envelopeType} ${envelopeKey} --help` };
-  const runtimeLog = !(group === "get" && envelopeKey === "runtime-log");
+  // Artifact views are read-only apart from their Version-local view cache.
+  // A dispatcher runtime log would create an unrelated activity artifact and
+  // violate that boundary, so this command deliberately has no runtime log.
+  const runtimeLog = !(group === "get" && (envelopeKey === "runtime-log" || envelopeKey === "artifact"));
   await dispatch({
     container,
     entry: resolvedEntry,
@@ -43,23 +70,37 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     envelopeKey,
     runtimeLog,
     buildHookCtx: (c, input = {}) => {
+      // A command may own an exact, non-active target selector. In that case
+      // the dispatcher must not discover or guard an ambient Flow before the
+      // command has validated the selector. This generic escape hatch keeps
+      // completed Version reads isolated from unrelated active authority.
+      if (typeof resolvedEntry.skipAmbientFlowContext === "function" && resolvedEntry.skipAmbientFlowContext(input) === true) {
+        return isolatedArtifactHookContext(c);
+      }
       const targetInput = resolvedEntry.specOptionAsTarget === true
         && input.expectSpec == null
         && input.spec != null
         ? { ...input, expectSpec: input.spec }
         : input;
-      return resolveFlowContext(c, {
-        allowMissingActive: resolvedEntry.requiresFlow === false,
-        // Every parsed target guard is an exact authority selection. Resolve
-        // failures are public command outcomes and must reach the shared JSON
-        // envelope boundary instead of escaping while hook context is built.
-        captureTargetResolutionError: true,
-        explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
-        mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
-        positionalRunIdTarget: resolvedEntry.positionalRunIdTarget === true,
-        preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
-        input: targetInput,
-      });
+      try {
+        return resolveFlowContext(c, {
+          allowMissingActive: resolvedEntry.requiresFlow === false,
+          // Every parsed target guard is an exact authority selection. Resolve
+          // failures are public command outcomes and must reach the shared JSON
+          // envelope boundary instead of escaping while hook context is built.
+          captureTargetResolutionError: true,
+          explicitTargetResolution: resolvedEntry.explicitTargetResolution === true,
+          mismatchTargetResolution: resolvedEntry.mismatchTargetResolution === true,
+          positionalRunIdTarget: resolvedEntry.positionalRunIdTarget === true,
+          preparingRunIdSelection: resolvedEntry.preparingRunIdSelection !== false,
+          input: targetInput,
+        });
+      } catch (error) {
+        if (group === "get" && envelopeKey === "artifact") {
+          return isolatedArtifactHookContext(c, artifactContextReadFailure(error));
+        }
+        throw error;
+      }
     },
   });
 }

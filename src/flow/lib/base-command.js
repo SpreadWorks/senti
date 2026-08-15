@@ -29,6 +29,7 @@ export class FlowCommand extends Command {
    * @param {Object} [options]
    * @param {boolean} [options.requiresFlow=true] - Whether this command requires an active flow
    * @param {boolean} [options.explicitTargetResolution=false] - Resolve guarded targets before ambient cwd authority
+   * @param {boolean} [options.mismatchTargetResolution=false] - Resolve an identity match before reporting stale binding authority
    * @param {boolean} [options.positionalRunIdTarget=false] - Treat a positional runId as the target when no runId guard is supplied
    * @param {boolean} [options.specOptionAsTarget=false] - Treat a command's --spec selector as its explicit Flow target
    */
@@ -36,6 +37,7 @@ export class FlowCommand extends Command {
     requiresFlow = true,
     targetGuard = true,
     explicitTargetResolution = false,
+    mismatchTargetResolution = false,
     positionalRunIdTarget = false,
     specOptionAsTarget = false,
   } = {}) {
@@ -43,6 +45,7 @@ export class FlowCommand extends Command {
     this.requiresFlow = requiresFlow;
     this.targetGuard = targetGuard;
     this.explicitTargetResolution = explicitTargetResolution;
+    this.mismatchTargetResolution = mismatchTargetResolution;
     this.positionalRunIdTarget = positionalRunIdTarget;
     this.specOptionAsTarget = specOptionAsTarget;
   }
@@ -80,6 +83,7 @@ export class FlowCommand extends Command {
       ...resolveFlowContext(container, {
         allowMissingActive: !this.requiresFlow,
         explicitTargetResolution: this.explicitTargetResolution,
+        mismatchTargetResolution: this.mismatchTargetResolution,
         positionalRunIdTarget: this.positionalRunIdTarget,
         preparingRunIdSelection: this.positionalRunIdTarget ? false : undefined,
         input,

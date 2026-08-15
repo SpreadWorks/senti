@@ -9,7 +9,7 @@
  */
 
 import { FlowCommand } from "./base-command.js";
-import { renderSpecView } from "./render-spec-view.js";
+import { ApprovalDecisionPrompt } from "./flow-decision-prompt.js";
 
 /**
  * @typedef {{ id: number, label: string, description: string, recommended: boolean }} Choice
@@ -36,16 +36,6 @@ const PROMPTS_BY_LANG = {
       choices: [
         { id: 1, label: "コミットする", description: "", recommended: false },
         { id: 2, label: "スタッシュする", description: "", recommended: false },
-        { id: 3, label: "その他", description: "", recommended: false },
-      ],
-    },
-    "plan.approval": {
-      phase: "plan", step: "approval",
-      description: "仕様書の内容を確認し、承認してください。",
-      recommendation: null,
-      choices: [
-        { id: 1, label: "承認する", description: "", recommended: false },
-        { id: 2, label: "修正する", description: "", recommended: false },
         { id: 3, label: "その他", description: "", recommended: false },
       ],
     },
@@ -169,16 +159,6 @@ const PROMPTS_BY_LANG = {
         { id: 3, label: "Other", description: "", recommended: false },
       ],
     },
-    "plan.approval": {
-      phase: "plan", step: "approval",
-      description: "Review the spec and approve it.",
-      recommendation: null,
-      choices: [
-        { id: 1, label: "Approve", description: "", recommended: false },
-        { id: 2, label: "Revise", description: "", recommended: false },
-        { id: 3, label: "Other", description: "", recommended: false },
-      ],
-    },
     "plan.test-mode": {
       phase: "plan", step: "test-mode",
       description: "Run tests?",
@@ -280,9 +260,11 @@ const PROMPTS_BY_LANG = {
   },
 };
 
+const DECISION_PROMPT_KINDS = new Set(["plan.approval"]);
+
 /** Get all valid kind names (from ja, which is the superset). */
 function validKinds() {
-  return Object.keys(PROMPTS_BY_LANG.ja);
+  return [...new Set([...Object.keys(PROMPTS_BY_LANG.ja), ...DECISION_PROMPT_KINDS])];
 }
 
 export default class GetPromptCommand extends FlowCommand {
@@ -297,14 +279,18 @@ export default class GetPromptCommand extends FlowCommand {
       throw new Error(`kind required. valid: ${validKinds().join(", ")}`);
     }
 
-    if (!PROMPTS_BY_LANG.ja[kind]) {
+    if (!PROMPTS_BY_LANG.ja[kind] && !DECISION_PROMPT_KINDS.has(kind)) {
       throw new Error(`unknown kind '${kind}'. valid: ${validKinds().join(", ")}`);
     }
 
     const config = ctx.config;
     const lang = config?.lang || "en";
     const prompts = PROMPTS_BY_LANG[lang] || PROMPTS_BY_LANG.en;
-    const def = prompts[kind] || PROMPTS_BY_LANG.en[kind];
+    const def = kind === "plan.approval"
+      ? new ApprovalDecisionPrompt({ root: ctx.root, config }).toPromptData({
+        state: ctx.flowState,
+      })
+      : prompts[kind] || PROMPTS_BY_LANG.en[kind];
 
     // Get qa-count for current/total if in draft phase
     let current = null;
@@ -312,16 +298,6 @@ export default class GetPromptCommand extends FlowCommand {
     const state = ctx.flowState;
     if (state?.metrics?.draft) {
       current = state.metrics.draft.question || 0;
-    }
-
-    const artifacts = {};
-    if (kind === "plan.approval" && state?.specId) {
-      const rendered = renderSpecView({
-        root: ctx.root,
-        flowManager: ctx.flowManager,
-        flowState: state,
-      });
-      if (rendered.rendered) artifacts.specView = rendered.changed;
     }
 
     return {
@@ -333,7 +309,6 @@ export default class GetPromptCommand extends FlowCommand {
       description: def.description,
       recommendation: def.recommendation,
       choices: def.choices.map(({ id, label, description, recommended }) => ({ id, label, description, recommended })),
-      ...(Object.keys(artifacts).length > 0 ? { artifacts } : {}),
     };
   }
 }

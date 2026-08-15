@@ -124,7 +124,7 @@ describe("flow get prompt", () => {
     assert.ok(envelope.data.choices.length >= 2);
   });
 
-  it("renders the approval view below the Version runtime directory from cataloged spec.record", () => {
+  it("keeps the approval prompt read-only instead of rendering a persistent spec view", () => {
     tmp = createTmpDir();
     const fixture = setupFlowState(tmp);
     const specDir = fixture.location().directory;
@@ -146,13 +146,35 @@ describe("flow get prompt", () => {
     );
     const envelope = JSON.parse(result);
     assert.equal(envelope.ok, true);
-    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
-    assert.match(md, /Approval view goal/);
-    assert.match(md, /R1/);
-    assert.deepEqual(envelope.data.artifacts.specView, [
-      "specs/001-test/001/.runtime/spec-render/spec.md",
-      "specs/001-test/001/.runtime/spec-render/tasks/T-1.md",
-    ]);
+    assert.equal(envelope.data.artifacts, undefined);
+    assert.equal(
+      fs.existsSync(path.join(specDir, ".runtime", "spec-render", "spec.md")),
+      false,
+    );
+  });
+
+  it("uses a project approval locale override when no preset type is configured", () => {
+    tmp = createTmpDir();
+    const localeDirectory = path.join(tmp, ".sennel", "locale", "en");
+    fs.mkdirSync(localeDirectory, { recursive: true });
+    fs.writeFileSync(path.join(localeDirectory, "messages.json"), `${JSON.stringify({
+      flow: {
+        approvalDecision: {
+          question: "Project-local approval question",
+          approve: "Project-local approve",
+        },
+      },
+    })}\n`);
+
+    const prompt = new GetPromptCommand().execute({
+      kind: "plan.approval",
+      root: tmp,
+      config: { lang: "en" },
+      flowState: null,
+    });
+
+    assert.equal(prompt.description, "Project-local approval question");
+    assert.equal(prompt.choices[0].label, "Project-local approve");
   });
 
   it("fails with ACTIVE_FLOW_MISMATCH when approval prompt target guard does not match", () => {
@@ -189,7 +211,7 @@ describe("flow get prompt", () => {
     }
   });
 
-  it("renders the explicitly selected canonical Flow when multiple flows are active", () => {
+  it("keeps the explicitly selected approval prompt read-only when multiple flows are active", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     const second = setupFlowState(tmp, {
@@ -214,12 +236,11 @@ describe("flow get prompt", () => {
       flowManager: manager.forRoot(tmp, { specId: target.specId }),
       flowState: target.state,
     });
-    assert.deepEqual(result.artifacts.specView, [
-      "specs/002-second/001/.runtime/spec-render/spec.md",
-      "specs/002-second/001/.runtime/spec-render/tasks/T-2.md",
-    ]);
-    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
-    assert.match(md, /Approval view goal/);
+    assert.equal(result.artifacts, undefined);
+    assert.equal(
+      fs.existsSync(path.join(specDir, ".runtime", "spec-render", "spec.md")),
+      false,
+    );
   });
 
   it("finalize.merge-strategy is removed as a known kind", () => {

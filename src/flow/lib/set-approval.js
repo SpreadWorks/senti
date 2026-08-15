@@ -2,9 +2,9 @@
  * src/flow/lib/set-approval.js
  *
  * Persist plan-level user approval into the active flow's spec.json
- * `user_approval` field. Replaces the legacy hand-edit of spec.md's
- * `## User Confirmation` section so that `spec render` no longer drops
- * the approval state on regeneration (spec 221).
+ * `user_approval` field. Human-readable approval views are generated only
+ * when explicitly requested through `flow get artifact`; this mutation never
+ * regenerates a persistent Markdown view.
  *
  * ctx.approved      — flag set when --approved is passed
  * ctx.notes         — optional --notes value
@@ -13,7 +13,6 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { renderSpecView } from "./render-spec-view.js";
 import { CanonicalSpecApproval, MAX_APPROVAL_NOTES_LENGTH } from "./canonical-spec-approval.js";
 
 function isValidIso8601(value) {
@@ -66,12 +65,6 @@ export default class SetApprovalCommand extends FlowCommand {
       specId: ctx.flowState.specId,
       approval,
     });
-    const rendered = renderSpecView({
-      root: ctx.root,
-      flowManager: ctx.flowManager,
-      flowState: ctx.flowState,
-    });
-
-    return { user_approval: userApproval, rendered: rendered.changed };
+    return { user_approval: userApproval };
   }
 }

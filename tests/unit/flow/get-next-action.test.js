@@ -24,6 +24,7 @@ import {
   getTaskDefinitionOrder,
 } from "../../../src/flow/definition.js";
 import { flattenSteps, findStepById } from "../../../src/flow/lib/step-tree.js";
+import { FlowTargetBinding } from "../../../src/lib/flow-target-guard.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 import { PKG_DIR } from "../../../src/lib/cli.js";
 import { resolveIncludes } from "../../../src/lib/include.js";
@@ -34,6 +35,7 @@ import {
   finalizationOutboxIdentity,
 } from "../../../src/flow/lib/flow-outbox.js";
 import { outboxCommitMarker } from "../../../src/flow/lib/run-finalize.js";
+import GetPromptCommand from "../../../src/flow/lib/get-prompt.js";
 
 const CLI = path.join(process.cwd(), "src/sennel.js");
 const SPEC_ID = "001-test";
@@ -266,7 +268,7 @@ describe("flow get next-action", () => {
     assert.equal(stateFor(scenario).currentTaskId, null);
   });
 
-  it("preserves the definition-owned approval boundaries", () => {
+  it("keeps dispatch approval token-bound while exposing acceptance risk as a tokenless user decision", () => {
     tmp = createTmpDir();
     const approval = createScenario(tmp).atFlowStep("approval");
     const approvalResult = runCli(tmp, ["flow", "get", "next-action"]);
@@ -274,6 +276,108 @@ describe("flow get next-action", () => {
     assert.equal(approvalResult.exitCode, 0);
     assert.equal(approvalResult.envelope.data.requires_approval, true);
     assert.equal(stateFor(approval).policy.autoApprove, false);
+    assert.equal(approvalResult.envelope.data.directive.kind, "execute_step");
+    assert.equal(approvalResult.envelope.data.directive.requiresUserAction, true);
+    const approvalChoices = approvalResult.envelope.data.directive.actionPrompt.choices;
+    assert.deepEqual(
+      approvalChoices.map((choice) => choice.actionId),
+      [
+        "APPROVE_SPECIFICATION",
+        "REVIEW_SPECIFICATION_SUMMARY",
+        "REVIEW_SPECIFICATION_FULL",
+        "REQUEST_SPECIFICATION_CHANGES",
+        "OTHER_APPROVAL_RESPONSE",
+      ],
+    );
+    assert.deepEqual(
+      approvalChoices.map((choice) => choice.label),
+      [
+        "Approve",
+        "Review summary of the specification",
+        "Review the full specification",
+        "Request changes",
+        "Other",
+      ],
+    );
+    const approvalPrompt = new GetPromptCommand().execute({
+      kind: "plan.approval",
+      root: tmp,
+      config: { lang: "en" },
+      flowState: stateFor(approval),
+    });
+    assert.equal(
+      approvalPrompt.description,
+      approvalResult.envelope.data.directive.actionPrompt.question,
+    );
+    assert.equal(
+      approvalPrompt.recommendation,
+      approvalResult.envelope.data.directive.actionPrompt.recommendationReason,
+    );
+    assert.deepEqual(
+      approvalPrompt.choices.map((choice) => choice.label),
+      approvalChoices.map((choice) => choice.label),
+    );
+    assert.deepEqual(
+      approvalPrompt.choices.map((choice) => choice.recommended),
+      [false, true, false, false, false],
+    );
+    assert.match(approvalChoices[1].nextAction, /flow get artifact spec\.record --mode summary/);
+    assert.match(approvalChoices[2].nextAction, /flow get artifact spec\.record --mode full/);
+    assert.equal(approvalChoices[0].nextAction, null);
+    assert.equal(approvalChoices[3].nextAction, null);
+    assert.equal(approvalChoices[4].nextAction, null);
+    const approvalBinding = FlowTargetBinding.capture({
+      flowState: stateFor(approval),
+      mainRoot: tmp,
+      authorityRoot: tmp,
+    }).serialize();
+    for (const choice of approvalChoices.slice(1, 3)) {
+      assert.match(choice.nextAction, new RegExp(`--expect-binding '${approvalBinding}'`));
+      assert.doesNotMatch(choice.nextAction, /--approve/);
+    }
+
+    removeTmpDir(tmp);
+    tmp = createTmpDir();
+    const acceptance = createScenario(tmp).atFlowStep("acceptance-decision");
+    const binding = FlowTargetBinding.capture({
+      flowState: stateFor(acceptance),
+      mainRoot: tmp,
+      authorityRoot: tmp,
+    }).serialize();
+    const acceptanceResult = runCli(tmp, [
+      "flow", "get", "next-action", "--expect-binding", binding,
+    ]);
+    const acceptanceData = acceptanceResult.envelope.data;
+
+    assert.equal(acceptanceResult.exitCode, 0);
+    assert.equal(acceptanceData.requires_approval, false);
+    assert.equal(acceptanceData.directive.kind, "await_user_decision");
+    assert.equal(acceptanceData.directive.requiresUserAction, true);
+    assert.deepEqual(
+      acceptanceData.directive.actionPrompt.choices.map((choice) => choice.actionId),
+      [
+        "ACCEPT_RISK_AND_CONTINUE",
+        "ABORT_ACCEPTANCE",
+        "REVIEW_ACCEPTANCE_SUMMARY",
+        "REVIEW_ACCEPTANCE_FULL",
+      ],
+    );
+    const choices = acceptanceData.directive.actionPrompt.choices;
+    assert.deepEqual(
+      choices.map((choice) => choice.label),
+      [
+        "Accept the risk and continue",
+        "Abort",
+        "Review summary of the acceptance review",
+        "Review the full acceptance review",
+      ],
+    );
+    assert.match(choices[2].nextAction, /flow get artifact acceptance\.review --mode summary/);
+    assert.match(choices[3].nextAction, /flow get artifact acceptance\.review --mode full/);
+    for (const choice of choices) {
+      assert.match(choice.nextAction, new RegExp(`--expect-binding '${binding}'`));
+      assert.doesNotMatch(choice.nextAction, /--approve/);
+    }
 
     removeTmpDir(tmp);
     tmp = createTmpDir();
@@ -289,7 +393,7 @@ describe("flow get next-action", () => {
     for (const stepId of getFlowDefinitionOrder()) {
       const action = deriveNextAction({ scope: "flow", stepId });
       assert.ok(action, `flow.${stepId} has a definition action`);
-      if (!["approval", "acceptance-decision", "finalize-commit"].includes(stepId)) {
+      if (!["approval", "finalize-commit"].includes(stepId)) {
         assert.equal(action.requiresApproval, false, `flow.${stepId}`);
       }
     }

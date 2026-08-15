@@ -1,4 +1,4 @@
-# <!-- {{data("cli.project.name")}} -->Sennel<!-- {{/data}} -->
+# Sennel
 
 <!-- {{data("cli.docs.langSwitcher", {labels: "absolute"})}} -->
 [日本語](https://github.com/SpreadWorks/sennel/blob/main/docs/ja/README.md) | **English**

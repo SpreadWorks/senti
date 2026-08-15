@@ -1112,7 +1112,9 @@ const FLOW_DEFINITION = Object.freeze([
         instructionsKey: "impl.acceptance-decision",
         contextKinds: ["spec", "diff", "test"],
         outputSchemaRef: "next-action/acceptance-review.schema.json",
-        requiresApproval: true,
+        // This is a guarded, tokenless user-decision scene.  Its typed
+        // await_user_decision directive is assembled by get-next-action;
+        // it must never receive an approval token or autoApprove treatment.
         maxAttempts: 1,
       }),
       new FlowNode({

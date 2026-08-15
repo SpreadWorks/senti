@@ -5192,7 +5192,9 @@ export class CurrentFlowVersionMigrationOutputBuilder extends FlowVersionMigrati
     for (const artifact of plan.artifacts.filter((entry) => entry.operation.value === "transform")) {
       let bytes;
       if (artifact.outputKey === "current-flow-state") bytes = this.semanticValidator.serializeState(state);
-      else if (artifact.outputKey === "authoritative-spec-record") bytes = Buffer.from(spec.canonicalText, "utf8");
+      else if (artifact.outputKey === "authoritative-spec-record") {
+        bytes = Buffer.from(spec.schemaPayload().canonicalText, "utf8");
+      }
       else throw new CurrentFlowStateInvariantError(`unsupported Current Flow migration transform: ${artifact.outputKey}`);
       outputs.push(new FlowVersionMigrationOutput({
         outputKey: artifact.outputKey, targetPath: artifact.targetPath, operation: artifact.operation,

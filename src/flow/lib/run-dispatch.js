@@ -9,6 +9,7 @@
  * user or terminal boundary.
  */
 
+import fs from "node:fs";
 import path from "node:path";
 import { loadSpecJsonSchema } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
@@ -79,7 +80,10 @@ function specWorkerAgentOptions(stepId, outputSchema) {
 
 function freshWorkerInvocation(invocation, nextAction) {
   const session = new FlowDispatchSession({ target: invocation.target });
-  const action = session.captureAction(nextAction, invocation.action.repositoryFingerprint);
+  const action = session.captureAction(
+    workerFacingNextAction(nextAction),
+    invocation.action.repositoryFingerprint,
+  );
   if (action.digest !== invocation.action.digest) {
     throw new Error("fresh worker handoff action changed before retry");
   }
@@ -133,9 +137,177 @@ function readFlowState(ctx) {
   }
 }
 
+function optionalApprovalReceiptLocation(ctx) {
+  const specId = ctx.specId ?? ctx.flowState?.specId;
+  const location = ctx.specLocation ?? ctx.flowManager?.specLocation?.(specId);
+  if (!location?.relativeFlowStateFile || !location?.relativeActivitiesFile || !location?.relativeCatalogFile) {
+    return null;
+  }
+  return location;
+}
+
+function approvalReceiptLocation(ctx) {
+  const location = optionalApprovalReceiptLocation(ctx);
+  if (location === null) {
+    throw new Error("flow dispatch approval receipt requires a canonical Version location");
+  }
+  return location;
+}
+
+function receiptControlPaths(location) {
+  return Object.freeze([
+    location.relativeFlowStateFile,
+    location.relativeActivitiesFile,
+    location.relativeCatalogFile,
+  ]);
+}
+
+function receiptControlPathspecExcludes(location) {
+  return receiptControlPaths(location).map((relativePath) => `:(exclude,top,literal)${relativePath}`);
+}
+
+function runtimeViewPathspecExcludes(location) {
+  return [`:(exclude,top,glob)${location.relativeDirectory}/.runtime/views/**`];
+}
+
+/**
+ * Canonical Flow control records and ephemeral artifact views are owned by
+ * the dispatcher/reader rather than product work. Their exact Version paths
+ * are normalized in both direct and worktree execution because a
+ * FlowVersionLocation is repository-relative in either mode. Keeping this
+ * list narrow deliberately leaves spec.record, source, tests, and every
+ * other cataloged artifact in the approval fingerprint.
+ */
+function dispatchFingerprintPathspecExcludes(ctx) {
+  const location = optionalApprovalReceiptLocation(ctx);
+  return [
+    ...(location === null
+      ? []
+      : [...receiptControlPathspecExcludes(location), ...runtimeViewPathspecExcludes(location)]),
+    ...(ctx.dispatchFingerprintPathspecExcludes ?? []),
+  ];
+}
+
+function receiptControlBytes(location) {
+  const files = [
+    [location.relativeFlowStateFile, location.flowStateFile],
+    [location.relativeActivitiesFile, location.activitiesFile],
+    [location.relativeCatalogFile, location.catalogFile],
+  ];
+  return Object.freeze(files.map(([relativePath, absolutePath]) => ({
+    relativePath,
+    bytes: fs.readFileSync(absolutePath).toString("base64"),
+  })));
+}
+
+function sameReceiptControlBytes(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function sameDispatchActionMeaning(left, right) {
+  return left.target.digest === right.target.digest
+    && JSON.stringify(left.nextAction) === JSON.stringify(right.nextAction);
+}
+
+class DispatchApprovalReceiptMutationError extends Error {
+  constructor({ invocation, activeAction, message }) {
+    super(message);
+    this.name = "DispatchApprovalReceiptMutationError";
+    this.code = "FLOW_DISPATCH_AUTHORIZATION_STALE";
+    this.data = Object.freeze({
+      expectedActionDigest: invocation.action.digest,
+      activeActionDigest: activeAction.digest,
+      authorization: invocation.authorization.toJSON(),
+    });
+  }
+}
+
+/**
+ * The explicit approval record is the one dispatcher-owned mutation permitted
+ * between token validation and worker handoff.  This value object freezes its
+ * exact Version bytes and independently fingerprints every other repository
+ * path, so no user or worker edit can be mistaken for the receipt write.
+ */
+class DispatchApprovalReceiptMutation {
+  constructor({ location, invocation, controlBytes, outsideFingerprint }) {
+    this.location = location;
+    this.invocation = invocation;
+    this.controlBytes = controlBytes;
+    this.outsideFingerprint = outsideFingerprint;
+    Object.freeze(this);
+  }
+
+  static record({ ctx, invocation, fingerprint, record }) {
+    const location = approvalReceiptLocation(ctx);
+    const fingerprintOutsideReceipt = () => fingerprint({
+      ...ctx,
+      dispatchFingerprintPathspecExcludes: receiptControlPathspecExcludes(location),
+    });
+    const before = receiptControlBytes(location);
+    const outsideFingerprint = fingerprintOutsideReceipt();
+    record();
+    const after = receiptControlBytes(location);
+    if (sameReceiptControlBytes(before, after)) {
+      throw new Error("flow dispatch approval receipt did not persist its canonical Version mutation");
+    }
+    if (fingerprintOutsideReceipt() !== outsideFingerprint) {
+      throw new Error("flow dispatch approval receipt changed repository content outside its control files");
+    }
+    const state = readFlowState(ctx);
+    const persisted = ExplicitFlowDispatchAuthorization.matching(state, invocation.action);
+    if (persisted == null || persisted.approvalToken !== invocation.authorization.approvalToken) {
+      throw new Error("flow dispatch approval receipt was not durably recorded for the validated action");
+    }
+    return new DispatchApprovalReceiptMutation({
+      location,
+      invocation,
+      controlBytes: after,
+      outsideFingerprint,
+    });
+  }
+
+  assertCurrent({ ctx, fingerprint, activeAction, flowState }) {
+    const currentOutsideFingerprint = fingerprint({
+      ...ctx,
+      dispatchFingerprintPathspecExcludes: receiptControlPathspecExcludes(this.location),
+    });
+    if (currentOutsideFingerprint !== this.outsideFingerprint) {
+      throw new DispatchApprovalReceiptMutationError({
+        invocation: this.invocation,
+        activeAction,
+        message: "repository content changed outside the dispatcher-owned approval receipt before worker handoff",
+      });
+    }
+    if (!sameReceiptControlBytes(receiptControlBytes(this.location), this.controlBytes)) {
+      throw new DispatchApprovalReceiptMutationError({
+        invocation: this.invocation,
+        activeAction,
+        message: "the dispatcher-owned approval receipt changed before worker handoff",
+      });
+    }
+    if (!sameDispatchActionMeaning(this.invocation.action, activeAction)) {
+      throw new DispatchApprovalReceiptMutationError({
+        invocation: this.invocation,
+        activeAction,
+        message: "the approved Flow target or semantic action changed before worker handoff",
+      });
+    }
+    if (
+      !this.invocation.authorization.matches(this.invocation.action)
+      || !this.invocation.authorization.isGrantedBy(flowState)
+    ) {
+      throw new DispatchApprovalReceiptMutationError({
+        invocation: this.invocation,
+        activeAction,
+        message: "the dispatcher-owned approval receipt no longer grants the validated action",
+      });
+    }
+  }
+}
+
 export function dispatchRepositoryFingerprint(ctx) {
   return finalRegressionWorktreeFingerprint(ctx.executionRoot || ctx.root, {
-    pathspecExcludes: [],
+    pathspecExcludes: dispatchFingerprintPathspecExcludes(ctx),
   });
 }
 
@@ -195,7 +367,7 @@ export class FlowDispatchLease {
   }
 }
 
-function persistDispatchApproval(ctx, invocation) {
+function persistDispatchApproval(ctx, invocation, fingerprint) {
   if (
     !(invocation instanceof FlowDispatchInvocation)
     || !(invocation.authorization instanceof ExplicitFlowDispatchAuthorization)
@@ -205,18 +377,23 @@ function persistDispatchApproval(ctx, invocation) {
   const { action, authorization } = invocation;
   const state = readFlowState(ctx);
   const existing = ExplicitFlowDispatchAuthorization.matching(state, action);
-  if (existing) return existing;
+  if (existing) return { authorization: existing, receiptMutation: null };
   if (state?.schemaRevision !== 3 || typeof ctx.flowManager?.recordDispatchApproval !== "function") {
     throw new Error("flow dispatch approval requires the canonical Version Store receipt API");
   }
   if (state.runId !== action.target.runId) {
     throw new Error("flow dispatch approval target changed before persistence");
   }
-  ctx.flowManager.recordDispatchApproval({
-    specId: state.specId,
-    receipt: authorization.toReceiptJSON(),
+  const receiptMutation = DispatchApprovalReceiptMutation.record({
+    ctx,
+    invocation,
+    fingerprint,
+    record: () => ctx.flowManager.recordDispatchApproval({
+      specId: state.specId,
+      receipt: authorization.toReceiptJSON(),
+    }),
   });
-  return authorization;
+  return { authorization, receiptMutation };
 }
 
 export class FlowDispatchRepositoryFingerprintError extends Error {
@@ -298,6 +475,30 @@ export class FlowDispatchBoundary {
   }
 }
 
+/**
+ * A user-action prompt belongs to the dispatcher boundary, not to the worker
+ * that runs after the selected approval has been durably authorized. The
+ * boundary retains the prompt, while worker serialization and dispatch
+ * identity both use the pre-prompt continuation contract.
+ */
+export function workerFacingNextAction(nextAction) {
+  const directive = NextActionDirective.fromStored(nextAction.directive);
+  if (
+    nextAction.requires_approval !== true
+    || !(directive instanceof ExecuteStepDirective)
+    || directive.prompt == null
+  ) {
+    return nextAction;
+  }
+  return {
+    ...nextAction,
+    directive: new ExecuteStepDirective({
+      action: directive.action,
+      ...(directive.nextAction != null && { nextAction: directive.nextAction }),
+    }).toJSON(),
+  };
+}
+
 export class FlowDispatchWork {
   constructor(invocation, handoffRequest = null) {
     if (!(invocation instanceof FlowDispatchInvocation)) {
@@ -320,8 +521,9 @@ export class FlowDispatchWork {
 
   prompt(promptGuidance = "") {
     const { action, authorization, target } = this.invocation;
+    const nextAction = workerFacingNextAction(action.nextAction);
     const authorizationInstruction = authorization.workerInstruction();
-    const nonblockingRule = action.nextAction.nonblockingDecision
+    const nonblockingRule = nextAction.nonblockingDecision
       ? [
           "",
           "A nonblockingDecision is present. Resolve and record exactly that",
@@ -381,7 +583,7 @@ export class FlowDispatchWork {
       JSON.stringify(this.invocation.toJSON(), null, 2),
       "",
       "Guarded next action:",
-      JSON.stringify(action.nextAction, null, 2),
+      JSON.stringify(nextAction, null, 2),
       "",
       "Your response is only a worker report. The CLI ignores it as a completion",
       "signal and independently verifies the refreshed Flow and repository state.",
@@ -486,7 +688,10 @@ export default class RunDispatchCommand extends FlowCommand {
 
   captureAction(ctx, session, nextAction, dispatchCount, phase) {
     try {
-      return session.captureAction(nextAction, this.repositoryFingerprint(ctx));
+      return session.captureAction(
+        workerFacingNextAction(nextAction),
+        this.repositoryFingerprint(ctx),
+      );
     } catch (cause) {
       throw new FlowDispatchRepositoryFingerprintError({
         cause,
@@ -782,6 +987,7 @@ export default class RunDispatchCommand extends FlowCommand {
         authorization: storedAuthorization
           ?? new UnapprovedFlowDispatchAuthorization(actionIdentity),
       });
+      let receiptMutation = null;
       if (action.requiresApproval) {
         const expectedApproval = invocation.approvalToken();
         if (suppliedApproval && suppliedApproval !== expectedApproval) {
@@ -803,10 +1009,11 @@ export default class RunDispatchCommand extends FlowCommand {
               action: actionIdentity,
               runId: target.runId,
               approvalToken: expectedApproval,
-            });
+          });
           invocation = invocation.withAuthorization(explicitAuthorization);
-          const persistedAuthorization = persistDispatchApproval(ctx, invocation);
-          invocation = invocation.withAuthorization(persistedAuthorization);
+          const persisted = persistDispatchApproval(ctx, invocation, this.repositoryFingerprint);
+          invocation = invocation.withAuthorization(persisted.authorization);
+          receiptMutation = persisted.receiptMutation;
           flowState = readFlowState(ctx);
           suppliedApproval = null;
         } else if (!invocation.approved && flowState?.autoApprove === true && action.isAutoApproveEligible) {
@@ -851,7 +1058,17 @@ export default class RunDispatchCommand extends FlowCommand {
         "pre-handoff-validation",
       );
       try {
-        invocation.assertCurrent(activeAction, readFlowState(ctx));
+        const currentState = readFlowState(ctx);
+        if (receiptMutation) {
+          receiptMutation.assertCurrent({
+            ctx,
+            fingerprint: this.repositoryFingerprint,
+            activeAction,
+            flowState: currentState,
+          });
+        } else {
+          invocation.assertCurrent(activeAction, currentState);
+        }
       } catch (error) {
         return this.failure(
           ctx,

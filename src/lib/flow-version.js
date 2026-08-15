@@ -408,6 +408,40 @@ export class AuthoritativeSpecRecord {
   static from(value) { return value instanceof AuthoritativeSpecRecord ? value : new AuthoritativeSpecRecord(value); }
   toJSON() { return structuredClone(this.#document); }
   get canonicalText() { return `${JSON.stringify(this.#document, null, 2)}\n`; }
+  schemaPayload() {
+    return new AuthoritativeSpecPayload({ document: this.#document, identity: this.specId });
+  }
+}
+
+/**
+ * Schema-owned Spec content separated from the Version-owned identity used to
+ * locate and validate it.  The payload never serializes `id`/`specId`: those
+ * are transport identities, not fields of the canonical Spec schema.
+ */
+export class AuthoritativeSpecPayload {
+  #document;
+  constructor({ document, identity } = {}) {
+    if (!isPlainObject(document)) throw new Error("authoritative Spec payload requires a plain object document");
+    this.identity = FlowSpecIdentity.from(identity);
+    // Reuse the identity record invariant so a dual id/specId declaration
+    // cannot silently collapse to one value while the schema fields are
+    // projected away.
+    const declared = new AuthoritativeSpecRecord({
+      ...document,
+      id: document.id ?? document.specId ?? this.identity.toString(),
+    });
+    if (!declared.specId.equals(this.identity)) {
+      throw new Error("authoritative Spec payload identity must match its declared document identity");
+    }
+    const payload = structuredClone(document);
+    delete payload.id;
+    delete payload.specId;
+    this.#document = structuredClone(payload);
+    Object.freeze(this);
+  }
+
+  toJSON() { return structuredClone(this.#document); }
+  get canonicalText() { return `${JSON.stringify(this.#document, null, 2)}\n`; }
 }
 
 export class FlowVersionSemanticValidator {

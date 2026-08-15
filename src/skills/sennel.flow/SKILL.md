@@ -189,11 +189,27 @@ continuation.
 
 Handle the returned `data.dispatch.boundary`:
 
-1. `approval_required`: explain the current step and wait for explicit user
-   approval. Retain `approvalToken` privately. After approval, run
-   `sennel flow run dispatch --approve <approvalToken> --expect-binding <token>`.
+1. `approval_required`: retain both the private `approvalToken` and the exact
+   CLI-generated binding. Present the current localized approval choices from
+   `nextAction.directive.actionPrompt`. If the user selects the specification
+   summary or full-review choice, run exactly one of:
+   - `sennel flow get artifact spec.record --mode summary --expect-binding <binding>`
+   - `sennel flow get artifact spec.record --mode full --expect-binding <binding>`
+   Display the returned Markdown or failure, then run
+   `sennel flow get next-action --expect-binding <binding>` before returning to
+   the same approval choices with the same private token and binding. A view command is
+   read-only: do not pass `--approve`, record a viewed flag, add an Activity,
+   or replace the token. Only after the user explicitly selects approval, run
+   `sennel flow run dispatch --approve <approvalToken> --expect-binding <binding>`.
+   Approval artifact-view mapping: `scene=approval` uses
+   `logicalKey=spec.record`. The full range is spec + inline tasks;
+   summary and full output are regenerated from the cataloged `spec.record`
+   artifact. This derived view never replaces non-regenerable evidence, which
+   remains preserved in its canonical catalog entry.
    The CLI binds the token to the exact guarded action and continues in the
-   same process. A stale token is not permission to execute anything.
+   same process. A stale token is not permission to execute anything. When
+   autoApprove advances an approval-required action, it has no approval scene;
+   never generate a view, cache entry, or summary call for it.
 2. `auto_upgrade_decision`: present the standard auto-mode choice. If the user
    explicitly selects auto, run `sennel flow set auto on --expect-binding <token>`;
    otherwise run `sennel flow set auto off --expect-binding <token>`. Immediately
@@ -204,6 +220,15 @@ Handle the returned `data.dispatch.boundary`:
    resume `sennel flow run dispatch --expect-binding <token>`. Adoption/reconciliation,
    risk acceptance, deletion, orphan handling, and force actions always require
    explicit user selection.
+   - For the acceptance-decision scene, there is no approval token. Keep the
+     CLI-generated binding and present its accept-risk, abort, summary-review,
+     and full-review choices. The two review actions are the exact guarded
+     `sennel flow get artifact acceptance.review --mode summary|full
+     --expect-binding <binding>` commands supplied by the action prompt. Show
+     their result or failure, make no Flow-state or Activity mutation, and
+     run `sennel flow get next-action --expect-binding <binding>` to reacquire
+     that same decision scene with the same binding. Only the
+     accept-risk and abort actions may run `flow set acceptance-decision`.
    - For `KEEP_STRICT_FLOW`, leave the Flow unchanged and report the strict
      blocker.
    - For `ENABLE_NONBLOCKING`, record the bounded reason with
@@ -293,7 +318,7 @@ When implementation reveals that the spec needs additional tasks:
 - **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
 - Use `sennel flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions for implementation-phase task additions: at least one done task exists and the flow lifecycle is still `active`.
 - After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
-- Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json.tasks[]` remains the task source of truth; the approval prompt renders `spec.md` only when the user needs the human-readable view. The approval post-hook admits only the new tasks through typed `addTask` operations; existing tasks keep their status and steps.
+- Proceed through `draft-gate → spec → spec-gate → approval` again. `spec.json.tasks[]` remains the task source of truth; the approval scene exposes a guarded read-only `flow get artifact spec.record --mode summary|full` view when needed and never renders a persistent `spec.md`. The approval post-hook admits only the new tasks through typed `addTask` operations; existing tasks keep their status and steps.
 
 ### Command execution discipline
 

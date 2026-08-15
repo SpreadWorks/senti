@@ -65,6 +65,7 @@ import {
   readJsonStrict,
   validateCanonicalUpgradeEvidence,
 } from "./test-artifacts.js";
+import { MAX_SAME_SPEC_CONTRACT_CONTEXT_CHARS } from "./flow-context-limit.js";
 import {
   Observation,
   Diagnosis,
@@ -238,7 +239,6 @@ const MAX_SAME_SPEC_DECISIONS = 24;
 const MAX_SAME_SPEC_DECISION_CHARS = 1024;
 const MAX_SAME_SPEC_CLARIFICATIONS = 24;
 const MAX_SAME_SPEC_CLARIFICATION_CHARS = 1024;
-const MAX_SAME_SPEC_CONTRACT_CONTEXT_CHARS = 48000;
 const GATE_SOURCE_ARTIFACT_BY_PHASE = Object.freeze({
   draft: "draft-gate-source.json",
   spec: "spec-gate-source.json",

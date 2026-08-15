@@ -57,6 +57,10 @@ describe("flow get prompt i18n — Japanese", () => {
     setupFlowState(tmp, "ja");
     const envelope = getPromptEnvelope(tmp, "plan.approval");
     assert.ok(envelope.data.description.includes("承認"), `should be Japanese: ${envelope.data.description}`);
+    assert.deepEqual(
+      envelope.data.choices.map((choice) => choice.label),
+      ["承認する", "仕様の要約を確認する", "仕様をすべて確認する", "修正する", "その他"],
+    );
   });
 });
 
@@ -77,7 +81,13 @@ describe("flow get prompt i18n — English", () => {
     setupFlowState(tmp, "en");
     const envelope = getPromptEnvelope(tmp, "plan.approval");
     const labels = envelope.data.choices.map((c) => c.label);
-    assert.ok(labels.includes("Approve"), `should have English label: ${labels}`);
+    assert.deepEqual(labels, [
+      "Approve",
+      "Review summary of the specification",
+      "Review the full specification",
+      "Request changes",
+      "Other",
+    ]);
   });
 
   it("returns English for plan.test-mode when lang=en", () => {

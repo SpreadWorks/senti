@@ -836,6 +836,39 @@ export const FLOW_COMMANDS = {
         "Target-sensitive prompts such as plan.approval validate that the resolved active flow matches the expected target.",
       ].join("\n"),
     },
+    artifact: {
+      helpKey: "flow.get.artifact",
+      // Active targets use the ordinary guarded Flow resolution. Historical
+      // targets are resolved by get-artifact itself from the complete explicit
+      // spec/version pair and never through active-flow inference.
+      requiresFlow: false,
+      // The command performs the active guard itself, because historical
+      // Version pairs must reject all active-flow guards without resolving an
+      // unrelated ambient Flow in the dispatcher.
+      targetGuard: false,
+      explicitTargetResolution: true,
+      mismatchTargetResolution: true,
+      skipAmbientFlowContext: (input) => input.specId != null || input.version != null,
+      command: () => import("./lib/get-artifact.js"),
+      args: {
+        positional: ["logicalKey"],
+        flags: FLOW_TARGET_GUARD_FLAGS,
+        options: withTargetGuardOptions(["--mode", "--spec-id", "--version"]),
+      },
+      help: [
+        "Usage: sennel flow get artifact <spec.record|acceptance.review> --mode <full|summary> [--spec-id <specId> --version <number>]",
+        "",
+        "Render one registered canonical artifact for human review.",
+        "Without --spec-id/--version, read the guarded active Flow. For a completed",
+        "Version, provide both options exactly; latest, Issue, and runId inference is not supported.",
+        "",
+        "Options:",
+        "  --mode <full|summary>  Required deterministic full view or validated structured summary",
+        "  --spec-id <specId>     Completed Version spec identity (requires --version)",
+        "  --version <number>     Completed Version number (requires --spec-id)",
+        ...FLOW_TARGET_GUARD_HELP_LINES,
+      ].join("\n"),
+    },
     "qa-count": {
       helpKey: "flow.get.qa-count",
       command: () => import("./lib/get-qa-count.js"),

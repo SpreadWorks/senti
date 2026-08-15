@@ -10,6 +10,11 @@ import {
   ExecuteStepDirective,
   NextActionDirective,
 } from "../../../src/flow/lib/next-action-directive.js";
+import {
+  UserActionChoice,
+  UserActionImpact,
+  UserActionPrompt,
+} from "../../../src/flow/lib/user-action-prompt.js";
 
 test("definition lifecycle-owned steps expose their canonical CLI command", () => {
   const action = deriveNextAction({
@@ -61,6 +66,36 @@ test("execute-step directives preserve CLI-owned executable commands", () => {
     NextActionDirective.fromStored(directive.toJSON()).toJSON(),
     directive.toJSON(),
   );
+});
+
+test("approval-bound execute-step directives preserve their user action prompt", () => {
+  const directive = new ExecuteStepDirective({
+    action: "await-approval",
+    actionPrompt: new UserActionPrompt({
+      question: "Review or approve the specification?",
+      choices: [
+        new UserActionChoice({
+          actionId: "APPROVE_SPECIFICATION",
+          stateTransition: "resume-current-approval-boundary",
+          label: "Approve",
+          impact: new UserActionImpact({ changes: ["approval authorization"] }),
+        }),
+        new UserActionChoice({
+          actionId: "REVIEW_SPECIFICATION_SUMMARY",
+          nextAction: "sennel flow get artifact spec.record --mode summary --expect-binding 'opaque'",
+          label: "Review summary",
+          impact: new UserActionImpact({ retains: ["current approval boundary"] }),
+        }),
+      ],
+      recommendedActionId: "REVIEW_SPECIFICATION_SUMMARY",
+      recommendationReason: "Review before approving.",
+    }),
+  });
+
+  const restored = NextActionDirective.fromStored(directive.toJSON());
+
+  assert.equal(restored.requiresUserAction, true);
+  assert.deepEqual(restored.toJSON(), directive.toJSON());
 });
 
 test("agent-owned steps do not manufacture a CLI transition", () => {

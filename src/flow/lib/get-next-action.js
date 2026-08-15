@@ -17,6 +17,7 @@ import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.j
 import { PRODUCT } from "../../lib/product.js";
 import {
   AbortedDirective,
+  AwaitUserDecisionDirective,
   BlockedDirective,
   CompletedDirective,
   ExecuteCommandDirective,
@@ -25,6 +26,15 @@ import {
   RepairEvidenceDirective,
 } from "./next-action-directive.js";
 import { TaskNode } from "./current-flow-state.js";
+import {
+  UserActionChoice,
+  UserActionImpact,
+  UserActionPrompt,
+} from "./user-action-prompt.js";
+import {
+  ApprovalDecisionPrompt,
+  FlowDecisionMessages,
+} from "./flow-decision-prompt.js";
 import { FlowTargetBinding } from "../../lib/flow-target-guard.js";
 import { guardedCommand } from "./guarded-command.js";
 import { inspectPreimplementationBootstrap } from "./run-preimplementation-bootstrap.js";
@@ -276,6 +286,80 @@ function canonicalFailureDirective(descriptor, action) {
   });
 }
 
+function acceptanceDecisionMessages({ root, config }) {
+  return new FlowDecisionMessages({ root, config, decision: "acceptanceDecision", names: [
+    "question",
+    "acceptRisk",
+    "abort",
+    "reviewSummary",
+    "reviewFull",
+    "decisionRecord",
+    "decisionState",
+    "recommendationReason",
+    "reason",
+  ] });
+}
+
+/**
+ * An ordinary Flow approval remains dispatcher-authorized, but it has a
+ * first-class prompt so review is a concrete read-only action rather than an
+ * instruction inferred from a worker prompt. The actual approval token is
+ * intentionally issued only by the dispatcher boundary.
+ */
+function approvalDecisionDirective({ root, state, binding, target, config, action }) {
+  if (target.scope !== "flow" || target.stepId !== "approval") return null;
+  return new ExecuteStepDirective({
+    action,
+    actionPrompt: new ApprovalDecisionPrompt({ root, config })
+      .toUserActionPrompt({ state, binding }),
+  });
+}
+
+/**
+ * Acceptance risk disposition is a user-decision boundary, not a dispatch
+ * approval.  Its review alternatives are executable read-only commands, so
+ * the same target binding remains valid when the user returns to this scene.
+ */
+function acceptanceDecisionDirective({ root, state, binding, target, config }) {
+  if (target.scope !== "flow" || target.stepId !== "acceptance-decision") return null;
+  const messages = acceptanceDecisionMessages({ root, config });
+  const command = (value) => guardedCommand(value, state, binding);
+  return new AwaitUserDecisionDirective({
+    prompt: new UserActionPrompt({
+      question: messages.get("question"),
+      choices: [
+        new UserActionChoice({
+          actionId: "ACCEPT_RISK_AND_CONTINUE",
+          label: messages.get("acceptRisk"),
+          nextAction: command("sennel flow set acceptance-decision --choice accept_risk_and_continue"),
+          impact: new UserActionImpact({ changes: [messages.get("decisionRecord")] }),
+        }),
+        new UserActionChoice({
+          actionId: "ABORT_ACCEPTANCE",
+          label: messages.get("abort"),
+          nextAction: command("sennel flow set acceptance-decision --choice abort"),
+          impact: new UserActionImpact({ changes: [messages.get("decisionRecord")] }),
+        }),
+        new UserActionChoice({
+          actionId: "REVIEW_ACCEPTANCE_SUMMARY",
+          label: messages.get("reviewSummary"),
+          nextAction: command("sennel flow get artifact acceptance.review --mode summary"),
+          impact: new UserActionImpact({ retains: [messages.get("decisionState")] }),
+        }),
+        new UserActionChoice({
+          actionId: "REVIEW_ACCEPTANCE_FULL",
+          label: messages.get("reviewFull"),
+          nextAction: command("sennel flow get artifact acceptance.review --mode full"),
+          impact: new UserActionImpact({ retains: [messages.get("decisionState")] }),
+        }),
+      ],
+      recommendedActionId: "REVIEW_ACCEPTANCE_SUMMARY",
+      recommendationReason: messages.get("recommendationReason"),
+    }),
+    reason: messages.get("reason"),
+  });
+}
+
 /**
  * Assemble the stable worker envelope from V1's typed descriptor rather than
  * its projected compatibility view.  The enumerable payload remains in the
@@ -305,6 +389,21 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
     ? buildPreimplementationBootstrapDirective(ctx, state, target, binding)
       || buildCanonicalTestReviewRepairDirective(ctx, state, target, binding)
     : null;
+  const approvalDirective = approvalDecisionDirective({
+    root: ctx.root,
+    state,
+    binding,
+    target,
+    config: ctx.config,
+    action: derived.action,
+  });
+  const userDecisionDirective = acceptanceDecisionDirective({
+    root: ctx.root,
+    state,
+    binding,
+    target,
+    config: ctx.config,
+  });
   const result = {
     taskId: target.taskId,
     step: target.stepId,
@@ -317,7 +416,7 @@ function buildCanonicalNextActionResult(ctx, state, typedState, descriptor) {
       auto_approval_choice_id: derived.autoApproveChoiceId,
     }),
     maxAttempts: derived.maxAttempts,
-    directive: (strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action)).toJSON(),
+    directive: (userDecisionDirective ?? approvalDirective ?? strictDirective ?? outboxRecovery?.directive ?? canonicalFailureDirective(descriptor, derived.action)).toJSON(),
   };
   if (target.stepId === "acceptance-review" && derived.failurePolicy) {
     result.failurePolicy = derived.failurePolicy;

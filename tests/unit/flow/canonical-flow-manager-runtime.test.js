@@ -13,6 +13,10 @@ import { CanonicalFlowCreateRequest } from "../../../src/flow/lib/canonical-flow
 import { CurrentFlowSpecRecord } from "../../../src/flow/lib/current-flow-state.js";
 import GetNextActionCommand from "../../../src/flow/lib/get-next-action.js";
 import RunDispatchCommand from "../../../src/flow/lib/run-dispatch.js";
+import {
+  FLOW_DISPATCH_INVOCATION_ENV,
+  FLOW_DISPATCH_INVOCATION_ID_ENV,
+} from "../../../src/flow/lib/dispatch-invocation.js";
 import RunFinalRegressionCommand from "../../../src/flow/lib/run-final-regression.js";
 import RunReportCommand from "../../../src/flow/lib/run-report.js";
 import RunReviewCommand from "../../../src/flow/lib/run-review.js";
@@ -1984,25 +1988,7 @@ describe("FlowManager canonical Version-1 runtime", () => {
   });
 
   it("routes the normal explicit dispatch approval through the Version Store without changing worker input", async () => {
-    const repository = root();
-    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
-    const created = manager.createFresh(request());
-    manager.addActiveFlow(created.specId, "direct");
-    for (const stepId of ["branch", "prepare-spec"]) {
-      manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
-      manager.updateStepStatus({ stepId, requestedStatus: "done" });
-    }
-    await new GetNextActionCommand().execute({
-      root: repository,
-      mainRoot: repository,
-      executionRoot: repository,
-      flowManager: manager,
-      flowState: manager.load(created.specId),
-      specId: created.specId,
-      flowCommandBoundary: false,
-    });
-
-    const action = {
+    const legacyAction = {
       taskId: null,
       step: "draft",
       action: "write-draft",
@@ -2018,60 +2004,168 @@ describe("FlowManager canonical Version-1 runtime", () => {
         action: "write-draft",
       },
     };
-    const completed = {
-      taskId: null,
-      step: null,
-      action: "completed",
-      instructions: null,
-      context: null,
-      output_schema: null,
-      requires_approval: false,
-      directive: { kind: "completed", terminal: true, requiresUserAction: false },
-    };
-    const current = { value: action };
-    let workerPrompt = null;
-    const dispatcher = new RunDispatchCommand({
-      nextAction: { async run() { return structuredClone(current.value); } },
-      agent: {
-        async call(prompt) {
-          workerPrompt = prompt;
-          manager.confirmCurrentAttempt({ specId: created.specId });
-          current.value = completed;
+
+    const boundaryPromptAction = {
+      ...legacyAction,
+      directive: {
+        ...legacyAction.directive,
+        requiresUserAction: true,
+        actionPrompt: {
+          requiresUserAction: true,
+          question: "Review or approve the specification?",
+          choices: [
+            {
+              actionId: "APPROVE_SPECIFICATION",
+              label: "Approve",
+              nextAction: null,
+              stateTransition: "resume-current-approval-boundary",
+              impact: { retains: [], changes: ["approval authorization"], deletes: [] },
+              reason: null,
+            },
+            {
+              actionId: "REVIEW_SPECIFICATION_SUMMARY",
+              label: "Review summary",
+              nextAction: "sennel flow get artifact spec.record --mode summary --expect-binding 'opaque'",
+              stateTransition: null,
+              impact: { retains: ["current approval boundary"], changes: [], deletes: [] },
+              reason: null,
+            },
+          ],
+          recommendedActionId: "REVIEW_SPECIFICATION_SUMMARY",
+          recommendationReason: "Review before approving.",
         },
       },
-      repositoryFingerprint: () => "canonical-dispatch-r0",
-      leaseFactory: () => ({ acquire() {}, release() {} }),
-      handoffCoordinator: {
-        recoverPending() {},
-        createRequest() { return null; },
-      },
-    });
-    dispatcher.container = {};
-    const context = {
-      root: repository,
-      mainRoot: repository,
-      executionRoot: repository,
-      flowManager: manager,
-      flowState: manager.load(created.specId),
-      specId: created.specId,
-      expectRunId: created.runId,
-      _envelopeType: "run",
-      _envelopeKey: "dispatch",
-      flowCommandBoundary: false,
     };
 
-    const boundary = await dispatcher.execute(context);
-    assert.equal(boundary.dispatch.boundary, "approval_required");
-    const result = await dispatcher.execute({ ...context, approve: boundary.dispatch.approvalToken });
+    const captureWorkerInput = async (action) => {
+      const repository = root();
+      const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+      const created = manager.createFresh(request());
+      manager.addActiveFlow(created.specId, "direct");
+      for (const stepId of ["branch", "prepare-spec"]) {
+        manager.updateStepStatus({ stepId, requestedStatus: "in_progress" });
+        manager.updateStepStatus({ stepId, requestedStatus: "done" });
+      }
+      await new GetNextActionCommand().execute({
+        root: repository,
+        mainRoot: repository,
+        executionRoot: repository,
+        flowManager: manager,
+        flowState: manager.load(created.specId),
+        specId: created.specId,
+        flowCommandBoundary: false,
+      });
 
-    assert.equal(result.dispatch.boundary, "completed");
-    assert.match(workerPrompt, /Machine-readable dispatch invocation contract:/);
-    assert.match(workerPrompt, /"source": "explicit"/);
-    assert.match(workerPrompt, /"step": "draft"/);
-    const activities = fs.readFileSync(manager.specLocation(created.specId).activitiesFile, "utf8")
-      .trim().split("\n").map((line) => JSON.parse(line));
-    assert.equal(activities.some((entry) => entry.type === "dispatch_approval_recorded"), true);
-    assert.equal(manager.canonicalState(created.specId).findNode("draft").status, "done");
+      const completed = {
+        taskId: null,
+        step: null,
+        action: "completed",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+        directive: { kind: "completed", terminal: true, requiresUserAction: false },
+      };
+      const current = { value: structuredClone(action) };
+      let workerPrompt = null;
+      let workerOptions = null;
+      const dispatcher = new RunDispatchCommand({
+        nextAction: { async run() { return structuredClone(current.value); } },
+        agent: {
+          async call(prompt, options) {
+            workerPrompt = prompt;
+            workerOptions = options;
+            manager.confirmCurrentAttempt({ specId: created.specId });
+            current.value = completed;
+          },
+        },
+        repositoryFingerprint: () => "canonical-dispatch-r0",
+        leaseFactory: () => ({ acquire() {}, release() {} }),
+        handoffCoordinator: {
+          recoverPending() {},
+          createRequest() { return null; },
+        },
+      });
+      dispatcher.container = {};
+      const context = {
+        root: repository,
+        mainRoot: repository,
+        executionRoot: repository,
+        flowManager: manager,
+        flowState: manager.load(created.specId),
+        specId: created.specId,
+        expectRunId: created.runId,
+        _envelopeType: "run",
+        _envelopeKey: "dispatch",
+        flowCommandBoundary: false,
+      };
+
+      const boundary = await dispatcher.execute(context);
+      assert.equal(boundary.dispatch.boundary, "approval_required");
+      const result = await dispatcher.execute({ ...context, approve: boundary.dispatch.approvalToken });
+      assert.equal(result.dispatch.boundary, "completed");
+      assert.ok(workerPrompt);
+      assert.ok(workerOptions);
+      const activities = fs.readFileSync(manager.specLocation(created.specId).activitiesFile, "utf8")
+        .trim().split("\n").map((line) => JSON.parse(line));
+      assert.equal(activities.some((entry) => entry.type === "dispatch_approval_recorded"), true);
+      assert.equal(manager.canonicalState(created.specId).findNode("draft").status, "done");
+      return { prompt: workerPrompt, environment: workerOptions.executionEnvironment };
+    };
+
+    const parseWorkerPrompt = (prompt) => {
+      const invocationMarker = "\n\nMachine-readable dispatch invocation contract:\n";
+      const actionMarker = "\n\nGuarded next action:\n";
+      const reportMarker = "\n\nYour response is only a worker report.";
+      const [instructions, invocationAndAction] = prompt.split(invocationMarker);
+      const [invocationJson, actionAndReport] = invocationAndAction.split(actionMarker);
+      const [actionJson] = actionAndReport.split(reportMarker);
+      return {
+        instructions,
+        invocation: JSON.parse(invocationJson),
+        actionJson,
+      };
+    };
+    const normalizeInvocation = (invocation) => {
+      const { id: _id, action, authorization, ...stable } = invocation;
+      return {
+        ...stable,
+        action: { ...action, digest: "<authorization-bound>" },
+        authorization: {
+          ...authorization,
+          actionDigest: "<authorization-bound>",
+          approvalToken: "<authorization-bound>",
+          approvedAt: "<authorization-bound>",
+        },
+      };
+    };
+    const normalizeEnvironment = (environment) => ({
+      ...environment,
+      [FLOW_DISPATCH_INVOCATION_ID_ENV]: "<invocation-id>",
+      [FLOW_DISPATCH_INVOCATION_ENV]: normalizeInvocation(
+        JSON.parse(environment[FLOW_DISPATCH_INVOCATION_ENV]),
+      ),
+    });
+    const redactAuthorizationInstruction = (instructions) => instructions.replace(
+      /The CLI durably recorded explicit user approval at .+ for this exact action digest\./,
+      "<explicit-authorization>",
+    );
+
+    const beforeInput = await captureWorkerInput(legacyAction);
+    const before = parseWorkerPrompt(beforeInput.prompt);
+    const afterInput = await captureWorkerInput(boundaryPromptAction);
+    const after = parseWorkerPrompt(afterInput.prompt);
+
+    assert.equal(before.actionJson, JSON.stringify(legacyAction, null, 2));
+    assert.equal(after.actionJson, JSON.stringify(legacyAction, null, 2));
+    assert.equal(redactAuthorizationInstruction(after.instructions), redactAuthorizationInstruction(before.instructions));
+    assert.deepEqual(normalizeInvocation(after.invocation), normalizeInvocation(before.invocation));
+    assert.deepEqual(
+      normalizeEnvironment(afterInput.environment),
+      normalizeEnvironment(beforeInput.environment),
+    );
+    assert.doesNotMatch(afterInput.prompt, /Review or approve the specification/);
+    assert.doesNotMatch(afterInput.environment[FLOW_DISPATCH_INVOCATION_ENV], /actionPrompt/);
   });
 
   it("journals policy changes and rewinds through the same canonical state machine", () => {

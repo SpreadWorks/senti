@@ -116,12 +116,17 @@ export class NextActionDirective {
 }
 
 export class ExecuteStepDirective extends NextActionDirective {
-  constructor({ action, nextAction = null } = {}) {
-    super({ kind: "execute_step", terminal: false, requiresUserAction: false });
+  constructor({ action, nextAction = null, actionPrompt = null } = {}) {
+    const prompt = actionPrompt == null ? null : UserActionPrompt.fromStored(actionPrompt);
+    // A dispatch approval remains a continuation: the dispatcher owns its
+    // authorization boundary.  The optional prompt only exposes the explicit
+    // choices available while that boundary is waiting for the user.
+    super({ kind: "execute_step", terminal: false, requiresUserAction: prompt !== null });
     this.action = requireString(action, "directive.action", 200);
     this.nextAction = nextAction == null
       ? null
       : requireString(nextAction, "directive.nextAction");
+    this.prompt = prompt;
     Object.freeze(this);
   }
 
@@ -130,6 +135,7 @@ export class ExecuteStepDirective extends NextActionDirective {
       ...super.toJSON(),
       action: this.action,
       ...(this.nextAction && { nextAction: this.nextAction }),
+      ...(this.prompt && { actionPrompt: this.prompt.toJSON() }),
     };
   }
 }

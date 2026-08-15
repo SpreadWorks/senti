@@ -86,8 +86,11 @@ describe("flow set approval (spec 221 R5, R7)", () => {
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
       "confirmed_at must be ISO 8601",
     );
-    const md = fs.readFileSync(path.join(specDir, ".runtime", "spec-render", "spec.md"), "utf8");
-    assert.match(md, /\[x\] User approved this spec/);
+    assert.equal(
+      fs.existsSync(path.join(specDir, ".runtime", "spec-render", "spec.md")),
+      false,
+      "approval must not regenerate a persistent Markdown view",
+    );
   });
 
   it("R5: --notes value is persisted", () => {

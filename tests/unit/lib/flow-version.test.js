@@ -242,6 +242,29 @@ afterEach(() => {
 });
 
 describe("Flow Version identity, schema, and consumer paths", () => {
+  it("projects Spec schema content away from immutable Version identity", () => {
+    const input = {
+      id: "508-flow-version",
+      nested: { preserved: "original" },
+      tasks: [],
+    };
+    const payload = new AuthoritativeSpecRecord(input).schemaPayload();
+    input.nested.preserved = "source mutation";
+    const first = payload.toJSON();
+    first.nested.preserved = "returned mutation";
+
+    assert.deepEqual(payload.toJSON(), {
+      nested: { preserved: "original" },
+      tasks: [],
+    });
+    assert.equal(payload.canonicalText.includes('"id"'), false);
+    assert.equal(payload.canonicalText.includes('"specId"'), false);
+    assert.throws(
+      () => new AuthoritativeSpecRecord({ id: "508-flow-version", specId: "other-version", tasks: [] }),
+      /must agree/,
+    );
+  });
+
   it("persists the complete Version 1 identity only inside canonical flow.json", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
