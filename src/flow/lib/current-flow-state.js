@@ -35,6 +35,7 @@ const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
 const RETRY_KINDS = new Set(["semantic", "tooling"]);
 const FAILURE_POLICIES = new Set(["retry", "record", "amend-spec", "block"]);
 const ATTEMPT_TYPES = new Set([
+  "flow_created",
   "task_added",
   "attempt_started",
   "attempt_retried",
@@ -76,6 +77,8 @@ const TRANSITION_ATTEMPT_OPERATIONS = new Set([
   "recover_attempt",
   "accept_final_regression_failure",
 ]);
+const FLOW_CREATION_TRANSITION_OPERATION = "create_flow";
+const FLOW_CREATION_ACTIVITY_TYPE = "flow_created";
 const LIFECYCLE_TRANSITION_OPERATIONS = new Set(["park_flow", "resume_flow", "finalize_flow"]);
 // Policy is authoritative flow state.  Its mutations use the same journal as
 // lifecycle and Attempt transitions; a command must never patch flow.json.
@@ -114,9 +117,9 @@ function resolvedArtifact(logicalKey, parameters = {}) {
   return FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters);
 }
 
-function descriptorFor(location, logicalKey, mediaType) {
+function descriptorFor(location, logicalKey, mediaType, activityId = null) {
   const artifact = resolvedArtifact(logicalKey);
-  return FlowArtifactDescriptor.fromFile({ location, ...artifact.publication({ mediaType }) });
+  return FlowArtifactDescriptor.fromFile({ location, ...artifact.publication({ mediaType, activityId }) });
 }
 
 function publicationFor(logicalKey, mediaType, { updater = null, activityId = null } = {}) {
@@ -687,6 +690,16 @@ export class CurrentFlowIdentity {
       && this.specId.equals(location.specId)
       && location.version.value === 1;
   }
+}
+
+function flowCreatedActivityId(identity) {
+  if (!(identity instanceof CurrentFlowIdentity)) {
+    throw new CurrentFlowStateInvariantError("flow creation Activity requires a typed Flow identity");
+  }
+  const identityDigest = crypto.createHash("sha256")
+    .update(JSON.stringify(identity.toJSON()), "utf8")
+    .digest("hex");
+  return `flow-created-${identityDigest}`;
 }
 
 /** A narrow lifecycle value; completed state is not inferred from a path. */
@@ -3692,7 +3705,7 @@ export class ActivityTransition {
       : value;
     requireExactFields(normalized, new Set(["operation", "nodeId", "task", "attempt", "status", "policy", "outbox", "approval", "nonblocking", "finalizeSteps"]), "activity.transition");
     const { operation, nodeId, task, attempt, status, policy, outbox, approval, nonblocking, finalizeSteps } = normalized;
-    if (!["add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
+    if (![FLOW_CREATION_TRANSITION_OPERATION, "add_task", "start_attempt", "retry_attempt", "update_attempt", "fail_attempt", "record_failure", "confirm_attempt", "rewind", "rewind_test_evidence", "repair_test_review", "preimplementation_bootstrap", "recover_existing_implementation", "reopen_draft_preimplementation", "reopen_draft_task_addition", "reopen_draft_spec_correction", "plan_gate_repair", "recover_attempt", "accept_final_regression_failure", ...LIFECYCLE_TRANSITION_OPERATIONS, ...POLICY_TRANSITION_OPERATIONS, ...ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS, ...OUTBOX_TRANSITION_OPERATIONS, ...DISPATCH_APPROVAL_TRANSITION_OPERATIONS, ...OBSERVATION_TRANSITION_OPERATIONS, ...NONBLOCKING_TRANSITION_OPERATIONS, ...FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS].includes(operation)) {
       throw new CurrentFlowStateInvariantError(`activity.transition.operation is invalid: ${operation}`);
     }
     this.operation = operation;
@@ -3785,7 +3798,7 @@ export class ActivityTransition {
           : `activity.transition ${operation} forbids an Attempt payload`,
       );
     }
-    if ((LIFECYCLE_TRANSITION_OPERATIONS.has(operation) || POLICY_TRANSITION_OPERATIONS.has(operation) || OUTBOX_TRANSITION_OPERATIONS.has(operation) || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(operation) || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(operation) || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(operation)) && this.nodeId !== "flow") {
+    if ((operation === FLOW_CREATION_TRANSITION_OPERATION || LIFECYCLE_TRANSITION_OPERATIONS.has(operation) || POLICY_TRANSITION_OPERATIONS.has(operation) || OUTBOX_TRANSITION_OPERATIONS.has(operation) || DISPATCH_APPROVAL_TRANSITION_OPERATIONS.has(operation) || FINALIZE_DOWNSTREAM_TRANSITION_OPERATIONS.has(operation) || ["publish_plugin_artifacts", "publish_upgrade_result"].includes(operation)) && this.nodeId !== "flow") {
       throw new CurrentFlowStateInvariantError("Flow lifecycle, policy, outbox, and dispatch approval transitions must target only the Flow root id");
     }
     if (operation === "confirm_attempt") {
@@ -3805,6 +3818,25 @@ export class ActivityTransition {
     const currentPath = state.definition.pathFor(state.root, targetId);
     if (currentPath === null) throw new CurrentFlowStateInvariantError("Activity transition nodeId must identify a current-state node");
     const target = nodeAtPath(state.root, currentPath);
+    if (state.lifecycle.state === "finalized") {
+      throw new CurrentFlowStateInvariantError("finalized Flow rejects subsequent Activities");
+    }
+    if (this.operation === FLOW_CREATION_TRANSITION_OPERATION) {
+      if (target.id !== state.root.id) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity must target the Flow root");
+      }
+      if (activity.confirmationOrder !== 1 || state.confirmationOrder !== 0 || state.current !== null || state.attempt !== null) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity must be the first fresh Flow Activity");
+      }
+      const fresh = freshStateLike(state, state.definition);
+      if (!jsonEqual(state.toJSON(), fresh.toJSON())) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity requires the definition's fresh materialized state");
+      }
+      if (activity.id !== flowCreatedActivityId(state.identity)) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity id must be derived from the Flow identity");
+      }
+      return state;
+    }
     if (LIFECYCLE_TRANSITION_OPERATIONS.has(this.operation)) {
       if (target.id !== state.root.id) {
         throw new CurrentFlowStateInvariantError("Flow lifecycle transition must target the Flow root");
@@ -4010,6 +4042,7 @@ export class FlowActivity {
     this.type = type;
     this.transition = transition instanceof ActivityTransition ? transition : new ActivityTransition(transition);
     const typeForOperation = {
+      [FLOW_CREATION_TRANSITION_OPERATION]: FLOW_CREATION_ACTIVITY_TYPE,
       add_task: "task_added",
       start_attempt: "attempt_started",
       retry_attempt: "attempt_retried",
@@ -4054,6 +4087,13 @@ export class FlowActivity {
     if (this.transition.nodeId !== this.nodeId) {
       throw new CurrentFlowStateInvariantError("Activity nodeId must match transition nodeId");
     }
+    const flowCreated = this.transition.operation === FLOW_CREATION_TRANSITION_OPERATION;
+    if (flowCreated && (
+      this.confirmationOrder !== 1
+      || !/^flow-created-[a-f0-9]{64}$/.test(this.id)
+    )) {
+      throw new CurrentFlowStateInvariantError("flow_created Activity requires its deterministic first-Activity identity");
+    }
     this.result = result == null ? null : result instanceof NodeResult ? result : new NodeResult(result);
     if (["confirm_attempt", "fail_attempt", "record_failure", "continue_nonblocking", "accept_final_regression_failure"].includes(this.transition.operation) && this.result == null) {
       throw new CurrentFlowStateInvariantError("completed Attempt Activity requires a result");
@@ -4065,7 +4105,8 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError(`${this.transition.operation} Activity result must be failed or incomplete`);
     }
     if (
-      this.transition.operation === "add_task"
+      flowCreated
+      || this.transition.operation === "add_task"
       || LIFECYCLE_TRANSITION_OPERATIONS.has(this.transition.operation)
       || POLICY_TRANSITION_OPERATIONS.has(this.transition.operation)
       || ARTIFACT_PUBLICATION_TRANSITION_OPERATIONS.has(this.transition.operation)
@@ -4125,6 +4166,23 @@ export class FlowActivity {
     } else if (this.metric !== null || this.note !== null) {
       throw new CurrentFlowStateInvariantError("only observation Activities may carry metric or note facts");
     }
+    if (flowCreated) {
+      const referencesEmpty = Object.values(this.references.toJSON()).every((entries) => entries.length === 0);
+      if (
+        this.result !== null
+        || this.timing === null
+        || this.timing.startedAt !== this.timing.finishedAt
+        || this.timing.durationMs !== 0
+        || this.failure !== null
+        || this.provider !== null
+        || this.model !== null
+        || this.effort !== null
+        || this.usage !== null
+        || !referencesEmpty
+      ) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity records only its exact creation timing");
+      }
+    }
     Object.freeze(this);
   }
 
@@ -4133,6 +4191,44 @@ export class FlowActivity {
       ? FlowActivity.prototype.toJSON.call(value)
       : value;
     return new FlowActivity(serialized);
+  }
+
+  static flowCreated(state, createdAt) {
+    if (!(state instanceof CurrentFlowState)) {
+      throw new CurrentFlowStateInvariantError("flow_created Activity requires a typed fresh Flow state");
+    }
+    const timestamp = requireIso(createdAt, "flow_created Activity timestamp");
+    return new FlowActivity({
+      id: flowCreatedActivityId(state.identity),
+      nodeId: state.root.id,
+      nodeKey: state.root.key,
+      attemptId: null,
+      sequence: null,
+      confirmationOrder: 1,
+      type: FLOW_CREATION_ACTIVITY_TYPE,
+      transition: {
+        operation: FLOW_CREATION_TRANSITION_OPERATION,
+        nodeId: state.root.id,
+        task: null,
+        attempt: null,
+        status: null,
+        policy: null,
+        outbox: null,
+        approval: null,
+        nonblocking: null,
+        finalizeSteps: null,
+      },
+      result: null,
+      timing: { startedAt: timestamp, finishedAt: timestamp, durationMs: 0 },
+      failure: null,
+      provider: null,
+      model: null,
+      effort: null,
+      usage: null,
+      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+      metric: null,
+      note: null,
+    });
   }
 
   toJSON() {
@@ -4494,20 +4590,28 @@ export class CurrentFlowStateStore {
   create(state) {
     const next = this.serializer.deserialize(state);
     return this.#withLock(() => {
-      if (fs.existsSync(this.statePath)) throw new CurrentFlowStateConflictError("current flow state already exists");
-      if (next.confirmationOrder !== 0 || next.current !== null || next.attempt !== null) {
-        throw new CurrentFlowStateInvariantError("current flow store creation requires a fresh state without Activity progress");
+      this.#assertFreshCreationState(next);
+      const entries = this.journal.read();
+      let created;
+      if (entries.length === 0) {
+        created = FlowActivity.flowCreated(next, new Date().toISOString());
+      } else if (entries.length === 1 && entries[0].transition.operation === FLOW_CREATION_TRANSITION_OPERATION) {
+        // A journal-first interruption has already committed the complete
+        // creation fact. Its timestamp and payload are immutable authority
+        // for the state-write recovery; never synthesize a second variant.
+        created = entries[0];
+      } else {
+        throw new CurrentFlowStateConflictError("current flow creation requires an empty or sole flow_created Activity journal");
       }
-      const fresh = freshStateLike(next, this.definition);
-      if (!jsonEqual(next.toJSON(), fresh.toJSON())) {
-        throw new CurrentFlowStateInvariantError("current flow store creation requires the definition's fresh materialized state");
-      }
-      if (this.journal.read().length !== 0) {
-        throw new CurrentFlowStateConflictError("current flow store creation requires an absent or empty Activity journal");
+      const materialized = this.#applyActivity(next, created);
+      const appended = this.journal.append(created, JOURNAL_WRITER_AUTHORITY);
+      if (appended.appended) {
+        this.faultInjector({ phase: "activity-appended", activity: created, state: next });
       }
       fs.mkdirSync(this.directory, { recursive: true, mode: 0o755 });
-      this.#write(next, null);
-      return next;
+      this.#write(materialized, null);
+      this.faultInjector({ phase: "state-written", activity: created, state: materialized });
+      return materialized;
     });
   }
 
@@ -4575,6 +4679,9 @@ export class CurrentFlowStateStore {
         if (!existing) throw new CurrentFlowStateConflictError("state confirmation order is ahead of its Activity journal");
         return original;
       }
+      if (original.lifecycle.state === "finalized") {
+        throw new CurrentFlowStateInvariantError("finalized Flow rejects subsequent Activities");
+      }
       if (proposed.confirmationOrder !== original.confirmationOrder + 1) {
         throw new CurrentFlowStateConflictError("Activity confirmationOrder must immediately follow current state");
       }
@@ -4594,6 +4701,17 @@ export class CurrentFlowStateStore {
     try { return this.serializer.deserialize(JSON.parse(bytes.toString("utf8"))); } catch (error) {
       if (error instanceof CurrentFlowStateInvariantError) throw error;
       throw new CurrentFlowStateInvariantError(`invalid flow.json: ${error.message}`);
+    }
+  }
+
+  #assertFreshCreationState(next) {
+    if (fs.existsSync(this.statePath)) throw new CurrentFlowStateConflictError("current flow state already exists");
+    if (next.confirmationOrder !== 0 || next.current !== null || next.attempt !== null) {
+      throw new CurrentFlowStateInvariantError("current flow store creation requires a fresh state without Activity progress");
+    }
+    const fresh = freshStateLike(next, this.definition);
+    if (!jsonEqual(next.toJSON(), fresh.toJSON())) {
+      throw new CurrentFlowStateInvariantError("current flow store creation requires the definition's fresh materialized state");
     }
   }
 
@@ -4844,12 +4962,13 @@ export class CurrentFlowVersionStore {
         );
       }
       const created = this.#store().create(canonical);
+      const creationActivityId = FlowActivityId.from(flowCreatedActivityId(canonical.identity));
       const artifacts = [
-        descriptorFor(this.location, "flow.state", "application/json"),
-        descriptorFor(this.location, "flow.activities", "application/x-ndjson"),
-        descriptorFor(this.location, "spec.record", "application/json"),
+        descriptorFor(this.location, "flow.state", "application/json", creationActivityId),
+        descriptorFor(this.location, "flow.activities", "application/x-ndjson", creationActivityId),
+        descriptorFor(this.location, "spec.record", "application/json", creationActivityId),
       ];
-      if (issueSnapshot !== null) artifacts.push(descriptorFor(this.location, "issue.snapshot", "text/markdown"));
+      if (issueSnapshot !== null) artifacts.push(descriptorFor(this.location, "issue.snapshot", "text/markdown", creationActivityId));
       this.catalogStore.initialize(new FlowArtifactCatalog({ artifacts }));
       return created;
     } catch (error) {

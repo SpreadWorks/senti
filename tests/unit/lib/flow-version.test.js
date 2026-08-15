@@ -1006,6 +1006,37 @@ describe("Current Flow Version storage", () => {
     assert.equal(fs.existsSync(location.resolve("flow-version.json")), false);
   });
 
+  it("keeps flow_created, state, and catalog invisible when atomic Version creation is interrupted", () => {
+    const location = canonicalLocation();
+    const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });
+    const interrupted = boundary.openVersionStore({
+      location,
+      faultInjector({ phase }) {
+        if (phase === "activity-appended") throw new Error("creation interrupted after durable Activity append");
+      },
+    });
+
+    assert.throws(
+      () => interrupted.create(freshState(boundary, location), { specRecord: specRecord() }),
+      /creation interrupted after durable Activity append/,
+    );
+    assert.equal(fs.existsSync(location.directory), false);
+    assert.deepEqual(
+      fs.readdirSync(path.dirname(location.directory)).filter((entry) => /^\.001\..+\.tmp$/.test(entry)),
+      [],
+    );
+
+    const recovered = boundary.openVersionStore({ location });
+    recovered.create(freshState(boundary, location), { specRecord: specRecord() });
+    assert.deepEqual(recovered.activities().map((entry) => entry.type), ["flow_created"]);
+    assert.equal(recovered.load().confirmationOrder, 1);
+    assert.deepEqual(recovered.catalog().artifacts.map((artifact) => artifact.activityId?.toString()), [
+      recovered.activities()[0].id,
+      recovered.activities()[0].id,
+      recovered.activities()[0].id,
+    ]);
+  });
+
   it("accepts identity only from flow.json and rejects an identity that cannot belong to its location", () => {
     const location = canonicalLocation();
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: buildCurrentFlowDefinition() });

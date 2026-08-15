@@ -76,12 +76,14 @@ describe("canonical review PASS recovery", () => {
   it("does not treat a changed review target as a recoverable root projection", () => {
     const fixture = createCanonicalReviewFixture("001-recovery-stale-target");
     const before = fixture.flowManager.load(fixture.created.specId);
+    const activities = fixture.flowManager.activityLedger(fixture.created.specId);
     const result = new RunRecoverReviewPassCommand().execute(guardedContext(fixture, "spec"));
 
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "REVIEW_PASS_RECOVERY_NOT_ELIGIBLE");
     assert.deepEqual(fixture.flowManager.load(fixture.created.specId), before);
-    assert.equal(fixture.flowManager.activityLedger(fixture.created.specId).length, 0);
+    assert.deepEqual(fixture.flowManager.activityLedger(fixture.created.specId), activities);
+    assert.deepEqual(activities.map((activity) => activity.type), ["flow_created"]);
   });
 
   it("requires exact target guards and advertises the recovery command contract", () => {

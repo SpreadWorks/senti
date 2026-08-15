@@ -118,8 +118,8 @@ describe("Current Flow state filesystem lifecycle", () => {
     const directory = path.join(tmp, "specs", "900-current-state");
     let state = CurrentFlowState.create({ definition, execution: { mode: "branch" } });
     const store = new CurrentFlowStateStore({ directory, definition });
-    store.create(state);
-    let order = 1;
+    state = store.create(state);
+    let order = 2;
 
     const apply = (entry) => {
       state = new CurrentFlowStateStore({ directory, definition }).apply({ activity: entry });
@@ -503,23 +503,23 @@ describe("Current Flow state filesystem lifecycle", () => {
     const definition = buildCurrentFlowDefinition();
     const directory = path.join(tmp, "specs", "901-terminal-failure");
     const store = new CurrentFlowStateStore({ directory, definition });
-    const initial = CurrentFlowState.create({ definition, execution: { mode: "worktree" } });
+    let initial = CurrentFlowState.create({ definition, execution: { mode: "worktree" } });
+    initial = store.create(initial);
     const currentPath = initial.nextAction().path;
     const firstAttempt = attemptFor(initial, currentPath, "terminal-attempt-1");
-    store.create(initial);
     const started = store.apply({ activity: activity({
       id: "terminal-start",
       state: initial,
       currentPath,
       activityAttempt: firstAttempt,
-      order: 1,
+      order: 2,
       operation: "start_attempt",
     }) });
     store.apply({ activity: activity({
       id: "terminal-failure",
       state: started,
       currentPath,
-      order: 2,
+      order: 3,
       operation: "fail_attempt",
       activityResult: {
         outcome: "failed",
@@ -541,21 +541,21 @@ describe("Current Flow state filesystem lifecycle", () => {
     assert.equal(reloaded.nextAction().failureDisposition.outcome, "failed");
     assert.equal(reloaded.nextAction().failureDisposition.remaining, 0);
     const journal = store.journal.read();
-    assert.equal(journal.length, 2);
-    assert.equal(journal[1].attemptId, "terminal-attempt-1");
-    assert.equal(journal[1].transition.attempt, null);
+    assert.equal(journal.length, 3);
+    assert.equal(journal[2].attemptId, "terminal-attempt-1");
+    assert.equal(journal[2].transition.attempt, null);
     assert.throws(
       () => store.apply({ activity: activity({
         id: "terminal-illegal-retry",
         state: reloaded,
         currentPath,
         activityAttempt: attemptFor(reloaded, currentPath, "terminal-attempt-2", 2),
-        order: 3,
+        order: 4,
         operation: "retry_attempt",
       }) }),
       /requires a retryable failed active Attempt/,
     );
-    assert.equal(store.journal.read().length, 2);
+    assert.equal(store.journal.read().length, 3);
   });
 
   it("persists the production amend-spec policy as a definition-targeted rewind", () => {
@@ -564,8 +564,8 @@ describe("Current Flow state filesystem lifecycle", () => {
     const directory = path.join(tmp, "specs", "902-amend-spec");
     const store = new CurrentFlowStateStore({ directory, definition });
     let state = CurrentFlowState.create({ definition, execution: { mode: "worktree" } });
-    store.create(state);
-    let order = 1;
+    state = store.create(state);
+    let order = 2;
     const apply = (entry) => {
       state = new CurrentFlowStateStore({ directory, definition }).apply({ activity: entry });
       state = new CurrentFlowStateStore({ directory, definition }).load();
@@ -651,15 +651,15 @@ describe("Current Flow state filesystem lifecycle", () => {
     const definition = buildCurrentFlowDefinition();
     const directory = path.join(tmp, "specs", "903-crash-replay");
     const store = new CurrentFlowStateStore({ directory, definition });
-    const initial = CurrentFlowState.create({ definition });
-    store.create(initial);
+    let initial = CurrentFlowState.create({ definition });
+    initial = store.create(initial);
     const currentPath = initial.nextAction().path;
     const startedActivity = activity({
       id: "crash-start",
       state: initial,
       currentPath,
       activityAttempt: attemptFor(initial, currentPath, "crash-attempt"),
-      order: 1,
+      order: 2,
       operation: "start_attempt",
     });
     const journalCrash = new CurrentFlowStateStore({
@@ -670,13 +670,13 @@ describe("Current Flow state filesystem lifecycle", () => {
       },
     });
     assert.throws(() => journalCrash.apply({ activity: startedActivity }), /journal durable/);
-    assert.equal(new CurrentFlowStateStore({ directory, definition }).load().confirmationOrder, 0);
+    assert.equal(new CurrentFlowStateStore({ directory, definition }).load().confirmationOrder, 1);
     const started = new CurrentFlowStateStore({ directory, definition }).apply({ activity: startedActivity });
     const confirmedActivity = activity({
       id: "crash-confirm",
       state: started,
       currentPath,
-      order: 2,
+      order: 3,
       operation: "confirm_attempt",
       status: "done",
       activityResult: result("crash-confirmed"),
@@ -690,8 +690,8 @@ describe("Current Flow state filesystem lifecycle", () => {
     });
     assert.throws(() => stateCrash.apply({ activity: confirmedActivity }), /state durable/);
     const reloaded = new CurrentFlowStateStore({ directory, definition });
-    assert.equal(reloaded.load().confirmationOrder, 2);
-    assert.equal(reloaded.apply({ activity: confirmedActivity }).confirmationOrder, 2);
-    assert.deepEqual(reloaded.journal.read().map((entry) => entry.id), ["crash-start", "crash-confirm"]);
+    assert.equal(reloaded.load().confirmationOrder, 3);
+    assert.equal(reloaded.apply({ activity: confirmedActivity }).confirmationOrder, 3);
+    assert.deepEqual(reloaded.journal.read().map((entry) => entry.type), ["flow_created", "attempt_started", "result_confirmed"]);
   });
 });

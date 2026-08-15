@@ -1032,16 +1032,16 @@ describe("Current Flow state foundation", () => {
     tmp = createTmpDir("current-flow-activity-view-");
     const initial = CurrentFlowState.create({ definition: definition() });
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
-    store.create(initial);
+    const created = store.create(initial);
     const branchPath = ["flow", "plan", "branch"];
-    const startAttempt = attemptFor(initial, branchPath, "branch-1", 1, {
+    const startAttempt = attemptFor(created, branchPath, "branch-1", 1, {
       incomplete: [{ code: "waiting", message: "Need an external value.", operation: null, resources: [] }],
     });
     const started = store.apply({ activity: flowActivity({
       id: "a1",
-      state: initial,
+      state: created,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: startAttempt,
     }) });
@@ -1053,31 +1053,31 @@ describe("Current Flow state foundation", () => {
       id: "a2",
       state: started,
       currentPath: branchPath,
-      confirmationOrder: 2,
+      confirmationOrder: 3,
       operation: "update_attempt",
       attempt: updatedAttempt,
     }) });
     assert.equal(updated.attempt.blocker.code, "ready");
     const journalEntries = store.journal.read();
-    assert.deepEqual(journalEntries.map((entry) => entry.type), ["attempt_started", "attempt_updated"]);
-    assert.deepEqual(journalEntries[0].timing.toJSON(), {
+    assert.deepEqual(journalEntries.map((entry) => entry.type), ["flow_created", "attempt_started", "attempt_updated"]);
+    assert.deepEqual(journalEntries[1].timing.toJSON(), {
       startedAt: NOW,
       finishedAt: LATER,
       durationMs: 60000,
     });
-    assert.equal(journalEntries[0].provider, "provider");
-    assert.equal(journalEntries[0].model, "model");
-    assert.equal(journalEntries[0].effort, "standard");
-    assert.deepEqual(journalEntries[0].usage.toJSON(), {
+    assert.equal(journalEntries[1].provider, "provider");
+    assert.equal(journalEntries[1].model, "model");
+    assert.equal(journalEntries[1].effort, "standard");
+    assert.deepEqual(journalEntries[1].usage.toJSON(), {
       inputTokens: 11,
       outputTokens: 7,
       cacheReadTokens: 2,
       cost: 0,
     });
-    assert.ok(journalEntries[0].references.evaluations[0] instanceof ActivityEvaluationReference);
-    assert.ok(journalEntries[0].references.findings[0] instanceof ActivityFindingReference);
-    assert.ok(journalEntries[0].references.repairs[0] instanceof ActivityRepairReference);
-    assert.ok(journalEntries[0].references.artifacts[0] instanceof ActivityArtifactReference);
+    assert.ok(journalEntries[1].references.evaluations[0] instanceof ActivityEvaluationReference);
+    assert.ok(journalEntries[1].references.findings[0] instanceof ActivityFindingReference);
+    assert.ok(journalEntries[1].references.repairs[0] instanceof ActivityRepairReference);
+    assert.ok(journalEntries[1].references.artifacts[0] instanceof ActivityArtifactReference);
     assert.equal(fs.existsSync(path.join(tmp, "activities.md")), false);
     const markdownPath = path.join(tmp, "activities.md");
     fs.writeFileSync(markdownPath, "corrupt prose must not control state\n");
@@ -1087,7 +1087,7 @@ describe("Current Flow state foundation", () => {
       id: "a3",
       state: updated,
       currentPath: branchPath,
-      confirmationOrder: 3,
+      confirmationOrder: 4,
       operation: "update_attempt",
       attempt: updatedAttempt.replaceFacts({ blocker: { code: "complete", message: "State persisted." } }),
     }) });
@@ -1140,15 +1140,15 @@ describe("Current Flow state foundation", () => {
     tmp = createTmpDir("current-flow-failures-");
     const runFailure = ({ name, outcome, failure, incomplete = [] }) => {
       const directory = path.join(tmp, name);
-      const initial = CurrentFlowState.create({ definition: definition() });
-      const currentPath = initial.nextAction().path;
+      let initial = CurrentFlowState.create({ definition: definition() });
       const store = new CurrentFlowStateStore({ directory, definition: definition() });
-      store.create(initial);
+      initial = store.create(initial);
+      const currentPath = initial.nextAction().path;
       const started = store.apply({ activity: flowActivity({
         id: `${name}-start`,
         state: initial,
         currentPath,
-        confirmationOrder: 1,
+        confirmationOrder: 2,
         operation: "start_attempt",
         attempt: attemptFor(initial, currentPath, `${name}-attempt`, null, { incomplete }),
       }) });
@@ -1156,7 +1156,7 @@ describe("Current Flow state foundation", () => {
         id: `${name}-failure`,
         state: started,
         currentPath,
-        confirmationOrder: 2,
+        confirmationOrder: 3,
         operation: "fail_attempt",
         result: {
           outcome,
@@ -1191,13 +1191,13 @@ describe("Current Flow state foundation", () => {
         id: "unauthorized-retry",
         state: nonRetryable.state,
         currentPath: nonRetryable.currentPath,
-        confirmationOrder: 3,
+        confirmationOrder: 4,
         operation: "retry_attempt",
         attempt: attemptFor(nonRetryable.state, nonRetryable.currentPath, "forbidden-retry"),
       }) }),
       /requires a retryable failed active Attempt/,
     );
-    assert.equal(nonRetryable.store.journal.read().length, 2);
+    assert.equal(nonRetryable.store.journal.read().length, 3);
 
     runFailure({
       name: "retry-exhausted",
@@ -1229,15 +1229,15 @@ describe("Current Flow state foundation", () => {
     });
 
     const invalidDirectory = path.join(tmp, "untyped-incomplete");
-    const invalidInitial = CurrentFlowState.create({ definition: definition() });
-    const invalidPath = invalidInitial.nextAction().path;
+    let invalidInitial = CurrentFlowState.create({ definition: definition() });
     const invalidStore = new CurrentFlowStateStore({ directory: invalidDirectory, definition: definition() });
-    invalidStore.create(invalidInitial);
+    invalidInitial = invalidStore.create(invalidInitial);
+    const invalidPath = invalidInitial.nextAction().path;
     const invalidStarted = invalidStore.apply({ activity: flowActivity({
       id: "untyped-incomplete-start",
       state: invalidInitial,
       currentPath: invalidPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(invalidInitial, invalidPath, "untyped-incomplete-attempt"),
     }) });
@@ -1246,7 +1246,7 @@ describe("Current Flow state foundation", () => {
         id: "contradictory-failure-attempt",
         state: invalidStarted,
         currentPath: invalidPath,
-        confirmationOrder: 2,
+        confirmationOrder: 3,
         operation: "fail_attempt",
         attempt: attemptFor(invalidStarted, invalidPath, "ghost-attempt"),
         result: failedResult("The payload contradicts the active Attempt."),
@@ -1265,7 +1265,7 @@ describe("Current Flow state foundation", () => {
         id: "untyped-incomplete-failure",
         state: invalidStarted,
         currentPath: invalidPath,
-        confirmationOrder: 2,
+        confirmationOrder: 3,
         operation: "fail_attempt",
         result: incompleteResult("Required input is missing without a typed claim."),
         failure: {
@@ -1278,21 +1278,21 @@ describe("Current Flow state foundation", () => {
       }) }),
       /typed incomplete operation\/resource claims must agree/,
     );
-    assert.equal(invalidStore.journal.read().length, 1);
+    assert.equal(invalidStore.journal.read().length, 2);
   });
 
   it("recovers idempotently from journal-first and state-written crashes", () => {
     tmp = createTmpDir("current-flow-crash-");
     const boundary = new CurrentFlowStateAdoptionBoundary({ definition: definition() });
-    const initial = boundary.createFresh();
+    let initial = boundary.createFresh();
     const store = boundary.openStore({ directory: tmp });
-    store.create(initial);
+    initial = store.create(initial);
     const branchPath = ["flow", "plan", "branch"];
     const entry = flowActivity({
       id: "activity-start",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "branch-1"),
     });
@@ -1301,11 +1301,11 @@ describe("Current Flow state foundation", () => {
       faultInjector({ phase }) { if (phase === "activity-appended") throw new Error("crash after durable journal append"); },
     });
     assert.throws(() => crashing.apply({ activity: entry }), /crash after durable/);
-    assert.equal(store.load().confirmationOrder, 0);
+    assert.equal(store.load().confirmationOrder, 1);
     const started = store.apply({ activity: entry });
-    assert.equal(started.confirmationOrder, 1);
-    assert.equal(store.apply({ activity: entry }).confirmationOrder, 1);
-    assert.equal(store.journal.read().length, 1);
+    assert.equal(started.confirmationOrder, 2);
+    assert.equal(store.apply({ activity: entry }).confirmationOrder, 2);
+    assert.equal(store.journal.read().length, 2);
     assert.throws(
       () => store.apply({ activity: new FlowActivity({ ...entry.toJSON(), provider: "different" }) }),
       (error) => error instanceof CurrentFlowStateConflictError,
@@ -1314,7 +1314,7 @@ describe("Current Flow state foundation", () => {
       id: "activity-confirm",
       state: started,
       currentPath: branchPath,
-      confirmationOrder: 2,
+      confirmationOrder: 3,
       operation: "confirm_attempt",
       status: "done",
       result: passedResult("branch confirmed"),
@@ -1324,9 +1324,9 @@ describe("Current Flow state foundation", () => {
       faultInjector({ phase }) { if (phase === "state-written") throw new Error("crash after state CAS"); },
     });
     assert.throws(() => afterStateWrite.apply({ activity: confirmed }), /crash after state CAS/);
-    assert.equal(store.load().confirmationOrder, 2);
-    assert.equal(store.apply({ activity: confirmed }).confirmationOrder, 2);
-    assert.equal(store.journal.read().length, 2);
+    assert.equal(store.load().confirmationOrder, 3);
+    assert.equal(store.apply({ activity: confirmed }).confirmationOrder, 3);
+    assert.equal(store.journal.read().length, 3);
   });
 
   it("rebinds raw and typed state to the store-owned definition before create", () => {
@@ -1366,13 +1366,13 @@ describe("Current Flow state foundation", () => {
   it("canonicalizes typed Activity before applying and journaling one transition", () => {
     tmp = createTmpDir("current-flow-activity-binding-");
     const fixedDefinition = definition();
-    const initial = CurrentFlowState.create({ definition: fixedDefinition });
+    let initial = CurrentFlowState.create({ definition: fixedDefinition });
     const branchPath = initial.nextAction().path;
     const canonical = flowActivity({
       id: "canonical-start",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "canonical-attempt"),
     });
@@ -1393,10 +1393,10 @@ describe("Current Flow state foundation", () => {
     assert.equal(normalized.nodeId, "branch");
 
     const store = new CurrentFlowStateStore({ directory: tmp, definition: fixedDefinition });
-    store.create(initial);
+    initial = store.create(initial);
     const applied = store.apply({ activity: divergent });
     assert.equal(applied.current.at(-1), "branch");
-    assert.equal(store.journal.read()[0].nodeId, "branch");
+    assert.equal(store.journal.read()[1].nodeId, "branch");
     assert.equal(store.load().current.at(-1), "branch");
   });
 
@@ -1424,13 +1424,13 @@ describe("Current Flow state foundation", () => {
     const fixedDefinition = definition();
     const store = new CurrentFlowStateStore({ directory: tmp, definition: fixedDefinition });
     let state = CurrentFlowState.create({ definition: fixedDefinition });
-    store.create(state);
+    state = store.create(state);
     const branchPath = state.nextAction().path;
     state = store.apply({ activity: flowActivity({
       id: "branch-start",
       state,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(state, branchPath, "branch-attempt"),
     }) });
@@ -1438,7 +1438,7 @@ describe("Current Flow state foundation", () => {
       id: "branch-confirm",
       state,
       currentPath: branchPath,
-      confirmationOrder: 2,
+      confirmationOrder: 3,
       operation: "confirm_attempt",
       status: "done",
       result: passedResult("Branch completed."),
@@ -1448,7 +1448,7 @@ describe("Current Flow state foundation", () => {
       id: "prepare-start",
       state,
       currentPath: preparePath,
-      confirmationOrder: 3,
+      confirmationOrder: 4,
       operation: "start_attempt",
       attempt: attemptFor(state, preparePath, "prepare-attempt"),
     }) });
@@ -1467,8 +1467,8 @@ describe("Current Flow state foundation", () => {
     tmp = createTmpDir("current-flow-stale-revision-");
     const fixedDefinition = definition();
     const store = new CurrentFlowStateStore({ directory: tmp, definition: fixedDefinition });
-    const initial = CurrentFlowState.create({ definition: fixedDefinition });
-    store.create(initial);
+    let initial = CurrentFlowState.create({ definition: fixedDefinition });
+    initial = store.create(initial);
     const stale = store.loadSnapshot();
     assert.ok(stale instanceof CurrentFlowStateSnapshot);
     const currentPath = initial.nextAction().path;
@@ -1478,7 +1478,7 @@ describe("Current Flow state foundation", () => {
         id: "revision-start",
         state: initial,
         currentPath,
-        confirmationOrder: 1,
+        confirmationOrder: 2,
         operation: "start_attempt",
         attempt: attemptFor(initial, currentPath, "revision-attempt"),
       }),
@@ -1493,7 +1493,7 @@ describe("Current Flow state foundation", () => {
           id: "revision-stale-update",
           state: started,
           currentPath,
-          confirmationOrder: 2,
+          confirmationOrder: 3,
           operation: "update_attempt",
           attempt: replacement,
         }),
@@ -1501,8 +1501,8 @@ describe("Current Flow state foundation", () => {
       (error) => error instanceof CurrentFlowStateConflictError
         && /changed before update/.test(error.message),
     );
-    assert.equal(store.load().confirmationOrder, 1);
-    assert.equal(store.journal.read().length, 1);
+    assert.equal(store.load().confirmationOrder, 2);
+    assert.equal(store.journal.read().length, 2);
   });
 
   it("rejects a partial Activity journal tail rather than treating it as control input", () => {
@@ -1516,16 +1516,16 @@ describe("Current Flow state foundation", () => {
 
   it("fails closed when an Activity journal survives without its coordinated flow state", () => {
     tmp = createTmpDir("current-flow-orphan-journal-");
-    const initial = CurrentFlowState.create({ definition: definition() });
-    const branchPath = initial.nextAction().path;
+    let initial = CurrentFlowState.create({ definition: definition() });
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
-    store.create(initial);
+    initial = store.create(initial);
+    const branchPath = initial.nextAction().path;
     store.apply({
       activity: flowActivity({
         id: "orphaned-start",
         state: initial,
         currentPath: branchPath,
-        confirmationOrder: 1,
+        confirmationOrder: 2,
         operation: "start_attempt",
         attempt: attemptFor(initial, branchPath, "orphaned-attempt"),
       }),
@@ -1597,7 +1597,7 @@ describe("Current Flow state foundation", () => {
     const initial = CurrentFlowState.create({ definition: definition() });
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
     store.create(initial);
-    fs.writeFileSync(store.statePath, `${JSON.stringify(initial.withConfirmationOrder(1).toJSON())}\n`);
+    fs.writeFileSync(store.statePath, `${JSON.stringify(initial.withConfirmationOrder(2).toJSON())}\n`);
     assert.throws(
       () => store.load(),
       /flow state confirmation order is ahead of its Activity journal/,
@@ -1606,15 +1606,15 @@ describe("Current Flow state foundation", () => {
 
   it("derives append order from the durable journal instead of caller-supplied entries", () => {
     tmp = createTmpDir("current-flow-journal-order-");
-    const initial = CurrentFlowState.create({ definition: definition() });
+    let initial = CurrentFlowState.create({ definition: definition() });
     const branchPath = ["flow", "plan", "branch"];
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
-    store.create(initial);
+    initial = store.create(initial);
     const first = flowActivity({
       id: "first",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "branch-first"),
     });
@@ -1623,7 +1623,7 @@ describe("Current Flow state foundation", () => {
       id: "duplicate-order",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "branch-second"),
     });
@@ -1639,20 +1639,21 @@ describe("Current Flow state foundation", () => {
       id: "reused-attempt-id",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 2,
+      confirmationOrder: 3,
       operation: "rewind",
       attempt: attemptFor(initial, branchPath, "branch-first", 2),
     });
     const corruptPath = path.join(tmp, "attempt-id-reuse.jsonl");
-    fs.writeFileSync(corruptPath, `${JSON.stringify(first.toJSON())}\n${JSON.stringify(reused.toJSON())}\n`);
+    const creation = store.journal.read()[0];
+    fs.writeFileSync(corruptPath, `${JSON.stringify(creation.toJSON())}\n${JSON.stringify(first.toJSON())}\n${JSON.stringify(reused.toJSON())}\n`);
     assert.throws(
       () => new FlowActivityJournal(corruptPath).read(),
       /Attempt id branch-first is reused/,
     );
-    assert.equal(store.journal.read().length, 1);
+    assert.equal(store.journal.read().length, 2);
   });
 
-  it("creates only fresh state against an absent or empty Activity journal", () => {
+  it("creates only fresh state and recovers only a sole flow_created Activity journal", () => {
     tmp = createTmpDir("current-flow-fresh-create-");
     const initial = CurrentFlowState.create({ definition: definition() });
     const branchPath = ["flow", "plan", "branch"];
@@ -1678,20 +1679,36 @@ describe("Current Flow state foundation", () => {
       attempt: attemptFor(initial, branchPath, "branch-history"),
     });
     fs.writeFileSync(journalStore.journal.filePath, `${JSON.stringify(historical.toJSON())}\n`);
-    assert.throws(() => journalStore.create(initial), /requires an absent or empty Activity journal/);
+    assert.throws(() => journalStore.create(initial), /requires an empty or sole flow_created Activity journal/);
+
+    const recoveryDirectory = path.join(tmp, "creation-recovery");
+    const crashingStore = new CurrentFlowStateStore({
+      directory: recoveryDirectory,
+      definition: definition(),
+      faultInjector({ phase }) {
+        if (phase === "activity-appended") throw new Error("crash after flow_created append");
+      },
+    });
+    assert.throws(() => crashingStore.create(initial), /crash after flow_created append/);
+    const durableCreation = crashingStore.journal.read()[0].toJSON();
+    const recoveredStore = new CurrentFlowStateStore({ directory: recoveryDirectory, definition: definition() });
+    const recovered = recoveredStore.create(initial);
+    assert.equal(recovered.confirmationOrder, 1);
+    assert.equal(recoveredStore.journal.read().length, 1);
+    assert.deepEqual(recoveredStore.journal.read()[0].toJSON(), durableCreation);
   });
 
   it("reclaims a process-identified stale lock before replaying the same typed Activity", () => {
     tmp = createTmpDir("current-flow-stale-lock-");
-    const initial = CurrentFlowState.create({ definition: definition() });
+    let initial = CurrentFlowState.create({ definition: definition() });
     const store = new CurrentFlowStateStore({ directory: tmp, definition: definition() });
-    store.create(initial);
+    initial = store.create(initial);
     const branchPath = ["flow", "plan", "branch"];
     const entry = flowActivity({
       id: "stale-lock-start",
       state: initial,
       currentPath: branchPath,
-      confirmationOrder: 1,
+      confirmationOrder: 2,
       operation: "start_attempt",
       attempt: attemptFor(initial, branchPath, "branch-1"),
     });
@@ -1706,7 +1723,7 @@ describe("Current Flow state foundation", () => {
       definition: definition(),
       processIdentitySource: identitySource("recovery-boot"),
     });
-    assert.equal(recovering.apply({ activity: entry }).confirmationOrder, 1);
+    assert.equal(recovering.apply({ activity: entry }).confirmationOrder, 2);
   });
 
   it("rejects forbidden legacy fields and malformed typed incomplete claims at the deserialization boundary", () => {
