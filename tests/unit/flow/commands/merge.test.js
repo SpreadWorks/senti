@@ -1,11 +1,23 @@
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import {
+  CanonicalFinalizeMergeSpecSource,
   parseSpec,
   buildPrTitle,
   buildPrBody,
   fallbackTitleFromSpecId,
 } from "../../../../src/flow/commands/merge.js";
+import { CanonicalFlowFixture, makeFlowManager } from "../../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
+
+let root = null;
+
+afterEach(() => {
+  if (root !== null) removeTmpDir(root);
+  root = null;
+});
 
 const SAMPLE_SPEC_JSON = {
   goal: "flow-finalize の PR ルートで PR description を自動生成する。",
@@ -66,6 +78,38 @@ describe("parseSpec (spec.json-based, spec 207 / T8)", () => {
     assert.deepEqual(result.scopeIn, []);
     assert.deepEqual(result.scopeOut, []);
     assert.deepEqual(result.requirements, []);
+  });
+});
+
+describe("canonical finalize merge Spec source", () => {
+  it("reads the cataloged Version Spec and fails closed when its durable bytes disappear", () => {
+    root = createTmpDir("canonical-finalize-merge-spec-");
+    const flowManager = makeFlowManager(root);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-finalize-merge-spec",
+      runId: "run-finalize-merge-spec",
+      execution: { mode: "branch", baseBranch: "main", featureBranch: "feature/finalize-merge-spec" },
+      specRecord: {
+        goal: "Use the cataloged merge metadata.",
+        requirements: [{ id: "R-1", desc: "Do not read the retired root Spec." }],
+      },
+    }).create().registerActive().activate("finalize-merge");
+    const retired = path.join(root, "specs", fixture.specId, "spec.json");
+    fs.writeFileSync(retired, `${JSON.stringify({ goal: "retired root value" })}\n`);
+
+    const source = new CanonicalFinalizeMergeSpecSource({
+      flowManager,
+      state: fixture.state(),
+    });
+    assert.equal(source.relativePath, "spec.json");
+    assert.equal(source.summary().goal, "Use the cataloged merge metadata.");
+
+    fs.rmSync(fixture.location().specFile);
+    assert.throws(() => new CanonicalFinalizeMergeSpecSource({
+      flowManager,
+      state: fixture.state(),
+    }), /catalog|artifact|missing|does not exist|ENOENT/i);
   });
 });
 

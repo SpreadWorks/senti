@@ -11,6 +11,7 @@ import {
   createTmpDir,
   removeTmpDir,
 } from "../../helpers/tmp-dir.js";
+import { FlowTargetIdentity } from "../../../src/lib/flow-target-identity-authority.js";
 
 const roots = [];
 
@@ -55,6 +56,23 @@ test("FlowTargetBinding rejects a managed-worktree state captured as branch mode
       && error.data.expectedMode === "branch"
       && error.data.activeMode === "worktree",
   );
+});
+
+test("active target identity resolves the canonical Version state location", () => {
+  const identity = FlowTargetIdentity.active({
+    runId: "target-location-run",
+    issue: null,
+    specId: "482-cli-target-binding",
+    lifecycle: { state: "active" },
+    execution: { mode: "branch" },
+  }, "branch", "specs");
+
+  assert.equal(identity.stateLocation, "specs/482-cli-target-binding/001/flow.json");
+  assert.throws(() => new FlowTargetIdentity({
+    ...identity.toJSON(),
+    stateLocation: "specs/482-cli-target-binding/flow.json",
+    revision: null,
+  }), /state location is invalid/);
 });
 
 test("FlowTargetBinding rejects a branch state captured as worktree mode", () => {

@@ -100,6 +100,38 @@ describe("finalize-cleanup robustness", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
+  it("merges finalize metadata through catalog reads and rejects stale artifact bytes", async () => {
+    const { recordFinalizeCleanupPostCommandMetadata } = await import(
+      "../../../src/flow/lib/run-finalize-cleanup.js"
+    );
+    tmp = createTmpDir("sennel-finalize-metadata-catalog-");
+    const state = setupFinalizeCleanupFlow(tmp);
+    const flowManager = makeFlowManager(tmp);
+    const record = (metric) => recordFinalizeCleanupPostCommandMetadata({
+      flowManager,
+      specId: state.specId,
+      metrics: [metric],
+    });
+
+    record({ id: "metric-1" });
+    record({ id: "metric-2" });
+    const artifact = flowManager.readArtifact({
+      specId: state.specId,
+      logicalKey: "finalize.cleanup.agent-metrics",
+      consumerNodeId: "finalize-cleanup",
+    });
+    assert.deepEqual(JSON.parse(artifact.bytes.toString("utf8")), {
+      version: 1,
+      entries: [{ id: "metric-1" }, { id: "metric-2" }],
+    });
+
+    fs.appendFileSync(flowManager.specLocation(state.specId).resolve(artifact.relativePath), "\n");
+    assert.throws(
+      () => record({ id: "metric-3" }),
+      /canonical finalize-cleanup finalize\.cleanup\.agent-metrics is invalid|does not match the catalog/,
+    );
+  });
+
   it("registry post hooks switch ctx.flowManager to main repo authority", async () => {
     tmp = createTmpDir("sennel-finalize-auth-switch-");
     const mainRoot = path.join(tmp, "main");
@@ -478,6 +510,26 @@ describe("finalize-cleanup robustness", () => {
     assert.equal(blocked.code, "MAIN_REPO_DIRTY");
     assert.deepEqual(blocked.dirtyFiles, [`specs/${specId}/001/issue-log.json`]);
 
+    const staleCatalogRoot = path.join(tmp, "stale-catalog");
+    const staleCatalogScenario = prepareScenario(staleCatalogRoot, { userEdit: false });
+    fs.appendFileSync(staleCatalogScenario.issuePath, "\n");
+    const staleCatalog = runAutoRescue({
+      mainRepoPath: staleCatalogRoot,
+      ...staleCatalogScenario,
+      featureBranch,
+      specId,
+      allowedIssueLogId: ownedAudit.issueLogId,
+      allowFinalizeMetadata: true,
+    });
+    assert.equal(staleCatalog.ok, false);
+    assert.equal(staleCatalog.code, "MAIN_REPO_DIRTY");
+    assert.deepEqual(staleCatalog.dirtyFiles, [
+      `specs/${specId}/001/flow.json`,
+      `specs/${specId}/001/activities.jsonl`,
+      `specs/${specId}/001/artifact-catalog.json`,
+      `specs/${specId}/001/issue-log.json`,
+    ]);
+
     const cleanRoot = path.join(tmp, "owned-audit-only");
     const rescuedScenario = prepareScenario(cleanRoot, { userEdit: false });
     const rescued = runAutoRescue({
@@ -491,6 +543,43 @@ describe("finalize-cleanup robustness", () => {
     assert.equal(rescued.ok, true, JSON.stringify(rescued));
     assert.equal(fs.readFileSync(path.join(cleanRoot, "rescued.txt"), "utf8"), "rescue audit allowance\n");
     assert.deepEqual(JSON.parse(fs.readFileSync(rescuedScenario.issuePath, "utf8")).entries, [ownedAudit]);
+  });
+
+  it("auto-rescue rejects dirty Flow metadata that fails the canonical Version Store contract", async () => {
+    const { runAutoRescue } = await import("../../../src/flow/lib/run-finalize-cleanup.js");
+    tmp = createTmpDir("sennel-auto-rescue-invalid-flow-metadata-");
+    const specId = "invalid-flow-metadata";
+    const featureBranch = "feature/invalid-flow-metadata";
+    initGitRepo(tmp);
+    fs.writeFileSync(path.join(tmp, ".gitignore"), ".sennel/\n");
+    setupFinalizeCleanupFlow(tmp, { specId, featureBranch });
+    execFileSync("git", ["-C", tmp, "add", ".gitignore", "specs"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "add canonical flow"]);
+    const baseBranch = execFileSync("git", ["-C", tmp, "branch", "--show-current"], { encoding: "utf8" }).trim();
+    const baseline = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    execFileSync("git", ["-C", tmp, "checkout", "-qb", featureBranch]);
+    fs.writeFileSync(path.join(tmp, "rescued.txt"), "must not be applied\n");
+    execFileSync("git", ["-C", tmp, "add", "rescued.txt"]);
+    execFileSync("git", ["-C", tmp, "commit", "-qm", "add rescued file"]);
+    execFileSync("git", ["-C", tmp, "checkout", "-q", baseBranch]);
+
+    const flowPath = path.join(tmp, "specs", specId, "001", "flow.json");
+    const invalid = JSON.parse(fs.readFileSync(flowPath, "utf8"));
+    invalid.legacyField = true;
+    fs.writeFileSync(flowPath, `${JSON.stringify(invalid, null, 2)}\n`);
+
+    const result = runAutoRescue({
+      mainRepoPath: tmp,
+      baseBranch,
+      baseline,
+      featureBranch,
+      specId,
+      allowFinalizeMetadata: true,
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "MAIN_REPO_DIRTY");
+    assert.deepEqual(result.dirtyFiles, [`specs/${specId}/001/flow.json`]);
+    assert.equal(fs.existsSync(path.join(tmp, "rescued.txt")), false);
   });
 
   it("auto-rescue fails closed when repository status cannot be established", async () => {

@@ -18,7 +18,7 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
    - Current progress (phase, step, completed steps)
    - Key notes/decisions made so far
 
-3. Read `spec.json` from the selected worktree when `worktreePath` is present, otherwise from `mainRepoPath`. Treat `spec.md` as a generated human-readable view only.
+3. Read `spec.json` only from the canonical Version path returned by the status/resume data (for V1, `<configured-spec-root>/<specId>/001/spec.json`). Do not infer a sibling path from `worktreePath` or `mainRepoPath`. Treat `spec.md` as a generated human-readable view only.
 
 4. Tell the user the exact step to resume from, and the skill to invoke:
    - Mainline phases (`plan` / `impl` / `finalize`) → run `/sennel.flow`.

@@ -11,9 +11,6 @@
  * Max depth: 3 (root list → branch → leaf). Traversal helpers enforce this.
  */
 
-import fs from "fs";
-import path from "path";
-import { AtomicFile } from "../lib/atomic-file.js";
 import {
   CurrentFlowDefinition,
   DefinitionFailurePolicy,
@@ -24,7 +21,6 @@ import { draftReviewRouteForKey, draftReviewRouteForRetryPhase } from "./lib/dra
 import {
   flattenSteps,
   findFirstPendingLeaf,
-  findStepById,
 } from "./lib/step-tree.js";
 import { nonblockingRouteFor } from "./lib/nonblocking-route.js";
 import { TaskStepIdentity } from "./lib/task-step-identity.js";
@@ -320,22 +316,6 @@ const REJECTED_IMPL_REVIEW_RESET_STEPS = Object.freeze([
   "impl-repair",
   "impl-gate",
 ]);
-const REBUILDABLE_TEST_ARTIFACT_PATHS = Object.freeze([
-  "upgrade-result.json",
-  "scenario-validity-result.json",
-  "test-execute-result.json",
-  "test-result-review.json",
-  "test-result-review.md",
-  "impl-gate-result.json",
-  "final-regression-result.json",
-  "retro.json",
-  "acceptance-review.json",
-  "report.json",
-  "tests/.raw/scenario-validity.log",
-  "tests/.raw/test-execution.log",
-  "tests/.raw/requirement-summary.json",
-]);
-
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || result?.data?.status || ""));
 }
@@ -474,10 +454,7 @@ function resolveImplReviewLifecycle(input) {
     return actions;
   }
   if (!input.dryRun && proposalCount > 0) {
-    actions.push(
-      new ResetSteps({ steps: IMPL_REVIEW_RESET_RANGE }),
-      new RunLifecycleHook({ module: "review", handler: "resetImplEvidenceAfterReviewProposals" }),
-    );
+    actions.push(new ResetSteps({ steps: IMPL_REVIEW_RESET_RANGE }));
     return actions;
   }
   actions.push(new SetStepStatus({ step: input.currentStepId || "impl-review", status: "done" }));
@@ -702,76 +679,6 @@ export function resolveLifecyclePlan(input = {}) {
     currentStepId,
     actions,
   });
-}
-
-function writeEmptyDraftReviewArtifact({
-  file,
-  phase,
-  sourceField,
-  sourceArtifact,
-  generatedAt,
-  summary,
-}) {
-  const payload = {
-    version: 1,
-    phase: requireString(phase, "phase"),
-    [sourceField]: requireString(sourceArtifact, sourceField),
-    generatedAt: requireString(generatedAt, "generatedAt"),
-    summary: requireString(summary, "summary"),
-    items: [],
-  };
-  new AtomicFile(file, { phaseNamespace: "draft-review" })
-    .write(`${JSON.stringify(payload, null, 2)}\n`);
-}
-
-export function writeEmptyDraftReviewRouteArtifacts({
-  specDir,
-  route,
-  generatedAt = new Date().toISOString(),
-}) {
-  fs.mkdirSync(specDir, { recursive: true });
-  writeEmptyDraftReviewArtifact({
-    file: path.join(specDir, route.triageArtifact),
-    phase: route.triageStepId,
-    sourceField: "sourceReview",
-    sourceArtifact: route.reviewArtifact,
-    generatedAt,
-    summary: "No draft review findings to triage.",
-  });
-  writeEmptyDraftReviewArtifact({
-    file: path.join(specDir, route.repairArtifact),
-    phase: route.repairStepId,
-    sourceField: "sourceTriage",
-    sourceArtifact: route.triageArtifact,
-    generatedAt,
-    summary: "No draft triage items to repair.",
-  });
-  let approvalEligible = false;
-  if (route.key === "coverage") {
-    const draftPath = path.join(specDir, "draft.json");
-    const draft = JSON.parse(fs.readFileSync(draftPath, "utf8"));
-    const unresolved = Array.isArray(draft.qa)
-      && draft.qa.some((entry) => entry?.status === "pending" || entry?.status === "approved");
-    if (!unresolved) {
-      approvalEligible = true;
-    }
-  }
-  return Object.freeze({ approvalEligible, generatedAt });
-}
-
-export function resetImplEvidenceAfterReviewProposals({ specDir, flowState }) {
-  for (const relPath of REBUILDABLE_TEST_ARTIFACT_PATHS) {
-    const filePath = path.join(specDir, relPath);
-    if (fs.existsSync(filePath)) fs.rmSync(filePath, { force: true });
-  }
-  for (const id of IMPL_REVIEW_RESET_RANGE) {
-    const step = findStepById(flowState.steps || [], id);
-    if (!step) continue;
-    step.status = "pending";
-    delete step.finishedAt;
-    delete step.startedAt;
-  }
-  return true;
 }
 
 class FlowExecutionCommand {

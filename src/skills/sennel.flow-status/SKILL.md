@@ -58,7 +58,7 @@ Display the current state of the Spec-Driven Development workflow.
      Mode:             Branch
      Feature branch:   feature/045-xxx
      Base branch:      main
-     Spec:             <configured-spec-root>/045-xxx/spec.json
+     Spec:             <configured-spec-root>/045-xxx/001/spec.json
      Goal:             Flow state step tracking
      User approved:    Yes
 

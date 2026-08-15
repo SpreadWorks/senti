@@ -15,7 +15,6 @@ import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadConfig, managedConfigPath, managedOutputDir } from "../../lib/config.js";
-import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
   validateFinalRegressionResult,
   validateFinalRegressionEvidence,
@@ -611,17 +610,6 @@ function resolveRealPath(value) {
     if (err?.code !== "ENOENT") throw err;
     return resolved;
   }
-}
-
-function readAnalysisIfExists(root) {
-  const analysisPath = path.join(managedOutputDir(root), "analysis.json");
-  if (!fs.existsSync(analysisPath)) return null;
-  return JSON.parse(fs.readFileSync(analysisPath, "utf8"));
-}
-
-function readJsonIfExists(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 function fingerprintSet(files = []) {

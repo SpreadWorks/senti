@@ -14,7 +14,6 @@ import { runCmd, assertOk } from "../../lib/process.js";
 import path from "path";
 import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
 import {
   FinalizeMergeTransaction,
   FinalizeMergeTransactionError,
@@ -67,9 +66,9 @@ function parseSpec(spec) {
   if (!spec) return { goal: null, scopeIn: [], scopeOut: [], requirements: [] };
   return {
     goal: spec.goal ? spec.goal.trim() || null : null,
-    scopeIn: Array.isArray(spec.scope?.in) ? spec.scope.in : [],
-    scopeOut: Array.isArray(spec.scope?.out) ? spec.scope.out : [],
-    requirements: Array.isArray(spec.requirements) ? spec.requirements : [],
+    scopeIn: Array.isArray(spec.scope?.in) ? structuredClone(spec.scope.in) : [],
+    scopeOut: Array.isArray(spec.scope?.out) ? structuredClone(spec.scope.out) : [],
+    requirements: Array.isArray(spec.requirements) ? structuredClone(spec.requirements) : [],
   };
 }
 
@@ -131,17 +130,39 @@ function buildPrBody(state, spec) {
   return lines.join("\n").trim();
 }
 
-/**
- * Load spec.json from flow state and reduce it to the goal/scope/requirements
- * summary structure used for PR body / squash commit metadata. Throws when
- * spec.json is missing or invalid — active flows are expected to have a valid
- * spec.json by invariant (spec 207 / T8).
- */
-function loadSpec(state, root) {
-  if (!state.specId) return null;
-  const specInput = path.resolve(root, relativeFlowSpecFile(state));
-  const spec = loadSpecJson(specInput);
-  return parseSpec(spec);
+/** Catalog-authoritative Spec projection used by both finalize merge routes. */
+export class CanonicalFinalizeMergeSpecSource {
+  #document;
+
+  constructor({ flowManager, state } = {}) {
+    if (!flowManager || typeof flowManager.readArtifact !== "function") {
+      throw new Error("finalize merge Spec source requires FlowManager.readArtifact");
+    }
+    if (state?.schemaRevision !== 3 || typeof state.specId !== "string" || state.specId === "") {
+      throw new Error("finalize merge Spec source requires a Version-1 Flow state");
+    }
+    const resolved = flowManager.readArtifact({
+      specId: state.specId,
+      logicalKey: "spec.record",
+      consumerNodeId: "finalize-merge",
+    });
+    let document;
+    try {
+      document = JSON.parse(resolved.bytes.toString("utf8"));
+    } catch (error) {
+      throw new Error(`finalize merge cataloged Spec must be JSON: ${error.message}`);
+    }
+    if (document === null || typeof document !== "object" || Array.isArray(document)) {
+      throw new Error("finalize merge cataloged Spec must be an object");
+    }
+    this.relativePath = resolved.relativePath;
+    this.#document = structuredClone(document);
+    Object.freeze(this);
+  }
+
+  summary() {
+    return parseSpec(this.#document);
+  }
 }
 
 function finalizationFeatureArtifactRegistry(state) {
@@ -251,11 +272,14 @@ function runMerge(ctx) {
   if (strategy === "skip") {
     return { strategy: "skip" };
   }
+  const spec = new CanonicalFinalizeMergeSpecSource({
+    flowManager: ctx.flowManager,
+    state,
+  }).summary();
 
   // PR route
   if (strategy === "pr") {
     const remote = resolveRemote(cfg);
-    const spec = loadSpec(state, artifactRoot);
     const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
     const title = buildPrTitle(spec, fallbackTitle);
     const marker = idempotencyKey ? `<!-- sennel:${idempotencyKey} -->` : null;
@@ -290,12 +314,6 @@ function runMerge(ctx) {
 
   // Squash merge route
   const fallbackTitle = fallbackTitleFromSpecId(state.specId, featureBranch);
-  let spec = null;
-  try {
-    spec = loadSpec(state, artifactRoot);
-  } catch (err) {
-    process.stderr.write(`[sennel] warning: failed to load spec for squash commit message: ${err.message}\n`);
-  }
 
   if (worktree && mainRepoPath) {
     const cfg = container.get("config");

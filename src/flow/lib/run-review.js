@@ -14,7 +14,6 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import {
   flowLeafIdsBetween,
   resolveMaxAttempts,
-  resetImplEvidenceAfterReviewProposals as resetImplEvidenceStateAfterReviewProposals,
 } from "../definition.js";
 import { flattenSteps } from "./step-tree.js";
 import path from "path";
@@ -30,7 +29,6 @@ import { resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   assertAuditedBroadMode,
   resolveImplReviewScope,
-  resolveCurrentTaskSpec,
   taskScopeViolationMessages,
 } from "./task-scope.js";
 import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
@@ -526,12 +524,12 @@ export function checkReviewRetryBelowMax(
   const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
   const taskScoped = persistedPhase === IMPL_REVIEW_PHASE && flowState.currentTaskId != null;
   const stepId = taskScoped ? "task-review" : REVIEW_NODE_ID_BY_PHASE[persistedPhase];
-  const legacyCount = taskScoped
+  const observedCount = taskScoped
     ? nextStepAttemptNumber(flowState, stepId) - 1
     : countReviewRetry(flowState.metrics, persistedPhase);
   void treeSha;
   void targetStateDigest;
-  const count = legacyCount;
+  const count = observedCount;
   let resolvedMax;
   try {
     resolvedMax = taskScoped
@@ -699,12 +697,6 @@ export function updateReviewRetryCounter(ctx, result) {
 }
 
 export { REVIEW_PHASE_KEYS };
-
-export function resetImplEvidenceAfterReviewProposals(ctx, result) {
-  void ctx;
-  void result;
-  return false;
-}
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
@@ -1169,6 +1161,8 @@ export class RunReviewCommand extends FlowCommand {
       taskId,
     });
     const surface = workUnit.prepare();
+    const specSource = workUnit.materializeSpecRecord();
+    const fileMapSource = workUnit.materializeFileMap();
     const draftSource = workUnit.materializeDraft();
     const testSources = workUnit.materializeTestSources(surface.directory);
     const taskSpec = workUnit.materializeTaskSpec();
@@ -1181,6 +1175,10 @@ export class RunReviewCommand extends FlowCommand {
     const env = {
       ...process.env,
       [PRODUCT.env("REVIEW_OUTPUT_DIR")]: surface.directory,
+      [PRODUCT.env("REVIEW_SPEC_SOURCE")]: JSON.stringify(specSource),
+      ...(fileMapSource === null ? {} : {
+        [PRODUCT.env("REVIEW_FILE_MAP_SOURCE")]: JSON.stringify(fileMapSource),
+      }),
       ...(draftSource === null ? {} : {
         [PRODUCT.env("REVIEW_DRAFT_SOURCE")]: JSON.stringify(draftSource),
       }),

@@ -11,7 +11,7 @@ import {
   captureRegularFile,
   sameFileIdentity,
 } from "../../lib/regular-file-snapshot.js";
-import { FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
+import { FlowVersion, FlowVersionRuntimeLockLocation } from "../../lib/flow-version.js";
 import { draftReviewRouteForStepId } from "./draft-review-routes.js";
 import { findActiveNode, getFlowNode } from "../definition.js";
 import { findStepById } from "./step-tree.js";
@@ -1792,7 +1792,7 @@ function requestFromStored(filePath) {
   const canonicalSpecDirectory = path.dirname(canonicalVersionDirectory);
   const canonical = path.basename(handoffRoot) === "worker-handoffs"
     && path.basename(canonicalRuntimeDirectory) === ".runtime"
-    && path.basename(canonicalVersionDirectory) === "001";
+    && path.basename(canonicalVersionDirectory) === new FlowVersion(1).pathSegment;
   if (path.basename(resolvedRequestPath) !== "request.json" || !canonical) {
     throw new Error("handoff request path is outside its dedicated runtime authority");
   }

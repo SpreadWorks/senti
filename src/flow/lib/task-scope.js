@@ -2,8 +2,6 @@
  * Task-scope cursor enforcement shared by implementation dispatchers.
  */
 
-import fs from "node:fs";
-import path from "node:path";
 import { findNextPendingTask, isTaskTerminalStatus } from "../../lib/flow-helpers.js";
 import { flattenSteps } from "./step-tree.js";
 
@@ -244,25 +242,4 @@ export function taskScopeViolationMessages(decision, step) {
     `Restore a task cursor with: sennel flow run start-task --task-id <task-id>`,
     `For intentional broad ${step} work, first run: sennel flow set broad on --step ${step} --reason "<reason>"`,
   ];
-}
-
-export function resolveCurrentTaskSpec({ root, state, decision = null }) {
-  const resolvedDecision = decision || evaluateTaskScope(state, "task-gate");
-  if (resolvedDecision.kind !== "task") {
-    throw new Error(resolvedDecision.reason || "currentTaskId is required for task-scoped operation");
-  }
-  const task = resolvedDecision.task;
-  if (!task.spec) {
-    throw new Error(`task spec missing for ${task.id}`);
-  }
-  const abs = path.resolve(root, task.spec);
-  if (!fs.existsSync(abs)) {
-    throw new Error(`task spec missing for ${task.id}: ${task.spec}`);
-  }
-  return {
-    task,
-    relPath: task.spec,
-    absPath: abs,
-    text: fs.readFileSync(abs, "utf8"),
-  };
 }

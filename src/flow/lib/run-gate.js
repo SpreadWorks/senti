@@ -37,6 +37,7 @@ import {
   validateSpecJsonObject,
 } from "../../lib/spec-json.js";
 import { reconcileFileMap } from "./req-map.js";
+import { CanonicalFileMap } from "./canonical-file-map.js";
 import { buildAcknowledgedRationaleSection } from "./acknowledged-rationale.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
@@ -73,14 +74,8 @@ import {
 import {
   assertAuditedBroadMode,
   evaluateTaskScope,
-  resolveCurrentTaskSpec,
   taskScopeViolationMessages,
 } from "./task-scope.js";
-import {
-  validateDraftReviewArtifactSet,
-  validateDraftReviewArtifacts,
-} from "./draft-review-artifacts.js";
-import { validateSpecRepairAudit as validateSpecRepairAuditInDirectory } from "./spec-review-artifacts.js";
 import {
   completeDraftArtifactChange,
   completeSpecArtifactChange,
@@ -663,10 +658,6 @@ function checkSpecJson(spec) {
   }
 
   return issues;
-}
-
-function validateSpecRepairAudit(root, specInput) {
-  return validateSpecRepairAuditInDirectory(path.dirname(path.resolve(root, specInput)));
 }
 
 /**
@@ -4388,12 +4379,14 @@ export class RunGateCommand extends FlowCommand {
     const requirementEntries = spec.requirements
       .filter((requirement) => reqIds.includes(requirement.id))
       .map((requirement) => new RequirementPromptExcerpt(requirement));
-    const fileMap = inputs.readJson("file.map", {
-      consumerNodeId: "impl-gate",
-      optional: true,
-    }) ?? {};
-    if (fileMap === null || typeof fileMap !== "object" || Array.isArray(fileMap)) {
-      return gateFail(level, phase, specPath, [], ["canonical file-map must be an object"]);
+    let fileMap;
+    try {
+      fileMap = new CanonicalFileMap(inputs.readJson("file.map", {
+        consumerNodeId: "impl-gate",
+        optional: true,
+      }) ?? {}).assertAgainstSpec(spec).toJSON();
+    } catch (error) {
+      return gateFail(level, phase, specPath, [], [error.message]);
     }
     let perReqDiffs = null;
     if (Object.keys(fileMap).length > 0) {
@@ -4515,9 +4508,7 @@ export default RunGateCommand;
 export {
   checkSpecText,
   checkSpecJson,
-  validateSpecRepairAudit,
   checkDraftJson,
-  validateDraftReviewArtifactSet,
   buildGuardrailPrompt,
   buildImplCheckPrompt,
   MAX_IMPL_REQUIREMENT_BATCH_CHARS,

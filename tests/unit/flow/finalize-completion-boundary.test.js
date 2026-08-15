@@ -44,6 +44,12 @@ test("completion commit contains only target spec and docs while preserving unre
   manager.addNote("Finalize completion evidence", { specId: fixture.specId });
   write("docs/overview.md", "after\n");
   write("specs/485-finalize/001/.runtime/runtime-log.json", "{\"exitCode\":0}\n");
+  const derivedViews = [
+    "specs/485-finalize/001/.runtime/spec-render/spec.md",
+    "specs/485-finalize/001/.runtime/spec-render/review.md",
+    "specs/485-finalize/001/.runtime/task-views/T-1.md",
+  ];
+  for (const view of derivedViews) write(view, "regenerable human view\n");
   write("unrelated.txt", "user staged change\n");
   git(["add", "unrelated.txt"]);
 
@@ -62,6 +68,11 @@ test("completion commit contains only target spec and docs while preserving unre
   assert.ok(committed.includes("specs/485-finalize/001/spec.json"));
   assert.ok(committed.includes("specs/485-finalize/001/artifact-catalog.json"));
   assert.equal(committed.some((entry) => entry.includes("/.runtime/")), false);
+  for (const view of derivedViews) {
+    assert.equal(committed.includes(view), false);
+    assert.equal(git(["ls-files", "--", view]), "");
+    assert.equal(fs.existsSync(path.join(root, view)), true);
+  }
   assert.equal(committed.every((entry) => entry === "docs/overview.md" || entry.startsWith("specs/485-finalize/001/")), true);
   assert.equal(git(["diff", "--cached", "--name-only"]), "unrelated.txt");
 });

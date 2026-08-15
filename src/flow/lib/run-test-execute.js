@@ -13,8 +13,8 @@
  * final-regression by default. test.projectPaths drives targeted project
  * test-file classification for the normal repair loop.
  * Skipped categories are docs-only, spec-artifact-only, non-project-only, and
- * mixed-non-trigger. The temporary summary path lives under tests/.raw and is
- * deleted during cleanup.
+ * mixed-non-trigger. The temporary summary lives in the Version `.runtime`
+ * area and is deleted during cleanup.
  * Required regression raw output uses explicit start marker / end marker
  * sections. Started exit code 127, non-zero exit, signal, and timeout
  * outcomes become v2 fail artifacts.

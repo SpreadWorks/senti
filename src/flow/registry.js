@@ -183,7 +183,7 @@ function canonicalResultProducerStep(provenance, result) {
  *
  * The first argument may be a hook ctx (uses ctx.flowManager) or a
  * FlowManager directly — the latter form is used by merge-onward finalize
- * hooks which target the main repo flow.json via forRoot().
+ * hooks which target the main-repository canonical Version Store via forRoot().
  */
 function tryUpdateStepStatus(target, stepId, status, opts, provenance = {}) {
   const isFinalizeStateOwner = target instanceof FinalizeFlowStateOwner;
@@ -531,20 +531,11 @@ class RegistryLifecycleAdapter {
   }
 
   async runLifecycleHook(module, handler, args) {
-    if (module === "review") {
-      await this.runReviewHook(handler, args);
-      return;
-    }
     if (module === "finalize") {
       await this.runFinalizeHook(handler, args);
+      return;
     }
-  }
-
-  async runReviewHook(handler, args) {
-    if (handler === "resetImplEvidenceAfterReviewProposals") {
-      const reviewMod = await import("./lib/run-review.js");
-      reviewMod.resetImplEvidenceAfterReviewProposals(this.ctx, this.result);
-    }
+    throw new Error(`unknown lifecycle hook module: ${module}`);
   }
 
   async runFinalizeHook(handler, args) {
@@ -992,7 +983,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.set.files",
       command: () => import("./lib/set-files.js"),
       args: { positional: ["reqId"], rest: "paths", flags: FLOW_TARGET_GUARD_FLAGS, options: FLOW_TARGET_GUARD_OPTIONS },
-      help: "Usage: sennel flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
+      help: "Usage: sennel flow set files <reqId> <path...>\n\nAppend file paths to the active Version's cataloged file.map for a requirement. Deduplicates.",
     },
     "review-evidence": {
       helpKey: "flow.set.review-evidence",

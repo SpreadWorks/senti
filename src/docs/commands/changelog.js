@@ -53,6 +53,7 @@ function parseSpecDir(flowManager, specId) {
     status: sanitize(entry.status),
     branch: sanitize(entry.branch),
     inputLine: sanitize(entry.inputLine),
+    versionDirectory: entry.versionDirectory,
     links: Object.freeze(entry.links.map((link) => sanitize(link))),
   });
 }
@@ -155,7 +156,7 @@ async function runChangelog(rawArgs, container) {
   out.push("| series | latest | status | created | spec |");
   out.push("| --- | --- | --- | --- | --- |");
   for (const e of latestEntries) {
-    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](${specLinkRoot}/${e.dirName}/001/spec.json) |`);
+    out.push(`| \`${e.series}\` | \`${e.dirName}\` | ${e.status} | ${e.created} | [spec](${specLinkRoot}/${e.versionDirectory}/spec.json) |`);
   }
   out.push("");
   out.push(t("messages:changelog.sectionAllSpecs"));
@@ -167,10 +168,10 @@ async function runChangelog(rawArgs, container) {
   for (const e of sortedEntries) {
     let fileLinks;
     if (e.links.length > 1) {
-      fileLinks = e.links.map((f) => `[${f}](${specLinkRoot}/${e.dirName}/001/${f})`).join(", ");
+      fileLinks = e.links.map((f) => `[${f}](${specLinkRoot}/${e.versionDirectory}/${f})`).join(", ");
     } else {
       const f = e.links[0] || "spec.json";
-      fileLinks = `[${f}](${specLinkRoot}/${e.dirName}/001/${f})`;
+      fileLinks = `[${f}](${specLinkRoot}/${e.versionDirectory}/${f})`;
     }
     out.push(`| \`${e.dirName}\` | ${e.status} | ${e.created} | ${e.title} | ${e.inputLine} | ${fileLinks} |`);
   }

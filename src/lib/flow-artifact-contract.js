@@ -1191,7 +1191,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
     "system", "draft", "draft-questions-review", "draft-coverage-review", "draft-gate", "spec", "spec-review", "spec-triage",
     "spec-repair", "spec-gate", "approval", "test", "scenario-validity", "test-review", "test-execute",
     "test-result-review", "implement", "impl-review", "impl-repair", "impl-gate", "retro", "acceptance-review", "acceptance-decision",
-    "final-regression", "report", "task-impl", "task-review", "task-gate",
+    "final-regression", "report", "finalize-merge", "task-impl", "task-review", "task-gate",
   ])),
   // Issue-log entries are durable facts produced by the active Flow leaf.
   // The catalog descriptor is therefore associated with that leaf's Activity
@@ -1247,7 +1247,7 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
   // report producer must therefore be able to re-read its own cataloged
   // document during the exact outbox recovery; it still cannot infer a path
   // or bypass the catalog.
-  contract("report", "artifacts/report.json", "report", "canonical-flow-artifacts", "report", own("report", ["report"], ["report", "finalize-commit", "finalize-sync"])),
+  contract("report", "artifacts/report.json", "report", "canonical-flow-artifacts", "report", own("report", ["report"], ["report", "finalize-commit", "finalize-sync", "finalize-cleanup"])),
   contract("ideas", "artifacts/ideas.json", "ideas", "canonical-flow-artifacts", "retro", own("retro", ["retro", "finalize-sync"], ["report", "finalize-sync"])),
   // Plugin lifecycle hooks write per-plugin durable outputs beneath this
   // namespace.  Workflow ideas retain their own contract and are excluded

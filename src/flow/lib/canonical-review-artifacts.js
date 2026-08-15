@@ -27,6 +27,7 @@ import {
 } from "./review-convergence.js";
 import { DraftReviewEvidenceSet } from "./draft-review-artifacts.js";
 import { CanonicalTestSourceRevision } from "./canonical-test-artifacts.js";
+import { CanonicalReviewInputDescriptor } from "./review-work-unit-input.js";
 import { renderTaskMarkdown } from "../../spec/commands/render.js";
 
 const PHASES = new Set(["draft-questions", "draft-coverage", "spec", "test", "impl"]);
@@ -454,6 +455,54 @@ export class CanonicalReviewWorkUnit {
       manifest,
       manifestPath,
       directory: path.dirname(manifestPath),
+    });
+  }
+
+  #materializeCatalogInput({ logicalKey, logicalPath, optional = false }) {
+    const resolved = this.flowManager.readArtifact({
+      specId: this.state.specId,
+      logicalKey,
+      consumerNodeId: this.nodeId,
+      optional,
+    });
+    if (resolved === null) return null;
+    const workUnitPath = `${this.nodeId}/${this.attemptId}/inputs/${logicalPath}`;
+    const sourcePath = this.flowManager.writeRuntimeArtifact({
+      specId: this.state.specId,
+      nodeId: this.nodeId,
+      artifact: {
+        logicalKey: "review.work.unit",
+        parameters: { workUnitPath },
+        mediaType: resolved.descriptor.mediaType,
+        bytes: resolved.bytes,
+      },
+    });
+    return new CanonicalReviewInputDescriptor({
+      version: 1,
+      logicalKey,
+      logicalPath,
+      sourcePath,
+      digest: resolved.descriptor.hash,
+      byteLength: resolved.descriptor.size,
+    });
+  }
+
+  /** The Spec is catalog-resolved once by the parent for every review phase. */
+  materializeSpecRecord() {
+    return this.#materializeCatalogInput({ logicalKey: "spec.record", logicalPath: "spec.json" });
+  }
+
+  /**
+   * Flow-level implementation review consumes the shared map when one has
+   * been published. The child decides whether absence is valid only after it
+   * knows whether there is an implementation diff; it never invents a map.
+   */
+  materializeFileMap() {
+    if (this.phase !== "impl" || this.taskId !== null) return null;
+    return this.#materializeCatalogInput({
+      logicalKey: "file.map",
+      logicalPath: "file-map.json",
+      optional: true,
     });
   }
 

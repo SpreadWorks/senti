@@ -187,6 +187,8 @@ function flowActivity({
       repairs: [{ id: "repair-1", label: null }],
       artifacts: [{ id: "artifact-1", label: null }],
     },
+    metric: null,
+    note: null,
   });
 }
 
@@ -1396,6 +1398,25 @@ describe("Current Flow state foundation", () => {
     assert.equal(applied.current.at(-1), "branch");
     assert.equal(store.journal.read()[0].nodeId, "branch");
     assert.equal(store.load().current.at(-1), "branch");
+  });
+
+  it("rejects Activity documents that omit exact observation slots", () => {
+    const initial = CurrentFlowState.create({ definition: definition() });
+    const branchPath = initial.nextAction().path;
+    const document = flowActivity({
+      id: "exact-activity",
+      state: initial,
+      currentPath: branchPath,
+      confirmationOrder: 1,
+      operation: "start_attempt",
+      attempt: attemptFor(initial, branchPath, "exact-attempt"),
+    }).toJSON();
+    const withoutMetric = structuredClone(document);
+    delete withoutMetric.metric;
+    assert.throws(() => new FlowActivity(withoutMetric), /activity\.metric is required/);
+    const withoutNote = structuredClone(document);
+    delete withoutNote.note;
+    assert.throws(() => new FlowActivity(withoutNote), /activity\.note is required/);
   });
 
   it("fails closed when persisted state reuses an Attempt identity that its Activity journal assigns elsewhere", () => {

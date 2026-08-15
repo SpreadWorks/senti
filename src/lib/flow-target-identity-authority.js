@@ -5,6 +5,7 @@ import { AtomicFile } from "./atomic-file.js";
 import { AtomicJsonFile } from "./atomic-json-file.js";
 import { managedDir } from "./config.js";
 import { FlowSpecId } from "./flow-spec-id.js";
+import { FlowVersion, FlowVersionRelativeLocation } from "./flow-version.js";
 import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import { RepositoryFlowOperationLock, resolveRepositoryLockRoot } from "./repository-maintenance-lock.js";
@@ -115,6 +116,19 @@ export class FlowTargetIdentity {
     if (!validRepositoryRelativePath(stateLocation)) {
       throw new FlowTargetAuthorityError(`flow target identity state location is invalid for ${runId}`);
     }
+    if (lifecycle === "active") {
+      try {
+        const location = FlowVersionRelativeLocation.fromArtifactPath({
+          relativeArtifactPath: stateLocation,
+          logicalKey: "flow.state",
+        });
+        if (location.specId.toString() !== normalizedSpecId) {
+          throw new Error("active target location specId does not match its identity");
+        }
+      } catch (cause) {
+        throw new FlowTargetAuthorityError(`active flow target state location is invalid for ${runId}`, { cause });
+      }
+    }
     const value = {
       runId,
       issue: normalizedIssue,
@@ -173,13 +187,18 @@ export class FlowTargetIdentity {
       throw new FlowTargetAuthorityError("active flow registry mode must match canonical execution mode");
     }
     const normalizedSpecId = FlowSpecId.from(state?.specId).toString();
+    const versionLocation = new FlowVersionRelativeLocation({
+      specRoot: FlowSpecRoot.from(specRoot).toString(),
+      specId: normalizedSpecId,
+      version: new FlowVersion(1),
+    });
     return new FlowTargetIdentity({
       runId: state?.runId,
       issue: state?.issue ?? null,
       specId: normalizedSpecId,
       lifecycle: "active",
       mode,
-      stateLocation: path.posix.join(FlowSpecRoot.from(specRoot).toString(), normalizedSpecId, "001", "flow.json"),
+      stateLocation: versionLocation.relativeArtifact("flow.state"),
     });
   }
 
@@ -199,7 +218,10 @@ export class FlowTargetIdentity {
         : FlowTargetIdentity.active(
           state,
           this.mode,
-          path.posix.dirname(path.posix.dirname(path.posix.dirname(this.stateLocation))),
+          FlowVersionRelativeLocation.fromArtifactPath({
+            relativeArtifactPath: this.stateLocation,
+            logicalKey: "flow.state",
+          }).specRoot,
         );
     } catch (cause) {
       throw new FlowTargetRecoveryError(

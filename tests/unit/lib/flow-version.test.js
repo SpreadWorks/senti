@@ -17,6 +17,7 @@ import {
   FlowVersion,
   FlowVersionAuthorityScope,
   FlowVersionLocation,
+  FlowVersionRelativeLocation,
   FlowTaskArtifactLocation,
   FlowVersionMigrationArtifact,
   FlowVersionMigrationClassifier,
@@ -161,6 +162,8 @@ function confirmationActivity(state, id) {
     effort: "test",
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    metric: null,
+    note: null,
   });
 }
 
@@ -213,6 +216,8 @@ function startActivity(state, { id = "activity-1", attemptId = null } = {}) {
     failure: null, provider: "test", model: "test", effort: "test",
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    metric: null,
+    note: null,
   });
 }
 
@@ -227,6 +232,8 @@ function updateAttemptActivity(state) {
     failure: null, provider: "test", model: "test", effort: "test",
     usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cost: 0 },
     references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+    metric: null,
+    note: null,
   });
 }
 
@@ -256,6 +263,21 @@ describe("Flow Version identity, schema, and consumer paths", () => {
   });
 
   it("resolves every Version reader through an explicit artifact logical key", () => {
+    const relative = new FlowVersionRelativeLocation({
+      specRoot: "specs",
+      specId: "508-flow-version",
+      version: new FlowVersion(1),
+    });
+    assert.equal(relative.relativeDirectory, "specs/508-flow-version/001");
+    assert.equal(relative.relativeArtifact("flow.state"), "specs/508-flow-version/001/flow.json");
+    assert.equal(FlowVersionRelativeLocation.fromArtifactPath({
+      relativeArtifactPath: relative.relativeArtifact("flow.state"),
+      logicalKey: "flow.state",
+    }).relativeDirectory, relative.relativeDirectory);
+    assert.throws(() => FlowVersionRelativeLocation.fromArtifactPath({
+      relativeArtifactPath: "specs/508-flow-version/flow.json",
+      logicalKey: "flow.state",
+    }), /canonical contract/);
     const location = canonicalLocation({ version: 1004 });
     assert.equal(new FlowVersion(1).pathSegment, "001");
     assert.equal(location.relativeDirectory, "specs/508-flow-version/1004");

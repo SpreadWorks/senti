@@ -5,36 +5,18 @@ import { execFileSync } from "child_process";
 import { globToRegex } from "../../lib/glob.js";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { RegressionFileSnapshotList } from "./regression-file-snapshot.js";
-import {
-  ArtifactCompletionMechanicalFailure,
-  ArtifactCompletionSuccess,
-} from "./artifact-completion.js";
 import { UPGRADE_RESULT_FILE } from "./upgrade-evidence-paths.js";
 export { UPGRADE_RESULT_FILE } from "./upgrade-evidence-paths.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
-export const TEST_RESULT_REVIEW_MD_FILE = "test-result-review.md";
-export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
 export const IMPL_GATE_RESULT_FILE = "impl-gate-result.json";
-export const TESTS_RAW_DIR_RELATIVE = "tests/.raw";
-export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log`;
-// Public durable path pattern: tests/.raw/final-regression-attempt-*.log
-export const FINAL_REGRESSION_RAW_OUTPUT_PATTERN = `${TESTS_RAW_DIR_RELATIVE}/final-regression-attempt-*.log`;
-export const TEMP_SUMMARY_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/requirement-summary.json`;
-export const FILE_MAP_RELATIVE = "steps/impl/file-map.json";
-export const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
-export const SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/scenario-validity.log`;
-const MAX_JSON_ARTIFACT_BYTES = 16 * 1024 * 1024;
 export const MAX_RAW_OUTPUT_BYTES = 64 * 1024 * 1024;
 const MAX_RAW_OUTPUT_LINES = 200_000;
 const MAX_EVIDENCE_RAW_OUTPUT_LINES = 2_000;
 const MAX_TEST_SOURCE_BYTES = 4 * 1024 * 1024;
 const MAX_SUMMARY_ITEMS = 500;
 const MAX_REVIEW_CHECKED_ITEMS = 500;
-const MAX_ARTIFACT_PATTERN_COUNT = 500;
-const MAX_COLLECTED_ARTIFACTS = 10_000;
-const MAX_ARTIFACT_GLOB_ENTRIES = 10_000;
 const SUMMARY_RESULT_VALUES = Object.freeze(["pass", "fail", "not_applicable"]);
 const SUMMARY_NO_TESTS_REASON = "no_tests_declared";
 const FINAL_REGRESSION_SKIP_KINDS = Object.freeze([
@@ -57,32 +39,6 @@ export const UPGRADE_REQUIRED_SOURCE_PATTERNS = Object.freeze([
   "src/lib/agent-defaults.js",
   "src/lib/config.js",
 ]);
-const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
-  UPGRADE_RESULT_FILE,
-  SCENARIO_VALIDITY_RESULT_FILE,
-  TEST_EXECUTE_RESULT_FILE,
-  TEST_RESULT_REVIEW_FILE,
-  TEST_RESULT_REVIEW_MD_FILE,
-  IMPL_GATE_RESULT_FILE,
-  FINAL_REGRESSION_RESULT_FILE,
-  "retro.json",
-  "report.json",
-  SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
-  RAW_OUTPUT_RELATIVE,
-  FINAL_REGRESSION_RAW_OUTPUT_PATTERN,
-]);
-const TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
-  TEMP_SUMMARY_RELATIVE,
-]);
-const REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
-  ...DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS.filter((pattern) => ![
-    SCENARIO_VALIDITY_RESULT_FILE,
-    SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
-    FINAL_REGRESSION_RAW_OUTPUT_PATTERN,
-  ].includes(pattern)),
-  ...TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS,
-]);
-
 function normalizeRepoPath(filePath) {
   return String(filePath || "").split(path.sep).join("/");
 }
@@ -256,60 +212,6 @@ export function validateCanonicalUpgradeEvidence({
   });
 }
 
-function addCollectedArtifactPathspec(existing, pathspec) {
-  existing.add(pathspec);
-  if (existing.size > MAX_COLLECTED_ARTIFACTS) {
-    throw new Error(`collected artifact path count exceeds max ${MAX_COLLECTED_ARTIFACTS}`);
-  }
-}
-
-// Supports literal POSIX-relative pathspecs and basename globs such as dir/*.log.
-export function collectExistingArtifactPathspecs(root, pathspecPatterns) {
-  assertMaxItems("artifact patterns", pathspecPatterns, MAX_ARTIFACT_PATTERN_COUNT);
-  const existing = new Set();
-  const globPatternsByDir = new Map();
-  for (const pathspec of pathspecPatterns) {
-    if (!pathspec.includes("*")) {
-      const absolutePath = path.join(root, pathspec);
-      if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile()) {
-        addCollectedArtifactPathspec(existing, pathspec);
-      }
-      continue;
-    }
-    const dir = path.posix.dirname(pathspec);
-    if (dir.includes("*")) {
-      throw new Error(`artifact glob supports basename wildcards only: ${pathspec}`);
-    }
-    if (!globPatternsByDir.has(dir)) globPatternsByDir.set(dir, []);
-    globPatternsByDir.get(dir).push(globToRegex(path.posix.basename(pathspec)));
-  }
-  for (const [dir, matchers] of globPatternsByDir) {
-    const absoluteDir = path.join(root, dir);
-    if (!fs.existsSync(absoluteDir)) continue;
-    const handle = fs.opendirSync(absoluteDir);
-    let seen = 0;
-    try {
-      let entry;
-      while ((entry = handle.readSync())) {
-        if (++seen > MAX_ARTIFACT_GLOB_ENTRIES) {
-          throw new Error(`artifact glob directory exceeds max entry count ${MAX_ARTIFACT_GLOB_ENTRIES}: ${dir}`);
-        }
-        if (entry.isFile() && matchers.some((re) => re.test(entry.name))) {
-          addCollectedArtifactPathspec(existing, path.posix.join(dir, entry.name));
-        }
-      }
-    } finally {
-      handle.closeSync();
-    }
-  }
-  return [...existing].sort();
-}
-
-export function removeRebuildableTestArtifacts(specDir) {
-  for (const existing of collectExistingArtifactPathspecs(specDir, REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS)) {
-    fs.rmSync(path.join(specDir, existing), { force: true });
-  }
-}
 export const SCENARIO_VALIDITY_CLASSIFICATIONS = Object.freeze(new Set([
   "expected_fail",
   "unexpected_pass",
@@ -384,16 +286,6 @@ function assertMaxItems(label, items, maxItems) {
   }
 }
 
-function readBoundedJson(filePath, label) {
-  assertFileSizeWithinLimit(filePath, label, MAX_JSON_ARTIFACT_BYTES);
-  const text = fs.readFileSync(filePath, "utf8");
-  try {
-    return { text, value: JSON.parse(text) };
-  } catch (err) {
-    throw new Error(`${label} is not valid JSON: ${err.message}`);
-  }
-}
-
 function readBoundedText(filePath, label, maxBytes) {
   assertFileSizeWithinLimit(filePath, label, maxBytes);
   return fs.readFileSync(filePath, "utf8");
@@ -442,13 +334,6 @@ function assertEvidenceRangeWithinLimit(range, label) {
   if (lineCount > MAX_EVIDENCE_RAW_OUTPUT_LINES) {
     throw new Error(`${label}.raw_output_lines exceeds max evidence range ${MAX_EVIDENCE_RAW_OUTPUT_LINES}`);
   }
-}
-
-function scenarioValidityRawOutputPath(root, specDir) {
-  return path.posix.join(
-    path.relative(root, specDir).split(path.sep).join("/"),
-    SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
-  );
 }
 
 export function validateTestExecuteResultV2(result) {
@@ -562,7 +447,10 @@ export function validateScenarioValidityResult(result, {
   if (rawText.length > MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS) {
     throw new Error(`scenario-validity raw output exceeds ${MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS} characters`);
   }
-  const expectedRaw = expectedRawOutputPath ?? scenarioValidityRawOutputPath(root, specDir);
+  if (typeof expectedRawOutputPath !== "string" || expectedRawOutputPath === "") {
+    throw new Error("scenario-validity expectedRawOutputPath is required");
+  }
+  const expectedRaw = expectedRawOutputPath;
   if (result.raw_output_path !== expectedRaw) {
     throw new Error(`raw_output_path must point to ${expectedRaw}`);
   }
@@ -1294,216 +1182,4 @@ export function validateTestResultReview(review) {
     throw new Error("checked_items[] must include project_regression_verification pass");
   }
   return review;
-}
-
-function completionFailure(artifactName, issueCodes, artifact = null) {
-  return new ArtifactCompletionMechanicalFailure({
-    artifactName,
-    artifact,
-    issueCodes,
-    issues: issueCodes.map((code) => `${artifactName}: ${code}`),
-  });
-}
-
-function completionSuccess(artifactName, artifact) {
-  return new ArtifactCompletionSuccess({ artifactName, artifact });
-}
-
-function addCompletionIssue(issueCodes, code) {
-  if (!issueCodes.includes(code)) issueCodes.push(code);
-}
-
-function addMappedValidationIssue(issueCodes, err, fallbackCode) {
-  const message = String(err?.message || err || "");
-  if (/raw_output_lines|raw output|range/i.test(message)) addCompletionIssue(issueCodes, "raw-evidence-range-invalid");
-  else if (/file-map/i.test(message)) addCompletionIssue(issueCodes, "file-map-missing");
-  else if (/regression/i.test(message)) addCompletionIssue(issueCodes, "regression-evidence-missing");
-  else if (/checked_items|verdict|test-result-review/i.test(message)) addCompletionIssue(issueCodes, "test-result-review-schema-invalid");
-  else addCompletionIssue(issueCodes, fallbackCode);
-}
-
-function rawLineCount(file) {
-  if (!fs.existsSync(file)) return null;
-  const text = fs.readFileSync(file, "utf8");
-  return text.split(/\r?\n/).length;
-}
-
-export function isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath) {
-  if (!root || !specDir || typeof rawOutputPath !== "string") return false;
-  const normalized = rawOutputPath.split(path.sep).join("/");
-  const relativeSpecDir = path.relative(root, specDir).split(path.sep).join("/");
-  return normalized === relativeSpecDir || normalized.startsWith(`${relativeSpecDir}/`);
-}
-
-export function resolveRawFile(root, specDir, rawOutputPath) {
-  if (!rawOutputPath) return null;
-  if (path.isAbsolute(rawOutputPath)) return rawOutputPath;
-  if (isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath)) {
-    return path.resolve(root || process.cwd(), rawOutputPath);
-  }
-  return path.resolve(specDir || root || process.cwd(), rawOutputPath);
-}
-
-function loadSpecTestableRequirements(specDir, fallbackEntries = []) {
-  try {
-    const spec = JSON.parse(fs.readFileSync(path.join(specDir, "spec.json"), "utf8"));
-    if (Array.isArray(spec.requirements)) {
-      return spec.requirements
-        .filter((requirement) => requirement.testable !== false)
-        .map((requirement) => ({ id: requirement.id }));
-    }
-  } catch (_) {
-    // Completion adapters can be exercised as public surfaces without a spec.
-  }
-  return fallbackEntries
-    .filter((entry) => typeof entry?.id === "string" && entry.id.length > 0)
-    .map((entry) => ({ id: entry.id }));
-}
-
-function hasMissingRequirementEvidence(requirements, entries) {
-  if (!Array.isArray(requirements) || requirements.length === 0) return false;
-  const actual = new Set(entries.map((entry) => entry?.id).filter(Boolean));
-  return requirements.some((requirement) => !actual.has(requirement.id));
-}
-
-export async function completeScenarioValidityArtifactChange({ root, specDir, artifact } = {}) {
-  const issueCodes = [];
-  const rawFile = resolveRawFile(root, specDir, artifact?.raw_output_path);
-  const entries = Array.isArray(artifact?.summary) ? artifact.summary : (Array.isArray(artifact?.requirements) ? artifact.requirements : []);
-  const requirements = loadSpecTestableRequirements(specDir, entries);
-  try {
-    if (rawFile && fs.existsSync(rawFile)) {
-      const rawText = fs.readFileSync(rawFile, "utf8");
-      validateScenarioValidityResult(artifact, {
-        root,
-        specDir,
-        requirements,
-        rawText,
-      });
-    } else {
-      validateScenarioValidityResult(artifact, { root, specDir, requirements });
-    }
-  } catch (err) {
-    addMappedValidationIssue(issueCodes, err, "scenario-validity-schema-invalid");
-  }
-  if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
-  if (artifact?.version !== "1") addCompletionIssue(issueCodes, "scenario-validity-schema-invalid");
-  if (entries.length === 0 || entries.some((entry) => entry.classification !== "expected_fail")) {
-    addCompletionIssue(issueCodes, "scenario-validity-classification-not-expected-fail");
-  }
-  return issueCodes.length
-    ? completionFailure(SCENARIO_VALIDITY_RESULT_FILE, issueCodes, artifact)
-    : completionSuccess(SCENARIO_VALIDITY_RESULT_FILE, artifact);
-}
-
-function testExecuteEntries(artifact) {
-  return Array.isArray(artifact?.summary) ? artifact.summary : (Array.isArray(artifact?.requirements) ? artifact.requirements : []);
-}
-
-function testExecuteEvidenceRange(entry) {
-  return entry?.evidence?.raw_output_lines || entry?.rawOutputLines || entry?.rawOutputLines || entry?.raw_output_lines;
-}
-
-function canonicalTestExecuteArtifact(artifact) {
-  if (Array.isArray(artifact?.summary)) return artifact;
-  const entries = Array.isArray(artifact?.requirements) ? artifact.requirements : [];
-  return {
-    ...artifact,
-    raw_output_path: artifact?.raw_output_path || artifact?.rawOutputPath,
-    summary: entries.map((entry) => ({
-      id: entry.id,
-      result: entry.result || entry.status || "fail",
-      evidence: {
-        command: entry.command || "node --test",
-        test_file: entry.test_file || entry.testFile || "",
-        test_name: entry.test_name || entry.testName || `${entry.id}: fixture`,
-        raw_output_lines: testExecuteEvidenceRange(entry),
-      },
-    })),
-    regression: artifact?.regression?.required == null
-      ? {
-        required: false,
-        category: "full-regression-deferred",
-        reason: "full project regression deferred to final-regression",
-        classified_paths: [],
-        ...artifact?.regression,
-      }
-      : artifact.regression,
-  };
-}
-
-export async function completeTestExecuteArtifactChange({ root, specDir, artifact } = {}) {
-  const issueCodes = [];
-  const rawOutputPath = artifact?.rawOutputPath || artifact?.raw_output_path;
-  const rawFile = resolveRawFile(root, specDir, rawOutputPath);
-  const entries = testExecuteEntries(artifact);
-  const requirements = loadSpecTestableRequirements(specDir, entries);
-  const hasSummaryArray = Array.isArray(artifact?.summary) || Array.isArray(artifact?.requirements);
-  const lineCount = rawFile ? rawLineCount(rawFile) : null;
-  if (hasSummaryArray && artifact?.regression) {
-    const canonical = canonicalTestExecuteArtifact(artifact);
-    try {
-      validateTestExecuteResultV2(canonical);
-      if (rawFile && lineCount != null && canonical.summary.every((entry) => entry?.evidence?.test_file && entry?.evidence?.test_name)) {
-        const rawText = fs.readFileSync(rawFile, "utf8");
-        validateTestExecuteResultEvidence(canonical, {
-          root: root || path.dirname(specDir || process.cwd()),
-          specDir,
-          rawOutputText: rawText,
-          rawLines: rawText.split(/\r?\n/),
-          requirements,
-        });
-      }
-    } catch (err) {
-      addMappedValidationIssue(issueCodes, err, "requirement-summary-missing");
-    }
-  }
-
-  if (hasMissingRequirementEvidence(requirements, entries)) addCompletionIssue(issueCodes, "requirement-summary-missing");
-  if (!specDir || !fs.existsSync(path.join(specDir, FILE_MAP_RELATIVE))) addCompletionIssue(issueCodes, "file-map-missing");
-  if (!hasSummaryArray || entries.length === 0) addCompletionIssue(issueCodes, "requirement-summary-missing");
-  if (!artifact?.regression) addCompletionIssue(issueCodes, "regression-evidence-missing");
-  if (rawOutputPath
-    && !rawOutputPath.startsWith(`${TESTS_RAW_DIR_RELATIVE}/`)
-    && !isRepositoryRelativeSpecArtifact(root, specDir, rawOutputPath)) {
-    addCompletionIssue(issueCodes, "placeholder-permission-missing");
-  }
-
-  if (lineCount != null && entries.length > 0) {
-    const invalidRange = entries.some((entry) => {
-      const range = testExecuteEvidenceRange(entry);
-      return !range
-        || !Number.isInteger(range.start_line)
-        || !Number.isInteger(range.end_line)
-        || range.start_line < 1
-        || range.end_line < range.start_line
-        || range.end_line > lineCount;
-    });
-    if (invalidRange) addCompletionIssue(issueCodes, "raw-evidence-range-invalid");
-  }
-
-  return issueCodes.length
-    ? completionFailure(TEST_EXECUTE_RESULT_FILE, issueCodes, artifact)
-    : completionSuccess(TEST_EXECUTE_RESULT_FILE, artifact);
-}
-
-export async function completeTestResultReviewArtifactChange({ specDir, artifact } = {}) {
-  const issueCodes = [];
-  if (Array.isArray(artifact?.checked_items)) {
-    try {
-      validateTestResultReview(artifact);
-    } catch (err) {
-      addMappedValidationIssue(issueCodes, err, "test-result-review-schema-invalid");
-    }
-  }
-  const checked = Array.isArray(artifact?.checked_items) ? artifact.checked_items : artifact?.checkedItems;
-  if (!Array.isArray(artifact?.checked_items) || artifact?.verdict !== "pass") addCompletionIssue(issueCodes, "test-result-review-schema-invalid");
-  if (!Array.isArray(checked) || checked.length === 0) addCompletionIssue(issueCodes, "checked-items-empty");
-  if (!specDir || !fs.existsSync(path.join(specDir, FILE_MAP_RELATIVE))) addCompletionIssue(issueCodes, "file-map-missing");
-  const regressionPass = Array.isArray(checked)
-    && checked.some((item) => item?.check === "project_regression_verification" && item?.result === "pass");
-  if (!regressionPass) addCompletionIssue(issueCodes, "regression-evidence-missing");
-  return issueCodes.length
-    ? completionFailure(TEST_RESULT_REVIEW_FILE, issueCodes, artifact)
-    : completionSuccess(TEST_RESULT_REVIEW_FILE, artifact);
 }

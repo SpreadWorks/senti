@@ -334,6 +334,52 @@ export class FlowVersion {
   toString() { return String(this.value); }
 }
 
+/** Repository-relative identity of one canonical Flow Version. */
+export class FlowVersionRelativeLocation {
+  constructor({ specRoot = "specs", specId, version } = {}) {
+    this.specRoot = relativePath(specRoot, "specRoot");
+    this.specId = FlowSpecIdentity.from(specId);
+    this.version = FlowVersion.from(version);
+    this.relativeDirectory = path.posix.join(
+      this.specRoot,
+      this.specId.toString(),
+      this.version.pathSegment,
+    );
+    Object.freeze(this);
+  }
+  static fromArtifactPath({ relativeArtifactPath, logicalKey, version = new FlowVersion(1) } = {}) {
+    const candidate = relativePath(relativeArtifactPath, "Version artifact path");
+    const artifactPath = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey).relativePath;
+    const candidateSegments = candidate.split("/");
+    const artifactSegments = artifactPath.split("/");
+    const versionIndex = candidateSegments.length - artifactSegments.length - 1;
+    const specIdIndex = versionIndex - 1;
+    const expectedVersion = FlowVersion.from(version);
+    if (
+      specIdIndex < 1
+      || candidateSegments[versionIndex] !== expectedVersion.pathSegment
+      || candidateSegments.slice(versionIndex + 1).join("/") !== artifactPath
+    ) {
+      throw new Error("Version artifact path does not match its canonical contract");
+    }
+    const location = new FlowVersionRelativeLocation({
+      specRoot: candidateSegments.slice(0, specIdIndex).join("/"),
+      specId: candidateSegments[specIdIndex],
+      version: expectedVersion,
+    });
+    if (location.relativeArtifact(logicalKey) !== candidate) {
+      throw new Error("Version artifact path does not match its resolved location");
+    }
+    return location;
+  }
+  relativePath(value) {
+    return path.posix.join(this.relativeDirectory, relativePath(value, "version-relative path"));
+  }
+  relativeArtifact(logicalKey, parameters = {}) {
+    return this.relativePath(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath);
+  }
+}
+
 export class FlowVersionAuthorityScope {
   constructor(value) {
     this.value = text(value, "Version authority scope");
@@ -467,10 +513,11 @@ export class FlowVersionLocation {
       throw new Error("repositoryRoot must be a canonical real directory without symbolic-link ancestors");
     }
     this.authorityScope = FlowVersionAuthorityScope.from(authorityScope);
-    this.specRoot = relativePath(specRoot, "specRoot");
-    this.specId = FlowSpecIdentity.from(specId);
-    this.version = FlowVersion.from(version);
-    const canonicalRelativeDirectory = path.posix.join(this.specRoot, this.specId.toString(), this.version.pathSegment);
+    const relativeLocation = new FlowVersionRelativeLocation({ specRoot, specId, version });
+    this.specRoot = relativeLocation.specRoot;
+    this.specId = relativeLocation.specId;
+    this.version = relativeLocation.version;
+    const canonicalRelativeDirectory = relativeLocation.relativeDirectory;
     if (storageRelativeDirectory !== null) {
       const staged = relativePath(storageRelativeDirectory, "Version staging directory");
       const expectedParent = path.posix.dirname(canonicalRelativeDirectory);

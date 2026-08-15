@@ -1,8 +1,7 @@
 /**
  * src/flow/lib/req-map.js
  *
- * Shared utilities for file-map.json: load, save, append (with dedup),
- * reconcile against git diff.
+ * Shared diff reconciliation for the typed canonical file-map.
  *
  * spec 249: legacy test-map.json related exports were removed; spec
  * verification test coverage is now declared via file headers
@@ -12,20 +11,6 @@
  * evaluateReqByResults) were removed when retro switched to consuming
  * test-execute-result.json directly. No consumer remains.
  */
-
-import fs from "node:fs";
-import path from "node:path";
-
-const FILE_MAP_NAME = "steps/impl/file-map.json";
-
-function loadJsonMap(filePath) {
-  if (!fs.existsSync(filePath)) return {};
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-export function loadFileMap(specDir) {
-  return loadJsonMap(path.join(specDir, FILE_MAP_NAME));
-}
 
 export function reconcileFileMap(fileMap, diffFiles) {
   const recorded = new Set();

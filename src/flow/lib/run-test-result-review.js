@@ -8,7 +8,6 @@
 import { FlowCommand } from "./base-command.js";
 import {
   MAX_RAW_OUTPUT_BYTES,
-  RAW_OUTPUT_RELATIVE,
   validateSummaryEvidence,
   validateTestExecuteResultEvidence,
   validateTestExecuteResultV2,

@@ -233,7 +233,7 @@ export class CanonicalMetricsFlow {
       issueLog: this.issueLog(),
     });
     return Object.freeze({
-      relativePath: `${this.specId}/001/metrics-input.json`,
+      relativePath: this.location.relativePath("metrics-input.json"),
       content,
     });
   }

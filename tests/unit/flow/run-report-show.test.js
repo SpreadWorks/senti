@@ -8,13 +8,11 @@
 
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { CanonicalFlowFixture, makeFlowManager } from "../../helpers/flow-setup.js";
 import {
-  resolveLatestReportPath,
-  readReportText,
+  CanonicalLatestReport,
   POINTER_REL_PATH,
 } from "../../../src/flow/lib/run-report-show.js";
 
@@ -34,7 +32,9 @@ function canonicalReportFixture(root, { specRoot = "specs", report = null } = {}
       artifactWrites: [{
         logicalKey: "report",
         mediaType: "application/json",
-        bytes: Buffer.from(`${JSON.stringify(report)}\n`, "utf8"),
+        bytes: Buffer.isBuffer(report)
+          ? report
+          : Buffer.from(`${JSON.stringify(report)}\n`, "utf8"),
       }],
     });
   }
@@ -53,12 +53,12 @@ describe("flow report show — resolve + read", () => {
       report: { data: {}, text: reportText },
     });
 
-    const reportPath = resolveLatestReportPath(tmp, "specs", flowManager);
+    const report = CanonicalLatestReport.read({ mainRoot: tmp, specRoot: "specs", flowManager });
     assert.equal(
-      reportPath,
+      report.path,
       path.join(flow.location().directory, "artifacts/report.json"),
     );
-    assert.equal(readReportText(reportPath), reportText);
+    assert.equal(report.text(), reportText);
   });
 
   it("resolves a report from a configured spec root", () => {
@@ -68,16 +68,18 @@ describe("flow report show — resolve + read", () => {
       report: { data: {}, text: "ok" },
     });
 
-    assert.equal(
-      resolveLatestReportPath(tmp, "flow-artifacts/specs", flowManager),
-      path.join(flow.location().directory, "artifacts/report.json"),
-    );
+    const report = CanonicalLatestReport.read({
+      mainRoot: tmp,
+      specRoot: "flow-artifacts/specs",
+      flowManager,
+    });
+    assert.equal(report.path, path.join(flow.location().directory, "artifacts/report.json"));
   });
 
   it("AC2: throws NO_POINTER when the pointer file is absent", () => {
     tmp = createTmpDir("sennel-report-show-no-ptr-");
     assert.throws(
-      () => resolveLatestReportPath(tmp),
+      () => CanonicalLatestReport.read({ mainRoot: tmp }),
       (err) => err.code === "NO_POINTER" && /pointer not found/.test(err.message),
     );
   });
@@ -86,7 +88,7 @@ describe("flow report show — resolve + read", () => {
     tmp = createTmpDir("sennel-report-show-empty-ptr-");
     writeFile(tmp, POINTER_REL_PATH, "   \n");
     assert.throws(
-      () => resolveLatestReportPath(tmp),
+      () => CanonicalLatestReport.read({ mainRoot: tmp }),
       (err) => err.code === "EMPTY_POINTER",
     );
   });
@@ -95,27 +97,27 @@ describe("flow report show — resolve + read", () => {
     tmp = createTmpDir("sennel-report-show-no-report-");
     const { flowManager } = canonicalReportFixture(tmp);
     assert.throws(
-      () => resolveLatestReportPath(tmp, "specs", flowManager),
+      () => CanonicalLatestReport.read({ mainRoot: tmp, specRoot: "specs", flowManager }),
       (err) => err.code === "NO_REPORT" && /cataloged report is unavailable/.test(err.message),
     );
   });
 
-  it("readReportText: throws PARSE_ERROR on invalid JSON", () => {
+  it("throws PARSE_ERROR when the cataloged report bytes are invalid JSON", () => {
     tmp = createTmpDir("sennel-report-show-bad-json-");
-    const reportPath = path.join(tmp, "report.json");
-    fs.writeFileSync(reportPath, "{ not json");
+    const { flowManager } = canonicalReportFixture(tmp, { report: Buffer.from("{ not json") });
+    const report = CanonicalLatestReport.read({ mainRoot: tmp, specRoot: "specs", flowManager });
     assert.throws(
-      () => readReportText(reportPath),
+      () => report.text(),
       (err) => err.code === "PARSE_ERROR",
     );
   });
 
-  it("readReportText: throws NO_TEXT when text field is missing", () => {
+  it("throws NO_TEXT when the cataloged report has no text field", () => {
     tmp = createTmpDir("sennel-report-show-no-text-");
-    const reportPath = path.join(tmp, "report.json");
-    fs.writeFileSync(reportPath, JSON.stringify({ data: {} }));
+    const { flowManager } = canonicalReportFixture(tmp, { report: { data: {} } });
+    const report = CanonicalLatestReport.read({ mainRoot: tmp, specRoot: "specs", flowManager });
     assert.throws(
-      () => readReportText(reportPath),
+      () => report.text(),
       (err) => err.code === "NO_TEXT",
     );
   });

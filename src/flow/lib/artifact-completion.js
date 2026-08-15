@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import { flowStateSpecLocation } from "../../lib/flow-workspace.js";
-
 export class ArtifactCompletionSuccess {
   static [Symbol.hasInstance](value) {
     return Boolean(value
@@ -41,43 +38,6 @@ export class ArtifactCompletionMechanicalFailure {
     this.artifact = artifact;
     Object.freeze(this);
   }
-}
-
-function normalizeValidation(result) {
-  if (result === true || result?.ok === true) return { ok: true, issues: [], issueCodes: [] };
-  const issues = Array.isArray(result?.issues) ? result.issues.map(String) : ["artifact validation failed"];
-  const issueCodes = Array.isArray(result?.issueCodes) ? result.issueCodes.map(String) : issues;
-  return { ok: false, issues, issueCodes };
-}
-
-export async function completeArtifactChange({
-  artifactName,
-  load,
-  normalize = (artifact) => artifact,
-  validate,
-  repair = null,
-} = {}) {
-  const loaded = await load();
-  const normalized = await normalize(loaded);
-  const first = normalizeValidation(await validate(normalized));
-  if (first.ok) return new ArtifactCompletionSuccess({ artifactName, artifact: normalized });
-  if (typeof repair !== "function") {
-    return new ArtifactCompletionMechanicalFailure({
-      artifactName,
-      artifact: normalized,
-      issues: first.issues,
-      issueCodes: first.issueCodes,
-    });
-  }
-  const repaired = await repair(normalized, first);
-  const second = normalizeValidation(await validate(repaired));
-  if (second.ok) return new ArtifactCompletionSuccess({ artifactName, artifact: repaired });
-  return new ArtifactCompletionMechanicalFailure({
-    artifactName,
-    artifact: repaired,
-    issues: second.issues,
-    issueCodes: second.issueCodes,
-  });
 }
 
 function parseArtifact({ rawText, artifact, artifactName }) {
@@ -169,79 +129,4 @@ export async function completeSpecArtifactChange(input = {}) {
     issueCodes.push("spec-repair-audit-invalid");
   }
   return failureOrSuccess("spec.json", artifact, issueCodes);
-}
-
-function reviewSurfaceAdapter(surface) {
-  return async ({ artifact = {}, protocolFailure = null, outputSchemaFailure = null } = {}) => {
-    const issueCodes = ["review-artifact-schema-invalid"];
-    if (surface !== "review:spec") issueCodes.unshift("review-artifact-generation-preserved");
-    if (protocolFailure) issueCodes.push("protocol-failure-non-semantic");
-    if (outputSchemaFailure) issueCodes.push("output-schema-failure-non-semantic");
-    issueCodes.push("semantic-retry-not-consumed");
-    return failureOrSuccess(`${surface}.json`, artifact, issueCodes);
-  };
-}
-
-const SURFACE_ADAPTERS = Object.freeze({
-  "gate:draft": completeDraftArtifactChange,
-  "gate:spec": completeSpecArtifactChange,
-  "gate:task-impl": async ({ artifact = {} } = {}) => failureOrSuccess("task-impl-gate-result.json", artifact, [
-    "phase-keyed-retry-preserved",
-    "failure-envelope-preserved",
-    "progression-behavior-preserved",
-  ]),
-  "gate:integration": async ({ artifact = {} } = {}) => failureOrSuccess("impl-gate-result.json", artifact, [
-    "phase-keyed-retry-preserved",
-    "artifact-trust-placeholder-rejected",
-    "regression-evidence-missing",
-    "failure-envelope-preserved",
-  ]),
-  "review:draft": reviewSurfaceAdapter("review:draft"),
-  "review:spec": reviewSurfaceAdapter("review:spec"),
-  "review:test": reviewSurfaceAdapter("review:test"),
-  "review:impl": reviewSurfaceAdapter("review:impl"),
-  "scenario-validity": async (input) => {
-    const mod = await import("./test-artifacts.js");
-    return mod.completeScenarioValidityArtifactChange(input);
-  },
-  "test-execute": async (input) => {
-    const mod = await import("./test-artifacts.js");
-    return mod.completeTestExecuteArtifactChange(input);
-  },
-  "test-result-review": async (input) => {
-    const mod = await import("./test-artifacts.js");
-    return mod.completeTestResultReviewArtifactChange(input);
-  },
-  "set-step:implement:done": async (input) => {
-    const mod = await import("./set-step.js");
-    const result = await mod.preValidateImplementStepCompletion(input);
-    if (result === null) return new ArtifactCompletionSuccess({ artifactName: "implement", artifact: input });
-    return new ArtifactCompletionMechanicalFailure({
-      artifactName: "implement",
-      issues: result.data?.issueCodes || result.errors?.flatMap((entry) => entry.messages || []) || ["implement readiness failed"],
-      issueCodes: result.data?.issueCodes || [],
-    });
-  },
-});
-
-export function listProducerCompletionSurfaces() {
-  return Object.keys(SURFACE_ADAPTERS);
-}
-
-export function getProducerCompletionAdapter(surface) {
-  return SURFACE_ADAPTERS[surface] || null;
-}
-
-export function specDirFromInput({ root, state, specDir }) {
-  if (specDir) return specDir;
-  if (!state?.specId) throw new Error("state.specId is required");
-  const location = flowStateSpecLocation(state);
-  if (location === null) {
-    throw new Error("artifact completion requires a manager-bound Version location");
-  }
-  return location.directory;
-}
-
-export function fileExists(file) {
-  return fs.existsSync(file);
 }

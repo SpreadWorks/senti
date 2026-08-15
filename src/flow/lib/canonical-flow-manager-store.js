@@ -47,6 +47,7 @@ import { PlanGateRepairRecord } from "./plan-gate-repair.js";
 import { IssueLogDocument } from "./issue-log-store.js";
 import { CanonicalOverviewUpdate } from "./canonical-overview-update.js";
 import { CanonicalSpecApproval } from "./canonical-spec-approval.js";
+import { CanonicalFileMapUpdate } from "./canonical-file-map.js";
 import { nonblockingRouteFor } from "./nonblocking-route.js";
 
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
@@ -122,30 +123,6 @@ function canonicalIssueLogEntry(value) {
     throw new CurrentFlowStateInvariantError("canonical issue-log entry must be an object");
   }
   return structuredClone(value);
-}
-
-class CanonicalFileMapUpdate {
-  constructor({ requirementId, paths } = {}) {
-    this.requirementId = requiredText(requirementId, "canonical file-map requirementId");
-    if (!Array.isArray(paths) || paths.length === 0) {
-      throw new CurrentFlowStateInvariantError("canonical file-map paths must be a non-empty array");
-    }
-    this.paths = Object.freeze([...new Set(paths.map((value) => requiredText(value, "canonical file-map path")))]);
-    Object.freeze(this);
-  }
-
-  apply({ spec, fileMap }) {
-    const requirements = Array.isArray(spec?.requirements) ? spec.requirements : [];
-    if (!requirements.some((entry) => entry?.id === this.requirementId)) {
-      throw new CurrentFlowStateInvariantError(`requirement id not found: ${this.requirementId}`);
-    }
-    if (fileMap === null || typeof fileMap !== "object" || Array.isArray(fileMap)) {
-      throw new CurrentFlowStateInvariantError("canonical file-map must be an object");
-    }
-    const next = structuredClone(fileMap);
-    next[this.requirementId] = [...new Set([...(Array.isArray(next[this.requirementId]) ? next[this.requirementId] : []), ...this.paths])];
-    return Object.freeze(next);
-  }
 }
 
 /** A requirement status change is a typed replacement of the cataloged Spec. */

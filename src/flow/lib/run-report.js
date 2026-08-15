@@ -25,6 +25,7 @@ import {
 } from "./test-artifacts.js";
 import { advisorySummary } from "./nonblocking.js";
 import { CanonicalReportArtifactStore } from "./canonical-report-artifacts.js";
+import { CanonicalFileMap } from "./canonical-file-map.js";
 import {
   CanonicalCommandResultPublication,
   attachCanonicalCommandResultPublications,
@@ -243,6 +244,7 @@ function executeCanonicalReport(ctx) {
   }
   const spec = store.readDocument({ logicalKey: "spec.record" });
   const fileMap = store.readDocument({ logicalKey: "file.map", optional: true });
+  if (fileMap !== null) new CanonicalFileMap(fileMap.value).assertAgainstSpec(spec.value);
   const issueLog = store.readDocument({ logicalKey: "issue.log", optional: true });
   const retro = store.readDocument({ logicalKey: "retro", optional: true });
   const testExecute = store.readDocument({ logicalKey: "test.execute", optional: true });

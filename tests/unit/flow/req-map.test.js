@@ -1,26 +1,19 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { afterEach, test } from "node:test";
+import { test } from "node:test";
 
-import { loadFileMap } from "../../../src/flow/lib/req-map.js";
-import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { CanonicalFileMap } from "../../../src/flow/lib/canonical-file-map.js";
+import { reconcileFileMap } from "../../../src/flow/lib/req-map.js";
 
-let root = null;
+test("canonical file-map keeps one typed requirement-to-file authority", () => {
+  const fileMap = new CanonicalFileMap({
+    R1: ["src/current.js", "src/current.js"],
+  }).assertAgainstSpec({ requirements: [{ id: "R1" }] });
 
-afterEach(() => {
-  if (root !== null) removeTmpDir(root);
-  root = null;
-});
-
-test("impl review resolves the canonical shared file map and ignores the retired root path", () => {
-  root = createTmpDir("canonical-req-map-");
-  fs.mkdirSync(path.join(root, "steps", "impl"), { recursive: true });
-  fs.writeFileSync(path.join(root, "file-map.json"), `${JSON.stringify({ R1: ["legacy.js"] })}\n`);
-  fs.writeFileSync(
-    path.join(root, "steps", "impl", "file-map.json"),
-    `${JSON.stringify({ R1: ["src/current.js"] })}\n`,
+  assert.deepEqual(fileMap.toJSON(), { R1: ["src/current.js"] });
+  assert.deepEqual(reconcileFileMap(fileMap.toJSON(), ["src/current.js", "src/unmapped.js"]), ["src/unmapped.js"]);
+  assert.throws(
+    () => new CanonicalFileMap({ R2: ["src/unknown.js"] }).assertAgainstSpec({ requirements: [{ id: "R1" }] }),
+    /requirement id not found: R2/,
   );
-
-  assert.deepEqual(loadFileMap(root), { R1: ["src/current.js"] });
+  assert.throws(() => new CanonicalFileMap({ R1: ["../outside.js"] }), /repository-relative path/);
 });

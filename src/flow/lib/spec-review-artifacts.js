@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-
 const SPEC_TRIAGE_DECISIONS = new Set([
   "apply",
   "invalid",
@@ -149,10 +146,6 @@ export class SpecRepairArtifact {
   }
 }
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
 export function validateSpecTriageDocument({ review, triage }) {
   return new SpecTriageArtifact(triage, new SpecReviewArtifact(review));
 }
@@ -161,46 +154,4 @@ export function validateSpecRepairDocument({ review, triage, repair }) {
   const reviewArtifact = new SpecReviewArtifact(review);
   const triageArtifact = new SpecTriageArtifact(triage, reviewArtifact);
   return new SpecRepairArtifact(repair, triageArtifact);
-}
-
-export function validateSpecRepairAudit(specDir) {
-  const reviewPath = path.join(specDir, "spec-review.json");
-  const triagePath = path.join(specDir, "spec-triage.json");
-  const repairPath = path.join(specDir, "spec-repair.json");
-  let review;
-  try {
-    review = fs.existsSync(reviewPath) ? readJson(reviewPath) : null;
-  } catch (error) {
-    return [`spec-repair: spec-review.json is invalid JSON: ${error.message}`];
-  }
-  if (!review || review.verdict !== "REJECTED") return [];
-  if (!fs.existsSync(triagePath)) {
-    return ["spec-triage: spec-review.json verdict is REJECTED but spec-triage.json is missing"];
-  }
-  let triage;
-  try {
-    triage = readJson(triagePath);
-  } catch (error) {
-    return [`spec-triage: spec-triage.json is invalid JSON: ${error.message}`];
-  }
-  try {
-    validateSpecTriageDocument({ review, triage });
-  } catch (error) {
-    return error.issues || [error.message];
-  }
-  if (!fs.existsSync(repairPath)) {
-    return ["spec-repair: spec-review.json verdict is REJECTED but spec-repair.json is missing"];
-  }
-  let repair;
-  try {
-    repair = readJson(repairPath);
-  } catch (error) {
-    return [`spec-repair: spec-repair.json is invalid JSON: ${error.message}`];
-  }
-  try {
-    validateSpecRepairDocument({ review, triage, repair });
-    return [];
-  } catch (error) {
-    return error.issues || [error.message];
-  }
 }

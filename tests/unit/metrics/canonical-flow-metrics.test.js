@@ -73,6 +73,7 @@ describe("CanonicalMetricsFlowIndex", () => {
     assert.match(flow.finalizedAt(), /^\d{4}-\d{2}-\d{2}T/);
     assert.equal(flow.artifacts.some((artifact) => artifact.relativePath === "spec.json"), true);
     assert.equal(flow.location.relativeSpecFile, `specs/${fixture.specId}/001/spec.json`);
+    assert.equal(flow.revisionInput().relativePath, `specs/${fixture.specId}/001/metrics-input.json`);
   });
 
   it("projects cataloged review attempts, issue facts, and retry Activities without a legacy review path", async () => {

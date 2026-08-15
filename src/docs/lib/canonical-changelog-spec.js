@@ -6,6 +6,7 @@
  */
 
 import fs from "node:fs";
+import path from "node:path";
 
 function requiredText(value, field) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -91,6 +92,7 @@ export class CanonicalChangelogSpec {
       status: this.state.lifecycle === "finalized" ? "completed" : "active",
       branch: sanitizedText(this.state.execution.featureBranch, "n/a"),
       inputLine: firstScopeLine(this.document),
+      versionDirectory: path.posix.relative(this.location.specRoot, this.location.relativeDirectory),
       // Derived Markdown is intentionally absent from a canonical Flow. The
       // only durable links are cataloged root records.
       links: Object.freeze([

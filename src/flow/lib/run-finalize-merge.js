@@ -28,6 +28,7 @@ export class RunFinalizeMergeCommand extends FlowCommand {
     const mergeResult = runMerge({
       root,
       flowState: state,
+      flowManager: ctx.flowManager,
       worktreePath,
       mainRepoPath,
       idempotencyKey: ctx.flowOutboxEntry?.idempotencyKey

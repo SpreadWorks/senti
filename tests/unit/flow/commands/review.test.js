@@ -18,6 +18,7 @@ import { CurrentFlowSpecRecord } from "../../../../src/flow/lib/current-flow-sta
 import { flattenSteps } from "../../../../src/flow/lib/step-tree.js";
 import { container } from "../../../../src/lib/container.js";
 import { attachCanonicalCommandResultArtifact } from "../../../../src/flow/lib/canonical-command-result.js";
+import { CanonicalReviewWorkUnit } from "../../../../src/flow/lib/canonical-review-artifacts.js";
 import { ReviewFindingCycle } from "../../../../src/flow/lib/finding-disposition-policy.js";
 import { Agent } from "../../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../../src/lib/provider.js";
@@ -241,15 +242,47 @@ describe("canonical impl review catalog history", () => {
 describe("normal no-diff canonical review", () => {
   let noDiffRoot = null;
   let previousReviewOutputDirectory;
+  let previousReviewSpecSource;
+  let previousReviewFileMapSource;
+  let reviewEnvironmentCaptured = false;
 
   afterEach(() => {
     container.reset();
     if (previousReviewOutputDirectory === undefined) delete process.env.SENNEL_REVIEW_OUTPUT_DIR;
     else process.env.SENNEL_REVIEW_OUTPUT_DIR = previousReviewOutputDirectory;
+    if (previousReviewSpecSource === undefined) delete process.env.SENNEL_REVIEW_SPEC_SOURCE;
+    else process.env.SENNEL_REVIEW_SPEC_SOURCE = previousReviewSpecSource;
+    if (previousReviewFileMapSource === undefined) delete process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
+    else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = previousReviewFileMapSource;
     previousReviewOutputDirectory = undefined;
+    previousReviewSpecSource = undefined;
+    previousReviewFileMapSource = undefined;
+    reviewEnvironmentCaptured = false;
     if (noDiffRoot) removeTmpDir(noDiffRoot);
     noDiffRoot = null;
   });
+
+  function bindReviewWorkUnit(fixture, flowManager) {
+    const workUnit = new CanonicalReviewWorkUnit({
+      flowManager,
+      state: fixture.state(),
+      phase: "impl",
+    });
+    const outputDirectory = workUnit.prepare().directory;
+    const specSource = workUnit.materializeSpecRecord();
+    const fileMapSource = workUnit.materializeFileMap();
+    if (!reviewEnvironmentCaptured) {
+      previousReviewOutputDirectory = process.env.SENNEL_REVIEW_OUTPUT_DIR;
+      previousReviewSpecSource = process.env.SENNEL_REVIEW_SPEC_SOURCE;
+      previousReviewFileMapSource = process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
+      reviewEnvironmentCaptured = true;
+    }
+    process.env.SENNEL_REVIEW_OUTPUT_DIR = outputDirectory;
+    process.env.SENNEL_REVIEW_SPEC_SOURCE = JSON.stringify(specSource);
+    if (fileMapSource === null) delete process.env.SENNEL_REVIEW_FILE_MAP_SOURCE;
+    else process.env.SENNEL_REVIEW_FILE_MAP_SOURCE = JSON.stringify(fileMapSource);
+    return { outputDirectory, specSource, fileMapSource };
+  }
 
   it("passes without a diff on a first Attempt and a typed retry after transient cleanup", async () => {
     noDiffRoot = createTmpDir("canonical-no-diff-review-");
@@ -271,15 +304,7 @@ describe("normal no-diff canonical review", () => {
     execFileSync("git", ["add", "--all"], { cwd: noDiffRoot, stdio: "pipe" });
     execFileSync("git", ["commit", "-m", "canonical review fixture"], { cwd: noDiffRoot, stdio: "pipe" });
 
-    const outputDirectory = path.join(
-      fixture.location().directory,
-      ".runtime",
-      "review-work-units",
-      "impl-review",
-      "no-diff",
-    );
-    previousReviewOutputDirectory = process.env.SENNEL_REVIEW_OUTPUT_DIR;
-    process.env.SENNEL_REVIEW_OUTPUT_DIR = outputDirectory;
+    const { outputDirectory } = bindReviewWorkUnit(fixture, flowManager);
     container.reset();
     container.register("root", noDiffRoot);
     container.register("mainRoot", noDiffRoot);
@@ -324,9 +349,101 @@ describe("normal no-diff canonical review", () => {
     );
     fs.rmSync(outputDirectory, { recursive: true, force: true });
 
+    const { outputDirectory: retryOutputDirectory } = bindReviewWorkUnit(fixture, flowManager);
     await command.execute({ _rawArgs: [] });
-    assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
+    assert.equal(JSON.parse(fs.readFileSync(path.join(retryOutputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
     assert.equal(fs.existsSync(path.join(fixture.location().directory, "review-history")), false);
+  });
+
+  it("uses the cataloged file.map as the unchanged implementation-review prompt authority", async () => {
+    noDiffRoot = createTmpDir("canonical-file-map-review-");
+    execFileSync("git", ["init", "--initial-branch=main"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.email", "review@example.test"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.name", "Review Fixture"], { cwd: noDiffRoot, stdio: "pipe" });
+    fs.mkdirSync(path.join(noDiffRoot, "src"), { recursive: true });
+    fs.writeFileSync(path.join(noDiffRoot, "src", "mapped.js"), "export const value = 1;\n");
+    execFileSync("git", ["add", "--all"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", "review baseline"], { cwd: noDiffRoot, stdio: "pipe" });
+
+    const flowManager = makeFlowManager(noDiffRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-file-map-review",
+      runId: "run-file-map-review",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+      specRecord: {
+        goal: "Consume the canonical file map during review.",
+        requirements: [{ id: "R-1", desc: "Review the mapped implementation file." }],
+      },
+    }).create().registerActive().activate("implement");
+    flowManager.updateFileMap({
+      specId: fixture.specId,
+      requirementId: "R-1",
+      paths: ["src/mapped.js"],
+    });
+    fixture.settle("implement").activate("impl-review");
+    fs.writeFileSync(path.join(noDiffRoot, "src", "mapped.js"), "export const value = 2;\n");
+
+    const { outputDirectory, fileMapSource } = bindReviewWorkUnit(fixture, flowManager);
+    assert.ok(fileMapSource);
+    let capturedPrompt = "";
+    container.reset();
+    container.register("root", noDiffRoot);
+    container.register("mainRoot", noDiffRoot);
+    container.register("flowManager", flowManager);
+    container.register("config", { flow: { review: {} } });
+    container.register("agent", {
+      resolve: () => ({ provider: "fixture" }),
+      call: async (userPrompt, options) => {
+        capturedPrompt = `${options.systemPrompt || ""}\n${userPrompt}`;
+        return JSON.stringify({ blockingFindings: [], nonBlockingImprovements: [] });
+      },
+    });
+
+    await new FlowReviewCommand().execute({ _rawArgs: [] });
+
+    assert.match(capturedPrompt, /## Requirement-File Mapping/);
+    assert.match(capturedPrompt, /"R-1": \[/);
+    assert.match(capturedPrompt, /"src\/mapped\.js"/);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(outputDirectory, "impl-review.json"), "utf8")).verdict, "PASS");
+    assert.equal(fs.existsSync(path.join(fixture.location().directory, "file-map.json")), false);
+  });
+
+  it("fails closed before agent execution when changed implementation has no cataloged file.map", async () => {
+    noDiffRoot = createTmpDir("canonical-missing-file-map-review-");
+    execFileSync("git", ["init", "--initial-branch=main"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.email", "review@example.test"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["config", "user.name", "Review Fixture"], { cwd: noDiffRoot, stdio: "pipe" });
+    fs.writeFileSync(path.join(noDiffRoot, "changed.js"), "export const changed = 1;\n");
+    execFileSync("git", ["add", "--all"], { cwd: noDiffRoot, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", "review baseline"], { cwd: noDiffRoot, stdio: "pipe" });
+
+    const flowManager = makeFlowManager(noDiffRoot);
+    const fixture = new CanonicalFlowFixture({
+      flowManager,
+      specId: "001-missing-file-map-review",
+      runId: "run-missing-file-map-review",
+      execution: { mode: "direct", baseBranch: "main", featureBranch: "main" },
+      specRecord: { requirements: [{ id: "R-1", desc: "Require a durable file map." }] },
+    }).create().registerActive().activate("impl-review");
+    fs.writeFileSync(path.join(noDiffRoot, "changed.js"), "export const changed = 2;\n");
+    bindReviewWorkUnit(fixture, flowManager);
+    let agentCalls = 0;
+    container.reset();
+    container.register("root", noDiffRoot);
+    container.register("mainRoot", noDiffRoot);
+    container.register("flowManager", flowManager);
+    container.register("config", { flow: { review: {} } });
+    container.register("agent", {
+      resolve: () => ({ provider: "fixture" }),
+      call: async () => { agentCalls += 1; return "{}"; },
+    });
+
+    await assert.rejects(
+      () => new FlowReviewCommand().execute({ _rawArgs: [] }),
+      /SENNEL_REVIEW_FILE_MAP_SOURCE is required/,
+    );
+    assert.equal(agentCalls, 0);
   });
 });
 
@@ -375,7 +492,12 @@ describe("canonical review target artifact filtering", () => {
       location.relativeSpecFile,
     ];
     const mergeBase = resolveMergeBase(targetRoot, "main");
-    const untrackedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase);
+    const spec = JSON.parse(flowManager.readArtifact({
+      specId: fixture.specId,
+      logicalKey: "spec.record",
+      consumerNodeId: "impl-review",
+    }).bytes.toString("utf8"));
+    const untrackedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase, spec);
 
     assert.equal(untrackedTarget.untrackedFiles.has(relativeTestPath), true);
     for (const relativePath of storeManagedPaths) {
@@ -387,7 +509,7 @@ describe("canonical review target artifact filtering", () => {
     }
 
     execFileSync("git", ["add", "--", relativeTestPath], { cwd: targetRoot, stdio: "pipe" });
-    const stagedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase);
+    const stagedTarget = await resolveReviewTarget(targetRoot, flow, mergeBase, spec);
     assert.match(stagedTarget.diff, new RegExp(relativeTestPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.equal(stagedTarget.touchedFiles.has(relativeTestPath), true);
     for (const relativePath of storeManagedPaths) {
@@ -993,6 +1115,8 @@ describe("flow run review --phase test CLI", () => {
       "SENNEL_REVIEW_TEST_ARTIFACT_REVISION",
       "SENNEL_REVIEW_TASK_SPEC_SOURCE",
       "SENNEL_REVIEW_DRAFT_SOURCE",
+      "SENNEL_REVIEW_SPEC_SOURCE",
+      "SENNEL_REVIEW_FILE_MAP_SOURCE",
     ]) delete environment[variable];
 
     assert.throws(

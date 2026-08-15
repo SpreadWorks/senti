@@ -26,13 +26,17 @@ import {
   commitFinalizeCompletion,
   writeLastFinalizedPointer,
 } from "./run-finalize.js";
-import { resolveLatestReportPath, readReportText } from "./run-report-show.js";
+import { CanonicalLatestReport } from "./run-report-show.js";
 import { flattenSteps } from "./step-tree.js";
 import { FinalizeCleanupStateResolution } from "./finalize-cleanup-state.js";
 import { FinalizeFlowStateOwner } from "./finalize-flow-state-owner.js";
 import { IssueLogDocument } from "./issue-log-store.js";
 import { issueLogStoreForVersion } from "./set-issue-log.js";
-import { CanonicalFlowArtifactWrite } from "./current-flow-state.js";
+import {
+  CanonicalFlowArtifactWrite,
+  CurrentFlowVersionStore,
+} from "./current-flow-state.js";
+import { buildCurrentFlowDefinition } from "../definition.js";
 import { FLOW_ARTIFACT_CONTRACTS } from "../../lib/flow-artifact-contract.js";
 import { discoverFlowCommandHooks, runFlowCommandHooks } from "../../lib/plugin-registry.js";
 import { AtomicJsonFile } from "../../lib/atomic-json-file.js";
@@ -305,9 +309,8 @@ function buildReportField(mainRoot, specRoot) {
   // projectRegression data. Missing or malformed report data is surfaced as
   // REPORT_MISSING instead of fabricated.
   try {
-    const path = resolveLatestReportPath(mainRoot, specRoot);
-    const text = readReportText(path);
-    return { report: { path, text }, missing: null };
+    const report = CanonicalLatestReport.read({ mainRoot, specRoot, consumerNodeId: "finalize-cleanup" });
+    return { report: { path: report.path, text: report.text() }, missing: null };
   } catch (err) {
     return { report: null, missing: err };
   }
@@ -325,16 +328,16 @@ function attachReport(env, mainRoot, specRoot) {
 class AutoRescueIssueLogAllowance {
   constructor({ mainRepoPath, specRoot, specId, idempotencyKey }) {
     this.mainRepoPath = mainRepoPath;
-    this.relativePath = canonicalFlowLocation(mainRepoPath, specRoot, specId).relativeIssueLogFile;
+    this.location = canonicalFlowLocation(mainRepoPath, specRoot, specId);
+    this.relativePath = this.location.relativeIssueLogFile;
     this.idempotencyKey = idempotencyKey;
   }
 
   allowsCurrentDocument() {
     if (typeof this.idempotencyKey !== "string" || this.idempotencyKey === "") return false;
-    const currentPath = path.join(this.mainRepoPath, this.relativePath);
     let current;
     try {
-      current = new IssueLogDocument(JSON.parse(fs.readFileSync(currentPath, "utf8")));
+      current = issueLogStoreForVersion(this.location).read().document;
     } catch {
       return false;
     }
@@ -382,36 +385,25 @@ class FinalizeFlowMetadataAllowance {
       this.location.relativeCatalogFile,
     ];
     this.issueLogPath = this.location.relativeIssueLogFile;
+    this.versionStore = new CurrentFlowVersionStore({
+      location: this.location,
+      definition: buildCurrentFlowDefinition(),
+    });
   }
 
   allowsCurrentFlowMetadata() {
-    let current;
     try {
-      current = JSON.parse(fs.readFileSync(path.join(this.mainRepoPath, this.flowPaths[0]), "utf8"));
+      const snapshot = this.versionStore.loadSnapshot();
+      return snapshot !== null && snapshot.state.specId === this.specId;
     } catch {
       return false;
     }
-    return (
-      current != null
-      && typeof current === "object"
-      && current.schemaRevision === 3
-      && current.runId != null
-      && typeof current.runId === "string"
-      && current.specId === this.specId
-      && current.execution != null
-      && typeof current.execution === "object"
-      && typeof current.execution.baseBranch === "string"
-      && typeof current.execution.featureBranch === "string"
-      && Array.isArray(current.steps)
-      && this.flowPaths.slice(1).every((relativePath) => fs.existsSync(path.join(this.mainRepoPath, relativePath)))
-    );
   }
 
   allowsCurrentIssueLogAppend() {
-    const currentPath = path.join(this.mainRepoPath, this.issueLogPath);
     let current;
     try {
-      current = new IssueLogDocument(JSON.parse(fs.readFileSync(currentPath, "utf8")));
+      current = issueLogStoreForVersion(this.location).read().document;
     } catch {
       return false;
     }
@@ -531,6 +523,8 @@ function listMainRepoDirtyFiles(
 
 function listOtherDirtyFlowJsonPaths(mainRepoPath, specRoot, specId) {
   const normalizedSpecRoot = FlowSpecRoot.from(specRoot).toString();
+  const version = new FlowVersion(1);
+  const stateArtifact = FLOW_ARTIFACT_CONTRACTS.resolve("flow.state").relativePath;
   const res = runGit([
     "-C",
     mainRepoPath,
@@ -538,7 +532,7 @@ function listOtherDirtyFlowJsonPaths(mainRepoPath, specRoot, specId) {
     "--porcelain",
     "--untracked-files=all",
     "--",
-    `:(glob)${normalizedSpecRoot}/*/001/flow.json`,
+    `:(glob)${normalizedSpecRoot}/*/${version.pathSegment}/${stateArtifact}`,
   ]);
   if (!res.ok) {
     throw new Error(res.stderr || res.stdout || "git status failed");
@@ -951,18 +945,20 @@ export function recordFinalizeCleanupPostCommandMetadata({
 
   function appendCatalogedEntries(logicalKey, key, entries) {
     if (!Array.isArray(entries) || entries.length === 0) return null;
-    const artifact = FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey);
-    const catalog = flowManager.artifactCatalog(specId);
     let existing = [];
     try {
-      const descriptor = catalog.resolve(artifact.relativePath);
-      const current = JSON.parse(fs.readFileSync(specLocation.resolve(descriptor.relativePath), "utf8"));
-      if (Array.isArray(current?.[key])) existing = current[key];
+      const artifact = flowManager.readArtifact({
+        specId,
+        logicalKey,
+        consumerNodeId: "finalize-cleanup",
+        optional: true,
+      });
+      if (artifact !== null) {
+        const current = JSON.parse(artifact.bytes.toString("utf8"));
+        if (Array.isArray(current?.[key])) existing = current[key];
+      }
     } catch (error) {
-      // An absent descriptor is normal for a first producer publication.  A
-      // present but corrupt descriptor/document is an authority failure and
-      // must not be silently replaced.
-      if (fs.existsSync(specLocation.resolve(artifact.relativePath))) throw error;
+      throw new Error(`canonical finalize-cleanup ${logicalKey} is invalid: ${error.message}`, { cause: error });
     }
     return new CanonicalFlowArtifactWrite({
       logicalKey,
@@ -2803,12 +2799,14 @@ function completeFinalizeCleanupStep(stateOwner, operationOwnerToken) {
  * `finalize-cleanup` is the last definition-owned leaf.  Completing that
  * Attempt is not itself a lifecycle transition: the Version Store keeps the
  * lifecycle fact as a separate typed Activity so a restart can distinguish a
- * completed cleanup from a finalized Flow.  Older fixture-only managers do
- * not expose schemaRevision 3 and keep their historical completion surface.
+ * completed cleanup from a finalized Flow.
  */
 function finalizeCanonicalFlowIfComplete(stateOwner) {
   const state = stateOwner.loadReadOnly();
-  if (state?.schemaRevision !== 3 || state.lifecycle === "finalized") return state;
+  if (state?.schemaRevision !== 3) {
+    throw new Error("finalize cleanup requires a Version-1 Flow state");
+  }
+  if (state.lifecycle === "finalized") return state;
   stateOwner.flowManager.finalizeFlow(state.specId);
   return stateOwner.loadReadOnly();
 }

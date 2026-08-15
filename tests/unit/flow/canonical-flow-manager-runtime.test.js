@@ -1401,6 +1401,19 @@ describe("FlowManager canonical Version-1 runtime", () => {
       runCommand(command, args, options) {
         invocation = { command, args, options };
         const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+        const specSource = JSON.parse(options.env.SENNEL_REVIEW_SPEC_SOURCE);
+        assert.equal(specSource.logicalKey, "spec.record");
+        assert.equal(specSource.logicalPath, "spec.json");
+        assert.equal(specSource.sourcePath.startsWith(`${outputDirectory}${path.sep}`), true);
+        assert.deepEqual(
+          JSON.parse(fs.readFileSync(specSource.sourcePath, "utf8")),
+          JSON.parse(manager.readArtifact({
+            specId: created.specId,
+            logicalKey: "spec.record",
+            consumerNodeId: "spec-review",
+          }).bytes.toString("utf8")),
+        );
+        assert.equal(options.env.SENNEL_REVIEW_FILE_MAP_SOURCE, undefined);
         fs.writeFileSync(path.join(outputDirectory, "spec-review.json"), JSON.stringify({
           verdict: "PASS",
           blockingFindings: [],
@@ -1530,6 +1543,71 @@ describe("FlowManager canonical Version-1 runtime", () => {
     const location = manager.specLocation(created.specId);
     assert.equal(fs.existsSync(path.join(location.directory, "draft.json")), false);
     assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-review.json")), false);
+    assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-triage.json")), false);
+    assert.equal(fs.existsSync(path.join(location.directory, "draft-questions-repair.json")), false);
+  });
+
+  it("materializes the shared file.map for impl review from its catalog authority", async () => {
+    const repository = root();
+    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
+    const specId = "001-canonical-file-map-review";
+    const created = manager.createFresh(request(specId, {
+      specRecord: new CurrentFlowSpecRecord({
+        ...emptySpecStub(),
+        requirements: [{ id: "R-1", desc: "Bind review to the shared file map." }],
+        tasks: [],
+      }, { specId }),
+    }));
+    manager.addActiveFlow(specId, "direct");
+    advanceTo(manager, specId, "impl-review", {
+      onActive(nodeId) {
+        if (nodeId !== "implement") return;
+        manager.updateFileMap({ specId, requirementId: "R-1", paths: ["src/mapped.js"] });
+      },
+    });
+
+    let invocation = null;
+    const review = new RunReviewCommand({
+      resolveTreeSha: () => "a".repeat(40),
+      resolveTargetStateDigest: () => "b".repeat(64),
+      runCommand(command, args, options) {
+        invocation = { command, args, options };
+        const outputDirectory = options.env.SENNEL_REVIEW_OUTPUT_DIR;
+        const specSource = JSON.parse(options.env.SENNEL_REVIEW_SPEC_SOURCE);
+        const fileMapSource = JSON.parse(options.env.SENNEL_REVIEW_FILE_MAP_SOURCE);
+        assert.equal(specSource.sourcePath.startsWith(`${outputDirectory}${path.sep}`), true);
+        assert.equal(fileMapSource.sourcePath.startsWith(`${outputDirectory}${path.sep}`), true);
+        assert.deepEqual(JSON.parse(fs.readFileSync(fileMapSource.sourcePath, "utf8")), {
+          "R-1": ["src/mapped.js"],
+        });
+        fs.writeFileSync(path.join(outputDirectory, "impl-review.json"), `${JSON.stringify({
+          verdict: "PASS",
+          blockingFindings: [],
+          nonBlockingImprovements: [],
+        }, null, 2)}\n`);
+        return {
+          ok: true,
+          status: 0,
+          stdout: "Impl review PASS. No blocking findings or non-blocking improvements recorded.\n",
+          stderr: "  [review] verdict=PASS blocking=0 nonBlocking=0\n",
+          signal: null,
+          killed: false,
+        };
+      },
+    });
+    const result = await review.execute({
+      root: repository,
+      mainRoot: repository,
+      executionRoot: repository,
+      specId,
+      flowManager: manager,
+      flowState: manager.load(specId),
+      config: {},
+    });
+
+    assert.equal(invocation.command, "node");
+    assert.equal(attachedCanonicalCommandResultArtifact(result).logicalKey, "impl.review");
+    assert.equal(fs.existsSync(path.join(manager.specLocation(specId).directory, "file-map.json")), false);
   });
 
   it("binds rejected test-review evidence to a replacement test Attempt and handoff", async () => {
@@ -1656,23 +1734,56 @@ describe("FlowManager canonical Version-1 runtime", () => {
     assert.equal(state.metrics.some((entry) => entry.counter === "reviewRetry" && entry.reset === true), true);
   });
 
-  it("uses the same Version Store for park, restart resolution, and resume", () => {
-    const repository = root();
-    const manager = new FlowManager({ root: repository, mainRoot: repository, inWorktree: false });
-    manager.createFresh(request());
-    manager.addActiveFlow("001-canonical-manager", "direct");
+  it("reloads and resumes the same Version Store after process restart in every execution mode", () => {
+    for (const mode of ["direct", "branch", "worktree"]) {
+      const repository = root();
+      const specId = `001-canonical-restart-${mode}`;
+      const execution = {
+        mode,
+        baseBranch: "main",
+        featureBranch: mode === "direct" ? "main" : `feature/restart-${mode}`,
+      };
+      const executionRoot = mode === "worktree"
+        ? path.join(repository, ".sennel", "worktree", specId)
+        : repository;
+      fs.mkdirSync(executionRoot, { recursive: true });
+      const managerOptions = {
+        root: executionRoot,
+        mainRoot: repository,
+        inWorktree: mode === "worktree",
+        specId,
+      };
+      const manager = new FlowManager(managerOptions);
+      const created = manager.createFresh(request(specId, {
+        runId: `canonical-restart-${mode}-run`,
+        flowId: `canonical-restart-${mode}-flow`,
+        flowVersionId: `canonical-restart-${mode}-flow-v1`,
+        execution,
+      }));
+      manager.addActiveFlow(specId, mode);
+      const identity = canonicalIdentity(manager.canonicalState(specId));
+      const catalog = catalogArtifactReferences(manager.artifactCatalog(specId));
 
-    manager.parkFlow();
-    const parked = manager.restartFlow();
-    assert.equal(parked.lifecycle, "parked");
-    assert.equal(parked.resumable, true);
-    assert.equal(parked.state.request, "Keep the request exactly as supplied.");
+      manager.parkFlow(specId);
+      const restarted = new FlowManager(managerOptions);
+      const parked = restarted.restartFlow(specId);
+      assert.equal(parked.lifecycle, "parked", mode);
+      assert.equal(parked.resumable, true, mode);
+      assert.equal(parked.state.request, "Keep the request exactly as supplied.", mode);
+      assert.deepEqual(canonicalIdentity(restarted.canonicalState(specId)), identity, mode);
+      assert.deepEqual(catalogArtifactReferences(restarted.artifactCatalog(specId)), catalog, mode);
+      assert.equal(restarted.specLocation(specId).version.toString(), "1", mode);
+      assert.equal(path.basename(restarted.specLocation(specId).directory), "001", mode);
 
-    manager.resumeFlow();
-    const resumed = manager.restartFlow();
-    assert.equal(resumed.lifecycle, "active");
-    assert.equal(resumed.resumable, false);
-    assert.equal(resumed.state.request, "Keep the request exactly as supplied.");
+      restarted.resumeFlow(specId);
+      const reloaded = new FlowManager(managerOptions);
+      const resumed = reloaded.restartFlow(specId);
+      assert.equal(resumed.lifecycle, "active", mode);
+      assert.equal(resumed.resumable, false, mode);
+      assert.equal(resumed.state.request, "Keep the request exactly as supplied.", mode);
+      assert.equal(resumed.state.flowVersionId, created.flowVersionId, mode);
+      assert.deepEqual(catalogArtifactReferences(reloaded.artifactCatalog(specId)), catalog, mode);
+    }
   });
 
   it("preserves V1 identity, finalized state, Activities, and catalog references after a fresh read", () => {

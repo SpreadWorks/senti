@@ -28,70 +28,86 @@ function reportShowError(code, message) {
 }
 
 /**
- * Resolve the absolute path of the most recent `report.json` using the
- * pointer file.
- *
- * @param {string} mainRoot - absolute main repo root (workdir-level).
- * @returns {string} absolute path to `report.json`.
- * @throws {Error} with `.code` set to `NO_POINTER`, `EMPTY_POINTER`,
- *   `INVALID_POINTER`, or `NO_REPORT` when the underlying resource is missing.
+ * Catalog-authoritative projection of the report selected by the repository
+ * pointer.  Bytes and path are resolved by one Store read so consumers cannot
+ * validate a descriptor and then reopen a different filesystem value.
  */
-export function resolveLatestReportPath(mainRoot, specRoot = DEFAULT_FLOW_SPEC_DIR, flowManager = null) {
-  const pointerPath = path.join(mainRoot, POINTER_REL_PATH);
-  if (!fs.existsSync(pointerPath)) {
-    throw reportShowError("NO_POINTER", `pointer not found: ${POINTER_REL_PATH} (run finalize first)`);
-  }
-  const specId = fs.readFileSync(pointerPath, "utf8").trim();
-  if (!specId) {
-    throw reportShowError("EMPTY_POINTER", `pointer is empty: ${POINTER_REL_PATH}`);
-  }
-  let manager;
-  try {
-    manager = flowManager ?? new FlowManager({
-      root: mainRoot,
-      mainRoot,
-      inWorktree: false,
-      specRoot,
-      specId,
-    });
-  } catch {
-    throw reportShowError("INVALID_POINTER", `pointer has an invalid specId: ${specId}`);
-  }
-  let resolved;
-  try {
-    resolved = manager.readArtifact({
-      specId,
-      logicalKey: "report",
-      consumerNodeId: "report",
-    });
-  } catch (error) {
-    throw reportShowError("NO_REPORT", `cataloged report is unavailable for ${specId}: ${error.message}`);
-  }
-  return manager.specLocation(specId).resolve(resolved.relativePath);
-}
+export class CanonicalLatestReport {
+  #bytes;
 
-/**
- * Read the `text` field from a `report.json` file.
- *
- * @param {string} reportPath - absolute path to `report.json`.
- * @returns {string}
- * @throws {Error} with `.code` set to `PARSE_ERROR` or `NO_TEXT`.
- */
-export function readReportText(reportPath) {
-  let json;
-  try {
-    json = JSON.parse(fs.readFileSync(reportPath, "utf8"));
-  } catch (e) {
-    throw reportShowError("PARSE_ERROR", `failed to parse ${path.basename(reportPath)}: ${e.message}`);
+  constructor({ specId, relativePath, path: reportPath, bytes } = {}) {
+    if (typeof specId !== "string" || specId === "") throw new Error("canonical report specId is required");
+    if (typeof relativePath !== "string" || relativePath === "") throw new Error("canonical report relativePath is required");
+    if (typeof reportPath !== "string" || !path.isAbsolute(reportPath)) throw new Error("canonical report path must be absolute");
+    if (!Buffer.isBuffer(bytes)) throw new Error("canonical report bytes are required");
+    this.specId = specId;
+    this.relativePath = relativePath;
+    this.path = reportPath;
+    this.#bytes = Buffer.from(bytes);
+    Object.freeze(this);
   }
-  if (typeof json.text !== "string") {
-    throw reportShowError("NO_TEXT", `${path.basename(reportPath)} has no 'text' string field`);
+
+  static read({
+    mainRoot,
+    specRoot = DEFAULT_FLOW_SPEC_DIR,
+    flowManager = null,
+    consumerNodeId = "report",
+  } = {}) {
+    if (typeof consumerNodeId !== "string" || consumerNodeId === "") {
+      throw new Error("canonical report consumerNodeId is required");
+    }
+    const pointerPath = path.join(mainRoot, POINTER_REL_PATH);
+    if (!fs.existsSync(pointerPath)) {
+      throw reportShowError("NO_POINTER", `pointer not found: ${POINTER_REL_PATH} (run finalize first)`);
+    }
+    const specId = fs.readFileSync(pointerPath, "utf8").trim();
+    if (!specId) throw reportShowError("EMPTY_POINTER", `pointer is empty: ${POINTER_REL_PATH}`);
+    let manager;
+    try {
+      manager = flowManager ?? new FlowManager({
+        root: mainRoot,
+        mainRoot,
+        inWorktree: false,
+        specRoot,
+        specId,
+      });
+    } catch {
+      throw reportShowError("INVALID_POINTER", `pointer has an invalid specId: ${specId}`);
+    }
+    let resolved;
+    try {
+      resolved = manager.readArtifact({
+        specId,
+        logicalKey: "report",
+        consumerNodeId,
+      });
+    } catch (error) {
+      throw reportShowError("NO_REPORT", `cataloged report is unavailable for ${specId}: ${error.message}`);
+    }
+    return new CanonicalLatestReport({
+      specId,
+      relativePath: resolved.relativePath,
+      path: manager.specLocation(specId).resolve(resolved.relativePath),
+      bytes: resolved.bytes,
+    });
   }
-  const tests = json.data?.tests;
-  if (tests && (typeof tests !== "object" || !("projectRegression" in tests))) {
-    throw reportShowError("NO_PROJECT_REGRESSION", `${path.basename(reportPath)} has test data without projectRegression`);
+
+  text() {
+    let json;
+    try {
+      json = JSON.parse(this.#bytes.toString("utf8"));
+    } catch (error) {
+      throw reportShowError("PARSE_ERROR", `failed to parse ${path.basename(this.path)}: ${error.message}`);
+    }
+    if (typeof json.text !== "string") {
+      throw reportShowError("NO_TEXT", `${path.basename(this.path)} has no 'text' string field`);
+    }
+    const tests = json.data?.tests;
+    if (tests && (typeof tests !== "object" || !("projectRegression" in tests))) {
+      throw reportShowError("NO_PROJECT_REGRESSION", `${path.basename(this.path)} has test data without projectRegression`);
+    }
+    return json.text;
   }
-  return json.text;
 }
 
 export default class RunReportShowCommand extends Command {
@@ -99,12 +115,11 @@ export default class RunReportShowCommand extends Command {
 
   async execute() {
     const mainRoot = this.container.get("mainRoot");
-    const reportPath = resolveLatestReportPath(
+    const report = CanonicalLatestReport.read({
       mainRoot,
-      this.container.get("flowSpecRoot"),
-      this.container.get("flowManager"),
-    );
-    const text = readReportText(reportPath);
-    process.stdout.write(text);
+      specRoot: this.container.get("flowSpecRoot"),
+      flowManager: this.container.get("flowManager"),
+    });
+    process.stdout.write(report.text());
   }
 }

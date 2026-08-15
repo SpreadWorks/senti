@@ -103,6 +103,8 @@ function activity({
       repairs: [],
       artifacts: [{ id: `${id}-artifact`, label: null }],
     },
+    metric: null,
+    note: null,
   });
 }
 

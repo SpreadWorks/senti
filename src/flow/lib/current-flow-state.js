@@ -3990,21 +3990,14 @@ export class ActivityTransition {
 
 export class FlowActivity {
   constructor(value) {
-    // V1 writers always serialize the observation slots.  Normalizing an
-    // in-memory Activity constructed by an older unit fixture keeps that
-    // fixture from becoming a second wire format; any persisted rewrite emits
-    // the one canonical representation below.
-    const normalized = isPlainObject(value) && (!Object.hasOwn(value, "metric") || !Object.hasOwn(value, "note"))
-      ? { ...value, metric: value.metric ?? null, note: value.note ?? null }
-      : value;
-    requireExactFields(normalized, new Set([
+    requireExactFields(value, new Set([
       "id", "nodeId", "nodeKey", "attemptId", "sequence", "confirmationOrder", "type", "transition",
       "result", "timing", "failure", "provider", "model", "effort", "usage", "references", "metric", "note",
     ]), "activity");
     const {
       id, nodeId, nodeKey, attemptId, sequence, confirmationOrder, type, transition,
       result, timing, failure, provider, model, effort, usage, references, metric, note,
-    } = normalized;
+    } = value;
     this.id = requireString(id, "activity.id");
     this.nodeId = requireString(nodeId, "activity.nodeId");
     this.nodeKey = requireString(nodeKey, "activity.nodeKey");
