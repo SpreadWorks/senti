@@ -13,7 +13,7 @@ import path from "node:path";
 import { AtomicFile } from "../../lib/atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "../../lib/process-owned-lock.js";
 import { AuthoritativeSpecRecord, FlowActivityId, FlowArtifactCatalog, FlowArtifactCatalogStore, FlowArtifactDescriptor, FlowId, FlowRunId, FlowSpecIdentity, FlowVersionId, FlowVersionLocation, FlowVersionMigrationOutput, FlowVersionMigrationOutputBuilder, FlowVersionMigrationOutputSet, FlowVersionRuntimeLockLocation, FlowVersionSemanticValidator } from "../../lib/flow-version.js";
-import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
+import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactActivityEvidence, FlowArtifactUpdater } from "../../lib/flow-artifact-contract.js";
 import { artifactPublicationClaimForStep } from "./flow-artifact-authority.js";
 import { planGateRepairRouteForTargetStep } from "./plan-gate-repair.js";
 
@@ -154,10 +154,13 @@ export class CanonicalFlowArtifactWrite {
   }
 
   static from(value) {
-    if (value instanceof CanonicalFlowArtifactWrite || value instanceof CanonicalFlowReviewEvidenceWrite) {
+    if (value instanceof CanonicalFlowArtifactWrite
+      || value instanceof CanonicalFlowReviewEvidenceWrite
+      || value instanceof CanonicalFlowActivityEvidenceWrite) {
       return value;
     }
     if (value?.logicalKey === "review.evidence") return new CanonicalFlowReviewEvidenceWrite(value);
+    if (value?.logicalKey === "activity.evidence") return new CanonicalFlowActivityEvidenceWrite(value);
     return new CanonicalFlowArtifactWrite(value);
   }
 
@@ -374,6 +377,55 @@ export class CanonicalFlowReviewEvidenceWrite {
     const target = location.resolve(this.artifact.relativePath);
     fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
     return new AtomicFile(target, { phaseNamespace: "canonical-review-evidence" }).write(this.bytes);
+  }
+}
+
+/**
+ * An immutable, non-review observation published under the exact owner of a
+ * Flow Activity.  This is a normal Store artifact write, not a migration
+ * escape hatch: callers supply a typed document whose id/node identity is
+ * checked again by the catalog when the ledger is read.
+ */
+export class CanonicalFlowActivityEvidenceWrite {
+  constructor({ artifact, mediaType, bytes } = {}) {
+    if (!(artifact instanceof FlowArtifactActivityEvidence)) {
+      throw new CurrentFlowStateInvariantError("canonical activity evidence requires a typed Activity evidence artifact");
+    }
+    this.artifact = artifact;
+    this.mediaType = requireString(mediaType, "canonical activity evidence mediaType");
+    if (typeof bytes === "string") this.bytes = Buffer.from(bytes, "utf8");
+    else if (Buffer.isBuffer(bytes)) this.bytes = Buffer.from(bytes);
+    else throw new CurrentFlowStateInvariantError("canonical activity evidence bytes must be a string or Buffer");
+    // Parse at the public boundary so malformed evidence never reaches a
+    // state journal or a partially published catalog tree.
+    this.document = this.artifact.contract.contentContract.parse(this.bytes);
+    Object.freeze(this);
+  }
+
+  publication(activity) {
+    if (!(activity instanceof FlowActivity)) {
+      throw new CurrentFlowStateInvariantError("canonical activity evidence publication requires a typed FlowActivity");
+    }
+    if (activity.nodeId !== this.artifact.owner.nodeId
+      || activity.nodeKey !== this.document.owner.nodeKey
+      || this.document.owner.nodeId !== activity.nodeId
+      || this.document.activityId !== activity.id) {
+      throw new CurrentFlowStateInvariantError("canonical activity evidence document must bind its owning Activity identity");
+    }
+    return this.artifact.publication({
+      mediaType: this.mediaType,
+      updater: this.artifact.owner.publicationStep,
+      activityId: FlowActivityId.from(activity.id),
+    });
+  }
+
+  write(location) {
+    if (!(location instanceof FlowVersionLocation)) {
+      throw new CurrentFlowStateInvariantError("canonical activity evidence write requires a FlowVersionLocation");
+    }
+    const target = location.resolve(this.artifact.relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o755 });
+    return new AtomicFile(target, { phaseNamespace: "canonical-flow-activity-evidence" }).write(this.bytes);
   }
 }
 
@@ -4350,7 +4402,19 @@ export class FlowActivity {
       throw new CurrentFlowStateInvariantError("only observation Activities may carry metric or note facts");
     }
     if (flowCreated) {
-      const referencesEmpty = Object.values(this.references.toJSON()).every((entries) => entries.length === 0);
+      const references = this.references.toJSON();
+      const nonArtifactReferencesEmpty = [references.evaluations, references.findings, references.repairs]
+        .every((entries) => entries.length === 0);
+      const creationEvidence = references.artifacts.map((reference) => {
+        const contract = FLOW_ARTIFACT_CONTRACTS.classify(reference.id);
+        if (contract.logicalKey.toString() !== "activity.evidence") {
+          throw new CurrentFlowStateInvariantError("flow_created Activity may reference only immutable Activity evidence");
+        }
+        return FlowArtifactActivityEvidence.fromCanonicalPath(contract, reference.id);
+      });
+      if (creationEvidence.length > 1 || creationEvidence.some((entry) => entry.owner.nodeId !== this.nodeId)) {
+        throw new CurrentFlowStateInvariantError("flow_created Activity evidence must be owned by the Flow root");
+      }
       if (
         this.result !== null
         || this.timing === null
@@ -4361,7 +4425,7 @@ export class FlowActivity {
         || this.model !== null
         || this.effort !== null
         || this.usage !== null
-        || !referencesEmpty
+        || !nonArtifactReferencesEmpty
       ) {
         throw new CurrentFlowStateInvariantError("flow_created Activity records only its exact creation timing");
       }
@@ -4376,7 +4440,7 @@ export class FlowActivity {
     return new FlowActivity(serialized);
   }
 
-  static flowCreated(state, createdAt) {
+  static flowCreated(state, createdAt, { artifactReferences = [] } = {}) {
     if (!(state instanceof CurrentFlowState)) {
       throw new CurrentFlowStateInvariantError("flow_created Activity requires a typed fresh Flow state");
     }
@@ -4408,7 +4472,7 @@ export class FlowActivity {
       model: null,
       effort: null,
       usage: null,
-      references: { evaluations: [], findings: [], repairs: [], artifacts: [] },
+      references: { evaluations: [], findings: [], repairs: [], artifacts: artifactReferences },
       metric: null,
       note: null,
     });

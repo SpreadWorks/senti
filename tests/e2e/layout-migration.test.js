@@ -1113,9 +1113,10 @@ describe("migrate layout --to 1", () => {
     }).run();
 
     assert.equal(outcome.recovered, true);
-    assert.deepEqual(fs.readFileSync(path.join(root, ".sdd-forge", "config.json")), beforeConfig);
-    assert.ok(fs.existsSync(path.join(root, ".sdd-forge")));
-    assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
+    assert.equal(outcome.complete, true);
+    assert.deepEqual(fs.readFileSync(path.join(root, ".sennel", "config.json")), beforeConfig);
+    assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
+    assert.equal(fs.existsSync(path.join(root, ".sennel")), true);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
@@ -1476,7 +1477,8 @@ describe("migrate layout --to 1", () => {
     const result = runLayoutMigration(root, []);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(result.stderr, /\.sennel already exists/);
+    assert.equal(result.stdout, "migrate layout reached revision 1\n");
+    assert.match(result.stderr, /\.sennel already exists; layout revision 1 is already applied/);
     assert.deepEqual(fs.readFileSync(configPath), before);
     assert.equal(fs.existsSync(path.join(root, ".sennel", "plugin-sources", "local-presets")), false);
   });
@@ -1639,13 +1641,45 @@ describe("migrate layout --to 1", () => {
     assert.ok(fs.existsSync(backup));
     assert.equal(fs.existsSync(path.join(backup, "config.local.json")), false);
 
+    // A dry-run cannot remove the journal or prove that the resumed normal
+    // preflight will succeed, so it must fail closed without touching the
+    // partial-cleanup state rather than report a reached target.
+    const beforeDryRun = new FixtureTreeSnapshot(root);
+    const dryRun = runLayoutMigration(root, ["--dry-run"]);
+    assert.equal(dryRun.status, 1, dryRun.stderr || dryRun.stdout);
+    assert.match(dryRun.stdout, /valid migration journal would be recovered/);
+    assert.equal(dryRun.stderr, "");
+    beforeDryRun.assertUnchanged();
+
     const recovered = runLayoutMigration(root, []);
 
-    assert.equal(recovered.status, 1, recovered.stderr || recovered.stdout);
-    assert.match(recovered.stderr, /migrate layout did not reach revision 1/);
+    // The canonical directory is already authoritative.  Completing its
+    // private cleanup must be a successful public migration, not an exit-1
+    // recovery-only result.
+    assert.equal(recovered.status, 0, recovered.stderr || recovered.stdout);
+    assert.equal(recovered.stdout, "migrate layout reached revision 1\n");
+    assert.match(recovered.stderr, /\.sennel already exists; layout revision 1 is already applied/);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
     assert.ok(fs.existsSync(path.join(root, ".agents", "skills", "senti.flow", "SKILL.md")));
+    assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
+  });
+
+  it("replays rollback recovery through normal preflight and reaches the target in one public invocation", () => {
+    const root = createTmpDir("sennel-migrate-layout-public-rollback-replay-");
+    roots.push(root);
+    seedLegacyProject(root, ".senti");
+    const crashed = crashAfterJournalWrite(root, 1);
+    assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
+    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
+
+    const resumed = runLayoutMigration(root, []);
+
+    assert.equal(resumed.status, 0, resumed.stderr || resumed.stdout);
+    assert.equal(resumed.stdout, "migrate layout reached revision 1\n");
+    assert.equal(resumed.stderr, "");
+    assert.ok(fs.existsSync(path.join(root, ".sennel", "config.json")));
+    assert.equal(fs.existsSync(path.join(root, ".senti")), false);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
@@ -1768,13 +1802,12 @@ describe("migrate layout --to 1", () => {
         assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
         new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
-        if (phase === "final-renamed") {
-          assert.ok(fs.existsSync(path.join(root, ".sennel")));
-          assert.equal(fs.existsSync(path.join(root, legacyDirectory)), false);
-        } else {
-          assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-          assert.ok(fs.existsSync(path.join(root, legacyDirectory)));
-        }
+        // Pre-final journal phases roll back to the legacy source, then the
+        // same invocation re-enters normal preflight and commits it.  This
+        // confirms recovery is resumptive rather than leaving a successful
+        // caller stranded at the retired layout.
+        assert.ok(fs.existsSync(path.join(root, ".sennel")));
+        assert.equal(fs.existsSync(path.join(root, legacyDirectory)), false);
         assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
       });
     }

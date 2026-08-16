@@ -27,6 +27,8 @@ import {
 } from "./flow-version.js";
 import {
   FLOW_ARTIFACT_CONTRACTS,
+  FlowArtifactActivityEvidence,
+  FlowArtifactActivityEvidenceDocument,
   FLOW_ARTIFACT_SWITCH_TARGETS,
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
@@ -45,8 +47,10 @@ import {
   CurrentFlowStateSerializer,
   CurrentFlowStateValidator,
   CurrentFlowVersionStore,
+  CanonicalFlowActivityEvidenceWrite,
   FlowActivity,
   NodeResult,
+  TaskNode,
 } from "../flow/lib/current-flow-state.js";
 
 const REVISION = 1;
@@ -684,6 +688,75 @@ function legacySwitchTarget(sourcePath) {
   return FLOW_ARTIFACT_SWITCH_TARGETS.find((target) => target.matchesLegacyPath(sourcePath)) ?? null;
 }
 
+const CANONICAL_RAW_LOG_KEYS = new Set([
+  "scenario.validity.raw-log",
+  "test.execute.raw-log",
+  "final.regression.raw-log",
+]);
+
+/**
+ * Source-era runtime residue is evidence, never live runtime input.  Keep
+ * this separate from production transient contracts: those contracts describe
+ * files a current writer may create, while these bytes were left by an old
+ * writer and must not wake a current lock/recovery consumer.  The grammar is
+ * deliberately producer-oriented rather than a repository filename list.
+ */
+export class LegacyRuntimeResidueClassification {
+  constructor(reason) {
+    if (typeof reason !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(reason)) {
+      throw new Error("legacy runtime residue classification reason is invalid");
+    }
+    this.reason = reason;
+    Object.freeze(this);
+  }
+}
+
+/** Recognizes source-era control/output residue without consulting runtime paths. */
+export class LegacyRuntimeResidueClassifier {
+  constructor() { Object.freeze(this); }
+
+  classify(sourcePath) {
+    const normalized = normalizedRelative(sourcePath, "legacy runtime residue path");
+    const segments = normalized.split("/");
+    const basename = segments.at(-1);
+    if (normalized.startsWith("tests/.raw/")) {
+      return new LegacyRuntimeResidueClassification("LEGACY_RAW_LOG_RESIDUE");
+    }
+    if (segments.some((segment) => [".runtime", ".tmp", "tmp", ".cache", "cache"].includes(segment)) || basename.endsWith(".cache")) {
+      return new LegacyRuntimeResidueClassification("LEGACY_RUNTIME_WORKSPACE_RESIDUE");
+    }
+    if (segments.some((segment) => /^(?:review-)?work-units?$/i.test(segment))
+      || /(?:^|[._-])work-units?(?:[._-]|$)/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_WORK_UNIT_RESIDUE");
+    }
+    if (basename === "upgrade.log") {
+      return new LegacyRuntimeResidueClassification("LEGACY_UPGRADE_LOG_RESIDUE");
+    }
+    if (basename.endsWith(".tmp") || /(?:^|[._-])owner(?:[._-]|$).*\.tmp$/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_TEMPORARY_FILE_RESIDUE");
+    }
+    if (/(?:^|[._-])lock(?:[._-]|$)/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_LOCK_RESIDUE");
+    }
+    if (/(?:^|[._-])(?:transaction|journal)(?:[._-](?:completed|interrupted|rejected|empty|pending|staged|backup|recovery|rollback|resume))*\.json$/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_TRANSACTION_JOURNAL_RESIDUE");
+    }
+    if (/^(?:raw(?:[-_.][a-z0-9]+)*|requirement)[-_.]summary\.json$/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_RAW_SUMMARY_RESIDUE");
+    }
+    if (/^finaliz(?:e|ation)(?:[-_.]cleanup)?(?:[-_.](?:journal|runtime|recovery|state))?\.json$/i.test(basename)) {
+      return new LegacyRuntimeResidueClassification("LEGACY_FINALIZE_RUNTIME_RESIDUE");
+    }
+    return null;
+  }
+}
+
+const LEGACY_RUNTIME_RESIDUE_CLASSIFIER = new LegacyRuntimeResidueClassifier();
+
+function legacyRuntimeResidueReason(sourcePath) {
+  return LEGACY_RUNTIME_RESIDUE_CLASSIFIER.classify(sourcePath)?.reason ?? null;
+}
+
 const LEGACY_REVIEW_HISTORY_TARGETS = Object.freeze([
   ["draft-questions", "draft.questions.review"],
   ["draft-coverage", "draft.coverage.review"],
@@ -705,6 +778,7 @@ function legacyReviewHistoryTarget(sourcePath) {
 }
 
 function isKnownLegacyArtifact(sourcePath) {
+  if (legacyRuntimeResidueReason(sourcePath) !== null) return true;
   if (legacySwitchTarget(sourcePath) !== null) return true;
   const extension = path.posix.extname(sourcePath).toLowerCase();
   if (PORTABLE_LEGACY_ARTIFACT_EXTENSIONS.has(extension)) return true;
@@ -806,6 +880,39 @@ export class LegacyArtifactDecision {
   bytes(source) {
     if (this.transform !== "copy") throw new Error("attempt-history artifacts require a typed aggregate");
     return fs.readFileSync(source.absolute);
+  }
+}
+
+/**
+ * A byte-preserved legacy runtime residue.  It intentionally has no
+ * `resolved` production artifact: materializing it below the migration-owned
+ * runtime vault must not publish a catalog descriptor or make it visible to
+ * a live lock, transaction, or retry consumer.
+ */
+export class LegacyRuntimeResidue {
+  constructor({ sourcePath, reason } = {}) {
+    this.sourcePath = normalizedRelative(sourcePath, "legacy runtime residue source path");
+    this.destination = `.runtime/migration/legacy-files/${this.sourcePath}`;
+    if (typeof reason !== "string" || reason === "") throw new Error("legacy runtime residue requires a reason");
+    this.reason = reason;
+    Object.freeze(this);
+  }
+
+  mapping() {
+    return new MigrationMapping({
+      classification: "relocatedTransient",
+      source: this.sourcePath,
+      pointer: null,
+      destination: this.destination,
+      reason: this.reason,
+    });
+  }
+
+  materialize(location, file) {
+    if (!(location instanceof FlowVersionLocation) || !file || file.sourcePath !== this.sourcePath) {
+      throw new Error("legacy runtime residue materialization requires its typed source and Version location");
+    }
+    copyFile(file.absolute, location.resolve(this.destination), file.mode);
   }
 }
 
@@ -1115,6 +1222,7 @@ function aggregateOnlyResultDocument(detail) {
 function artifactDecision(file, source) {
   const { sourcePath } = file;
   if (sourcePath === "flow.json" || sourcePath === "spec.json") return null;
+  const residueReason = legacyRuntimeResidueReason(sourcePath);
   const reviewHistory = legacyReviewHistoryTarget(sourcePath);
   if (reviewHistory !== null) {
     const resolved = FLOW_ARTIFACT_CONTRACTS.resolve(reviewHistory.logicalKey);
@@ -1130,7 +1238,14 @@ function artifactDecision(file, source) {
   }
   const target = legacySwitchTarget(sourcePath);
   if (target === null) {
+    if (residueReason !== null) return new LegacyRuntimeResidue({ sourcePath, reason: residueReason });
     return preservedLegacyArtifact(sourcePath);
+  }
+  // A source-era raw-log directory may also contain retired one-off logs
+  // whose switch target was removed.  Only the three current raw-log
+  // families below are allowed to enter live canonical transient paths.
+  if (residueReason !== null && !CANONICAL_RAW_LOG_KEYS.has(target.logicalKey)) {
+    return new LegacyRuntimeResidue({ sourcePath, reason: residueReason });
   }
   if (target.action === "remove") {
     // A rendered Markdown view and an unrecognized historical result may
@@ -1154,6 +1269,9 @@ function artifactDecision(file, source) {
     return preservedLegacyArtifact(sourcePath, "INSUFFICIENT_EVENT_DETAIL");
   }
   const transient = resolved.contract.retention.toString() === "transient";
+  if (transient && !CANONICAL_RAW_LOG_KEYS.has(resolved.logicalKey)) {
+    return new LegacyRuntimeResidue({ sourcePath, reason: "LEGACY_RUNTIME_CONTRACT_RESIDUE" });
+  }
   return new LegacyArtifactDecision({
     sourcePath,
     classification: transient ? "relocatedTransient" : "converted",
@@ -1308,7 +1426,7 @@ function visitLegacyFlowNodes(source, state, visitor) {
 
 /** A direct, hash-bound legacy observation that can become one note Activity. */
 export class LegacyEvidenceObservation {
-  constructor({ sourcePath, pointer, hash, timestamp, nodeId, artifactId, note } = {}) {
+  constructor({ sourcePath, pointer, hash, timestamp, nodeId, artifactReference = null, note } = {}) {
     this.sourcePath = normalizedRelative(sourcePath, "legacy evidence source path");
     if (typeof pointer !== "string" || !pointer.startsWith("/")) throw new Error("legacy evidence pointer is invalid");
     this.pointer = pointer;
@@ -1318,8 +1436,10 @@ export class LegacyEvidenceObservation {
     if (this.timestamp === null) throw new Error("legacy evidence timestamp is invalid");
     if (typeof nodeId !== "string" || nodeId === "") throw new Error("legacy evidence node id is invalid");
     this.nodeId = nodeId;
-    if (typeof artifactId !== "string" || artifactId === "") throw new Error("legacy evidence artifact reference is invalid");
-    this.artifactId = artifactId;
+    if (artifactReference !== null && (typeof artifactReference !== "string" || artifactReference === "")) {
+      throw new Error("legacy evidence artifact reference is invalid");
+    }
+    this.artifactReference = artifactReference;
     if (typeof note !== "string" || note === "") throw new Error("legacy evidence note is invalid");
     this.note = note;
     Object.freeze(this);
@@ -1335,11 +1455,18 @@ export class LegacyEvidenceObservation {
     return new MigrationInput({ source: this.sourcePath, pointer: this.pointer, hash: this.hash });
   }
 
-  activity(state, confirmationOrder) {
+  digest() {
+    return sha256(Buffer.from(`${this.sourcePath}\0${this.pointer}\0${this.hash}`, "utf8"));
+  }
+
+  activity(state, confirmationOrder, artifactReference) {
     const node = state.findNode(this.nodeId);
     if (node === null) throw new Error("legacy evidence owner is absent from historical state");
+    if (typeof artifactReference !== "string" || artifactReference === "") {
+      throw new Error("legacy evidence Activity requires a canonical artifact reference");
+    }
     return new FlowActivity({
-      id: `legacy-evidence-${sha256(Buffer.from(`${this.sourcePath}\0${this.pointer}\0${this.hash}`, "utf8"))}`,
+      id: `legacy-evidence-${this.digest()}`,
       nodeId: node.id,
       nodeKey: node.key,
       attemptId: null,
@@ -1369,7 +1496,7 @@ export class LegacyEvidenceObservation {
         evaluations: [],
         findings: [],
         repairs: [],
-        artifacts: [{ id: this.artifactId, label: `Imported direct legacy evidence from ${this.sourcePath}${this.pointer}` }],
+        artifacts: [{ id: artifactReference, label: `Imported direct legacy evidence from ${this.sourcePath}${this.pointer}` }],
       },
       metric: null,
       note: { text: this.note },
@@ -1377,9 +1504,63 @@ export class LegacyEvidenceObservation {
   }
 }
 
+/** One owner-bound immutable evidence file paired with its ledger Activity. */
+export class LegacyActivityEvidence {
+  constructor({ observation, activity, artifact } = {}) {
+    if (!(observation instanceof LegacyEvidenceObservation) || !(activity instanceof FlowActivity)
+      || !(artifact instanceof FlowArtifactActivityEvidence)) {
+      throw new Error("legacy Activity evidence requires a typed observation, Activity, and artifact");
+    }
+    if (observation.nodeId !== activity.nodeId) {
+      throw new Error("legacy Activity evidence observation must retain its Activity owner");
+    }
+    if (artifact.owner.nodeId !== activity.nodeId) {
+      throw new Error("legacy Activity evidence artifact must retain its Activity owner");
+    }
+    this.observation = observation;
+    this.activity = activity;
+    this.artifact = artifact;
+    this.document = new FlowArtifactActivityEvidenceDocument({
+      schemaRevision: 1,
+      activityId: activity.id,
+      owner: { nodeId: activity.nodeId, nodeKey: activity.nodeKey },
+      observedAt: observation.timestamp,
+      source: { path: observation.sourcePath, pointer: observation.pointer, hash: observation.hash },
+      note: observation.note,
+    });
+    this.write = new CanonicalFlowActivityEvidenceWrite({
+      artifact,
+      mediaType: "application/json",
+      bytes: `${JSON.stringify(this.document.toJSON(), null, 2)}\n`,
+    });
+    if (this.write.artifact.relativePath !== artifact.relativePath) {
+      throw new Error("legacy Activity evidence writer must preserve the typed artifact address");
+    }
+    const references = activity.references.toJSON().artifacts;
+    if (references.length !== 1 || references[0].id !== this.write.artifact.relativePath) {
+      throw new Error("legacy Activity evidence must be the exact cataloged Activity reference");
+    }
+    Object.freeze(this);
+  }
+
+  materialize(location) {
+    this.write.write(location);
+    return FlowArtifactDescriptor.fromFile({ location, ...this.write.publication(this.activity) });
+  }
+
+  mapping() {
+    return new MigrationMapping({
+      classification: "generated",
+      destination: this.write.artifact.relativePath,
+      reason: "DIRECT_ACTIVITY_EVIDENCE",
+      inputs: [this.observation.input()],
+    });
+  }
+}
+
 /** The immutable, contiguous Activity prefix materialized for a legacy Flow. */
 export class LegacyEvidenceLedger {
-  constructor({ activities, inputs } = {}) {
+  constructor({ activities, inputs, evidence = [] } = {}) {
     if (!Array.isArray(activities) || activities.some((entry) => !(entry instanceof FlowActivity))) {
       throw new Error("legacy evidence ledger requires typed Activities");
     }
@@ -1387,22 +1568,92 @@ export class LegacyEvidenceLedger {
       throw new Error("legacy evidence ledger requires typed migration inputs");
     }
     if (activities.length !== inputs.length) throw new Error("legacy evidence ledger inputs must match Activities");
+    if (!Array.isArray(evidence) || evidence.some((entry) => !(entry instanceof LegacyActivityEvidence))) {
+      throw new Error("legacy evidence ledger requires typed Activity evidence");
+    }
+    if (evidence.some((entry) => !activities.includes(entry.activity) || !inputs.some((input) => (
+      input.source === entry.observation.sourcePath
+      && input.pointer === entry.observation.pointer
+      && input.hash === entry.observation.hash
+    )))) {
+      throw new Error("legacy Activity evidence must be represented in its ledger");
+    }
     this.activities = Object.freeze([...activities]);
     this.inputs = Object.freeze([...inputs]);
+    this.evidence = Object.freeze([...evidence]);
     Object.freeze(this);
+  }
+}
+
+function taskParentForStateNode(node, nodeId, task = null) {
+  const currentTask = node instanceof TaskNode ? node : task;
+  if (node.id === nodeId) return currentTask;
+  for (const child of node.steps) {
+    const found = taskParentForStateNode(child, nodeId, currentTask);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+function taskActivityEvidenceForStateNode(state, node, digest) {
+  const task = taskParentForStateNode(state.root, node.id);
+  // A current Task leaf is a direct, typed Task child.  Do not infer this
+  // ownership from a matching suffix on an unrelated historical Step.
+  if (!(task instanceof TaskNode) || !task.steps.includes(node)) return null;
+  try {
+    return FLOW_ARTIFACT_CONTRACTS.taskActivityEvidence({
+      taskId: task.id,
+      segment: node.key,
+      digest,
+    });
+  } catch (error) {
+    throw new LegacyFlowMigrationError(
+      "UNSUPPORTED_DIRECT_EVIDENCE_OWNER",
+      `${node.id} is not a canonical Task Activity owner: ${error.message}`,
+      { cause: error },
+    );
+  }
+}
+
+function activityEvidenceForStateNode(state, nodeId, digest) {
+  const node = state.findNode(nodeId);
+  if (node === null) return null;
+  // A Flow root and the historical `impl` composite have explicit production
+  // owners. Every other direct runtime observation must belong to a concrete
+  // leaf rather than silently attach a branch/task fact to another Step.
+  if (node.id !== state.root.id && node.id !== "impl" && node.steps.length !== 0) return null;
+  const taskArtifact = taskActivityEvidenceForStateNode(state, node, digest);
+  if (taskArtifact !== null) return taskArtifact;
+  try {
+    return FLOW_ARTIFACT_CONTRACTS.activityEvidence({ nodeId, digest });
+  } catch (currentError) {
+    try {
+      return FLOW_ARTIFACT_CONTRACTS.historicalActivityEvidence({ nodeId, digest });
+    } catch (historicalError) {
+      throw new LegacyFlowMigrationError(
+        "UNSUPPORTED_DIRECT_EVIDENCE_OWNER",
+        `${nodeId} cannot retain direct evidence as a current or historical owner: ${historicalError.message}`,
+        { cause: currentError },
+      );
+    }
   }
 }
 
 function flowEvidenceObservation(source, state, { pointer, timestamp, nodeId = state.root.id, note }) {
   const trusted = trustedTimestamp(timestamp);
-  if (trusted === null || state.findNode(nodeId) === null) return null;
+  if (trusted === null) return null;
+  const artifact = activityEvidenceForStateNode(
+    state,
+    nodeId,
+    sha256(Buffer.from(`flow.json\0${pointer}\0${source.flowHash}`, "utf8")),
+  );
+  if (artifact === null) return null;
   return new LegacyEvidenceObservation({
     sourcePath: "flow.json",
     pointer,
     hash: source.flowHash,
     timestamp: trusted,
     nodeId,
-    artifactId: `artifacts/migration/flow.legacy.json#${pointer}`,
     note,
   });
 }
@@ -1593,16 +1844,16 @@ function runtimeLogEvidence(source, state) {
     if (Object.hasOwn(node, "runtimeLog")) {
       const runtime = completeRuntimeLog(node.runtimeLog);
       if (runtime !== null && nodeId !== null) {
-        observations.push(new LegacyEvidenceObservation({
-          sourcePath: "flow.json",
+        const observation = flowEvidenceObservation(source, state, {
           pointer: `${fieldPointer}/endedAt`,
-          hash: source.flowHash,
           timestamp: runtime.endedAt,
           nodeId,
-          artifactId: `artifacts/migration/flow.legacy.json#${fieldPointer}/endedAt`,
           note: "Imported direct legacy runtime execution evidence",
-        }));
-        convertedPointers.add(`${fieldPointer}/endedAt`);
+        });
+        if (observation !== null) {
+          observations.push(observation);
+          convertedPointers.add(`${fieldPointer}/endedAt`);
+        }
       }
     }
   });
@@ -1625,7 +1876,7 @@ function reviewEvidenceObservations(source, state, decisions) {
       hash: file.hash,
       timestamp,
       nodeId,
-      artifactId: decision.destination,
+      artifactReference: decision.destination,
       note: `Imported direct legacy review evidence from ${file.sourcePath}`,
     }));
   }
@@ -1638,13 +1889,29 @@ function directEvidenceActivities(source, state, decisions, runtimeEvidence) {
   }
   const activities = [];
   const inputs = [];
+  const evidence = [];
   if (state.history.creation.status === "available") {
-    activities.push(FlowActivity.flowCreated(state, state.history.creation.source.timestamp));
-    inputs.push(new MigrationInput({
-      source: state.history.creation.source.path,
-      pointer: state.history.creation.source.pointer,
-      hash: state.history.creation.source.hash,
-    }));
+    const creationSource = state.history.creation.source;
+    const observation = new LegacyEvidenceObservation({
+      sourcePath: creationSource.path,
+      pointer: creationSource.pointer,
+      hash: creationSource.hash,
+      timestamp: creationSource.timestamp,
+      nodeId: state.root.id,
+      note: "Imported trusted legacy Flow creation provenance",
+    });
+    const artifact = activityEvidenceForStateNode(state, state.root.id, observation.digest());
+    if (artifact === null) throw new Error("trusted Flow creation must have a typed root Activity evidence owner");
+    const created = FlowActivity.flowCreated(state, creationSource.timestamp, {
+      artifactReferences: [{
+        id: artifact.relativePath,
+        label: `Imported trusted Flow creation provenance from ${observation.sourcePath}${observation.pointer}`,
+      }],
+    });
+    const materialization = new LegacyActivityEvidence({ observation, activity: created, artifact });
+    activities.push(created);
+    inputs.push(observation.input());
+    evidence.push(materialization);
   }
   const observations = [
     ...flowEvidenceObservations(source, state),
@@ -1657,10 +1924,21 @@ function directEvidenceActivities(source, state, decisions, runtimeEvidence) {
     const identity = `${observation.sourcePath}\0${observation.pointer}`;
     if (identities.has(identity)) throw new Error("legacy direct evidence duplicates one source pointer");
     identities.add(identity);
-    activities.push(observation.activity(state, activities.length + 1));
+    const artifact = observation.artifactReference === null
+      ? activityEvidenceForStateNode(state, observation.nodeId, observation.digest())
+      : null;
+    if (observation.artifactReference === null && artifact === null) {
+      throw new Error("direct legacy evidence observation lost its typed owner before materialization");
+    }
+    const artifactReference = observation.artifactReference ?? artifact.relativePath;
+    const activity = observation.activity(state, activities.length + 1, artifactReference);
+    activities.push(activity);
     inputs.push(observation.input());
+    if (observation.artifactReference === null) {
+      evidence.push(new LegacyActivityEvidence({ observation, activity, artifact }));
+    }
   }
-  return new LegacyEvidenceLedger({ activities, inputs });
+  return new LegacyEvidenceLedger({ activities, inputs, evidence });
 }
 
 function pointerFor(parent, key) {
@@ -2057,7 +2335,7 @@ export class LegacyFlowAuthoritySnapshot {
 
 /** Complete validated conversion for exactly one direct child of the spec root. */
 export class SpecsMigrationCandidate {
-  constructor({ source, definition, mappings, fieldManifest, flowSnapshot, decisions, resultAggregations, state, specRecord, activities, identityBasis } = {}) {
+  constructor({ source, definition, mappings, fieldManifest, flowSnapshot, decisions, runtimeResidues, resultAggregations, state, specRecord, activities, activityEvidence, identityBasis } = {}) {
     if (!(source instanceof LegacyFlowSource)) throw new Error("Specs migration candidate requires a LegacyFlowSource");
     if (!Array.isArray(mappings) || mappings.some((entry) => !(entry instanceof MigrationMapping))) {
       throw new Error("Specs migration candidate requires typed mappings");
@@ -2069,6 +2347,9 @@ export class SpecsMigrationCandidate {
     if (!Array.isArray(decisions) || decisions.some((entry) => !(entry instanceof LegacyArtifactDecision))) {
       throw new Error("Specs migration candidate requires typed artifact decisions");
     }
+    if (!Array.isArray(runtimeResidues) || runtimeResidues.some((entry) => !(entry instanceof LegacyRuntimeResidue))) {
+      throw new Error("Specs migration candidate requires typed legacy runtime residues");
+    }
     if (!Array.isArray(resultAggregations) || resultAggregations.some((entry) => !(entry instanceof LegacyResultAggregation))) {
       throw new Error("Specs migration candidate requires typed result aggregations");
     }
@@ -2077,6 +2358,9 @@ export class SpecsMigrationCandidate {
     }
     if (!Array.isArray(activities) || activities.some((entry) => !(entry instanceof FlowActivity))) {
       throw new Error("Specs migration candidate requires typed Activities");
+    }
+    if (!Array.isArray(activityEvidence) || activityEvidence.some((entry) => !(entry instanceof LegacyActivityEvidence))) {
+      throw new Error("Specs migration candidate requires typed Activity evidence");
     }
     if (!Array.isArray(identityBasis) || identityBasis.some((entry) => !(entry instanceof LegacyIdentityBasis))) {
       throw new Error("Specs migration candidate requires typed identity basis");
@@ -2087,10 +2371,12 @@ export class SpecsMigrationCandidate {
     this.fieldManifest = fieldManifest;
     this.flowSnapshot = flowSnapshot;
     this.decisions = Object.freeze([...decisions]);
+    this.runtimeResidues = Object.freeze([...runtimeResidues]);
     this.resultAggregations = Object.freeze([...resultAggregations]);
     this.state = state;
     this.specRecord = specRecord;
     this.activities = Object.freeze([...activities]);
+    this.activityEvidence = Object.freeze([...activityEvidence]);
     this.identityBasis = Object.freeze([...identityBasis]);
     Object.freeze(this);
   }
@@ -2116,12 +2402,17 @@ export class SpecsMigrationCandidate {
     const specRecord = canonicalSpecDocument(source);
     const taskSpecPointers = flowTaskSpecPointers(source);
     const decisions = [];
+    const runtimeResidues = [];
     const occupiedDestinations = new Map([
       ["flow.json", null], ["spec.json", null], ["activities.jsonl", null], ["flow-migration-report.json", null],
     ]);
     for (const file of source.files) {
       const decision = artifactDecision(file, source);
       if (decision === null) continue;
+      if (decision instanceof LegacyRuntimeResidue) {
+        runtimeResidues.push(decision);
+        continue;
+      }
       if (decision.destination !== null && occupiedDestinations.has(decision.destination)) {
         const existing = occupiedDestinations.get(decision.destination);
         if (existing === null || !sharesAttemptHistoryDestination(existing, decision)) {
@@ -2171,6 +2462,7 @@ export class SpecsMigrationCandidate {
         reason: decision.reason,
       }));
     }
+    mappings.push(...runtimeResidues.map((entry) => entry.mapping()));
     mappings.push(...missingTransientMappings(source));
     mappings.push(new MigrationMapping({
       classification: "generated",
@@ -2178,6 +2470,7 @@ export class SpecsMigrationCandidate {
       reason: activities.length === 0 ? "NO_DIRECT_ACTIVITY" : "DIRECT_EVIDENCE_ACTIVITY",
       inputs: evidenceLedger.inputs,
     }));
+    mappings.push(...evidenceLedger.evidence.map((entry) => entry.mapping()));
     const flowSnapshot = new LegacyFlowAuthoritySnapshot(source);
     mappings.push(new MigrationMapping({
       classification: "generated",
@@ -2205,10 +2498,12 @@ export class SpecsMigrationCandidate {
       fieldManifest,
       flowSnapshot,
       decisions,
+      runtimeResidues,
       resultAggregations,
       state,
       specRecord,
       activities,
+      activityEvidence: evidenceLedger.evidence,
       identityBasis: identityBasisFor(source, state),
     });
   }
@@ -2259,6 +2554,7 @@ export class SpecsMigrationCandidate {
       descriptorForCanonical(location, "spec.record", "application/json"),
     ];
     descriptors.push(this.flowSnapshot.materialize(location));
+    for (const evidence of this.activityEvidence) descriptors.push(evidence.materialize(location));
     const aggregatedSources = new Set(this.resultAggregations.flatMap((aggregate) => aggregate.sourcePaths()));
     for (const decision of this.decisions) {
       const file = this.source.files.find((entry) => entry.sourcePath === decision.sourcePath);
@@ -2267,6 +2563,10 @@ export class SpecsMigrationCandidate {
       writeExclusive(target, decision.bytes(file), file.mode);
       if (decision.classification === "relocatedTransient") continue;
       descriptors.push(descriptorForDecision(location, decision, file.sourcePath));
+    }
+    for (const residue of this.runtimeResidues) {
+      const file = this.source.files.find((entry) => entry.sourcePath === residue.sourcePath);
+      residue.materialize(location, file);
     }
     for (const aggregate of this.resultAggregations) {
       writeExclusive(location.resolve(aggregate.destination), aggregate.bytes());

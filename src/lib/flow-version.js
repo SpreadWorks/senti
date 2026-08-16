@@ -6,7 +6,12 @@ import { AtomicFile } from "./atomic-file.js";
 import { ProcessOwnedLock, RealDirectoryAuthority } from "./process-owned-lock.js";
 import { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
 import { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
-import { FLOW_ARTIFACT_CONTRACTS, FlowArtifactReviewEvidence, FlowArtifactUpdater } from "./flow-artifact-contract.js";
+import {
+  FLOW_ARTIFACT_CONTRACTS,
+  FlowArtifactActivityEvidence,
+  FlowArtifactReviewEvidence,
+  FlowArtifactUpdater,
+} from "./flow-artifact-contract.js";
 
 export { ArtifactAuthority, ArtifactAuthoritySlot, ArtifactCardinality } from "./artifact-authority.js";
 export { ArtifactPublicationClaim } from "../flow/lib/flow-artifact-authority.js";
@@ -749,6 +754,9 @@ export class FlowArtifactDescriptor {
     if (contract?.logicalKey.toString() === "review.evidence") {
       FlowArtifactReviewEvidence.fromCanonicalPath(contract, this.relativePath).assertAuthoritySlot(this.slot);
     }
+    if (contract?.logicalKey.toString() === "activity.evidence") {
+      FlowArtifactActivityEvidence.fromCanonicalPath(contract, this.relativePath).assertAuthoritySlot(this.slot);
+    }
     if (contract !== null) contract.assertAuthoritySlot(this.relativePath, this.slot);
     this.logicalKey = contract?.logicalKey.toString() ?? null;
     this.migrationMaterialization = migrationMaterialization === true;
@@ -765,6 +773,9 @@ export class FlowArtifactDescriptor {
       throw new Error(`artifact retention does not match logical contract ${contract.logicalKey}`);
     }
     this.activityId = activityId == null ? null : identifier(activityId, "artifact activityId");
+    if (contract?.logicalKey.toString() === "activity.evidence" && this.activityId === null) {
+      throw new Error("activity evidence requires an associated Flow Activity");
+    }
     Object.freeze(this);
   }
   static fromFile({ location, logicalKey = null, authoritySlot, relativePath: file, mediaType, retention, activityId = null, migrationMaterialization = false } = {}) {
@@ -824,6 +835,21 @@ export class FlowArtifactActivityAssociation {
     if (!(artifact instanceof FlowArtifactDescriptor)) throw new Error("FlowArtifactDescriptor is required for an Activity association");
     if (artifact.activityId !== this.id) throw new Error("artifact Activity association id does not match the descriptor");
     if (artifact.logicalKey === null || artifact.logicalKey.startsWith("transition.")) return this;
+    if (artifact.logicalKey === "activity.evidence") {
+      const owner = FlowArtifactActivityEvidence.fromCanonicalPath(
+        FLOW_ARTIFACT_CONTRACTS.require("activity.evidence"),
+        artifact.relativePath,
+      ).owner;
+      // Activity evidence has an owner-bound path contract, including the
+      // explicit system namespace for a historical node. Resolve its
+      // publication actor from that typed owner before consulting the generic
+      // current-Step updater; the content validator then binds the document
+      // owner to this exact ledger Activity.
+      if (artifact.slot.publicationStep !== owner.publicationStep) {
+        throw new Error(`cataloged Activity evidence updater does not match its typed owner: ${artifact.relativePath}`);
+      }
+      return this;
+    }
     let updaterStep;
     try {
       updaterStep = this.updaterStep;
@@ -943,7 +969,15 @@ export class FlowArtifactCatalog {
       if (!ledger) throw new Error(`cataloged Activity associations require ${FLOW_ACTIVITIES_RELATIVE_PATH}`);
       const activityIndex = FlowArtifactActivityIndex.fromFile(location.activitiesFile);
       for (const artifact of associated) {
-        activityIndex.require(artifact.activityId).assertRelatedArtifact(artifact);
+        const activity = activityIndex.require(artifact.activityId).assertRelatedArtifact(artifact);
+        if (artifact.logicalKey !== null) {
+          const contract = FLOW_ARTIFACT_CONTRACTS.require(artifact.logicalKey);
+          contract.contentContract?.assertCatalogAssociation({
+            bytes: fs.readFileSync(location.resolve(artifact.relativePath)),
+            descriptor: artifact,
+            activity,
+          });
+        }
       }
     }
     return this;

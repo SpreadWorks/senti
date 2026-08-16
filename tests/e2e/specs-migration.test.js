@@ -8,10 +8,12 @@ import { afterEach, describe, it } from "node:test";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp-dir.js";
 import { buildCurrentFlowDefinition } from "../../src/flow/definition.js";
 import { FlowArtifactCatalog, FlowVersionAuthorityScope, FlowVersionLocation } from "../../src/lib/flow-version.js";
+import { FLOW_ARTIFACT_CONTRACTS } from "../../src/lib/flow-artifact-contract.js";
 import { CurrentFlowVersionStore, FlowActivity } from "../../src/flow/lib/current-flow-state.js";
 import {
   canonicalVersionDirectories,
   LegacyFlowSource,
+  LegacyRuntimeResidueClassifier,
   SpecsMigrationCandidate,
   SpecsMigrationTransaction,
 } from "../../src/lib/specs-migration.js";
@@ -205,21 +207,106 @@ function writeLegacyFlow(root, id, flow) {
   writeJson(root, `specs/${id}/flow.json`, flow);
 }
 
-function refreshCatalogFile(root, id, relativePath) {
-  const version = path.join(root, "specs", id, "001");
+function rewriteCatalogFile(version, rewriteArtifacts) {
   const catalogPath = path.join(version, "artifact-catalog.json");
   const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8"));
-  const bytes = fs.readFileSync(path.join(version, relativePath));
-  const hash = crypto.createHash("sha256").update(bytes).digest("hex");
-  const artifacts = catalog.artifacts.map((entry) => (
-    entry.relativePath === relativePath ? { ...entry, hash, size: bytes.length } : entry
-  ));
+  const artifacts = rewriteArtifacts(catalog.artifacts);
   const refreshed = new FlowArtifactCatalog({ artifacts });
   fs.writeFileSync(catalogPath, `${JSON.stringify(refreshed.toJSON(), null, 2)}\n`);
 }
 
+function refreshCatalogDescriptorForBytes(version, relativePath) {
+  rewriteCatalogFile(version, (artifacts) => artifacts.map((entry) => {
+    if (entry.relativePath !== relativePath) return entry;
+    const bytes = fs.readFileSync(path.join(version, relativePath));
+    return {
+      ...entry,
+      hash: crypto.createHash("sha256").update(bytes).digest("hex"),
+      size: bytes.length,
+    };
+  }));
+}
+
+function refreshCatalogFile(root, id, relativePath) {
+  const version = path.join(root, "specs", id, "001");
+  refreshCatalogDescriptorForBytes(version, relativePath);
+}
+
 afterEach(() => {
   while (roots.length > 0) removeTmpDir(roots.pop());
+});
+
+describe("specs migration root authority", () => {
+  it("separates configuration authority from retired managed-directory presence", () => {
+    const table = [
+      {
+        name: "canonical config survives multiple retired directories without configs",
+        canonical: "specs/canonical",
+        legacy: [null, null],
+        expected: { authority: "canonical", relativePath: "specs/canonical" },
+      },
+      {
+        name: "canonical config accepts agreeing legacy config authorities",
+        canonical: "flows",
+        legacy: ["flows", "flows"],
+        expected: { authority: "canonical", relativePath: "flows" },
+      },
+      {
+        name: "canonical config blocks a disagreeing legacy authority",
+        canonical: "specs/canonical",
+        legacy: ["specs/legacy", null],
+        expected: { blocker: "SPEC_ROOT_CONFLICT" },
+      },
+      {
+        name: "missing canonical config blocks multiple disagreeing legacy authorities",
+        canonical: null,
+        legacy: ["specs/one", "specs/two"],
+        expected: { blocker: "MULTIPLE_LEGACY_SPEC_ROOT_AUTHORITIES" },
+      },
+      {
+        name: "missing canonical config blocks multiple agreeing legacy authorities",
+        canonical: null,
+        legacy: ["flows", "flows"],
+        expected: { blocker: "MULTIPLE_LEGACY_SPEC_ROOT_AUTHORITIES" },
+      },
+      {
+        name: "directory-only legacy remnants use the default root",
+        canonical: null,
+        legacy: [null, null],
+        expected: { authority: "default", relativePath: "specs" },
+      },
+    ];
+    for (const entry of table) {
+      const root = createTmpDir("sennel-migration-spec-root-");
+      roots.push(root);
+      if (entry.canonical !== null) writeJson(root, ".sennel/config.json", { flow: { specDir: entry.canonical } });
+      for (const [index, specDir] of entry.legacy.entries()) {
+        const directory = index === 0 ? ".senti" : ".senrail";
+        if (specDir === null) writeFile(root, `${directory}/placeholder`, "retired directory only\n");
+        else writeJson(root, `${directory}/config.json`, { flow: { specDir } });
+      }
+      const resolved = resolveMigrationSpecRoot(root);
+      if (entry.expected.blocker) {
+        assert.equal(resolved.blocker.code, entry.expected.blocker, entry.name);
+      } else {
+        assert.equal(resolved.root.authority, entry.expected.authority, entry.name);
+        assert.equal(resolved.root.relativePath, entry.expected.relativePath, entry.name);
+      }
+    }
+  });
+
+  it("runs the public dry-run from the canonical root when legacy directories are only remnants", () => {
+    const root = project();
+    seedLegacy(root, "515-canonical-authority");
+    writeFile(root, ".senti/retired-marker", "no legacy config\n");
+    writeFile(root, ".senrail/retired-marker", "no legacy config\n");
+
+    const preview = run(root, ["--dry-run"]);
+
+    assert.equal(preview.status, 0, preview.stderr);
+    assert.match(preview.stdout, /515-canonical-authority/);
+    assert.equal(fs.existsSync(path.join(root, "specs", "515-canonical-authority", "001")), false);
+  });
 });
 
 describe("migrate specs --to 1", () => {
@@ -508,6 +595,22 @@ describe("migrate specs --to 1", () => {
       entry.type === "flow_created" && entry.transition.operation === "create_flow"
     )), true);
     assert.equal(trustedActivities[0].timing.startedAt, "2026-01-01T03:04:05.000Z");
+    assert.equal(trustedActivities[0].references.artifacts.length, 1);
+    const creationEvidencePath = trustedActivities[0].references.artifacts[0].id;
+    assert.match(creationEvidencePath, /^steps\/system\/activity-evidence\/[a-f0-9]{64}\.json$/);
+    const creationEvidence = JSON.parse(fs.readFileSync(
+      path.join(root, "specs", trustedId, "001", creationEvidencePath),
+      "utf8",
+    ));
+    assert.equal(creationEvidence.activityId, trustedActivities[0].id);
+    assert.deepEqual(creationEvidence.owner, { nodeId: "flow", nodeKey: "flow" });
+    assert.deepEqual(creationEvidence.source, {
+      path: "flow.json",
+      pointer: "/createdAt",
+      hash: trustedState.history.creation.source.hash,
+    });
+    const trustedCatalog = JSON.parse(fs.readFileSync(path.join(root, "specs", trustedId, "001", "artifact-catalog.json"), "utf8"));
+    assert.equal(trustedCatalog.artifacts.find((entry) => entry.relativePath === creationEvidencePath).activityId, trustedActivities[0].id);
     assert.equal(trustedState.confirmationOrder, 1);
 
     const unavailableStore = versionStore(root, unavailableId);
@@ -519,6 +622,7 @@ describe("migrate specs --to 1", () => {
     const unavailableActivities = unavailableStore.activities();
     assert.equal(unavailableActivities.some((entry) => entry.type === "flow_created"), false);
     assert.equal(unavailableActivities.some((entry) => entry.transition.operation === "create_flow"), false);
+    assert.equal(unavailableActivities.flatMap((entry) => entry.references.artifacts).length, 0);
 
     createExistingVersion(root, "515-fresh-creation", {
       flowId: "fresh-flow-creation",
@@ -533,6 +637,7 @@ describe("migrate specs --to 1", () => {
     assert.equal(freshActivities.some((entry) => (
       entry.type === "flow_created" && entry.transition.operation === "create_flow"
     )), true);
+    assert.equal(freshActivities[0].references.artifacts.length, 0);
   });
 
   it("preserves the production nonblocking policy and rejects conflicting historical current cursors without writes", () => {
@@ -595,6 +700,9 @@ describe("migrate specs --to 1", () => {
     incomplete.tasks[0].steps[1].runtimeLog = { runId: "legacy-runtime-incomplete" };
     writeLegacyFlow(root, incompleteId, incomplete);
     const incompleteCandidate = plannedCandidate(root, incompleteId).candidate;
+    const completeFlowHash = crypto.createHash("sha256")
+      .update(fs.readFileSync(path.join(root, "specs", completeId, "flow.json")))
+      .digest("hex");
 
     const applied = run(root);
     assert.equal(applied.status, 0, applied.stderr);
@@ -602,10 +710,23 @@ describe("migrate specs --to 1", () => {
     const activities = completeStore.activities();
     assert.deepEqual(activities.map((entry) => entry.nodeId), ["T-1-impl", "flow"]);
     assert.equal(activities[0].timing.finishedAt, "2026-01-02T23:00:00.000+09:00");
-    assert.equal(
-      activities[0].references.artifacts[0].id,
-      "artifacts/migration/flow.legacy.json#/tasks/0/steps/1/runtimeLog/endedAt",
-    );
+    const runtimeEvidencePath = activities[0].references.artifacts[0].id;
+    assert.match(runtimeEvidencePath, /^steps\/impl\/T-1\/impl\/activity-evidence\/[a-f0-9]{64}\.json$/);
+    const runtimeEvidence = JSON.parse(fs.readFileSync(path.join(root, "specs", completeId, "001", runtimeEvidencePath), "utf8"));
+    // The canonical Task node key comes from the production definition; the
+    // source-only `task-impl` label is not an authority identity.
+    assert.deepEqual(runtimeEvidence.owner, { nodeId: "T-1-impl", nodeKey: "impl" });
+    assert.deepEqual(runtimeEvidence.source, {
+      path: "flow.json",
+      pointer: "/tasks/0/steps/1/runtimeLog/endedAt",
+      hash: completeFlowHash,
+    });
+    assert.equal(runtimeEvidence.activityId, activities[0].id);
+    const catalog = JSON.parse(fs.readFileSync(path.join(root, "specs", completeId, "001", "artifact-catalog.json"), "utf8"));
+    const descriptor = catalog.artifacts.find((entry) => entry.relativePath === runtimeEvidencePath);
+    assert.equal(descriptor.logicalKey, "activity.evidence");
+    assert.equal(descriptor.activityId, activities[0].id);
+    assert.equal(descriptor.hash, crypto.createHash("sha256").update(fs.readFileSync(path.join(root, "specs", completeId, "001", runtimeEvidencePath))).digest("hex"));
     const report = JSON.parse(fs.readFileSync(path.join(root, "specs", completeId, "001", "flow-migration-report.json"), "utf8"));
     assert.equal(report.converted.some((entry) => entry.pointer === "/tasks/0/steps/1/runtimeLog/endedAt"), true);
     assert.equal(report.preserved.some((entry) => (
@@ -619,6 +740,47 @@ describe("migrate specs --to 1", () => {
       entry.pointer === "/tasks/0/steps/1/runtimeLog" && entry.reason === "INSUFFICIENT_EVENT_DETAIL"
     )), true);
     assert.equal(versionStore(root, incompleteId).activities().length, 0);
+  });
+
+  it("keeps a legacy historical Step runtime observation under its exact typed historical owner", () => {
+    for (const historicalId of ["review-draft-questions", "legacy-review"]) {
+      const root = project();
+      const id = seedContinuableLegacy(root, `515-historical-runtime-owner-${historicalId}`);
+      const flow = legacyFlow(root, id);
+      // Older producers named static Steps differently from the current
+      // definition. Even a suffix which resembles a Task review leaf retains
+      // its exact historical identity; it must not create a fake Task owner.
+      flow.steps = [{
+        id: historicalId,
+        status: "done",
+        runtimeLog: {
+          runId: "historical-review-run",
+          sequence: 1,
+          attempt: 1,
+          command: "flow run review",
+          startedAt: "2026-01-02T13:00:00.000Z",
+          endedAt: "2026-01-02T13:01:00.000Z",
+          exitCode: 0,
+        },
+      }];
+      delete flow.currentTaskId;
+      writeLegacyFlow(root, id, flow);
+
+      const applied = run(root);
+      assert.equal(applied.status, 0, applied.stderr);
+      const store = versionStore(root, id);
+      assert.equal(store.load().findNode(historicalId).key, historicalId);
+      const [activity] = store.activities();
+      assert.equal(activity.nodeId, historicalId);
+      const evidencePath = activity.references.artifacts[0].id;
+      assert.match(evidencePath, new RegExp(`^steps/historical/${historicalId}/activity-evidence/[a-f0-9]{64}\\.json$`));
+      const evidence = JSON.parse(fs.readFileSync(path.join(root, "specs", id, "001", evidencePath), "utf8"));
+      assert.deepEqual(evidence.owner, { nodeId: historicalId, nodeKey: historicalId });
+      const catalog = JSON.parse(fs.readFileSync(path.join(root, "specs", id, "001", "artifact-catalog.json"), "utf8"));
+      const descriptor = catalog.artifacts.find((entry) => entry.relativePath === evidencePath);
+      assert.equal(descriptor.publicationStep, "system");
+      assert.equal(descriptor.activityId, activity.id);
+    }
   });
 
   it("normalizes legacy Task child identities while preserving direct status and result facts", () => {
@@ -815,6 +977,92 @@ describe("migrate specs --to 1", () => {
     assert.equal(canonicalResult.attempts[0].detail.raw_output_path, "tests/.raw/test-execution.log");
   });
 
+  it("classifies source-era runtime residue by typed path grammar without capturing durable user evidence", () => {
+    const classifier = new LegacyRuntimeResidueClassifier();
+    const table = [
+      ["tests/.raw/test-execution.log", "LEGACY_RAW_LOG_RESIDUE"],
+      [".runtime/retry-recovery/transaction.json", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
+      ["tmp/session.tmp", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
+      ["cache/compiled.cache", "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
+      ["review-history/work-units/impl.json", "LEGACY_WORK_UNIT_RESIDUE"],
+      ["upgrade.log", "LEGACY_UPGRADE_LOG_RESIDUE"],
+      [".flow.json.writer.worker.owner.tmp", "LEGACY_TEMPORARY_FILE_RESIDUE"],
+      [".issue-log.lock", "LEGACY_LOCK_RESIDUE"],
+      ["completed-transaction.json", "LEGACY_TRANSACTION_JOURNAL_RESIDUE"],
+      ["interrupted-journal.json", "LEGACY_TRANSACTION_JOURNAL_RESIDUE"],
+      ["requirement-summary.json", "LEGACY_RAW_SUMMARY_RESIDUE"],
+      ["finalize-cleanup.json", "LEGACY_FINALIZE_RUNTIME_RESIDUE"],
+    ];
+    for (const [sourcePath, reason] of table) {
+      assert.equal(classifier.classify(sourcePath)?.reason, reason, sourcePath);
+    }
+    for (const sourcePath of ["operator-notes.log", "architecture-record.json"]) {
+      assert.equal(classifier.classify(sourcePath), null, sourcePath);
+    }
+  });
+
+  it("isolates source-era runtime residue without cataloging or reviving it as live runtime control input", () => {
+    const root = project();
+    const id = seedContinuableLegacy(root, "515-runtime-residue");
+    const base = `specs/${id}`;
+    const residues = [
+      [".retry-recovery.transaction.json", "retry transaction\n", 0o640, "LEGACY_TRANSACTION_JOURNAL_RESIDUE"],
+      [".issue-log.lock", "legacy lock\n", 0o600, "LEGACY_LOCK_RESIDUE"],
+      [".flow.json.writer.worker.owner.tmp", "owner marker\n", 0o644, "LEGACY_TEMPORARY_FILE_RESIDUE"],
+      ["review-history/work-units/impl.json", "work unit\n", 0o640, "LEGACY_WORK_UNIT_RESIDUE"],
+      ["finalize-cleanup.json", "finalize journal\n", 0o600, "LEGACY_FINALIZE_RUNTIME_RESIDUE"],
+      ["requirement-summary.json", "{\"summary\":true}\n", 0o640, "LEGACY_RAW_SUMMARY_RESIDUE"],
+      ["tests/.raw/upgrade.log", "corpus upgrade log\n", 0o640, "LEGACY_RAW_LOG_RESIDUE"],
+      ["upgrade.log", "root upgrade log\n", 0o640, "LEGACY_UPGRADE_LOG_RESIDUE"],
+      ["tmp/session.tmp", "temporary\n", 0o600, "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
+      ["cache/compiled.cache", "cache bytes\n", 0o600, "LEGACY_RUNTIME_WORKSPACE_RESIDUE"],
+      ["completed-transaction.json", "completed journal\n", 0o600, "LEGACY_TRANSACTION_JOURNAL_RESIDUE"],
+    ];
+    for (const [relativePath, bytes, mode] of residues) {
+      writeFile(root, `${base}/${relativePath}`, bytes);
+      fs.chmodSync(path.join(root, base, relativePath), mode);
+    }
+    // These similarly shaped user evidence files are not producer runtime
+    // grammar and must retain their normal permanent migration authority.
+    writeFile(root, `${base}/operator-notes.log`, "durable operator note\n");
+    writeJson(root, `${base}/architecture-record.json`, { durable: true });
+
+    const applied = run(root);
+    assert.equal(applied.status, 0, applied.stderr);
+    const version = path.join(root, base, "001");
+    const report = JSON.parse(fs.readFileSync(path.join(version, "flow-migration-report.json"), "utf8"));
+    const catalog = JSON.parse(fs.readFileSync(path.join(version, "artifact-catalog.json"), "utf8"));
+    for (const [relativePath, bytes, mode, reason] of residues) {
+      const destination = `.runtime/migration/legacy-files/${relativePath}`;
+      assert.equal(fs.readFileSync(path.join(version, destination), "utf8"), bytes, relativePath);
+      assert.equal(fs.statSync(path.join(version, destination)).mode & 0o777, mode, relativePath);
+      assert.equal(report.relocatedTransient.some((entry) => (
+        entry.source === relativePath && entry.destination === destination && entry.reason === reason
+      )), true, relativePath);
+      const sourceFile = report.sourceFiles.find((entry) => entry.path === relativePath);
+      assert.equal(sourceFile.hash, crypto.createHash("sha256").update(Buffer.from(bytes, "utf8")).digest("hex"), relativePath);
+      assert.equal(catalog.artifacts.some((entry) => entry.relativePath === destination), false, relativePath);
+      assert.throws(() => FLOW_ARTIFACT_CONTRACTS.classify(destination), /not uniquely classified/, relativePath);
+    }
+    for (const livePath of [
+      ".runtime/retry-recovery/transaction.json",
+      ".runtime/locks/issue-log.lock",
+      ".runtime/review-work-units/impl.json",
+      ".runtime/finalize-cleanup/journal.json",
+      ".runtime/test-execute/requirement-summary.json",
+    ]) assert.equal(fs.existsSync(path.join(version, livePath)), false, livePath);
+    assert.equal(catalog.artifacts.some((entry) => entry.relativePath.endsWith("operator-notes.log")), true);
+    assert.equal(catalog.artifacts.some((entry) => entry.relativePath.endsWith("architecture-record.json")), true);
+
+    const store = versionStore(root, id);
+    const state = store.load();
+    const next = store.apply({ activity: startActivity(state, { id: "runtime-residue-next" }) });
+    assert.equal(next.attempt.id, "migration-attempt-1");
+    // A subsequent valid production write may use its own runtime lock.  It
+    // must never revive the source-era lock as live runtime control input.
+    assert.equal(fs.existsSync(path.join(version, ".runtime", "locks", "issue-log.lock")), false);
+  });
+
   it("resolves explicit permanent artifact references through cataloged canonical destinations and skips missing, escaping, or ambiguous references", () => {
     const root = project();
     const valid = "515-permanent-reference-valid";
@@ -951,16 +1199,27 @@ describe("migrate specs --to 1", () => {
       "impl-gate", "flow", "impl-review", "T-1-review", "test-review", "impl-review", "spec-gate", "T-1-review",
     ]);
     assert.ok(activities.every((activity) => activity.type === "note_recorded" && activity.attemptId === null && activity.sequence === null));
-    assert.deepEqual(activities.map((activity) => activity.references.artifacts[0].id), [
-      "artifacts/migration/flow.legacy.json#/directCompletionReceipt/completedAt",
-      "artifacts/migration/flow.legacy.json#/directIntegrationReceipt/integratedAt",
-      "artifacts/migration/flow.legacy.json#/stepAttempts/0/recordedAt",
-      "artifacts/migration/flow.legacy.json#/stepAttempts/1/recordedAt",
-      "artifacts/migration/flow.legacy.json#/reviewRecoveryBaselines/0/createdAt",
-      "artifacts/migration/flow.legacy.json#/retryRecovery/entries/0/createdAt",
-      "artifacts/migration/flow.legacy.json#/canonicalReviewPassRecoveries/0/recoveredAt",
-      `steps/impl/T-1/review/evidence/${digest}.json`,
+    const directEvidencePaths = activities.slice(0, -1).map((activity) => activity.references.artifacts[0].id);
+    assert.deepEqual(directEvidencePaths.map((entry) => entry.replace(/[a-f0-9]{64}\.json$/, "")), [
+      "steps/impl/gate/activity-evidence/",
+      "steps/system/activity-evidence/",
+      "steps/impl/review/activity-evidence/",
+      "steps/impl/T-1/review/activity-evidence/",
+      "steps/test-review/activity-evidence/",
+      "steps/impl/review/activity-evidence/",
+      "steps/spec-gate/activity-evidence/",
     ]);
+    assert.equal(activities.at(-1).references.artifacts[0].id, `steps/impl/T-1/review/evidence/${digest}.json`);
+    const catalog = JSON.parse(fs.readFileSync(path.join(version, "artifact-catalog.json"), "utf8"));
+    for (const [activity, evidencePath] of activities.slice(0, -1).map((entry, index) => [entry, directEvidencePaths[index]])) {
+      const document = JSON.parse(fs.readFileSync(path.join(version, evidencePath), "utf8"));
+      assert.equal(document.activityId, activity.id);
+      assert.deepEqual(document.owner, { nodeId: activity.nodeId, nodeKey: activity.nodeKey });
+      const descriptor = catalog.artifacts.find((entry) => entry.relativePath === evidencePath);
+      assert.equal(descriptor.logicalKey, "activity.evidence");
+      assert.equal(descriptor.activityId, activity.id);
+      assert.equal(descriptor.hash, crypto.createHash("sha256").update(fs.readFileSync(path.join(version, evidencePath))).digest("hex"));
+    }
     assert.equal(fs.existsSync(path.join(version, "steps/test-review/result.json")), false);
     assert.equal(fs.readFileSync(path.join(version, "artifacts/migration/legacy-files/test-review.json"), "utf8"), aggregateOnly);
 
@@ -977,6 +1236,10 @@ describe("migrate specs --to 1", () => {
         ["flow.json", "/canonicalReviewPassRecoveries/0/recoveredAt"],
         [`review-evidence/${digest}.json`, "/provenance/capturedAt"],
       ],
+    );
+    assert.deepEqual(
+      report.generated.filter((entry) => entry.reason === "DIRECT_ACTIVITY_EVIDENCE").map((entry) => entry.target).sort(),
+      [...directEvidencePaths].sort(),
     );
     assert.equal(report.preserved.find((entry) => entry.source === "test-review.json").reason, "INSUFFICIENT_EVENT_DETAIL");
     assert.ok(report.migration.identityBasis.every((entry) => entry.source.path === "flow.json"));
@@ -1401,6 +1664,85 @@ describe("migrate specs --to 1", () => {
     const rerun = run(root);
     assert.equal(rerun.status, 0, rerun.stderr);
     assert.equal(fs.existsSync(path.join(root, "specs", id, "001", "flow.json")), true);
+  });
+
+  it("rejects tampered Activity evidence through the production catalog validator before source swap", () => {
+    const scenarios = [
+      {
+        label: "bytes no longer match the catalog descriptor",
+        expected: /artifact content does not match (?:the )?catalog/i,
+        tamper({ version, evidencePath }) {
+          const document = JSON.parse(fs.readFileSync(path.join(version, evidencePath), "utf8"));
+          document.note = "tampered bytes";
+          fs.writeFileSync(path.join(version, evidencePath), `${JSON.stringify(document, null, 2)}\n`);
+        },
+      },
+      {
+        label: "evidence owner does not match its Activity after a catalog hash refresh",
+        expected: /activity evidence document owner does not match its Activity/i,
+        tamper({ version, evidencePath }) {
+          const document = JSON.parse(fs.readFileSync(path.join(version, evidencePath), "utf8"));
+          document.owner = { nodeId: "impl-gate", nodeKey: "impl-gate" };
+          fs.writeFileSync(path.join(version, evidencePath), `${JSON.stringify(document, null, 2)}\n`);
+          refreshCatalogDescriptorForBytes(version, evidencePath);
+        },
+      },
+      {
+        label: "unknown top-level evidence fields are rejected after a catalog hash refresh",
+        expected: /activity evidence document must contain only schemaRevision, activityId, owner, observedAt, source, and note/i,
+        tamper({ version, evidencePath }) {
+          const document = JSON.parse(fs.readFileSync(path.join(version, evidencePath), "utf8"));
+          document.unrecognized = "must not be ignored";
+          fs.writeFileSync(path.join(version, evidencePath), `${JSON.stringify(document, null, 2)}\n`);
+          refreshCatalogDescriptorForBytes(version, evidencePath);
+        },
+      },
+      {
+        label: "catalog Activity association does not match the evidence document",
+        expected: /activity evidence document Activity id does not match its descriptor/i,
+        tamper({ version, evidencePath }) {
+          const activities = fs.readFileSync(path.join(version, "activities.jsonl"), "utf8")
+            .trimEnd().split("\n").map((line) => JSON.parse(line));
+          const document = JSON.parse(fs.readFileSync(path.join(version, evidencePath), "utf8"));
+          const otherActivity = activities.find((entry) => entry.id !== document.activityId);
+          assert.ok(otherActivity, "fixture must produce a second direct Activity evidence record");
+          rewriteCatalogFile(version, (artifacts) => artifacts.map((entry) => (
+            entry.relativePath === evidencePath ? { ...entry, activityId: otherActivity.id } : entry
+          )));
+        },
+      },
+    ];
+    for (const scenario of scenarios) {
+      const root = project();
+      const id = seedContinuableLegacy(root, `515-evidence-tamper-${scenarios.indexOf(scenario) + 1}`);
+      const flow = legacyFlow(root, id);
+      flow.createdAt = "2026-01-01T00:00:00.000Z";
+      flow.directIntegrationReceipt = { integratedAt: "2026-01-01T00:01:00.000Z" };
+      writeLegacyFlow(root, id, flow);
+      const sourcePath = path.join(root, "specs", id, "flow.json");
+      const before = fs.readFileSync(sourcePath);
+      const beforeMode = fs.statSync(sourcePath).mode & 0o777;
+      const { specRoot, candidate } = plannedCandidate(root, id);
+      const transaction = new SpecsMigrationTransaction({
+        root,
+        specRoot,
+        specId: id,
+        faultInjector({ phase, location }) {
+          if (phase !== "stage-materialized") return;
+          const evidenceDirectory = path.join(location.directory, "steps", "system", "activity-evidence");
+          const evidenceNames = fs.readdirSync(evidenceDirectory);
+          assert.equal(evidenceNames.length, 2, "fixture must create root creation and direct integration evidence files");
+          const evidencePath = path.posix.join("steps", "system", "activity-evidence", evidenceNames[0]);
+          scenario.tamper({ version: location.directory, evidencePath });
+        },
+      });
+      assert.throws(() => transaction.apply(candidate), scenario.expected, scenario.label);
+      assert.deepEqual(fs.readFileSync(sourcePath), before, scenario.label);
+      assert.equal(fs.statSync(sourcePath).mode & 0o777, beforeMode, scenario.label);
+      assert.equal(fs.existsSync(path.join(root, "specs", id, "001")), false, scenario.label);
+      assert.equal(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-specs")), false, scenario.label);
+      assert.equal(fs.readdirSync(path.join(root, "specs", id)).some((name) => name.startsWith(".001.migrate-") && name.endsWith(".tmp")), false, scenario.label);
+    }
   });
 
   it("fails closed instead of rolling back when the placed target no longer has the journaled stage identity", () => {

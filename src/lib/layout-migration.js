@@ -1317,39 +1317,50 @@ export class LayoutMigrationRevisionOne {
       oldRecovery.owner.assertInactive();
       if (this.dryRun) {
         this.logger.log("[migrate] DRY-RUN: a valid old Senrail migration journal would be recovered; no files were changed.");
-        return { migrated: false, recovered: true, noop: false, complete: false };
+        // A dry-run never mutates the journal, so it cannot prove the
+        // post-recovery preflight (a rollback could expose another legacy
+        // directory or a collision).  Surface recovery as an explicit
+        // incomplete plan rather than claiming the target was reached.
+        return { migrated: false, recovered: true, noop: false, complete: false, requiresRecovery: true };
       }
       this.#recoverOldSenrailJournal(oldRecovery);
       this.logger.log("[migrate] recovered an old Senrail migration journal without converting it.");
       // Recovery can leave a completed old `.senrail` migration.  Re-enter
       // through the normal preflight so it receives the same collision and
       // writer checks as every other legacy source.
-      return this.run();
+      return { ...this.run(), recovered: true };
     }
     const recovery = LayoutMigrationJournal.read(this.root, this.processIdentitySource);
     if (recovery) {
       recovery.owner.assertInactive();
       if (this.dryRun) {
         this.logger.log("[migrate] DRY-RUN: a valid migration journal would be recovered; no files were changed.");
-        return { migrated: false, recovered: true, noop: false, complete: false };
+        return { migrated: false, recovered: true, noop: false, complete: false, requiresRecovery: true };
       }
       const recovered = this.#recover(recovery);
       this.logger.log(recovered === "cleanup"
         ? "[migrate] recovered incomplete cleanup after the final rename."
         : "[migrate] recovered an interrupted migration by restoring the legacy directory.");
-      return { migrated: false, recovered: true, noop: false, complete: false };
+      // Do not report success just because a journal was removed.  Cleanup
+      // recovery must validate the canonical target through normal preflight,
+      // and rollback recovery must make one safe same-invocation attempt to
+      // migrate the restored legacy source.
+      return { ...this.run(), recovered: true };
     }
 
     const state = migrationState(this.root);
     const canonical = state.get(PRODUCT.managedDirName);
     if (canonical) {
+      // The reached target is still a successful command result, but an
+      // existing canonical root is an explicit operator warning: no legacy
+      // source is inspected or merged while this authority exists.
       this.logger.error(`[migrate] ${PRODUCT.managedDirName} already exists; layout revision 1 is already applied.`);
-      return { migrated: false, recovered: false, noop: true };
+      return { migrated: false, recovered: false, noop: true, complete: true };
     }
     const sources = LEGACY_DIRECTORY_NAMES.filter((name) => state.has(name));
     if (sources.length === 0) {
       this.logger.log("[migrate] no managed directory requires layout revision 1.");
-      return { migrated: false, recovered: false, noop: true };
+      return { migrated: false, recovered: false, noop: true, complete: true };
     }
     if (sources.length !== 1) {
       throw new Error(`migration refuses to merge legacy managed directories automatically: ${sources.join(", ")}`);
@@ -1435,7 +1446,7 @@ export class LayoutMigrationRevisionOne {
       journal = pendingJournal;
       this.#commit(journal, snapshot);
       this.logger.log(`[migrate] migrated ${sourceName} to ${PRODUCT.managedDirName}.`);
-      return { migrated: true, recovered: false, noop: false };
+      return { migrated: true, recovered: false, noop: false, complete: true };
     } catch (error) {
       if (journal) {
         const canonicalVisible = lstatOrNull(path.join(this.root, PRODUCT.managedDirName));

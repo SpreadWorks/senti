@@ -238,6 +238,12 @@ export class FlowArtifactAttemptRecord {
 export class FlowArtifactContentContract {
   parse() { throw new Error("artifact content contract must implement parse"); }
   assertPublication() { throw new Error("artifact content contract must implement assertPublication"); }
+  /**
+   * Some immutable artifacts bind their bytes to the Activity that published
+   * them.  The catalog calls this after it has resolved the ledger entry.
+   * Most content formats deliberately have no such coupling.
+   */
+  assertCatalogAssociation() { return null; }
 }
 
 /** Parses and compares the durable JSON shape shared by retried result artifacts. */
@@ -627,6 +633,9 @@ export class FlowArtifactStepOwner {
   static reviewCollection() {
     return new FlowArtifactStepOwner({ publicationStep: null, directoryPath: ":{ownerPath}" }, STEP_OWNER_MINT);
   }
+  static activityEvidenceCollection() {
+    return new FlowArtifactStepOwner({ publicationStep: null, directoryPath: ":{ownerPath}" }, STEP_OWNER_MINT);
+  }
   constructor({ publicationStep, directoryPath } = {}, mint = null) {
     if (mint !== STEP_OWNER_MINT) throw new Error("Flow artifact step owners must be created by a typed owner factory");
     this.publicationStep = publicationStep === null ? null : authorityActor(publicationStep, "artifact owner publication step");
@@ -726,6 +735,9 @@ export class FlowArtifactContract {
     if (this.logicalKey.toString() === "review.evidence") {
       throw new Error("review evidence must be resolved through the typed registry reviewEvidence API");
     }
+    if (this.logicalKey.toString() === "activity.evidence") {
+      throw new Error("activity evidence must be resolved through the typed registry activityEvidence API");
+    }
     if (this.logicalKey.toString() === "final.regression.raw-log") {
       const attempt = parameters?.attempt;
       const resolvedAttempt = attempt instanceof FlowArtifactAttempt ? attempt.toString() : attempt;
@@ -772,6 +784,16 @@ export class FlowArtifactContract {
       try {
         if (taskOwner !== null) FlowArtifactStepOwner.taskReview(taskOwner[1]);
         else FlowArtifactStepOwner.reviewDirectory(match[1]);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    if (key === "activity.evidence") {
+      const match = candidate.match(/^steps\/(.+)\/activity-evidence\/([a-f0-9]{64})\.json$/);
+      if (match === null) return false;
+      try {
+        FlowArtifactActivityEvidenceOwner.fromDirectory(match[1]);
         return true;
       } catch {
         return false;
@@ -897,6 +919,299 @@ export class FlowArtifactReviewEvidence {
       retention: this.contract.retention.toString(),
       activityId,
     });
+  }
+}
+
+const ACTIVITY_EVIDENCE_MINT = Symbol("FlowArtifactActivityEvidenceOwner");
+
+function isoTimestamp(value, field) {
+  const timestamp = requiredText(value, field);
+  if (Number.isNaN(Date.parse(timestamp))) throw new Error(`${field} must be an ISO timestamp`);
+  return timestamp;
+}
+
+function jsonPointer(value, field) {
+  if (typeof value !== "string") throw new Error(`${field} must be a JSON Pointer string`);
+  if (value === "") return value;
+  if (!value.startsWith("/") || /~(?:[^01]|$)/.test(value)) {
+    throw new Error(`${field} must be an RFC6901 JSON Pointer`);
+  }
+  return value;
+}
+
+/**
+ * The immutable owner address for an Activity evidence artifact.  It retains
+ * the real Activity node identity: `flow` has the typed system owner and a
+ * task leaf remains under its own Task directory.  No synthetic Step is
+ * invented for a root observation.
+ */
+export class FlowArtifactActivityEvidenceOwner {
+  static forNodeId(value) {
+    const nodeId = requiredText(value, "activity evidence nodeId");
+    if (nodeId === "flow") {
+      return new FlowArtifactActivityEvidenceOwner({
+        nodeId,
+        publicationStep: FlowArtifactUpdater.fromActivityNodeId(nodeId).toString(),
+        directoryPath: "system",
+      }, ACTIVITY_EVIDENCE_MINT);
+    }
+    // `impl` is a composite historical node whose Activity updater is the
+    // system actor.  It cannot share `steps/impl` with the concrete
+    // `implement` producer, so its system namespace stays explicit.
+    if (nodeId === "impl") {
+      return new FlowArtifactActivityEvidenceOwner({
+        nodeId,
+        publicationStep: FlowArtifactUpdater.fromActivityNodeId(nodeId).toString(),
+        directoryPath: "system/impl",
+      }, ACTIVITY_EVIDENCE_MINT);
+    }
+    // Static Flow leaves have their own typed owners.  Task leaves are not
+    // inferred from an id suffix: a caller must prove the Task parent with
+    // forTaskNode(), so an old Step such as `legacy-review` cannot become a
+    // fictitious Task named `legacy`.
+    if (AUTHORITY_ACTORS.has(nodeId)) {
+      return new FlowArtifactActivityEvidenceOwner({
+        nodeId,
+        publicationStep: FlowArtifactUpdater.fromActivityNodeId(nodeId).toString(),
+        directoryPath: FlowArtifactStepOwner.forStep(nodeId).toString(),
+      }, ACTIVITY_EVIDENCE_MINT);
+    }
+    throw new Error(`activity evidence nodeId is not a concrete current Flow leaf: ${nodeId}`);
+  }
+
+  /**
+   * Current Task evidence requires the state-derived Task parent and exact
+   * child segment.  Node-id spelling alone is intentionally insufficient.
+   */
+  static forTaskNode({ taskId, segment } = {}) {
+    const owner = new FlowArtifactTaskOwner(taskId, segment);
+    const nodeId = `${owner.taskId}-${owner.segment}`;
+    return new FlowArtifactActivityEvidenceOwner({
+      nodeId,
+      publicationStep: FlowArtifactUpdater.fromActivityNodeId(nodeId).toString(),
+      directoryPath: owner.toString().slice("steps/".length),
+    }, ACTIVITY_EVIDENCE_MINT);
+  }
+
+  /**
+   * An explicit authority for a node retained only in historical state.  The
+   * caller must opt into this namespace after the state boundary has ruled
+   * out a current Task parent.  It rejects all current Flow identities but
+   * deliberately does not classify an arbitrary `*-review` spelling here.
+   */
+  static forHistoricalNodeId(value) {
+    const nodeId = identifier(value, "historical activity evidence nodeId");
+    if (nodeId === "flow" || nodeId === "impl" || AUTHORITY_ACTORS.has(nodeId)) {
+      throw new Error(`historical activity evidence nodeId is already a current Flow node: ${nodeId}`);
+    }
+    return new FlowArtifactActivityEvidenceOwner({
+      nodeId,
+      publicationStep: "system",
+      directoryPath: path.posix.join("historical", nodeId),
+      historical: true,
+    }, ACTIVITY_EVIDENCE_MINT);
+  }
+
+  static fromDirectory(directoryPath) {
+    const ownerPath = safeRelativePath(directoryPath, "activity evidence owner directory");
+    if (ownerPath === "system") return FlowArtifactActivityEvidenceOwner.forNodeId("flow");
+    if (ownerPath === "system/impl") return FlowArtifactActivityEvidenceOwner.forNodeId("impl");
+    const historicalMatch = ownerPath.match(/^historical\/([A-Za-z0-9][A-Za-z0-9._-]*)$/);
+    if (historicalMatch !== null) {
+      return FlowArtifactActivityEvidenceOwner.forHistoricalNodeId(historicalMatch[1]);
+    }
+    const taskMatch = ownerPath.match(/^impl\/([A-Za-z0-9][A-Za-z0-9._-]*)\/(impl|review|gate)$/);
+    if (taskMatch !== null) {
+      return FlowArtifactActivityEvidenceOwner.forTaskNode({ taskId: taskMatch[1], segment: taskMatch[2] });
+    }
+    const staticNodeId = [...AUTHORITY_ACTORS]
+      .filter((nodeId) => nodeId !== "system" && !nodeId.startsWith("task-"))
+      .find((nodeId) => FlowArtifactStepOwner.forStep(nodeId).toString() === ownerPath);
+    if (staticNodeId === undefined) throw new Error(`invalid activity evidence owner directory: ${ownerPath}`);
+    return FlowArtifactActivityEvidenceOwner.forNodeId(staticNodeId);
+  }
+
+  constructor({ nodeId, publicationStep, directoryPath, historical = false } = {}, mint = null) {
+    if (mint !== ACTIVITY_EVIDENCE_MINT) {
+      throw new Error("activity evidence owners must be created by a typed owner factory");
+    }
+    this.nodeId = requiredText(nodeId, "activity evidence nodeId");
+    this.publicationStep = authorityActor(publicationStep, "activity evidence publication step");
+    this.directoryPath = new FlowArtifactCanonicalPath(safeRelativePath(directoryPath, "activity evidence owner directory"));
+    if (typeof historical !== "boolean") throw new Error("activity evidence owner historical flag is invalid");
+    this.historical = historical;
+    if (this.historical) {
+      if (!IDENTIFIER.test(this.nodeId) || this.publicationStep !== "system"
+        || this.directoryPath.toString() !== path.posix.join("historical", this.nodeId)) {
+        throw new Error("historical activity evidence owner must retain its node identity under the system namespace");
+      }
+    } else if (FlowArtifactUpdater.fromActivityNodeId(this.nodeId).toString() !== this.publicationStep) {
+      throw new Error("activity evidence owner publication step does not match its node");
+    }
+    Object.freeze(this);
+  }
+
+  toString() { return this.directoryPath.toString(); }
+}
+
+/** Typed, owner-bound address for immutable evidence referenced by an Activity. */
+export class FlowArtifactActivityEvidence {
+  constructor(contract, { owner, digest } = {}) {
+    if (!(owner instanceof FlowArtifactActivityEvidenceOwner)) {
+      throw new Error("activity evidence requires a typed Activity owner");
+    }
+    const evidenceDigest = requiredText(digest, "activity evidence digest");
+    if (!/^[a-f0-9]{64}$/.test(evidenceDigest)) {
+      throw new Error("activity evidence digest must be a lowercase SHA-256 digest");
+    }
+    if (!(contract instanceof FlowArtifactContract) || contract.logicalKey.toString() !== "activity.evidence") {
+      throw new Error("activity evidence requires an activity.evidence contract");
+    }
+    this.contract = contract;
+    this.logicalKey = contract.logicalKey.toString();
+    this.owner = owner;
+    this.digest = evidenceDigest;
+    this.relativePath = contract.canonicalPath.resolve({ ownerPath: owner.toString(), digest: evidenceDigest });
+    this.memberId = contract.memberIdForPath(this.relativePath);
+    Object.freeze(this);
+  }
+
+  static fromCanonicalPath(contract, relativePath) {
+    if (!(contract instanceof FlowArtifactContract) || contract.logicalKey.toString() !== "activity.evidence") {
+      throw new Error("activity evidence canonical path requires its activity.evidence contract");
+    }
+    const match = safeRelativePath(relativePath, "activity evidence canonical path")
+      .match(/^steps\/(.+)\/activity-evidence\/([a-f0-9]{64})\.json$/);
+    if (match === null) throw new Error("activity evidence canonical path must contain a typed owner and digest");
+    const [, ownerPath, digest] = match;
+    const evidence = new FlowArtifactActivityEvidence(contract, {
+      owner: FlowArtifactActivityEvidenceOwner.fromDirectory(ownerPath),
+      digest,
+    });
+    if (evidence.relativePath !== relativePath) throw new Error("activity evidence canonical path does not match its typed owner");
+    return evidence;
+  }
+
+  publication({ mediaType, updater, activityId = null } = {}) {
+    const actor = authorityActor(updater, "activity evidence updater");
+    if (actor !== this.owner.publicationStep) {
+      throw new Error("activity evidence updater does not own its evidence path");
+    }
+    return Object.freeze({
+      logicalKey: this.logicalKey,
+      relativePath: this.relativePath,
+      authoritySlot: this.contract.authoritySlotFor(actor, this.memberId),
+      mediaType: requiredText(mediaType, "artifact media type"),
+      retention: this.contract.retention.toString(),
+      activityId,
+    });
+  }
+
+  assertAuthoritySlot(slot) {
+    if (!(slot instanceof ArtifactAuthoritySlot)) throw new Error("activity evidence requires an ArtifactAuthoritySlot");
+    const expected = this.contract.authoritySlotFor(this.owner.publicationStep, this.memberId);
+    if (slot.kind !== expected.kind || slot.authority.toString() !== expected.authority.toString()
+      || slot.cardinality.toString() !== expected.cardinality.toString() || slot.memberId !== expected.memberId
+      || slot.publicationStep !== expected.publicationStep) {
+      throw new Error("activity evidence authority slot must be derived from its typed owner and digest");
+    }
+    return slot;
+  }
+}
+
+/** The immutable JSON payload attached to one cataloged Activity evidence file. */
+export class FlowArtifactActivityEvidenceDocument {
+  constructor(value = {}) {
+    if (value === null || typeof value !== "object" || Array.isArray(value)
+      || Object.keys(value).sort().join(",") !== "activityId,note,observedAt,owner,schemaRevision,source") {
+      throw new Error("activity evidence document must contain only schemaRevision, activityId, owner, observedAt, source, and note");
+    }
+    const { schemaRevision, activityId, owner, observedAt, source, note } = value;
+    if (schemaRevision !== 1) throw new Error("unsupported activity evidence schemaRevision");
+    if (activityId !== identifier(activityId, "activity evidence activityId")) {
+      throw new Error("activity evidence activityId is invalid");
+    }
+    if (owner === null || typeof owner !== "object" || Array.isArray(owner)
+      || Object.keys(owner).sort().join(",") !== "nodeId,nodeKey") {
+      throw new Error("activity evidence owner must contain only nodeId and nodeKey");
+    }
+    this.owner = Object.freeze({
+      nodeId: requiredText(owner.nodeId, "activity evidence owner.nodeId"),
+      nodeKey: identifier(owner.nodeKey, "activity evidence owner.nodeKey"),
+    });
+    if (source === null || typeof source !== "object" || Array.isArray(source)
+      || Object.keys(source).sort().join(",") !== "hash,path,pointer") {
+      throw new Error("activity evidence source must contain only path, pointer, and hash");
+    }
+    const hash = requiredText(source.hash, "activity evidence source.hash");
+    if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error("activity evidence source.hash must be a lowercase SHA-256 digest");
+    this.schemaRevision = schemaRevision;
+    this.activityId = identifier(activityId, "activity evidence activityId");
+    this.observedAt = isoTimestamp(observedAt, "activity evidence observedAt");
+    this.source = Object.freeze({
+      path: safeRelativePath(source.path, "activity evidence source.path"),
+      pointer: jsonPointer(source.pointer, "activity evidence source.pointer"),
+      hash,
+    });
+    this.note = requiredText(note, "activity evidence note");
+    Object.freeze(this);
+  }
+
+  static fromJSON(value) { return new FlowArtifactActivityEvidenceDocument(value); }
+
+  toJSON() {
+    return {
+      schemaRevision: this.schemaRevision,
+      activityId: this.activityId,
+      owner: { ...this.owner },
+      observedAt: this.observedAt,
+      source: { ...this.source },
+      note: this.note,
+    };
+  }
+}
+
+/** Validates immutable Activity evidence bytes and their ledger association. */
+export class FlowArtifactActivityEvidenceContent extends FlowArtifactContentContract {
+  constructor() { super(); Object.freeze(this); }
+
+  parse(bytes) {
+    if (!Buffer.isBuffer(bytes)) throw new Error("activity evidence content must be a Buffer");
+    let value;
+    try { value = JSON.parse(bytes.toString("utf8")); } catch (error) {
+      throw new Error(`activity evidence must be valid JSON: ${error.message}`);
+    }
+    return FlowArtifactActivityEvidenceDocument.fromJSON(value);
+  }
+
+  assertPublication(previousBytes, nextBytes) {
+    const next = this.parse(nextBytes);
+    if (previousBytes !== null) {
+      const previous = this.parse(previousBytes);
+      if (JSON.stringify(previous.toJSON()) !== JSON.stringify(next.toJSON())) {
+        throw new Error("immutable activity evidence cannot replace existing bytes");
+      }
+    }
+    return next;
+  }
+
+  assertCatalogAssociation({ bytes, descriptor, activity } = {}) {
+    const document = this.parse(bytes);
+    if (descriptor?.activityId === null || descriptor?.activityId === undefined) {
+      throw new Error("activity evidence descriptor requires its Activity association");
+    }
+    if (document.activityId !== descriptor.activityId) {
+      throw new Error("activity evidence document Activity id does not match its descriptor");
+    }
+    if (document.owner.nodeId !== activity?.nodeId || document.owner.nodeKey !== activity?.nodeKey) {
+      throw new Error("activity evidence document owner does not match its Activity");
+    }
+    const contract = FLOW_ARTIFACT_CONTRACTS.require("activity.evidence");
+    const artifact = FlowArtifactActivityEvidence.fromCanonicalPath(contract, descriptor.relativePath);
+    if (artifact.owner.nodeId !== activity.nodeId || artifact.owner.publicationStep !== descriptor.slot.publicationStep) {
+      throw new Error("activity evidence path owner does not match its Activity provenance");
+    }
+    return document;
   }
 }
 
@@ -1026,6 +1341,24 @@ export class FlowArtifactRegistry {
     const owner = taskId == null ? FlowArtifactStepOwner.reviewStep(identifier(reviewStep, "review step")) : FlowArtifactStepOwner.taskReview(taskId);
     return new FlowArtifactReviewEvidence(this.require("review.evidence"), { owner, digest });
   }
+  activityEvidence({ nodeId, digest } = {}) {
+    return new FlowArtifactActivityEvidence(this.require("activity.evidence"), {
+      owner: FlowArtifactActivityEvidenceOwner.forNodeId(nodeId),
+      digest,
+    });
+  }
+  taskActivityEvidence({ taskId, segment, digest } = {}) {
+    return new FlowArtifactActivityEvidence(this.require("activity.evidence"), {
+      owner: FlowArtifactActivityEvidenceOwner.forTaskNode({ taskId, segment }),
+      digest,
+    });
+  }
+  historicalActivityEvidence({ nodeId, digest } = {}) {
+    return new FlowArtifactActivityEvidence(this.require("activity.evidence"), {
+      owner: FlowArtifactActivityEvidenceOwner.forHistoricalNodeId(nodeId),
+      digest,
+    });
+  }
   taskDirectory(taskId, segment) { return new FlowArtifactTaskOwner(taskId, segment).toString(); }
   finalRegressionRawLog(attempt) { return this.require("final.regression.raw-log").resolve({ attempt: attempt instanceof FlowArtifactAttempt ? attempt : new FlowArtifactAttempt(attempt) }); }
   classify(relativePath) {
@@ -1067,13 +1400,14 @@ const FLOW_ARTIFACT_PLACEMENTS = new Map([
     "test.review", "test.execute", "test.result.review", "impl.review", "impl.triage", "impl.repair",
     "impl.gate.source", "impl.gate", "retro", "acceptance.review", "acceptance.review.evidence", "acceptance.decision", "final.regression",
     "file.map", "placeholder.permission", "gate.memory", "repair.fingerprint", "repair.delta", "repair.migration",
-    "task.review", "task.gate.source", "task.gate", "review.evidence",
+    "task.review", "task.gate.source", "task.gate", "review.evidence", "activity.evidence",
     "finalize.cleanup.agent-metrics", "finalize.cleanup.notes", "finalize.cleanup.plugin-artifacts",
   ].map((key) => [key, new FlowArtifactPlacement("step-owner")]),
 ]);
 
 const FLOW_ARTIFACT_MUTATION_POLICIES = new Map([
   ["review.evidence", new FlowArtifactMutationPolicy("immutable")],
+  ["activity.evidence", new FlowArtifactMutationPolicy("immutable")],
 ]);
 
 const FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS = new Set([
@@ -1086,6 +1420,7 @@ const FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS = new Set([
   "acceptance.review", "acceptance.decision", "final.regression",
 ]);
 const FLOW_ARTIFACT_ATTEMPT_HISTORY_CONTENT = new FlowArtifactAttemptHistoryContent();
+const FLOW_ARTIFACT_ACTIVITY_EVIDENCE_CONTENT = new FlowArtifactActivityEvidenceContent();
 
 function placementFor(logicalKey) {
   const placement = FLOW_ARTIFACT_PLACEMENTS.get(logicalKey);
@@ -1142,6 +1477,7 @@ function stepOwnerFor(logicalKey) {
   if (logicalKey === "task.review") return FlowArtifactStepOwner.taskCollection("review");
   if (logicalKey === "task.gate.source" || logicalKey === "task.gate") return FlowArtifactStepOwner.taskCollection("gate");
   if (logicalKey === "review.evidence") return FlowArtifactStepOwner.reviewCollection();
+  if (logicalKey === "activity.evidence") return FlowArtifactStepOwner.activityEvidenceCollection();
   const stepId = FLOW_ARTIFACT_OWNER_STEP_BY_KEY.get(logicalKey);
   if (stepId === undefined) throw new Error(`artifact contract is missing a classified step owner: ${logicalKey}`);
   return FlowArtifactStepOwner.forStep(stepId);
@@ -1151,7 +1487,9 @@ function contract(logicalKey, canonicalPath, kind, authority, publicationStep, o
   return new FlowArtifactContract({
     logicalKey, canonicalPath, placement: placementFor(logicalKey), mutationPolicy: mutationPolicyFor(logicalKey),
     stepOwner: stepOwnerFor(logicalKey),
-    contentContract: FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS.has(logicalKey) ? FLOW_ARTIFACT_ATTEMPT_HISTORY_CONTENT : null,
+    contentContract: FLOW_ARTIFACT_ATTEMPT_HISTORY_KEYS.has(logicalKey)
+      ? FLOW_ARTIFACT_ATTEMPT_HISTORY_CONTENT
+      : logicalKey === "activity.evidence" ? FLOW_ARTIFACT_ACTIVITY_EVIDENCE_CONTENT : null,
     retention, ownership, cataloged,
     authoritySlot: new FlowArtifactAuthoritySlot({ kind, authority, publicationStep, cardinality }),
   });
@@ -1275,6 +1613,15 @@ const FLOW_ARTIFACT_CONTRACT_LIST = Object.freeze([
       "spec-triage", "spec-repair", "spec-gate", "impl-triage", "impl-repair", "impl-gate", "task-gate", "acceptance-review",
     ],
   ), "permanent", "collection"),
+  // Immutable observations are not review-specific.  Their typed owner path
+  // follows the actual Activity node, including `flow`'s system owner and
+  // task-local impl/review/gate leaves, so catalog provenance remains
+  // verifiable without manufacturing a Step.
+  contract("activity.evidence", "steps/:{ownerPath}/activity-evidence/:{digest}.json", "activity-evidence", "canonical-flow-artifacts", "system", own(
+    FLOW_WIDE_RECORD_ACTORS,
+    FLOW_WIDE_RECORD_ACTORS,
+    FLOW_WIDE_RECORD_ACTORS,
+  ), "permanent", "collection"),
   contract("tests.source", "artifacts/tests/:{testPath}", "test-source", "canonical-flow-artifacts", "system", own("test", ["system", "test"], ["scenario-validity", "test-review", "implement", "test-execute", "final-regression"]), "permanent", "collection"),
   contract("flow.findings", "steps/flow-findings.json", "flow-findings", "canonical-flow-artifacts", "impl-review", own(
     FLOW_FINDING_SOURCE_ACTORS,
@@ -1397,6 +1744,7 @@ export const FLOW_ARTIFACT_SWITCH_TARGETS = Object.freeze([
   target("task.gate.source", ["task-impl-gate-source.json"], "steps/impl/:{taskId}/gate/source.json", "task-gate", "task-gate"),
   target("task.gate", ["task-impl-gate-result.json"], "steps/impl/:{taskId}/gate/result.json", "task-gate", "task-impl"),
   patternTarget("review.evidence", ["review-evidence/:{digest}.json"], "steps/:{ownerPath}/evidence/:{digest}.json", "impl-review", "impl-gate"),
+  newTarget("activity.evidence", "steps/:{ownerPath}/activity-evidence/:{digest}.json", "system", "system"),
   patternTarget("tests.source", [new FlowArtifactLegacyPattern("tests/:{testPath}", { excludedPrefixes: ["tests/.raw/"] })], "artifacts/tests/:{testPath}", "test", "test-review"),
   target("flow.findings", ["flow-findings.json"], "steps/flow-findings.json", "impl-review", "impl-gate"),
   target("nonblocking.handoffs", ["nonblocking-handoffs.json"], "steps/nonblocking-handoffs.json", "scenario-validity", "acceptance-review"),
@@ -1454,6 +1802,7 @@ export const FLOW_ARTIFACT_NORMAL_FLOW_FILES = Object.freeze([
   known("upgrade.result", "switch", "upgrade-result.json"), known("placeholder.permission", "switch", "placeholder-permission.json"), known("completion.overrides", "switch", "completion-overrides.json"), known("retry.recovery", "switch", "retry-recovery.json"), known("gate.memory", "switch", "gate-impl-memory.json"),
   known("repair.fingerprint", "switch", "repair-fingerprint.json"), knownPattern("repair.delta", "switch", "repair-deltas/:{deltaId}.json"), known("repair.migration", "switch", "repair-state-migration.json"), known("impl.repair.transaction", "switch", "impl-repair-transaction.json"), knownNew("task.review", "steps/impl/:{taskId}/review/result.json"),
   known("task.gate.source", "switch", "task-impl-gate-source.json"), known("task.gate", "switch", "task-impl-gate-result.json"), knownPattern("review.evidence", "switch", "review-evidence/:{digest}.json"), knownPattern("tests.source", "switch", new FlowArtifactLegacyPattern("tests/:{testPath}", { excludedPrefixes: ["tests/.raw/"] })),
+  knownNew("activity.evidence", "steps/:{ownerPath}/activity-evidence/:{digest}.json"),
   known("flow.findings", "switch", "flow-findings.json"), known("nonblocking.handoffs", "switch", "nonblocking-handoffs.json"), known("scenario.validity.raw-log", "switch", "tests/.raw/scenario-validity.log"), known("test.execute.raw-log", "switch", "tests/.raw/test-execution.log"), knownPattern("final.regression.raw-log", "switch", "tests/.raw/final-regression-attempt-:{attempt}.log"), known("retry.recovery.transaction", "switch", ".retry-recovery.transaction.json"), known("test.requirement.summary", "switch", "tests/.raw/requirement-summary.json"), knownPattern("worker.handoff", "switch", ".sennel/handoffs/:{handoffPath}"), knownPattern("review.work.unit", "switch", "review-history/work-units/:{workUnitPath}"), knownNew("runtime.step-metadata", ".runtime/step-metadata/:{stepId}.json"),
   known("finalize.cleanup.agent-metrics", "switch", "agent-metrics.json"), known("finalize.cleanup.notes", "switch", "notes.json"), known("finalize.cleanup.plugin-artifacts", "switch", "plugin-artifacts.json"), known("finalize.cleanup.runtime-log", "switch", "runtime-log.json"), known("finalize.cleanup.journal", "switch", "finalize-cleanup.json"),
   known("runtime.lock.issue-log", "switch", ".issue-log.lock"), known("runtime.lock.current-flow-state", "switch", ".current-flow-state.lock"), known("runtime.lock.artifact-catalog", "switch", ".artifact-catalog.lock"), known("runtime.lock.retry-recovery", "switch", ".retry-recovery.lock"), known("runtime.lock.flow-state-writer", "switch", ".flow.json.writer.lock"), knownPattern("runtime.lock.flow-state-writer-owner", "switch", ".flow.json.writer.:{ownerToken}.owner.tmp"), knownPattern("runtime.lock.impl-repair", "switch", ".impl-repair.lock/:{lockPath}"),

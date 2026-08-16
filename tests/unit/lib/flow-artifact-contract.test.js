@@ -13,6 +13,7 @@ import {
   FlowArtifactAttemptSequence,
   FlowArtifactAttemptHistory,
   FlowArtifactAttemptRecord,
+  FlowArtifactActivityEvidence,
   FLOW_ARTIFACT_NO_ARTIFACT_STEPS,
   FlowArtifactCanonicalPath,
   FlowArtifactContract,
@@ -66,9 +67,10 @@ describe("Flow artifact contract registry", () => {
     assert.equal(paths.get("task.gate.source"), "steps/impl/:{taskId}/gate/source.json");
     assert.equal(paths.has("task.impl"), false);
     assert.equal(paths.get("task.review"), "steps/impl/:{taskId}/review/result.json");
+    assert.equal(paths.get("activity.evidence"), "steps/:{ownerPath}/activity-evidence/:{digest}.json");
     assert.deepEqual(
       FLOW_ARTIFACT_SWITCH_TARGETS.filter((entry) => entry.action === "new").map((entry) => entry.logicalKey),
-      ["flow.activities", "artifact.catalog", "acceptance.decision", "task.review", "runtime.step-metadata"],
+      ["flow.activities", "artifact.catalog", "acceptance.decision", "task.review", "activity.evidence", "runtime.step-metadata"],
     );
     assert.equal(paths.get("draft.gate.source"), "steps/draft-gate/source.json");
     assert.equal(paths.get("spec.gate.source"), "steps/spec-gate/source.json");
@@ -621,6 +623,63 @@ describe("Flow artifact contract registry", () => {
     assert.notEqual(impl.authoritySlotFor("impl-review").claimKey(), spec.authoritySlotFor("spec-review").claimKey());
     assert.equal(impl.memberId, repeat.memberId);
     assert.equal(impl.authoritySlotFor("impl-review").claimKey(), repeat.authoritySlotFor("impl-review").claimKey());
+  });
+
+  it("binds immutable Activity evidence to root, composite, static, and Task owners without suffix ambiguity", () => {
+    const currentOwners = [
+      ["flow", "steps/system/activity-evidence/"],
+      ["impl", "steps/system/impl/activity-evidence/"],
+      ["impl-gate", "steps/impl/gate/activity-evidence/"],
+      ["spec-review", "steps/spec-review/activity-evidence/"],
+      ["test-review", "steps/test-review/activity-evidence/"],
+      ["draft-questions-review", "steps/draft-questions-review/activity-evidence/"],
+    ];
+    for (const [nodeId, prefix] of currentOwners) {
+      const artifact = FLOW_ARTIFACT_CONTRACTS.activityEvidence({ nodeId, digest: DIGEST_A });
+      assert.equal(artifact.relativePath, `${prefix}${DIGEST_A}.json`, nodeId);
+      assert.equal(artifact.owner.nodeId, nodeId, nodeId);
+      assert.equal(FLOW_ARTIFACT_CONTRACTS.classify(artifact.relativePath).logicalKey.toString(), "activity.evidence", nodeId);
+    }
+    for (const [taskId, segment, prefix] of [
+      ["T-1", "impl", "steps/impl/T-1/impl/activity-evidence/"],
+      ["T-1", "review", "steps/impl/T-1/review/activity-evidence/"],
+      ["T-1", "gate", "steps/impl/T-1/gate/activity-evidence/"],
+    ]) {
+      const artifact = FLOW_ARTIFACT_CONTRACTS.taskActivityEvidence({ taskId, segment, digest: DIGEST_A });
+      assert.equal(artifact.relativePath, `${prefix}${DIGEST_A}.json`, `${taskId}-${segment}`);
+      assert.equal(artifact.owner.nodeId, `${taskId}-${segment}`);
+      assert.equal(FLOW_ARTIFACT_CONTRACTS.classify(artifact.relativePath).logicalKey.toString(), "activity.evidence");
+    }
+    const historical = FLOW_ARTIFACT_CONTRACTS.historicalActivityEvidence({
+      nodeId: "legacy-review",
+      digest: DIGEST_A,
+    });
+    assert.equal(historical.relativePath, `steps/historical/legacy-review/activity-evidence/${DIGEST_A}.json`);
+    assert.equal(historical.owner.historical, true);
+    assert.equal(historical.owner.publicationStep, "system");
+    assert.equal(FLOW_ARTIFACT_CONTRACTS.classify(historical.relativePath).logicalKey.toString(), "activity.evidence");
+    const roundTrip = FlowArtifactActivityEvidence.fromCanonicalPath(
+      FLOW_ARTIFACT_CONTRACTS.require("activity.evidence"),
+      historical.relativePath,
+    );
+    assert.equal(roundTrip.owner.nodeId, "legacy-review");
+    assert.equal(roundTrip.owner.historical, true);
+    assert.throws(
+      () => FLOW_ARTIFACT_CONTRACTS.activityEvidence({ nodeId: "T-1", digest: DIGEST_A }),
+      /concrete current Flow leaf/,
+    );
+    assert.throws(
+      () => FLOW_ARTIFACT_CONTRACTS.historicalActivityEvidence({ nodeId: "impl-gate", digest: DIGEST_A }),
+      /already a current Flow node/,
+    );
+    assert.throws(
+      () => FLOW_ARTIFACT_CONTRACTS.classify(`steps/historical/impl-gate/activity-evidence/${DIGEST_A}.json`),
+      /not uniquely classified/,
+    );
+    assert.throws(
+      () => FLOW_ARTIFACT_CONTRACTS.classify(`steps/unknown/activity-evidence/${DIGEST_A}.json`),
+      /not uniquely classified/,
+    );
   });
 
   it("places immutable evidence beneath the same owner directory as every review result", () => {

@@ -61,29 +61,53 @@ export class MigrationSpecRoot {
 export function resolveMigrationSpecRoot(root) {
   const projectRoot = path.resolve(root);
   const canonicalDirectory = path.join(projectRoot, PRODUCT.managedDirName);
-  const canonical = fs.existsSync(canonicalDirectory) ? configAt(canonicalDirectory) : null;
-  const legacyDirectories = LEGACY_MANAGED_DIRECTORY_NAMES
-    .map((name) => path.join(projectRoot, name))
-    .filter((directory) => fs.existsSync(directory));
-  if (legacyDirectories.length > 1) {
-    return { blocker: new MigrationBlocker({
-      code: "MULTIPLE_LEGACY_MANAGED_DIRECTORIES",
-      message: `cannot resolve a spec root from multiple legacy managed directories: ${legacyDirectories.map((directory) => path.basename(directory)).join(", ")}`,
-    }) };
-  }
-  let legacy = null;
   try {
-    legacy = legacyDirectories.length === 1 ? configAt(legacyDirectories[0]) : null;
+    // A managed directory is not an authority by itself.  Layout migration
+    // can leave retired directories beside the canonical one, and a clean
+    // checkout may deliberately contain more than one such directory while
+    // only the canonical config owns the Flow root.  Read configuration
+    // records first, then resolve their explicit authority order.
+    const canonical = fs.existsSync(canonicalDirectory) ? configAt(canonicalDirectory) : null;
+    const legacy = LEGACY_MANAGED_DIRECTORY_NAMES
+      .map((name) => ({ name, directory: path.join(projectRoot, name) }))
+      .filter(({ directory }) => fs.existsSync(directory))
+      .flatMap(({ name, directory }) => {
+        const configuration = configAt(directory);
+        return configuration === null ? [] : [{ name, ...configuration }];
+      });
     const canonicalSpecDir = canonical === null ? null : configuredSpecDir(canonical.config, canonical.path);
-    const legacySpecDir = legacy === null ? null : configuredSpecDir(legacy.config, legacy.path);
-    if (canonicalSpecDir !== null && legacySpecDir !== null && canonicalSpecDir !== legacySpecDir) {
+    const legacySpecDirs = legacy.map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      relativePath: configuredSpecDir(entry.config, entry.path),
+    }));
+
+    // Canonical configuration wins, but every actual legacy configuration
+    // must agree with it.  A directory without config has no competing
+    // authority and therefore cannot make this decision ambiguous.
+    const conflictingLegacy = canonicalSpecDir === null
+      ? null
+      : legacySpecDirs.find((entry) => entry.relativePath !== canonicalSpecDir);
+    if (conflictingLegacy !== null && conflictingLegacy !== undefined) {
       return { blocker: new MigrationBlocker({
         code: "SPEC_ROOT_CONFLICT",
-        message: `canonical and legacy configuration disagree on flow.specDir (${canonicalSpecDir} / ${legacySpecDir})`,
+        message: `canonical and legacy configuration disagree on flow.specDir (${canonicalSpecDir} / ${conflictingLegacy.relativePath})`,
       }) };
     }
     if (canonicalSpecDir !== null) return { root: new MigrationSpecRoot({ root: projectRoot, relativePath: canonicalSpecDir, authority: "canonical" }) };
-    if (legacySpecDir !== null) return { root: new MigrationSpecRoot({ root: projectRoot, relativePath: legacySpecDir, authority: "legacy" }) };
+    // Without canonical configuration there may be at most one legacy
+    // configuration authority.  Equal values do not turn two independent
+    // legacy authority records into one authoritative source: either could
+    // change independently before the next migration invocation.
+    if (legacySpecDirs.length > 1) {
+      return { blocker: new MigrationBlocker({
+        code: "MULTIPLE_LEGACY_SPEC_ROOT_AUTHORITIES",
+        message: `multiple legacy configurations define flow.specDir (${legacySpecDirs.map((entry) => `${entry.name}:${entry.relativePath}`).join(", ")})`,
+      }) };
+    }
+    if (legacySpecDirs.length === 1) {
+      return { root: new MigrationSpecRoot({ root: projectRoot, relativePath: legacySpecDirs[0].relativePath, authority: "legacy" }) };
+    }
     return { root: new MigrationSpecRoot({ root: projectRoot, relativePath: "specs", authority: "default" }) };
   } catch (error) {
     return { blocker: new MigrationBlocker({ code: "SPEC_ROOT_CONFIG_INVALID", message: error.message }) };
