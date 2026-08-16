@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  FlowArtifactCatalog,
   FlowArtifactCatalogStore,
   FlowVersionLocation,
 } from "../../lib/flow-version.js";
@@ -27,6 +28,11 @@ import {
 } from "./flow-findings.js";
 import { FLOW_ARTIFACT_VIEW_REGISTRY } from "./artifact-view-registry.js";
 import { artifactViewSha256 } from "./artifact-view-fingerprint.js";
+import { buildCurrentFlowDefinition } from "../definition.js";
+import {
+  CurrentFlowStateSerializer,
+  CurrentFlowStateValidator,
+} from "./current-flow-state.js";
 
 const SPEC_SCHEMA_PATH = fileURLToPath(new URL("../schemas/spec.schema.json", import.meta.url));
 const DECISION_CHOICES = new Set(["accept_risk_and_continue", "abort"]);
@@ -34,6 +40,9 @@ const UNRESOLVED_DEFERRED_DISPOSITIONS = new Set(["still_open", "blocking"]);
 const FINAL_DEFERRED_DISPOSITIONS = new Set([
   "fixed", "not_needed", "false_positive", "pre_existing", "still_open", "blocking",
 ]);
+const FLOW_STATE_SERIALIZER = new CurrentFlowStateSerializer({
+  validator: new CurrentFlowStateValidator({ definition: buildCurrentFlowDefinition() }),
+});
 
 function text(value, field) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`${field} must be a non-empty string`);
@@ -152,6 +161,45 @@ export class ArtifactViewTarget {
 
   get specId() { return this.location.specId.toString(); }
   get version() { return this.location.version.value; }
+
+  /**
+   * An explicit Version selector is historical authority, not an alternative
+   * spelling of the active selector. Its canonical lifecycle must therefore
+   * be finalized before any primary artifact, cache, or summary agent is
+   * touched. Active targets already carry the command's guarded state and do
+   * not pass through this historical eligibility check.
+   */
+  assertReadable(catalog) {
+    if (this.active) return this;
+    if (!(catalog instanceof FlowArtifactCatalog)) {
+      throw new Error("completed artifact view target requires a canonical Artifact catalog");
+    }
+    const contract = FLOW_ARTIFACT_CONTRACTS.require("flow.state");
+    const relativePath = contract.resolve().relativePath;
+    const descriptor = catalog.resolve(relativePath);
+    if (descriptor.logicalKey !== "flow.state") {
+      throw new Error("completed artifact view flow.state catalog identity is invalid");
+    }
+    descriptor.verify(this.location);
+    this.location.assertAuthority(descriptor.relativePath, { mustExist: true });
+    const bytes = fs.readFileSync(this.location.resolve(descriptor.relativePath));
+    if (artifactViewSha256(bytes) !== descriptor.hash) {
+      throw new Error("completed artifact view flow.state content does not match the Artifact catalog");
+    }
+    let state;
+    try {
+      state = FLOW_STATE_SERIALIZER.deserialize(JSON.parse(bytes.toString("utf8")));
+    } catch (error) {
+      throw new Error(`completed artifact view flow.state is invalid: ${error.message}`);
+    }
+    if (!state.identity.matchesLocation(this.location)) {
+      throw new Error("completed artifact view flow.state identity does not match its Version location");
+    }
+    if (state.lifecycle.state !== "finalized") {
+      throw new Error(`completed artifact view requires a finalized Version (got: ${state.lifecycle.state})`);
+    }
+    return this;
+  }
 
   toJSON() {
     return {
@@ -416,6 +464,7 @@ export class ArtifactViewReader {
     this.target = target;
     this.registry = registry;
     this.catalog = new FlowArtifactCatalogStore({ location: target.location }).require();
+    target.assertReadable(this.catalog);
     Object.freeze(this);
   }
 

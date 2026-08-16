@@ -122,6 +122,8 @@ describe("flow get artifact CLI", () => {
       runId: "run-514-cli-completed",
       specRecord: specRecord("The exact completed Version is rendered despite ambient corruption."),
     }).create();
+    for (const step of completed.leaves()) completed.settle(step.id);
+    active.flowManager.finalizeFlow(completed.specId);
     fs.writeFileSync(path.join(directory, ".sennel", ".active-flow"), "{ corrupt ambient authority\n");
 
     const result = invoke(directory, [

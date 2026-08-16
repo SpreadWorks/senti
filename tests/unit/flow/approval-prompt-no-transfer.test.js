@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { APPROVAL_WORKER_INSTRUCTIONS } from "../../helpers/approval-worker-contract.js";
 
 describe("spec 219 R8: approval prompt does not instruct manual requirements transfer", () => {
   it("src/flow/prompts/plan/approval.md contains no `flow set summary` instruction", () => {
@@ -20,13 +21,14 @@ describe("spec 219 R8: approval prompt does not instruct manual requirements tra
     );
   });
 
-  it("documents the guarded cataloged view in the Flow skill without a persistent approval render", () => {
+  it("preserves the pre-view approval worker instruction bytes", () => {
     const approvalPrompt = fs.readFileSync(path.resolve("src/flow/prompts/plan/approval.md"), "utf8");
+    assert.equal(approvalPrompt, APPROVAL_WORKER_INSTRUCTIONS);
+  });
+
+  it("documents the guarded cataloged view in the Flow skill", () => {
     const skill = fs.readFileSync(path.resolve("src/skills/sennel.flow/SKILL.md"), "utf8");
 
-    assert.doesNotMatch(approvalPrompt, /flow get artifact/i);
-    assert.doesNotMatch(approvalPrompt, /rendered `spec\.md`/i);
-    assert.match(approvalPrompt, /must not render or update a persistent `spec\.md` view/i);
     assert.match(skill, /sennel flow get artifact spec\.record --mode summary --expect-binding <binding>/);
     assert.match(skill, /sennel flow get artifact spec\.record --mode full --expect-binding <binding>/);
     assert.match(skill, /sennel flow get next-action --expect-binding <binding>/);

@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { commitAll, initGitRepo } from "../../../helpers/git-repo.js";
+import { APPROVAL_WORKER_INSTRUCTIONS } from "../../../helpers/approval-worker-contract.js";
 import {
   CanonicalFlowFixture,
   FlowAtStepFixture,
@@ -866,6 +867,24 @@ describe("flow dispatch CLI", () => {
     };
 
     assert.deepEqual(workerAction, legacyWorkerAction);
+    assert.deepEqual(Object.keys(workerAction), [
+      "taskId",
+      "step",
+      "action",
+      "instructions",
+      "context",
+      "output_schema",
+      "requires_approval",
+      "auto_approval_choice_id",
+      "maxAttempts",
+      "directive",
+    ]);
+    assert.equal(workerAction.instructions.key, "plan.approval");
+    assert.equal(
+      workerAction.instructions.content.endsWith(APPROVAL_WORKER_INSTRUCTIONS),
+      true,
+      "the dispatcher must preserve the pre-view approval worker instruction bytes",
+    );
     assert.equal(invocation.action.step, "approval");
     assert.equal(invocation.action.directive.kind, "execute_step");
     assert.equal(invocation.action.directive.action, boundaryAction.directive.action);

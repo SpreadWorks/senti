@@ -9,6 +9,7 @@ import { AuthoritativeSpecRecord, FlowVersionMigrationClassifier } from "../../.
 import { buildCurrentFlowDefinition } from "../../../src/flow/definition.js";
 import { ArtifactViewService } from "../../../src/flow/lib/artifact-view-service.js";
 import { splitArtifactViewSummary } from "../../../src/flow/lib/artifact-view-summary.js";
+import { flattenSteps } from "../../../src/flow/lib/step-tree.js";
 import {
   CurrentFlowStateAdoptionBoundary,
   CurrentFlowVersionMigrationOutputBuilder,
@@ -67,6 +68,21 @@ function fixture(directory, { specId, goal, active = false } = {}) {
   });
   if (active) created.registerActive();
   return { flowManager, created };
+}
+
+function finalizeFixture(flowManager, created) {
+  for (const step of created.leaves()) created.settle(step.id);
+  flowManager.finalizeFlow(created.specId);
+  return created;
+}
+
+function finalizeMigratedVersion(flowManager, specId) {
+  for (const step of flattenSteps(flowManager.loadReadOnly(specId).steps)) {
+    if (["done", "skipped"].includes(step.status)) continue;
+    flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "in_progress" }, { specId });
+    flowManager.updateStepStatus({ stepId: step.id, requestedStatus: "done" }, { specId });
+  }
+  flowManager.finalizeFlow(specId);
 }
 
 class CountingAgent {
@@ -379,6 +395,7 @@ describe("flow get artifact", () => {
       specId: "002-completed",
       goal: "This exact completed Version is displayed.",
     });
+    finalizeFixture(completed.flowManager, completed.created);
     const { container } = commandContainer(directory, active.flowManager);
     const originalLoad = active.flowManager.load;
     const originalResolveActive = active.flowManager.resolveActiveFlow;
@@ -404,6 +421,7 @@ describe("flow get artifact", () => {
       specId: "002-migrated",
       goal: "A migrated Version is rendered from its cataloged spec record.",
     });
+    finalizeMigratedVersion(flowManager, "002-migrated");
     const location = migration.location;
     assert.equal(fs.existsSync(path.join(location.directory, "spec.md")), false);
     const persistedSpec = JSON.parse(fs.readFileSync(location.specFile, "utf8"));
@@ -430,6 +448,27 @@ describe("flow get artifact", () => {
     assert.equal(summary.ok, true);
     assert.match(summary.data.markdown, /migrated Version is rendered/i);
     assert.equal(agent.calls > 0, true);
+  });
+
+  it("rejects an explicit active Version before cache or summary agent work", async () => {
+    const directory = root();
+    const active = fixture(directory, {
+      specId: "002-not-completed",
+      goal: "An active Version is not historical display authority.",
+      active: true,
+    });
+    const { container, agent } = commandContainer(directory, active.flowManager);
+    const result = await new GetArtifactCommand().run(container, input({
+      mode: "summary",
+      specId: "002-not-completed",
+      version: "1",
+    }));
+
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "ARTIFACT_VIEW_READ_FAILED");
+    assert.match(result.errors[0].messages.join("\n"), /requires a finalized Version/i);
+    assert.equal(agent.resolveCalls, 0);
+    assert.equal(fs.existsSync(path.join(active.created.location().directory, ".runtime", "views")), false);
   });
 
   it("rejects a partial or guarded completed selector before cache or agent work", async () => {
