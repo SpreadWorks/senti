@@ -97,6 +97,7 @@
       "help": "Show this help",
       "setup": "Register project + generate config (interactive)",
       "upgrade": "Update template-derived files to latest version",
+      "migrate": "Migrate project layout or Flow specifications to a revision",
       "plugin": "Manage plugin sources, packages, commands, and presets",
       "docs build": "Generate docs (scan → enrich → init → data → text → readme)",
       "docs init": "Initialize docs/ from templates",
@@ -273,9 +274,9 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: sennel upgrade [--migrate] [--dry-run]",
+        "usage": "Usage: sennel upgrade [--dry-run]",
         "desc": "Upgrade template-derived files to match the installed sennel version.",
-        "descDetail": "Normal upgrade updates package-managed files only. --migrate moves a legacy managed directory to .sennel before normal upgrade. A migration failure stops before normal upgrade; after migration succeeds, a normal-upgrade failure leaves .sennel in place. Existing .sennel or no legacy directory is a no-op that skips normal upgrade. Writer-safety inspection requires Linux procfs.",
+        "descDetail": "Normal upgrade updates package-managed files only. Project layout and Flow format changes are handled by the independent migrate command.",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        Skill templates and retired skill cleanup",
           ".claude/skills/*/SKILL.md        Skill templates and retired skill cleanup",
@@ -284,7 +285,6 @@
           ".codex/hooks*                    Legacy Sennel hook removal only"
         ],
         "options": {
-          "migrate": "--migrate    On Linux with procfs, migrate .sdd-forge, .senti, or .senrail to .sennel, then run normal upgrade",
           "dryRun": "--dry-run    Show what would change without writing files",
           "help": "-h, --help   Show this help"
         }

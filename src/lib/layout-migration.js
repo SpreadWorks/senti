@@ -1,5 +1,5 @@
 /**
- * Explicit, one-way managed-directory migration for `sennel upgrade --migrate`.
+ * Explicit, one-way managed-directory layout migration.
  *
  * Normal runtime deliberately does not import this module. Legacy names are
  * confined here so opening a current project never creates a compatibility
@@ -13,18 +13,17 @@ import path from "node:path";
 
 import { AtomicFile, fsyncDirectory } from "./atomic-file.js";
 import { loadConfigFromManagedDirectory } from "./config.js";
-import { migrateLegacyManagedGitattributes } from "./gitattributes.js";
-import { migrateLegacyManagedGitignore } from "./gitignore.js";
-import { enabledPluginSkillSourceDirs } from "./plugin-registry.js";
+import { LEGACY_MANAGED_DIRECTORY_NAMES } from "./legacy-managed-directory-migration.js";
+import { migrateLegacyManagedGitattributes, migrateLegacyManagedGitignore } from "./legacy-managed-metadata-migration.js";
 import { validatePresetChainFromManagedDirectory } from "./presets.js";
 import { ProcessIdentity, ProcessIdentitySource } from "./process-identity.js";
 import { PRODUCT } from "./product.js";
 
 // This is intentionally the complete boundary for retired managed roots.
-// Nothing outside explicit `upgrade --migrate` may interpret these names.
-const LEGACY_DIRECTORY_NAMES = Object.freeze([".sdd-forge", ".senti", ".senrail"]);
-const STAGING_PREFIX = "sennel-upgrade-migrate-";
-const JOURNAL_FILE_NAME = "sennel-upgrade-migrate.json";
+// Nothing outside the explicit layout revision may interpret these names.
+const LEGACY_DIRECTORY_NAMES = LEGACY_MANAGED_DIRECTORY_NAMES;
+const STAGING_PREFIX = "sennel-migrate-layout-";
+const JOURNAL_FILE_NAME = "sennel-migrate-layout.json";
 const JOURNAL_VERSION = 7;
 const JOURNAL_PHASES = new Set([
   "staged",
@@ -636,6 +635,56 @@ class SourceTreeSnapshot {
   }
 }
 
+function templateReferenceValidationError(projectRoot, sourceRoot, config, options = {}) {
+  try {
+    if (config.type) {
+      validatePresetChainFromManagedDirectory(config.type, projectRoot, sourceRoot, {
+        languages: config.docs?.languages || [],
+        configChapters: config.chapters,
+        reportUnlistedTemplates: false,
+        ...options,
+      });
+    }
+    return null;
+  } catch (error) {
+    return String(error.message || error);
+  }
+}
+
+/**
+ * A layout revision may rename managed template paths, but must never leave a
+ * configuration that previously resolved them pointing at a removed path.
+ * Invalid historical configuration remains opaque data for this revision;
+ * only a change caused by the path conversion itself is rejected.
+ */
+function assertTemplateReferencesRemainResolvable(projectRoot, sourceRoot, snapshot) {
+  let config;
+  try {
+    config = loadConfigFromManagedDirectory(sourceRoot);
+  } catch (_) {
+    return;
+  }
+  const sourceError = templateReferenceValidationError(projectRoot, sourceRoot, config);
+  const migratedError = templateReferenceValidationError(projectRoot, sourceRoot, config, {
+    templateExists(candidate) {
+      const relative = path.relative(sourceRoot, candidate);
+      if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+        return fs.existsSync(candidate);
+      }
+      const normalized = relative.split(path.sep).join("/");
+      return isRawCopyPath(normalized)
+        ? fs.existsSync(candidate)
+        : snapshot.hasTargetPath(normalized);
+    },
+  });
+  if (migratedError && migratedError !== sourceError) {
+    throw new Error([
+      "migration would break a managed template reference; update the configuration or template name before retrying",
+      migratedError,
+    ].join("\n"));
+  }
+}
+
 class RootMetadataFile {
   constructor({ root, name, existed, original, planned }) {
     this.root = root;
@@ -746,7 +795,7 @@ class RootMetadataFile {
     const staged = this.stagedContent(stagingRoot);
     this.assertOriginal();
     new AtomicFile(this.filePath, {
-      phaseNamespace: "upgrade-migration-metadata",
+      phaseNamespace: "layout-migration-metadata",
       commitGuard: () => this.assertOriginal(),
     }).write(staged);
   }
@@ -755,20 +804,20 @@ class RootMetadataFile {
     const present = this.#assertRestorable();
     if (this.existed) {
       new AtomicFile(this.filePath, {
-        phaseNamespace: "upgrade-migration-metadata-restore",
+        phaseNamespace: "layout-migration-metadata-restore",
         commitGuard: () => this.#assertRestorable(),
       }).write(this.original);
       return;
     }
     if (!present) return;
     new AtomicFile(this.filePath, {
-      phaseNamespace: "upgrade-migration-metadata-restore",
+      phaseNamespace: "layout-migration-metadata-restore",
       commitGuard: () => this.#assertRestorable(),
     }).remove();
   }
 }
 
-class UpgradeMigrationJournal {
+class LayoutMigrationJournal {
   constructor({
     root,
     sourceName,
@@ -1033,7 +1082,7 @@ class UpgradeMigrationJournal {
       || !Array.isArray(raw.metadata) || !raw.sourceIdentity || !raw.stagedManagedIdentity) {
       throw new Error("migration journal has an unsupported schema");
     }
-    const journal = new UpgradeMigrationJournal({
+    const journal = new LayoutMigrationJournal({
       root,
       sourceName: raw.sourceName,
       stagingRelative: raw.stagingRelative,
@@ -1222,118 +1271,6 @@ function findBusyMarkers(sourceRoot) {
   return found;
 }
 
-function readJsonWarning(filePath, label) {
-  try {
-    return { value: JSON.parse(fs.readFileSync(filePath, "utf8")), warnings: [] };
-  } catch (error) {
-    return { value: null, warnings: [`${label}: JSON parse error: ${error.message}`] };
-  }
-}
-
-function validationPathSegments(validationMessage) {
-  const pathMatch = validationMessage.match(/'?([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*|\[\d+\])*)'?:/);
-  if (!pathMatch) return null;
-  return pathMatch[1].match(/[A-Za-z][A-Za-z0-9_]*|\d+/g) || null;
-}
-
-function localOverlaySuppliesPath(local, segments) {
-  // plugin sources/packages merge entries by id, so a field path alone cannot
-  // establish which stored file supplied it. Keep diagnostics conservative.
-  if (segments[0] === "plugin" && ["sources", "packages"].includes(segments[1])) return false;
-
-  let current = local;
-  for (const segment of segments) {
-    if (!current || typeof current !== "object" || Array.isArray(current)) return true;
-    if (!Object.prototype.hasOwnProperty.call(current, segment)) return false;
-    current = current[segment];
-  }
-  return true;
-}
-
-function originForConfigPath(local, validationMessage) {
-  const segments = validationPathSegments(validationMessage);
-  return segments && localOverlaySuppliesPath(local || {}, segments)
-    ? "config.local.json"
-    : "config.json";
-}
-
-export function collectMigrationConfigWarnings(sourceRoot) {
-  const configPath = path.join(sourceRoot, "config.json");
-  const localPath = path.join(sourceRoot, "config.local.json");
-  if (!lstatOrNull(configPath)) return ["config.json: missing; the subsequent normal upgrade will fail validation"];
-  assertRegularFile(configPath, "legacy config.json");
-  const config = readJsonWarning(configPath, "config.json");
-  if (config.value == null) return config.warnings;
-  if (!config.value || typeof config.value !== "object" || Array.isArray(config.value)) {
-    return ["config.json: config must be a non-null object"];
-  }
-  let local = {};
-  const warnings = [...config.warnings];
-  if (lstatOrNull(localPath)) {
-    assertRegularFile(localPath, "legacy config.local.json");
-    const parsedLocal = readJsonWarning(localPath, "config.local.json");
-    warnings.push(...parsedLocal.warnings);
-    if (parsedLocal.value == null) return warnings;
-    if (!parsedLocal.value || typeof parsedLocal.value !== "object" || Array.isArray(parsedLocal.value)) {
-      warnings.push("config.local.json: config.local.json must be a non-null object");
-      return warnings;
-    }
-    local = parsedLocal.value;
-  }
-  try {
-    loadConfigFromManagedDirectory(sourceRoot);
-  } catch (error) {
-    const detail = String(error.message || error)
-      .replace(/^Config validation failed:\s*/, "")
-      .split("\n")
-      .map((line) => line.replace(/^\s*-\s*/, "").trim())
-      .filter(Boolean);
-    for (const message of detail) warnings.push(`${originForConfigPath(local, message)}: ${message}`);
-  }
-  return warnings;
-}
-
-function normalUpgradeValidationError(projectRoot, sourceRoot, config, options = {}) {
-  try {
-    if (config.type) {
-      validatePresetChainFromManagedDirectory(config.type, projectRoot, sourceRoot, {
-        languages: config.docs?.languages || [],
-        configChapters: config.chapters,
-        reportUnlistedTemplates: false,
-        ...options,
-      });
-    }
-    return null;
-  } catch (error) {
-    return String(error.message || error);
-  }
-}
-
-function collectNormalUpgradeValidationErrors(projectRoot, sourceRoot, snapshot, configWarnings) {
-  if (configWarnings.length > 0) return [];
-  const config = loadConfigFromManagedDirectory(sourceRoot);
-  const sourceError = normalUpgradeValidationError(projectRoot, sourceRoot, config);
-  const futureError = normalUpgradeValidationError(projectRoot, sourceRoot, config, {
-    templateExists(candidate) {
-      const relative = path.relative(sourceRoot, candidate);
-      if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
-        return fs.existsSync(candidate);
-      }
-      const normalized = relative.split(path.sep).join("/");
-      return isRawCopyPath(normalized)
-        ? fs.existsSync(candidate)
-        : snapshot.hasTargetPath(normalized);
-    },
-  });
-  if (futureError && futureError !== sourceError) {
-    throw new Error([
-      "migration would break a managed template reference; update the configuration or template name before retrying",
-      futureError,
-    ].join("\n"));
-  }
-  return futureError ? [futureError] : [];
-}
-
 function ensureTempRoot(root) {
   const temp = path.join(root, ".tmp");
   const stat = lstatOrNull(temp);
@@ -1357,7 +1294,7 @@ function migrationState(root) {
  * Owns the migration preflight, staged tree construction, commit, rollback,
  * and journal-driven recovery boundaries.
  */
-export class UpgradeDirectoryMigration {
+export class LayoutMigrationRevisionOne {
   constructor(root, {
     dryRun = false,
     logger = console,
@@ -1380,7 +1317,7 @@ export class UpgradeDirectoryMigration {
       oldRecovery.owner.assertInactive();
       if (this.dryRun) {
         this.logger.log("[migrate] DRY-RUN: a valid old Senrail migration journal would be recovered; no files were changed.");
-        return { migrated: false, shouldRunUpgrade: false, warnings: [], recovered: true };
+        return { migrated: false, recovered: true, noop: false, complete: false };
       }
       this.#recoverOldSenrailJournal(oldRecovery);
       this.logger.log("[migrate] recovered an old Senrail migration journal without converting it.");
@@ -1389,30 +1326,30 @@ export class UpgradeDirectoryMigration {
       // writer checks as every other legacy source.
       return this.run();
     }
-    const recovery = UpgradeMigrationJournal.read(this.root, this.processIdentitySource);
+    const recovery = LayoutMigrationJournal.read(this.root, this.processIdentitySource);
     if (recovery) {
       recovery.owner.assertInactive();
       if (this.dryRun) {
         this.logger.log("[migrate] DRY-RUN: a valid migration journal would be recovered; no files were changed.");
-        return { migrated: false, shouldRunUpgrade: false, warnings: [], recovered: true };
+        return { migrated: false, recovered: true, noop: false, complete: false };
       }
       const recovered = this.#recover(recovery);
       this.logger.log(recovered === "cleanup"
         ? "[migrate] recovered incomplete cleanup after the final rename."
         : "[migrate] recovered an interrupted migration by restoring the legacy directory.");
-      return { migrated: false, shouldRunUpgrade: false, warnings: [], recovered: true };
+      return { migrated: false, recovered: true, noop: false, complete: false };
     }
 
     const state = migrationState(this.root);
     const canonical = state.get(PRODUCT.managedDirName);
     if (canonical) {
-      this.logger.log(`[migrate] ${PRODUCT.managedDirName} already exists; no migration or normal upgrade was run.`);
-      return { migrated: false, shouldRunUpgrade: false, warnings: [] };
+      this.logger.error(`[migrate] ${PRODUCT.managedDirName} already exists; layout revision 1 is already applied.`);
+      return { migrated: false, recovered: false, noop: true };
     }
     const sources = LEGACY_DIRECTORY_NAMES.filter((name) => state.has(name));
     if (sources.length === 0) {
-      this.logger.log("[migrate] no legacy managed directory was found; no migration or normal upgrade was run.");
-      return { migrated: false, shouldRunUpgrade: false, warnings: [] };
+      this.logger.log("[migrate] no managed directory requires layout revision 1.");
+      return { migrated: false, recovered: false, noop: true };
     }
     if (sources.length !== 1) {
       throw new Error(`migration refuses to merge legacy managed directories automatically: ${sources.join(", ")}`);
@@ -1427,25 +1364,19 @@ export class UpgradeDirectoryMigration {
     if (busy.length > 0) throw new Error(`migration refuses while another process may be writing managed files: ${busy.join(", ")}`);
 
     const snapshot = SourceTreeSnapshot.capture(sourceRoot);
+    assertTemplateReferencesRemainResolvable(this.root, sourceRoot, snapshot);
     const treePlan = snapshot.treePlan;
-    const warnings = collectMigrationConfigWarnings(sourceRoot);
-    const normalUpgradeErrors = collectNormalUpgradeValidationErrors(this.root, sourceRoot, snapshot, warnings);
-    const pluginSkillDirs = this.dryRun && warnings.length === 0 && normalUpgradeErrors.length === 0
-      ? enabledPluginSkillSourceDirs(this.root, { managedDirectory: sourceRoot })
-      : [];
     const metadata = [
       RootMetadataFile.plan(this.root, ".gitignore", migrateLegacyManagedGitignore),
       RootMetadataFile.plan(this.root, ".gitattributes", migrateLegacyManagedGitattributes),
     ];
     if (this.dryRun) {
-      this.#printDryRunPlan(sourceName, treePlan, metadata, warnings, normalUpgradeErrors);
+      this.#printDryRunPlan(sourceName, treePlan, metadata);
       return {
         migrated: false,
-        shouldRunUpgrade: true,
-        warnings,
         sourceName,
-        pluginSkillDirs,
-        normalUpgradeExpectedFailure: warnings.length > 0 || normalUpgradeErrors.length > 0,
+        recovered: false,
+        noop: false,
       };
     }
 
@@ -1469,7 +1400,7 @@ export class UpgradeDirectoryMigration {
         entry.stage(stagingRoot);
         entry.stagedContent(stagingRoot);
       }
-      const pendingJournal = new UpgradeMigrationJournal({
+      const pendingJournal = new LayoutMigrationJournal({
         root: this.root,
         sourceName,
         stagingRelative: relativePath(this.root, stagingRoot),
@@ -1504,15 +1435,14 @@ export class UpgradeDirectoryMigration {
       journal = pendingJournal;
       this.#commit(journal, snapshot);
       this.logger.log(`[migrate] migrated ${sourceName} to ${PRODUCT.managedDirName}.`);
-      for (const warning of warnings) this.logger.error(`[migrate] config warning: ${warning}`);
-      return { migrated: true, shouldRunUpgrade: true, warnings, pluginSkillDirs };
+      return { migrated: true, recovered: false, noop: false };
     } catch (error) {
       if (journal) {
         const canonicalVisible = lstatOrNull(path.join(this.root, PRODUCT.managedDirName));
         if (this.#finalRenameVisible(journal)
           || (journal.phase === "final-renamed" && canonicalVisible?.isDirectory() && !canonicalVisible.isSymbolicLink())) {
           // The final state is authoritative. Leave its journal for the next
-          // --migrate invocation to complete cleanup safely.
+          // next layout-migration invocation to complete cleanup safely.
           throw error;
         }
         try {
@@ -1534,22 +1464,13 @@ export class UpgradeDirectoryMigration {
     }
   }
 
-  #printDryRunPlan(sourceName, treePlan, metadata, warnings, normalUpgradeErrors) {
+  #printDryRunPlan(sourceName, treePlan, metadata) {
     this.logger.log(`[migrate] DRY-RUN: ${sourceName} -> ${PRODUCT.managedDirName}`);
     this.logger.log(`[migrate] DRY-RUN: stage ${treePlan.size} managed entries under .tmp/${STAGING_PREFIX}<id>/managed-directory`);
     for (const line of treePlan.toDryRunLines()) this.logger.log(`[migrate] DRY-RUN: ${line}`);
     for (const entry of metadata) {
       const status = entry.original.equals(entry.planned) ? "unchanged" : "replace";
       this.logger.log(`[migrate] DRY-RUN: ${status} ${entry.name}`);
-    }
-    for (const warning of warnings) this.logger.error(`[migrate] config warning: ${warning}`);
-    for (const error of normalUpgradeErrors) {
-      this.logger.error(`[migrate] normal upgrade validation: ${error}`);
-    }
-    if (warnings.length > 0) {
-      this.logger.error("[migrate] directory migration is feasible, but the subsequent normal upgrade is expected to fail config validation.");
-    } else if (normalUpgradeErrors.length > 0) {
-      this.logger.error("[migrate] directory migration is feasible, but the subsequent normal upgrade is expected to fail validation.");
     }
     this.logger.log("[migrate] DRY-RUN: no files, directories, journals, or metadata were changed.");
   }

@@ -42,7 +42,10 @@ const ALLOWLIST = new Map([
   ["tests/unit/rename-scan.test.js", "the detector must name the retired identities it tests"],
   ["CHANGELOG.md", "historical release record"],
   ["docs/change_log.md", "historical generated change log"],
-  ["src/lib/upgrade-migration.js", "explicit one-way legacy migration input and old-journal recovery"],
+  ["src/lib/layout-migration.js", "explicit one-way legacy migration input and old-journal recovery"],
+  ["src/lib/legacy-managed-directory-migration.js", "explicit one-way legacy managed-root migration boundary"],
+  ["src/lib/legacy-managed-metadata-migration.js", "explicit one-way legacy metadata migration boundary"],
+  ["tests/e2e/specs-migration.test.js", "migration-only legacy managed-root fixture"],
   ["src/lib/gitignore.js", "migration-only managed root metadata lines"],
   ["src/lib/gitattributes.js", "migration-only managed root metadata lines"],
   ["src/lib/agent-config-files.js", "normal upgrade replaces legacy managed instruction blocks"],
@@ -50,7 +53,9 @@ const ALLOWLIST = new Map([
   ["src/locale/en/ui.json", "explicit migration CLI input help"],
   ["src/locale/ja/ui.json", "explicit migration CLI input help"],
   ["tests/e2e/upgrade-agent-files.test.js", "legacy managed instruction-block fixture"],
-  ["tests/e2e/upgrade-migration.test.js", "legacy migration input fixtures"],
+  ["tests/e2e/layout-migration.test.js", "legacy migration input fixtures"],
+  ["tests/unit/lib/gitignore.test.js", "normalizer boundary fixture for retired managed metadata"],
+  ["tests/unit/lib/gitattributes.test.js", "normalizer boundary fixture for retired managed metadata"],
   ["tests/unit/lib/cleanup-obsolete-skills.test.js", "retired product skill cleanup fixture"],
 ]);
 function filesUnder(relativePath) {

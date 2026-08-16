@@ -284,9 +284,10 @@ describe("Current Flow state foundation", () => {
     assert.equal(wire.current, null);
     assert.equal(wire.attempt, null);
     assert.equal(wire.context, null);
+    assert.equal(wire.history, null);
     assert.deepEqual(Object.keys(wire).sort(), [
       "artifacts", "attempt", "attemptSequence", "confirmationOrder", "context", "current", "execution", "flowId",
-      "flowVersionId", "id", "issue", "key", "kind", "lifecycle", "outbox", "policy", "request", "result", "runId",
+      "flowVersionId", "history", "id", "issue", "key", "kind", "lifecycle", "outbox", "policy", "request", "result", "runId",
       "schemaRevision", "specId", "status", "steps", "version",
     ].sort());
     assert.deepEqual(serializer.deserialize(JSON.parse(serializer.bytes(fresh).toString("utf8"))).toJSON(), wire);

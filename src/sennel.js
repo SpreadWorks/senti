@@ -12,6 +12,7 @@
  *   hook    → src/hook.js
  *   setup   → src/setup.js
  *   upgrade → src/upgrade.js
+ *   migrate → src/migrate.js
  *   help    → src/help.js
  */
 

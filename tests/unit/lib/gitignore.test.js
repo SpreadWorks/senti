@@ -58,4 +58,12 @@ describe("normalizeManagedGitignore", () => {
 
     assert.equal(normalizeManagedGitignore(content, { appendIfMissing: false }), content);
   });
+
+  it("does not interpret or retire a legacy managed-root line during normal runtime normalization", () => {
+    const legacy = ".senti/*\n!.senti/config.json\n";
+    const normalized = normalizeManagedGitignore(legacy);
+    assert.match(normalized, /^\.senti\/\*$/m);
+    assert.match(normalized, /^!\.senti\/config\.json$/m);
+    assert.match(normalized, /^\.sennel\/\*$/m);
+  });
 });

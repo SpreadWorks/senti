@@ -17,4 +17,11 @@ describe("normalizeManagedGitattributes", () => {
     const content = "*.png binary\n";
     assert.equal(normalizeManagedGitattributes(content, { appendIfMissing: false }), content);
   });
+
+  it("does not interpret a retired managed-root attribute outside the migration boundary", () => {
+    const legacy = ".senti/output/analysis.json merge=ours\n";
+    const normalized = normalizeManagedGitattributes(legacy);
+    assert.match(normalized, /^\.senti\/output\/analysis\.json merge=ours$/m);
+    assert.match(normalized, new RegExp(`^${MANAGED_ANALYSIS_GITATTRIBUTE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  });
 });

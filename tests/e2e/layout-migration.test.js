@@ -8,12 +8,12 @@ import { pathToFileURL } from "node:url";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../helpers/tmp-dir.js";
 import {
   ManagedOpenHandleInspector,
-  UpgradeDirectoryMigration,
-} from "../../src/lib/upgrade-migration.js";
+  LayoutMigrationRevisionOne,
+} from "../../src/lib/layout-migration.js";
 import { ProcessIdentitySource } from "../../src/lib/process-identity.js";
 
 const CLI = path.resolve("src/sennel.js");
-const MIGRATION_MODULE = pathToFileURL(path.resolve("src/lib/upgrade-migration.js")).href;
+const MIGRATION_MODULE = pathToFileURL(path.resolve("src/lib/layout-migration.js")).href;
 const TEMPLATE_BINARY = Buffer.from([0xff, 0x00, 0x73, 0x65, 0x6e, 0x74, 0x69]);
 
 class FixtureTreeSnapshot {
@@ -91,8 +91,8 @@ function seedLegacyProject(root, directory) {
   }
 }
 
-function runUpgrade(root, args) {
-  return spawnSync(process.execPath, [CLI, "upgrade", ...args], {
+function runLayoutMigration(root, args) {
+  return spawnSync(process.execPath, [CLI, "migrate", "layout", "--to", "1", ...args], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
@@ -154,11 +154,11 @@ function crashAfterJournalWrite(root, writeNumber) {
   const script = `
     import fs from "node:fs";
     import path from "node:path";
-    import { UpgradeDirectoryMigration } from ${JSON.stringify(MIGRATION_MODULE)};
+    import { LayoutMigrationRevisionOne } from ${JSON.stringify(MIGRATION_MODULE)};
     const originalRename = fs.renameSync;
     const originalWrite = fs.writeFileSync;
     const originalOpen = fs.openSync;
-    const journalPath = path.join(${JSON.stringify(root)}, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(${JSON.stringify(root)}, ".tmp", "sennel-migrate-layout.json");
     const journalReservationDescriptors = new Set();
     let journalWrites = 0;
     const crashAfterJournalWrite = () => {
@@ -179,12 +179,12 @@ function crashAfterJournalWrite(root, writeNumber) {
     };
     fs.renameSync = (from, to, ...rest) => {
       const result = originalRename(from, to, ...rest);
-      if (String(to).endsWith(".tmp/sennel-upgrade-migrate.json")) {
+      if (String(to).endsWith(".tmp/sennel-migrate-layout.json")) {
         crashAfterJournalWrite();
       }
       return result;
     };
-    new UpgradeDirectoryMigration(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
   `;
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root,
@@ -196,18 +196,18 @@ function crashAfterTemporaryManagedWrite(root) {
   const script = `
     import fs from "node:fs";
     import path from "node:path";
-    import { UpgradeDirectoryMigration } from ${JSON.stringify(MIGRATION_MODULE)};
+    import { LayoutMigrationRevisionOne } from ${JSON.stringify(MIGRATION_MODULE)};
     const originalRename = fs.renameSync;
     fs.renameSync = (from, to, ...rest) => {
       const result = originalRename(from, to, ...rest);
       if (path.resolve(String(to)) === path.join(${JSON.stringify(root)}, ".sennel")
-        && String(from).includes("sennel-upgrade-migrate-")) {
+        && String(from).includes("sennel-migrate-layout-")) {
         fs.writeFileSync(path.join(${JSON.stringify(root)}, ".sennel", "concurrent.txt"), "crash writer data\\n");
         process.kill(process.pid, "SIGKILL");
       }
       return result;
     };
-    new UpgradeDirectoryMigration(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
   `;
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root,
@@ -219,7 +219,7 @@ function crashAfterCanonicalRenameBeforeJournalAdvance(root) {
   const script = `
     import fs from "node:fs";
     import path from "node:path";
-    import { UpgradeDirectoryMigration } from ${JSON.stringify(MIGRATION_MODULE)};
+    import { LayoutMigrationRevisionOne } from ${JSON.stringify(MIGRATION_MODULE)};
     const originalRename = fs.renameSync;
     fs.renameSync = (from, to, ...rest) => {
       const result = originalRename(from, to, ...rest);
@@ -228,7 +228,7 @@ function crashAfterCanonicalRenameBeforeJournalAdvance(root) {
       }
       return result;
     };
-    new UpgradeDirectoryMigration(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
   `;
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root,
@@ -259,9 +259,9 @@ function createOldV6Journal(root, { sourceName, phase, canonical = false, partia
   const crashed = crashAfterJournalWrite(root, 1);
   assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
   const temp = path.join(root, ".tmp");
-  const newJournalPath = path.join(temp, "sennel-upgrade-migrate.json");
+  const newJournalPath = path.join(temp, "sennel-migrate-layout.json");
   const current = JSON.parse(fs.readFileSync(newJournalPath, "utf8"));
-  const oldRelative = current.stagingRelative.replace("sennel-upgrade-migrate-", "senrail-upgrade-migrate-");
+  const oldRelative = current.stagingRelative.replace("sennel-migrate-layout-", "senrail-upgrade-migrate-");
   const oldStaging = path.join(root, oldRelative);
   fs.renameSync(path.join(root, current.stagingRelative), oldStaging);
   const staged = path.join(oldStaging, ".senti");
@@ -297,7 +297,7 @@ function crashDuringLegacyBackupRemoval(root) {
   const script = `
     import fs from "node:fs";
     import path from "node:path";
-    import { UpgradeDirectoryMigration } from ${JSON.stringify(MIGRATION_MODULE)};
+    import { LayoutMigrationRevisionOne } from ${JSON.stringify(MIGRATION_MODULE)};
     const originalRemove = fs.rmSync;
     let crashed = false;
     fs.rmSync = (target, options) => {
@@ -308,7 +308,7 @@ function crashDuringLegacyBackupRemoval(root) {
       }
       return originalRemove(target, options);
     };
-    new UpgradeDirectoryMigration(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(${JSON.stringify(root)}, { logger: { log() {}, error() {} } }).run();
   `;
   return spawnSync(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root,
@@ -316,34 +316,45 @@ function crashDuringLegacyBackupRemoval(root) {
   });
 }
 
-describe("upgrade --migrate", () => {
+describe("migrate layout --to 1", () => {
   const roots = [];
   afterEach(() => {
     for (const root of roots.splice(0)) removeTmpDir(root);
   });
 
-  it("documents normal-versus-migrate ordering and the writer-inspection platform boundary", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-help-");
+  it("documents the revisioned public layout migration", () => {
+    const root = createTmpDir("sennel-migrate-layout-help-");
     roots.push(root);
 
-    const result = runUpgrade(root, ["--help"]);
+    const result = runLayoutMigration(root, ["--help"]);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(result.stdout, /Normal upgrade updates package-managed files only/);
-    assert.match(result.stdout, /A migration failure stops before normal upgrade/);
-    assert.match(result.stdout, /normal-upgrade failure leaves \.sennel in place/);
-    assert.match(result.stdout, /Existing \.sennel or no legacy directory is a no-op that skips normal upgrade/);
-    assert.match(result.stdout, /On Linux with procfs, migrate \.sdd-forge, \.senti, or \.senrail to \.sennel, then run normal upgrade/);
+    assert.match(result.stdout, /Usage: sennel migrate layout --to 1 \[--dry-run\]/);
+    assert.match(result.stdout, /Migrate the managed project layout to a target revision/);
+  });
+
+  it("does not retain upgrade --migrate as a compatibility route", () => {
+    const root = createTmpDir("sennel-migrate-layout-no-upgrade-alias-");
+    roots.push(root);
+
+    const result = spawnSync(process.execPath, [CLI, "upgrade", "--migrate"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Unknown option: --migrate/);
   });
 
   for (const legacyDirectory of [".sdd-forge", ".senti", ".senrail"]) {
-    it(`migrates ${legacyDirectory} transactionally before running normal upgrade`, () => {
-      const root = createTmpDir("sennel-upgrade-migrate-");
+    it(`migrates ${legacyDirectory} transactionally`, () => {
+      const root = createTmpDir("sennel-migrate-layout-");
       roots.push(root);
       seedLegacyProject(root, legacyDirectory);
       const originalConfig = fs.readFileSync(path.join(root, legacyDirectory, "config.json"));
 
-      const result = runUpgrade(root, ["--migrate"]);
+      const result = runLayoutMigration(root, []);
 
       assert.equal(result.status, 0, result.stderr || result.stdout);
       assert.equal(fs.existsSync(path.join(root, legacyDirectory)), false);
@@ -395,21 +406,23 @@ describe("upgrade --migrate", () => {
       assert.match(attributes, /^\.sennel\/output\/analysis\.json merge=ours/m);
       assert.match(attributes, /\*\.png binary/);
       for (const base of [".agents", ".claude"]) {
-        assert.equal(fs.existsSync(path.join(root, base, "skills", "sdd-forge.flow")), false);
-        assert.equal(fs.existsSync(path.join(root, base, "skills", "senti.flow")), false);
+        // Layout revision 1 is deliberately independent from normal upgrade
+        // and must not mutate an agent-host directory.
+        assert.equal(fs.existsSync(path.join(root, base, "skills", "sdd-forge.flow")), true);
+        assert.equal(fs.existsSync(path.join(root, base, "skills", "senti.flow")), true);
         assert.equal(fs.readFileSync(path.join(root, base, "skills", "user.skill", "SKILL.md"), "utf8"), "user\n");
-        assert.ok(fs.existsSync(path.join(root, base, "skills", "sennel.flow", "SKILL.md")));
+        assert.equal(fs.existsSync(path.join(root, base, "skills", "sennel.flow", "SKILL.md")), false);
       }
     });
   }
 
   for (const directories of [[".sdd-forge", ".senti"], [".sdd-forge", ".senrail"], [".senti", ".senrail"], [".sdd-forge", ".senti", ".senrail"]]) {
     it(`fails closed for legacy-directory collision: ${directories.join(", ")}`, () => {
-      const root = createTmpDir("sennel-upgrade-migrate-collision-");
+      const root = createTmpDir("sennel-migrate-layout-collision-");
       roots.push(root);
       for (const directory of directories) seedLegacyProject(root, directory);
 
-      const result = runUpgrade(root, ["--migrate"]);
+      const result = runLayoutMigration(root, []);
 
       assert.notEqual(result.status, 0);
       for (const directory of directories) assert.ok(fs.existsSync(path.join(root, directory)));
@@ -419,12 +432,12 @@ describe("upgrade --migrate", () => {
   }
 
   it("does nothing when a canonical managed directory already exists", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-canonical-");
+    const root = createTmpDir("sennel-migrate-layout-canonical-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeFile(root, ".sennel/keep.txt", "canonical\n");
 
-    const result = runUpgrade(root, ["--migrate"]);
+    const result = runLayoutMigration(root, []);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.ok(fs.existsSync(path.join(root, ".senti")));
@@ -434,14 +447,14 @@ describe("upgrade --migrate", () => {
   });
 
   it("leaves a project without any managed directory and its root metadata untouched", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-none-");
+    const root = createTmpDir("sennel-migrate-layout-none-");
     roots.push(root);
     writeFile(root, ".gitignore", "node_modules\n");
     writeFile(root, ".gitattributes", "*.png binary\n");
     const beforeIgnore = fs.readFileSync(path.join(root, ".gitignore"));
     const beforeAttributes = fs.readFileSync(path.join(root, ".gitattributes"));
 
-    const result = runUpgrade(root, ["--migrate"]);
+    const result = runLayoutMigration(root, []);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.deepEqual(fs.readFileSync(path.join(root, ".gitignore")), beforeIgnore);
@@ -450,12 +463,12 @@ describe("upgrade --migrate", () => {
   });
 
   it("rejects an active or preparing legacy Flow before creating staging", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-active-");
+    const root = createTmpDir("sennel-migrate-layout-active-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeFile(root, ".senti/.active-flow.pending", "{}\n");
 
-    const result = runUpgrade(root, ["--migrate"]);
+    const result = runLayoutMigration(root, []);
 
     assert.notEqual(result.status, 0);
     assert.ok(fs.existsSync(path.join(root, ".senti")));
@@ -464,14 +477,14 @@ describe("upgrade --migrate", () => {
   });
 
   it("rejects a managed writer lock and broken journals without changing source data", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-safety-");
+    const root = createTmpDir("sennel-migrate-layout-safety-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const configPath = path.join(root, ".senti", "config.json");
     const before = fs.readFileSync(configPath);
     writeFile(root, ".senti/.repository-maintenance.lock", "writer\n");
 
-    const locked = runUpgrade(root, ["--migrate"]);
+    const locked = runLayoutMigration(root, []);
 
     assert.notEqual(locked.status, 0);
     assert.deepEqual(fs.readFileSync(configPath), before);
@@ -479,51 +492,51 @@ describe("upgrade --migrate", () => {
     fs.rmSync(path.join(root, ".senti", ".repository-maintenance.lock"));
     writeFile(root, ".senti/.active-flow.lock", "writer\n");
 
-    const activeFlowLock = runUpgrade(root, ["--migrate"]);
+    const activeFlowLock = runLayoutMigration(root, []);
 
     assert.notEqual(activeFlowLock.status, 0);
     assert.deepEqual(fs.readFileSync(configPath), before);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
     fs.rmSync(path.join(root, ".senti", ".active-flow.lock"));
-    writeFile(root, ".tmp/sennel-upgrade-migrate.json", "{broken\n");
+    writeFile(root, ".tmp/sennel-migrate-layout.json", "{broken\n");
 
-    const broken = runUpgrade(root, ["--migrate"]);
+    const broken = runLayoutMigration(root, []);
 
     assert.notEqual(broken.status, 0);
     assert.deepEqual(fs.readFileSync(configPath), before);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    assert.equal(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"), "{broken\n");
+    assert.equal(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"), "{broken\n");
 
     const unsafeJournal = JSON.stringify({
       version: 1,
       root,
       sourceName: ".senti",
-      stagingRelative: ".tmp/sennel-upgrade-migrate-00000000-0000-4000-8000-000000000000/../outside",
+      stagingRelative: ".tmp/sennel-migrate-layout-00000000-0000-4000-8000-000000000000/../outside",
       sourceIdentity: { dev: 1, ino: 1 },
       stagedSentiIdentity: { dev: 1, ino: 1 },
       metadata: [],
       tempRootCreated: false,
       phase: "staged",
     }, null, 2);
-    writeFile(root, ".tmp/sennel-upgrade-migrate.json", unsafeJournal);
+    writeFile(root, ".tmp/sennel-migrate-layout.json", unsafeJournal);
 
-    const unsafe = runUpgrade(root, ["--migrate"]);
+    const unsafe = runLayoutMigration(root, []);
 
     assert.notEqual(unsafe.status, 0);
     assert.deepEqual(fs.readFileSync(configPath), before);
     assert.ok(fs.existsSync(path.join(root, ".senti")));
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    assert.equal(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"), unsafeJournal);
+    assert.equal(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"), unsafeJournal);
   });
 
   it("rejects an open legacy managed file handle before staging", { skip: process.platform !== "linux" }, () => {
-    const root = createTmpDir("sennel-upgrade-migrate-open-handle-");
+    const root = createTmpDir("sennel-migrate-layout-open-handle-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const descriptor = fs.openSync(path.join(root, ".sdd-forge", "config.json"), "r+");
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /legacy managed directory has open process handles/,
       );
     } finally {
@@ -536,12 +549,12 @@ describe("upgrade --migrate", () => {
   });
 
   it("does not treat a read-only managed file handle as a writer", { skip: process.platform !== "linux" }, () => {
-    const root = createTmpDir("sennel-upgrade-migrate-read-handle-");
+    const root = createTmpDir("sennel-migrate-layout-read-handle-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const descriptor = fs.openSync(path.join(root, ".sdd-forge", "config.json"), "r");
     try {
-      const outcome = new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+      const outcome = new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
       assert.equal(outcome.migrated, true);
     } finally {
       fs.closeSync(descriptor);
@@ -553,13 +566,13 @@ describe("upgrade --migrate", () => {
   });
 
   it("fails closed before staging when managed writer inspection is unavailable", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-writer-inspection-unavailable-");
+    const root = createTmpDir("sennel-migrate-layout-writer-inspection-unavailable-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const beforeConfig = fs.readFileSync(path.join(root, ".sdd-forge", "config.json"));
 
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, {
+      () => new LayoutMigrationRevisionOne(root, {
         logger: { log() {}, error() {} },
         openHandleInspector: new ManagedOpenHandleInspector({ platform: "darwin" }),
       }).run(),
@@ -572,7 +585,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("detects writable memory mappings as managed-directory writers", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-writable-map-");
+    const root = createTmpDir("sennel-migrate-layout-writable-map-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const procRoot = path.join(root, "proc-fixture");
@@ -583,7 +596,7 @@ describe("upgrade --migrate", () => {
     ].join("\n"));
 
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, {
+      () => new LayoutMigrationRevisionOne(root, {
         logger: { log() {}, error() {} },
         openHandleInspector: new ManagedOpenHandleInspector({ platform: "linux", procRoot }),
       }).run(),
@@ -598,7 +611,7 @@ describe("upgrade --migrate", () => {
       `1000-2000 rw-p 00000000 00:00 1 ${mappedConfig}`,
       "",
     ].join("\n"));
-    const outcome = new UpgradeDirectoryMigration(root, {
+    const outcome = new LayoutMigrationRevisionOne(root, {
       logger: { log() {}, error() {} },
       openHandleInspector: new ManagedOpenHandleInspector({ platform: "linux", procRoot }),
     }).run();
@@ -606,12 +619,12 @@ describe("upgrade --migrate", () => {
   });
 
   it("rejects a transformed template-name collision before creating a staging directory", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-template-collision-");
+    const root = createTmpDir("sennel-migrate-layout-template-collision-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeFile(root, ".senti/templates/sennel-note.md", "collision\n");
 
-    const result = runUpgrade(root, ["--migrate"]);
+    const result = runLayoutMigration(root, []);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /migration path collision/);
@@ -621,7 +634,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("rejects a config reference that template renaming would break", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-template-reference-");
+    const root = createTmpDir("sennel-migrate-layout-template-reference-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeFile(root, ".senti/templates/en/docs/senti-guide.md", "Use senti.\n");
@@ -630,7 +643,7 @@ describe("upgrade --migrate", () => {
       chapters: [{ chapter: "senti-guide.md" }],
     });
 
-    const result = runUpgrade(root, ["--migrate"]);
+    const result = runLayoutMigration(root, []);
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /migration would break a managed template reference/);
@@ -640,7 +653,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("validates canonical config references against future transformed templates", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-future-template-reference-");
+    const root = createTmpDir("sennel-migrate-layout-future-template-reference-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeFile(root, ".senti/templates/en/docs/senti-guide.md", "Use senti.\n");
@@ -649,17 +662,17 @@ describe("upgrade --migrate", () => {
       chapters: [{ chapter: "sennel-guide.md" }],
     });
 
-    const dryRun = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const dryRun = runLayoutMigration(root, ["--dry-run"]);
     assert.equal(dryRun.status, 0, dryRun.stderr || dryRun.stdout);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
 
-    const migrated = runUpgrade(root, ["--migrate"]);
+    const migrated = runLayoutMigration(root, []);
     assert.equal(migrated.status, 0, migrated.stderr || migrated.stdout);
     assert.ok(fs.existsSync(path.join(root, ".sennel", "templates", "en", "docs", "sennel-guide.md")));
   });
 
   it("detects a concurrent managed-directory writer before starting commit", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-concurrent-");
+    const root = createTmpDir("sennel-migrate-layout-concurrent-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const configPath = path.join(root, ".senti", "config.json");
@@ -675,7 +688,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /changed while migration staging was in progress/,
       );
     } finally {
@@ -689,7 +702,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("restores the legacy source and preserves a write to the staged canonical path", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-temporary-writer-");
+    const root = createTmpDir("sennel-migrate-layout-temporary-writer-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const originalConfig = fs.readFileSync(path.join(root, ".senti", "config.json"));
@@ -705,7 +718,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /migration and rollback both failed/,
       );
     } finally {
@@ -716,18 +729,18 @@ describe("upgrade --migrate", () => {
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), originalConfig);
     assert.equal(fs.existsSync(path.join(root, ".sennel", "concurrent.txt")), false);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     const preserved = path.join(root, journal.stagingRelative, "concurrent-managed-write", "concurrent.txt");
     assert.equal(fs.readFileSync(preserved, "utf8"), "temporary writer data\n");
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /concurrent managed write was preserved at/,
     );
     assert.equal(fs.readFileSync(preserved, "utf8"), "temporary writer data\n");
   });
 
   it("preserves a staged canonical write across process-crash recovery", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-crash-writer-");
+    const root = createTmpDir("sennel-migrate-layout-crash-writer-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const originalConfig = fs.readFileSync(path.join(root, ".senti", "config.json"));
@@ -736,18 +749,18 @@ describe("upgrade --migrate", () => {
 
     assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /concurrent managed write was preserved at/,
     );
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), originalConfig);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     const preserved = path.join(root, journal.stagingRelative, "concurrent-managed-write", "concurrent.txt");
     assert.equal(fs.readFileSync(preserved, "utf8"), "crash writer data\n");
   });
 
   it("completes cleanup after a crash following the canonical rename but before journal advancement", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-canonical-boundary-");
+    const root = createTmpDir("sennel-migrate-layout-canonical-boundary-");
     roots.push(root);
     seedLegacyProject(root, ".senrail");
 
@@ -755,15 +768,15 @@ describe("upgrade --migrate", () => {
 
     assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
-    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")));
-    new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
+    new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".senrail")), false);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
   it("preserves a managed-directory write that races with final cleanup", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-cleanup-writer-");
+    const root = createTmpDir("sennel-migrate-layout-cleanup-writer-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRename = fs.renameSync;
@@ -778,7 +791,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /legacy managed directory and its cleanup backup both exist/,
       );
     } finally {
@@ -788,19 +801,19 @@ describe("upgrade --migrate", () => {
     assert.equal(changed, true);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.readFileSync(path.join(root, ".sdd-forge", "concurrent.txt"), "utf8"), "late writer data\n");
-    const journalPath = path.join(root, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(root, ".tmp", "sennel-migrate-layout.json");
     const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
     const backup = path.join(root, journal.stagingRelative, "legacy-source-backup");
     assert.ok(fs.existsSync(path.join(backup, "config.json")));
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /cannot restore legacy directory because its original path is occupied: \.sdd-forge/,
     );
     assert.equal(fs.readFileSync(path.join(root, ".sdd-forge", "concurrent.txt"), "utf8"), "late writer data\n");
   });
 
   it("preserves a legacy path recreated after its source is isolated for cleanup", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-recreated-source-");
+    const root = createTmpDir("sennel-migrate-layout-recreated-source-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRename = fs.renameSync;
@@ -815,7 +828,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /legacy managed directory and its cleanup backup both exist/,
       );
     } finally {
@@ -825,11 +838,11 @@ describe("upgrade --migrate", () => {
     assert.equal(changed, true);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.readFileSync(path.join(root, ".sdd-forge", "concurrent.txt"), "utf8"), "recreated writer data\n");
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     const backup = path.join(root, journal.stagingRelative, "legacy-source-backup");
     assert.ok(fs.existsSync(path.join(backup, "config.json")));
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /cannot restore legacy directory because its original path is occupied: \.sdd-forge/,
     );
     assert.equal(fs.readFileSync(path.join(root, ".sdd-forge", "concurrent.txt"), "utf8"), "recreated writer data\n");
@@ -837,7 +850,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("stops cleanup when a writer opens the legacy source during isolation", { skip: process.platform !== "linux" }, () => {
-    const root = createTmpDir("sennel-upgrade-migrate-cleanup-open-handle-");
+    const root = createTmpDir("sennel-migrate-layout-cleanup-open-handle-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRename = fs.renameSync;
@@ -850,7 +863,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /legacy managed directory backup has open process handles/,
       );
     } finally {
@@ -860,21 +873,21 @@ describe("upgrade --migrate", () => {
     assert.notEqual(descriptor, undefined);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     assert.ok(fs.existsSync(path.join(root, journal.stagingRelative, "legacy-source-backup", "config.json")));
     fs.writeSync(descriptor, "late writer data\n", null, "utf8");
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
 
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /legacy managed directory changed before cleanup; preserved at/,
     );
     assert.ok(fs.existsSync(path.join(root, journal.stagingRelative, "legacy-source-backup", "config.json")));
   });
 
   it("rejects a staged-copy mutation before publishing a journal or changing the source", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-staged-verification-");
+    const root = createTmpDir("sennel-migrate-layout-staged-verification-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const configPath = path.join(root, ".senti", "config.json");
@@ -893,7 +906,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /staged tree does not match the source-derived transformation/,
       );
     } finally {
@@ -909,7 +922,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("preserves managed directory, nested directory, and file modes in the staged tree", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-modes-");
+    const root = createTmpDir("sennel-migrate-layout-modes-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     writeFile(root, ".sdd-forge/templates/private/note.md", "Use senti\n");
@@ -917,7 +930,7 @@ describe("upgrade --migrate", () => {
     fs.chmodSync(path.join(root, ".sdd-forge", "templates", "private"), 0o711);
     fs.chmodSync(path.join(root, ".sdd-forge", "templates", "private", "note.md"), 0o640);
 
-    new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
     assert.equal(fs.lstatSync(path.join(root, ".sennel")).mode & 0o777, 0o750);
     assert.equal(fs.lstatSync(path.join(root, ".sennel", "templates", "private")).mode & 0o777, 0o711);
@@ -925,14 +938,14 @@ describe("upgrade --migrate", () => {
   });
 
   it("rejects a competing initial journal publication without touching source or metadata", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-journal-race-");
+    const root = createTmpDir("sennel-migrate-layout-journal-race-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const configPath = path.join(root, ".senti", "config.json");
     const beforeConfig = fs.readFileSync(configPath);
     const beforeIgnore = fs.readFileSync(path.join(root, ".gitignore"));
     const beforeAttributes = fs.readFileSync(path.join(root, ".gitattributes"));
-    const journalPath = path.join(root, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(root, ".tmp", "sennel-migrate-layout.json");
     const originalOpen = fs.openSync;
     let competing = false;
     fs.openSync = (target, flags, ...rest) => {
@@ -944,7 +957,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /journal was created by another migration/,
       );
     } finally {
@@ -956,20 +969,20 @@ describe("upgrade --migrate", () => {
     assert.deepEqual(fs.readFileSync(path.join(root, ".gitignore")), beforeIgnore);
     assert.deepEqual(fs.readFileSync(path.join(root, ".gitattributes")), beforeAttributes);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    assert.equal(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")), true);
+    assert.equal(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")), true);
     assert.equal(fs.readFileSync(journalPath, "utf8"), "{\"competing\":true}\n");
-    assert.deepEqual(fs.readdirSync(path.join(root, ".tmp")), ["sennel-upgrade-migrate.json"]);
+    assert.deepEqual(fs.readdirSync(path.join(root, ".tmp")), ["sennel-migrate-layout.json"]);
   });
 
   it("does not delete a staging path created by another process during mkdir", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-staging-mkdir-race-");
+    const root = createTmpDir("sennel-migrate-layout-staging-mkdir-race-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const beforeConfig = fs.readFileSync(path.join(root, ".senti", "config.json"));
     const originalMkdir = fs.mkdirSync;
     let competingPath = null;
     fs.mkdirSync = (target, options) => {
-      if (!competingPath && path.basename(String(target)).startsWith("sennel-upgrade-migrate-")) {
+      if (!competingPath && path.basename(String(target)).startsWith("sennel-migrate-layout-")) {
         competingPath = String(target);
         originalMkdir(competingPath, options);
         fs.writeFileSync(path.join(competingPath, "owned-by-another-process.txt"), "keep\n");
@@ -981,7 +994,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected staging mkdir collision/,
       );
     } finally {
@@ -992,16 +1005,16 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.readFileSync(path.join(competingPath, "owned-by-another-process.txt"), "utf8"), "keep\n");
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), beforeConfig);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    assert.equal(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")), false);
+    assert.equal(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")), false);
   });
 
   it("does not overwrite a journal replaced by another process during phase advancement", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-journal-phase-race-");
+    const root = createTmpDir("sennel-migrate-layout-journal-phase-race-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const beforeConfig = fs.readFileSync(path.join(root, ".sdd-forge", "config.json"));
     const beforeIgnore = fs.readFileSync(path.join(root, ".gitignore"));
-    const journalPath = path.join(root, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(root, ".tmp", "sennel-migrate-layout.json");
     const competingPayload = "{\"competing\":\"phase\"}\n";
     const originalRename = fs.renameSync;
     let replaced = false;
@@ -1017,7 +1030,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /migration journal changed while the migration was active/,
       );
     } finally {
@@ -1032,7 +1045,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("refuses to recover a journal owned by a live migration process", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-live-owner-");
+    const root = createTmpDir("sennel-migrate-layout-live-owner-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const secondResultPath = path.join(root, "second-migration.json");
@@ -1040,7 +1053,7 @@ describe("upgrade --migrate", () => {
       import fs from "node:fs";
       import path from "node:path";
       import { spawnSync } from "node:child_process";
-      import { UpgradeDirectoryMigration } from ${JSON.stringify(MIGRATION_MODULE)};
+      import { LayoutMigrationRevisionOne } from ${JSON.stringify(MIGRATION_MODULE)};
       const root = ${JSON.stringify(root)};
       const secondResultPath = ${JSON.stringify(secondResultPath)};
       const originalRename = fs.renameSync;
@@ -1048,7 +1061,7 @@ describe("upgrade --migrate", () => {
       fs.renameSync = (from, to, ...rest) => {
         if (!invoked && path.resolve(String(to)) === path.join(root, ".sennel")) {
           invoked = true;
-          const second = spawnSync(process.execPath, [${JSON.stringify(CLI)}, "upgrade", "--migrate"], {
+          const second = spawnSync(process.execPath, [${JSON.stringify(CLI)}, "migrate", "layout", "--to", "1"], {
             cwd: root,
             encoding: "utf8",
             env: { ...process.env, SENNEL_WORK_ROOT: root, SENNEL_SOURCE_ROOT: root },
@@ -1061,7 +1074,7 @@ describe("upgrade --migrate", () => {
         }
         return originalRename(from, to, ...rest);
       };
-      new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+      new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
     `;
 
     const first = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
@@ -1079,13 +1092,13 @@ describe("upgrade --migrate", () => {
   });
 
   it("recovers a stale journal when its owner PID has been reused", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-reused-owner-");
+    const root = createTmpDir("sennel-migrate-layout-reused-owner-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const beforeConfig = fs.readFileSync(path.join(root, ".sdd-forge", "config.json"));
     const crashed = crashAfterJournalWrite(root, 1);
     assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     const reusedStartFingerprint = String(Number(journal.owner.startFingerprint) + 1);
     const processIdentitySource = new ProcessIdentitySource({
       platform: "linux",
@@ -1094,7 +1107,7 @@ describe("upgrade --migrate", () => {
       readProcessStartFingerprint: () => reusedStartFingerprint,
     });
 
-    const outcome = new UpgradeDirectoryMigration(root, {
+    const outcome = new LayoutMigrationRevisionOne(root, {
       logger: { log() {}, error() {} },
       processIdentitySource,
     }).run();
@@ -1107,7 +1120,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("keeps migration available when durable process identity is unsupported by the platform", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-portable-owner-");
+    const root = createTmpDir("sennel-migrate-layout-portable-owner-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const processIdentitySource = new ProcessIdentitySource({
@@ -1117,7 +1130,7 @@ describe("upgrade --migrate", () => {
       readProcessStartFingerprint: () => { throw new Error("must not read Linux process stat"); },
     });
 
-    const outcome = new UpgradeDirectoryMigration(root, {
+    const outcome = new LayoutMigrationRevisionOne(root, {
       logger: { log() {}, error() {} },
       processIdentitySource,
     }).run();
@@ -1129,14 +1142,14 @@ describe("upgrade --migrate", () => {
   });
 
   it("discards its own failed journal reservation and staging before source changes", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-journal-write-failure-");
+    const root = createTmpDir("sennel-migrate-layout-journal-write-failure-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const configPath = path.join(root, ".senti", "config.json");
     const beforeConfig = fs.readFileSync(configPath);
     const beforeIgnore = fs.readFileSync(path.join(root, ".gitignore"));
     const beforeAttributes = fs.readFileSync(path.join(root, ".gitattributes"));
-    const journalPath = path.join(root, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(root, ".tmp", "sennel-migrate-layout.json");
     const originalOpen = fs.openSync;
     const originalWrite = fs.writeFileSync;
     let journalDescriptor = null;
@@ -1153,7 +1166,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected journal authoritative write failure/,
       );
     } finally {
@@ -1170,7 +1183,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("does not overwrite a root metadata file changed during AtomicFile commit", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-metadata-cas-");
+    const root = createTmpDir("sennel-migrate-layout-metadata-cas-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const configPath = path.join(root, ".sdd-forge", "config.json");
@@ -1198,7 +1211,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /migration and rollback both failed/,
       );
     } finally {
@@ -1210,16 +1223,16 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.existsSync(configPath), false);
     assert.equal(fs.readFileSync(path.join(root, ".gitignore"), "utf8"), userIgnore);
     assert.deepEqual(fs.readFileSync(path.join(root, ".gitattributes")), beforeAttributes);
-    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json"), "utf8"));
+    const journal = JSON.parse(fs.readFileSync(path.join(root, ".tmp", "sennel-migrate-layout.json"), "utf8"));
     assert.deepEqual(fs.readFileSync(path.join(root, journal.stagingRelative, "legacy-source-backup", "config.json")), beforeConfig);
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
     assert.equal(fs.existsSync(path.join(root, ".senti")), false);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
-    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")));
+    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
   });
 
   it("rejects staged root metadata changed before commit and restores the legacy source", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-staged-metadata-");
+    const root = createTmpDir("sennel-migrate-layout-staged-metadata-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const beforeConfig = fs.readFileSync(path.join(root, ".senti", "config.json"));
@@ -1228,18 +1241,18 @@ describe("upgrade --migrate", () => {
     let injected = false;
     fs.openSync = (target, flags, ...rest) => {
       if (!injected
-        && path.resolve(String(target)) === path.join(root, ".tmp", "sennel-upgrade-migrate.json")
+        && path.resolve(String(target)) === path.join(root, ".tmp", "sennel-migrate-layout.json")
         && (flags & fs.constants.O_EXCL)) {
         injected = true;
         const stagingName = fs.readdirSync(path.join(root, ".tmp"))
-          .find((name) => name.startsWith("sennel-upgrade-migrate-"));
+          .find((name) => name.startsWith("sennel-migrate-layout-"));
         fs.writeFileSync(path.join(root, ".tmp", stagingName, ".gitignore"), "tampered\n");
       }
       return originalOpen(target, flags, ...rest);
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /staged root metadata changed before migration commit: \.gitignore/,
       );
     } finally {
@@ -1253,8 +1266,8 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("is a fully read-only dry-run and reports an expected config validation failure", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-dry-");
+  it("is a fully read-only dry-run even when a later normal upgrade would reject configuration", () => {
+    const root = createTmpDir("sennel-migrate-layout-dry-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".senti/config.json", {
@@ -1265,12 +1278,11 @@ describe("upgrade --migrate", () => {
     const before = fs.readFileSync(path.join(root, ".senti", "config.json"));
     const tree = new FixtureTreeSnapshot(root);
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
-    assert.equal(result.status, 1, result.stderr || result.stdout);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.match(result.stdout, /DRY-RUN/);
-    assert.match(result.stderr, /config warning/);
-    assert.match(result.stderr, /expected to fail config validation/);
+    assert.doesNotMatch(result.stderr, /config warning|normal upgrade/);
     assert.doesNotMatch(result.stdout, /replace canonical skill|deploy enabled plugin skill/);
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), before);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
@@ -1278,8 +1290,8 @@ describe("upgrade --migrate", () => {
     tree.assertUnchanged();
   });
 
-  it("includes legacy agent-hook cleanup in the complete normal-upgrade dry-run plan", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-dry-hook-cleanup-");
+  it("does not inspect or mutate agent-host hooks during a layout-only dry-run", () => {
+    const root = createTmpDir("sennel-migrate-layout-dry-hook-cleanup-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".codex/hooks.json", {
@@ -1297,12 +1309,10 @@ describe("upgrade --migrate", () => {
     const beforeHooks = fs.readFileSync(path.join(root, ".codex", "hooks.json"));
     const tree = new FixtureTreeSnapshot(root);
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(result.stdout, /remove \.codex\/hooks\/sennel-flow-final-response-guard\.mjs/);
-    assert.match(result.stdout, /remove \.codex\/hooks\.json to remove the legacy Flow hook/);
-    assert.match(result.stdout, /copy bundled preset file \.sennel\/presets\/base\//);
+    assert.doesNotMatch(result.stdout, /\.codex\/hooks|replace canonical skill|copy bundled preset/);
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), beforeConfig);
     assert.deepEqual(fs.readFileSync(path.join(root, ".codex", "hooks.json")), beforeHooks);
     assert.ok(fs.existsSync(path.join(root, ".codex", "hooks", "sennel-flow-final-response-guard.mjs")));
@@ -1311,25 +1321,24 @@ describe("upgrade --migrate", () => {
     tree.assertUnchanged();
   });
 
-  it("dry-run predicts a schema-valid missing preset failure from normal upgrade", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-dry-preset-");
+  it("does not resolve preset chains during a layout-only dry-run", () => {
+    const root = createTmpDir("sennel-migrate-layout-dry-preset-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".senti/config.json", { ...validConfig(), type: "missing-preset" });
     const before = fs.readFileSync(path.join(root, ".senti", "config.json"));
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
-    assert.equal(result.status, 1, result.stderr || result.stdout);
-    assert.match(result.stderr, /normal upgrade validation: Preset not found: missing-preset/);
-    assert.match(result.stderr, /subsequent normal upgrade is expected to fail validation/);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotMatch(result.stderr, /normal upgrade validation|missing-preset/);
     assert.deepEqual(fs.readFileSync(path.join(root, ".senti", "config.json")), before);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("does not inspect or plan plugin skills outside an invalid config boundary", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-invalid-plugin-boundary-");
+  it("does not resolve plugin configuration outside the managed layout boundary", () => {
+    const root = createTmpDir("sennel-migrate-layout-invalid-plugin-boundary-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".senti/config.json", {
@@ -1352,30 +1361,30 @@ describe("upgrade --migrate", () => {
     });
     writeFile(root, "outside/skills/outside.skill/SKILL.md", "outside\n");
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
-    assert.equal(result.status, 1, result.stderr || result.stdout);
-    assert.match(result.stderr, /plugin\.packages\[0\]\.id.*invalid plugin package id/);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotMatch(result.stderr, /plugin\.packages\[0\]/);
     assert.doesNotMatch(result.stdout, /outside\.skill|deploy enabled plugin skill|replace canonical skill/);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
     assert.equal(fs.existsSync(path.join(root, ".sennel")), false);
   });
 
-  it("attributes effective overlay validation warnings to config.local.json", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-overlay-warning-");
+  it("does not interpret a local configuration overlay during layout conversion", () => {
+    const root = createTmpDir("sennel-migrate-layout-overlay-warning-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".senti/config.local.json", { chapters: ["old-shape"] });
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
-    assert.equal(result.status, 1, result.stderr || result.stdout);
-    assert.match(result.stderr, /config\.local\.json: chapters\[0\]/);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(result.stderr, "");
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("attributes a base nested validation error to config.json despite a sibling local overlay", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-overlay-base-warning-");
+  it("does not interpret a base configuration shape during layout conversion", () => {
+    const root = createTmpDir("sennel-migrate-layout-overlay-base-warning-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     writeJson(root, ".senti/config.json", {
@@ -1384,44 +1393,44 @@ describe("upgrade --migrate", () => {
     });
     writeJson(root, ".senti/config.local.json", { docs: { mode: "generate" } });
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
-    assert.equal(result.status, 1, result.stderr || result.stdout);
-    assert.match(result.stderr, /config\.json: docs\.languages/);
-    assert.doesNotMatch(result.stderr, /config\.local\.json: docs\.languages/);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(result.stderr, "");
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("uses legacy plugin schemas and skill contributions for an exact dry-run plan", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-plugin-dry-");
+  it("copies plugin data without resolving schemas or deploying host skills", () => {
+    const root = createTmpDir("sennel-migrate-layout-plugin-dry-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     addPluginConfigAndSkill(root, ".senti");
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(result.stdout, /deploy enabled plugin skill external\.skill\/SKILL\.md/);
+    assert.match(result.stdout, /stage file plugins\/fixture\/skills\/external\.skill\/SKILL\.md/);
     assert.doesNotMatch(result.stderr, /config warning/);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
 
-    const applied = runUpgrade(root, ["--migrate"]);
+    const applied = runLayoutMigration(root, []);
     assert.equal(applied.status, 0, applied.stderr || applied.stdout);
+    assert.equal(
+      fs.readFileSync(path.join(root, ".sennel", "plugins", "fixture", "skills", "external.skill", "SKILL.md"), "utf8"),
+      "external plugin\n",
+    );
     for (const base of [".agents", ".claude"]) {
-      assert.equal(
-        fs.readFileSync(path.join(root, base, "skills", "external.skill", "SKILL.md"), "utf8"),
-        "external plugin\n",
-      );
+      assert.equal(fs.existsSync(path.join(root, base, "skills", "external.skill", "SKILL.md")), false);
     }
   });
 
   it("copies malformed plugin contents raw without interpreting them during directory migration", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-raw-plugin-");
+    const root = createTmpDir("sennel-migrate-layout-raw-plugin-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const malformedManifest = addMalformedPluginConfig(root, ".senti");
 
-    const outcome = new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    const outcome = new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
     assert.equal(outcome.migrated, true);
     assert.deepEqual(
@@ -1432,18 +1441,18 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("keeps malformed plugin handling consistent between dry-run and normal upgrade", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-raw-plugin-dry-");
+  it("keeps malformed plugin handling opaque during layout dry-run", () => {
+    const root = createTmpDir("sennel-migrate-layout-raw-plugin-dry-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const malformedManifest = addMalformedPluginConfig(root, ".senti");
 
-    const result = runUpgrade(root, ["--migrate", "--dry-run"]);
+    const result = runLayoutMigration(root, ["--dry-run"]);
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.match(result.stdout, /DRY-RUN: \.senti -> \.sennel/);
-    assert.match(result.stdout, /normal upgrade plan after directory migration/);
-    assert.match(result.stdout, /replace canonical skill sennel\.flow\/SKILL\.md/);
+    assert.match(result.stdout, /stage file plugins\/fixture\/plugin\.json/);
+    assert.doesNotMatch(result.stdout, /normal upgrade plan|replace canonical skill/);
     assert.doesNotMatch(result.stdout, /deploy enabled plugin skill/);
     assert.deepEqual(
       fs.readFileSync(path.join(root, ".senti", "plugins", "fixture", "plugin.json")),
@@ -1453,7 +1462,7 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
   });
 
-  it("keeps normal upgrade from rewriting incompatible legacy config shapes", () => {
+  it("treats a canonical managed directory as a layout no-op without parsing its config", () => {
     const root = createTmpDir("sennel-upgrade-normal-no-config-migrate-");
     roots.push(root);
     writeJson(root, ".sennel/config.json", {
@@ -1464,16 +1473,16 @@ describe("upgrade --migrate", () => {
     const configPath = path.join(root, ".sennel", "config.json");
     const before = fs.readFileSync(configPath);
 
-    const result = runUpgrade(root, []);
+    const result = runLayoutMigration(root, []);
 
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /chapters\[0\].*must be object|plugin\.repos.*migrate/);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stderr, /\.sennel already exists/);
     assert.deepEqual(fs.readFileSync(configPath), before);
     assert.equal(fs.existsSync(path.join(root, ".sennel", "plugin-sources", "local-presets")), false);
   });
 
-  it("preserves malformed config bytes through migration, then allows a plain-upgrade retry after repair", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-malformed-config-");
+  it("preserves malformed config bytes through migration and subsequent layout no-ops", () => {
+    const root = createTmpDir("sennel-migrate-layout-malformed-config-");
     roots.push(root);
     seedLegacyProject(root, ".senti");
     const malformed = "{ not json\n";
@@ -1483,9 +1492,9 @@ describe("upgrade --migrate", () => {
     writeFile(root, "specs/001/flow.json", "historical senti data\n");
     writeFile(root, ".env", "SENTI_WORK_ROOT=project-owned\n");
 
-    const migrated = runUpgrade(root, ["--migrate"]);
+    const migrated = runLayoutMigration(root, []);
 
-    assert.notEqual(migrated.status, 0);
+    assert.equal(migrated.status, 0, migrated.stderr || migrated.stdout);
     assert.equal(fs.readFileSync(path.join(root, ".sennel", "config.json"), "utf8"), malformed);
     assert.equal(fs.existsSync(path.join(root, ".senti")), false);
     assert.equal(fs.readFileSync(path.join(root, "package.json"), "utf8"), "{\"name\":\"user-package\",\"scripts\":{\"x\":\"SENTI_WORK_ROOT=x\"}}\n");
@@ -1496,15 +1505,15 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.readFileSync(path.join(root, "specs/001/flow.json"), "utf8"), "historical senti data\n");
     assert.equal(fs.readFileSync(path.join(root, ".env"), "utf8"), "SENTI_WORK_ROOT=project-owned\n");
 
-    const rerunMigrate = runUpgrade(root, ["--migrate"]);
+    const rerunMigrate = runLayoutMigration(root, []);
     assert.equal(rerunMigrate.status, 0, rerunMigrate.stderr || rerunMigrate.stdout);
     writeJson(root, ".sennel/config.json", validConfig());
-    const retriedNormal = runUpgrade(root, []);
-    assert.equal(retriedNormal.status, 0, retriedNormal.stderr || retriedNormal.stdout);
+    const noOpAfterRepair = runLayoutMigration(root, []);
+    assert.equal(noOpAfterRepair.status, 0, noOpAfterRepair.stderr || noOpAfterRepair.stdout);
   });
 
   it("creates missing managed root metadata and restores its absence if final rename fails", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-metadata-rollback-");
+    const root = createTmpDir("sennel-migrate-layout-metadata-rollback-");
     roots.push(root);
     writeJson(root, ".sdd-forge/config.json", validConfig());
     const originalRename = fs.renameSync;
@@ -1514,7 +1523,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected final rename failure/,
       );
     } finally {
@@ -1526,14 +1535,14 @@ describe("upgrade --migrate", () => {
     assert.equal(fs.existsSync(path.join(root, ".gitattributes")), false);
     assert.equal(fs.existsSync(path.join(root, ".tmp")), false);
 
-    const migrated = runUpgrade(root, ["--migrate"]);
+    const migrated = runLayoutMigration(root, []);
     assert.equal(migrated.status, 0, migrated.stderr || migrated.stdout);
     assert.match(fs.readFileSync(path.join(root, ".gitignore"), "utf8"), /^\.sennel\/\*/m);
     assert.match(fs.readFileSync(path.join(root, ".gitattributes"), "utf8"), /^\.sennel\/output\/analysis\.json merge=ours/m);
   });
 
   it("rolls back a pre-final commit failure without leaving staging residue", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-rollback-");
+    const root = createTmpDir("sennel-migrate-layout-rollback-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRename = fs.renameSync;
@@ -1543,7 +1552,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected staging placement failure/,
       );
     } finally {
@@ -1556,7 +1565,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("restores both root metadata files when metadata commit fails", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-metadata-commit-");
+    const root = createTmpDir("sennel-migrate-layout-metadata-commit-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalIgnore = fs.readFileSync(path.join(root, ".gitignore"));
@@ -1572,7 +1581,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected metadata update failure/,
       );
     } finally {
@@ -1587,7 +1596,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("recovers final-rename cleanup without rolling back the canonical directory", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-recover-");
+    const root = createTmpDir("sennel-migrate-layout-recover-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRemove = fs.rmSync;
@@ -1597,7 +1606,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected legacy cleanup failure/,
       );
     } finally {
@@ -1605,9 +1614,9 @@ describe("upgrade --migrate", () => {
     }
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
-    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")));
+    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
 
-    new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
@@ -1615,7 +1624,7 @@ describe("upgrade --migrate", () => {
   });
 
   it("finishes cleanup after a crash interrupts recursive legacy-backup deletion", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-partial-cleanup-");
+    const root = createTmpDir("sennel-migrate-layout-partial-cleanup-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
 
@@ -1623,17 +1632,17 @@ describe("upgrade --migrate", () => {
 
     assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
-    const journalPath = path.join(root, ".tmp", "sennel-upgrade-migrate.json");
+    const journalPath = path.join(root, ".tmp", "sennel-migrate-layout.json");
     const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
     assert.equal(journal.phase, "cleanup-source-verified");
     const backup = path.join(root, journal.stagingRelative, "legacy-source-backup");
     assert.ok(fs.existsSync(backup));
     assert.equal(fs.existsSync(path.join(backup, "config.local.json")), false);
 
-    const recovered = runUpgrade(root, ["--migrate"]);
+    const recovered = runLayoutMigration(root, []);
 
-    assert.equal(recovered.status, 0, recovered.stderr || recovered.stdout);
-    assert.match(recovered.stdout, /recovered incomplete cleanup after the final rename/);
+    assert.equal(recovered.status, 1, recovered.stderr || recovered.stdout);
+    assert.match(recovered.stderr, /migrate layout did not reach revision 1/);
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
     assert.equal(fs.existsSync(path.join(root, ".sdd-forge")), false);
     assert.ok(fs.existsSync(path.join(root, ".agents", "skills", "senti.flow", "SKILL.md")));
@@ -1649,7 +1658,7 @@ describe("upgrade --migrate", () => {
       const journalPath = path.join(root, ".tmp", "senrail-upgrade-migrate.json");
       const bytes = fs.readFileSync(journalPath);
 
-      new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+      new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
       assert.ok(fs.existsSync(path.join(root, ".sennel", "config.json")));
       assert.equal(fs.existsSync(journalPath), false);
@@ -1664,7 +1673,7 @@ describe("upgrade --migrate", () => {
     seedLegacyProject(root, ".sdd-forge");
     createOldV6Journal(root, { sourceName: ".sdd-forge", phase: "final-renamed", canonical: true });
 
-    new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
     assert.ok(fs.existsSync(path.join(root, ".sennel", "config.json")));
     assert.equal(fs.existsSync(path.join(root, ".senrail")), false);
@@ -1677,7 +1686,7 @@ describe("upgrade --migrate", () => {
     seedLegacyProject(root, ".sdd-forge");
     createOldV6Journal(root, { sourceName: ".sdd-forge", phase: "cleanup-source-verified", canonical: true, partialCleanup: true });
 
-    new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+    new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
     assert.ok(fs.existsSync(path.join(root, ".sennel", "config.json")));
     assert.equal(fs.existsSync(path.join(root, ".tmp", "senrail-upgrade-migrate.json")), false);
@@ -1690,7 +1699,7 @@ describe("upgrade --migrate", () => {
       seedLegacyProject(root, ".sdd-forge");
       const journalPath = path.join(root, ".tmp", "senrail-upgrade-migrate.json");
       writeFile(root, ".tmp/senrail-upgrade-migrate.json", contents);
-      assert.throws(() => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run());
+      assert.throws(() => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run());
       assert.equal(fs.readFileSync(journalPath, "utf8"), contents);
       assert.ok(fs.existsSync(path.join(root, ".sdd-forge")));
     });
@@ -1703,14 +1712,14 @@ describe("upgrade --migrate", () => {
     createOldV6Journal(root, { sourceName: ".sdd-forge", phase: "staged" });
     const before = new FixtureTreeSnapshot(root);
 
-    const outcome = new UpgradeDirectoryMigration(root, { dryRun: true, logger: { log() {}, error() {} } }).run();
+    const outcome = new LayoutMigrationRevisionOne(root, { dryRun: true, logger: { log() {}, error() {} } }).run();
 
     assert.equal(outcome.recovered, true);
     before.assertUnchanged();
   });
 
   it("preserves an external write made after legacy-backup cleanup was authorized", () => {
-    const root = createTmpDir("sennel-upgrade-migrate-cleanup-authorized-writer-");
+    const root = createTmpDir("sennel-migrate-layout-cleanup-authorized-writer-");
     roots.push(root);
     seedLegacyProject(root, ".sdd-forge");
     const originalRemove = fs.rmSync;
@@ -1725,7 +1734,7 @@ describe("upgrade --migrate", () => {
     };
     try {
       assert.throws(
-        () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+        () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
         /injected cleanup interruption after external write/,
       );
     } finally {
@@ -1734,12 +1743,12 @@ describe("upgrade --migrate", () => {
 
     assert.notEqual(backup, null);
     assert.throws(
-      () => new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run(),
+      () => new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run(),
       /legacy managed directory changed during cleanup: config\.json/,
     );
     assert.equal(fs.readFileSync(path.join(backup, "config.json"), "utf8"), "late external write\n");
     assert.ok(fs.existsSync(path.join(root, ".sennel")));
-    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")));
+    assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
   });
 
   for (const [legacyDirectory, writes] of [
@@ -1749,15 +1758,15 @@ describe("upgrade --migrate", () => {
     for (const journalWrite of writes) {
       const phase = journalWrite === writes.at(-1) ? "final-renamed" : `pre-final-${journalWrite}`;
       it(`recovers ${legacyDirectory} journal phase ${phase}`, () => {
-        const root = createTmpDir("sennel-upgrade-migrate-phase-");
+        const root = createTmpDir("sennel-migrate-layout-phase-");
         roots.push(root);
         seedLegacyProject(root, legacyDirectory);
 
         const crashed = crashAfterJournalWrite(root, journalWrite);
 
         assert.equal(crashed.signal, "SIGKILL", crashed.stderr || crashed.stdout);
-        assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-upgrade-migrate.json")));
-        new UpgradeDirectoryMigration(root, { logger: { log() {}, error() {} } }).run();
+        assert.ok(fs.existsSync(path.join(root, ".tmp", "sennel-migrate-layout.json")));
+        new LayoutMigrationRevisionOne(root, { logger: { log() {}, error() {} } }).run();
 
         if (phase === "final-renamed") {
           assert.ok(fs.existsSync(path.join(root, ".sennel")));

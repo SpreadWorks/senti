@@ -7,14 +7,13 @@
  *
  * Safe to run repeatedly — only overwrites skill-managed content. config.json
  * is validated but never rewritten by a normal upgrade. context.json is
- * untouched. Legacy product directories are handled only by explicit migrate
- * mode so normal runtime has no compatibility behavior.
+ * untouched. Project migrations are independent public commands and are not
+ * part of normal package-managed upgrades.
  *
  * Usage:
- *   sennel upgrade [--migrate] [--dry-run]
+ *   sennel upgrade [--dry-run]
  */
 
-import fs from "node:fs";
 import path from "path";
 import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
@@ -33,7 +32,6 @@ import { deployPresetCopies } from "./lib/preset-deploy.js";
 import { createUpgradeResultArtifact } from "./flow/lib/test-artifacts.js";
 import {
   AGENT_CONFIG_FILE_NAMES,
-  AGENTS_FLOW_DIRECTIVE_RE,
   refreshAgentFlowFile,
 } from "./lib/agent-config-files.js";
 import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.js";
@@ -44,9 +42,9 @@ import { removeLegacyAgentArtifacts } from "./lib/legacy-agent-artifact-cleanup.
 
 export function parseUpgradeArgs(argv) {
   return parseArgs(argv, {
-    flags: ["--dry-run", "--migrate"],
+    flags: ["--dry-run"],
     options: [],
-    defaults: { dryRun: false, migrate: false },
+    defaults: { dryRun: false },
   });
 }
 
@@ -111,67 +109,8 @@ function printUpgradeHelp(logger) {
     h.usage, "", `  ${h.desc}`, `  ${h.descDetail}`, "",
     "Updated files:",
     ...files.map((file) => `  ${file}`),
-    "", "Options:", h.options.migrate, h.options.dryRun, h.options.help,
+    "", "Options:", h.options.dryRun, h.options.help,
   ].join("\n"));
-}
-
-function previewNormalUpgrade(root, migration, logger) {
-  logger.log("[upgrade] DRY-RUN: normal upgrade plan after directory migration:");
-  if (migration.normalUpgradeExpectedFailure) {
-    logger.error("[upgrade] DRY-RUN: normal upgrade validation is expected to fail; no normal-upgrade files would be changed.");
-    return;
-  }
-  const activeSkillDirs = [MAIN_SKILLS_DIR, ...(migration.pluginSkillDirs || [])];
-  for (const skillsDir of migration.pluginSkillDirs || []) {
-    for (const result of deploySkillsFromDir({ skillsDir, workRoot: root, dryRun: true })) {
-      if (result.status === "unchanged") {
-        logger.log(`[upgrade] DRY-RUN: leave enabled plugin skill ${result.name}/SKILL.md unchanged`);
-      }
-      for (const target of result.targets) {
-        logger.log(`[upgrade] DRY-RUN: deploy enabled plugin skill ${result.name}/SKILL.md to ${path.relative(root, target)}`);
-      }
-    }
-  }
-  for (const result of deploySkills(root, { dryRun: true, force: true })) {
-    for (const target of result.targets) {
-      logger.log(`[upgrade] DRY-RUN: replace canonical skill ${result.name}/SKILL.md at ${path.relative(root, target)}`);
-    }
-  }
-  const removed = cleanupObsoleteSkills(root, activeSkillDirs, { dryRun: true });
-  for (const result of removed) {
-    for (const target of result.targets) {
-      logger.log(`[upgrade] DRY-RUN: remove obsolete skill directory ${path.relative(root, target)}`);
-    }
-  }
-  try {
-    const cleanup = removeLegacyAgentArtifacts(root, { dryRun: true });
-    if (cleanup.removedHandler) {
-      logger.log("[upgrade] DRY-RUN: remove .codex/hooks/sennel-flow-final-response-guard.mjs");
-    }
-    if (cleanup.updatedConfig) {
-      const action = cleanup.removedConfig ? "remove" : "update";
-      logger.log(`[upgrade] DRY-RUN: ${action} .codex/hooks.json to remove the legacy Flow hook`);
-    }
-  } catch (error) {
-    logger.error(`[upgrade] DRY-RUN: subsequent normal upgrade would fail: ${error.message}`);
-    return false;
-  }
-  for (const fileName of AGENT_CONFIG_FILE_NAMES) {
-    const filePath = path.join(root, fileName);
-    const hasManagedBlock = fs.existsSync(filePath)
-      && AGENTS_FLOW_DIRECTIVE_RE.test(fs.readFileSync(filePath, "utf8"));
-    logger.log(hasManagedBlock
-      ? `[upgrade] DRY-RUN: check managed ${fileName} block and refresh it if package or preset content differs.`
-      : `[upgrade] DRY-RUN: leave ${fileName} unchanged because no managed block exists.`);
-  }
-  for (const destination of deployPresetCopies(root, {
-    presetKeys: ["base"],
-    languages: ["en", "ja"],
-    dryRun: true,
-  })) {
-    logger.log(`[upgrade] DRY-RUN: copy bundled preset file ${path.relative(root, destination)}`);
-  }
-  return true;
 }
 
 
@@ -348,19 +287,6 @@ async function main() {
   const cli = parseUpgradeArgs(process.argv.slice(2));
   if (cli.help) {
     printUpgradeHelp(createUpgradeLogger());
-    return;
-  }
-  if (!cli.migrate) return runNormalUpgrade(cli);
-
-  const root = repoRoot();
-  const logger = createUpgradeLogger();
-  const { UpgradeDirectoryMigration } = await import("./lib/upgrade-migration.js");
-  const migration = new UpgradeDirectoryMigration(root, { dryRun: cli.dryRun, logger });
-  const outcome = migration.run();
-  if (!outcome.shouldRunUpgrade) return;
-  if (cli.dryRun) {
-    const previewSucceeded = previewNormalUpgrade(root, outcome, logger);
-    if (outcome.normalUpgradeExpectedFailure || !previewSucceeded) process.exitCode = EXIT_ERROR;
     return;
   }
   return runNormalUpgrade(cli);

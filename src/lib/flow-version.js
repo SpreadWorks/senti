@@ -142,7 +142,7 @@ function restoreBeforeImage(image) {
 }
 
 function catalogManagedPath(value) {
-  if (value.startsWith("artifacts/legacy/")) return true; // migration materialization namespace only
+  if (value === "flow-migration-report.json" || value.startsWith("artifacts/migration/")) return true; // migration materialization namespace only
   try { return FLOW_ARTIFACT_CONTRACTS.classify(value).cataloged; } catch { return false; }
 }
 
@@ -594,8 +594,8 @@ export class FlowVersionLocation {
   }
   relativePath(value) { return path.posix.join(this.relativeDirectory, relativePath(value, "version-relative path")); }
   resolve(value) { return path.join(this.directory, ...relativePath(value, "version-relative path").split("/")); }
-  /** Migration-only compatibility location; normal callers use artifact(logicalKey). */
-  artifactPath(value) { return this.resolve(path.posix.join("artifacts/legacy", relativePath(value, "migration artifact path"))); }
+  /** Migration-only preservation location; normal callers use artifact(logicalKey). */
+  artifactPath(value) { return this.resolve(path.posix.join("artifacts/migration", relativePath(value, "migration artifact path"))); }
   artifact(logicalKey, parameters = {}) { return this.resolve(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
   relativeArtifact(logicalKey, parameters = {}) { return this.relativePath(FLOW_ARTIFACT_CONTRACTS.resolve(logicalKey, parameters).relativePath); }
   runtimeLock(logicalKey) { return new FlowVersionRuntimeLockLocation({ location: this, logicalKey }); }
@@ -740,7 +740,7 @@ export class FlowArtifactDescriptor {
     if (logicalKey !== null) contract = FLOW_ARTIFACT_CONTRACTS.require(logicalKey);
     else {
       try { contract = FLOW_ARTIFACT_CONTRACTS.classify(this.relativePath); } catch (error) {
-        if (migrationMaterialization !== true || !this.relativePath.startsWith("artifacts/legacy/")) throw error;
+        if (migrationMaterialization !== true || (this.relativePath !== "flow-migration-report.json" && !this.relativePath.startsWith("artifacts/migration/"))) throw error;
       }
     }
     if (contract !== null && !contract.matchesCanonicalPath(this.relativePath)) {
@@ -987,6 +987,16 @@ export class FlowArtifactCatalogStore {
       }
       return this.#saveUnlocked(catalog);
     });
+  }
+  /**
+   * Materialize a complete catalog while a one-way migration owns an
+   * unpublished Version root.  Migration-only preserved artifacts have no
+   * normal runtime producer, so they cannot be initialized through the
+   * ordinary system slot path.  The caller still supplies a fully verified
+   * typed catalog; this method does not weaken later publication authority.
+   */
+  initializeMigration(catalog) {
+    return this.initialize(catalog, MIGRATION_CATALOG_INITIALIZATION);
   }
   #saveUnlocked(catalog) {
     if (!(catalog instanceof FlowArtifactCatalog)) throw new Error("FlowArtifactCatalog is required");
@@ -1433,8 +1443,8 @@ export class FlowVersionMigrationArtifact {
     this.authority = authoritySlot.authority;
     this.retention = identifier(retention, "migration retention");
     let contract = null;
-    const legacyMaterialization = this.targetPath?.startsWith("artifacts/legacy/") === true;
-    if (this.targetPath !== null && !legacyMaterialization) {
+    const migrationMaterialization = this.targetPath === "flow-migration-report.json" || this.targetPath?.startsWith("artifacts/migration/") === true;
+    if (this.targetPath !== null && !migrationMaterialization) {
       try { contract = FLOW_ARTIFACT_CONTRACTS.classify(this.targetPath); } catch {
         throw new Error(`migration target must resolve to a canonical artifact contract: ${this.targetPath}`);
       }
@@ -1456,7 +1466,7 @@ export class FlowVersionMigrationArtifact {
         : role === "spec-record" ? contract?.logicalKey.toString() === "spec.record"
           : role === "issue-log" ? contract?.logicalKey.toString() === "issue.log"
             : role === "review-evidence" ? contract?.logicalKey.toString() === "review.evidence"
-              : role === "artifact" ? contract !== null || legacyMaterialization
+              : role === "artifact" ? contract !== null || migrationMaterialization
                 : role === "runtime" && this.operation.value === "exclude-runtime" && this.targetPath === null;
     if (!roleMatches) {
       throw new Error(`migration target does not match its role: ${this.targetPath}`);
@@ -1520,7 +1530,7 @@ const BUILTIN_MIGRATION_SOURCE_POLICY = new FlowVersionMigrationSourcePolicy({ r
   new FlowVersionMigrationMappingRule({ match: "exact", source: "spec.json", targetPath: "spec.json", role: "spec-record", operation: "transform", outputKey: "authoritative-spec-record", mediaType: "application/json", authority: "repository-metadata", cardinality: "singleton", retention: "permanent" }),
   new FlowVersionMigrationMappingRule({ match: "exact", source: "issue-log.json", targetPath: "issue-log.json", role: "issue-log", operation: "copy", mediaType: "application/json", authority: "canonical-flow-artifacts", cardinality: "singleton", retention: "permanent" }),
   new FlowVersionMigrationMappingRule({ match: "namespace", source: ".runtime", role: "runtime", operation: "exclude-runtime", mediaType: "application/octet-stream", authority: "execution-checkout", cardinality: "collection", retention: "transient" }),
-  new FlowVersionMigrationMappingRule({ match: "namespace", source: "artifacts", targetNamespace: "artifacts/legacy", role: "artifact", operation: "copy", mediaType: "application/octet-stream", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
+  new FlowVersionMigrationMappingRule({ match: "namespace", source: "artifacts", targetNamespace: "artifacts/migration", role: "artifact", operation: "copy", mediaType: "application/octet-stream", authority: "canonical-flow-artifacts", cardinality: "collection", retention: "permanent" }),
 ] });
 
 function classifyMigrationArtifact(sourcePath, sourcePolicy) {

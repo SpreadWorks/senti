@@ -97,6 +97,7 @@
       "help": "このヘルプを表示",
       "setup": "プロジェクト登録 + 設定生成（対話式）",
       "upgrade": "テンプレート由来ファイルを最新版に更新",
+      "migrate": "プロジェクト layout または Flow spec を指定 revision へ移行",
       "plugin": "plugin source/package と command/preset を管理",
       "docs build": "ドキュメント一括生成（scan → enrich → init → data → text → readme）",
       "docs scan": "ソースコード解析 → analysis.json",
@@ -273,9 +274,9 @@
         }
       },
       "upgrade": {
-        "usage": "Usage: sennel upgrade [--migrate] [--dry-run]",
+        "usage": "Usage: sennel upgrade [--dry-run]",
         "desc": "テンプレート由来のファイルをインストール済み sennel のバージョンに合わせて更新する。",
-        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。--migrate は legacy 管理ディレクトリを .sennel へ移行してから通常 upgrade を実行する。migration 失敗時は通常 upgrade を開始せず、migration 成功後の通常 upgrade 失敗では .sennel を維持する。.sennel が既に存在する場合または legacy 管理ディレクトリがない場合は通常 upgrade も実行しない。writer 安全性の検査には Linux procfs が必要。",
+        "descDetail": "通常 upgrade は package 管理ファイルだけを更新する。project layout と Flow format の変更は独立した migrate command が扱う。",
         "updatedFiles": [
           ".agents/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
           ".claude/skills/*/SKILL.md        スキルテンプレートと旧スキル削除",
@@ -284,7 +285,6 @@
           ".codex/hooks*                    旧 Sennel hook のみ削除"
         ],
         "options": {
-          "migrate": "--migrate    Linux procfs 環境で .sdd-forge、.senti、または .senrail を .sennel へ移行してから通常 upgrade を実行",
           "dryRun": "--dry-run    変更内容を表示するだけでファイル書き込みしない",
           "help": "-h, --help   このヘルプを表示"
         }

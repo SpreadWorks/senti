@@ -28,7 +28,7 @@ export const CURRENT_FLOW_SCHEMA_REVISION = 3;
 export const CURRENT_FLOW_RESULT_VERSION = 1;
 
 const NODE_KINDS = new Set(["flow", "step", "task"]);
-const NODE_STATUSES = new Set(["pending", "in_progress", "done", "skipped", "failed", "invalidated"]);
+const NODE_STATUSES = new Set(["pending", "in_progress", "done", "skipped", "failed", "invalidated", "archived"]);
 const EXECUTION_MODES = new Set(["direct", "branch", "worktree"]);
 const LIFECYCLE_STATES = new Set(["active", "parked", "finalized"]);
 const RESULT_OUTCOMES = new Set(["passed", "failed", "skipped", "incomplete"]);
@@ -463,6 +463,7 @@ const STATE_FIELDS = new Set([
   "artifacts",
   "outbox",
   "context",
+  "history",
 ]);
 const NODE_FIELDS = new Set(["kind", "id", "key", "status", "result", "attemptSequence", "steps"]);
 const JOURNAL_WRITER_AUTHORITY = Symbol("current-flow-state-store-writer");
@@ -982,6 +983,75 @@ export class CurrentFlowContext {
   }
 
   toJSON() { return this.value === null ? null : { ...this.value }; }
+}
+
+/** Immutable evidence for whether creation can be represented by flow_created. */
+export class CurrentFlowCreationAuthority {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("history.creation must be an object");
+    if (value.status === "available") {
+      requireExactFields(value, new Set(["status", "source"]), "history.creation");
+      if (!isPlainObject(value.source)) throw new CurrentFlowStateInvariantError("history.creation.source must be an object");
+      requireExactFields(value.source, new Set(["path", "pointer", "hash", "timestamp"]), "history.creation.source");
+      this.status = "available";
+      this.source = Object.freeze({
+        path: requireString(value.source.path, "history.creation.source.path"),
+        pointer: requireString(value.source.pointer, "history.creation.source.pointer"),
+        hash: requireString(value.source.hash, "history.creation.source.hash"),
+        timestamp: requireIso(value.source.timestamp, "history.creation.source.timestamp"),
+      });
+      if (!/^[a-f0-9]{64}$/.test(this.source.hash)) {
+        throw new CurrentFlowStateInvariantError("history.creation.source.hash must be SHA-256");
+      }
+      this.reason = null;
+    } else if (value.status === "unavailable") {
+      requireExactFields(value, new Set(["status", "reason"]), "history.creation");
+      this.status = "unavailable";
+      this.source = null;
+      this.reason = requireString(value.reason, "history.creation.reason");
+    } else {
+      throw new CurrentFlowStateInvariantError("history.creation.status is invalid");
+    }
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return this.status === "available"
+      ? { status: this.status, source: { ...this.source } }
+      : { status: this.status, reason: this.reason };
+  }
+}
+
+/**
+ * A production provenance capability for a faithfully imported historical
+ * Flow. It records the limits of prior evidence without introducing a
+ * separate lifecycle: subsequent definition-owned transitions use the same
+ * state machine as a freshly created Flow.
+ */
+export class CurrentFlowHistory {
+  constructor(value) {
+    if (!isPlainObject(value)) throw new CurrentFlowStateInvariantError("history must be an object or null");
+    requireExactFields(value, new Set(["kind", "execution", "ledger", "creation"]), "history");
+    if (value.kind !== "historical") throw new CurrentFlowStateInvariantError("history.kind must be historical");
+    if (value.execution !== "dormant") throw new CurrentFlowStateInvariantError("history.execution must be dormant");
+    if (value.ledger !== "partial") throw new CurrentFlowStateInvariantError("history.ledger must be partial");
+    this.kind = "historical";
+    this.execution = "dormant";
+    this.ledger = "partial";
+    this.creation = value.creation instanceof CurrentFlowCreationAuthority
+      ? value.creation
+      : new CurrentFlowCreationAuthority(value.creation);
+    Object.freeze(this);
+  }
+
+  toJSON() {
+    return {
+      kind: this.kind,
+      execution: this.execution,
+      ledger: this.ledger,
+      creation: this.creation.toJSON(),
+    };
+  }
 }
 
 /**
@@ -2372,14 +2442,19 @@ export class CurrentFlowState {
     this.execution = value.execution instanceof FlowExecution ? value.execution : new FlowExecution(value.execution);
     this.policy = value.policy instanceof CurrentFlowPolicy ? value.policy : new CurrentFlowPolicy(value.policy);
     this.root = new FlowRootNode(rootNodeValue(value));
-    definition.assertStateShape(this.root);
     this.definition = definition;
+    this.history = value.history === null
+      ? null
+      : value.history instanceof CurrentFlowHistory ? value.history : new CurrentFlowHistory(value.history);
+    if (this.history === null) definition.assertStateShape(this.root);
     if (value.current !== null && typeof value.current !== "string") {
       throw new CurrentFlowStateInvariantError("current must be a stable node id or null");
     }
     this.current = value.current == null
       ? null
-      : this.definitionPathForCurrent(value.current);
+      : this.history === null
+        ? this.definitionPathForCurrent(value.current)
+        : this.historicalPathForCurrent(value.current);
     this.attempt = value.attempt == null ? null : value.attempt instanceof CurrentAttempt ? value.attempt : new CurrentAttempt(value.attempt);
     this.confirmationOrder = requirePositiveInteger(value.confirmationOrder, "confirmationOrder", { allowZero: true });
     this.artifacts = value.artifacts instanceof CurrentFlowArtifacts ? value.artifacts : new CurrentFlowArtifacts(value.artifacts);
@@ -2404,6 +2479,7 @@ export class CurrentFlowState {
     artifacts = [],
     outbox = [],
     context = null,
+    history = null,
   }) {
     if (!(definition instanceof CurrentFlowDefinition)) {
       throw new CurrentFlowStateInvariantError("CurrentFlowState.create requires a CurrentFlowDefinition");
@@ -2428,6 +2504,7 @@ export class CurrentFlowState {
       artifacts,
       outbox,
       context,
+      history,
     }, { definition });
   }
 
@@ -2438,7 +2515,18 @@ export class CurrentFlowState {
     return Object.freeze([...pathFor]);
   }
 
+  historicalPathForCurrent(currentId) {
+    const id = requireString(currentId, "current id");
+    const pathFor = findPathInRoot(this.root, id);
+    if (pathFor === null) throw new CurrentFlowStateInvariantError("current must identify a historical state node");
+    return Object.freeze([...pathFor]);
+  }
+
   #assertCurrent() {
+    if (this.history !== null) {
+      this.#assertHistorical();
+      return;
+    }
     const all = collectNodes(this.root);
     const ids = new Set();
     for (const node of all) {
@@ -2490,11 +2578,62 @@ export class CurrentFlowState {
     }
   }
 
+  #assertHistorical() {
+    const nodes = collectNodes(this.root);
+    const ids = new Set();
+    for (const node of nodes) {
+      if (ids.has(node.id)) throw new CurrentFlowStateInvariantError(`historical state duplicates stable id: ${node.id}`);
+      ids.add(node.id);
+    }
+    if (this.current === null && this.attempt !== null) {
+      throw new CurrentFlowStateInvariantError("historical Attempt requires a saved current path");
+    }
+    if (this.attempt !== null) {
+      const leaf = nodeAtPath(this.root, this.current);
+      if (leaf.steps.length !== 0 || leaf.status !== "in_progress") {
+        throw new CurrentFlowStateInvariantError("historical live Attempt requires an in-progress saved leaf");
+      }
+      if (this.attempt.nodeId !== leaf.id || this.attempt.sequence !== leaf.attemptSequence) {
+        throw new CurrentFlowStateInvariantError("historical live Attempt must match its saved leaf cursor");
+      }
+      this.assertTransitionHandler(leaf.id);
+      this.#assertAttemptContractForLeaf(leaf, this.attempt);
+    }
+    if (this.history.creation.status === "available") {
+      if (this.confirmationOrder < 1) {
+        throw new CurrentFlowStateInvariantError("historical Flow with creation authority requires its first confirmed Activity order");
+      }
+    }
+  }
+
+  /**
+   * Imported history can contain retired nodes. A new Activity is allowed
+   * only when its saved target is still owned by the production definition.
+   * This runs before journal append; historical state has no separate
+   * read-only lifecycle.
+   */
+  assertTransitionHandler(nodeId = this.current?.at(-1) ?? this.root.id) {
+    const node = this.findNode(requireString(nodeId, "transition handler nodeId"));
+    if (node === null) {
+      throw new CurrentFlowStateInvariantError("transition handler requires a saved state node");
+    }
+    try {
+      this.definition.definitionNodeFor(node);
+      if (node.id !== this.root.id && node.steps.length === 0) this.definition.actionFor(node.id, this.root);
+    } catch (error) {
+      throw new CurrentFlowStateInvariantError(
+        `current Flow definition has no handler for historical node ${node.id}: ${error.message}`,
+      );
+    }
+    return this;
+  }
+
   findNode(id) {
     return findNodeInRoot(this.root, id);
   }
 
   park() {
+    this.assertTransitionHandler(this.root.id);
     if (this.lifecycle.state !== "active") {
       throw new CurrentFlowStateInvariantError("only an active Flow may be parked");
     }
@@ -2502,6 +2641,7 @@ export class CurrentFlowState {
   }
 
   resume() {
+    this.assertTransitionHandler(this.root.id);
     if (this.lifecycle.state !== "parked") {
       throw new CurrentFlowStateInvariantError("only a parked Flow may be resumed");
     }
@@ -2509,6 +2649,7 @@ export class CurrentFlowState {
   }
 
   withPolicy(policy) {
+    this.assertTransitionHandler(this.root.id);
     if (this.lifecycle.state === "finalized") {
       throw new CurrentFlowStateInvariantError("finalized Flow policy is immutable");
     }
@@ -2520,6 +2661,7 @@ export class CurrentFlowState {
   }
 
   withOutbox(outbox) {
+    this.assertTransitionHandler(this.root.id);
     if (this.lifecycle.state === "finalized") {
       throw new CurrentFlowStateInvariantError("finalized Flow outbox is immutable");
     }
@@ -2609,6 +2751,24 @@ export class CurrentFlowState {
   }
 
   startAttempt({ path: currentPath, attempt }) {
+    const dormantHistoricalCursor = this.history !== null
+      && this.current !== null
+      && this.attempt === null
+      && jsonEqual(this.current, currentPath);
+    if (dormantHistoricalCursor) {
+      const target = nodeAtPath(this.root, currentPath);
+      this.assertTransitionHandler(target.id);
+      if (target.status !== "in_progress") {
+        throw new CurrentFlowStateInvariantError("dormant historical cursor must retain an in-progress leaf before it can start an Attempt");
+      }
+      return this.#activateAttempt({
+        path: currentPath,
+        attempt,
+        allowedLeafStatuses: ["in_progress"],
+        initial: true,
+        operation: "startAttempt",
+      });
+    }
     const expected = this.definition.nextExecutableLeaf(this.root);
     if (!expected || expected.id !== currentPath?.at(-1) || expected.status !== "pending") {
       throw new CurrentFlowStateInvariantError("startAttempt must target the definition-owned next executable leaf");
@@ -3131,6 +3291,19 @@ export class CurrentFlowState {
 
   nextAction() {
     if (this.current !== null) {
+      const currentNode = nodeAtPath(this.root, this.current);
+      this.assertTransitionHandler(currentNode.id);
+      if (this.history !== null && this.attempt === null) {
+        if (currentNode.steps.length !== 0 || currentNode.status !== "in_progress") {
+          throw new CurrentFlowStateInvariantError("historical current cursor has no production-resumable leaf handler");
+        }
+        return new CurrentNextActionDescriptor({
+          path: this.current,
+          node: currentNode,
+          operation: "start",
+          action: this.definition.actionFor(currentNode.id, this.root),
+        });
+      }
       const failureDisposition = this.failureDisposition();
       const descriptorPath = failureDisposition?.targetPath ?? this.current;
       const node = nodeAtPath(this.root, descriptorPath);
@@ -3142,6 +3315,7 @@ export class CurrentFlowState {
         failureDisposition,
       });
     }
+    if (this.history !== null) return null;
     const node = this.definition.nextExecutableLeaf(this.root);
     if (node === null) return null;
     return new CurrentNextActionDescriptor({
@@ -3297,8 +3471,14 @@ export class CurrentFlowState {
 
   #activateAttempt({ path: currentPath, attempt, allowedLeafStatuses, initial, operation }) {
     this.#assertExecutionActive();
-    if (this.current != null) throw new CurrentFlowStateInvariantError("a current Attempt is already active");
+    const dormantHistoricalCursor = this.history !== null
+      && this.current !== null
+      && this.attempt === null
+      && jsonEqual(this.current, currentPath)
+      && initial === true;
+    if (this.current != null && !dormantHistoricalCursor) throw new CurrentFlowStateInvariantError("a current Attempt is already active");
     const leaf = nodeAtPath(this.root, currentPath);
+    this.assertTransitionHandler(leaf.id);
     if (leaf.steps.length !== 0) throw new CurrentFlowStateInvariantError("Attempt target must be a leaf");
     if (!allowedLeafStatuses.includes(leaf.status)) {
       throw new CurrentFlowStateInvariantError(`${operation} may target only a ${allowedLeafStatuses.join(" or ")} leaf`);
@@ -3308,7 +3488,7 @@ export class CurrentFlowState {
     let root = this.root;
     for (const id of currentPath) {
       const node = findNodeInRoot(root, id);
-      if (node.status !== "in_progress") {
+      if (node.status !== "in_progress" || (id === leaf.id && node.attemptSequence !== parsedAttempt.sequence)) {
         root = replaceNode(root, id, transitionNode(node, "in_progress", this.definition, {
           result: id === leaf.id ? null : node.result,
           attemptSequence: id === leaf.id ? parsedAttempt.sequence : node.attemptSequence,
@@ -3389,6 +3569,7 @@ export class CurrentFlowState {
   }
 
   #assertExecutionActive() {
+    this.assertTransitionHandler(this.current?.at(-1) ?? this.root.id);
     if (this.lifecycle.state !== "active") {
       throw new CurrentFlowStateInvariantError("step transitions require an active Flow lifecycle");
     }
@@ -3410,6 +3591,7 @@ export class CurrentFlowState {
       artifacts: this.artifacts.toJSON(),
       outbox: this.outbox.toJSON(),
       context: this.context.toJSON(),
+      history: this.history?.toJSON() ?? null,
     };
   }
 }
@@ -3815,6 +3997,7 @@ export class ActivityTransition {
   apply(state, activity) {
     const targetId = this.nodeId;
     if (activity.nodeId !== targetId) throw new CurrentFlowStateInvariantError("Activity nodeId must match transition nodeId");
+    if (this.operation !== FLOW_CREATION_TRANSITION_OPERATION) state.assertTransitionHandler(targetId);
     const currentPath = state.definition.pathFor(state.root, targetId);
     if (currentPath === null) throw new CurrentFlowStateInvariantError("Activity transition nodeId must identify a current-state node");
     const target = nodeAtPath(state.root, currentPath);
@@ -4316,8 +4499,12 @@ function assertJournalAttemptIdentities(entries) {
       if (introduced.nodeId !== entry.nodeId) {
         throw new CurrentFlowStateInvariantError("introduced Attempt nodeId must match its Activity nodeId");
       }
-      const previousSequence = lastSequenceByNode.get(entry.nodeId) ?? 0;
-      if (introduced.sequence !== previousSequence + 1) {
+      const previousSequence = lastSequenceByNode.get(entry.nodeId);
+      // A journal's first visible Attempt need not be a Flow's first Attempt:
+      // historical state can retain a direct, pre-journal cursor. The state
+      // transition remains the authority for that first visible sequence;
+      // subsequent journal introductions must still be contiguous here.
+      if (previousSequence !== undefined && introduced.sequence !== previousSequence + 1) {
         throw new CurrentFlowStateInvariantError(`Attempt sequence must be contiguous for node ${entry.nodeId}`);
       }
       registerIdentity(introduced.id, introduced.sequence, entry.nodeId);
@@ -4716,6 +4903,24 @@ export class CurrentFlowStateStore {
   }
 
   #assertJournalConsistency(state, entries) {
+    if (state.history !== null) {
+      const orders = entries.map((entry) => entry.confirmationOrder);
+      const expected = Array.from({ length: entries.length }, (_, index) => index + 1);
+      if (JSON.stringify(orders) !== JSON.stringify(expected) || state.confirmationOrder !== entries.length) {
+        throw new CurrentFlowStateConflictError("historical Flow Activity ledger must be a complete contiguous confirmed prefix");
+      }
+      if (state.history.creation.status === "available") {
+        const created = entries[0] ?? null;
+        if (created === null || created.transition.operation !== FLOW_CREATION_TRANSITION_OPERATION
+          || created.id !== flowCreatedActivityId(state.identity)
+          || created.timing?.startedAt !== state.history.creation.source.timestamp) {
+          throw new CurrentFlowStateConflictError("historical creation authority does not match its flow_created Activity");
+        }
+      } else if (entries.some((entry) => entry.transition.operation === FLOW_CREATION_TRANSITION_OPERATION)) {
+        throw new CurrentFlowStateConflictError("historical Flow without creation authority cannot claim a flow_created Activity");
+      }
+      return;
+    }
     const journalOrder = entries.at(-1)?.confirmationOrder ?? 0;
     if (journalOrder < state.confirmationOrder) {
       throw new CurrentFlowStateConflictError("flow state confirmation order is ahead of its Activity journal");

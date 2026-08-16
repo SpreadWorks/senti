@@ -406,7 +406,19 @@ const definitions = [
     name: "upgrade",
     entrypoint: { modulePath: "../upgrade.js", invocation: "main" },
     allowInvalidConfig: true,
-    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: sennel upgrade [--migrate] [--dry-run]", options: ["--migrate", "--dry-run", "-h, --help"], localeKey: "ui:help.cmdHelp.upgrade" },
+    help: { section: "Project", summary: "Update template-derived files to latest version", usage: "Usage: sennel upgrade [--dry-run]", options: ["--dry-run", "-h, --help"], localeKey: "ui:help.cmdHelp.upgrade" },
+  }),
+  new CommandDefinition({
+    name: "migrate",
+    entrypoint: { modulePath: "../migrate.js", invocation: "main" },
+    allowInvalidConfig: true,
+    help: {
+      section: "Project",
+      summary: "Migrate project layout or Flow specifications to a revision",
+      usage: "Usage: sennel migrate <layout|specs> --to 1 [--dry-run]",
+      options: ["--to <revision>", "--dry-run", "-h, --help"],
+      localeKey: "ui:help.commands.migrate",
+    },
   }),
   new CommandDefinition({
     name: "plugin",
