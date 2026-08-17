@@ -25,11 +25,15 @@ import { Command } from "../../lib/command.js";
 import { managedOutputDir } from "../../lib/config.js";
 import { collectFiles } from "../lib/scanner.js";
 import { loadDataSources } from "../lib/data-source-loader.js";
-import { presetByLeaf, resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
+import { resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
 import { createLogger } from "../../lib/progress.js";
 import { translate } from "../../lib/i18n.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
+import {
+  DocumentationSourceSelection,
+} from "../lib/source-selection.js";
+import { resolveDocumentationScanPatterns } from "../lib/scan-patterns.js";
 
 import { isEmptyEntry, buildSummary, iterateAnalysisCategories } from "../lib/analysis-entry.js";
 
@@ -244,33 +248,12 @@ async function runScan(ctx, rawArgs) {
 
   logger.verbose(`type=${type}`);
 
-  // Merge scan patterns from preset chain
   const types = Array.isArray(type) ? type : [type];
-
-  let mergedInclude = [];
-  let mergedExclude = [];
-
-  if (cfg.scan) {
-    mergedInclude = cfg.scan.include || [];
-    mergedExclude = cfg.scan.exclude || [];
-  } else {
-    const seenInclude = new Set();
-    const seenExclude = new Set();
-    for (const t of types) {
-      const preset = presetByLeaf(t, root);
-      const scan = preset?.scan;
-      if (!scan) continue;
-      for (const p of scan.include || []) {
-        if (!seenInclude.has(p)) { seenInclude.add(p); mergedInclude.push(p); }
-      }
-      for (const p of scan.exclude || []) {
-        if (!seenExclude.has(p)) { seenExclude.add(p); mergedExclude.push(p); }
-      }
-    }
-  }
+  const patterns = resolveDocumentationScanPatterns({ config: cfg, type, root });
+  const sourceSelection = new DocumentationSourceSelection(patterns);
 
   // 1. Collect files with hash/lines/mtime
-  const files = collectFiles(src, mergedInclude, mergedExclude);
+  const files = collectFiles(src, sourceSelection);
   logger.verbose(`collected ${files.length} files`);
 
   // 2. Load existing analysis.json

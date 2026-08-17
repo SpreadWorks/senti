@@ -99,6 +99,19 @@ describe("scanner utilities", () => {
   });
 
   describe("collectFiles", () => {
+    it("keeps recursive double-star patterns recursive when pruning directories", () => {
+      tmp = createTmpDir();
+      writeFile(tmp, "nested/deeper/file.js", "export {};\n");
+
+      for (const pattern of ["**", "**.js"]) {
+        assert.deepEqual(
+          collectFiles(tmp, [pattern]).map((file) => file.relPath),
+          ["nested/deeper/file.js"],
+          pattern,
+        );
+      }
+    });
+
     it("collects files matching include globs", () => {
       tmp = createTmpDir();
       writeFile(tmp, "src/app.js", "export function app() {}");

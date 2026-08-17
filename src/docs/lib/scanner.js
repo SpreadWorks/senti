@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { getLangHandler } from "./lang-factory.js";
 import { globToRegex } from "../../lib/glob.js";
+import { DocumentationSourceSelection, isDocumentationScannerExcludedPath } from "./source-selection.js";
 
 // ---------------------------------------------------------------------------
 // ファイル探索
@@ -208,15 +209,15 @@ export function parseFile(filePath, lang) {
  * sourceRoot 配下から include/exclude glob パターンに一致するファイルを収集する。
  *
  * @param {string} baseDir - ソースルートの絶対パス
- * @param {string[]} include - include glob パターン配列
+ * @param {DocumentationSourceSelection|string[]} selectionOrInclude - 選択モデルまたはinclude globパターン配列
  * @param {string[]} [exclude] - exclude glob パターン配列
  * @returns {Array<{ absPath: string, relPath: string, fileName: string, hash: string, lines: number, mtime: string }>}
  */
-export function collectFiles(baseDir, include = [], exclude = []) {
-  if (include.length === 0) return [];
-
-  const includeMatchers = include.map((p) => globToRegex(p));
-  const excludeMatchers = exclude.map((p) => globToRegex(p));
+export function collectFiles(baseDir, selectionOrInclude = [], exclude = []) {
+  const selection = selectionOrInclude instanceof DocumentationSourceSelection
+    ? selectionOrInclude
+    : new DocumentationSourceSelection({ include: selectionOrInclude, exclude });
+  if (selection.include.length === 0) return [];
   const results = [];
 
   function walk(dir, relPrefix) {
@@ -228,13 +229,13 @@ export function collectFiles(baseDir, include = [], exclude = []) {
     }
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor") continue;
         const nextRel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
+        if (isDocumentationScannerExcludedPath(nextRel)) continue;
+        if (!selection.shouldEnterDirectory(nextRel)) continue;
         walk(path.join(dir, entry.name), nextRel);
       } else if (entry.isFile()) {
         const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
-        if (!includeMatchers.some((m) => m.test(relPath))) continue;
-        if (excludeMatchers.some((m) => m.test(relPath))) continue;
+        if (!selection.matchesFile(relPath)) continue;
         const absPath = path.join(dir, entry.name);
         results.push({
           absPath,

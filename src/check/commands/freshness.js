@@ -23,21 +23,29 @@ import {
   DEFAULT_SCAN_POLICY,
   FileTreeWalker,
   FileTreeWalkResult,
-  FRESHNESS_SOURCE_POLICY,
   TraversalLimit,
 } from "../../lib/file-tree-walker.js";
+import {
+  DocumentationSourceSelection,
+  isDocumentationScannerExcludedPath,
+} from "../../docs/lib/source-selection.js";
+import { resolveDocumentationScanPatterns } from "../../docs/lib/scan-patterns.js";
+import { DocumentationBuildInputSelection } from "../lib/documentation-build-input-selection.js";
+import { resolveDocsContext } from "../../docs/lib/docs-context.js";
 import { runGit } from "../../lib/git-helpers.js";
 
 const FRESHNESS_RESULTS = new Set(["fresh", "stale", "never-built", "indeterminate"]);
 const GIT_FILE_LIST_MAX_BUFFER = 16 * 1024 * 1024;
 
 /**
- * Resolves the bounded file set that can affect documentation freshness.
- * Git repositories use Git's own tracked/untracked/ignore semantics; other
- * directories retain the filesystem traversal used by project-mode sources.
+ * Resolves the bounded material-input set that can affect documentation
+ * freshness. Git keeps its tracked/non-ignored conservative input inventory,
+ * then adds filesystem paths that `docs scan` explicitly selects plus managed
+ * build controls. Thus ignored source state matters only when explicitly
+ * selected, while managed controls remain material regardless of ignore rules.
  */
 export class FreshnessFileInventory {
-  constructor({ root, policy, sourcePolicy = null, excludedDirectory = null, gitRunner = runGit }) {
+  constructor({ root, policy, sourceSelection = null, excludedDirectory = null, gitRunner = runGit }) {
     if (typeof root !== "string" || !path.isAbsolute(root)) {
       throw new Error("freshness inventory root must be an absolute path");
     }
@@ -47,23 +55,26 @@ export class FreshnessFileInventory {
     if (excludedDirectory != null && (typeof excludedDirectory !== "string" || excludedDirectory === "")) {
       throw new Error("freshness excluded directory must be a non-empty string or null");
     }
+    if (sourceSelection !== null && !(sourceSelection instanceof DocumentationBuildInputSelection)) {
+      throw new Error("freshness source selection must be a DocumentationBuildInputSelection or null");
+    }
     if (typeof gitRunner !== "function") {
       throw new Error("freshness inventory git runner must be a function");
     }
     this.root = path.resolve(root);
     this.policy = policy;
-    this.sourcePolicy = sourcePolicy;
+    this.sourceSelection = sourceSelection;
     this.excludedDirectory = excludedDirectory?.split(path.sep).join("/") ?? null;
     this.gitRunner = gitRunner;
     Object.freeze(this);
   }
 
   collect() {
-    const gitInventory = this.sourcePolicy === null ? null : this.#collectGitInventory();
+    const gitInventory = this.sourceSelection === null ? null : this.#collectGitInventory();
     if (gitInventory !== null) return gitInventory;
     return new FileTreeWalker(this.policy).walk(this.root, {
-      includeFile: (relativePath) => this.#includes(relativePath),
-      shouldEnterDirectory: (relativePath) => this.#includesDirectory(relativePath),
+      includeFile: (relativePath) => this.#includesFilesystem(relativePath),
+      shouldEnterDirectory: (relativePath) => this.#includesFilesystemDirectory(relativePath),
     });
   }
 
@@ -71,39 +82,56 @@ export class FreshnessFileInventory {
     const repository = this.gitRunner(["rev-parse", "--is-inside-work-tree"], { cwd: this.root });
     if (!repository.ok || repository.stdout.trim() !== "true") return null;
 
-    const listing = this.gitRunner([
-      "ls-files",
-      "-z",
-      "--cached",
-      "--others",
-      "--exclude-standard",
-      "--",
-      ".",
-    ], {
-      cwd: this.root,
-      maxBuffer: GIT_FILE_LIST_MAX_BUFFER,
-    });
-    if (!listing.ok) {
-      return new FileTreeWalkResult([], [new TraversalLimit("unreadable", ".git/index", null)]);
+    const pathspec = this.#conservativeGitPathspec();
+    let conservative = [];
+    if (pathspec.length > 0) {
+      const listing = this.gitRunner([
+        "ls-files",
+        "-z",
+        "--cached",
+        "--others",
+        "--exclude-standard",
+        "--",
+        ...pathspec,
+      ], {
+        cwd: this.root,
+        maxBuffer: GIT_FILE_LIST_MAX_BUFFER,
+      });
+      if (!listing.ok) {
+        return new FileTreeWalkResult([], [new TraversalLimit("unreadable", ".git/index", null)]);
+      }
+      conservative = listing.stdout.split("\0").filter(Boolean)
+        .filter((relativePath) => this.#includesConservative(relativePath));
     }
-
-    const candidates = [...new Set(listing.stdout.split("\0").filter(Boolean))]
+    const explicit = this.#collectExplicitFilesystemCandidates();
+    const limits = [...explicit.limits];
+    const candidates = [...new Set([...conservative, ...explicit.files])]
       .sort((left, right) => left.localeCompare(right));
     const files = [];
     for (const relativePath of candidates) {
-      if (!this.#includes(relativePath)) continue;
       if (files.length === this.policy.maxFiles) {
-        return new FileTreeWalkResult(
-          files,
-          [new TraversalLimit("files", relativePath, this.policy.maxFiles)],
-        );
+        limits.push(new TraversalLimit("files", relativePath, this.policy.maxFiles));
+        break;
       }
       files.push(relativePath);
     }
-    return new FileTreeWalkResult(files, []);
+    return new FileTreeWalkResult(files, limits);
   }
 
-  #includes(relativePath) {
+  #collectExplicitFilesystemCandidates() {
+    return new FileTreeWalker(this.policy).walk(this.root, {
+      includeFile: (relativePath) => this.#includesExplicitOrManaged(relativePath),
+      shouldEnterDirectory: (relativePath) => this.#includesExplicitOrManagedDirectory(relativePath),
+    });
+  }
+
+  #conservativeGitPathspec() {
+    const pathspec = this.sourceSelection.conservativeGitPathspec();
+    if (pathspec.length === 0 || this.excludedDirectory === null) return pathspec;
+    return [...pathspec, `:(exclude,literal)${this.excludedDirectory}`];
+  }
+
+  #isExcludedDirectory(relativePath) {
     if (
       this.excludedDirectory !== null
       && (
@@ -111,22 +139,39 @@ export class FreshnessFileInventory {
         || relativePath.startsWith(`${this.excludedDirectory}/`)
       )
     ) {
-      return false;
+      return true;
     }
-    return this.sourcePolicy === null || this.sourcePolicy.shouldIncludeFile(relativePath);
+    return this.sourceSelection !== null
+      && isDocumentationScannerExcludedPath(relativePath);
   }
 
-  #includesDirectory(relativePath) {
-    if (
-      this.excludedDirectory !== null
-      && (
-        relativePath === this.excludedDirectory
-        || relativePath.startsWith(`${this.excludedDirectory}/`)
-      )
-    ) {
-      return false;
-    }
-    return this.sourcePolicy === null || this.sourcePolicy.shouldEnterDirectory(relativePath);
+  #includesConservative(relativePath) {
+    if (this.#isExcludedDirectory(relativePath)) return false;
+    return this.sourceSelection.matchesConservativeFile(relativePath);
+  }
+
+  #includesExplicitOrManaged(relativePath) {
+    if (this.#isExcludedDirectory(relativePath)) return false;
+    return this.sourceSelection.matchesExplicitOrManagedFile(relativePath);
+  }
+
+  #includesFilesystem(relativePath) {
+    if (this.#isExcludedDirectory(relativePath)) return false;
+    return this.sourceSelection === null
+      || this.sourceSelection.matchesConservativeFile(relativePath)
+      || this.sourceSelection.matchesExplicitOrManagedFile(relativePath);
+  }
+
+  #includesFilesystemDirectory(relativePath) {
+    if (this.#isExcludedDirectory(relativePath)) return false;
+    return this.sourceSelection === null
+      || this.sourceSelection.shouldEnterConservativeDirectory(relativePath)
+      || this.sourceSelection.shouldEnterExplicitOrManagedDirectory(relativePath);
+  }
+
+  #includesExplicitOrManagedDirectory(relativePath) {
+    if (this.#isExcludedDirectory(relativePath)) return false;
+    return this.sourceSelection.shouldEnterExplicitOrManagedDirectory(relativePath);
   }
 }
 
@@ -264,20 +309,22 @@ function printHelp() {
  *
  * @param {string} dir
  * @param {import("../../lib/file-tree-walker.js").ScanPolicy} policy
- * @param {import("../../lib/file-tree-walker.js").FreshnessSourcePolicy|null} sourcePolicy
+ * @param {DocumentationBuildInputSelection|null} sourceSelection
+ * @param {string|null} excludedDirectory
+ * @param {typeof runGit} gitRunner
  * @returns {Promise<FreshnessScan>}
  */
 async function newestMtime(
   dir,
   policy = DEFAULT_SCAN_POLICY,
-  sourcePolicy = null,
+  sourceSelection = null,
   excludedDirectory = null,
   gitRunner = runGit,
 ) {
   const traversal = new FreshnessFileInventory({
     root: dir,
     policy,
-    sourcePolicy,
+    sourceSelection,
     excludedDirectory,
     gitRunner,
   }).collect();
@@ -294,7 +341,7 @@ async function newestMtime(
   }
   return new FreshnessScan({
     target: dir,
-    policy: sourcePolicy?.name ?? "default",
+    policy: sourceSelection ? "freshness-source" : "default",
     newestMs,
     limits,
   });
@@ -305,28 +352,26 @@ async function newestMtime(
  *
  * @param {string} workRoot - repo root (docs/ lives here)
  * @param {string} srcRoot  - source root
- * @param {{policy?: import("../../lib/file-tree-walker.js").ScanPolicy}} options
+ * @param {{
+ *   policy?: import("../../lib/file-tree-walker.js").ScanPolicy,
+ *   sourceSelection?: DocumentationBuildInputSelection|null,
+ *   gitRunner?: typeof runGit,
+ * }} options
  * @returns {Promise<FreshnessResult>}
  */
 async function checkFreshness(workRoot, srcRoot, {
   policy = DEFAULT_SCAN_POLICY,
-  sourcePolicy: configuredSourcePolicy = FRESHNESS_SOURCE_POLICY,
+  sourceSelection = null,
   gitRunner = runGit,
 } = {}) {
   const docsDir = path.join(workRoot, "docs");
-  const sourceRelativeToWork = path.relative(workRoot, srcRoot);
-  const sourcePolicy = (
-    !sourceRelativeToWork.startsWith(`..${path.sep}`)
-    && !path.isAbsolute(sourceRelativeToWork)
-  ) ? configuredSourcePolicy.forRelativeRoot(sourceRelativeToWork) : configuredSourcePolicy;
-
   try {
     await fs.promises.access(docsDir);
   } catch {
     return new FreshnessResult("never-built", {
       sourceScan: new FreshnessScan({
         target: srcRoot,
-        policy: sourcePolicy.name,
+        policy: "freshness-source",
         complete: false,
       }),
       docsScan: new FreshnessScan({
@@ -344,7 +389,7 @@ async function checkFreshness(workRoot, srcRoot, {
     && !path.isAbsolute(docsRelativeToSource)
   ) ? docsRelativeToSource : null;
   const [srcResult, docsResult] = await Promise.all([
-    newestMtime(srcRoot, policy, sourcePolicy, sourceDocsDirectory, gitRunner),
+    newestMtime(srcRoot, policy, sourceSelection, sourceDocsDirectory, gitRunner),
     newestMtime(docsDir, policy),
   ]);
 
@@ -412,8 +457,21 @@ async function runFreshnessCheck(rawArgs, container) {
 
   const workRoot = container.get("root");
   const srcRoot = sourceRoot();
+  const docsContext = resolveDocsContext(container, null);
+  const patterns = resolveDocumentationScanPatterns(docsContext);
+  const sourceRelativeToWork = path.relative(workRoot, srcRoot);
+  const sourceRootIsWithinWorkRoot = (
+    !sourceRelativeToWork.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(sourceRelativeToWork)
+  );
+  const sourceRootRelativePath = sourceRootIsWithinWorkRoot ? sourceRelativeToWork : "";
   const result = await checkFreshness(workRoot, srcRoot, {
-    sourcePolicy: FRESHNESS_SOURCE_POLICY.withSpecRoot(container.get("flowSpecRoot")),
+    sourceSelection: new DocumentationBuildInputSelection({
+      scanSelection: new DocumentationSourceSelection(patterns),
+      flowSpecRoot: sourceRootIsWithinWorkRoot ? container.get("flowSpecRoot") : null,
+      sourceRootRelativePath,
+      managedRoot: sourceRootIsWithinWorkRoot ? undefined : null,
+    }),
   });
 
   if (format === "json") {

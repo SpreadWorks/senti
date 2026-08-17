@@ -1,7 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_FLOW_SPEC_DIR, FlowSpecRoot } from "./flow-workspace.js";
-import { PRODUCT } from "./product.js";
 
 // "unreadable" represents both directory reads and file metadata reads.
 const LIMIT_KINDS = new Set(["depth", "directory-entries", "files", "unreadable"]);
@@ -25,65 +23,6 @@ export class ScanPolicy {
 }
 
 export const DEFAULT_SCAN_POLICY = new ScanPolicy();
-
-const FRESHNESS_EXCLUDED_DIRECTORY_NAMES = new Set([
-  ".git",
-  PRODUCT.managedDirName,
-  "node_modules",
-  "vendor",
-]);
-
-/**
- * Defines the repository paths that cannot affect generated documentation.
- */
-export class FreshnessSourcePolicy {
-  constructor(name = "freshness-source", rootRelativePath = "", specRoot = DEFAULT_FLOW_SPEC_DIR) {
-    if (typeof name !== "string" || name.trim() === "") {
-      throw new Error("FreshnessSourcePolicy name must be a non-empty string");
-    }
-    this.name = name;
-    this.rootRelativePath = normalizeRelative(rootRelativePath).replace(/^\.\/$/, "");
-    this.specRoot = FlowSpecRoot.from(specRoot).toString();
-    Object.freeze(this);
-  }
-
-  forRelativeRoot(rootRelativePath) {
-    return new FreshnessSourcePolicy(this.name, rootRelativePath, this.specRoot);
-  }
-
-  withSpecRoot(specRoot) {
-    return new FreshnessSourcePolicy(this.name, this.rootRelativePath, specRoot);
-  }
-
-  shouldEnterDirectory(relativePath) {
-    const repositoryRelativePath = [this.rootRelativePath, normalizeRelative(relativePath)]
-      .filter(Boolean)
-      .join("/");
-    const segments = repositoryRelativePath.split("/");
-    if (segments.some((segment) => FRESHNESS_EXCLUDED_DIRECTORY_NAMES.has(segment))) return false;
-    const specSegments = this.specRoot.split("/");
-    if (!specSegments.every((segment, index) => segments[index] === segment)) return true;
-
-    const artifactSegments = segments.slice(specSegments.length + 1);
-    if (artifactSegments.length === 1 && ["review-history", "review-evidence"].includes(artifactSegments[0])) return false;
-    return !(artifactSegments.length === 2 && artifactSegments[0] === "tests" && artifactSegments[1] === ".raw");
-  }
-
-  shouldIncludeFile(relativePath) {
-    if (typeof relativePath !== "string" || relativePath === "") {
-      throw new Error("freshness source file path must be a non-empty string");
-    }
-    const segments = normalizeRelative(relativePath).split("/");
-    let directory = "";
-    for (const segment of segments.slice(0, -1)) {
-      directory = directory === "" ? segment : `${directory}/${segment}`;
-      if (!this.shouldEnterDirectory(directory)) return false;
-    }
-    return true;
-  }
-}
-
-export const FRESHNESS_SOURCE_POLICY = new FreshnessSourcePolicy();
 
 export class TraversalLimit {
   constructor(kind, relativePath, maximum) {
